@@ -3,6 +3,7 @@
 [![Task Status](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/badge.svg)](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/latest)
 [![Build Status](https://travis-ci.org/mozilla-mobile/android-components.svg?branch=master)](https://travis-ci.org/mozilla-mobile/android-components)
 [![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
+[![Sputnik](https://sputnik.ci/conf/badge)](https://sputnik.ci/app#/builds/mozilla-mobile/android-components)
 ![](https://api.bintray.com/packages/pocmo/Mozilla-Mobile/errorpages/images/download.svg)
 
 _A collection of Android libraries to build browsers or browser-like applications._
@@ -26,6 +27,8 @@ High-level components for building browser(-like) apps.
 * **Engine-System** - *Engine* implementation based on the system's WebView.
 
 * **Erropages** - Responsive browser error pages for Android apps.
+
+* **Search** - Search plugins and companion code to load, parse and use them.
 
 * **Session** - A generic representation of a browser session.
 

@@ -27,17 +27,11 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-toolbar')
-
-    implementation project(':browser-menu')
-
-    implementation project(':ui-autocomplete')
-    implementation project(':ui-icons')
-    implementation project(':ui-progress')
-
     implementation project(':support-ktx')
 
     implementation "com.android.support:appcompat-v7:${rootProject.ext.dependencies['supportLibraries']}"
+    implementation "com.android.support:recyclerview-v7:${rootProject.ext.dependencies['supportLibraries']}"
+    implementation "com.android.support:cardview-v7:${rootProject.ext.dependencies['supportLibraries']}"
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.dependencies['kotlin']}"
 
@@ -46,10 +40,10 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${rootProject.ext.dependencies['mockito']}"
 }
 
-archivesBaseName = "toolbar"
+archivesBaseName = "menu"
 
 apply from: '../../../publish.gradle'
 ext.configurePublish(
         'org.mozilla.components',
-        'toolbar',
-        'A customizable toolbar for browsers.')
+        'menu',
+        'A customizable menu for browsers.')

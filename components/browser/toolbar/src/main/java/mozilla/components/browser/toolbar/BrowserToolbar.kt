@@ -15,6 +15,7 @@ import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.ktx.android.view.dp
 import mozilla.components.support.ktx.android.view.forEach
+import mozilla.components.support.ktx.android.view.isVisible
 
 /**
  * A customizable toolbar for browsers.
@@ -46,6 +47,15 @@ class BrowserToolbar @JvmOverloads constructor(
     @VisibleForTesting internal var displayToolbar = DisplayToolbar(context, this)
     @VisibleForTesting internal var editToolbar = EditToolbar(context, this)
 
+    /**
+     * Set/Get whether a site security icon (usually a lock or globe icon) should be next to the URL.
+     */
+    var displaySiteSecurityIcon: Boolean
+        get() = displayToolbar.iconView.isVisible()
+        set(value) {
+            displayToolbar.iconView.visibility = if (value) View.VISIBLE else View.GONE
+        }
+
     private var state: State = State.DISPLAY
     private var url: String = ""
     private var searchTerms: String = ""
@@ -61,21 +71,33 @@ class BrowserToolbar @JvmOverloads constructor(
     // We layout the toolbar ourselves to avoid the overhead from using complex ViewGroup implementations
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         forEach { child ->
-            child.layout(left, top, right, bottom)
+            child.layout(
+                    left + paddingLeft,
+                    top + paddingTop,
+                    right - paddingRight,
+                    bottom - paddingBottom)
         }
     }
 
     // We measure the views manually to avoid overhead by using complex ViewGroup implementations
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // Our toolbar will always use the full width and a fixed height
+        // Our toolbar will always use the full width and a fixed height (default) or the provided
+        // height if it's an exact value.
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        val height = dp(TOOLBAR_HEIGHT_DP)
+        val height = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) {
+            MeasureSpec.getSize(heightMeasureSpec)
+        } else {
+            dp(DEFAULT_TOOLBAR_HEIGHT_DP)
+        }
 
         setMeasuredDimension(width, height)
 
-        // Let the children measure themselves using our fixed size
-        val childWidthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
-        val childHeightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+        // Let the children measure themselves using our fixed size (with padding substraced)
+        val childWidth = width - paddingLeft - paddingRight
+        val childHeight = height - paddingTop - paddingBottom
+
+        val childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY)
+        val childHeightSpec = MeasureSpec.makeMeasureSpec(childHeight, MeasureSpec.EXACTLY)
 
         forEach { child -> child.measure(childWidthSpec, childHeightSpec) }
     }
@@ -170,6 +192,6 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     companion object {
-        private const val TOOLBAR_HEIGHT_DP = 56
+        private const val DEFAULT_TOOLBAR_HEIGHT_DP = 56
     }
 }

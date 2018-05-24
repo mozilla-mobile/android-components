@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion rootProject.ext.build['compileSdkVersion']
 
     defaultConfig {
+        applicationId "org.mozilla.samples.toolbar"
         minSdkVersion rootProject.ext.build['minSdkVersion']
         targetSdkVersion rootProject.ext.build['targetSdkVersion']
-    }
+        versionCode 1
+        versionName "1.0"
 
-    lintOptions {
-        warningsAsErrors true
-        abortOnError true
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -26,30 +27,24 @@ android {
     }
 }
 
-dependencies {
-    api project(':concept-toolbar')
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
+}
 
+dependencies {
+    implementation project(':browser-toolbar')
     implementation project(':browser-menu')
 
-    implementation project(':ui-autocomplete')
+    implementation project(':ui-colors')
     implementation project(':ui-icons')
-    implementation project(':ui-progress')
 
     implementation project(':support-ktx')
 
-    implementation "com.android.support:appcompat-v7:${rootProject.ext.dependencies['supportLibraries']}"
-
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.dependencies['kotlin']}"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.dependencies['coroutines']}"
 
-    testImplementation "junit:junit:${rootProject.ext.dependencies['junit']}"
-    testImplementation "org.robolectric:robolectric:${rootProject.ext.dependencies['robolectric']}"
-    testImplementation "org.mockito:mockito-core:${rootProject.ext.dependencies['mockito']}"
+    implementation "com.android.support:appcompat-v7:${rootProject.ext.dependencies['supportLibraries']}"
+    implementation "com.android.support:recyclerview-v7:${rootProject.ext.dependencies['supportLibraries']}"
 }
-
-archivesBaseName = "toolbar"
-
-apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'toolbar',
-        'A customizable toolbar for browsers.')

@@ -22,69 +22,69 @@ We encourage you to participate in this open source project. We love Pull Reques
 
 High-level components for building browser(-like) apps.
 
-* 🔵 **Domains** Localized and customizable domain lists for auto-completion in browsers.
+* 🔵 **Domains** - Localized and customizable domain lists for auto-completion in browsers. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/domains.svg)](https://bintray.com/pocmo/Mozilla-Mobile/domains)
 
-* 🔴 **Engine-Gecko** - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView).
+* 🔴 **Engine-Gecko** - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView). [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/engine-gecko.svg)](https://bintray.com/pocmo/Mozilla-Mobile/engine-gecko)
 
-* 🔴 **Engine-System** - *Engine* implementation based on the system's WebView.
+* 🔴 **Engine-System** - *Engine* implementation based on the system's WebView. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/engine-system.svg)](https://bintray.com/pocmo/Mozilla-Mobile/engine-system) 
 
-* ⚪ **Erropages** - Responsive browser error pages for Android apps.
+* ⚪ **Erropages** - Responsive browser error pages for Android apps. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/errorpages.svg)](https://bintray.com/pocmo/Mozilla-Mobile/errorpages) 
 
-* 🔴 **Menu** - A generic menu with customizable items primarily for browser toolbars.
+* 🔴 **Menu** - A generic menu with customizable items primarily for browser toolbars. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/menu.svg)](https://bintray.com/pocmo/Mozilla-Mobile/menu) 
 
-* 🔵 **Search** - Search plugins and companion code to load, parse and use them.
+* 🔵 **Search** - Search plugins and companion code to load, parse and use them. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/search.svg)](https://bintray.com/pocmo/Mozilla-Mobile/search)
 
-* 🔴 **Session** - A generic representation of a browser session.
+* 🔴 **Session** - A generic representation of a browser session. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/session.svg)](https://bintray.com/pocmo/Mozilla-Mobile/session)
 
-* 🔴 **Toolbar** - A customizable toolbar for browsers.
+* 🔴 **Toolbar** - A customizable toolbar for browsers. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/toolbar.svg)](https://bintray.com/pocmo/Mozilla-Mobile/toolbar)
 
 ## Concept
 
 _API contracts and abstraction layers for browser components._
 
-* 🔴 **Engine** - Abstraction layer that allows hiding the actual browser engine implementation.
+* 🔴 **Engine** - Abstraction layer that allows hiding the actual browser engine implementation. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/engine.svg)](https://bintray.com/pocmo/Mozilla-Mobile/engine)
 
-* 🔴 **Session-Storage** - Abstraction layer and contracts for hiding the actual session storage implementation.
+* 🔴 **Session-Storage** - Abstraction layer for hiding the actual session storage implementation. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/session-storage.svg)](https://bintray.com/pocmo/Mozilla-Mobile/session-storeage)
 
-* 🔴 **Toolbar** - Abstract definition of a browser toolbar component.
+* 🔴 **Toolbar** - Abstract definition of a browser toolbar component. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/abstract-toolbar.svg)](https://bintray.com/pocmo/Mozilla-Mobile/abstract-toolbar)
 
 ## Feature
 
 _Combined components to implement feature-specific use cases._
 
-* 🔴 **Search** - A component that connects an (concept) engine implementation with the browser search module.
+* 🔴 **Search** - Combining an engine implementation with the browser search module. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/feature-search.svg)](https://bintray.com/pocmo/Mozilla-Mobile/feature-search)
 
-* 🔴 **Session** - A component that connects an (concept) engine implementation with the browser session module.
+* 🔴 **Session** - Combining an engine implementation with the browser session module. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/feature-session.svg)](https://bintray.com/pocmo/Mozilla-Mobile/feature-session)
 
-* 🔴 **Toolbar** - A component that connects a (concept) toolbar implementation with the browser session module.
+* 🔴 **Toolbar** - Combining a toolbar implementation with the browser session module. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/feature-toolbar.svg)](https://bintray.com/pocmo/Mozilla-Mobile/feature-toolbar)
 
 ## UI
 
 _Generic low-level UI components for building apps._
 
-* 🔵 **Autocomplete** - A set of components to provide autocomplete functionality.
+* 🔵 **Autocomplete** - A set of components to provide autocomplete functionality. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/autocomplete.svg)](https://bintray.com/pocmo/Mozilla-Mobile/autocomplete)
 
-* 🔵 **Colors** - The standard set of [Photon](https://design.firefox.com/photon/) colors.
+* 🔵 **Colors** - The standard set of [Photon](https://design.firefox.com/photon/) colors. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/colors.svg)](https://bintray.com/pocmo/Mozilla-Mobile/colors)
 
-* 🔵 **Fonts** - The standard set of fonts used by Mozilla Android products.
+* 🔵 **Fonts** - The standard set of fonts used by Mozilla Android products. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/fonts.svg)](https://bintray.com/pocmo/Mozilla-Mobile/fonts)
 
-* 🔵 **Icons** - A collection of often used browser icons.
+* 🔵 **Icons** - A collection of often used browser icons. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/icons.svg)](https://bintray.com/pocmo/Mozilla-Mobile/icons)
 
-* 🔵 **Progress** - An animated progress bar following the Photon Design System. 
+* 🔵 **Progress** - An animated progress bar following the Photon Design System. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/progress.svg)](https://bintray.com/pocmo/Mozilla-Mobile/progress)
 
 ## Service
 
 _Components and libraries to interact with backend services._
 
-* 🔵 **Telemetry** - A generic library for sending telemetry pings from Android applications to Mozilla's telemetry service.
+* 🔵 **Telemetry** - A library for sending pings from Android apps to Mozilla's telemetry service. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/telemetry.svg)](https://bintray.com/pocmo/Mozilla-Mobile/telemetry)
 
 ## Support
 
 _Supporting components with generic helper code._
 
-* 🔵 **Ktx** - A set of Kotlin extensions on top of the Android framework and Kotlin standard library.
+* 🔵 **Ktx** - A set of Kotlin extensions on top of the Android framework and Kotlin standard library. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/ktx.svg)](https://bintray.com/pocmo/Mozilla-Mobile/ktx)
 
-* 🔵 **Utils** - Generic utility classes to be shared between projects.
+* 🔵 **Utils** - Generic utility classes to be shared between projects. [![Bintray](https://img.shields.io/bintray/v/pocmo/Mozilla-Mobile/utils.svg)](https://bintray.com/pocmo/Mozilla-Mobile/utils)
 
 # License
 

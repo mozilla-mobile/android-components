@@ -93,7 +93,7 @@ class BrowserToolbarTest {
         toolbar.displayToolbar = displayToolbar
         toolbar.editToolbar = ediToolbar
 
-        toolbar.displayUrl("https://www.mozilla.org")
+        toolbar.url = "https://www.mozilla.org"
 
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
         verify(ediToolbar, never()).updateUrl(ArgumentMatchers.anyString())
@@ -106,7 +106,7 @@ class BrowserToolbarTest {
         val ediToolbar = mock(EditToolbar::class.java)
         toolbar.editToolbar = ediToolbar
 
-        toolbar.displayUrl("https://www.mozilla.org")
+        toolbar.url = "https://www.mozilla.org"
         verify(ediToolbar, never()).updateUrl("https://www.mozilla.org")
 
         toolbar.editMode()
@@ -234,7 +234,7 @@ class BrowserToolbarTest {
     }
 
     @Test
-    fun `add action will be forwarded to display toolbar`() {
+    fun `add browser action will be forwarded to display toolbar`() {
         val toolbar = BrowserToolbar(RuntimeEnvironment.application)
         val displayToolbar = mock(DisplayToolbar::class.java)
 
@@ -244,9 +244,26 @@ class BrowserToolbarTest {
             // Do nothing
         }
 
-        toolbar.addDisplayAction(action)
+        toolbar.addBrowserAction(action)
 
-        verify(displayToolbar).addAction(action)
+        verify(displayToolbar).addBrowserAction(action)
+    }
+
+    @Test
+    fun `add page action will be forwarded to display toolbar`() {
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+
+        val displayToolbar = mock(DisplayToolbar::class.java)
+
+        toolbar.displayToolbar = displayToolbar
+
+        val action = Toolbar.Action(0, "World") {
+            // Do nothing
+        }
+
+        toolbar.addPageAction(action)
+
+        verify(displayToolbar).addPageAction(action)
     }
 
     fun `URL update does not override search terms in edit mode`() {
@@ -258,15 +275,30 @@ class BrowserToolbarTest {
         toolbar.editToolbar = editToolbar
 
         toolbar.setSearchTerms("mozilla android")
-        toolbar.displayUrl("https://www.mozilla.org")
+        toolbar.url = "https://www.mozilla.org"
         toolbar.editMode()
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
         verify(editToolbar).updateUrl("mozilla android")
 
         toolbar.setSearchTerms("")
-        toolbar.displayUrl("https://www.mozilla.org")
+        toolbar.url = "https://www.mozilla.org"
         toolbar.editMode()
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
         verify(editToolbar).updateUrl("https://www.mozilla.org")
+    }
+
+    @Test
+    fun `add navigation action will be forwarded to display toolbar`() {
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val displayToolbar = mock(DisplayToolbar::class.java)
+        toolbar.displayToolbar = displayToolbar
+
+        val action = Toolbar.Action(0, "Back") {
+            // Do nothing
+        }
+
+        toolbar.addNavigationAction(action)
+
+        verify(displayToolbar).addNavigationAction(action)
     }
 }

@@ -11,11 +11,9 @@ import android.support.annotation.DrawableRes
  */
 interface Toolbar {
     /**
-     * Displays the given URL string as part of this Toolbar.
-     *
-     * @param url the url to display
+     * Sets/Gets the URL to be displayed on the toolbar.
      */
-    fun displayUrl(url: String)
+    var url: String
 
     /**
      * Displays the currently used search terms as part of this Toolbar.
@@ -46,8 +44,24 @@ interface Toolbar {
 
     /**
      * Adds an action to be displayed on the right side of the toolbar in display mode.
+     *
+     * Related:
+     * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action
      */
-    fun addDisplayAction(action: Action)
+    fun addBrowserAction(action: Action)
+
+    /**
+     * Adds an action to be displayed on the right side of the URL in display mode.
+     *
+     * Related:
+     * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Page_actions
+     */
+    fun addPageAction(action: Action)
+
+    /**
+     * Adds an action to be displayed on the far left side of the URL in display mode.
+     */
+    fun addNavigationAction(action: Action)
 
     /**
      * An action button to be added to the toolbar.

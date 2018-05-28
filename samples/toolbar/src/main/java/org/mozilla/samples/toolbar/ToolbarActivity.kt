@@ -51,7 +51,7 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.setBackgroundColor(
                 ContextCompat.getColor(this, mozilla.components.ui.colors.R.color.photonBlue80))
 
-        toolbar.displayUrl("https://www.mozilla.org/en-US/firefox/")
+        toolbar.url = "https://www.mozilla.org/en-US/firefox/"
     }
 
     /**
@@ -74,7 +74,7 @@ class ToolbarActivity : AppCompatActivity() {
             "Reload") {
             simulateReload(toolbar)
         }
-        toolbar.addDisplayAction(reload)
+        toolbar.addBrowserAction(reload)
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Create a menu that looks like the one in Firefox Focus
@@ -92,7 +92,7 @@ class ToolbarActivity : AppCompatActivity() {
         // Display a URL
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        toolbar.displayUrl("https://www.mozilla.org/en-US/firefox/mobile/")
+        toolbar.url = "https://www.mozilla.org/en-US/firefox/mobile/"
     }
 
     /**
@@ -156,7 +156,7 @@ class ToolbarActivity : AppCompatActivity() {
         // Display a URL
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        toolbar.displayUrl("https://www.mozilla.org/en-US/firefox/mobile/")
+        toolbar.url = "https://www.mozilla.org/en-US/firefox/mobile/"
     }
 
     /**
@@ -176,16 +176,79 @@ class ToolbarActivity : AppCompatActivity() {
                 toolbar.dp(24))
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        // Hide the site security icon
+        // Hide the site security icon and set background to be drawn behind URL (+ page actions)
         ////////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.displaySiteSecurityIcon = false
+
+        toolbar.setUrlTextPadding(
+                left = toolbar.dp(16),
+                right = toolbar.dp(16)
+        )
+
+        toolbar.urlBackgroundDrawable = getDrawable(R.drawable.sample_url_background)
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // Add navigation actions
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
+        val grid = Toolbar.Action(
+                mozilla.components.ui.icons.R.drawable.mozac_ic_grid,
+                "Grid") {
+            simulateReload(toolbar)
+        }
+
+        toolbar.addNavigationAction(grid)
+
+        val back = Toolbar.Action(
+                mozilla.components.ui.icons.R.drawable.mozac_ic_back,
+                "Back") {
+            simulateReload(toolbar)
+        }
+
+        toolbar.addNavigationAction(back)
+
+        val forward = Toolbar.Action(
+                mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
+                "Forward") {
+            simulateReload(toolbar)
+        }
+
+        toolbar.addNavigationAction(forward)
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // Add a page action for reload and two browser actions
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
+        val reload = Toolbar.Action(
+                mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
+                "Reload") {
+            simulateReload(toolbar)
+        }
+
+        toolbar.addPageAction(reload)
+
+        val pin = Toolbar.Action(
+                mozilla.components.ui.icons.R.drawable.mozac_ic_pin,
+                "Pin") {
+            simulateReload(toolbar)
+        }
+
+        toolbar.addBrowserAction(pin)
+
+        val turbo = Toolbar.Action(
+                mozilla.components.ui.icons.R.drawable.mozac_ic_rocket,
+                "Turbo") {
+            simulateReload(toolbar)
+        }
+
+        toolbar.addBrowserAction(turbo)
 
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Display a URL
         ////////////////////////////////////////////////////////////////////////////////////////////
 
-        toolbar.displayUrl("https://www.nytimes.com/video")
+        toolbar.url = "https://www.nytimes.com/video"
     }
 
     private fun simulateReload(toolbar: BrowserToolbar) {

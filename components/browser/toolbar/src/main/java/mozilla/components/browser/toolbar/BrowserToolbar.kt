@@ -5,6 +5,7 @@
 package mozilla.components.browser.toolbar
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.support.annotation.VisibleForTesting
 import android.util.AttributeSet
 import android.view.View
@@ -56,10 +57,37 @@ class BrowserToolbar @JvmOverloads constructor(
             displayToolbar.iconView.visibility = if (value) View.VISIBLE else View.GONE
         }
 
+    /**
+     * Gets/Sets drawable that will be drawn as background behind the URL (including page actions)
+     * in display mode.
+     */
+    var urlBackgroundDrawable: Drawable?
+        get() = displayToolbar.urlBackgroundDrawable
+        set(value) { displayToolbar.urlBackgroundDrawable = value }
+
+    /**
+     * Sets the padding to be applied to the URL text (in display mode).
+     */
+    fun setUrlTextPadding(
+        left: Int = displayToolbar.urlView.paddingLeft,
+        top: Int = displayToolbar.urlView.paddingTop,
+        right: Int = displayToolbar.urlView.paddingRight,
+        bottom: Int = displayToolbar.urlView.paddingBottom
+    ) = displayToolbar.urlView.setPadding(left, top, right, bottom)
+
     private var state: State = State.DISPLAY
-    private var url: String = ""
     private var searchTerms: String = ""
     private var listener: ((String) -> Unit)? = null
+
+    override var url: String = ""
+        set(value) {
+            // We update the display toolbar immediately. We do not do that for the edit toolbar to not
+            // mess with what the user is entering. Instead we will remember the value and update the
+            // edit toolbar whenever we switch to it.
+            displayToolbar.updateUrl(value)
+
+            field = value
+        }
 
     init {
         addView(displayToolbar)
@@ -110,15 +138,6 @@ class BrowserToolbar @JvmOverloads constructor(
         return false
     }
 
-    override fun displayUrl(url: String) {
-        // We update the display toolbar immediately. We do not do that for the edit toolbar to not
-        // mess with what the user is entering. Instead we will remember the value and update the
-        // edit toolbar whenever we switch to it.
-        displayToolbar.updateUrl(url)
-
-        this.url = url
-    }
-
     override fun setSearchTerms(searchTerms: String) {
         this.searchTerms = searchTerms
     }
@@ -132,13 +151,35 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     /**
-     * Adds an action to be displayed on the right side of the toolbar in display mode.
+     * Adds an action to be displayed on the right side of the toolbar (outside of the URL bounding
+     * box) in display mode.
      *
      * If there is not enough room to show all icons then some icons may be moved to an overflow
      * menu.
+     *
+     * Related:
+     * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action
      */
-    override fun addDisplayAction(action: Toolbar.Action) {
-        displayToolbar.addAction(action)
+    override fun addBrowserAction(action: Toolbar.Action) {
+        displayToolbar.addBrowserAction(action)
+    }
+
+    /**
+     * Adds an action to be displayed on the right side of the URL in display mode.
+     *
+     * Related:
+     * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Page_actions
+     */
+    override fun addPageAction(action: Toolbar.Action) {
+        displayToolbar.addPageAction(action)
+    }
+
+    /**
+     * Adds an action to be display on the far left side of the toolbar. This area is usually used
+     * on larger devices for navigation actions like "back" and "forward".
+     */
+    override fun addNavigationAction(action: Toolbar.Action) {
+        displayToolbar.addNavigationAction(action)
     }
 
     /**

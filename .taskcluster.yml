@@ -21,16 +21,17 @@ tasks:
     payload:
       maxRunTime: 3600
       deadline: "{{ '2 hours' | $fromNow }}"
-      image: 'mozillamobile/android-components:1.2'
+      image: 'mozillamobile/android-components:1.4'
       command:
         - /bin/bash
         - '--login'
         - '-cx'
         - >-
-          git fetch {{ event.head.repo.url }} {{ event.head.repo.branch }}
+          export TERM=dumb
+          && git fetch {{ event.head.repo.url }} {{ event.head.repo.branch }}
           && git config advice.detachedHead false
           && git checkout {{event.head.sha}}
-          && ./gradlew --no-daemon clean assemble test detektCheck ktlint lint
+          && ./gradlew --no-daemon cleanBuildCache clean assemble test detektCheck ktlint lint
       artifacts:
         'public/reports':
           type: 'directory'
@@ -71,13 +72,14 @@ tasks:
     payload:
       maxRunTime: 3600
       deadline: "{{ '2 hours' | $fromNow }}"
-      image: 'mozillamobile/android-components:1.0'
+      image: 'mozillamobile/android-components:1.4'
       command:
         - /bin/bash
         - '--login'
         - '-cx'
         - >-
-          git fetch origin --tags
+          export TERM=dumb
+          && git fetch origin --tags
           && git config advice.detachedHead false
           && git checkout {{ event.version }}
           && ./gradlew --no-daemon clean test detektCheck ktlint assembleRelease docs

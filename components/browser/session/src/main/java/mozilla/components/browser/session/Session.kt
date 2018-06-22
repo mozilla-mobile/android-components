@@ -16,8 +16,9 @@ import kotlin.properties.Delegates
  */
 class Session(
     initialUrl: String,
-    val id: String = UUID.randomUUID().toString()
-) : Observable<Session.Observer> by registry {
+    val id: String = UUID.randomUUID().toString(),
+    delegate: Observable<Session.Observer> = ObserverRegistry()
+) : Observable<Session.Observer> by delegate {
     /**
      * Holder for keeping a reference to an engine session and its observer to update this session
      * object.
@@ -105,6 +106,11 @@ class Session(
     }
 
     /**
+     * Returns whether or not this session is used for a Custom Tab.
+     */
+    fun isCustomTabSession() = customTabConfig != null
+
+    /**
      * Helper method to notify observers.
      */
     private fun notifyObservers(old: Any, new: Any, block: Observer.() -> Unit) {
@@ -126,5 +132,3 @@ class Session(
         return id.hashCode()
     }
 }
-
-private val registry = ObserverRegistry<Session.Observer>()

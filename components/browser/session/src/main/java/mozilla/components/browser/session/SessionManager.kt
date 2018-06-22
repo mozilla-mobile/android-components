@@ -14,8 +14,9 @@ import mozilla.components.support.utils.observer.ObserverRegistry
  * This class provides access to a centralized registry of all active sessions.
  */
 class SessionManager(
-    private val engine: Engine
-) : Observable<SessionManager.Observer> by registry {
+    private val engine: Engine,
+    delegate: Observable<SessionManager.Observer> = ObserverRegistry()
+) : Observable<SessionManager.Observer> by delegate {
     private val values = mutableListOf<Session>()
     private var selectedIndex: Int = NO_SELECTION
 
@@ -37,9 +38,15 @@ class SessionManager(
         }
 
     /**
-     * Gets all sessions.
+     * Returns a list of active sessions and filters out sessions used for CustomTabs.
      */
     val sessions: List<Session>
+        get() = synchronized(values) { values.filter { !it.isCustomTabSession() } }
+
+    /**
+     * Returns a list of all active sessions.
+     */
+    val all: List<Session>
         get() = synchronized(values) { values.toList() }
 
     /**
@@ -202,5 +209,3 @@ class SessionManager(
         fun onAllSessionsRemoved() = Unit
     }
 }
-
-private val registry = ObserverRegistry<SessionManager.Observer>()

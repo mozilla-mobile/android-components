@@ -1,6 +1,6 @@
 # [Android Components](../../../README.md) > Browser > Engine-Gecko
 
-[*Engine*](../../concept/engine/README.md) implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView).
+[*Engine*](../../concept/engine/README.md) implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
 
 ## Usage
 
@@ -9,7 +9,7 @@
 Use gradle to download the library from JCenter:
 
 ```Groovy
-implementation "org.mozilla.components:engine-gecko:{latest-version}
+implementation "org.mozilla.components:engine-gecko-nightly:{latest-version}
 ```
 
 ## License

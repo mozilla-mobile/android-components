@@ -41,6 +41,7 @@ interface FxaClient : Library {
     ): RawFxAccount
 
     fun fxa_from_json(json: String, e: Error.ByReference): RawFxAccount
+    fun fxa_to_json(fxa: RawFxAccount, e: Error.ByReference): Pointer
 
     fun fxa_begin_oauth_flow(
         fxa: RawFxAccount,

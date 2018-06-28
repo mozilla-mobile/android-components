@@ -4,6 +4,7 @@
 
 package org.mozilla.samples.fxa
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -14,6 +15,9 @@ import android.widget.Button
 import mozilla.components.fxa.Config
 import mozilla.components.fxa.FxaClient
 import android.content.Intent
+import android.content.SharedPreferences
+import android.security.keystore.UserNotAuthenticatedException
+import android.util.Log
 import android.widget.TextView
 
 open class MainActivity : AppCompatActivity() {
@@ -25,6 +29,8 @@ open class MainActivity : AppCompatActivity() {
         const val CLIENT_ID = "12cc4070a481bc73"
         const val REDIRECT_URL = "fxaclient://android.redirect"
         const val CONFIG_URL = "https://latest.dev.lcip.org"
+        const val PREFS_NAME = "fxaAppState"
+        const val FXA_STATE_KEY = "fxaState"
 
         init {
             FxaClient.init()
@@ -35,14 +41,22 @@ open class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        config = Config.custom(CONFIG_URL)
-        config?.let {
-            account = FirefoxAccount(it, CLIENT_ID)
+        try {
+            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString(FXA_STATE_KEY, "").let {
+                Log.i("profile on startup", it)
+                account = FirefoxAccount.fromJSONString(it)
+                displayProfile()
+            }
+        } catch (e: IllegalArgumentException) {
+            config = Config.custom(CONFIG_URL)
+            config?.let {
+                account = FirefoxAccount(it, CLIENT_ID)
 
-            val btn = findViewById<View>(R.id.button) as Button
-            btn.setOnClickListener {
-                account?.beginOAuthFlow(REDIRECT_URL, arrayOf("profile"), false)?.let {
-                    openAuthTab(it)
+                val btn = findViewById<View>(R.id.button) as Button
+                btn.setOnClickListener {
+                    account?.beginOAuthFlow(REDIRECT_URL, arrayOf("profile"), false)?.let {
+                        openAuthTab(it)
+                    }
                 }
             }
         }
@@ -54,20 +68,29 @@ open class MainActivity : AppCompatActivity() {
         val data = intent.dataString
 
         if (Intent.ACTION_VIEW == action && data != null) {
-            val txtView: TextView = findViewById(R.id.txtView)
-            val info = authenticate(data)
-            txtView.text = "Signed in: $info"
+            if (authenticate(data)) {
+                displayProfile()
+                account?.toJSONString().let {
+                    Log.e("account logged in", it)
+                    getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putString(FXA_STATE_KEY, it).commit()
+                }
+            }
         }
     }
 
-    private fun authenticate(redirectUrl: String): String? {
+    private fun displayProfile() {
+        val txtView: TextView = findViewById(R.id.txtView)
+        val profile = account?.getProfile() ?: throw IllegalArgumentException("Profile expected")
+        txtView.text = "${profile?.displayName ?: ""} ${profile?.email}"
+    }
+
+    private fun authenticate(redirectUrl: String): Boolean {
         val url = Uri.parse(redirectUrl)
         val code = url.getQueryParameter("code")
         val state = url.getQueryParameter("state")
 
         account?.completeOAuthFlow(code, state)
-        val profile = account?.getProfile()
-        return "${profile?.displayName ?: ""} ${profile?.email}"
+        return true
     }
 
     private fun openAuthTab(url: String) {

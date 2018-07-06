@@ -35,6 +35,7 @@ tasks:
           && git fetch {{ event.head.repo.url }} {{ event.head.repo.branch }}
           && git config advice.detachedHead false
           && git checkout {{event.head.sha}}
+          && ./gradlew --stop
           && python automation/taskcluster/decision_task_pull_request.py
       features:
         taskclusterProxy: true

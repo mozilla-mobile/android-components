@@ -6,6 +6,7 @@ package mozilla.components.browser.session
 
 import mozilla.components.browser.session.engine.EngineSessionHolder
 import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.support.utils.observer.Consumable
 import mozilla.components.support.utils.observer.Observable
 import mozilla.components.support.utils.observer.ObserverRegistry
 import java.util.UUID
@@ -36,6 +37,7 @@ class Session(
         fun onSearch(session: Session, searchTerms: String) = Unit
         fun onSecurityChanged(session: Session, securityInfo: SecurityInfo) = Unit
         fun onCustomTabConfigChanged(session: Session, customTabConfig: CustomTabConfig?) = Unit
+        fun onDownload(session: Session, download: Download): Boolean = false
     }
 
     /**
@@ -105,6 +107,11 @@ class Session(
         _, _, new -> notifyObservers { onCustomTabConfigChanged(this@Session, new) }
     }
 
+    var download: Consumable<Download> by Delegates.vetoable(Consumable.empty()) { _, _, download ->
+        download.consume(wrapConsumers { onDownload(this@Session, download.peek()) })
+        !download.isConsumed()
+    }
+
     /**
      * Returns whether or not this session is used for a Custom Tab.
      */
@@ -132,3 +139,4 @@ class Session(
         return id.hashCode()
     }
 }
+

@@ -50,4 +50,7 @@ interface Observable<T> {
      * Notify all registered observers about a change.
      */
     fun notifyObservers(block: T.() -> Unit)
+
+
+    fun <R> wrapConsumers(block: T.() -> Boolean): List<(value: R) -> Boolean>
 }

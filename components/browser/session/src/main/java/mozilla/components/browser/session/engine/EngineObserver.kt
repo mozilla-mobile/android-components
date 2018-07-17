@@ -30,4 +30,8 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
         session.securityInfo = Session.SecurityInfo(secure, host
                 ?: "", issuer ?: "")
     }
+
+    override fun onExternalResource(url: String, fileName: String?, contentLength: Long?, contentType: String?, cookie: String?, userAgent: String?) {
+        TODO("not implemented")
+    }
 }

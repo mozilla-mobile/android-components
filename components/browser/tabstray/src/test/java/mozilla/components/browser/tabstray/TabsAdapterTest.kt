@@ -70,6 +70,6 @@ class TabsAdapterTest {
 
         verify(session1).unregister(holder1)
         verify(session2).unregister(holder2)
-        verifyNoMoreInteractions(session3)
+        verifyNoMoreInteractions(holder3)
     }
 }

@@ -26,11 +26,15 @@ class KintoExperimentSource(
     private val client: HttpClient = HttpURLConnectionHttpClient()
 ) : ExperimentSource {
     override fun getExperiments(snapshot: ExperimentsSnapshot): ExperimentsSnapshot {
-        val experimentsDiff = getExperimentsDiff(client, snapshot)
+        val experimentsDiff = getExperimentsDiff(snapshot)
         return mergeExperimentsFromDiff(experimentsDiff, snapshot)
     }
 
-    private fun getExperimentsDiff(client: HttpClient, snapshot: ExperimentsSnapshot): String {
+    override fun pinCertificates(keys: Set<String>) {
+        client.pinCertificates(keys)
+    }
+
+    private fun getExperimentsDiff(snapshot: ExperimentsSnapshot): String {
         val lastModified = snapshot.lastModified
         val kintoClient = KintoClient(client, baseUrl, bucketName, collectionName)
         return if (lastModified != null) {

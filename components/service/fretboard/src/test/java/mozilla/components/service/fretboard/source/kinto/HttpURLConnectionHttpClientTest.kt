@@ -5,17 +5,21 @@
 package mozilla.components.service.fretboard.source.kinto
 
 import mozilla.components.service.fretboard.ExperimentDownloadException
+import mozilla.components.support.test.any
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
+import okhttp3.mockwebserver.internal.tls.SslClient
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anySet
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
 import java.io.IOException
 import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
 @RunWith(RobolectricTestRunner::class)
 class HttpURLConnectionHttpClientTest {
@@ -40,6 +44,20 @@ class HttpURLConnectionHttpClientTest {
         val url = mock(URL::class.java)
         `when`(url.openConnection()).thenThrow(IOException())
         HttpURLConnectionHttpClient().get(url)
+    }
+
+    @Test(expected = ExperimentDownloadException::class)
+    fun testCertificatePinningInvalid() {
+        val pinner = mock(CertificatePinner::class.java)
+        `when`(pinner.defaultExtensions()).thenReturn(TestTrustManagerExtensions(TestTrustManager()))
+        `when`(pinner.checkCertificatePinning(any(), anySet(), any())).thenReturn(false)
+        val server = MockWebServer()
+        server.useHttps(SslClient.localhost().socketFactory, false)
+        server.enqueue(MockResponse().setBody("Test"))
+        HttpsURLConnection.setDefaultSSLSocketFactory(SslClient.localhost().socketFactory)
+        HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
+        HttpURLConnectionHttpClient(pinner).get(server.url("/").url())
+        server.shutdown()
     }
 
     @Test(expected = ExperimentDownloadException::class)

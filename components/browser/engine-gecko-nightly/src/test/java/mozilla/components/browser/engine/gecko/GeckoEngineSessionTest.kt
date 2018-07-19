@@ -5,7 +5,9 @@
 package mozilla.components.browser.engine.gecko
 
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -14,10 +16,14 @@ import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.mozilla.gecko.util.BundleEventListener
+import org.mozilla.gecko.util.GeckoBundle
 import org.mozilla.geckoview.GeckoResponse
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSession.ProgressDelegate.SecurityInformation
+import org.mozilla.geckoview.createMockedWebResponseInfo
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -96,6 +102,31 @@ class GeckoEngineSessionTest {
 
         engineSession.geckoSession.navigationDelegate.onCanGoForward(null, true)
         assertEquals(true, observedCanGoForward)
+    }
+
+    @Test
+    fun testContentDelegateNotifiesObserverAboutDownloads() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        val info: GeckoSession.WebResponseInfo = createMockedWebResponseInfo(
+            uri = "https://download.mozilla.org",
+            contentLength = 42,
+            contentType = "image/png",
+            filename = "image.png"
+        )
+
+        engineSession.geckoSession.contentDelegate.onExternalResponse(mock(), info)
+
+        verify(observer).onExternalResource(
+            url = "https://download.mozilla.org",
+            fileName = "image.png",
+            contentLength = 42,
+            contentType = "image/png",
+            userAgent = null,
+            cookie = null)
     }
 
     @Test
@@ -189,5 +220,62 @@ class GeckoEngineSessionTest {
 
         engineSession.restoreState(mapOf(GeckoEngineSession.GECKO_STATE_KEY to ""))
         assertTrue(eventReceived)
+    }
+
+    @Test
+    fun testProgressDelegateIgnoresInitialLoadOfAboutBlank() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        var observedSecurityChange = false
+        engineSession.register(object : EngineSession.Observer {
+            override fun onLoadingStateChange(loading: Boolean) { }
+            override fun onLocationChange(url: String) { }
+            override fun onProgress(progress: Int) { }
+            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) { }
+            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
+                observedSecurityChange = true
+            }
+        })
+
+        // We need to make the constructor accessible in order to test this behaviour
+        val constructor = SecurityInformation::class.java.getDeclaredConstructor(GeckoBundle::class.java)
+        constructor.isAccessible = true
+
+        val bundle = mock(GeckoBundle::class.java)
+        `when`(bundle.getBundle(any())).thenReturn(mock(GeckoBundle::class.java))
+        `when`(bundle.getString("origin")).thenReturn("moz-nullprincipal:{uuid}")
+        engineSession.geckoSession.progressDelegate.onSecurityChange(null, constructor.newInstance(bundle))
+        assertFalse(observedSecurityChange)
+
+        `when`(bundle.getBundle(any())).thenReturn(mock(GeckoBundle::class.java))
+        `when`(bundle.getString("origin")).thenReturn("https://www.mozilla.org")
+        engineSession.geckoSession.progressDelegate.onSecurityChange(null, constructor.newInstance(bundle))
+        assertTrue(observedSecurityChange)
+    }
+
+    @Test
+    fun testNavigationDelegateIgnoresInitialLoadOfAboutBlank() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        var observedUrl = ""
+        engineSession.register(object : EngineSession.Observer {
+            override fun onLoadingStateChange(loading: Boolean) {}
+            override fun onLocationChange(url: String) { observedUrl = url }
+            override fun onProgress(progress: Int) { }
+            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) { }
+            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) { }
+        })
+
+        engineSession.geckoSession.navigationDelegate.onLocationChange(null, "about:blank")
+        assertEquals("", observedUrl)
+
+        engineSession.geckoSession.navigationDelegate.onLocationChange(null, "about:blank")
+        assertEquals("", observedUrl)
+
+        engineSession.geckoSession.navigationDelegate.onLocationChange(null, "https://www.mozilla.org")
+        assertEquals("https://www.mozilla.org", observedUrl)
+
+        engineSession.geckoSession.navigationDelegate.onLocationChange(null, "about:blank")
+        assertEquals("about:blank", observedUrl)
     }
 }

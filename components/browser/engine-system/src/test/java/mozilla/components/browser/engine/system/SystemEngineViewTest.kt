@@ -7,12 +7,17 @@ package mozilla.components.browser.engine.system
 import android.net.http.SslCertificate
 import android.webkit.WebView
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.support.test.eq
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
@@ -42,7 +47,6 @@ class SystemEngineViewTest {
         engineSession.register(object : EngineSession.Observer {
             override fun onLoadingStateChange(loading: Boolean) { observedLoadingState = loading }
             override fun onLocationChange(url: String) { observedUrl = url }
-            override fun onProgress(progress: Int) { }
             override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) {
                 observedCanGoBack = true
                 observedCanGoForward = true
@@ -84,14 +88,63 @@ class SystemEngineViewTest {
 
         var observedProgress = 0
         engineSession.register(object : EngineSession.Observer {
-            override fun onLoadingStateChange(loading: Boolean) { }
-            override fun onLocationChange(url: String) { }
             override fun onProgress(progress: Int) { observedProgress = progress }
-            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) { }
-            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) { }
         })
 
         engineView.currentWebView.webChromeClient.onProgressChanged(null, 100)
         assertEquals(100, observedProgress)
+    }
+
+    @Test
+    fun testWebViewClientNotifiesObserversAboutTitleChanges() {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        engineView.currentWebView.webChromeClient.onReceivedTitle(engineView.currentWebView, "Hello World!")
+
+        verify(observer).onTitleChange(eq("Hello World!"))
+    }
+
+    @Test
+    fun testDownloadListenerNotifiesObservers() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        var observerNotified = false
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onExternalResource(
+                url: String,
+                fileName: String?,
+                contentLength: Long?,
+                contentType: String?,
+                cookie: String?,
+                userAgent: String?
+            ) {
+                assertEquals("https://download.mozilla.org", url)
+                assertEquals("image.png", fileName)
+                assertEquals(1337L, contentLength)
+                assertNull(cookie)
+                assertEquals("Components/1.0", userAgent)
+
+                observerNotified = true
+            }
+        })
+
+        val listener = engineView.createDownloadListener()
+        listener.onDownloadStart(
+            "https://download.mozilla.org",
+            "Components/1.0",
+            "attachment; filename=\"image.png\"",
+            "image/png",
+            1337)
+
+        assertTrue(observerNotified)
     }
 }

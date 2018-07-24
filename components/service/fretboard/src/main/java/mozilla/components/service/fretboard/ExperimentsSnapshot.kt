@@ -5,15 +5,9 @@
 package mozilla.components.service.fretboard
 
 /**
- * Interface used to provide
- * the user's region for evaluating
- * experiments
+ * Represents an experiment sync result
  */
-interface RegionProvider {
-    /**
-     * Provides the user's region
-     *
-     * @return user's region
-     */
-    fun getRegion(): String
-}
+data class ExperimentsSnapshot(
+    val experiments: List<Experiment>,
+    val lastModified: Long?
+)

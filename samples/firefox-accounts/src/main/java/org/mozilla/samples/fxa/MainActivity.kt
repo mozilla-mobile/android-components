@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.customtabs.CustomTabsIntent
 import android.view.View
 import android.content.Intent
+import android.widget.CheckBox
 import android.widget.TextView
 import mozilla.components.service.fxa.Config
 import mozilla.components.service.fxa.FirefoxAccount
@@ -18,11 +19,11 @@ import mozilla.components.service.fxa.FxaResult
 import mozilla.components.service.fxa.OAuthInfo
 import mozilla.components.service.fxa.Profile
 
-
-open class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener {
 
     private var account: FirefoxAccount? = null
     private var scopes: Array<String> = arrayOf("profile")
+    private var wantsKeys: Boolean = false
 
     companion object {
         const val CLIENT_ID = "12cc4070a481bc73"
@@ -53,14 +54,22 @@ open class MainActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<View>(R.id.button).setOnClickListener {
-            account?.beginOAuthFlow(scopes, false)?.whenComplete { openTab(it) }
+        findViewById<View>(R.id.buttonCustomTabs).setOnClickListener {
+            account?.beginOAuthFlow(scopes, wantsKeys)?.whenComplete { openTab(it) }
+        }
+
+        findViewById<View>(R.id.buttonWebView).setOnClickListener {
+            account?.beginOAuthFlow(scopes, wantsKeys)?.whenComplete { openWebView(it) }
         }
 
         findViewById<View>(R.id.buttonLogout).setOnClickListener {
             getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit().putString(FXA_STATE_KEY, "").apply()
             val txtView: TextView = findViewById(R.id.txtView)
             txtView.text = getString(R.string.logged_out)
+        }
+
+        findViewById<CheckBox>(R.id.checkboxKeys).setOnCheckedChangeListener { _, isChecked ->
+            wantsKeys = isChecked
         }
     }
 
@@ -85,21 +94,38 @@ open class MainActivity : AppCompatActivity() {
         val data = intent.dataString
 
         if (Intent.ACTION_VIEW == action && data != null) {
-            val txtView: TextView = findViewById(R.id.txtView)
             val url = Uri.parse(data)
             val code = url.getQueryParameter("code")
             val state = url.getQueryParameter("state")
-
-            val handleAuth = { _: OAuthInfo -> account?.getProfile() }
-            val handleProfile = { value: Profile ->
-                runOnUiThread {
-                    txtView.text = getString(R.string.signed_in, "${value.displayName ?: ""} ${value.email}")
-                }
-                account?.toJSONString().let {
-                    getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit().putString(FXA_STATE_KEY, it).apply()
-                }
-            }
-            account?.completeOAuthFlow(code, state)?.then(handleAuth)?.whenComplete(handleProfile)
+            displayAndPersistProfile(code, state)
         }
+    }
+
+    private fun openWebView(url: String) {
+        supportFragmentManager?.beginTransaction()?.apply {
+            replace(R.id.container, LoginFragment.create(url, REDIRECT_URL))
+            addToBackStack(null)
+            commit()
+        }
+    }
+
+    override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
+        displayAndPersistProfile(code, state)
+        supportFragmentManager?.popBackStack()
+    }
+
+    private fun displayAndPersistProfile(code: String, state: String) {
+        val txtView: TextView = findViewById(R.id.txtView)
+        val handleAuth = { _: OAuthInfo -> account?.getProfile() }
+        val handleProfile = { value: Profile ->
+            runOnUiThread {
+                txtView.text = getString(R.string.signed_in, "${value.displayName ?: ""} ${value.email}")
+            }
+            account?.toJSONString().let {
+                getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit().putString(FXA_STATE_KEY, it).apply()
+            }
+        }
+
+        account?.completeOAuthFlow(code, state)?.then(handleAuth)?.whenComplete(handleProfile)
     }
 }

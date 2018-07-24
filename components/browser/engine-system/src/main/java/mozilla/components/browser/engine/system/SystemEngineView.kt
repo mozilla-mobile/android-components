@@ -7,12 +7,15 @@ package mozilla.components.browser.engine.system
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.AttributeSet
+import android.webkit.CookieManager
+import android.webkit.DownloadListener
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.support.utils.DownloadUtils
 import java.lang.ref.WeakReference
 import java.net.URI
 
@@ -77,8 +80,24 @@ class SystemEngineView @JvmOverloads constructor(
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 session?.internalNotifyObservers { onProgress(newProgress) }
             }
+
+            override fun onReceivedTitle(view: WebView, title: String?) {
+                session?.internalNotifyObservers { onTitleChange(title ?: "") }
+            }
         }
 
+        webView.setDownloadListener(createDownloadListener())
+
         return webView
+    }
+
+    internal fun createDownloadListener(): DownloadListener {
+        return DownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+            session?.internalNotifyObservers {
+                val fileName = DownloadUtils.guessFileName(contentDisposition, url, mimetype)
+                val cookie = CookieManager.getInstance().getCookie(url)
+                onExternalResource(url, fileName, contentLength, mimetype, cookie, userAgent)
+            }
+        }
     }
 }

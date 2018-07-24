@@ -19,6 +19,8 @@ class SearchEngine internal constructor(
     private val resultsUris: List<Uri>,
     private val suggestUri: Uri? = null
 ) {
+    val canProvideSearchSuggestions: Boolean = suggestUri != null
+
     init {
         if (resultsUris.isEmpty()) {
             throw IllegalArgumentException("Results uri list should not be empty!")
@@ -32,7 +34,19 @@ class SearchEngine internal constructor(
         // The parse should have put the best URL for this device at the beginning of the list.
         val searchUri = resultsUris[0]
 
-        val template = Uri.decode(searchUri.toString())
+        return buildURL(searchUri, searchTerm)
+    }
+
+    /**
+     * Builds a URL to get suggestions from this search engine.
+     */
+    fun buildSuggestionsURL(searchTerm: String): String? {
+        val suggestUri = suggestUri ?: return null
+        return buildURL(suggestUri, searchTerm)
+    }
+
+    private fun buildURL(uri: Uri, searchTerm: String): String {
+        val template = Uri.decode(uri.toString())
         val urlWithSubstitutions = paramSubstitution(template, Uri.encode(searchTerm))
         return normalize(urlWithSubstitutions) // User-entered search engines may need normalization.
     }

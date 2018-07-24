@@ -6,6 +6,7 @@ package mozilla.components.browser.session
 
 import mozilla.components.browser.session.engine.EngineSessionHolder
 import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.support.utils.observer.Consumable
 import mozilla.components.support.utils.observer.Observable
 import mozilla.components.support.utils.observer.ObserverRegistry
 import java.util.UUID
@@ -16,6 +17,7 @@ import kotlin.properties.Delegates
  */
 class Session(
     initialUrl: String,
+    val source: Source = Source.NONE,
     val id: String = UUID.randomUUID().toString(),
     delegate: Observable<Session.Observer> = ObserverRegistry()
 ) : Observable<Session.Observer> by delegate {
@@ -30,12 +32,14 @@ class Session(
      */
     interface Observer {
         fun onUrlChanged(session: Session, url: String) = Unit
+        fun onTitleChanged(session: Session, title: String) = Unit
         fun onProgress(session: Session, progress: Int) = Unit
         fun onLoadingStateChanged(session: Session, loading: Boolean) = Unit
         fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) = Unit
         fun onSearch(session: Session, searchTerms: String) = Unit
         fun onSecurityChanged(session: Session, securityInfo: SecurityInfo) = Unit
         fun onCustomTabConfigChanged(session: Session, customTabConfig: CustomTabConfig?) = Unit
+        fun onDownload(session: Session, download: Download): Boolean = false
     }
 
     /**
@@ -49,10 +53,67 @@ class Session(
     data class SecurityInfo(val secure: Boolean = false, val host: String = "", val issuer: String = "")
 
     /**
+     * Represents the origin of a session to describe how and why it was created.
+     */
+    enum class Source {
+        /**
+         * Created to handle an ACTION_SEND (share) intent
+         */
+        ACTION_SEND,
+
+        /**
+         * Created to handle an ACTION_VIEW intent
+         */
+        ACTION_VIEW,
+
+        /**
+         * Created to handle a CustomTabs intent
+         */
+        CUSTOM_TAB,
+
+        /**
+         * User interacted with the home screen
+         */
+        HOME_SCREEN,
+
+        /**
+         * User interacted with a menu
+         */
+        MENU,
+
+        /**
+         * User opened a new tab
+         */
+        NEW_TAB,
+
+        /**
+         * Default value and for testing purposes
+         */
+        NONE,
+
+        /**
+         * Default value and for testing purposes
+         */
+        TEXT_SELECTION,
+
+        /**
+         * User entered a URL or search term
+         */
+        USER_ENTERED
+    }
+
+    /**
      * The currently loading or loaded URL.
      */
     var url: String by Delegates.observable(initialUrl) {
         _, old, new -> notifyObservers(old, new) { onUrlChanged(this@Session, new) }
+    }
+
+    /**
+     * The title of the currently displayed website changed.
+     */
+    var title: String by Delegates.observable("") {
+        _, old, new -> notifyObservers(old, new) { onTitleChanged(this@Session, new) }
     }
 
     /**
@@ -103,6 +164,14 @@ class Session(
      */
     var customTabConfig: CustomTabConfig? by Delegates.observable<CustomTabConfig?>(null) {
         _, _, new -> notifyObservers { onCustomTabConfigChanged(this@Session, new) }
+    }
+
+    /**
+     * Last download request if it wasn't consumed by at least one observer.
+     */
+    var download: Consumable<Download> by Delegates.vetoable(Consumable.empty()) { _, _, download ->
+        val consumers = wrapConsumers<Download> { onDownload(this@Session, it) }
+        !download.consumeBy(consumers)
     }
 
     /**

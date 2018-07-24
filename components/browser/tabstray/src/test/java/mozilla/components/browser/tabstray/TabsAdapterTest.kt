@@ -39,7 +39,6 @@ class TabsAdapterTest {
         val holder: TabViewHolder = mock()
 
         adapter.onViewRecycled(holder)
-
         verify(holder).unbind()
     }
 
@@ -48,11 +47,8 @@ class TabsAdapterTest {
         val adapter = TabsAdapter()
 
         val view = LinearLayout(RuntimeEnvironment.application)
-
         val holder1 = adapter.createViewHolder(view, 0)
         val holder2 = adapter.createViewHolder(view, 0)
-        val holder3 = adapter.createViewHolder(view, 0)
-
         val session1: Session = mock()
         val session2: Session = mock()
         val session3: Session = mock()

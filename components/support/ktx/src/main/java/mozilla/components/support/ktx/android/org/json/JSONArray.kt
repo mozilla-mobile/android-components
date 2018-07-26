@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.support.ktx.kotlin
+package mozilla.components.support.ktx.android.org.json
 
 import org.json.JSONArray
 
@@ -23,4 +23,17 @@ fun JSONArray.asSequence(): Sequence<Any> {
             override fun hasNext() = it.hasNext()
         }
     }
+}
+
+/**
+ * Convenience method to convert a JSONArray into a List
+ *
+ * @return list with the JSONArray values, or an empty list if the JSONArray was null
+ */
+@Suppress("UNCHECKED_CAST")
+fun <T> JSONArray?.toList(): List<T> {
+    if (this != null) {
+        return asSequence().map { it as T }.toList()
+    }
+    return listOf()
 }

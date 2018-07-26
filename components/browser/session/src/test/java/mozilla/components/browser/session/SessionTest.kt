@@ -348,4 +348,69 @@ class SessionTest {
         assertTrue(consumerExecuted)
         assertTrue(session.download.isConsumed())
     }
+
+    @Test
+    fun `observer is notified when title changes`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        session.title = "Internet for people, not profit — Mozilla"
+
+        verify(observer).onTitleChanged(
+            eq(session),
+            eq("Internet for people, not profit — Mozilla"))
+
+        assertEquals("Internet for people, not profit — Mozilla", session.title)
+    }
+
+    @Test
+    fun `website title is empty by default`() {
+        val session = Session("https://www.mozilla.org")
+        assertTrue(session.title.isEmpty())
+        assertEquals("", session.title)
+    }
+
+    @Test
+    fun `observer is notified when tracker is blocked`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        session.trackersBlocked += "trackerUrl1"
+
+        verify(observer).onTrackerBlocked(
+                eq(session),
+                eq("trackerUrl1"),
+                eq(listOf("trackerUrl1")))
+
+        assertEquals(listOf("trackerUrl1"), session.trackersBlocked)
+
+        session.trackersBlocked += "trackerUrl2"
+
+        verify(observer).onTrackerBlocked(
+                eq(session),
+                eq("trackerUrl2"),
+                eq(listOf("trackerUrl1", "trackerUrl2")))
+
+        assertEquals(listOf("trackerUrl1", "trackerUrl2"), session.trackersBlocked)
+    }
+
+    @Test
+    fun `observer is notified when tracker blocking is enabled`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        session.trackerBlockingEnabled = true
+
+        verify(observer).onTrackerBlockingEnabledChanged(
+                eq(session),
+                eq(true))
+
+        assertTrue(session.trackerBlockingEnabled)
+    }
 }

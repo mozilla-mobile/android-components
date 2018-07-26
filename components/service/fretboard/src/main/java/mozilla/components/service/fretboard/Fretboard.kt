@@ -22,6 +22,12 @@ class Fretboard(
     private val evaluator = ExperimentEvaluator(valuesProvider)
 
     /**
+     * Provides the list of experiments (active or not)
+     */
+    val experiments: List<Experiment>
+        get() = experimentsResult.experiments.toList()
+
+    /**
      * Loads experiments from local storage
      */
     @Synchronized
@@ -81,6 +87,17 @@ class Fretboard(
      */
     fun getExperiment(descriptor: ExperimentDescriptor): Experiment? {
         return evaluator.getExperiment(descriptor, experimentsResult.experiments)
+    }
+
+    /**
+     * Provides the list of active experiments
+     *
+     * @param context context
+     *
+     * @return active experiments
+     */
+    fun getActiveExperiments(context: Context): List<Experiment> {
+        return experiments.filter { isInExperiment(context, ExperimentDescriptor(it.id)) }.toList()
     }
 
     /**

@@ -11,9 +11,16 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.support.utils.observer.Consumable
 
 internal class EngineObserver(val session: Session) : EngineSession.Observer {
+
     override fun onLocationChange(url: String) {
         session.url = url
         session.searchTerms = ""
+        session.title = ""
+        session.trackersBlocked = emptyList()
+    }
+
+    override fun onTitleChange(title: String) {
+        session.title = title
     }
 
     override fun onProgress(progress: Int) {
@@ -32,6 +39,14 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
     override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
         session.securityInfo = Session.SecurityInfo(secure, host
                 ?: "", issuer ?: "")
+    }
+
+    override fun onTrackerBlocked(url: String) {
+        session.trackersBlocked += url
+    }
+
+    override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
+        session.trackerBlockingEnabled = enabled
     }
 
     override fun onExternalResource(

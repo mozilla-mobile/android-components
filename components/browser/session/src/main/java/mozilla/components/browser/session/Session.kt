@@ -15,6 +15,7 @@ import kotlin.properties.Delegates
 /**
  * Value type that represents the state of a browser session. Changes can be observed.
  */
+@Suppress("TooManyFunctions")
 class Session(
     initialUrl: String,
     val source: Source = Source.NONE,
@@ -32,6 +33,7 @@ class Session(
      */
     interface Observer {
         fun onUrlChanged(session: Session, url: String) = Unit
+        fun onTitleChanged(session: Session, title: String) = Unit
         fun onProgress(session: Session, progress: Int) = Unit
         fun onLoadingStateChanged(session: Session, loading: Boolean) = Unit
         fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) = Unit
@@ -39,6 +41,8 @@ class Session(
         fun onSecurityChanged(session: Session, securityInfo: SecurityInfo) = Unit
         fun onCustomTabConfigChanged(session: Session, customTabConfig: CustomTabConfig?) = Unit
         fun onDownload(session: Session, download: Download): Boolean = false
+        fun onTrackerBlockingEnabledChanged(session: Session, blockingEnabled: Boolean) = Unit
+        fun onTrackerBlocked(session: Session, blocked: String, all: List<String>) = Unit
     }
 
     /**
@@ -109,6 +113,13 @@ class Session(
     }
 
     /**
+     * The title of the currently displayed website changed.
+     */
+    var title: String by Delegates.observable("") {
+        _, old, new -> notifyObservers(old, new) { onTitleChanged(this@Session, new) }
+    }
+
+    /**
      * The progress loading the current URL.
      */
     var progress: Int by Delegates.observable(0) {
@@ -158,9 +169,30 @@ class Session(
         _, _, new -> notifyObservers { onCustomTabConfigChanged(this@Session, new) }
     }
 
+    /**
+     * Last download request if it wasn't consumed by at least one observer.
+     */
     var download: Consumable<Download> by Delegates.vetoable(Consumable.empty()) { _, _, download ->
         val consumers = wrapConsumers<Download> { onDownload(this@Session, it) }
         !download.consumeBy(consumers)
+    }
+
+    /**
+     * Tracker blocking state, true if blocking trackers is enabled, otherwise false.
+     */
+    var trackerBlockingEnabled: Boolean by Delegates.observable(false) { _, old, new ->
+        notifyObservers(old, new) { onTrackerBlockingEnabledChanged(this@Session, trackerBlockingEnabled) }
+    }
+
+    /**
+     * List of URIs that have been blocked in this session.
+     */
+    var trackersBlocked: List<String> by Delegates.observable(emptyList()) { _, old, new ->
+        notifyObservers(old, new) {
+            if (new.isNotEmpty()) {
+                onTrackerBlocked(this@Session, trackersBlocked.last(), trackersBlocked)
+            }
+        }
     }
 
     /**

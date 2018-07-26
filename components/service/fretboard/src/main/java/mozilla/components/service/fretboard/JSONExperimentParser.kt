@@ -4,6 +4,11 @@
 
 package mozilla.components.service.fretboard
 
+import mozilla.components.support.ktx.android.org.json.putIfNotNull
+import mozilla.components.support.ktx.android.org.json.toList
+import mozilla.components.support.ktx.android.org.json.tryGetInt
+import mozilla.components.support.ktx.android.org.json.tryGetLong
+import mozilla.components.support.ktx.android.org.json.tryGetString
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -20,7 +25,7 @@ class JSONExperimentParser {
     fun fromJson(jsonObject: JSONObject): Experiment {
         val bucketsObject: JSONObject? = jsonObject.optJSONObject(BUCKETS_KEY)
         val matchObject: JSONObject? = jsonObject.optJSONObject(MATCH_KEY)
-        val regions: List<String>? = matchObject?.optJSONArray(REGIONS_KEY)?.toList()
+        val regions: List<String>? = matchObject?.optJSONArray(REGIONS_KEY).toList()
         val matcher = if (matchObject != null) {
             Experiment.Matcher(
                 matchObject.tryGetString(LANG_KEY),
@@ -75,7 +80,7 @@ class JSONExperimentParser {
         matchObject.putIfNotNull(DEVICE_KEY, experiment.match?.device)
         matchObject.putIfNotNull(LANG_KEY, experiment.match?.language)
         matchObject.putIfNotNull(MANUFACTURER_KEY, experiment.match?.manufacturer)
-        matchObject.putIfNotNull(REGIONS_KEY, experiment.match?.regions?.toJsonArray())
+        matchObject.putIfNotNull(REGIONS_KEY, experiment.match?.regions?.let { JSONArray(it) })
         matchObject.putIfNotNull(RELEASE_CHANNEL_KEY, experiment.match?.releaseChannel)
         matchObject.putIfNotNull(VERSION_KEY, experiment.match?.version)
         return matchObject
@@ -104,7 +109,7 @@ class JSONExperimentParser {
         for (key in payload.getKeys()) {
             val value = payload.get(key)
             when (value) {
-                is List<*> -> jsonObject.put(key, value.toJsonArray())
+                is List<*> -> jsonObject.put(key, JSONArray(value))
                 else -> jsonObject.put(key, value)
             }
         }

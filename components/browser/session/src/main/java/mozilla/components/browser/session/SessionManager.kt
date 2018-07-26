@@ -9,6 +9,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.support.utils.observer.Observable
 import mozilla.components.support.utils.observer.ObserverRegistry
+import mozilla.components.support.utils.observer.SideEffects
 
 /**
  * This class provides access to a centralized registry of all active sessions.
@@ -17,6 +18,7 @@ class SessionManager(
     val engine: Engine,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
 ) : Observable<SessionManager.Observer> by delegate {
+    private val sideEffects = SideEffects()
     private val values = mutableListOf<Session>()
     private var selectedIndex: Int = NO_SELECTION
 
@@ -24,7 +26,7 @@ class SessionManager(
      * Returns the number of session including CustomTab sessions.
      */
     val size: Int
-        get() = synchronized(values) { values.size }
+        get() = sideEffects.readWithLock { values.size }
 
     /**
      * Gets the currently selected session if there is one.
@@ -32,7 +34,7 @@ class SessionManager(
      * Only one session can be selected at a given time.
      */
     val selectedSession: Session?
-        get() = synchronized(values) {
+        get() = sideEffects.readWithLock {
             if (selectedIndex == NO_SELECTION) {
                 null
             } else {
@@ -53,24 +55,32 @@ class SessionManager(
      * Only one session can be selected at a given time.
      */
     val selectedSessionOrThrow: Session
-        get() = selectedSession ?: throw IllegalStateException("No selected session")
+        get() = sideEffects.readWithLock {
+            selectedSession ?: throw IllegalStateException("No selected session")
+        }
 
     /**
      * Returns a list of active sessions and filters out sessions used for CustomTabs.
      */
     val sessions: List<Session>
-        get() = synchronized(values) { values.filter { !it.isCustomTabSession() } }
+        get() = sideEffects.readWithLock {
+            values.filter { !it.isCustomTabSession() }
+        }
 
     /**
      * Returns a list of all active sessions (including CustomTab sessions).
      */
     val all: List<Session>
-        get() = synchronized(values) { values.toList() }
+        get() = sideEffects.readWithLock { values.toList() }
 
     /**
      * Adds the provided session.
      */
-    fun add(session: Session, selected: Boolean = false, engineSession: EngineSession? = null) = synchronized(values) {
+    fun add(
+        session: Session,
+        selected: Boolean = false,
+        engineSession: EngineSession? = null
+    ) = sideEffects.modifyWithoutSideEffects {
         values.add(session)
 
         engineSession?.let { link(session, it) }
@@ -124,10 +134,10 @@ class SessionManager(
     /**
      * Removes the provided session. If no session is provided then the selected session is removed.
      */
-    fun remove(session: Session = selectedSessionOrThrow) = synchronized(values) {
+    fun remove(session: Session = selectedSessionOrThrow) = sideEffects.modifyWithoutSideEffects {
         val indexToRemove = values.indexOf(session)
         if (indexToRemove == -1) {
-            return
+            return@modifyWithoutSideEffects
         }
 
         values.removeAt(indexToRemove)
@@ -165,7 +175,7 @@ class SessionManager(
     /**
      * Removes all sessions but CustomTab sessions.
      */
-    fun removeSessions() = synchronized(values) {
+    fun removeSessions() = sideEffects.modifyWithoutSideEffects {
         sessions.forEach {
             unlink(it)
             values.remove(it)
@@ -178,7 +188,7 @@ class SessionManager(
     /**
      * Removes all sessions including CustomTab sessions.
      */
-    fun removeAll() = synchronized(values) {
+    fun removeAll() = sideEffects.modifyWithoutSideEffects {
         values.forEach { unlink(it) }
         values.clear()
 
@@ -189,7 +199,7 @@ class SessionManager(
     /**
      * Marks the given session as selected.
      */
-    fun select(session: Session) = synchronized(values) {
+    fun select(session: Session) = sideEffects.modifyWithoutSideEffects {
         val index = values.indexOf(session)
 
         if (index == -1) {
@@ -205,7 +215,9 @@ class SessionManager(
      * Finds and returns the session with the given id. Returns null if no matching session could be
      * found.
      */
-    fun findSessionById(id: String): Session? = values.find { session -> session.id == id }
+    fun findSessionById(id: String): Session? = sideEffects.readWithLock {
+        values.find { session -> session.id == id }
+    }
 
     companion object {
         const val NO_SELECTION = -1

@@ -44,7 +44,7 @@ class BrowserToolbar @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : ViewGroup(context, attrs, defStyleAttr), Toolbar {
 
-    // displayToolbar and editToolbar are only visible internally and mutable so that we can mock
+    // displayToolbar and editToolbar are only visibility internally and mutable so that we can mock
     // them in tests.
     @VisibleForTesting internal var displayToolbar = DisplayToolbar(context, this)
     @VisibleForTesting internal var editToolbar = EditToolbar(context, this)
@@ -203,9 +203,9 @@ class BrowserToolbar @JvmOverloads constructor(
      * Declare that the actions (navigation actions, browser actions, page actions) have changed and
      * should be updated if needed.
      *
-     * The toolbar will call the <code>visible</code> lambda of every action to determine whether a
+     * The toolbar will call the <code>visibility</code> lambda of every action to determine whether a
      * view for this action should be added or removed. Additionally <code>bind</code> will be
-     * called on every visible action to update its view.
+     * called on every visibility or invisible action to update its view.
      */
     fun invalidateActions() {
         displayToolbar.invalidateActions()
@@ -264,7 +264,7 @@ class BrowserToolbar @JvmOverloads constructor(
 
     /**
      * Sets a BrowserMenuBuilder that will be used to create a menu when the menu button is clicked.
-     * The menu button will only be visible if a builder has been set.
+     * The menu button will only be visibility if a builder has been set.
      */
     fun setMenuBuilder(menuBuilder: BrowserMenuBuilder) {
         displayToolbar.menuBuilder = menuBuilder
@@ -298,17 +298,17 @@ class BrowserToolbar @JvmOverloads constructor(
      *
      * @param imageResource The drawable to be shown.
      * @param contentDescription The content description to use.
-     * @param visible Lambda that returns true or false to indicate whether this button should be shown.
+     * @param visibility Lambda that returns expected visibility state.
      * @param background A custom (stateful) background drawable resource to be used.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class Button(
         imageResource: Int,
         contentDescription: String,
-        visible: () -> Boolean = { true },
+        visibility: () -> Int = { View.VISIBLE },
         @DrawableRes background: Int? = null,
         listener: () -> Unit
-    ) : Toolbar.ActionButton(imageResource, contentDescription, visible, background, listener) {
+    ) : Toolbar.ActionButton(imageResource, contentDescription, visibility, background, listener) {
         override fun createView(parent: ViewGroup): View {
             val view = super.createView(parent)
 
@@ -327,7 +327,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param imageResourceSelected The drawable to be shown if the button is in selected state.
      * @param contentDescription The content description to use if the button is in unselected state.
      * @param contentDescriptionSelected The content description to use if the button is in selected state.
-     * @param visible Lambda that returns true or false to indicate whether this button should be shown.
+     * @param visibility Lambda that returns expected visibility state.
      * @param selected Sets whether this button should be selected initially.
      * @param background A custom (stateful) background drawable resource to be used.
      * @param listener Callback that will be invoked whenever the checked state changes.
@@ -337,7 +337,7 @@ class BrowserToolbar @JvmOverloads constructor(
         @DrawableRes imageResourceSelected: Int,
         contentDescription: String,
         contentDescriptionSelected: String,
-        visible: () -> Boolean = { true },
+        visibility: () -> Int = { VISIBLE },
         selected: Boolean = false,
         @DrawableRes background: Int? = null,
         listener: (Boolean) -> Unit
@@ -346,7 +346,7 @@ class BrowserToolbar @JvmOverloads constructor(
         imageResourceSelected,
         contentDescription,
         contentDescriptionSelected,
-        visible,
+        visibility,
         selected,
         background,
         listener

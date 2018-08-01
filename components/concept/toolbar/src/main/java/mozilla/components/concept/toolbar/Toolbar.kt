@@ -79,8 +79,8 @@ interface Toolbar {
      * Generic interface for actions to be added to the toolbar.
      */
     interface Action {
-        val visible: () -> Boolean
-            get() = { true }
+        val visibility: () -> Int
+            get() = { View.VISIBLE }
 
         fun createView(parent: ViewGroup): View
 
@@ -92,14 +92,14 @@ interface Toolbar {
      *
      * @param imageResource The drawable to be shown.
      * @param contentDescription The content description to use.
-     * @param visible Lambda that returns true or false to indicate whether this button should be shown.
+     * @param visibility Lambda that returns expected visibility state.
      * @param background A custom (stateful) background drawable resource to be used.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class ActionButton(
         @DrawableRes private val imageResource: Int,
         private val contentDescription: String,
-        override val visible: () -> Boolean = { true },
+        override val visibility: () -> Int = { View.VISIBLE },
         @DrawableRes private val background: Int? = null,
         private val listener: () -> Unit
     ) : Action {
@@ -131,7 +131,7 @@ interface Toolbar {
      * @param imageResourceSelected The drawable to be shown if the button is in selected state.
      * @param contentDescription The content description to use if the button is in unselected state.
      * @param contentDescriptionSelected The content description to use if the button is in selected state.
-     * @param visible Lambda that returns true or false to indicate whether this button should be shown.
+     * @param visibility Lambda that returns expected visibility state.
      * @param selected Sets whether this button should be selected initially.
      * @param background A custom (stateful) background drawable resource to be used.
      * @param listener Callback that will be invoked whenever the checked state changes.
@@ -141,7 +141,7 @@ interface Toolbar {
         @DrawableRes private val imageResourceSelected: Int,
         private val contentDescription: String,
         private val contentDescriptionSelected: String,
-        override val visible: () -> Boolean = { true },
+        override val visibility: () -> Int = { View.VISIBLE },
         private var selected: Boolean = false,
         @DrawableRes private val background: Int? = null,
         private val listener: (Boolean) -> Unit

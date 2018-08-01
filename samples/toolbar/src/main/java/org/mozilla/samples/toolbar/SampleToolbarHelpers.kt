@@ -87,7 +87,7 @@ class UrlBoxProgressView(
             //   | background drawable | progress drawable |
             //   +---------------------+-------------------+
             //
-            // The drawable is clipped completely and not visible when the level is 0 and fully
+            // The drawable is clipped completely and not visibility when the level is 0 and fully
             // revealed when the level is 10,000.
             backgroundDrawable.level = 100 * (100 - value)
             progressDrawable.level = 10000 - backgroundDrawable.level

@@ -324,24 +324,29 @@ class DisplayToolbarTest {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
 
-        var shouldActionBeDisplayed = true
+        var visibility = View.VISIBLE
 
         val action = BrowserToolbar.Button(
             0,
             "Back",
-            visible = { shouldActionBeDisplayed }
+            visibility = { visibility }
         ) { /* Do nothing */ }
 
         displayToolbar.addNavigationAction(action)
 
         assertNotNull(extractActionView(displayToolbar, "Back"))
 
-        shouldActionBeDisplayed = false
+        visibility = View.GONE
         displayToolbar.invalidateActions()
 
         assertNull(extractActionView(displayToolbar, "Back"))
 
-        shouldActionBeDisplayed = true
+        visibility = View.INVISIBLE
+        displayToolbar.invalidateActions()
+
+        assertNotNull(extractActionView(displayToolbar, "Back"))
+
+        visibility = View.VISIBLE
         displayToolbar.invalidateActions()
 
         assertNotNull(extractActionView(displayToolbar, "Back"))
@@ -366,7 +371,7 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `page action will not be added if visible lambda of action returns false`() {
+    fun `page action will not be added if visible lambda of action returns gone`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
 
@@ -374,7 +379,7 @@ class DisplayToolbarTest {
         val invisibleAction = BrowserToolbar.Button(
             0,
             "Reader Mode",
-            visible = { false }) {}
+            visibility = { View.GONE }) {}
 
         displayToolbar.addPageAction(visibleAction)
         displayToolbar.addPageAction(invisibleAction)
@@ -384,7 +389,7 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `browser action will not be added if visible lambda of action returns false`() {
+    fun `browser action will not be added if visible lambda of action returns gone`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
 
@@ -392,7 +397,7 @@ class DisplayToolbarTest {
         val invisibleAction = BrowserToolbar.Button(
                 0,
                 "Settings",
-                visible = { false }) {}
+                visibility = { View.GONE }) {}
 
         displayToolbar.addBrowserAction(visibleAction)
         displayToolbar.addBrowserAction(invisibleAction)
@@ -402,7 +407,7 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `navigation action will not be added if visible lambda of action returns false`() {
+    fun `navigation action will not be added if visible lambda of action returns gone`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
 
@@ -410,7 +415,7 @@ class DisplayToolbarTest {
         val invisibleAction = BrowserToolbar.Button(
                 0,
                 "Back",
-                visible = { false }) {}
+                visibility = { View.GONE }) {}
 
         displayToolbar.addNavigationAction(visibleAction)
         displayToolbar.addNavigationAction(invisibleAction)

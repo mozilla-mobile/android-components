@@ -172,7 +172,7 @@ internal class DisplayToolbar(
     fun addBrowserAction(action: Toolbar.Action) {
         val displayAction = DisplayAction(action)
 
-        if (action.visible()) {
+        if (action.visibility() == View.VISIBLE) {
             action.createView(this).let {
                 displayAction.view = it
                 addView(it)
@@ -188,7 +188,7 @@ internal class DisplayToolbar(
     fun addPageAction(action: Toolbar.Action) {
         val displayAction = DisplayAction(action)
 
-        if (action.visible()) {
+        if (action.visibility() == View.VISIBLE) {
             action.createView(this).let {
                 displayAction.view = it
                 addView(it)
@@ -204,7 +204,7 @@ internal class DisplayToolbar(
     fun addNavigationAction(action: Toolbar.Action) {
         val displayAction = DisplayAction(action)
 
-        if (action.visible()) {
+        if (action.visibility() == View.VISIBLE) {
             action.createView(this).let {
                 displayAction.view = it
                 addView(it)
@@ -222,18 +222,17 @@ internal class DisplayToolbar(
         TransitionManager.beginDelayedTransition(this)
 
         for (action in navigationActions + pageActions + browserActions) {
-            val visible = action.actual.visible()
+            val visibility = action.actual.visibility()
 
-            if (!visible && action.view != null) {
-                // Action should not be visible anymore. Remove view.
+            if (visibility == View.GONE && action.view != null) {
+                // Action should be gone. Remove view.
                 removeView(action.view)
                 action.view = null
-            } else if (visible && action.view == null) {
-                // Action should be visible. Add view for it.
-                action.actual.createView(this).let {
-                    action.view = it
-                    addView(it)
-                }
+            } else if (visibility != View.GONE) {
+                (action.view ?: action.actual.createView(this).apply {
+                    action.view = this
+                    addView(this)
+                }).visibility = visibility
             }
 
             action.view?.let { action.actual.bind(it) }

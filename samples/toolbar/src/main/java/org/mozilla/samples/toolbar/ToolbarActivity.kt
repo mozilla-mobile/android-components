@@ -256,7 +256,7 @@ class ToolbarActivity : AppCompatActivity() {
         val back = BrowserToolbar.Button(
                 mozilla.components.ui.icons.R.drawable.mozac_ic_back,
                 "Back",
-                visible = ::canGoBack,
+                visibility = ::backVisibility,
                 background = R.drawable.button_background) {
             goBack()
             simulateReload(urlBoxProgress)
@@ -268,7 +268,7 @@ class ToolbarActivity : AppCompatActivity() {
         val forward = BrowserToolbar.Button(
                 mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
                 "Forward",
-                visible = ::canGoForward,
+                visibility = ::forwardVisibility,
                 background = R.drawable.button_background) {
             goForward()
             simulateReload(urlBoxProgress)
@@ -362,20 +362,21 @@ class ToolbarActivity : AppCompatActivity() {
     }
 
     // For testing purposes
-    private var forward = true
-    private var back = true
+    private var forward = View.VISIBLE
+    private var back = View.VISIBLE
+    private val bothVisible = { forward == View.VISIBLE && back == View.VISIBLE }
 
-    private fun canGoForward(): Boolean = forward
-    private fun canGoBack(): Boolean = back
+    private fun forwardVisibility(): Int = forward
+    private fun backVisibility(): Int = back
 
     private fun goBack() {
-        back = !(forward && back)
-        forward = true
+        back = if (bothVisible.invoke()) View.GONE else View.VISIBLE
+        forward = View.VISIBLE
     }
 
     private fun goForward() {
-        forward = !(back && forward)
-        back = true
+        forward = if (bothVisible.invoke()) View.GONE else View.VISIBLE
+        back = View.VISIBLE
     }
 
     private var job: Job? = null

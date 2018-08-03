@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:background="@drawable/round_rectangle_ripple"
+    tools:layout_height="40dp"
+    tools:layout_width="40dp"
+    tools:parentTag="org.mozilla.components.ui.tabcounter.TabCounter">
+
+    <FrameLayout
+        android:id="@+id/counter_root"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginTop="0.5dp">
+
+        <ImageView
+            android:id="@+id/counter_box"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/tab_counter_box" />
+
+        <TextView
+            android:id="@+id/counter_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@color/default_tabcounter_tint"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            tools:text="18" />
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/counter_bar"
+        android:layout_width="20dp"
+        android:layout_height="2dp"
+        android:layout_below="@id/counter_root"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="1dp"
+        android:src="@drawable/tab_counter_bar" />
+
+</merge>

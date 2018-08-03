@@ -12,7 +12,6 @@ import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
-
 import mozilla.components.support.utils.DrawableUtils
 import java.text.NumberFormat
 
@@ -231,9 +230,9 @@ class TabCounter @JvmOverloads constructor(context: Context, attrs: AttributeSet
 
     companion object {
 
-        @VisibleForTesting  val MAX_VISIBLE_TABS = 99
-        @VisibleForTesting  val SO_MANY_TABS_OPEN = "∞"
-        @VisibleForTesting  val DEFAULT_TABS_COUNTER_TEXT = ":)"
+        @VisibleForTesting val MAX_VISIBLE_TABS = 99
+        @VisibleForTesting val SO_MANY_TABS_OPEN = "∞"
+        @VisibleForTesting val DEFAULT_TABS_COUNTER_TEXT = ":)"
 
         @VisibleForTesting val ONE_DIGIT_SIZE_RATIO = 0.6f
         @VisibleForTesting val TWO_DIGITS_SIZE_RATIO = 0.5f

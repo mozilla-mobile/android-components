@@ -25,6 +25,7 @@ dependencies {
     implementation project(':support-ktx')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.dependencies['kotlin']}"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.dependencies['coroutines']}"
+    implementation "android.arch.work:work-runtime:${rootProject.ext.dependencies['workmanager']}"
 
     testImplementation project(':support-test')
     testImplementation "junit:junit:${rootProject.ext.dependencies['junit']}"

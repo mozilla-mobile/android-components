@@ -13,10 +13,17 @@ interface ExperimentSource {
      * Requests new experiments from the source,
      * parsing the response into experiments
      *
-     * @param client Http client to use, provided by Fretboard
-     * @param snapshot list of already downloaded experiments
+     * @param snapshot snapshot of the already downloaded experiments
      * (in order to process a diff response, for example)
-     * @return modified list of experiments
+     *
+     * @return snapshot of the modified list of experiments
      */
     fun getExperiments(snapshot: ExperimentsSnapshot): ExperimentsSnapshot
+
+    /**
+     * Enables certificate pinning using the provided keys
+     *
+     * @keys set of base64 encoded SHA-256 certificate subject public key info hashes
+     */
+    fun pinCertificates(keys: Set<String>)
 }

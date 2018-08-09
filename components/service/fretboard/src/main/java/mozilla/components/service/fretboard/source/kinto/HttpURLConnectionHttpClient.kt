@@ -8,11 +8,14 @@ import mozilla.components.service.fretboard.ExperimentDownloadException
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import javax.net.ssl.HttpsURLConnection
 
 /**
  * HttpURLConnection-based Http client
  */
-internal class HttpURLConnectionHttpClient : HttpClient {
+internal class HttpURLConnectionHttpClient(private val pinner: CertificatePinner = CertificatePinner()) : HttpClient {
+    private var pinnedKeys = setOf<String>()
+
     override fun get(url: URL, headers: Map<String, String>?): String {
         var urlConnection: HttpURLConnection? = null
         try {
@@ -20,6 +23,8 @@ internal class HttpURLConnectionHttpClient : HttpClient {
             urlConnection.requestMethod = "GET"
             urlConnection.useCaches = false
             headers?.forEach { urlConnection.setRequestProperty(it.key, it.value) }
+
+            checkCertificatePinning(urlConnection)
 
             val responseCode = urlConnection.responseCode
             if (responseCode !in HTTP_OK_START..HTTP_OK_END)
@@ -32,6 +37,19 @@ internal class HttpURLConnectionHttpClient : HttpClient {
             throw ExperimentDownloadException(e.message)
         } finally {
             urlConnection?.disconnect()
+        }
+    }
+
+    override fun pinCertificates(keys: Set<String>) {
+        pinnedKeys = keys.toSet()
+    }
+
+    private fun checkCertificatePinning(urlConnection: HttpURLConnection) {
+        if (urlConnection is HttpsURLConnection) {
+            urlConnection.connect()
+            if (!pinner.checkCertificatePinning(urlConnection, pinnedKeys)) {
+                throw ExperimentDownloadException("Certificate does not match pinned ones")
+            }
         }
     }
 

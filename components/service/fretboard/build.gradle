@@ -31,6 +31,10 @@ dependencies {
     testImplementation "org.robolectric:robolectric:${rootProject.ext.dependencies['robolectric']}"
     testImplementation "org.mockito:mockito-core:${rootProject.ext.dependencies['mockito']}"
     testImplementation "com.squareup.okhttp3:mockwebserver:${rootProject.ext.dependencies['mockwebserver']}"
+    // noinspection GradleDependency
+    testImplementation ("org.bouncycastle:bcprov-jdk15on:1.50") {
+        force = true
+    }
 }
 
 archivesBaseName = "fretboard"

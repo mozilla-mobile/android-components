@@ -12,6 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 import java.net.URL
 
@@ -165,5 +166,15 @@ class KintoExperimentSourceTest {
         assertEquals(1, kintoExperiments.experiments.size)
         assertEquals(storageExperiment, kintoExperiments.experiments[0])
         assertEquals(1523549895713, kintoExperiments.lastModified)
+    }
+
+    @Test
+    fun testPinCertificate() {
+        val httpClient = mock(HttpClient::class.java)
+        `when`(httpClient.get(URL("$baseUrl/buckets/$bucketName/collections/$collectionName/records")))
+            .thenReturn("""{"data":[]}""")
+        val experimentSource = KintoExperimentSource(baseUrl, bucketName, collectionName, httpClient)
+        experimentSource.pinCertificates(setOf())
+        verify(httpClient).pinCertificates(setOf())
     }
 }

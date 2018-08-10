@@ -15,28 +15,32 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
         }
     }
 }
 
 dependencies {
-    implementation project(':support-ktx')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.dependencies['kotlin']}"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.dependencies['coroutines']}"
+    implementation project(':support-utils')
 
-    testImplementation project(':support-test')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.dependencies['kotlin']}"
+
     testImplementation "junit:junit:${rootProject.ext.dependencies['junit']}"
     testImplementation "org.robolectric:robolectric:${rootProject.ext.dependencies['robolectric']}"
     testImplementation "org.mockito:mockito-core:${rootProject.ext.dependencies['mockito']}"
-    testImplementation "com.squareup.okhttp3:mockwebserver:${rootProject.ext.dependencies['mockwebserver']}"
 }
 
-archivesBaseName = "fretboard"
+archivesBaseName = "tabcounter"
 
 apply from: '../../../publish.gradle'
 ext.configurePublish(
         'org.mozilla.components',
-        'fretboard',
-        'An Android framework for segmenting users in order to run A/B tests and rollout features gradually.')
+        'tabcounter',
+        'A tab counter for browsers.')

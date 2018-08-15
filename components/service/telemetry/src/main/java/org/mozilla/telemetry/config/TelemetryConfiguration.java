@@ -59,6 +59,7 @@ public class TelemetryConfiguration {
     private int maximumNumberOfPingsPerType;
     private int maximumNumberOfPingUploadsPerDay;
     private SettingsMeasurement.SettingsProvider settingsProvider;
+    private boolean debugMode;
 
     public TelemetryConfiguration(Context context) {
         this.context = context.getApplicationContext();
@@ -81,6 +82,7 @@ public class TelemetryConfiguration {
         setMaximumNumberOfPingsPerType(DEFAULT_MAXIMUM_PINGS_PER_TYPE);
         setMaximumNumberOfPingUploadsPerDay(DEFAULT_MAXIMUM_PING_UPLOADS_PER_DAY);
         setSettingsProvider(new SettingsMeasurement.SharedPreferenceSettingsProvider());
+        setDebugMode(true);
     }
 
     /**
@@ -398,6 +400,22 @@ public class TelemetryConfiguration {
         this.maximumNumberOfPingUploadsPerDay = maximumNumberOfPingUploadsPerDay;
         return this;
     }
+
+    /**
+     * Return true if we are in debug mode
+     */
+    public boolean isDebugMode() {
+        return this.debugMode;
+    }
+
+    /**
+     * Enable or disable debug mode for Telemetry. If true, we'll print the ping content to logcat
+     */
+    public TelemetryConfiguration setDebugMode(boolean debugMode) {
+        this.debugMode = debugMode;
+        return this;
+    }
+
 
     /**
      * Get the provider for reading app settings.

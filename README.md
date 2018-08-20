@@ -8,6 +8,8 @@
 
 _A collection of Android libraries to build browsers or browser-like applications._
 
+ For more information [see the website](https://mozilla-mobile.github.io/android-components/).
+
 # Getting Involved
 
 We encourage you to participate in this open source project. We love pull requests, bug reports, ideas, (security) code reviews or any kind of positive contribution.
@@ -149,7 +151,9 @@ _Generic low-level UI components for building apps._
 
 * 🔵 [**Icons**](components/ui/icons/README.md) - A collection of often used browser icons.
 
-* 🔵 [**Progress**](components/ui/progress/README.md) - An animated progress bar following the Photon Design System. 
+* 🔵 [**Progress**](components/ui/progress/README.md) - An animated progress bar following the Photon Design System.
+
+* ⚪ [**Tabcounter**](components/ui/tabcounter/README.md) - A button that shows the current tab count and can animate state changes.
 
 ## Service
 
@@ -172,6 +176,10 @@ _Supporting components with generic helper code._
 * ⚪ [**Test**](components/support/test/README.md) - A collection of helpers for testing components.
 
 * 🔵 [**Utils**](components/support/utils/README.md) - Generic utility classes to be shared between projects.
+
+## Tooling
+
+* 🔵 [**Lint**](components/tooling/lint/README.md) - Custom Lint rules for the components repository.
 
 # Sample apps
 

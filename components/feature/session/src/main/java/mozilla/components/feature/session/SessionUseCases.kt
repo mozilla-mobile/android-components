@@ -29,6 +29,23 @@ class SessionUseCases(
         }
     }
 
+    class LoadDataUseCase internal constructor(
+        private val sessionManager: SessionManager
+    ) {
+        /**
+         * Loads the provided data based on the mime type using the provided session (or the
+         * currently selected session if none is provided).
+         */
+        fun invoke(
+            data: String,
+            mimeType: String,
+            encoding: String = "UTF-8",
+            session: Session = sessionManager.selectedSessionOrThrow
+        ) {
+            sessionManager.getOrCreateEngineSession(session).loadData(data, mimeType, encoding)
+        }
+    }
+
     class ReloadUrlUseCase internal constructor(
         private val sessionManager: SessionManager
     ) {
@@ -40,6 +57,19 @@ class SessionUseCases(
          */
         fun invoke(session: Session = sessionManager.selectedSessionOrThrow) {
             sessionManager.getOrCreateEngineSession(session).reload()
+        }
+    }
+
+    class StopLoadingUseCase internal constructor(
+        private val sessionManager: SessionManager
+    ) {
+        /**
+         * Stops the current URL of the provided session from loading.
+         *
+         * @param session the session for which loading should be stopped.
+         */
+        fun invoke(session: Session = sessionManager.selectedSessionOrThrow) {
+            sessionManager.getOrCreateEngineSession(session).stopLoading()
         }
     }
 
@@ -66,7 +96,9 @@ class SessionUseCases(
     }
 
     val loadUrl: LoadUrlUseCase by lazy { LoadUrlUseCase(sessionManager) }
+    val loadData: LoadDataUseCase by lazy { LoadDataUseCase(sessionManager) }
     val reload: ReloadUrlUseCase by lazy { ReloadUrlUseCase(sessionManager) }
+    val stopLoading: StopLoadingUseCase by lazy { StopLoadingUseCase(sessionManager) }
     val goBack: GoBackUseCase by lazy { GoBackUseCase(sessionManager) }
     val goForward: GoForwardUseCase by lazy { GoForwardUseCase(sessionManager) }
 }

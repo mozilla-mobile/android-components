@@ -38,6 +38,18 @@ class SessionUseCasesTest {
     }
 
     @Test
+    fun testLoadData() {
+        useCases.loadData.invoke("<html><body></body></html>", "text/html")
+        verify(selectedEngineSession).loadData("<html><body></body></html>", "text/html", "UTF-8")
+
+        useCases.loadData.invoke("Should load in WebView", "text/plain", session = selectedSession)
+        verify(selectedEngineSession).loadData("Should load in WebView", "text/plain", "UTF-8")
+
+        useCases.loadData.invoke("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64", selectedSession)
+        verify(selectedEngineSession).loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
+    }
+
+    @Test
     fun testReload() {
         val engineSession = mock(EngineSession::class.java)
         val session = mock(Session::class.java)
@@ -49,6 +61,20 @@ class SessionUseCasesTest {
         `when`(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
         useCases.reload.invoke()
         verify(selectedEngineSession).reload()
+    }
+
+    @Test
+    fun testStopLoading() {
+        val engineSession = mock(EngineSession::class.java)
+        val session = mock(Session::class.java)
+        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+
+        useCases.stopLoading.invoke(session)
+        verify(engineSession).stopLoading()
+
+        `when`(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
+        useCases.stopLoading.invoke()
+        verify(selectedEngineSession).stopLoading()
     }
 
     @Test

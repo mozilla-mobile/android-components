@@ -180,6 +180,10 @@ open class DummyEngineSession : EngineSession() {
 
     override fun loadUrl(url: String) {}
 
+    override fun loadData(data: String, mimeType: String, encoding: String) {}
+
+    override fun stopLoading() {}
+
     override fun reload() {}
 
     override fun goBack() {}

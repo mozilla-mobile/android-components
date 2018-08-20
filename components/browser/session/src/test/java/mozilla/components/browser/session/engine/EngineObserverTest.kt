@@ -21,6 +21,7 @@ class EngineObserverTest {
             override fun goBack() {}
             override fun goForward() {}
             override fun reload() {}
+            override fun stopLoading() {}
             override fun restoreState(state: Map<String, Any>) {}
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun disableTrackingProtection() {}
@@ -28,6 +29,12 @@ class EngineObserverTest {
                 return emptyMap()
             }
 
+            override fun loadData(data: String, mimeType: String, encoding: String) {
+                notifyObservers { onLocationChange(data) }
+                notifyObservers { onProgress(100) }
+                notifyObservers { onLoadingStateChange(true) }
+                notifyObservers { onNavigationStateChange(true, true) }
+            }
             override fun loadUrl(url: String) {
                 notifyObservers { onLocationChange(url) }
                 notifyObservers { onProgress(100) }
@@ -52,6 +59,7 @@ class EngineObserverTest {
         val engineSession = object : EngineSession() {
             override fun goBack() {}
             override fun goForward() {}
+            override fun stopLoading() {}
             override fun reload() {}
             override fun restoreState(state: Map<String, Any>) {}
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
@@ -60,6 +68,7 @@ class EngineObserverTest {
                 return emptyMap()
             }
 
+            override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun loadUrl(url: String) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
@@ -83,6 +92,7 @@ class EngineObserverTest {
         val engineSession = object : EngineSession() {
             override fun goBack() {}
             override fun goForward() {}
+            override fun stopLoading() {}
             override fun reload() {}
             override fun restoreState(state: Map<String, Any>) {}
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
@@ -96,6 +106,7 @@ class EngineObserverTest {
             }
 
             override fun loadUrl(url: String) {}
+            override fun loadData(data: String, mimeType: String, encoding: String) {}
         }
         val observer = EngineObserver(session)
         engineSession.register(observer)

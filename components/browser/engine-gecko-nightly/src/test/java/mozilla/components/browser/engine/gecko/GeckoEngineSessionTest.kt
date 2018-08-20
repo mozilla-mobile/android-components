@@ -12,10 +12,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
@@ -143,6 +144,62 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun testLoadData() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        var loadUriReceived = false
+        engineSession.geckoSession.eventDispatcher.registerUiThreadListener(
+            BundleEventListener { _, _, _ -> loadUriReceived = true },
+            "GeckoView:LoadUri"
+        )
+
+        engineSession.loadData("<html><body>Hello!</body></html>")
+        assertTrue(loadUriReceived)
+
+        loadUriReceived = false
+        engineSession.loadData("Hello!", "text/plain", "UTF-8")
+        assertTrue(loadUriReceived)
+
+        loadUriReceived = false
+        engineSession.loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
+        assertTrue(loadUriReceived)
+
+        loadUriReceived = false
+        engineSession.loadData("ahr0cdovl21vemlsbgeub3jn==", encoding = "base64")
+        assertTrue(loadUriReceived)
+    }
+
+    @Test
+    fun testLoadDataBase64() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+        val geckoSession = mock(GeckoSession::class.java)
+
+        engineSession.geckoSession = geckoSession
+
+        engineSession.loadData("Hello!", "text/plain", "UTF-8")
+        verify(geckoSession).loadString(eq("Hello!"), anyString())
+
+        engineSession.loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
+        verify(geckoSession).loadData(eq("ahr0cdovl21vemlsbgeub3jn==".toByteArray()), eq("text/plain"))
+
+        engineSession.loadData("ahr0cdovl21vemlsbgeub3jn==", encoding = "base64")
+        verify(geckoSession).loadData(eq("ahr0cdovl21vemlsbgeub3jn==".toByteArray()), eq("text/plain"))
+    }
+
+    @Test
+    fun testStopLoading() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+        var stopLoadingReceived = false
+        engineSession.geckoSession.eventDispatcher.registerUiThreadListener(
+                BundleEventListener { _, _, _ -> stopLoadingReceived = true },
+                "GeckoView:Stop"
+        )
+
+        engineSession.stopLoading()
+        assertTrue(stopLoadingReceived)
+    }
+
+    @Test
     fun testReload() {
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
         engineSession.loadUrl("http://mozilla.org")
@@ -194,20 +251,6 @@ class GeckoEngineSessionTest {
 
         `when`(engineSession.geckoSession.saveState()).thenReturn(GeckoResult.fromValue(currentState))
         assertEquals(stateMap, engineSession.saveState())
-    }
-
-    @Test
-    fun testSaveStateThrowsException() {
-        ThreadUtils.sGeckoHandler = Handler()
-
-        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
-        engineSession.geckoSession = mock(GeckoSession::class.java)
-        `when`(engineSession.geckoSession.saveState()).thenThrow(GeckoEngineException("test"))
-
-        try {
-            engineSession.saveState()
-            fail("Expected GeckoEngineException")
-        } catch (e: GeckoEngineException) { }
     }
 
     @Test

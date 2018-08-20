@@ -6,8 +6,8 @@ buildscript {
         kotlin: '1.2.60',
         coroutines: '0.23.4',
         supportLibraries: '27.1.1',
-        fxa: '0.2.1',
-        jna: '4.5.1',
+        fxa: '0.2.3',
+        jna: '4.5.2',
         // Test only:
         junit: '4.12',
         robolectric: '3.8',
@@ -26,22 +26,20 @@ buildscript {
 
     // Synchronized library configuration for all modules
     ext.library = [
-        version: '0.17'
+        version: '0.20'
     ]
 
     // Synchronized versions numbers of GeckoView (Nightly) artifacts.
     ext.geckoNightly = [
         // Discover nightly builds: https://tools.taskcluster.net/index/gecko.v2.mozilla-central.nightly
-        nightlyDate: '2018.08.01',
-        revision: 'af6a7edf0069549543f2fba6a8ee3ea251b20829',
-        version: '63.0.20180801100114'
+        version: '63.0.20180820100132'
     ]
 
     // Synchronized versions numbers of GeckoView (Beta) artifacts.
     ext.geckoBeta = [
-        // mozilla-beta: FENNEC_62_0b13_RELEASE
-        revision: 'dd92dec96711e60a8c6a49ebe584fa23a453a292',
-        version: '62.0.20180730180407'
+        // mozilla-beta: FENNEC_62_0b15_RELEASE
+        revision: '7ce198bb7ce027d450af3f69a609896671adfab8',
+        version: '62.0.20180806191531'
     ]
 
     ext.geckoRelease = [
@@ -78,23 +76,8 @@ allprojects {
             url "https://oss.sonatype.org/content/repositories/snapshots"
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        // GeckoView Nightly
-        ////////////////////////////////////////////////////////////////////////////////////////////
-
-        // ARM
         maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-central.nightly.${geckoNightly['nightlyDate']}.revision.${geckoNightly['revision']}.mobile.android-api-16-opt/artifacts/public/android/maven"
-        }
-
-        // x86
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-central.nightly.${geckoNightly['nightlyDate']}.revision.${geckoNightly['revision']}.mobile.android-x86-opt/artifacts/public/android/maven"
-        }
-
-        // aarch64
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-central.nightly.${geckoNightly['nightlyDate']}.revision.${geckoNightly['revision']}.mobile.android-aarch64-opt/artifacts/public/android/maven"
+            url "https://maven.mozilla.org/maven2"
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -252,5 +235,11 @@ task printModules {
         subprojects.each { p ->
             println "module: " + p.path
         }
+    }
+}
+
+task printVersion {
+    doLast {
+        println("version: " + library.version)
     }
 }

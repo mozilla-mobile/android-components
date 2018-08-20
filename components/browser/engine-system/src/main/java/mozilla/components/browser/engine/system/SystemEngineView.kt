@@ -46,9 +46,14 @@ class SystemEngineView @JvmOverloads constructor(
 
         internalSession.view = WeakReference(this)
 
-        internalSession.urlToLoad?.let {
-            currentWebView.loadUrl(internalSession.urlToLoad)
-            internalSession.urlToLoad = null
+        internalSession.scheduledLoad.data?.let {
+            currentWebView.loadData(it, internalSession.scheduledLoad.mimeType, "UTF-8")
+            internalSession.scheduledLoad = ScheduledLoad()
+        }
+
+        internalSession.scheduledLoad.url?.let {
+            currentWebView.loadUrl(it)
+            internalSession.scheduledLoad = ScheduledLoad()
         }
     }
 

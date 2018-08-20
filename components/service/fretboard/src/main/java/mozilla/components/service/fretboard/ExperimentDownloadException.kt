@@ -4,4 +4,10 @@
 
 package mozilla.components.service.fretboard
 
-class ExperimentDownloadException(override val message: String?) : Exception(message)
+/**
+ * Exception while downloading experiments from the server
+ */
+class ExperimentDownloadException : Exception {
+    constructor(message: String?) : super(message)
+    constructor(cause: Throwable) : super(cause)
+}

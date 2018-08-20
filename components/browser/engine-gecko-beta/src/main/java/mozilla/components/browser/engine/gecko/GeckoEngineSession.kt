@@ -41,6 +41,23 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.loadData]
+     */
+    override fun loadData(data: String, mimeType: String, encoding: String) {
+        when (encoding) {
+            "base64" -> geckoSession.loadData(data.toByteArray(), mimeType)
+            else -> geckoSession.loadString(data, mimeType)
+        }
+    }
+
+    /**
+     * See [EngineSession.stopLoading]
+     */
+    override fun stopLoading() {
+        geckoSession.stop()
+    }
+
+    /**
      * See [EngineSession.reload]
      */
     override fun reload() {
@@ -74,7 +91,6 @@ class GeckoEngineSession(
      * is used so we're not blocking anything else. In case of calling this
      * method from onPause or similar, we also want a synchronous response.
      */
-    @Throws(GeckoEngineException::class)
     override fun saveState(): Map<String, Any> = runBlocking {
         val stateMap = CompletableDeferred<Map<String, Any>>()
 
@@ -144,6 +160,10 @@ class GeckoEngineSession(
     * ProgressDelegate implementation for forwarding callbacks to observers of the session.
     */
     private fun createProgressDelegate() = object : GeckoSession.ProgressDelegate {
+        override fun onProgressChange(session: GeckoSession?, progress: Int) {
+            notifyObservers { onProgress(progress) }
+        }
+
         override fun onSecurityChange(
             session: GeckoSession?,
             securityInfo: GeckoSession.ProgressDelegate.SecurityInformation?

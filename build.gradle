@@ -13,7 +13,7 @@ buildscript {
         robolectric: '3.8',
         mockito: '2.19.0',
         mockwebserver: '3.10.0',
-        // Docs only"
+        // Docs only:
         dokka: '0.9.16'
     ]
 
@@ -123,6 +123,10 @@ subprojects {
 
     afterEvaluate {
         if (it.hasProperty('android')) {
+            jacoco {
+                toolVersion = "0.8.1"
+            }
+
             dependencies {
                 lintChecks project(':tooling-lint')
             }

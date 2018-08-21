@@ -99,6 +99,10 @@ public class FileTelemetryStorage implements TelemetryStorage {
 
         final String serializedPing = serializer.serialize(ping);
 
+        if (configuration.isDebugMode()) {
+            logger.warn(serializedPing, null);
+        }
+
         final File pingFile = new File(pingStorageDirectory, ping.getDocumentId());
 
         FileOutputStream stream = null;

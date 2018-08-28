@@ -7,6 +7,7 @@ import kotlinx.coroutines.experimental.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.concept.engine.EngineSession
 import org.junit.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -223,5 +224,41 @@ class SystemEngineSessionTest {
         assertFalse(engineSession.settings.domStorageEnabled)
         engineSession.settings.domStorageEnabled = true
         verify(webViewSettings).domStorageEnabled = true
+    }
+
+    @Test
+    fun `desktop mode`() {
+        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val engineSession = spy(SystemEngineSession())
+        val webView = mock(WebView::class.java)
+        val webViewSettings = mock(WebSettings::class.java)
+
+        engineSession.setDesktopMode(true)
+        verify(engineSession).currentView()
+        verify(webView, never()).settings
+
+        `when`(engineSession.currentView()).thenReturn(webView)
+        `when`(webView.settings).thenReturn(webViewSettings)
+        `when`(webViewSettings.userAgentString).thenReturn(userAgentMobile)
+
+        engineSession.setDesktopMode(true)
+        verify(webViewSettings).useWideViewPort = true
+        verify(engineSession).toggleDesktopUA(userAgentMobile, true)
+
+        engineSession.setDesktopMode(true)
+        verify(webView, never()).reload()
+
+        engineSession.setDesktopMode(true, true)
+        verify(webView).reload()
+    }
+
+    @Test
+    fun `desktop mode UA`() {
+        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentDesktop = "Mozilla/5.0 (Linux; diordnA 9) AppleWebKit/537.36 eliboM Safari/537.36"
+        val engineSession = spy(SystemEngineSession())
+
+        assertEquals(engineSession.toggleDesktopUA(userAgentMobile, false), userAgentMobile)
+        assertEquals(engineSession.toggleDesktopUA(userAgentMobile, true), userAgentDesktop)
     }
 }

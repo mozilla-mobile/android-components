@@ -11,6 +11,7 @@ import mozilla.components.support.ktx.kotlin.toBundle
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.experimental.launch
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.request.RequestInterceptor
 
 /**
  * WebView-based EngineSession implementation.
@@ -127,6 +128,28 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     }
 
     /**
+     * See [EngineSession.findAll]
+     */
+    override fun findAll(text: String) {
+        notifyObservers { onFind(text) }
+        currentView()?.findAllAsync(text)
+    }
+
+    /**
+     * See [EngineSession.findNext]
+     */
+    override fun findNext(forward: Boolean) {
+        currentView()?.findNext(forward)
+    }
+
+    /**
+     * See [EngineSession.clearFindResults]
+     */
+    override fun clearFindMatches() {
+        currentView()?.clearMatches()
+    }
+
+    /**
      * See [EngineSession.settings]
      */
     override val settings: Settings
@@ -147,16 +170,18 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
 
                 override var trackingProtectionPolicy: TrackingProtectionPolicy?
                     get() = if (trackingProtectionEnabled)
-                        TrackingProtectionPolicy.all()
-                    else
-                        TrackingProtectionPolicy.none()
-
+                            TrackingProtectionPolicy.all()
+                        else
+                            TrackingProtectionPolicy.none()
                     set(value) = value?.let { enableTrackingProtection(it) } ?: disableTrackingProtection()
+
+                override var requestInterceptor: RequestInterceptor? = null
             }.apply {
                 defaultSettings?.let {
                     this.javascriptEnabled = defaultSettings.javascriptEnabled
                     this.domStorageEnabled = defaultSettings.domStorageEnabled
                     this.trackingProtectionPolicy = defaultSettings.trackingProtectionPolicy
+                    this.requestInterceptor = defaultSettings.requestInterceptor
                 }
             }
             return _settings as Settings

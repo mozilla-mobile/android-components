@@ -41,7 +41,7 @@ class SystemEngineView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView, View.OnLongClickListener {
-    internal val currentWebView = createWebView(context)
+    internal var currentWebView = createWebView(context)
     internal var currentUrl = ""
     private var session: SystemEngineSession? = null
 
@@ -83,6 +83,7 @@ class SystemEngineView @JvmOverloads constructor(
         webView.webViewClient = createWebViewClient(webView)
         webView.webChromeClient = createWebChromeClient()
         webView.setDownloadListener(createDownloadListener())
+        webView.setFindListener(createFindListener())
         return webView
     }
 
@@ -139,6 +140,17 @@ class SystemEngineView @JvmOverloads constructor(
                     return WebResourceResponse(null, null, null)
                 }
             }
+
+            session?.let { session ->
+                session.settings.requestInterceptor?.let { interceptor ->
+                    interceptor.onLoadRequest(
+                        session, request.url.toString()
+                    )?.apply {
+                        return WebResourceResponse(mimeType, encoding, data.byteInputStream())
+                    }
+                }
+            }
+
             return super.shouldInterceptRequest(view, request)
         }
     }
@@ -159,6 +171,14 @@ class SystemEngineView @JvmOverloads constructor(
                 val fileName = DownloadUtils.guessFileName(contentDisposition, url, mimetype)
                 val cookie = CookieManager.getInstance().getCookie(url)
                 onExternalResource(url, fileName, contentLength, mimetype, cookie, userAgent)
+            }
+        }
+    }
+
+    internal fun createFindListener(): WebView.FindListener {
+        return WebView.FindListener { activeMatchOrdinal: Int, numberOfMatches: Int, isDoneCounting: Boolean ->
+            session?.internalNotifyObservers {
+                onFindResult(activeMatchOrdinal, numberOfMatches, isDoneCounting)
             }
         }
     }

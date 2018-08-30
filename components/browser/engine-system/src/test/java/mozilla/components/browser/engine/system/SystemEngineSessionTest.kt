@@ -1,16 +1,21 @@
 package mozilla.components.browser.engine.system
 
+import android.net.Uri
 import android.os.Bundle
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import kotlinx.coroutines.experimental.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.support.test.mock
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -19,6 +24,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
@@ -253,6 +259,89 @@ class SystemEngineSessionTest {
     }
 
     @Test
+    fun testSettingRequestInterceptor() {
+        var interceptorCalledWithUri: String? = null
+
+        val interceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+                interceptorCalledWithUri = uri
+                return RequestInterceptor.InterceptionResponse("<h1>Hello World</h1>")
+            }
+        }
+
+        val defaultSettings = DefaultSettings(requestInterceptor = interceptor)
+
+        val engineSession = SystemEngineSession(defaultSettings)
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.currentWebView = spy(engineView.currentWebView)
+        engineView.render(engineSession)
+
+        val request: WebResourceRequest = mock()
+        doReturn(Uri.parse("sample:about")).`when`(request).url
+
+        val response = engineView.currentWebView.webViewClient.shouldInterceptRequest(
+            engineView.currentWebView,
+            request)
+
+        assertEquals("sample:about", interceptorCalledWithUri)
+
+        assertNotNull(response)
+
+        assertEquals("<h1>Hello World</h1>", response.data.bufferedReader().use { it.readText() })
+        assertEquals("text/html", response.mimeType)
+        assertEquals("UTF-8", response.encoding)
+    }
+
+    @Test
+    fun testOnLoadRequestWithoutInterceptor() {
+        val defaultSettings = DefaultSettings()
+
+        val engineSession = SystemEngineSession(defaultSettings)
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.currentWebView = spy(engineView.currentWebView)
+        engineView.render(engineSession)
+
+        val request: WebResourceRequest = mock()
+        doReturn(Uri.parse("sample:about")).`when`(request).url
+
+        val response = engineView.currentWebView.webViewClient.shouldInterceptRequest(
+            engineView.currentWebView,
+            request)
+
+        assertNull(response)
+    }
+
+    @Test
+    fun testOnLoadRequestWithInterceptorThatDoesNotIntercept() {
+        var interceptorCalledWithUri: String? = null
+
+        val interceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+                interceptorCalledWithUri = uri
+                return null
+            }
+        }
+
+        val defaultSettings = DefaultSettings(requestInterceptor = interceptor)
+
+        val engineSession = SystemEngineSession(defaultSettings)
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.currentWebView = spy(engineView.currentWebView)
+        engineView.render(engineSession)
+
+        val request: WebResourceRequest = mock()
+        doReturn(Uri.parse("sample:about")).`when`(request).url
+
+        val response = engineView.currentWebView.webViewClient.shouldInterceptRequest(
+            engineView.currentWebView,
+            request)
+
+        assertEquals("sample:about", interceptorCalledWithUri)
+
+        assertNull(response)
+    }
+
+    @Test
     fun `desktop mode`() {
         val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
         val engineSession = spy(SystemEngineSession())
@@ -286,5 +375,48 @@ class SystemEngineSessionTest {
 
         assertEquals(engineSession.toggleDesktopUA(userAgentMobile, false), userAgentMobile)
         assertEquals(engineSession.toggleDesktopUA(userAgentMobile, true), userAgentDesktop)
+    }
+
+    @Test
+    fun testFindAll() {
+        val engineSession = spy(SystemEngineSession())
+        val webView = mock(WebView::class.java)
+        engineSession.findAll("mozilla")
+        verify(webView, never()).findAllAsync(anyString())
+
+        `when`(engineSession.currentView()).thenReturn(webView)
+        var findObserved: String? = null
+        engineSession.register(object : EngineSession.Observer {
+            override fun onFind(text: String) {
+                findObserved = text
+            }
+        })
+        engineSession.findAll("mozilla")
+        verify(webView).findAllAsync("mozilla")
+        assertEquals("mozilla", findObserved)
+    }
+
+    @Test
+    fun testFindNext() {
+        val engineSession = spy(SystemEngineSession())
+        val webView = mock(WebView::class.java)
+        engineSession.findNext(true)
+        verify(webView, never()).findNext(any(Boolean::class.java))
+
+        `when`(engineSession.currentView()).thenReturn(webView)
+        engineSession.findNext(true)
+        verify(webView).findNext(true)
+    }
+
+    @Test
+    fun testClearFindMatches() {
+        val engineSession = spy(SystemEngineSession())
+        val webView = mock(WebView::class.java)
+        engineSession.clearFindMatches()
+        verify(webView, never()).clearMatches()
+
+        `when`(engineSession.currentView()).thenReturn(webView)
+        engineSession.clearFindMatches()
+        verify(webView).clearMatches()
     }
 }

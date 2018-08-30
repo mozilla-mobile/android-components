@@ -9,8 +9,10 @@ android {
     compileSdkVersion Config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
+        minSdkVersion Config.minSdkVersion_dataprotect
         targetSdkVersion Config.targetSdkVersion
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -22,29 +24,17 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-engine')
-    implementation project(':support-ktx')
-
-    // We only compile against the ARM artifact. We let the app decide which artifact to actually
-    // use at runtime. As the Kotlin/Java API is the same for all ABIs it is not important which one
-    // we import here.
-    compileOnly "org.mozilla:geckoview-beta-armeabi-v7a:${rootProject.ext.geckoBeta['version']}"
-    testImplementation "org.mozilla:geckoview-beta-armeabi-v7a:${rootProject.ext.geckoBeta['version']}"
-
     implementation Deps.kotlin_stdlib
-    implementation Deps.kotlin_coroutines
 
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito
-
-    testImplementation project(':support-test')
 }
 
-archivesBaseName = "engine-gecko-beta"
+archivesBaseName = "dataprotect"
 
 apply from: '../../../publish.gradle'
 ext.configurePublish(
         'org.mozilla.components',
-        'engine-gecko-beta',
-        'Engine implementation based on GeckoView (Beta channel).')
+        'dataprotect',
+        'A component using AndroidKeyStore to protect user data.')

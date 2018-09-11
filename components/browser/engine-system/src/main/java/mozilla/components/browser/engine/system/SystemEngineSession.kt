@@ -6,12 +6,13 @@ package mozilla.components.browser.engine.system
 
 import android.os.Bundle
 import android.webkit.WebView
-import mozilla.components.concept.engine.EngineSession
-import mozilla.components.support.ktx.kotlin.toBundle
-import java.lang.ref.WeakReference
 import kotlinx.coroutines.experimental.launch
+import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.support.ktx.kotlin.toBundle
+import java.lang.ref.WeakReference
 
 internal val additionalHeaders = mapOf(
     // For every request WebView sends a "X-requested-with" header with the package name of the
@@ -26,10 +27,12 @@ internal val additionalHeaders = mapOf(
  */
 @Suppress("TooManyFunctions")
 class SystemEngineSession(private val defaultSettings: Settings? = null) : EngineSession() {
+
     internal var view: WeakReference<SystemEngineView>? = null
     internal var scheduledLoad = ScheduledLoad(null)
     @Volatile internal var trackingProtectionEnabled = false
     @Volatile internal var webFontsEnabled = true
+    @Volatile internal var internalSettings: Settings? = null
 
     /**
      * See [EngineSession.loadUrl]
@@ -162,13 +165,15 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
      * See [EngineSession.settings]
      */
     override val settings: Settings
-        get() = _settings ?: run { initSettings() }
-
-    private var _settings: Settings? = null
+        // Settings are initialized when the engine view is rendered
+        // as we need the WebView instance to do it. If this method is
+        // called before that we can return the provided default settings,
+        // or the global defaults.
+        get() = internalSettings ?: defaultSettings ?: DefaultSettings()
 
     internal fun initSettings(): Settings {
         currentView()?.settings?.let {
-            _settings = object : Settings {
+            internalSettings = object : Settings {
                 override var javascriptEnabled: Boolean
                     get() = it.javaScriptEnabled
                     set(value) { it.javaScriptEnabled = value }
@@ -198,7 +203,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                     this.requestInterceptor = defaultSettings.requestInterceptor
                 }
             }
-            return _settings as Settings
+            return internalSettings as Settings
         } ?: throw IllegalStateException("System engine session not initialized")
     }
 
@@ -215,6 +220,13 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 view.reload()
             }
         }
+    }
+
+    /**
+     * See [EngineSession.exitFullScreenMode]
+     */
+    override fun exitFullScreenMode() {
+        // no-op
     }
 
     internal fun toggleDesktopUA(userAgent: String, requestDesktop: Boolean): String {

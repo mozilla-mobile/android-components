@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Handler
 import android.os.Message
+import android.support.annotation.VisibleForTesting
 import android.util.AttributeSet
 import android.view.View
 import android.webkit.CookieManager
@@ -29,6 +30,7 @@ import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.support.ktx.android.content.isOSOnLowMemory
 import mozilla.components.support.utils.DownloadUtils
 import java.lang.ref.WeakReference
 import java.net.URI
@@ -118,11 +120,16 @@ class SystemEngineView @JvmOverloads constructor(
         override fun onPageFinished(view: WebView?, url: String?) {
             url?.let {
                 val cert = view?.certificate
-
                 session?.internalNotifyObservers {
                     onLocationChange(it)
                     onLoadingStateChange(false)
                     onSecurityChange(cert != null, cert?.let { URI(url).host }, cert?.issuedBy?.oName)
+
+                    if (!isLowOnMemory()) {
+                        val thumbnail = session?.captureThumbnail()
+                        if (thumbnail != null)
+                            onThumbnailChange(thumbnail)
+                    }
                 }
             }
         }
@@ -174,6 +181,11 @@ class SystemEngineView @JvmOverloads constructor(
             return super.shouldInterceptRequest(view, request)
         }
     }
+
+    @VisibleForTesting
+    internal var testLowMemory = false
+
+    private fun isLowOnMemory() = testLowMemory || (context?.isOSOnLowMemory() == true)
 
     internal fun createWebChromeClient() = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView?, newProgress: Int) {

@@ -40,7 +40,7 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.settings]
      */
-    override val settings: Settings = object : Settings {
+    override val settings: Settings = object : Settings() {
         override var requestInterceptor: RequestInterceptor? = null
     }
 

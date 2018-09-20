@@ -28,6 +28,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import kotlin.Unit;
+import kotlin.jvm.functions.Function0;
+
 public class Telemetry {
     private final TelemetryConfiguration configuration;
     private final TelemetryStorage storage;
@@ -146,7 +149,7 @@ public class Telemetry {
         builder.getSessionCountMeasurement().countSession();
     }
 
-    public Telemetry recordSessionEnd() {
+    public Telemetry recordSessionEnd(Function0<Unit> onFailure) {
         if (!configuration.isCollectionEnabled()) {
             return this;
         }
@@ -156,9 +159,21 @@ public class Telemetry {
         }
 
         final TelemetryCorePingBuilder builder = (TelemetryCorePingBuilder) pingBuilders.get(TelemetryCorePingBuilder.TYPE);
-        builder.getSessionDurationMeasurement().recordSessionEnd();
+        boolean endedSuccessfully = builder.getSessionDurationMeasurement().recordSessionEnd();
+        if (!endedSuccessfully) {
+            onFailure.invoke();
+        }
 
         return this;
+    }
+
+    public Telemetry recordSessionEnd() {
+        return recordSessionEnd(new Function0<Unit>() {
+            @Override
+            public Unit invoke() {
+                throw new IllegalStateException("Expected session to be started before session end is called");
+            }
+        });
     }
 
     /**

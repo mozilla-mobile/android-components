@@ -21,11 +21,13 @@ import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.mozilla.telemetry.event.TelemetryEvent;
 import org.mozilla.telemetry.measurement.DefaultSearchMeasurement;
 import org.mozilla.telemetry.measurement.SearchesMeasurement;
+import org.mozilla.telemetry.measurement.SessionDurationMeasurement;
 import org.mozilla.telemetry.net.HttpURLConnectionTelemetryClient;
 import org.mozilla.telemetry.net.TelemetryClient;
 import org.mozilla.telemetry.ping.TelemetryCorePingBuilder;
 import org.mozilla.telemetry.ping.TelemetryEventPingBuilder;
 import org.mozilla.telemetry.ping.TelemetryMobileEventPingBuilder;
+import org.mozilla.telemetry.ping.TelemetryPingBuilder;
 import org.mozilla.telemetry.schedule.TelemetryScheduler;
 import org.mozilla.telemetry.schedule.jobscheduler.JobSchedulerTelemetryScheduler;
 import org.mozilla.telemetry.schedule.jobscheduler.TelemetryJobService;
@@ -41,6 +43,8 @@ import org.robolectric.annotation.Config;
 import java.util.Arrays;
 import java.util.List;
 
+import kotlin.Unit;
+import kotlin.jvm.functions.Function0;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -54,7 +58,9 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = android.os.Build.VERSION_CODES.LOLLIPOP)
@@ -459,6 +465,49 @@ public class TelemetryTest {
         TestUtils.waitForExecutor(telemetry);
 
         verify(telemetry).queuePing(TelemetryEventPingBuilder.TYPE);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testFailedSessionEndThrows() {
+        Telemetry telemetry = createFailOnSessionEndTelemetry();
+        when(telemetry.recordSessionEnd()).thenThrow(new IllegalStateException());
+    }
+
+    @Test
+    public void testFailedSessionEndInvokesCallback() {
+        Telemetry telemetry = createFailOnSessionEndTelemetry();
+        Function0<Unit> onFailure = spy(new Function0<Unit>() {
+            @Override
+            public Unit invoke() {
+                return null;
+            }
+        });
+
+        telemetry.recordSessionEnd(onFailure);
+        verify(onFailure, times(1)).invoke();
+    }
+
+    private Telemetry createFailOnSessionEndTelemetry() {
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryStorage storage = mock(TelemetryStorage.class);
+        final TelemetryClient client = mock(TelemetryClient.class);
+        final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
+        final SessionDurationMeasurement sessionDurationMeasurement = new SessionDurationMeasurement(configuration) {
+            @Override
+            public synchronized boolean recordSessionEnd() {
+                return false;
+            }
+        };
+        final TelemetryCorePingBuilder pingBuilder = new TelemetryCorePingBuilder(configuration) {
+            @Override
+            public SessionDurationMeasurement getSessionDurationMeasurement() {
+                return sessionDurationMeasurement;
+            }
+        };
+
+
+        return new Telemetry(configuration, storage, client, scheduler)
+                .addPingBuilder(pingBuilder);
     }
 
     private void assertJobIsScheduled() {

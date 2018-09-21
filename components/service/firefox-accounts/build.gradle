@@ -28,11 +28,8 @@ android {
 }
 
 repositories {
-    ivy {
-        url 'https://index.taskcluster.net/v1/task/'
-        layout 'pattern', {
-            artifact '/project.fxaclient.builds.[revision]/artifacts/public/bin/[organisation]/[module]_[revision].[ext]'
-        }
+    maven {
+        url 'https://dl.bintray.com/ncalexander/application-services/'
     }
 }
 
@@ -70,14 +67,6 @@ dependencies {
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito
 }
-
-ext.jniOutputDir = "src/main/jniLibs"
-
-task unzipFxaLibs(type: Copy) {
-    from configurations.fxa.files.collect { zipTree(it) }
-    into jniOutputDir
-}
-preBuild.dependsOn(unzipFxaLibs)
 
 archivesBaseName = "fxa"
 

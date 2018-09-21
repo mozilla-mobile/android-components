@@ -24,6 +24,8 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
+import kotlin.reflect.full.functions
+import kotlin.reflect.jvm.isAccessible
 
 @RunWith(RobolectricTestRunner::class)
 class FretboardTest {
@@ -151,6 +153,59 @@ class FretboardTest {
         assertEquals(2, activeExperiments.size)
         assertTrue(activeExperiments.any { it.id == "second-id" })
         assertTrue(activeExperiments.any { it.id == "third-id" })
+    }
+
+    @Test
+    fun testGetExperimentsMap() {
+        val experimentSource = mock(ExperimentSource::class.java)
+        val experimentStorage = mock(ExperimentStorage::class.java)
+        val experiments = listOf(
+                Experiment("first-id",
+                        name = "first-name",
+                        match = Experiment.Matcher(
+                                manufacturer = "manufacturer-1"
+                        )
+                ),
+                Experiment("second-id",
+                        name = "second-name",
+                        match = Experiment.Matcher(
+                                manufacturer = "unknown",
+                                appId = "test.appId"
+                        )
+                ),
+                Experiment("third-id",
+                        name = "third-name",
+                        match = Experiment.Matcher(
+                                manufacturer = "unknown",
+                                version = "version.name"
+                        )
+                )
+        )
+        `when`(experimentStorage.retrieve()).thenReturn(ExperimentsSnapshot(experiments, null))
+        val fretboard = Fretboard(experimentSource, experimentStorage)
+        fretboard.loadExperiments()
+
+        val context = mock(Context::class.java)
+        `when`(context.packageName).thenReturn("test.appId")
+        val sharedPrefs = mock(SharedPreferences::class.java)
+        val prefsEditor = mock(SharedPreferences.Editor::class.java)
+        `when`(prefsEditor.putString(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(prefsEditor)
+        `when`(sharedPrefs.edit()).thenReturn(prefsEditor)
+        `when`(sharedPrefs.getBoolean(ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
+        `when`(context.getSharedPreferences(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt())).thenReturn(sharedPrefs)
+
+        val packageInfo = mock(PackageInfo::class.java)
+        packageInfo.versionName = "version.name"
+        val packageManager = mock(PackageManager::class.java)
+        `when`(packageManager.getPackageInfo(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt())).thenReturn(packageInfo)
+        `when`(context.packageManager).thenReturn(packageManager)
+
+        val experimentsMap = fretboard.getExperimentsMap(context)
+        assertEquals(3, experimentsMap.size)
+        println(experimentsMap.toString())
+        assertTrue(experimentsMap["first-name"] == false)
+        assertTrue(experimentsMap["second-name"] == true)
+        assertTrue(experimentsMap["third-name"] == true)
     }
 
     @Test
@@ -430,5 +485,61 @@ class FretboardTest {
         `when`(storage.retrieve()).thenReturn(ExperimentsSnapshot(listOf(), null))
         val fretboard = Fretboard(source, storage)
         fretboard.updateExperiments()
+    }
+
+    @Test
+    fun testGetUserBucket() {
+        val context = mock(Context::class.java)
+        val sharedPrefs = mock(SharedPreferences::class.java)
+        val prefsEditor = mock(SharedPreferences.Editor::class.java)
+        val experimentSource = mock(ExperimentSource::class.java)
+        val experimentStorage = mock(ExperimentStorage::class.java)
+        `when`(sharedPrefs.edit()).thenReturn(prefsEditor)
+        `when`(prefsEditor.putBoolean(ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())).thenReturn(prefsEditor)
+        `when`(prefsEditor.putString(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(prefsEditor)
+        `when`(context.getSharedPreferences(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt())).thenReturn(sharedPrefs)
+        `when`(sharedPrefs.getString(ArgumentMatchers.anyString(), ArgumentMatchers.isNull()))
+                .thenReturn("a94b1dab-030e-4b13-be15-cc80c1eda8b3")
+        val fretboard = Fretboard(experimentSource, experimentStorage)
+        assertTrue(fretboard.getUserBucket(context) == 54)
+    }
+
+    @Test
+    fun testEvenDistribution() {
+        val context = mock(Context::class.java)
+        val sharedPrefs = mock(SharedPreferences::class.java)
+        val prefsEditor = mock(SharedPreferences.Editor::class.java)
+        `when`(sharedPrefs.edit()).thenReturn(prefsEditor)
+        `when`(prefsEditor.putBoolean(ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())).thenReturn(prefsEditor)
+        `when`(prefsEditor.putString(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(prefsEditor)
+        `when`(context.getSharedPreferences(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt())).thenReturn(sharedPrefs)
+
+        val distribution = (1..1000).map {
+            val experimentEvaluator = ExperimentEvaluator()
+            val f = experimentEvaluator::class.functions.find { it.name == "getUserBucket" }
+            f!!.isAccessible = true
+            f.call(experimentEvaluator, context) as Int
+        }
+
+        distribution
+                .groupingBy { it }
+                .eachCount()
+                .forEach {
+                    assertTrue(it.value in 0..25)
+                }
+
+        distribution
+                .groupingBy { it / 10 }
+                .eachCount()
+                .forEach {
+                    assertTrue(it.value in 50..150)
+                }
+
+        distribution
+                .groupingBy { it / 50 }
+                .eachCount()
+                .forEach {
+                    assertTrue(it.value in 350..650)
+                }
     }
 }

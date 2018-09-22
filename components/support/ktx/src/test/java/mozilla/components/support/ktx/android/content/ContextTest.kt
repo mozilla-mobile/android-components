@@ -7,10 +7,17 @@ package mozilla.components.support.ktx.android.content
 import android.app.ActivityManager
 import android.content.Context
 import android.view.accessibility.AccessibilityManager
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.spy
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
@@ -62,13 +69,13 @@ class ContextTest {
     @Test
     fun `isScreenReaderEnabled() returns true when TouchExploration enabled`() {
         shadowOf(accessibilityManager).isTouchExplorationEnabled = true
-        assertTrue(context!!.isScreenReaderEnabled())
+        context!!.isScreenReaderEnabled()?.let { assertTrue(it) }
     }
 
     @Test
     fun `isScreenReaderEnabled() returns false when TouchExploration disabled`() {
         shadowOf(accessibilityManager).isTouchExplorationEnabled = false
-        assertFalse(context!!.isScreenReaderEnabled())
+        context!!.isScreenReaderEnabled()?.let { assertFalse(it) }
     }
 
     @Test
@@ -80,6 +87,22 @@ class ContextTest {
         shadowOf(accessibilityManager).isEnabled = false
         assertFalse(accessibilityManager!!.isEnabled)
         assertFalse(getAccessibilityManagerInstance().isEnabled)
+    }
+
+    @Test
+    fun `screenReaderSupport when AccessibiltyManager is not available`() {
+        // Assume AccessibilityManager is null
+        val spyContext = spy(context)
+        `when`(spyContext?.getAccessibilityManager()).thenReturn(null)
+        assertNull(spyContext?.isScreenReaderEnabled())
+
+        // Assume AccessibilityManager is NOT null
+        val accessibilityManager: AccessibilityManager = mock(AccessibilityManager::class.java)
+        `when`(spyContext?.getAccessibilityManager()).thenReturn(accessibilityManager)
+        `when`(accessibilityManager.isTouchExplorationEnabled).thenReturn(true)
+        val res = spyContext?.isScreenReaderEnabled()
+        assertNotNull(res)
+        assertTrue(res ?: false)
     }
 
     @Throws(Exception::class)

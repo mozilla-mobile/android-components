@@ -36,13 +36,16 @@ class SessionUseCases(
          * Loads the provided data based on the mime type using the provided session (or the
          * currently selected session if none is provided).
          */
+        @Suppress("LongParameterList")
         fun invoke(
             data: String,
             mimeType: String,
             encoding: String = "UTF-8",
+            baseUrl: String? = null,
+            historyUrl: String? = null,
             session: Session = sessionManager.selectedSessionOrThrow
         ) {
-            sessionManager.getOrCreateEngineSession(session).loadData(data, mimeType, encoding)
+            sessionManager.getOrCreateEngineSession(session).loadData(data, mimeType, encoding, baseUrl, historyUrl)
         }
     }
 

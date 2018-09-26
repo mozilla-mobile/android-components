@@ -45,8 +45,12 @@ class SessionUseCasesTest {
         useCases.loadData.invoke("Should load in WebView", "text/plain", session = selectedSession)
         verify(selectedEngineSession).loadData("Should load in WebView", "text/plain", "UTF-8")
 
-        useCases.loadData.invoke("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64", selectedSession)
-        verify(selectedEngineSession).loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
+        useCases.loadData.invoke("bW96aWxsYS5vcmc=", "text/plain", "base64", session = selectedSession)
+        verify(selectedEngineSession).loadData("bW96aWxsYS5vcmc=", "text/plain", "base64")
+
+        useCases.loadData.invoke("bW96aWxsYS5vcmc=", "text/plain", "UTF-8", "http://mozilla.org/", "mozilla:about")
+        verify(selectedEngineSession).loadData("bW96aWxsYS5vcmc=", "text/plain", "UTF-8", "http://mozilla.org/",
+            "mozilla:about")
     }
 
     @Test

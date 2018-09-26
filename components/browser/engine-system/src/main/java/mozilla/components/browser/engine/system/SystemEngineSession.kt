@@ -60,7 +60,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     /**
      * See [EngineSession.loadData]
      */
-    override fun loadData(data: String, mimeType: String, encoding: String) {
+    override fun loadData(data: String, mimeType: String, encoding: String, baseUrl: String?, historyUrl: String?) {
         val internalView = currentView()
 
         if (internalView == null) {
@@ -68,7 +68,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
             // to a WebView we call loadData then.
             scheduledLoad = ScheduledLoad(data, mimeType)
         } else {
-            internalView.loadData(data, mimeType, encoding)
+            internalView.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl)
         }
     }
 

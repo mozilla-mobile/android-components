@@ -38,7 +38,6 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.support.ktx.android.content.isOSOnLowMemory
 import mozilla.components.support.utils.DownloadUtils
 import java.lang.ref.WeakReference
-import java.net.URI
 
 /**
  * WebView-based implementation of EngineView.
@@ -129,7 +128,10 @@ class SystemEngineView @JvmOverloads constructor(
                 session?.internalNotifyObservers {
                     onLocationChange(it)
                     onLoadingStateChange(false)
-                    onSecurityChange(cert != null, cert?.let { URI(url).host }, cert?.issuedBy?.oName)
+                    onSecurityChange(
+                            secure = cert != null,
+                            host = cert?.let { Uri.parse(url).host },
+                            issuer = cert?.issuedBy?.oName)
 
                     if (!isLowOnMemory()) {
                         val thumbnail = session?.captureThumbnail()
@@ -298,12 +300,14 @@ class SystemEngineView @JvmOverloads constructor(
 
     internal fun addFullScreenView(view: View, callback: WebChromeClient.CustomViewCallback) {
         val webView = findViewWithTag<WebView>("mosac_system_engine_webview")
-        webView?.apply { this.visibility = View.GONE }
+        val layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        webView?.apply { this.visibility = View.INVISIBLE }
 
         fullScreenCallback = callback
 
         view.tag = "mosac_system_engine_fullscreen"
-        addView(view)
+        addView(view, layoutParams)
     }
 
     internal fun removeFullScreenView() {

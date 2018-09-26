@@ -105,8 +105,16 @@ abstract class EngineSession(
      * @param data The data that should be rendering.
      * @param mimeType the data type needed by the engine to know how to render it.
      * @param encoding specifies whether the data is base64 encoded; use 'base64' else defaults to "UTF-8".
+     * @param baseUrl Used for resolving relative paths in the data provided.
+     * @param historyUrl Used for adding a history entry or replacement url in the url bar.
      */
-    abstract fun loadData(data: String, mimeType: String = "text/html", encoding: String = "UTF-8")
+    abstract fun loadData(
+        data: String,
+        mimeType: String = "text/html",
+        encoding: String = "UTF-8",
+        baseUrl: String? = null,
+        historyUrl: String? = null
+    )
 
     /**
      * Stops loading the current session.

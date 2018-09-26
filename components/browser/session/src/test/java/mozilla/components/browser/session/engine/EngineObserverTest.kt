@@ -45,7 +45,13 @@ class EngineObserverTest {
                 return emptyMap()
             }
 
-            override fun loadData(data: String, mimeType: String, encoding: String) {
+            override fun loadData(
+                data: String,
+                mimeType: String,
+                encoding: String,
+                baseUrl: String?,
+                historyUrl: String?
+            ) {
                 notifyObservers { onLocationChange(data) }
                 notifyObservers { onProgress(100) }
                 notifyObservers { onLoadingStateChange(true) }
@@ -96,7 +102,13 @@ class EngineObserverTest {
                 return emptyMap()
             }
 
-            override fun loadData(data: String, mimeType: String, encoding: String) {}
+            override fun loadData(
+                data: String,
+                mimeType: String,
+                encoding: String,
+                baseUrl: String?,
+                historyUrl: String?
+            ) {}
             override fun loadUrl(url: String) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
@@ -140,7 +152,13 @@ class EngineObserverTest {
             }
 
             override fun loadUrl(url: String) {}
-            override fun loadData(data: String, mimeType: String, encoding: String) {}
+            override fun loadData(
+                data: String,
+                mimeType: String,
+                encoding: String,
+                baseUrl: String?,
+                historyUrl: String?
+            ) {}
             override fun clearData() {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}

@@ -92,18 +92,18 @@ class SystemEngineSessionTest {
         val webView = mock(WebView::class.java)
 
         engineSession.loadData("<html><body>Hello!</body></html>")
-        verify(webView, never()).loadData(anyString(), eq("text/html"), eq("UTF-8"))
+        verify(webView, never()).loadDataWithBaseURL(eq(null), anyString(), eq("text/html"), eq("UTF-8"), eq(null))
 
         `when`(engineSession.currentView()).thenReturn(webView)
 
         engineSession.loadData("<html><body>Hello!</body></html>")
-        verify(webView).loadData(eq("<html><body>Hello!</body></html>"), eq("text/html"), eq("UTF-8"))
+        verify(webView).loadDataWithBaseURL(eq(null), eq("<html><body>Hello!</body></html>"), eq("text/html"), eq("UTF-8"), eq(null))
 
         engineSession.loadData("Hello!", "text/plain", "UTF-8")
-        verify(webView).loadData(eq("Hello!"), eq("text/plain"), eq("UTF-8"))
+        verify(webView).loadDataWithBaseURL(eq(null), eq("Hello!"), eq("text/plain"), eq("UTF-8"), eq(null))
 
         engineSession.loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
-        verify(webView).loadData(eq("ahr0cdovl21vemlsbgeub3jn=="), eq("text/plain"), eq("base64"))
+        verify(webView).loadDataWithBaseURL(eq(null), eq("ahr0cdovl21vemlsbgeub3jn=="), eq("text/plain"), eq("base64"), eq(null))
     }
 
     @Test

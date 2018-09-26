@@ -117,6 +117,7 @@ class SystemEngineView @JvmOverloads constructor(
                 currentUrl = url
                 session?.internalNotifyObservers {
                     onLoadingStateChange(true)
+                    onLocationChange(it)
                 }
             }
         }

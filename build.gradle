@@ -15,8 +15,13 @@ buildscript {
     ]
 
     repositories {
-        google()
-        jcenter()
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/google/"
+	}
+
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/jcenter/"
+	}
     }
 
     dependencies {
@@ -36,11 +41,16 @@ plugins {
 
 allprojects {
     repositories {
-        google()
-        jcenter()
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/google/"
+	}
+
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/jcenter/"
+	}
 
         maven {
-            url "https://maven.mozilla.org/maven2"
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/central/"
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////

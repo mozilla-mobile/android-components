@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+pluginManagement {
+    repositories {
+        maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/plugins/"
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Concept
 ////////////////////////////////////////////////////////////////////////////////////////////////////

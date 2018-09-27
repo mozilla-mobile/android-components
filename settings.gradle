@@ -12,7 +12,7 @@
 //         at org.commonjava.maven.galley.transport.htcli.internal.HttpDownload.call(HttpDownload.java:40) ~[indy-embedder-savant-1.0.1.jar:na]
 //         at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[na:1.8.0_181]
 //         at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) ~[na:1.8.0_181]
- //        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) ~[na:1.8.0_181]
+//         at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) ~[na:1.8.0_181]
 //         at java.lang.Thread.run(Thread.java:748) ~[na:1.8.0_181]
 // Caused by: javax.net.ssl.SSLPeerUnverifiedException: Host name 'd29vzk4ow07wi7.cloudfront.net' does not match the certificate subject provided by the peer (CN=*.cloudfront.net, O=Amazon.com Inc., L=Seattle, ST=Washington, C=US)
 //         at org.apache.http.conn.ssl.SSLConnectionSocketFactory.verifyHostname(SSLConnectionSocketFactory.java:466) ~[httpclient-4.4.jar:4.4]

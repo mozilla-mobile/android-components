@@ -2,13 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-pluginManagement {
-    repositories {
-        maven {
-            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/plugins/"
-        }
-    }
-}
+//
+// This currently does not work because the plugins are hosted behind cloudfront, and the SSL code in the proxy is failing with the following error:
+// 
+// org.commonjava.maven.galley.TransferLocationException: Repository remote request failed for: https://plugins.gradle.org/m2/org/jetbrains/kotlin/kotlin-android-extensions/1.2.61/kotlin-android-extensions-1.2.61.jar. Reason: Host name 'd29vzk4ow07wi7.cloudfront.net' does not match the certificate subject provided by the peer (CN=*.cloudfront.net, O=Amazon.com Inc., L=Seattle, ST=Washington, C=US)
+// 
+//         at org.commonjava.maven.galley.transport.htcli.internal.AbstractHttpJob.executeHttp(AbstractHttpJob.java:152) ~[indy-embedder-savant-1.0.1.jar:na]
+//         at org.commonjava.maven.galley.transport.htcli.internal.HttpDownload.call(HttpDownload.java:69) ~[indy-embedder-savant-1.0.1.jar:na]
+//         at org.commonjava.maven.galley.transport.htcli.internal.HttpDownload.call(HttpDownload.java:40) ~[indy-embedder-savant-1.0.1.jar:na]
+//         at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[na:1.8.0_181]
+//         at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) ~[na:1.8.0_181]
+ //        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) ~[na:1.8.0_181]
+//         at java.lang.Thread.run(Thread.java:748) ~[na:1.8.0_181]
+// Caused by: javax.net.ssl.SSLPeerUnverifiedException: Host name 'd29vzk4ow07wi7.cloudfront.net' does not match the certificate subject provided by the peer (CN=*.cloudfront.net, O=Amazon.com Inc., L=Seattle, ST=Washington, C=US)
+//         at org.apache.http.conn.ssl.SSLConnectionSocketFactory.verifyHostname(SSLConnectionSocketFactory.java:466) ~[httpclient-4.4.jar:4.4]
+//
+// Welcome to 2018 where the JRE still cannot make a modern SSL request? :-/
+// 
+
+//pluginManagement {
+//    repositories {
+//        maven {
+//            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/plugins/"
+//        }
+//    }
+//}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Concept

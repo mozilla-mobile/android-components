@@ -20,13 +20,13 @@
 // Welcome to 2018 where the JRE still cannot make a modern SSL request? :-/
 // 
 
-//pluginManagement {
-//    repositories {
-//        maven {
-//            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8080/api/remote/plugins/"
-//        }
-//    }
-//}
+pluginManagement {
+    repositories {
+        maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/plugins/"
+        }
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Concept

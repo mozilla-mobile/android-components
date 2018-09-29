@@ -4,12 +4,15 @@
 
 object Config {
     // Synchronized library configuration for all modules
-    const val componentsVersion = "0.25"
+
+    // This version number should follow semantic versioning (MAJOR.MINOR.PATCH).
+    // See https://semver.org/
+    const val componentsVersion = "0.26.0"
 
     // Synchronized build configuration for all modules
-    const val compileSdkVersion = 28
+    const val compileSdkVersion = 27
     const val minSdkVersion = 21
-    const val targetSdkVersion = 28
+    const val targetSdkVersion = 27
 
     // Component lib-dataprotect requires functionality from API 23.
     const val minSdkVersion_dataprotect = 23

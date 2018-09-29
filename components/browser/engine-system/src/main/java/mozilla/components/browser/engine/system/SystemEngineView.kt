@@ -38,7 +38,6 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.support.ktx.android.content.isOSOnLowMemory
 import mozilla.components.support.utils.DownloadUtils
 import java.lang.ref.WeakReference
-import java.net.URI
 
 /**
  * WebView-based implementation of EngineView.
@@ -129,7 +128,10 @@ class SystemEngineView @JvmOverloads constructor(
                 session?.internalNotifyObservers {
                     onLocationChange(it)
                     onLoadingStateChange(false)
-                    onSecurityChange(cert != null, cert?.let { URI(url).host }, cert?.issuedBy?.oName)
+                    onSecurityChange(
+                            secure = cert != null,
+                            host = cert?.let { Uri.parse(url).host },
+                            issuer = cert?.issuedBy?.oName)
 
                     if (!isLowOnMemory()) {
                         val thumbnail = session?.captureThumbnail()
@@ -191,25 +193,33 @@ class SystemEngineView @JvmOverloads constructor(
             handler.cancel()
 
             session?.let { session ->
-                session.settings.requestInterceptor?.onErrorRequest(session, error.primaryError, error.url)
+                session.settings.requestInterceptor?.onErrorRequest(session, error.primaryError, error.url)?.apply {
+                    view.loadDataWithBaseURL(url ?: error.url, data, mimeType, encoding, null)
+                }
             }
         }
 
-        override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+        override fun onReceivedError(view: WebView, errorCode: Int, description: String?, failingUrl: String?) {
             session?.let { session ->
-                session.settings.requestInterceptor?.onErrorRequest(session, errorCode, failingUrl)
+                session.settings.requestInterceptor?.onErrorRequest(session, errorCode, failingUrl)?.apply {
+                    view.loadDataWithBaseURL(url ?: failingUrl, data, mimeType, encoding, null)
+                }
             }
         }
 
         @TargetApi(Build.VERSION_CODES.M)
-        override fun onReceivedError(view: WebView?, request: WebResourceRequest, error: WebResourceError) {
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             session?.let { session ->
-                if (request.isForMainFrame) {
-                    session.settings.requestInterceptor?.onErrorRequest(
-                        session,
-                        error.errorCode,
-                        request.url.toString()
-                    )
+                if (!request.isForMainFrame) {
+                    return
+                }
+
+                session.settings.requestInterceptor?.onErrorRequest(
+                    session,
+                    error.errorCode,
+                    request.url.toString()
+                )?.apply {
+                    view.loadDataWithBaseURL(url ?: request.url.toString(), data, mimeType, encoding, null)
                 }
             }
         }
@@ -298,12 +308,14 @@ class SystemEngineView @JvmOverloads constructor(
 
     internal fun addFullScreenView(view: View, callback: WebChromeClient.CustomViewCallback) {
         val webView = findViewWithTag<WebView>("mosac_system_engine_webview")
-        webView?.apply { this.visibility = View.GONE }
+        val layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        webView?.apply { this.visibility = View.INVISIBLE }
 
         fullScreenCallback = callback
 
         view.tag = "mosac_system_engine_fullscreen"
-        addView(view)
+        addView(view, layoutParams)
     }
 
     internal fun removeFullScreenView() {

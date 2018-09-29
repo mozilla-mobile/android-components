@@ -8,11 +8,11 @@ private object Versions {
     const val coroutines = "0.23.4"
 
     const val junit = "4.12"
-    const val robolectric = "4.0-alpha-3"
+    const val robolectric = "3.8"
     const val mockito = "2.21.0"
     const val mockwebserver = "3.10.0"
 
-    const val support_libraries = "28.0.0"
+    const val support_libraries = "27.1.1"
     const val constraint_layout = "1.1.2"
     const val workmanager = "1.0.0-alpha09"
 
@@ -24,8 +24,7 @@ private object Versions {
 
     const val jna = "4.5.2"
 
-    const val fxa = "0.5.1"
-    const val sync_logins = "0.4.3"
+    const val mozilla_app_services = "0.5.1"
 }
 
 // Synchronized dependencies used by (some) modules
@@ -60,8 +59,8 @@ object Deps {
     const val tools_lintapi = "com.android.tools.lint:lint-api:${Versions.lint}"
     const val tools_linttests = "com.android.tools.lint:lint-tests:${Versions.lint}"
 
-    const val mozilla_fxa = "org.mozilla.fxa_client:fxa_client:${Versions.fxa}@aar"
-    const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.sync_logins}"
+    const val mozilla_fxa = "org.mozilla.fxa_client:fxa_client:${Versions.mozilla_app_services}"
+    const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.mozilla_app_services}"
 
     const val jna = "net.java.dev.jna:jna:${Versions.jna}@aar"
     const val jnaForTest = "net.java.dev.jna:jna:${Versions.jna}@jar"

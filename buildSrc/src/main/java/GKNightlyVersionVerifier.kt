@@ -31,7 +31,7 @@ open class GKNightlyVersionVerifier : Plugin<Project> {
                     if (runGradleTests()) {
                         //createCommit and generate a pull request
                         println("Creating pull request")
-                        if(openAPROnGitHub())
+                        if (openAPROnGitHub())
                             println("PR Opened Successfully")
                         else
                             println("Error Creating PR")
@@ -98,10 +98,11 @@ object GeckoVersions {
 
     private fun openAPROnGitHub(): Boolean {
         println("****Gradle tests Result****")
-        val gitCheckout = "git checkout -B new_update"
+        val branchName = "new_update_${GeckoVersions.nightly_version}"
+        val gitCheckout = "git checkout -B $branchName"
         val gitAdd = "git add buildSrc/src/main/java/GeckoVersions.kt"
         val gitCommit = "git commit -m New_GK_Nightly_Version"
-        val gitPush = "git push -u -f origin new_update"
+        val gitPush = "git push -u -f origin $branchName"
 
 
         var commandResult = gitCheckout.runCommand()
@@ -113,6 +114,14 @@ object GeckoVersions {
         println(gitCommit + commandResult)
         commandResult = gitPush.runCommand()
         println(gitPush + commandResult)
+
+        if (commandResult) {
+            val gitCheckoutMaster = "git checkout master"
+            val gitDeleteNewBranch = "git branch -d $branchName"
+
+            if (gitCheckoutMaster.runCommand())
+                gitDeleteNewBranch.runCommand()
+        }
 
         return commandResult
     }

@@ -98,10 +98,10 @@ object GeckoVersions {
 
     private fun openAPROnGitHub(): Boolean {
         println("****Gradle tests Result****")
-        val gitCheckout = "git checkout -B new_update;"
+        val gitCheckout = "git checkout -B new_update"
         val gitAdd = "git add buildSrc/src/main/java/GeckoVersions.kt"
-        val gitCommit = "git commit -m 'New GK Nightly Version'"
-        val gitPush = "git push -u origin new_update"
+        val gitCommit = "git commit -m New_GK_Nightly_Version"
+        val gitPush = "git push -u -f origin new_update"
 
 
         var commandResult = gitCheckout.runCommand()

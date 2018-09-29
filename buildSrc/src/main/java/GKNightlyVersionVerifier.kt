@@ -22,7 +22,7 @@ open class GKNightlyVersionVerifier : Plugin<Project> {
 
 
             doLast {
-                var newVersion = getLastGeckoViewNightlyVersion(project)
+                val newVersion = getLastGeckoViewNightlyVersion(project)
 
                 if (newVersion.isNotEmpty()) {
                     updateGeckoVersion(newVersion)
@@ -31,13 +31,18 @@ open class GKNightlyVersionVerifier : Plugin<Project> {
                     if (runGradleTests()) {
                         //createCommit and generate a pull request
                         println("Creating pull request")
+                        if(openAPROnGitHub())
+                            println("PR Opened Successfully")
+                        else
+                            println("Error Creating PR")
+
 
                     } else {
                         //Create a github issue
                         println("Tests Fail creating Github Issue")
 
                     }
-                }else{
+                } else {
 
                     println("Sorry no new Version from gecko view")
 
@@ -88,15 +93,31 @@ object GeckoVersions {
 
     private fun runGradleTests(): Boolean {
         println("****Gradle tests Result****")
-       return true //return "./gradlew clean test".runCommand() == 0
+        return true //return "./gradlew clean test".runCommand() == 0
     }
 
     private fun openAPROnGitHub(): Boolean {
         println("****Gradle tests Result****")
+        val gitCheckout = "git checkout -B new_update;"
+        val gitAdd = "git add buildSrc/src/main/java/GeckoVersions.kt"
+        val gitCommit = "git commit -m 'New GK Nightly Version'"
+        val gitPush = "git push -u origin new_update"
 
-        return "git add ".runCommand() == 0
+
+        var commandResult = gitCheckout.runCommand()
+        println(gitCheckout + commandResult)
+        println(gitCheckout)
+        commandResult = gitAdd.runCommand()
+        println(gitAdd + commandResult)
+        commandResult = gitCommit.runCommand()
+        println(gitCommit + commandResult)
+        commandResult = gitPush.runCommand()
+        println(gitPush + commandResult)
+
+        return commandResult
     }
-    private fun String.runCommand(workingDir: File = File(".")): Int {
+
+    private fun String.runCommand(workingDir: File = File(".")): Boolean {
         try {
             val parts = this.split("\\s".toRegex())
             val proc = ProcessBuilder(*parts.toTypedArray())
@@ -105,12 +126,12 @@ object GeckoVersions {
                     .redirectError(ProcessBuilder.Redirect.PIPE)
                     .start()
 
-           // println(proc.inputStream.bufferedReader().readText())
+            // println(proc.inputStream.bufferedReader().readText())
 
-            return proc.waitFor()
+            return proc.waitFor() == 0
         } catch (e: IOException) {
             e.printStackTrace()
-            return 0
+            return false
         }
     }
 }

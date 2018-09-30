@@ -5,9 +5,8 @@
 package org.mozilla.telemetry.schedule.jobscheduler;
 
 import android.app.job.JobParameters;
-import android.os.AsyncTask;
 
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.Telemetry;
@@ -33,13 +32,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryJobServiceTest {
+
     @Test
-    public void testDailyLimitIsEnforced() throws Exception {
+    public void uploadPingsInBackground() throws Exception {
         final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
                 .setMaximumNumberOfPingUploadsPerDay(2);
 
@@ -54,13 +55,98 @@ public class TelemetryJobServiceTest {
 
         final Telemetry telemetry = new Telemetry(configuration, storage, client, scheduler)
                 .addPingBuilder(new TelemetryCorePingBuilder(configuration));
+        telemetry.queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE);
+
         TelemetryHolder.set(telemetry);
 
+        TestUtils.waitForExecutor(telemetry);
+
+        assertEquals(2, storage.countStoredPings(TelemetryCorePingBuilder.TYPE));
+
+        final TelemetryJobService service = spy(Robolectric.buildService(TelemetryJobService.class)
+                .create()
+                .get());
+
+        final JobParameters parameters = mock(JobParameters.class);
+
+        doReturn(false).when(service).isInterrupted();
+        doReturn(1337L).when(service).now();
+
+        doNothing().when(service).jobFinished(any(JobParameters.class), anyBoolean());
+
+        service.executePingUpload(parameters);
+
+        TestUtils.waitForExecutor(service);
+
+        verify(service).jobFinished(any(JobParameters.class), anyBoolean());
+    }
+
+    @Test
+    public void uploadPingsInBackground_interrupted() throws Exception {
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+                .setMaximumNumberOfPingUploadsPerDay(2);
+
+        final TelemetryPingSerializer serializer = new JSONPingSerializer();
+
+        final TelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
+
+        final TelemetryClient client = mock(TelemetryClient.class);
+        doReturn(true).when(client).uploadPing(eq(configuration), anyString(), anyString());
+
+        final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
+
+        final Telemetry telemetry = new Telemetry(configuration, storage, client, scheduler)
+                .addPingBuilder(new TelemetryCorePingBuilder(configuration));
         telemetry.queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE);
+                .queuePing(TelemetryCorePingBuilder.TYPE);
+
+        TelemetryHolder.set(telemetry);
+
+        TestUtils.waitForExecutor(telemetry);
+
+        assertEquals(2, storage.countStoredPings(TelemetryCorePingBuilder.TYPE));
+
+        final TelemetryJobService service = spy(Robolectric.buildService(TelemetryJobService.class)
+                .create()
+                .get());
+
+        final JobParameters parameters = mock(JobParameters.class);
+
+        doReturn(true).when(service).isInterrupted();
+        doReturn(1337L).when(service).now();
+
+        service.executePingUpload(parameters);
+
+        TestUtils.waitForExecutor(service);
+
+        // Job finished and should not be re-scheduled even though we didn't upload everything
+        verify(service, never()).jobFinished(parameters, false);
+    }
+
+    @Test
+    public void uploadPingsInBackground_dailyLimitEnforced() throws Exception {
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+                .setMaximumNumberOfPingUploadsPerDay(2);
+
+        final TelemetryPingSerializer serializer = new JSONPingSerializer();
+
+        final TelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
+
+        final TelemetryClient client = mock(TelemetryClient.class);
+        doReturn(true).when(client).uploadPing(eq(configuration), anyString(), anyString());
+
+        final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
+
+        final Telemetry telemetry = new Telemetry(configuration, storage, client, scheduler)
+                .addPingBuilder(new TelemetryCorePingBuilder(configuration));
+        telemetry.queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE);
+
+        TelemetryHolder.set(telemetry);
 
         TestUtils.waitForExecutor(telemetry);
 
@@ -69,19 +155,25 @@ public class TelemetryJobServiceTest {
         final TelemetryJobService service = spy(Robolectric.buildService(TelemetryJobService.class)
                 .create()
                 .get());
-        doReturn(1337L).when(service).now();
-        doNothing().when(service).jobFinished(any(JobParameters.class), anyBoolean());
 
         final JobParameters parameters = mock(JobParameters.class);
-        final AsyncTask task = mock(AsyncTask.class);
-        doReturn(false).when(task).isCancelled();
 
-        service.uploadPingsInBackground(task, parameters);
+        doReturn(false).when(service).isInterrupted();
+        doReturn(1337L).when(service).now();
 
-        // Job finished and should not be re-scheduled even though we didn't upload everything
-        verify(service).jobFinished(parameters, false);
+        doNothing().when(service).jobFinished(any(JobParameters.class), anyBoolean());
+
+        service.executePingUpload(parameters);
+
+        TestUtils.waitForExecutor(service);
 
         // 3 pings are still in the storage
         assertEquals(3, storage.countStoredPings(TelemetryCorePingBuilder.TYPE));
+        verify(service).jobFinished(any(JobParameters.class), anyBoolean());
+    }
+
+    @After
+    public void tearDown() {
+        TelemetryHolder.set(null);
     }
 }

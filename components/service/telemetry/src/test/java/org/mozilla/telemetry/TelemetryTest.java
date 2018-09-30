@@ -8,7 +8,6 @@ import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.PersistableBundle;
 import android.preference.PreferenceManager;
 
@@ -563,9 +562,7 @@ public class TelemetryTest {
         final JobParameters parameters = mock(JobParameters.class);
         doReturn(bundle).when(parameters).getExtras();
 
-        AsyncTask task = mock(AsyncTask.class);
-
-        service.uploadPingsInBackground(task, parameters);
+        service.uploadPingsInBackground(parameters);
 
         verify(service).jobFinished(parameters, false);
     }

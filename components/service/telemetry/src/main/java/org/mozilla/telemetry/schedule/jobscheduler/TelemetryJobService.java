@@ -4,13 +4,11 @@
 
 package org.mozilla.telemetry.schedule.jobscheduler;
 
-import android.annotation.SuppressLint;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
+import android.support.annotation.RestrictTo;
 import android.support.annotation.VisibleForTesting;
-import android.util.Log;
 
 import org.mozilla.telemetry.Telemetry;
 import org.mozilla.telemetry.TelemetryHolder;
@@ -20,6 +18,8 @@ import org.mozilla.telemetry.ping.TelemetryPingBuilder;
 import org.mozilla.telemetry.storage.TelemetryStorage;
 
 import java.util.Calendar;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import mozilla.components.support.base.log.logger.Logger;
 
@@ -28,34 +28,30 @@ public class TelemetryJobService extends JobService {
     private static final String PREFERENCE_LAST_UPLOAD_PREFIX = "last_uploade_";
 
     private final Logger logger = new Logger("telemetry/service");
-    private UploadPingsTask uploadTask;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
-    public boolean onStartJob(JobParameters params) {
-        uploadTask = new UploadPingsTask();
-        uploadTask.execute(params);
+    public boolean onStartJob(final JobParameters params) {
+        executePingUpload(params);
         return true;
     }
 
     @Override
     public boolean onStopJob(JobParameters params) {
-        if (uploadTask != null) {
-            uploadTask.cancel(true);
-        }
+        executor.shutdownNow();
         return true;
     }
 
-    @SuppressLint("StaticFieldLeak") // This needs to be fixed (#111)
-    private class UploadPingsTask extends AsyncTask<JobParameters, Void, Void> {
-        @Override
-        protected Void doInBackground(JobParameters... params) {
-            final JobParameters parameters = params[0];
-            uploadPingsInBackground(this, parameters);
-            return null;
-        }
+    @VisibleForTesting void executePingUpload(final JobParameters params) {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                uploadPingsInBackground(params);
+            }
+        });
     }
 
-    @VisibleForTesting public void uploadPingsInBackground(AsyncTask task, JobParameters parameters) {
+    @VisibleForTesting public void uploadPingsInBackground(JobParameters parameters) {
         final Telemetry telemetry = TelemetryHolder.get();
         final TelemetryConfiguration configuration = telemetry.getConfiguration();
         final TelemetryStorage storage = telemetry.getStorage();
@@ -64,7 +60,7 @@ public class TelemetryJobService extends JobService {
             final String pingType = builder.getType();
             logger.debug("Performing upload of ping type: " + pingType, null);
 
-            if (task.isCancelled()) {
+            if (isInterrupted()) {
                 logger.debug("Job stopped. Exiting.", null);
                 return; // Job will be rescheduled from onStopJob().
             }
@@ -90,25 +86,8 @@ public class TelemetryJobService extends JobService {
         jobFinished(parameters, false);
     }
 
-    /**
-     * Increment the upload counter for this ping type.
-     */
-    private boolean incrementUploadCount(TelemetryConfiguration configuration, String pingType) {
-        final SharedPreferences preferences = configuration.getSharedPreferences();
-
-        final long lastUpload = preferences.getLong(PREFERENCE_LAST_UPLOAD_PREFIX + pingType, 0);
-        final long now = now();
-
-        final long count = isSameDay(lastUpload, now)
-                ? preferences.getLong(PREFERENCE_UPLOAD_COUNT_PREFIX + pingType, 0) + 1
-                : 1;
-
-        preferences.edit()
-                .putLong(PREFERENCE_LAST_UPLOAD_PREFIX + pingType, now)
-                .putLong(PREFERENCE_UPLOAD_COUNT_PREFIX + pingType, count)
-                .apply();
-
-        return true;
+    @VisibleForTesting boolean isInterrupted() {
+        return Thread.interrupted();
     }
 
     /**
@@ -124,7 +103,7 @@ public class TelemetryJobService extends JobService {
                 && count >= configuration.getMaximumNumberOfPingUploadsPerDay();
     }
 
-    @VisibleForTesting boolean isSameDay(long timestamp1, long timestamp2) {
+    private boolean isSameDay(long timestamp1, long timestamp2) {
         final Calendar calendar1 = Calendar.getInstance();
         calendar1.setTimeInMillis(timestamp1);
 
@@ -153,5 +132,31 @@ public class TelemetryJobService extends JobService {
                         && incrementUploadCount(configuration, pingType);
             }
         });
+    }
+
+    /**
+     * Increment the upload counter for this ping type.
+     */
+    private boolean incrementUploadCount(TelemetryConfiguration configuration, String pingType) {
+        final SharedPreferences preferences = configuration.getSharedPreferences();
+
+        final long lastUpload = preferences.getLong(PREFERENCE_LAST_UPLOAD_PREFIX + pingType, 0);
+        final long now = now();
+
+        final long count = isSameDay(lastUpload, now)
+                ? preferences.getLong(PREFERENCE_UPLOAD_COUNT_PREFIX + pingType, 0) + 1
+                : 1;
+
+        preferences.edit()
+                .putLong(PREFERENCE_LAST_UPLOAD_PREFIX + pingType, now)
+                .putLong(PREFERENCE_UPLOAD_COUNT_PREFIX + pingType, count)
+                .apply();
+
+        return true;
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @VisibleForTesting public ExecutorService getExecutor() {
+        return executor;
     }
 }

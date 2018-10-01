@@ -12,6 +12,13 @@ Use gradle to download the library from JCenter:
 implementation "org.mozilla.photon:icons:{latest-version}
 ```
 
+### Icons List
+
+| ![](https://github.com/wajahatkarim3/android-components/blob/master/components/ui/icons/png/mozac_ic_arrowhead_down.png) [mozac_ic_arrowhead_down](https://github.com/wajahatkarim3/android-components/blob/master/components/ui/icons/src/main/res/drawable/mozac_ic_arrowhead_down.xml) | ![](https://github.com/wajahatkarim3/android-components/blob/master/components/ui/icons/png/mozac_ic_arrowhead_down.png) [mozac_ic_arrowhead_down](https://github.com/wajahatkarim3/android-components/blob/master/components/ui/icons/src/main/res/drawable/mozac_ic_arrowhead_down.xml) | ![](https://github.com/wajahatkarim3/android-components/blob/master/components/ui/icons/png/mozac_ic_arrowhead_down.png) [mozac_ic_arrowhead_down](https://github.com/wajahatkarim3/android-components/blob/master/components/ui/icons/src/main/res/drawable/mozac_ic_arrowhead_down.xml) |
+|---|---|---|
+
+
+
 ## License
 
     This Source Code Form is subject to the terms of the Mozilla Public

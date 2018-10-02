@@ -16,6 +16,13 @@ import java.util.concurrent.TimeUnit
  *
  * @param context context
  */
+@Deprecated(
+    "Use WorkManagerSyncScheduler instead",
+    ReplaceWith(
+        "WorkManagerSyncScheduler",
+        "mozilla.components.service.fretboard.scheduler.workmanager.WorkManagerSyncScheduler"
+    )
+)
 class JobSchedulerSyncScheduler(context: Context) {
     private val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
 

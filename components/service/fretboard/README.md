@@ -13,7 +13,7 @@ implementation "org.mozilla.components:fretboard:{latest-version}"
 ```
 
 ### Creating Fretboard instance
-In order to use the library, first you have to create a new `Fretboard` instance. You do this once per app launch 
+In order to use the library, first you have to create a new `Fretboard` instance. You do this once per app launch
 (typically in your `Application` class `onCreate` method). You simply have to instantiate the `Fretboard` class and
 provide the `ExperimentStorage` and `ExperimentSource` implementations, like this:
 
@@ -70,29 +70,20 @@ call `updateExperiments` on a `Fretboard` instance, which forces experiments to 
 fretboard.updateExperiments()
 ```
 
-The second one is to use the provided `JobScheduler`-based scheduler, like this:
+The second one is to use the provided `WorkManager`-based scheduler, like this:
 ```Kotlin
-val scheduler = JobSchedulerSyncScheduler(context)
-scheduler.schedule(EXPERIMENTS_JOB_ID, ComponentName(this, ExperimentsSyncService::class.java))
+val scheduler = WorkManagerSyncScheduler()
+scheduler.schedule(ExperimentsSyncService::class.java)
 ```
 
-Where `ExperimentsSyncService` is a subclass of `SyncJob` you create like this, providing the `Fretboard` instance via the
-`getFretboard` method:
+Where `ExperimentsSyncService` is a subclass of `SyncWorker` you create like this, providing the `Fretboard` instance via the
+`fretboard` property:
 
 ```Kotlin
-class ExperimentsSyncService : SyncJob() {
-    override fun getFretboard(): Fretboard {
-        return fretboard
-    }
+class ExperimentsSyncService(context: Context, params: WorkerParameters) : SyncWorker(context, params) {
+    override val fretboard: Fretboard
+        get() = context.fretboardInstance
 }
-```
-
-And then you have to register it on the manifest, just like any other `JobService`:
-
-```xml
-<service android:name=".ExperimentsSyncService"
-         android:exported="false"
-         android:permission="android.permission.BIND_JOB_SERVICE">
 ```
 
 ### Checking if a user is part of an experiment
@@ -110,7 +101,7 @@ otherButton.isEnabled = fretboard.isInExperiment(descriptor)
 ```
 
 ### Getting experiment metadata
-Fretboard allows experiments to carry associated metadata, which can be retrieved using the Kotlin-friendly 
+Fretboard allows experiments to carry associated metadata, which can be retrieved using the Kotlin-friendly
 `withExperiment` API or the more Java-like `getExperiment` API, like this:
 
 ```Kotlin
@@ -191,7 +182,7 @@ class MyExperimentSource : ExperimentSource {
 }
 ```
 
-The `getExperiments` method takes an `ExperimentsSnapshot` object, which contains the list of already downloaded experiments and 
+The `getExperiments` method takes an `ExperimentsSnapshot` object, which contains the list of already downloaded experiments and
 a last_modified date, and returns another `ExperimentsSnapshot` object with the updated list of experiments.
 
 As the `getExperiments` receives the list of experiments from storage and a last_modified date, it allows you

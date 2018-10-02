@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.engine
 
+import android.graphics.Bitmap
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -23,6 +24,7 @@ class EngineSessionTest {
         val session = spy(DummyEngineSession())
 
         val observer = mock(EngineSession.Observer::class.java)
+        val emptyBitmap = spy(Bitmap::class.java)
         session.register(observer)
 
         session.notifyInternalObservers { onLocationChange("https://www.mozilla.org") }
@@ -38,6 +40,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search") }
         session.notifyInternalObservers { onFindResult(0, 1, true) }
         session.notifyInternalObservers { onFullScreenChange(true) }
+        session.notifyInternalObservers { onThumbnailChange(emptyBitmap) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onLocationChange("https://www.firefox.com")
@@ -52,6 +55,7 @@ class EngineSessionTest {
         verify(observer).onFind("search")
         verify(observer).onFindResult(0, 1, true)
         verify(observer).onFullScreenChange(true)
+        verify(observer).onThumbnailChange(emptyBitmap)
         verifyNoMoreInteractions(observer)
     }
 
@@ -60,6 +64,7 @@ class EngineSessionTest {
         val session = spy(DummyEngineSession())
         val observer = mock(EngineSession.Observer::class.java)
         val otherHitResult = HitResult.UNKNOWN("file://foobaz")
+        val emptyBitmap = spy(Bitmap::class.java)
         session.register(observer)
 
         session.notifyInternalObservers { onLocationChange("https://www.mozilla.org") }
@@ -73,7 +78,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search") }
         session.notifyInternalObservers { onFindResult(0, 1, true) }
         session.notifyInternalObservers { onFullScreenChange(true) }
-
+        session.notifyInternalObservers { onThumbnailChange(emptyBitmap) }
         session.unregister(observer)
 
         session.notifyInternalObservers { onLocationChange("https://www.firefox.com") }
@@ -87,6 +92,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search2") }
         session.notifyInternalObservers { onFindResult(0, 1, false) }
         session.notifyInternalObservers { onFullScreenChange(false) }
+        session.notifyInternalObservers { onThumbnailChange(null) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -99,6 +105,7 @@ class EngineSessionTest {
         verify(observer).onFind("search")
         verify(observer).onFindResult(0, 1, true)
         verify(observer).onFullScreenChange(true)
+        verify(observer).onThumbnailChange(emptyBitmap)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -110,6 +117,7 @@ class EngineSessionTest {
         verify(observer, never()).onFind("search2")
         verify(observer, never()).onFindResult(0, 1, false)
         verify(observer, never()).onFullScreenChange(false)
+        verify(observer, never()).onThumbnailChange(null)
         verifyNoMoreInteractions(observer)
     }
 
@@ -119,6 +127,7 @@ class EngineSessionTest {
         val observer = mock(EngineSession.Observer::class.java)
         val otherObserver = mock(EngineSession.Observer::class.java)
         val otherHitResult = HitResult.UNKNOWN("file://foobaz")
+        val emptyBitmap = spy(Bitmap::class.java)
         session.register(observer)
         session.register(otherObserver)
 
@@ -133,6 +142,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search") }
         session.notifyInternalObservers { onFindResult(0, 1, true) }
         session.notifyInternalObservers { onFullScreenChange(true) }
+        session.notifyInternalObservers { onThumbnailChange(emptyBitmap) }
 
         session.unregisterObservers()
 
@@ -147,6 +157,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search2") }
         session.notifyInternalObservers { onFindResult(0, 1, false) }
         session.notifyInternalObservers { onFullScreenChange(false) }
+        session.notifyInternalObservers { onThumbnailChange(null) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -159,6 +170,7 @@ class EngineSessionTest {
         verify(observer).onFind("search")
         verify(observer).onFindResult(0, 1, true)
         verify(observer).onFullScreenChange(true)
+        verify(observer).onThumbnailChange(emptyBitmap)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -170,6 +182,7 @@ class EngineSessionTest {
         verify(observer, never()).onFind("search2")
         verify(observer, never()).onFindResult(0, 1, false)
         verify(observer, never()).onFullScreenChange(false)
+        verify(observer, never()).onThumbnailChange(null)
         verify(otherObserver, never()).onLocationChange("https://www.firefox.com")
         verify(otherObserver, never()).onProgress(100)
         verify(otherObserver, never()).onLoadingStateChange(false)
@@ -181,6 +194,7 @@ class EngineSessionTest {
         verify(otherObserver, never()).onFind("search2")
         verify(otherObserver, never()).onFindResult(0, 1, false)
         verify(otherObserver, never()).onFullScreenChange(false)
+        verify(otherObserver, never()).onThumbnailChange(null)
     }
 
     @Test
@@ -188,6 +202,7 @@ class EngineSessionTest {
         val session = spy(DummyEngineSession())
         val observer = mock(EngineSession.Observer::class.java)
         val otherHitResult = HitResult.UNKNOWN("file://foobaz")
+        val emptyBitmap = spy(Bitmap::class.java)
         session.register(observer)
 
         session.notifyInternalObservers { onLocationChange("https://www.mozilla.org") }
@@ -201,6 +216,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search") }
         session.notifyInternalObservers { onFindResult(0, 1, true) }
         session.notifyInternalObservers { onFullScreenChange(true) }
+        session.notifyInternalObservers { onThumbnailChange(emptyBitmap) }
 
         session.close()
 
@@ -215,6 +231,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search2") }
         session.notifyInternalObservers { onFindResult(0, 1, false) }
         session.notifyInternalObservers { onFullScreenChange(false) }
+        session.notifyInternalObservers { onThumbnailChange(null) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -227,6 +244,7 @@ class EngineSessionTest {
         verify(observer).onFind("search")
         verify(observer).onFindResult(0, 1, true)
         verify(observer).onFullScreenChange(true)
+        verify(observer).onThumbnailChange(emptyBitmap)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -238,6 +256,7 @@ class EngineSessionTest {
         verify(observer, never()).onFind("search2")
         verify(observer, never()).onFindResult(0, 1, false)
         verify(observer, never()).onFullScreenChange(false)
+        verify(observer, never()).onThumbnailChange(null)
         verifyNoMoreInteractions(observer)
     }
 
@@ -245,7 +264,7 @@ class EngineSessionTest {
     fun `registered observers are instance specific`() {
         val session = spy(DummyEngineSession())
         val otherSession = spy(DummyEngineSession())
-
+        val emptyBitmap = spy(Bitmap::class.java)
         val observer = mock(EngineSession.Observer::class.java)
         session.register(observer)
 
@@ -261,6 +280,7 @@ class EngineSessionTest {
         otherSession.notifyInternalObservers { onFind("search") }
         otherSession.notifyInternalObservers { onFindResult(0, 1, true) }
         otherSession.notifyInternalObservers { onFullScreenChange(true) }
+        otherSession.notifyInternalObservers { onThumbnailChange(emptyBitmap) }
         verify(observer, never()).onLocationChange("https://www.mozilla.org")
         verify(observer, never()).onProgress(25)
         verify(observer, never()).onLoadingStateChange(true)
@@ -272,6 +292,7 @@ class EngineSessionTest {
         verify(observer, never()).onFind("search")
         verify(observer, never()).onFindResult(0, 1, true)
         verify(observer, never()).onFullScreenChange(true)
+        verify(observer, never()).onThumbnailChange(emptyBitmap)
 
         session.notifyInternalObservers { onLocationChange("https://www.mozilla.org") }
         session.notifyInternalObservers { onProgress(25) }
@@ -284,6 +305,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onFind("search") }
         session.notifyInternalObservers { onFindResult(0, 1, true) }
         session.notifyInternalObservers { onFullScreenChange(true) }
+        session.notifyInternalObservers { onThumbnailChange(emptyBitmap) }
         verify(observer, times(1)).onLocationChange("https://www.mozilla.org")
         verify(observer, times(1)).onProgress(25)
         verify(observer, times(1)).onLoadingStateChange(true)
@@ -295,6 +317,7 @@ class EngineSessionTest {
         verify(observer, times(1)).onFind("search")
         verify(observer, times(1)).onFindResult(0, 1, true)
         verify(observer, times(1)).onFullScreenChange(true)
+        verify(observer, times(1)).onThumbnailChange(emptyBitmap)
         verifyNoMoreInteractions(observer)
     }
 
@@ -393,6 +416,8 @@ class EngineSessionTest {
         defaultObserver.onNavigationStateChange()
         defaultObserver.onProgress(123)
         defaultObserver.onLoadingStateChange(true)
+        defaultObserver.onThumbnailChange(spy(Bitmap::class.java))
+        defaultObserver.onFullScreenChange(true)
     }
 
     @Test
@@ -447,4 +472,6 @@ open class DummyEngineSession : EngineSession() {
     fun notifyInternalObservers(block: Observer.() -> Unit) {
         notifyObservers(block)
     }
+
+    override fun captureThumbnail(): Bitmap? = null
 }

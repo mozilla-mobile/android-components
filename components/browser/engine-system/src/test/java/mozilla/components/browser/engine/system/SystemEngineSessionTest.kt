@@ -1,6 +1,7 @@
 package mozilla.components.browser.engine.system
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebResourceRequest
@@ -37,6 +38,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.shadows.ShadowBitmap
 import java.lang.reflect.Modifier
 
 @RunWith(RobolectricTestRunner::class)
@@ -252,11 +254,17 @@ class SystemEngineSessionTest {
     @Test
     fun testInitSettings() {
         val engineSession = spy(SystemEngineSession())
+        val webViewSettings = mock(WebSettings::class.java)
+        `when`(webViewSettings.displayZoomControls).thenReturn(true)
+        `when`(webViewSettings.allowContentAccess).thenReturn(true)
+        `when`(webViewSettings.allowFileAccess).thenReturn(true)
+        `when`(webViewSettings.mediaPlaybackRequiresUserGesture).thenReturn(true)
+
         val webView = mock(WebView::class.java)
         `when`(webView.context).thenReturn(RuntimeEnvironment.application)
-        val webViewSettings = mock(WebSettings::class.java)
-        `when`(webViewSettings.javaScriptEnabled).thenReturn(false)
         `when`(webView.settings).thenReturn(webViewSettings)
+        `when`(webView.isVerticalScrollBarEnabled).thenReturn(true)
+        `when`(webView.isHorizontalScrollBarEnabled).thenReturn(true)
 
         try {
             engineSession.initSettings()
@@ -265,6 +273,7 @@ class SystemEngineSessionTest {
 
         `when`(engineSession.currentView()).thenReturn(webView)
         engineSession.initSettings()
+
         assertFalse(engineSession.settings.javascriptEnabled)
         engineSession.settings.javascriptEnabled = true
         verify(webViewSettings).javaScriptEnabled = true
@@ -272,6 +281,50 @@ class SystemEngineSessionTest {
         assertFalse(engineSession.settings.domStorageEnabled)
         engineSession.settings.domStorageEnabled = true
         verify(webViewSettings).domStorageEnabled = true
+
+        assertNull(engineSession.settings.userAgentString)
+        engineSession.settings.userAgentString = "userAgent"
+        verify(webViewSettings).userAgentString = "userAgent"
+
+        assertTrue(engineSession.settings.mediaPlaybackRequiresUserGesture)
+        engineSession.settings.mediaPlaybackRequiresUserGesture = false
+        verify(webViewSettings).mediaPlaybackRequiresUserGesture = false
+
+        assertFalse(engineSession.settings.javaScriptCanOpenWindowsAutomatically)
+        engineSession.settings.javaScriptCanOpenWindowsAutomatically = true
+        verify(webViewSettings).javaScriptCanOpenWindowsAutomatically = true
+
+        assertTrue(engineSession.settings.displayZoomControls)
+        engineSession.settings.javaScriptCanOpenWindowsAutomatically = false
+        verify(webViewSettings).javaScriptCanOpenWindowsAutomatically = false
+
+        assertFalse(engineSession.settings.loadWithOverviewMode)
+        engineSession.settings.loadWithOverviewMode = true
+        verify(webViewSettings).loadWithOverviewMode = true
+
+        assertTrue(engineSession.settings.allowContentAccess)
+        engineSession.settings.allowContentAccess = false
+        verify(webViewSettings).allowContentAccess = false
+
+        assertTrue(engineSession.settings.allowFileAccess)
+        engineSession.settings.allowFileAccess = false
+        verify(webViewSettings).allowFileAccess = false
+
+        assertFalse(engineSession.settings.allowUniversalAccessFromFileURLs)
+        engineSession.settings.allowUniversalAccessFromFileURLs = true
+        verify(webViewSettings).allowUniversalAccessFromFileURLs = true
+
+        assertFalse(engineSession.settings.allowFileAccessFromFileURLs)
+        engineSession.settings.allowFileAccessFromFileURLs = true
+        verify(webViewSettings).allowFileAccessFromFileURLs = true
+
+        assertTrue(engineSession.settings.verticalScrollBarEnabled)
+        engineSession.settings.verticalScrollBarEnabled = false
+        verify(webView).isVerticalScrollBarEnabled = false
+
+        assertTrue(engineSession.settings.horizontalScrollBarEnabled)
+        engineSession.settings.horizontalScrollBarEnabled = false
+        verify(webView).isHorizontalScrollBarEnabled = false
 
         assertTrue(engineSession.webFontsEnabled)
         assertTrue(engineSession.settings.webFontsEnabled)
@@ -285,6 +338,13 @@ class SystemEngineSessionTest {
 
         engineSession.settings.trackingProtectionPolicy = null
         verify(engineSession).disableTrackingProtection()
+
+        verify(webViewSettings).setAppCacheEnabled(false)
+        verify(webViewSettings).setGeolocationEnabled(false)
+        verify(webViewSettings).databaseEnabled = false
+        verify(webViewSettings).savePassword = false
+        verify(webViewSettings).saveFormData = false
+        verify(webViewSettings).builtInZoomControls = true
     }
 
     @Test
@@ -293,7 +353,12 @@ class SystemEngineSessionTest {
                 javascriptEnabled = false,
                 domStorageEnabled = false,
                 webFontsEnabled = false,
-                trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.all())
+                trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.all(),
+                userAgentString = "userAgent",
+                mediaPlaybackRequiresUserGesture = false,
+                javaScriptCanOpenWindowsAutomatically = true,
+                displayZoomControls = false,
+                loadWithOverviewMode = true)
         val engineSession = spy(SystemEngineSession(defaultSettings))
         val webView = mock(WebView::class.java)
         `when`(webView.context).thenReturn(RuntimeEnvironment.application)
@@ -305,6 +370,11 @@ class SystemEngineSessionTest {
         engineSession.initSettings()
         verify(webViewSettings).domStorageEnabled = false
         verify(webViewSettings).javaScriptEnabled = false
+        verify(webViewSettings).userAgentString = "userAgent"
+        verify(webViewSettings).mediaPlaybackRequiresUserGesture = false
+        verify(webViewSettings).javaScriptCanOpenWindowsAutomatically = true
+        verify(webViewSettings).displayZoomControls = false
+        verify(webViewSettings).loadWithOverviewMode = true
         verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.all())
         assertFalse(engineSession.webFontsEnabled)
     }
@@ -510,5 +580,16 @@ class SystemEngineSessionTest {
         verify(webView).clearCache(true)
         verify(webStorage).deleteAllData()
         verify(webViewDatabase).clearHttpAuthUsernamePassword()
+    }
+
+    @Test
+    fun testCaptureThumbnail() {
+        val engineSession = spy(SystemEngineSession::class.java)
+        val webView = mock(WebView::class.java)
+        `when`(engineSession.currentView()).thenReturn(webView)
+        assertNull(engineSession.captureThumbnail())
+
+        `when`(webView.drawingCache).thenReturn(ShadowBitmap.createBitmap(10, 10, Bitmap.Config.RGB_565))
+        assertNotNull(engineSession.captureThumbnail())
     }
 }

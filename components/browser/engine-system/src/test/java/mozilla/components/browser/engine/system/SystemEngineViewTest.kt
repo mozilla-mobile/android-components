@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.engine.system
 
+import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslCertificate
 import android.net.http.SslError
@@ -70,13 +71,14 @@ class SystemEngineViewTest {
             }
         })
 
-        engineView.currentWebView.webViewClient.onPageStarted(null, "http://mozilla.org", null)
+        engineView.currentWebView.webViewClient.onPageStarted(null, "https://wiki.mozilla.org/", null)
         assertEquals(true, observedLoadingState)
+        assertEquals(observedUrl, "https://wiki.mozilla.org/")
 
         observedLoadingState = true
         engineView.currentWebView.webViewClient.onPageFinished(null, "http://mozilla.org")
         assertEquals("http://mozilla.org", observedUrl)
-        assertEquals(false, observedLoadingState)
+        assertFalse(observedLoadingState)
         assertEquals(Triple(false, null, null), observedSecurityChange)
 
         val view = mock(WebView::class.java)
@@ -85,6 +87,10 @@ class SystemEngineViewTest {
 
         val certificate = mock(SslCertificate::class.java)
         val dName = mock(SslCertificate.DName::class.java)
+        doReturn("testCA").`when`(dName).oName
+        doReturn(certificate).`when`(view).certificate
+        engineView.currentWebView.webViewClient.onPageFinished(view, "http://mozilla.org")
+
         doReturn("testCA").`when`(dName).oName
         doReturn(dName).`when`(certificate).issuedBy
         doReturn(certificate).`when`(view).certificate
@@ -333,6 +339,24 @@ class SystemEngineViewTest {
         engineSession.settings.requestInterceptor = requestInterceptor
         webViewClient.onReceivedError(engineView.currentWebView, -1, null, "http://failed.random")
         verify(requestInterceptor).onErrorRequest(engineSession, -1, "http://failed.random")
+
+        val webView = mock(WebView::class.java)
+        engineView.currentWebView = webView
+        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        webViewClient.onReceivedError(engineView.currentWebView, -1, null, "http://failed.random")
+        verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, -1, "http://failed.random")).thenReturn(errorResponse)
+        webViewClient.onReceivedError(engineView.currentWebView, -1, null, "http://failed.random")
+        verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        webViewClient.onReceivedError(engineView.currentWebView, -1, null, "http://failed.random")
+        verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, -1, "http://failed.random")).thenReturn(errorResponse2)
+        webViewClient.onReceivedError(engineView.currentWebView, -1, null, "http://failed.random")
+        verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
     }
 
     @Test
@@ -341,27 +365,45 @@ class SystemEngineViewTest {
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         val requestInterceptor: RequestInterceptor = mock()
         val webViewClient = engineView.currentWebView.webViewClient
-        val request: WebResourceRequest = mock()
-        val error: WebResourceError = mock()
+        val webRequest: WebResourceRequest = mock()
+        val webError: WebResourceError = mock()
         val url: Uri = mock()
 
-        webViewClient.onReceivedError(engineView.currentWebView, request, error)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
         verifyZeroInteractions(requestInterceptor)
 
         engineView.render(engineSession)
-        webViewClient.onReceivedError(engineView.currentWebView, request, error)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
         verifyZeroInteractions(requestInterceptor)
 
-        `when`(error.errorCode).thenReturn(-1)
-        `when`(request.url).thenReturn(url)
+        `when`(webError.errorCode).thenReturn(-1)
+        `when`(webRequest.url).thenReturn(url)
         `when`(url.toString()).thenReturn("http://failed.random")
         engineSession.settings.requestInterceptor = requestInterceptor
-        webViewClient.onReceivedError(engineView.currentWebView, request, error)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
         verify(requestInterceptor, never()).onErrorRequest(engineSession, -1, "http://failed.random")
 
-        `when`(request.isForMainFrame).thenReturn(true)
-        webViewClient.onReceivedError(engineView.currentWebView, request, error)
+        `when`(webRequest.isForMainFrame).thenReturn(true)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
         verify(requestInterceptor).onErrorRequest(engineSession, -1, "http://failed.random")
+
+        val webView = mock(WebView::class.java)
+        engineView.currentWebView = webView
+        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, -1, "http://failed.random")).thenReturn(errorResponse)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, -1, "http://failed.random")).thenReturn(errorResponse2)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
     }
 
     @Test
@@ -386,6 +428,24 @@ class SystemEngineViewTest {
         webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
         verify(requestInterceptor).onErrorRequest(engineSession, -1, "http://failed.random")
         verify(handler, times(3)).cancel()
+
+        val webView = mock(WebView::class.java)
+        engineView.currentWebView = webView
+        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, -1, "http://failed.random")).thenReturn(errorResponse)
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, -1, "http://failed.random")).thenReturn(errorResponse2)
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
     }
 
     @Test
@@ -503,7 +563,7 @@ class SystemEngineViewTest {
         engineView.currentWebView.tag = "not_webview"
         engineView.currentWebView.webChromeClient.onShowCustomView(view, customViewCallback)
 
-        assertNotEquals(View.GONE, engineView.currentWebView.visibility)
+        assertNotEquals(View.INVISIBLE, engineView.currentWebView.visibility)
     }
 
     @Test
@@ -523,7 +583,7 @@ class SystemEngineViewTest {
 
         assertNotNull(engineView.fullScreenCallback)
         verify(engineView.fullScreenCallback, never())?.onCustomViewHidden()
-        assertEquals(View.GONE, engineView.currentWebView.visibility)
+        assertEquals(View.INVISIBLE, engineView.currentWebView.visibility)
 
         // When fullscreen view is available, but WebView isn't.
         engineView.findViewWithTag<View>("not_fullscreen").tag = "mosac_system_engine_fullscreen"
@@ -531,7 +591,7 @@ class SystemEngineViewTest {
 
         engineView.currentWebView.webChromeClient.onHideCustomView()
 
-        assertEquals(View.GONE, engineView.currentWebView.visibility)
+        assertEquals(View.INVISIBLE, engineView.currentWebView.visibility)
     }
 
     @Test
@@ -542,5 +602,73 @@ class SystemEngineViewTest {
 
         engineView.currentWebView.webChromeClient.onHideCustomView()
         assertNull(engineView.fullScreenCallback)
+    }
+
+    @Test
+    fun `when a page is loaded a thumbnail should be captured`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+        var thumbnailChanged = false
+        engineSession.register(object : EngineSession.Observer {
+
+            override fun onThumbnailChange(bitmap: Bitmap?) {
+                thumbnailChanged = bitmap != null
+            }
+        })
+
+        engineView.currentWebView.webViewClient.onPageFinished(null, "http://mozilla.org")
+        assertTrue(thumbnailChanged)
+    }
+
+    @Test
+    fun `when a page is loaded and the os is in low memory condition none thumbnail should be captured`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        engineView.testLowMemory = true
+
+        var thumbnailChanged = false
+        engineSession.register(object : EngineSession.Observer {
+
+            override fun onThumbnailChange(bitmap: Bitmap?) {
+                thumbnailChanged = bitmap != null
+            }
+        })
+        engineView.currentWebView.webViewClient.onPageFinished(null, "http://mozilla.org")
+        assertFalse(thumbnailChanged)
+    }
+
+    @Test
+    fun `onPageFinished handles invalid URL`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        var observedUrl = ""
+        var observedLoadingState = true
+        var observedSecurityChange: Triple<Boolean, String?, String?> = Triple(false, null, null)
+        engineSession.register(object : EngineSession.Observer {
+            override fun onLoadingStateChange(loading: Boolean) { observedLoadingState = loading }
+            override fun onLocationChange(url: String) { observedUrl = url }
+            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
+                observedSecurityChange = Triple(secure, host, issuer)
+            }
+        })
+
+        // We need a certificate to trigger parsing the potentially invalid URL for
+        // the host parameter in onSecurityChange
+        val view = mock(WebView::class.java)
+        val certificate = mock(SslCertificate::class.java)
+        val dName = mock(SslCertificate.DName::class.java)
+        doReturn("testCA").`when`(dName).oName
+        doReturn(dName).`when`(certificate).issuedBy
+        doReturn(certificate).`when`(view).certificate
+
+        engineView.currentWebView.webViewClient.onPageFinished(view, "invalid:")
+        assertEquals("invalid:", observedUrl)
+        assertFalse(observedLoadingState)
+        assertEquals(Triple(true, null, "testCA"), observedSecurityChange)
     }
 }

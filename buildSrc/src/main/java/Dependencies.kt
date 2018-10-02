@@ -14,23 +14,24 @@ private object Versions {
 
     const val support_libraries = "27.1.1"
     const val constraint_layout = "1.1.2"
+    const val workmanager = "1.0.0-alpha09"
 
     const val dokka = "0.9.16"
-    const val android_gradle_plugin = "3.1.3"
+    const val android_gradle_plugin = "3.1.4"
     const val bintray_gradle_plugin = "1.7.3"
     const val maven_gradle_plugin = "2.1"
     const val lint = "26.1.3"
 
     const val jna = "4.5.2"
 
-    const val fxa = "0.2.4"
-    const val sync_logins = "0.4.2"
+    const val mozilla_app_services = "0.5.1"
 }
 
 // Synchronized dependencies used by (some) modules
 object Deps {
     const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${Versions.kotlin}"
     const val kotlin_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
+    const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}"
 
     const val testing_junit = "junit:junit:${Versions.junit}"
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"
@@ -46,6 +47,8 @@ object Deps {
     const val support_constraintlayout = "com.android.support.constraint:constraint-layout:${Versions.constraint_layout}"
     const val support_compat = "com.android.support:support-compat:${Versions.support_libraries}"
 
+    const val arch_workmanager = "android.arch.work:work-runtime:${Versions.workmanager}"
+
     const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
@@ -56,8 +59,8 @@ object Deps {
     const val tools_lintapi = "com.android.tools.lint:lint-api:${Versions.lint}"
     const val tools_linttests = "com.android.tools.lint:lint-tests:${Versions.lint}"
 
-    const val mozilla_fxa = "mozilla:fxa_client_android:${Versions.fxa}@zip"
-    const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.sync_logins}"
+    const val mozilla_fxa = "org.mozilla.fxa_client:fxa_client:${Versions.mozilla_app_services}"
+    const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.mozilla_app_services}"
 
     const val jna = "net.java.dev.jna:jna:${Versions.jna}@aar"
     const val jnaForTest = "net.java.dev.jna:jna:${Versions.jna}@jar"

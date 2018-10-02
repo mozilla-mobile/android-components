@@ -20,7 +20,7 @@ class Fretboard(
     private val storage: ExperimentStorage,
     valuesProvider: ValuesProvider = ValuesProvider()
 ) {
-    private var experimentsResult: ExperimentsSnapshot = ExperimentsSnapshot(listOf(), null)
+    @Volatile private var experimentsResult: ExperimentsSnapshot = ExperimentsSnapshot(listOf(), null)
     private var experimentsLoaded: Boolean = false
     private val evaluator = ExperimentEvaluator(valuesProvider)
     private val logger = Logger(LOG_TAG)
@@ -106,6 +106,20 @@ class Fretboard(
     }
 
     /**
+     * Provides a map of active/inactive experiments
+     *
+     * @param context context
+     *
+     * @return map of experiments to A/B state
+     */
+    fun getExperimentsMap(context: Context): Map<String, Boolean> {
+        return experiments.associate {
+            it.name to
+                    isInExperiment(context, ExperimentDescriptor(it.name))
+        }
+    }
+
+    /**
      * Overrides a specified experiment asynchronously
      *
      * @param context context
@@ -167,6 +181,16 @@ class Fretboard(
      */
     fun clearAllOverridesNow(context: Context) {
         evaluator.clearAllOverridesNow(context)
+    }
+
+    /**
+     * Returns the user bucket number used to determine whether the user
+     * is in or out of the experiment
+     *
+     * @param context context
+     */
+    fun getUserBucket(context: Context): Int {
+        return evaluator.getUserBucket(context)
     }
 
     companion object {

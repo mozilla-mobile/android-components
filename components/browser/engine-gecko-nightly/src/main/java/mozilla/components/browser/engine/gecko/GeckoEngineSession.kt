@@ -5,6 +5,7 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import kotlinx.coroutines.experimental.CompletableDeferred
 import kotlinx.coroutines.experimental.runBlocking
 import mozilla.components.concept.engine.EngineSession
@@ -39,7 +40,7 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.settings]
      */
-    override val settings: Settings = object : Settings {
+    override val settings: Settings = object : Settings() {
         override var requestInterceptor: RequestInterceptor? = null
     }
 
@@ -230,6 +231,7 @@ class GeckoEngineSession(
     /**
      * NavigationDelegate implementation for forwarding callbacks to observers of the session.
      */
+    @Suppress("ComplexMethod")
     private fun createNavigationDelegate() = object : GeckoSession.NavigationDelegate {
         override fun onLocationChange(session: GeckoSession?, url: String) {
             // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
@@ -280,7 +282,9 @@ class GeckoEngineSession(
                 this@GeckoEngineSession,
                 error,
                 uri
-            )
+            )?.apply {
+                return GeckoResult.fromValue(data)
+            }
             return GeckoResult.fromValue(null)
         }
     }
@@ -407,6 +411,12 @@ class GeckoEngineSession(
             }
             else -> HitResult.UNKNOWN("")
         }
+    }
+
+    override fun captureThumbnail(): Bitmap? {
+        // TODO Waiting for the Gecko team to create an API for this
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1462018
+        return null
     }
 
     companion object {

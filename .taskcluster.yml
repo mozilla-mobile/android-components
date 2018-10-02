@@ -24,7 +24,6 @@ tasks:
       - "queue:scheduler-id:taskcluster-github"
     payload:
       maxRunTime: 3600
-      deadline: "{{ '2 hours' | $fromNow }}"
       image: 'mozillamobile/android-components:1.5'
       command:
         - /bin/bash
@@ -62,7 +61,6 @@ tasks:
       - "queue:create-task:lowest:scriptworker-prov-v1/mobile-beetmover-v1"
     payload:
       maxRunTime: 600
-      deadline: "{{ '2 hours' | $fromNow }}"
       image: 'mozillamobile/android-components:1.5'
       command:
         - /bin/bash

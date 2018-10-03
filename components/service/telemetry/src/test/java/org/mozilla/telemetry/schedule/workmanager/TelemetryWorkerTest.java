@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.telemetry.schedule.jobscheduler;
+package org.mozilla.telemetry.schedule.workmanager;
 
-import android.app.job.JobParameters;
-import android.os.AsyncTask;
+import android.content.Context;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,23 +20,20 @@ import org.mozilla.telemetry.serialize.JSONPingSerializer;
 import org.mozilla.telemetry.serialize.TelemetryPingSerializer;
 import org.mozilla.telemetry.storage.FileTelemetryStorage;
 import org.mozilla.telemetry.storage.TelemetryStorage;
-import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 
+import androidx.work.Worker;
+
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 @RunWith(RobolectricTestRunner.class)
-public class TelemetryJobServiceTest {
+public class TelemetryWorkerTest {
     @Test
     public void testDailyLimitIsEnforced() throws Exception {
         final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
@@ -57,30 +53,21 @@ public class TelemetryJobServiceTest {
         TelemetryHolder.set(telemetry);
 
         telemetry.queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE)
-            .queuePing(TelemetryCorePingBuilder.TYPE);
+                .queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE)
+                .queuePing(TelemetryCorePingBuilder.TYPE);
 
         TestUtils.waitForExecutor(telemetry);
 
         assertEquals(5, storage.countStoredPings(TelemetryCorePingBuilder.TYPE));
 
-        final TelemetryJobService service = spy(Robolectric.buildService(TelemetryJobService.class)
-                .create()
-                .get());
-        service.job = spy(new TelemetryJob());
-        doReturn(1337L).when(service.job).now();
-        doNothing().when(service).jobFinished(any(JobParameters.class), anyBoolean());
+        final Context context = mock(Context.class);
+        final TelemetryJob job = spy(new TelemetryJob());
+        doReturn(1337L).when(job).now();
+        final TelemetryWorker worker = spy(new TelemetryWorker(job, context, null));
 
-        final JobParameters parameters = mock(JobParameters.class);
-        final AsyncTask task = mock(AsyncTask.class);
-        doReturn(false).when(task).isCancelled();
-
-        service.uploadPingsInBackground(task, parameters);
-
-        // Job finished and should not be re-scheduled even though we didn't upload everything
-        verify(service).jobFinished(parameters, false);
+        assertEquals(Worker.Result.FAILURE, worker.uploadPingsInBackground());
 
         // 3 pings are still in the storage
         assertEquals(3, storage.countStoredPings(TelemetryCorePingBuilder.TYPE));

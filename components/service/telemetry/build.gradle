@@ -28,6 +28,8 @@ dependencies {
 
     implementation Deps.kotlin_stdlib
 
+    implementation Deps.arch_workmanager
+
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito

@@ -2,12 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.telemetry.schedule.jobscheduler;
+package org.mozilla.telemetry.schedule.workmanager;
 
-import android.annotation.SuppressLint;
-import android.app.job.JobParameters;
-import android.app.job.JobService;
-import android.os.AsyncTask;
+import android.content.Context;
 
 import org.mozilla.telemetry.Telemetry;
 import org.mozilla.telemetry.TelemetryHolder;
@@ -16,41 +13,33 @@ import org.mozilla.telemetry.ping.TelemetryPingBuilder;
 import org.mozilla.telemetry.schedule.TelemetryJob;
 import org.mozilla.telemetry.storage.TelemetryStorage;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
 import mozilla.components.support.base.log.logger.Logger;
 
-public class TelemetryJobService extends JobService {
+public class TelemetryWorker extends Worker {
     private final Logger logger = new Logger("telemetry/service");
-    @VisibleForTesting TelemetryJob job = new TelemetryJob();
-    private UploadPingsTask uploadTask;
+    private TelemetryJob job;
 
-    @Override
-    public boolean onStartJob(JobParameters params) {
-        uploadTask = new UploadPingsTask();
-        uploadTask.execute(params);
-        return true;
+    public TelemetryWorker(Context context, WorkerParameters parameters) {
+        this(new TelemetryJob(), context, parameters);
     }
 
-    @Override
-    public boolean onStopJob(JobParameters params) {
-        if (uploadTask != null) {
-            uploadTask.cancel(true);
-        }
-        return true;
+    TelemetryWorker(TelemetryJob job, Context context, WorkerParameters parameters) {
+        super(context, parameters);
+        this.job = job;
     }
 
-    @SuppressLint("StaticFieldLeak") // This needs to be fixed (#111)
-    private class UploadPingsTask extends AsyncTask<JobParameters, Void, Void> {
-        @Override
-        protected Void doInBackground(JobParameters... params) {
-            final JobParameters parameters = params[0];
-            uploadPingsInBackground(this, parameters);
-            return null;
-        }
+    @NonNull
+    @Override
+    public Result doWork() {
+        return uploadPingsInBackground();
     }
 
     @VisibleForTesting
-    public void uploadPingsInBackground(AsyncTask task, JobParameters parameters) {
+    public Result uploadPingsInBackground() {
         final Telemetry telemetry = TelemetryHolder.get();
         final TelemetryConfiguration configuration = telemetry.getConfiguration();
         final TelemetryStorage storage = telemetry.getStorage();
@@ -58,11 +47,6 @@ public class TelemetryJobService extends JobService {
         for (TelemetryPingBuilder builder : telemetry.getBuilders()) {
             final String pingType = builder.getType();
             logger.debug("Performing upload of ping type: " + pingType, null);
-
-            if (task.isCancelled()) {
-                logger.debug("Job stopped. Exiting.", null);
-                return; // Job will be rescheduled from onStopJob().
-            }
 
             if (storage.countStoredPings(pingType) == 0) {
                 logger.debug("No pings of type " + pingType + " to upload", null);
@@ -76,12 +60,11 @@ public class TelemetryJobService extends JobService {
 
             if (!job.performPingUpload(telemetry, pingType)) {
                 logger.info("Upload aborted. Rescheduling job if limit not reached.", null);
-                jobFinished(parameters, !job.hasReachedUploadLimit(configuration, pingType));
-                return;
+                return job.hasReachedUploadLimit(configuration, pingType) ? Result.FAILURE : Result.RETRY;
             }
         }
 
         logger.debug("All uploads performed", null);
-        jobFinished(parameters, false);
+        return Result.SUCCESS;
     }
 }

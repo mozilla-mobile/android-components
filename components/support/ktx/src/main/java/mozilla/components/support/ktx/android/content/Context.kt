@@ -6,6 +6,7 @@ package mozilla.components.support.ktx.android.content
 
 import android.app.ActivityManager
 import android.content.Context
+import android.view.accessibility.AccessibilityManager
 
 /**
  * The (visible) version name of the application, as specified by the <manifest> tag's versionName
@@ -24,6 +25,8 @@ inline fun <reified T> Context.systemService(name: String): T {
     return getSystemService(name) as T
 }
 
+fun Context.getAccessibilityManager() = getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+
 /**
  * Returns whether or not the operating system is under low memory conditions.
  */
@@ -33,3 +36,9 @@ fun Context.isOSOnLowMemory(): Boolean {
         activityManager.getMemoryInfo(memoryInfo)
     }.lowMemory
 }
+
+/**
+ * AccessibilityManager.isAccessibilityEnabled can be enabled for more things than just VoiceView. If we want
+ * VoiceView, we only need to check this one field; via comments on https://stackoverflow.com/a/12362545/582004.
+ */
+fun Context.isScreenReaderEnabled() = getAccessibilityManager()?.isTouchExplorationEnabled

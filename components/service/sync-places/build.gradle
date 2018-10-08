@@ -1,0 +1,54 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion Config.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion Config.minSdkVersion
+        targetSdkVersion Config.targetSdkVersion
+    }
+
+    lintOptions {
+        warningsAsErrors true
+        abortOnError true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            consumerProguardFiles 'proguard-rules-consumer.pro'
+        }
+    }
+}
+
+configurations {
+    jnaForTest
+}
+
+dependencies {
+    jnaForTest Deps.jnaForTest
+
+//    api Deps.mozilla_sync_places
+
+    implementation Deps.kotlin_stdlib
+    implementation Deps.jna
+    implementation Deps.kotlin_coroutines
+
+    testImplementation files(configurations.jnaForTest.files)
+
+//    testImplementation Deps.mozilla_sync_places
+
+    testImplementation Deps.testing_junit
+    testImplementation Deps.testing_robolectric
+    testImplementation Deps.testing_mockito
+}
+
+archivesBaseName = "sync-places"
+
+apply from: '../../../publish.gradle'
+ext.configurePublish(
+        'org.mozilla.components',
+        'sync-places',
+        'A library for sync-enabled Places.')

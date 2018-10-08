@@ -132,6 +132,8 @@ dependencies {
 
     servoImplementation project(':browser-engine-servo')
 
+    implementation project(':service-sync-places')
+
     geckoNightlyImplementation project(':browser-engine-gecko-nightly')
     geckoNightlyArmImplementation Gecko.geckoview_nightly_arm
     geckoNightlyX86Implementation Gecko.geckoview_nightly_x86

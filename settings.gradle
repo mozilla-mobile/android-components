@@ -109,6 +109,9 @@ project(':service-firefox-accounts').projectDir = new File('components/service/f
 include ':service-sync-logins'
 project(':service-sync-logins').projectDir = new File('components/service/sync-logins')
 
+include ':service-sync-places'
+project(':service-sync-places').projectDir = new File('components/service/sync-places')
+
 include ':service-fretboard'
 project(':service-fretboard').projectDir = new File('components/service/fretboard')
 

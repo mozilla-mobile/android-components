@@ -13,6 +13,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
+// This is just stefan testing - ignore me
+
 @RunWith(RobolectricTestRunner::class)
 class CustomDomainsTest {
     @Before

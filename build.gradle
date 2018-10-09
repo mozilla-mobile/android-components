@@ -15,8 +15,12 @@ buildscript {
     ]
 
     repositories {
-        google()
-        jcenter()
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/google/"
+	}
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/jcenter/"
+	}
     }
 
     dependencies {
@@ -36,11 +40,20 @@ plugins {
 
 allprojects {
     repositories {
-        google()
-        jcenter()
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/google/"
+	}
+
+	maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/jcenter/"
+	}
 
         maven {
-            url "https://maven.mozilla.org/maven2"
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/maven-central/"
+        }
+
+        maven {
+            url "http://ec2-52-8-119-33.us-west-1.compute.amazonaws.com:8081/repository/mozilla/"
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////

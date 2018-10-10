@@ -105,7 +105,7 @@ class SystemEngineView @JvmOverloads constructor(
     private fun createWebView(context: Context): WebView {
         val webView = WebView(context)
         webView.tag = "mosac_system_engine_webview"
-        webView.webViewClient = createWebViewClient(webView)
+        webView.webViewClient = createWebViewClient()
         webView.webChromeClient = createWebChromeClient()
         webView.setDownloadListener(createDownloadListener())
         webView.setFindListener(createFindListener())
@@ -113,7 +113,7 @@ class SystemEngineView @JvmOverloads constructor(
     }
 
     @Suppress("ComplexMethod")
-    private fun createWebViewClient(webView: WebView) = object : WebViewClient() {
+    private fun createWebViewClient() = object : WebViewClient() {
         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
             url?.let {
                 currentUrl = url
@@ -332,7 +332,6 @@ class SystemEngineView @JvmOverloads constructor(
         val view = findViewWithTag<View>("mosac_system_engine_fullscreen")
         val webView = findViewWithTag<WebView>("mosac_system_engine_webview")
         view?.let {
-            fullScreenCallback?.onCustomViewHidden()
             webView?.apply { this.visibility = View.VISIBLE }
             removeView(view)
         }

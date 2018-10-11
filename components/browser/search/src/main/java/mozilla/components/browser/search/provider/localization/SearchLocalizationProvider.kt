@@ -15,14 +15,14 @@ abstract class SearchLocalizationProvider {
      *
      * Example: "en" (English), "ja" (Japanese), "kok" (Konkani)
      */
-    abstract var language: String
+    abstract val language: String
 
     /**
      * ISO 3166 alpha-2 country code or UN M.49 numeric-3 area code.
      *
      * Example: "US" (United States), "FR" (France), "029" (Caribbean)
      */
-    abstract var country: String
+    abstract val country: String
 
     /**
      * Optional actual location (region only) of the user/device. ISO 3166 alpha-2 country code or
@@ -34,7 +34,7 @@ abstract class SearchLocalizationProvider {
      *
      * Can be null if no location information is available.
      */
-    abstract var region: String?
+    abstract val region: String?
 
     /**
      * Returns a language tag of the form <language>-<country>.

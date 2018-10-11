@@ -15,7 +15,6 @@ import mozilla.components.browser.search.provider.localization.SearchLocalizatio
 import mozilla.components.support.ktx.android.content.res.readJSONObject
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.*
 
 /**
  * SearchEngineProvider implementation to load the included search engines from assets.
@@ -39,19 +38,12 @@ class AssetsSearchEngineProvider(
      * Load search engines from this provider.
      */
     override suspend fun loadSearchEngines(context: Context): List<SearchEngine> {
-        enforceLocaleChange()
         val searchEngineIdentifiers = mutableListOf<String>().apply {
             addAll(loadAndFilterConfiguration(context))
             addAll(additionalIdentifiers)
         }
 
         return loadSearchEnginesFromList(context, searchEngineIdentifiers.distinct())
-    }
-
-    // Bug fix (hack!) ensure localization provider vars get the right locale
-    private fun enforceLocaleChange() {
-        localizationProvider.language = Locale.getDefault().language
-        localizationProvider.country = Locale.getDefault().country
     }
 
     private suspend fun loadSearchEnginesFromList(

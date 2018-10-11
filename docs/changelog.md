@@ -18,6 +18,24 @@ Release date: TBD
     * Nightly: 64.0.20180905100117
     * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
     * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
+* **browser-engine-system**
+  * Fixed a bug where `SystemEngineSession#exitFullScreenMode` didn't invoke the internal callback to exit the fullscreen mode.
+  * A new field `defaultUserAgent` was added to `SystemEngine` for testing purposes. This is to circumvent calls to `WebSettings.getDefaultUserAgent` which fails with a `NullPointerException` in Robolectric. If the `SystemEngine` is used in Robolectric tests the following code will be needed:
+    ```kotlin
+    @Before
+    fun setup() {
+      SystemEngine.defaultUserAgent = "test-ua-string"
+    }
+    ```
+* **browser-errorpages**
+  * Added more detailed documentation in the README.
+* **support-ktx**
+  * Added new helper method to run a block of code with a different StrictMode policy:
+  ```kotlin
+  StrictMode.allowThreadDiskReads().resetAfter {
+    // In this block disk reads are not triggering a strict mode violation
+  }
+  ```
 
 # 0.26.0
 
@@ -193,17 +211,17 @@ Release date: 2018-10-05
     * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
     * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
 
-* **dataprotect**: 
+* **dataprotect**:
   * Added a component using AndroidKeyStore to protect user data.
   ```kotlin
   // Create a Keystore and generate a key
   val keystore: Keystore = Keystore("samples-dataprotect")
   keystore.generateKey()
-  
+
   // Encrypt data
   val plainText = "plain text data".toByteArray(StandardCharsets.UTF_8)
   val encrypted = keystore.encryptBytes(plain)
-  
+
   // Decrypt data
   val samePlainText = keystore.decryptBytes(encrypted)
   ```
@@ -212,7 +230,7 @@ Release date: 2018-10-05
   * `SystemEngineSession` now provides a way to capture a screenshot of the actual content of the web page just by calling `captureThumbnail`
 * **browser-session**:
   * `Session` exposes a new property called `thumbnail` and its internal observer also exposes a new listener `onThumbnailChanged`.
-    
+
   ```Kotlin
   session.register(object : Session.Observer {
       fun onThumbnailChanged(session: Session, bitmap: Bitmap?) {
@@ -220,12 +238,12 @@ Release date: 2018-10-05
       }
   })
   ```
-  
+
   * `SessionManager` lets you notify it when the OS is under low memory condition by calling to its new function `onLowMemory`.
 
 * **browser-tabstray**:
 
-   * Now on `BrowserTabsTray` every tab gets is own thumbnail :) 
+   * Now on `BrowserTabsTray` every tab gets is own thumbnail :)
 
 * **support-ktx**:
 
@@ -233,18 +251,18 @@ Release date: 2018-10-05
 
   ```Kotlin
   val shouldReduceMemoryUsage = context.isOSOnLowMemory()
-  
+
   if (shouldReduceMemoryUsage) {
       //Deallocate some heavy objects
   }
   ```
-  
+
   * `View.dp` is now`Resource.pxtoDp`.
 
   ```Kotlin
   // Before
   toolbar.dp(104)
-  
+
   // Now
   toolbar.resources.pxToDp(104)
   ```

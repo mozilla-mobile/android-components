@@ -11,9 +11,9 @@ import java.util.Locale
  * default languageTag.
  */
 class LocaleSearchLocalizationProvider : SearchLocalizationProvider() {
-    override val language: String = Locale.getDefault().language
+    override var language: String = Locale.getDefault().language
 
-    override val country: String = Locale.getDefault().country
+    override var country: String = Locale.getDefault().country
 
-    override val region: String? = null
+    override var region: String? = null
 }

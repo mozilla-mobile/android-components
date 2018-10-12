@@ -15,13 +15,11 @@ Release date: TBD
   * Android (SDK: 27, Support Libraries: 27.1.1)
   * Kotlin (Stdlib: 1.2.61, Coroutines: 0.23.4)
   * GeckoView
-    * Nightly: 64.0.20180905100117
+    * Nightly: **64.0.20181004100221** 🔺
     * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
     * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
 * **browser-engine-system**
   * Fixed a bug where `SystemEngineSession#exitFullScreenMode` didn't invoke the internal callback to exit the fullscreen mode.
-
-* **browser-engine-system**
   * A new field `defaultUserAgent` was added to `SystemEngine` for testing purposes. This is to circumvent calls to `WebSettings.getDefaultUserAgent` which fails with a `NullPointerException` in Robolectric. If the `SystemEngine` is used in Robolectric tests the following code will be needed:
     ```kotlin
     @Before
@@ -29,8 +27,31 @@ Release date: TBD
       SystemEngine.defaultUserAgent = "test-ua-string"
     }
     ```
+* **browser-engine-servo**:
+  * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
+* **browser-search**
+  * Fixed an issue where a locale change at runtime would not update the search engines.
 * **browser-errorpages**
   * Added more detailed documentation in the README.
+* **support-ktx**
+  * Added new helper method to run a block of code with a different StrictMode policy:
+  ```kotlin
+  StrictMode.allowThreadDiskReads().resetAfter {
+    // In this block disk reads are not triggering a strict mode violation
+  }
+  ```
+
+* browser-engine-gecko-nightly:
+  * Enabled [Java 8 support](https://developer.android.com/studio/write/java8-support) to meet upstream [GeckoView requirements](https://mail.mozilla.org/pipermail/mobile-firefox-dev/2018-September/002411.html). Apps using this component need to enable Java 8 support as well:
+  ```Groovy
+  android {
+    ...
+    compileOptions {
+      sourceCompatibility JavaVersion.VERSION_1_8
+      targetCompatibility JavaVersion.VERSION_1_8
+    }
+  }
+  ```
 
 # 0.26.0
 

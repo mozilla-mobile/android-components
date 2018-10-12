@@ -47,6 +47,7 @@ setupProject(':browser-engine-gecko-nightly', 'components/browser/engine-gecko-n
 setupProject(':browser-engine-system', 'components/browser/engine-system', 'Engine implementation based on the system\'s WebView.')
 setupProject(':browser-engine-servo', 'components/browser/engine-servo', 'Engine implementation based on the Servo Browser Engine.')
 setupProject(':browser-errorpages', 'components/browser/errorpages', 'Responsive browser error pages for Android apps.')
+setupProject(':browser-icons', 'components/browser/icons', 'Favicons support for Android browser apps.')
 setupProject(':browser-menu', 'components/browser/menu', 'A customizable menu for browsers.')
 setupProject(':browser-search', 'components/browser/search', 'Search plugins and companion code to load, parse and use them.')
 setupProject(':browser-session', 'components/browser/session', 'An abstract layer hiding the actual browser engine implementation.')

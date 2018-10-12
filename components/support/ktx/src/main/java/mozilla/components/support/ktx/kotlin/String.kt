@@ -36,3 +36,29 @@ fun String.isPhone(): Boolean = contains("tel:", true)
 fun String.isEmail(): Boolean = contains("mailto:", true)
 
 fun String.isGeoLocation(): Boolean = contains("geo:", true)
+
+fun String.stripCommonSubdomains(): String? {
+    // In contrast to desktop, we also strip mobile subdomains,
+    // since its unlikely users are intentionally typing them
+    var start = 0
+
+    if (startsWith("www.")) {
+        start = 4
+    } else if (startsWith("mobile.")) {
+        start = 7
+    } else if (startsWith("m.")) {
+        start = 2
+    }
+
+    return substring(start)
+}
+
+fun String.isHttpOrHttps(): Boolean =
+    if (TextUtils.isEmpty(this)) {
+        false
+    } else {
+        startsWith("http://") || startsWith("https://")
+    }
+
+fun String.isAboutPage(): Boolean =
+    startsWith("about:")

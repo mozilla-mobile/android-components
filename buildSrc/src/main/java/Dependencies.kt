@@ -49,6 +49,7 @@ object Deps {
     const val support_fragment = "com.android.support:support-fragment:${Versions.support_libraries}"
     const val support_constraintlayout = "com.android.support.constraint:constraint-layout:${Versions.constraint_layout}"
     const val support_compat = "com.android.support:support-compat:${Versions.support_libraries}"
+    const val support_palette = "com.android.support:palette-v7:${Versions.support_libraries}"
 
     const val arch_workmanager = "android.arch.work:work-runtime:${Versions.workmanager}"
 

@@ -24,6 +24,7 @@ android {
 }
 
 dependencies {
+    implementation project(':support-base')
     implementation Deps.kotlin_stdlib
     implementation Deps.support_compat
     implementation project(':support-base')

@@ -15,15 +15,18 @@ object ThreadUtils {
     private val handler = Handler(Looper.getMainLooper())
     private val uiThread = Looper.getMainLooper().thread
 
+    @JvmStatic
     fun postToBackgroundThread(runnable: Runnable) {
         backgroundExecutorService.submit(runnable)
     }
 
-    fun postToMainThread(runnable: Runnable) {
+    @JvmStatic
+    fun postToUiThread(runnable: Runnable) {
         handler.post(runnable)
     }
 
-    fun postToMainThreadDelayed(runnable: Runnable, delayMillis: Long) {
+    @JvmStatic
+    fun postToUiThreadDelayed(runnable: Runnable, delayMillis: Long) {
         handler.postDelayed(runnable, delayMillis)
     }
 

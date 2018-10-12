@@ -1,3 +1,9 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,6 +21,13 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
+    lintOptions {
+        // Lint reports (falsely) a bunch of unused resources for this project. Those resources
+        // are references from Kotlin code and it looks like Android lint can't see those references
+        // yet. Let's disable this check and retry once a newer SDK is available.
+        disable 'UnusedResources'
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -25,22 +38,24 @@ android {
 }
 
 dependencies {
-    implementation project(':support-base')
     implementation project(':support-ktx')
-
-    implementation Deps.kotlin_stdlib
+    implementation project(':support-base')
+    implementation project(':support-utils')
 
     implementation Deps.support_annotations
-    implementation Deps.support_compat
-    implementation Deps.support_palette
+    implementation Deps.kotlin_stdlib
 
-    // We expose the app-compat as API so that consumers get access to the Lifecycle classes automatically
-    api Deps.support_appcompat
+    testImplementation project(':support-test')
 
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito
 }
 
+archivesBaseName = "icons"
+
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(
+        'org.mozilla.components',
+        'icons',
+        'Favicons support for Android browser apps.')

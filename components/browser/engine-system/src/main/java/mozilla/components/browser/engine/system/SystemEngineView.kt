@@ -137,8 +137,9 @@ class SystemEngineView @JvmOverloads constructor(
 
                     if (!isLowOnMemory()) {
                         val thumbnail = session?.captureThumbnail()
-                        if (thumbnail != null)
+                        if (thumbnail != null) {
                             onThumbnailChange(thumbnail)
+                        }
                     }
                 }
             }

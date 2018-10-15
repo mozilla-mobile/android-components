@@ -21,7 +21,7 @@ class TaskBuilder(object):
                    artifacts={}, scopes=[], routes=[], features={},
                    worker_type='github-worker'):
         created = datetime.datetime.now()
-        expires = taskcluster.fromNow('1 year')
+        expires = taskcluster.fromNow('1 week')
         deadline = taskcluster.fromNow('1 day')
 
         features = features.copy()
@@ -68,11 +68,11 @@ class TaskBuilder(object):
     def massager_task(self, name, description, command, dependencies=[], scopes=[],
                       features={}, artifacts={}, upstreamZip=[]):
         created = datetime.datetime.now()
-        expires = taskcluster.fromNow('1 year')
+        expires = taskcluster.fromNow('1 week')
         deadline = taskcluster.fromNow('1 day')
 
         return {
-            "workerType": "gecko-focus",
+            "workerType": "github-worker",
             "taskGroupId": self.task_id,
             "schedulerId": self.scheduler_id,
             "expires": taskcluster.stringDate(expires),
@@ -111,11 +111,11 @@ class TaskBuilder(object):
     def beetmover_task(self, name, description, version, artifact_id,
                        dependencies=[], upstreamArtifacts=[], scopes=[]):
         created = datetime.datetime.now()
-        expires = taskcluster.fromNow('1 year')
+        expires = taskcluster.fromNow('1 week')
         deadline = taskcluster.fromNow('1 day')
 
         return {
-            "workerType": "mobile-beetmover-v1",
+            "workerType": "null-worker",
             "taskGroupId": self.task_id,
             "schedulerId": self.scheduler_id,
             "expires": taskcluster.stringDate(expires),
@@ -138,7 +138,7 @@ class TaskBuilder(object):
                 "version": version,
                 "artifact_id": artifact_id
             },
-            "provisionerId": "scriptworker-prov-v1",
+            "provisionerId": "null-provisioner",
             "metadata": {
                 "name": name,
                 "description": description,

@@ -24,7 +24,8 @@ BUILDER = lib.tasks.TaskBuilder(
     branch=os.environ.get('MOBILE_HEAD_BRANCH'),
     commit=HEAD_REV,
     owner="skaspari@mozilla.com",
-    source='https://github.com/mozilla-mobile/android-components/raw/{}/.taskcluster.yml'.format(HEAD_REV),
+    source='https://github.com/JohanLorenzo/android-components/raw/{}/.taskcluster.yml'.format(HEAD_REV),
+    # source='https://github.com/mozilla-mobile/android-components/raw/{}/.taskcluster.yml'.format(HEAD_REV),
     scheduler_id=os.environ.get('SCHEDULER_ID'),
 )
 
@@ -39,7 +40,7 @@ def fetch_build_task_artifacts():
     for artifact, info in artifacts_info.items():
         artifacts[artifact] = {
             'type': 'file',
-            'expires': taskcluster.stringDate(taskcluster.fromNow('1 year')),
+            'expires': taskcluster.stringDate(taskcluster.fromNow('1 week')),
             'path': info['path']
         }
 
@@ -47,7 +48,8 @@ def fetch_build_task_artifacts():
 
 
 def generate_build_task(version):
-    checkout = ("git fetch origin --tags && "
+    checkout = ("git remote add jlorenzo https://github.com/JohanLorenzo/android-components && "
+                "git fetch jlorenzo --tags && "
                 "git config advice.detachedHead false && "
                 "git checkout {}".format(version))
     bintray_publishing = (" && python automation/taskcluster/release/fetch-bintray-api-key.py"
@@ -55,7 +57,7 @@ def generate_build_task(version):
 
     assemble_task = 'assembleRelease'
     scopes = [
-        "secrets:get:project/android-components/publish",
+        # "secrets:get:project/android-components/publish",
     ]
     artifacts = fetch_build_task_artifacts()
 
@@ -65,12 +67,13 @@ def generate_build_task(version):
         command=(checkout +
                  ' && ./gradlew --no-daemon clean test detektCheck ktlint '
                  + assemble_task +
-                 ' docs uploadArchives zipMavenArtifacts' +
-                 bintray_publishing),
+                 ' docs uploadArchives zipMavenArtifacts'), # +
+                 # bintray_publishing
+                 # ),
         features={
             "chainOfTrust": True
         },
-        worker_type='gecko-focus',
+        worker_type='github-worker',
         scopes=scopes,
         artifacts=artifacts,
     )
@@ -78,7 +81,8 @@ def generate_build_task(version):
 
 def generate_massager_task(build_task_id, massager_task_id,
                            artifacts_info, version):
-    command = ("git fetch origin --tags && "
+    command = ("git remote add jlorenzo https://github.com/JohanLorenzo/android-components && "
+               "git fetch jlorenzo --tags && "
                "git config advice.detachedHead false && "
                "git checkout {} && "
                "apt-get install -y python3-pip && "
@@ -107,7 +111,7 @@ def generate_massager_task(build_task_id, massager_task_id,
         },
         artifacts={
             "public/build": {
-                "expires": taskcluster.stringDate(taskcluster.fromNow('1 year')),
+                "expires": taskcluster.stringDate(taskcluster.fromNow('1 week')),
                 "path": "/build/android-components/work_dir/public/build",
                 "type": "directory"
             }
@@ -129,8 +133,8 @@ def generate_beetmover_task(build_task_id, version, artifact, info):
         }
     ]
     scopes = [
-        "project:mobile:android-components:releng:beetmover:bucket:maven-production",
-        "project:mobile:android-components:releng:beetmover:action:push-to-maven"
+        # "project:mobile:android-components:releng:beetmover:bucket:maven-production",
+        # "project:mobile:android-components:releng:beetmover:action:push-to-maven"
     ]
     return taskcluster.slugId(), BUILDER.beetmover_task(
         name="Android Components - Publish Module :{} via beetmover".format(info['name']),

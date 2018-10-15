@@ -1,163 +1,163 @@
-// /* This Source Code Form is subject to the terms of the Mozilla Public
-//  * License, v. 2.0. If a copy of the MPL was not distributed with this
-//  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Concept
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':concept-toolbar'
-// project(':concept-toolbar').projectDir = new File(rootDir, 'components/concept/toolbar')
-//
-// include ':concept-tabstray'
-// project(':concept-tabstray').projectDir = new File(rootDir, 'components/concept/tabstray')
-//
-// include ':concept-engine'
-// project(':concept-engine').projectDir = new File(rootDir, 'components/concept/engine')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Features
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':feature-intent'
-// project(':feature-intent').projectDir = new File(rootDir, 'components/feature/intent')
-//
-// include ':feature-search'
-// project(':feature-search').projectDir = new File(rootDir, 'components/feature/search')
-//
-// include ':feature-session'
-// project(':feature-session').projectDir = new File(rootDir, 'components/feature/session')
-//
-// include ':feature-tabs'
-// project(':feature-tabs').projectDir = new File(rootDir, 'components/feature/tabs')
-//
-// include ':feature-toolbar'
-// project(':feature-toolbar').projectDir = new File(rootDir, 'components/feature/toolbar')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Browser components
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':browser-engine-gecko'
-// project(':browser-engine-gecko').projectDir = new File(rootDir, 'components/browser/engine-gecko')
-//
-// include ':browser-engine-gecko-beta'
-// project(':browser-engine-gecko-beta').projectDir = new File(rootDir, 'components/browser/engine-gecko-beta')
-//
-// include ':browser-engine-gecko-nightly'
-// project(':browser-engine-gecko-nightly').projectDir = new File(rootDir, 'components/browser/engine-gecko-nightly')
-//
-// include ':browser-engine-system'
-// project(':browser-engine-system').projectDir = new File(rootDir, 'components/browser/engine-system')
-//
-// include ':browser-engine-servo'
-// project(':browser-engine-servo').projectDir = new File(rootDir, 'components/browser/engine-servo')
-//
-// include ':browser-errorpages'
-// project(':browser-errorpages').projectDir = new File(rootDir, 'components/browser/errorpages')
-//
-// include ':browser-menu'
-// project(':browser-menu').projectDir = new File(rootDir, 'components/browser/menu')
-//
-// include ':browser-search'
-// project(':browser-search').projectDir = new File(rootDir, 'components/browser/search')
-//
-// include ':browser-session'
-// project(':browser-session').projectDir = new File(rootDir, 'components/browser/session')
-//
-// include ':browser-tabstray'
-// project(':browser-tabstray').projectDir = new File(rootDir, 'components/browser/tabstray')
-//
-// include ':browser-toolbar'
-// project(':browser-toolbar').projectDir = new File(rootDir, 'components/browser/toolbar')
-//
-// include ':browser-domains'
-// project(':browser-domains').projectDir = new File(rootDir, 'components/browser/domains')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // UI components
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':ui-autocomplete'
-// project(':ui-autocomplete').projectDir = new File(rootDir, 'components/ui/autocomplete')
-//
-// include ':ui-colors'
-// project(':ui-colors').projectDir = new File(rootDir, 'components/ui/colors')
-//
-// include ':ui-fonts'
-// project(':ui-fonts').projectDir = new File('components/ui/fonts')
-//
-// include ':ui-icons'
-// project(':ui-icons').projectDir = new File('components/ui/icons')
-//
-// include ':ui-progress'
-// project(':ui-progress').projectDir = new File('components/ui/progress')
-//
-// include ':ui-tabcounter'
-// project(':ui-tabcounter').projectDir = new File('components/ui/tabcounter')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Services
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':service-firefox-accounts'
-// project(':service-firefox-accounts').projectDir = new File('components/service/firefox-accounts')
-//
-// include ':service-sync-logins'
-// project(':service-sync-logins').projectDir = new File('components/service/sync-logins')
-//
-// include ':service-fretboard'
-// project(':service-fretboard').projectDir = new File('components/service/fretboard')
-//
-// include ':service-telemetry'
-// project(':service-telemetry').projectDir = new File('components/service/telemetry')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Support components
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Concept
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':concept-toolbar'
+project(':concept-toolbar').projectDir = new File(rootDir, 'components/concept/toolbar')
+
+include ':concept-tabstray'
+project(':concept-tabstray').projectDir = new File(rootDir, 'components/concept/tabstray')
+
+include ':concept-engine'
+project(':concept-engine').projectDir = new File(rootDir, 'components/concept/engine')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Features
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':feature-intent'
+project(':feature-intent').projectDir = new File(rootDir, 'components/feature/intent')
+
+include ':feature-search'
+project(':feature-search').projectDir = new File(rootDir, 'components/feature/search')
+
+include ':feature-session'
+project(':feature-session').projectDir = new File(rootDir, 'components/feature/session')
+
+include ':feature-tabs'
+project(':feature-tabs').projectDir = new File(rootDir, 'components/feature/tabs')
+
+include ':feature-toolbar'
+project(':feature-toolbar').projectDir = new File(rootDir, 'components/feature/toolbar')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Browser components
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':browser-engine-gecko'
+project(':browser-engine-gecko').projectDir = new File(rootDir, 'components/browser/engine-gecko')
+
+include ':browser-engine-gecko-beta'
+project(':browser-engine-gecko-beta').projectDir = new File(rootDir, 'components/browser/engine-gecko-beta')
+
+include ':browser-engine-gecko-nightly'
+project(':browser-engine-gecko-nightly').projectDir = new File(rootDir, 'components/browser/engine-gecko-nightly')
+
+include ':browser-engine-system'
+project(':browser-engine-system').projectDir = new File(rootDir, 'components/browser/engine-system')
+
+include ':browser-engine-servo'
+project(':browser-engine-servo').projectDir = new File(rootDir, 'components/browser/engine-servo')
+
+include ':browser-errorpages'
+project(':browser-errorpages').projectDir = new File(rootDir, 'components/browser/errorpages')
+
+include ':browser-menu'
+project(':browser-menu').projectDir = new File(rootDir, 'components/browser/menu')
+
+include ':browser-search'
+project(':browser-search').projectDir = new File(rootDir, 'components/browser/search')
+
+include ':browser-session'
+project(':browser-session').projectDir = new File(rootDir, 'components/browser/session')
+
+include ':browser-tabstray'
+project(':browser-tabstray').projectDir = new File(rootDir, 'components/browser/tabstray')
+
+include ':browser-toolbar'
+project(':browser-toolbar').projectDir = new File(rootDir, 'components/browser/toolbar')
+
+include ':browser-domains'
+project(':browser-domains').projectDir = new File(rootDir, 'components/browser/domains')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// UI components
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':ui-autocomplete'
+project(':ui-autocomplete').projectDir = new File(rootDir, 'components/ui/autocomplete')
+
+include ':ui-colors'
+project(':ui-colors').projectDir = new File(rootDir, 'components/ui/colors')
+
+include ':ui-fonts'
+project(':ui-fonts').projectDir = new File('components/ui/fonts')
+
+include ':ui-icons'
+project(':ui-icons').projectDir = new File('components/ui/icons')
+
+include ':ui-progress'
+project(':ui-progress').projectDir = new File('components/ui/progress')
+
+include ':ui-tabcounter'
+project(':ui-tabcounter').projectDir = new File('components/ui/tabcounter')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Services
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':service-firefox-accounts'
+project(':service-firefox-accounts').projectDir = new File('components/service/firefox-accounts')
+
+include ':service-sync-logins'
+project(':service-sync-logins').projectDir = new File('components/service/sync-logins')
+
+include ':service-fretboard'
+project(':service-fretboard').projectDir = new File('components/service/fretboard')
+
+include ':service-telemetry'
+project(':service-telemetry').projectDir = new File('components/service/telemetry')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Support components
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 include ':support-base'
 project(':support-base').projectDir = new File(rootDir, 'components/support/base')
-//
-// include ':support-ktx'
-// project(':support-ktx').projectDir = new File(rootDir, 'components/support/ktx')
-//
+
+include ':support-ktx'
+project(':support-ktx').projectDir = new File(rootDir, 'components/support/ktx')
+
 include ':support-test'
 project(':support-test').projectDir = new File(rootDir, 'components/support/test')
-//
-// include ':support-utils'
-// project(':support-utils').projectDir = new File(rootDir, 'components/support/utils')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Standalone Libraries
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':lib-dataprotect'
-// project(':lib-dataprotect').projectDir = new File(rootDir, 'components/lib/dataprotect')
-//
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Tooling
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+
+include ':support-utils'
+project(':support-utils').projectDir = new File(rootDir, 'components/support/utils')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Standalone Libraries
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':lib-dataprotect'
+project(':lib-dataprotect').projectDir = new File(rootDir, 'components/lib/dataprotect')
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Tooling
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 include ':tooling-lint'
 project(':tooling-lint').projectDir = new File(rootDir, 'components/tooling/lint')
-//
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Samples
-// ////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-// include ':samples-browser'
-// project(':samples-browser').projectDir = new File(rootDir, 'samples/browser')
-//
-// include ':samples-firefox-accounts'
-// project(':samples-firefox-accounts').projectDir = new File(rootDir, 'samples/firefox-accounts')
-//
-// include ':samples-sync-logins'
-// project(':samples-sync-logins').projectDir = new File(rootDir, 'samples/sync-logins')
-//
-// include ':samples-toolbar'
-// project(':samples-toolbar').projectDir = new File(rootDir, 'samples/toolbar')
-//
-// include ':samples-dataprotect'
-// project(':samples-dataprotect').projectDir = new File(rootDir, 'samples/dataprotect')
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Samples
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+include ':samples-browser'
+project(':samples-browser').projectDir = new File(rootDir, 'samples/browser')
+
+include ':samples-firefox-accounts'
+project(':samples-firefox-accounts').projectDir = new File(rootDir, 'samples/firefox-accounts')
+
+include ':samples-sync-logins'
+project(':samples-sync-logins').projectDir = new File(rootDir, 'samples/sync-logins')
+
+include ':samples-toolbar'
+project(':samples-toolbar').projectDir = new File(rootDir, 'samples/toolbar')
+
+include ':samples-dataprotect'
+project(':samples-dataprotect').projectDir = new File(rootDir, 'samples/dataprotect')

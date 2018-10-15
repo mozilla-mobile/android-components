@@ -15,7 +15,7 @@ Release date: TBD
   * Android (SDK: 27, Support Libraries: 27.1.1)
   * Kotlin (Stdlib: 1.2.61, Coroutines: 0.23.4)
   * GeckoView
-    * Nightly: 64.0.20180905100117
+    * Nightly: **64.0.20181004100221** 🔺
     * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
     * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
 * **browser-engine-system**
@@ -31,6 +31,32 @@ Release date: TBD
   * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
 * **browser-search**
   * Fixed an issue where a locale change at runtime would not update the search engines.
+* **browser-session**:
+  * Added reusable functionality for observing sessions, which also support observering the currently selected session, even if it changes.
+  ```kotlin
+  class MyFeaturePresenter(
+      private val sessionManager: SessionManager
+  ) : SelectionAwareSessionObserver(sessionManager) {
+
+      fun start() {
+          // Always observe changes to the selected session even if the selection changes
+          super.observeSelected()
+
+          // To observe changes to a specific session the following method can be used:
+          // super.observeFixed(session)
+      }
+
+      override fun onUrlChanged(session: Session, url: String) {
+          // URL of selected session changed
+      }
+
+      override fun onProgress(session: Session, progress: Int) {
+         // Progress of selected session changed
+      }
+
+      // More observer functions...      
+  }  
+  ```
 * **browser-errorpages**
   * Added more detailed documentation in the README.
 * **support-ktx**
@@ -38,6 +64,45 @@ Release date: TBD
   ```kotlin
   StrictMode.allowThreadDiskReads().resetAfter {
     // In this block disk reads are not triggering a strict mode violation
+  }
+
+  ```
+  * Added a new helper for checking if you have permission to do something or not:
+  ```kotlin
+    var isGranted = context.isPermissionGranted(INTERNET)
+    if(isGranted){
+        //You can proceed
+    }else{
+        //Request permission
+    }
+  ```
+* **feature-downloads**
+  * A new components for apps that want to process downloads, for more examples take a look at [here](components/feature/downloads/README.md).
+
+* **support-test**
+  * Added a new helper for granting permissions in  Robolectric tests:
+  ```kotlin
+     val context = RuntimeEnvironment.application
+     var isGranted = context.isPermissionGranted(INTERNET)
+
+     assertFalse(isGranted) //False permission is not granted yet.
+
+     grantPermission(INTERNET) // Now you have permission.
+
+     isGranted = context.isPermissionGranted(INTERNET)
+
+     assertTrue(isGranted) // True :D
+  ```
+
+* browser-engine-gecko-nightly:
+  * Enabled [Java 8 support](https://developer.android.com/studio/write/java8-support) to meet upstream [GeckoView requirements](https://mail.mozilla.org/pipermail/mobile-firefox-dev/2018-September/002411.html). Apps using this component need to enable Java 8 support as well:
+  ```Groovy
+  android {
+    ...
+    compileOptions {
+      sourceCompatibility JavaVersion.VERSION_1_8
+      targetCompatibility JavaVersion.VERSION_1_8
+    }
   }
   ```
 

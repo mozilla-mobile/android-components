@@ -34,6 +34,9 @@ project(':feature-tabs').projectDir = new File(rootDir, 'components/feature/tabs
 include ':feature-toolbar'
 project(':feature-toolbar').projectDir = new File(rootDir, 'components/feature/toolbar')
 
+include ':feature-downloads'
+project(':feature-downloads').projectDir = new File(rootDir, 'components/feature/downloads')
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Browser components
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,6 +112,9 @@ project(':service-sync-logins').projectDir = new File('components/service/sync-l
 include ':service-fretboard'
 project(':service-fretboard').projectDir = new File('components/service/fretboard')
 
+include ':service-glean'
+project(':service-glean').projectDir = new File('components/service/glean')
+
 include ':service-telemetry'
 project(':service-telemetry').projectDir = new File('components/service/telemetry')
 
@@ -132,9 +138,11 @@ project(':support-utils').projectDir = new File(rootDir, 'components/support/uti
 // Standalone Libraries
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+include ':lib-crash'
+project(':lib-crash').projectDir = new File(rootDir, 'components/lib/crash')
+
 include ':lib-dataprotect'
 project(':lib-dataprotect').projectDir = new File(rootDir, 'components/lib/dataprotect')
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tooling

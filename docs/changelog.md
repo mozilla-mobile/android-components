@@ -23,6 +23,8 @@ Release date: TBD
   * A new client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service. This component is going to eventually replace `service-telemetry`. The SDK is currently in development and the component is not ready to be used yet.
 * **lib-jexl**:
   * New component for for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
+* **sample-toolbar**:
+  * Bug fixed: issue [#980](https://github.com/mozilla-mobile/android-components/issues/980) Add pressed state for unselected toggle buttons
 
 # 0.27.0
 

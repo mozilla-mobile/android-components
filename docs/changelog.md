@@ -15,6 +15,8 @@ Release date: TBD
   * `Download.fileName` cannot be `null` anymore. All engine implementations are guaranteed to return a proposed file name for Downloads now.
 * **browser-engine-servo**
   * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
+* **browser-errorpages**
+  * Added translation annotations to our error page strings. Translated strings will follow in a future release.
 * **service-glean**
   * A new client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service. This component is going to eventually replace `service-telemetry`. The SDK is currently in development and the component is not ready to be used yet.
 * **lib-jexl**:

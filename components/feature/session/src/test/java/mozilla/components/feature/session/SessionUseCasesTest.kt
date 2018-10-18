@@ -10,9 +10,9 @@ import mozilla.components.concept.engine.EngineSession
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -29,7 +29,7 @@ class SessionUseCasesTest {
     }
 
     @Test
-    fun testLoadUrl() {
+    fun loadUrl() {
         useCases.loadUrl.invoke("http://mozilla.org")
         verify(selectedEngineSession).loadUrl("http://mozilla.org")
 
@@ -38,7 +38,7 @@ class SessionUseCasesTest {
     }
 
     @Test
-    fun testLoadData() {
+    fun loadData() {
         useCases.loadData.invoke("<html><body></body></html>", "text/html")
         verify(selectedEngineSession).loadData("<html><body></body></html>", "text/html", "UTF-8")
 
@@ -50,7 +50,7 @@ class SessionUseCasesTest {
     }
 
     @Test
-    fun testReload() {
+    fun reload() {
         val engineSession = mock(EngineSession::class.java)
         val session = mock(Session::class.java)
         `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
@@ -64,7 +64,7 @@ class SessionUseCasesTest {
     }
 
     @Test
-    fun testStopLoading() {
+    fun stopLoading() {
         val engineSession = mock(EngineSession::class.java)
         val session = mock(Session::class.java)
         `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
@@ -78,19 +78,19 @@ class SessionUseCasesTest {
     }
 
     @Test
-    fun testGoBack() {
+    fun goBack() {
         useCases.goBack.invoke()
         verify(selectedEngineSession).goBack()
     }
 
     @Test
-    fun testGoForward() {
+    fun goForward() {
         useCases.goForward.invoke()
         verify(selectedEngineSession).goForward()
     }
 
     @Test
-    fun testRequestDesktopSite() {
+    fun requestDesktopSite() {
         val engineSession = mock(EngineSession::class.java)
         val session = mock(Session::class.java)
         `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
@@ -101,5 +101,19 @@ class SessionUseCasesTest {
         `when`(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
         useCases.requestDesktopSite.invoke(true)
         verify(selectedEngineSession).toggleDesktopMode(true, true)
+    }
+
+    @Test
+    fun clearData() {
+        val engineSession = mock(EngineSession::class.java)
+        val session = mock(Session::class.java)
+        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+
+        useCases.clearData.invoke(session)
+        verify(engineSession).clearData()
+
+        `when`(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
+        useCases.clearData.invoke()
+        verify(selectedEngineSession).clearData()
     }
 }

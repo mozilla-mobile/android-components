@@ -4,10 +4,12 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.content.Context
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.UnsupportedSettingException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -24,31 +26,32 @@ import org.robolectric.RuntimeEnvironment
 class GeckoEngineTest {
 
     private val runtime: GeckoRuntime = mock(GeckoRuntime::class.java)
+    private val context: Context = mock(Context::class.java)
 
     @Test
-    fun testCreateView() {
-        assertTrue(GeckoEngine(runtime).createView(RuntimeEnvironment.application) is GeckoEngineView)
+    fun createView() {
+        assertTrue(GeckoEngine(context, runtime = runtime).createView(RuntimeEnvironment.application) is GeckoEngineView)
     }
 
     @Test
-    fun testCreateSession() {
-        assertTrue(GeckoEngine(runtime).createSession() is GeckoEngineSession)
+    fun createSession() {
+        assertTrue(GeckoEngine(context, runtime = runtime).createSession() is GeckoEngineSession)
     }
 
     @Test
-    fun testName() {
-        assertEquals("Gecko", GeckoEngine(runtime).name())
+    fun name() {
+        assertEquals("Gecko", GeckoEngine(context, runtime = runtime).name())
     }
 
     @Test
-    fun testSettings() {
+    fun settings() {
         val runtime = mock(GeckoRuntime::class.java)
         val runtimeSettings = mock(GeckoRuntimeSettings::class.java)
         `when`(runtimeSettings.javaScriptEnabled).thenReturn(true)
         `when`(runtimeSettings.webFontsEnabled).thenReturn(true)
         `when`(runtimeSettings.trackingProtectionCategories).thenReturn(TrackingProtectionPolicy.none().categories)
         `when`(runtime.settings).thenReturn(runtimeSettings)
-        val engine = GeckoEngine(runtime)
+        val engine = GeckoEngine(context, runtime = runtime)
 
         assertTrue(engine.settings.javascriptEnabled)
         engine.settings.javascriptEnabled = false
@@ -57,6 +60,10 @@ class GeckoEngineTest {
         assertTrue(engine.settings.webFontsEnabled)
         engine.settings.webFontsEnabled = false
         verify(runtimeSettings).webFontsEnabled = false
+
+        assertFalse(engine.settings.remoteDebuggingEnabled)
+        engine.settings.remoteDebuggingEnabled = true
+        verify(runtimeSettings).remoteDebuggingEnabled = true
 
         assertEquals(TrackingProtectionPolicy.none(), engine.settings.trackingProtectionPolicy)
         engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.all()
@@ -74,19 +81,21 @@ class GeckoEngineTest {
     }
 
     @Test
-    fun testDefaultSettings() {
+    fun defaultSettings() {
         val runtime = mock(GeckoRuntime::class.java)
         val runtimeSettings = mock(GeckoRuntimeSettings::class.java)
         `when`(runtimeSettings.javaScriptEnabled).thenReturn(true)
         `when`(runtime.settings).thenReturn(runtimeSettings)
 
-        GeckoEngine(runtime, DefaultSettings(
+        GeckoEngine(context, DefaultSettings(
                 trackingProtectionPolicy = TrackingProtectionPolicy.all(),
                 javascriptEnabled = false,
-                webFontsEnabled = false))
+                webFontsEnabled = false,
+                remoteDebuggingEnabled = true), runtime)
 
         verify(runtimeSettings).javaScriptEnabled = false
         verify(runtimeSettings).webFontsEnabled = false
+        verify(runtimeSettings).remoteDebuggingEnabled = true
         verify(runtimeSettings).trackingProtectionCategories = TrackingProtectionPolicy.all().categories
     }
 }

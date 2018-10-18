@@ -22,7 +22,7 @@ import java.nio.file.Paths
 @RunWith(RobolectricTestRunner::class)
 class FlatFileExperimentStorageTest {
     @Test
-    fun testSave() {
+    fun save() {
         val experiments = listOf(
             Experiment("sample-id",
                 "sample-name",
@@ -38,6 +38,42 @@ class FlatFileExperimentStorageTest {
         val experimentsJson = JSONObject(String(Files.readAllBytes(Paths.get(file.absolutePath))))
         checkSavedExperimentsJson(experimentsJson)
         file.delete()
+    }
+
+    @Test
+    fun replacingContent() {
+        val file = File(RuntimeEnvironment.application.filesDir, "experiments.json")
+
+        FlatFileExperimentStorage(file).save(ExperimentsSnapshot(listOf(
+            Experiment("sample-id",
+                "sample-name",
+                "sample-description",
+                Experiment.Matcher(),
+                Experiment.Bucket(20, 0),
+                1526991669)
+        ), 1526991669))
+
+        FlatFileExperimentStorage(file).save(ExperimentsSnapshot(listOf(
+            Experiment("sample-id-updated",
+                "sample-name-updated",
+                "sample-description-updated",
+                Experiment.Matcher(),
+                Experiment.Bucket(100, 10),
+                1526991700)
+        ), 1526991700))
+
+        val loadedExperiments = FlatFileExperimentStorage(file).retrieve().experiments
+
+        assertEquals(1, loadedExperiments.size)
+
+        val loadedExperiment = loadedExperiments[0]
+
+        assertEquals("sample-id-updated", loadedExperiment.id)
+        assertEquals("sample-name-updated", loadedExperiment.name)
+        assertEquals("sample-description-updated", loadedExperiment.description)
+        assertEquals(10, loadedExperiment.bucket!!.min)
+        assertEquals(100, loadedExperiment.bucket!!.max)
+        assertEquals(1526991700L, loadedExperiment.lastModified)
     }
 
     private fun checkSavedExperimentsJson(experimentsJson: JSONObject) {
@@ -61,7 +97,7 @@ class FlatFileExperimentStorageTest {
     }
 
     @Test
-    fun testRetrieve() {
+    fun retrieve() {
         val file = File(RuntimeEnvironment.application.filesDir, "experiments.json")
         file.writer().use {
             it.write("""{"experiments":[{"name":"sample-name","match":{"lang":"es|en","appId":"sample-appId","regions":["US"]},"buckets":{"max":20,"min":0},"description":"sample-description","id":"sample-id","last_modified":1526991669}],"last_modified":1526991669}""")
@@ -83,10 +119,23 @@ class FlatFileExperimentStorageTest {
     }
 
     @Test
-    fun testRetrieveFileNotFound() {
+    fun retrieveFileNotFound() {
         val file = File(RuntimeEnvironment.application.filesDir, "missingFile.json")
         val experimentsResult = FlatFileExperimentStorage(file).retrieve()
         assertEquals(0, experimentsResult.experiments.size)
         assertNull(experimentsResult.lastModified)
+    }
+
+    @Test
+    fun readingCorruptJSON() {
+        val file = File(RuntimeEnvironment.application.filesDir, "corrupt-experiments.json")
+        file.writer().use {
+            it.write("""{"experiment":[""")
+        }
+
+        val snapshot = FlatFileExperimentStorage(file).retrieve()
+
+        assertNull(snapshot.lastModified)
+        assertEquals(0, snapshot.experiments.size)
     }
 }

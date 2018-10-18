@@ -19,6 +19,9 @@ project(':concept-engine').projectDir = new File(rootDir, 'components/concept/en
 // Features
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+include ':feature-intent'
+project(':feature-intent').projectDir = new File(rootDir, 'components/feature/intent')
+
 include ':feature-search'
 project(':feature-search').projectDir = new File(rootDir, 'components/feature/search')
 
@@ -30,6 +33,9 @@ project(':feature-tabs').projectDir = new File(rootDir, 'components/feature/tabs
 
 include ':feature-toolbar'
 project(':feature-toolbar').projectDir = new File(rootDir, 'components/feature/toolbar')
+
+include ':feature-downloads'
+project(':feature-downloads').projectDir = new File(rootDir, 'components/feature/downloads')
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Browser components
@@ -46,6 +52,9 @@ project(':browser-engine-gecko-nightly').projectDir = new File(rootDir, 'compone
 
 include ':browser-engine-system'
 project(':browser-engine-system').projectDir = new File(rootDir, 'components/browser/engine-system')
+
+include ':browser-engine-servo'
+project(':browser-engine-servo').projectDir = new File(rootDir, 'components/browser/engine-servo')
 
 include ':browser-errorpages'
 project(':browser-errorpages').projectDir = new File(rootDir, 'components/browser/errorpages')
@@ -97,8 +106,14 @@ project(':ui-tabcounter').projectDir = new File('components/ui/tabcounter')
 include ':service-firefox-accounts'
 project(':service-firefox-accounts').projectDir = new File('components/service/firefox-accounts')
 
+include ':service-sync-logins'
+project(':service-sync-logins').projectDir = new File('components/service/sync-logins')
+
 include ':service-fretboard'
 project(':service-fretboard').projectDir = new File('components/service/fretboard')
+
+include ':service-glean'
+project(':service-glean').projectDir = new File('components/service/glean')
 
 include ':service-telemetry'
 project(':service-telemetry').projectDir = new File('components/service/telemetry')
@@ -123,9 +138,14 @@ project(':support-utils').projectDir = new File(rootDir, 'components/support/uti
 // Standalone Libraries
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+include ':lib-crash'
+project(':lib-crash').projectDir = new File(rootDir, 'components/lib/crash')
+
 include ':lib-dataprotect'
 project(':lib-dataprotect').projectDir = new File(rootDir, 'components/lib/dataprotect')
 
+include ':lib-jexl'
+project(':lib-jexl').projectDir = new File(rootDir, 'components/lib/jexl')
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Tooling
@@ -144,5 +164,11 @@ project(':samples-browser').projectDir = new File(rootDir, 'samples/browser')
 include ':samples-firefox-accounts'
 project(':samples-firefox-accounts').projectDir = new File(rootDir, 'samples/firefox-accounts')
 
+include ':samples-sync-logins'
+project(':samples-sync-logins').projectDir = new File(rootDir, 'samples/sync-logins')
+
 include ':samples-toolbar'
 project(':samples-toolbar').projectDir = new File(rootDir, 'samples/toolbar')
+
+include ':samples-dataprotect'
+project(':samples-dataprotect').projectDir = new File(rootDir, 'samples/dataprotect')

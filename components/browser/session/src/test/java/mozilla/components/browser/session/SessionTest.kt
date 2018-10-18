@@ -4,13 +4,14 @@
 
 package mozilla.components.browser.session
 
+import android.graphics.Bitmap
 import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.base.observer.Consumable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -25,6 +26,7 @@ import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import org.mockito.Mockito.spy
 
 class SessionTest {
     @Test
@@ -498,12 +500,60 @@ class SessionTest {
         val observer = mock(Session.Observer::class.java)
         val session = Session("https://www.mozilla.org")
         session.register(observer)
-
         session.desktopMode = true
-
         verify(observer).onDesktopModeChanged(
                 eq(session),
                 eq(true))
         assertTrue(session.desktopMode)
+    }
+
+    @Test
+    fun `observer is notified on fullscreen mode`() {
+        val observer = mock(Session.Observer::class.java)
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+        session.fullScreenMode = true
+        verify(observer).onFullScreenChanged(session, true)
+        reset(observer)
+        session.unregister(observer)
+        session.fullScreenMode = false
+        verify(observer, never()).onFullScreenChanged(session, false)
+    }
+
+    @Test
+    fun `observer is notified on on thumbnail changed `() {
+        val observer = mock(Session.Observer::class.java)
+        val session = Session("https://www.mozilla.org")
+        val emptyThumbnail = spy(Bitmap::class.java)
+        session.register(observer)
+        session.thumbnail = emptyThumbnail
+        verify(observer).onThumbnailChanged(session, emptyThumbnail)
+        reset(observer)
+        session.unregister(observer)
+        session.thumbnail = emptyThumbnail
+        verify(observer, never()).onThumbnailChanged(session, emptyThumbnail)
+    }
+
+    @Test
+    fun `session observer has default methods`() {
+        val session = Session("")
+        val defaultObserver = object : Session.Observer {}
+
+        defaultObserver.onUrlChanged(session, "")
+        defaultObserver.onTitleChanged(session, "")
+        defaultObserver.onProgress(session, 0)
+        defaultObserver.onLoadingStateChanged(session, true)
+        defaultObserver.onNavigationStateChanged(session, true, true)
+        defaultObserver.onSearch(session, "")
+        defaultObserver.onSecurityChanged(session, Session.SecurityInfo())
+        defaultObserver.onCustomTabConfigChanged(session, null)
+        defaultObserver.onDownload(session, mock(Download::class.java))
+        defaultObserver.onTrackerBlockingEnabledChanged(session, true)
+        defaultObserver.onTrackerBlocked(session, "", emptyList())
+        defaultObserver.onLongPress(session, mock(HitResult::class.java))
+        defaultObserver.onFindResult(session, mock(Session.FindResult::class.java))
+        defaultObserver.onDesktopModeChanged(session, true)
+        defaultObserver.onFullScreenChanged(session, true)
+        defaultObserver.onThumbnailChanged(session, spy(Bitmap::class.java))
     }
 }

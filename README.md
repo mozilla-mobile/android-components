@@ -90,6 +90,15 @@ The following diagram does not contain all available components. See [Components
 * ⚪ **Preview** - This component is almost/partially ready and can be tested in products.
 * 🔵 **Production ready** - Used by shipping products.
 
+Our artifacts live in [maven.mozilla.org](https://maven.mozilla.org/maven2) remember to add it in your root ```build.gradle``` file:
+```groovy
+repositories {
+  maven {
+   url "https://maven.mozilla.org/maven2"
+  }
+}
+```
+
 ## Browser
 
 High-level components for building browser(-like) apps.
@@ -100,7 +109,9 @@ High-level components for building browser(-like) apps.
 
 * 🔴 [**Engine-Gecko-Beta**](components/browser/engine-gecko-beta/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Beta channel).
 
-* 🔴 [**Engine-Gecko-Nightly**](components/browser/engine-gecko/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
+* 🔴 [**Engine-Gecko-Nightly**](components/browser/engine-gecko-nightly/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
+
+* 🔴 [**Engine-Servo**](components/browser/engine-servo/README.md) - *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
 
 * ⚪ [**Engine-System**](components/browser/engine-system/README.md) - *Engine* implementation based on the system's WebView.
 
@@ -129,6 +140,10 @@ _API contracts and abstraction layers for browser components._
 ## Feature
 
 _Combined components to implement feature-specific use cases._
+
+* 🔴 [**Downloads**](components/feature/downloads/README.md) - A component to perform downloads using the [Android downloads manager](https://developer.android.com/reference/android/app/DownloadManager).
+
+* 🔴 [**Intent**](components/feature/intent/README.md) - A component that provides intent processing functionality by combining various other feature modules.
 
 * 🔴 [**Search**](components/feature/search/README.md) - A component that connects an (concept) engine implementation with the browser search module.
 
@@ -160,7 +175,11 @@ _Components and libraries to interact with backend services._
 
 * 🔵 [**Firefox Accounts (FxA)**](components/service/firefox-accounts/README.md) - A library for integrating with Firefox Accounts.
 
+* 🔴 [**Firefox Sync - Logins**](components/service/sync-logins/README.md) - A library for integrating with Firefox Sync - Logins.
+
 * ⚪ [**Fretboard**](components/service/fretboard/README.md) - An Android framework for segmenting users in order to run A/B tests and roll out features gradually.
+
+* 🔴 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
 
 * 🔵 [**Telemetry**](components/service/telemetry/README.md) - A generic library for sending telemetry pings from Android applications to Mozilla's telemetry service.
 
@@ -178,7 +197,11 @@ _Supporting components with generic helper code._
 
 ## Standalone libraries
 
+* ⚪ [**Crash**](components/lib/crash/README.md) - A generic crash reporter component that can report crashes to multiple services.
+
 * 🔴 [**Dataprotect**](components/lib/dataprotect/README.md) - A component using AndroidKeyStore to protect user data.
+
+* ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
 ## Tooling
 
@@ -192,7 +215,11 @@ _Sample apps using various components._
 
 * [**Firefox Accounts (FxA)**](samples/firefox-accounts) - A simple app demoing Firefox Accounts integration.
 
+* [**Firefox Sync - Logins**](samples/sync-logins) - A simple app demoing Firefox Sync (Logins) integration.
+
 * [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component.
+
+* [**DataProtect**](samples/dataprotect) - An app demoing how to use the [**Dataprotect**](components/lib/dataprotect/README.md) component to load and store encrypted data in `SharedPreferences`.
 
 # License
 

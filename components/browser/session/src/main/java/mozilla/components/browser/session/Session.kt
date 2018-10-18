@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.session
 
+import android.graphics.Bitmap
 import mozilla.components.browser.session.engine.EngineSessionHolder
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
@@ -48,6 +49,8 @@ class Session(
         fun onLongPress(session: Session, hitResult: HitResult): Boolean = false
         fun onFindResult(session: Session, result: FindResult) = Unit
         fun onDesktopModeChanged(session: Session, enabled: Boolean) = Unit
+        fun onFullScreenChanged(session: Session, enabled: Boolean) = Unit
+        fun onThumbnailChanged(session: Session, bitmap: Bitmap?) = Unit
     }
 
     /**
@@ -229,12 +232,24 @@ class Session(
     }
 
     /**
+     * The target of the latest thumbnail.
+     */
+    var thumbnail: Bitmap? by Delegates.observable<Bitmap?>(null) {
+        _, _, new -> notifyObservers { onThumbnailChanged(this@Session, new) }
+    }
+
+    /**
      * Desktop Mode state, true if the desktop mode is requested, otherwise false.
      */
     var desktopMode: Boolean by Delegates.observable(false) { _, old, new ->
-        notifyObservers(old, new) {
-            onDesktopModeChanged(this@Session, new)
-        }
+        notifyObservers(old, new) { onDesktopModeChanged(this@Session, new) }
+    }
+
+    /**
+     * Exits fullscreen mode if it's in that state.
+     */
+    var fullScreenMode: Boolean by Delegates.observable(false) { _, old, new ->
+        notifyObservers(old, new) { notifyObservers { onFullScreenChanged(this@Session, fullScreenMode) } }
     }
 
     /**

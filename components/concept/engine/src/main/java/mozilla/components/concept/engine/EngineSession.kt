@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.engine
 
+import android.graphics.Bitmap
 import android.support.annotation.CallSuper
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -33,11 +34,13 @@ abstract class EngineSession(
         fun onDesktopModeChange(enabled: Boolean) = Unit
         fun onFind(text: String) = Unit
         fun onFindResult(activeMatchOrdinal: Int, numberOfMatches: Int, isDoneCounting: Boolean) = Unit
+        fun onFullScreenChange(enabled: Boolean) = Unit
+        fun onThumbnailChange(bitmap: Bitmap?) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
             url: String,
-            fileName: String? = null,
+            fileName: String,
             contentLength: Long? = null,
             contentType: String? = null,
             cookie: String? = null,
@@ -61,13 +64,16 @@ abstract class EngineSession(
             const val ANALYTICS: Int = 1 shl 1
             const val SOCIAL: Int = 1 shl 2
             const val CONTENT: Int = 1 shl 3
-            internal const val ALL: Int = (1 shl 4) - 1
+            const val WEBFONTS: Int = 1 shl 4
+            internal const val ALL: Int = (1 shl 5) - 1
 
             fun none(): TrackingProtectionPolicy = TrackingProtectionPolicy(NONE)
             fun all(): TrackingProtectionPolicy = TrackingProtectionPolicy(ALL)
             fun select(vararg categories: Int): TrackingProtectionPolicy =
                 TrackingProtectionPolicy(categories.sum())
         }
+
+        fun contains(category: Int) = (categories and category) != 0
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -160,6 +166,11 @@ abstract class EngineSession(
     abstract fun toggleDesktopMode(enable: Boolean, reload: Boolean = false)
 
     /**
+     * Clears all user data sources available.
+     */
+    abstract fun clearData()
+
+    /**
      * Finds and highlights all occurrences of the provided String and highlights them asynchronously.
      *
      * @param text the String to search for
@@ -178,6 +189,16 @@ abstract class EngineSession(
      * Clears the highlighted results of previous calls to [findAll] / [findNext].
      */
     abstract fun clearFindMatches()
+
+    /**
+     * Exits fullscreen mode if currently in it that state.
+     */
+    abstract fun exitFullScreenMode()
+
+    /**
+     * Takes a screenshot of the actual tab
+     */
+    abstract fun captureThumbnail(): Bitmap?
 
     /**
      * Close the session. This may free underlying objects. Call this when you are finished using

@@ -4,29 +4,47 @@
 
 package mozilla.components.browser.engine.system
 
+import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslCertificate
+import android.net.http.SslError
 import android.os.Bundle
 import android.os.Message
+import android.view.View
+import android.webkit.SslErrorHandler
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.ValueCallback
+import android.webkit.WebViewClient
 import android.webkit.WebView.HitTestResult
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
+import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.reset
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyZeroInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
@@ -34,7 +52,7 @@ import org.robolectric.RuntimeEnvironment
 class SystemEngineViewTest {
 
     @Test
-    fun testEngineViewInitialization() {
+    fun `EngineView initialization`() {
         val engineView = SystemEngineView(RuntimeEnvironment.application)
 
         assertNotNull(engineView.currentWebView.webChromeClient)
@@ -43,37 +61,30 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testWebViewClientNotifiesObservers() {
+    fun `WebViewClient notifies observers`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         engineView.render(engineSession)
 
         var observedUrl = ""
         var observedLoadingState = false
-        var observedCanGoBack = false
-        var observedCanGoForward = false
         var observedSecurityChange: Triple<Boolean, String?, String?> = Triple(false, null, null)
         engineSession.register(object : EngineSession.Observer {
             override fun onLoadingStateChange(loading: Boolean) { observedLoadingState = loading }
             override fun onLocationChange(url: String) { observedUrl = url }
-            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) {
-                observedCanGoBack = true
-                observedCanGoForward = true
-            }
             override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
                 observedSecurityChange = Triple(secure, host, issuer)
             }
         })
 
-        engineView.currentWebView.webViewClient.onPageStarted(null, "http://mozilla.org", null)
+        engineView.currentWebView.webViewClient.onPageStarted(null, "https://wiki.mozilla.org/", null)
         assertEquals(true, observedLoadingState)
+        assertEquals(observedUrl, "https://wiki.mozilla.org/")
 
         observedLoadingState = true
         engineView.currentWebView.webViewClient.onPageFinished(null, "http://mozilla.org")
         assertEquals("http://mozilla.org", observedUrl)
-        assertEquals(false, observedLoadingState)
-        assertEquals(true, observedCanGoBack)
-        assertEquals(true, observedCanGoForward)
+        assertFalse(observedLoadingState)
         assertEquals(Triple(false, null, null), observedSecurityChange)
 
         val view = mock(WebView::class.java)
@@ -83,6 +94,10 @@ class SystemEngineViewTest {
         val certificate = mock(SslCertificate::class.java)
         val dName = mock(SslCertificate.DName::class.java)
         doReturn("testCA").`when`(dName).oName
+        doReturn(certificate).`when`(view).certificate
+        engineView.currentWebView.webViewClient.onPageFinished(view, "http://mozilla.org")
+
+        doReturn("testCA").`when`(dName).oName
         doReturn(dName).`when`(certificate).issuedBy
         doReturn(certificate).`when`(view).certificate
         engineView.currentWebView.webViewClient.onPageFinished(view, "http://mozilla.org")
@@ -90,7 +105,7 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testHitResultTypeHandling() {
+    fun `HitResult type handling`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         var hitTestResult: HitResult = HitResult.UNKNOWN("")
@@ -129,7 +144,7 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testImageHandler() {
+    fun `ImageHandler notifies observers`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         val handler = SystemEngineView.ImageHandler(engineSession)
@@ -158,7 +173,7 @@ class SystemEngineViewTest {
     }
 
     @Test(expected = IllegalStateException::class)
-    fun testNullImageSrc() {
+    fun `null image src`() {
         val engineSession = SystemEngineSession()
         val handler = SystemEngineView.ImageHandler(engineSession)
         val message = mock(Message::class.java)
@@ -171,7 +186,7 @@ class SystemEngineViewTest {
     }
 
     @Test(expected = IllegalStateException::class)
-    fun testNullImageUri() {
+    fun `null image url`() {
         val engineSession = SystemEngineSession()
         val handler = SystemEngineView.ImageHandler(engineSession)
         val message = mock(Message::class.java)
@@ -184,7 +199,7 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testWebChromeClientNotifiesObservers() {
+    fun `WebChromeClient notifies observers`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         engineView.render(engineSession)
@@ -199,22 +214,155 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testWebViewClientNotifiesObserversAboutTitleChanges() {
-        val engineSession = SystemEngineSession()
-
+    fun `SystemEngineView keeps track of current url via onPageStart events`() {
         val engineView = SystemEngineView(RuntimeEnvironment.application)
-        engineView.render(engineSession)
+        val webView: WebView = mock()
 
-        val observer: EngineSession.Observer = mock()
-        engineSession.register(observer)
+        assertEquals("", engineView.currentUrl)
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.mozilla.org/", null)
+        assertEquals("https://www.mozilla.org/", engineView.currentUrl)
 
-        engineView.currentWebView.webChromeClient.onReceivedTitle(engineView.currentWebView, "Hello World!")
-
-        verify(observer).onTitleChange(eq("Hello World!"))
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.firefox.com/", null)
+        assertEquals("https://www.firefox.com/", engineView.currentUrl)
     }
 
     @Test
-    fun testDownloadListenerNotifiesObservers() {
+    fun `WebView client notifies configured history delegate of url visits`() {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val webView: WebView = mock()
+        val historyDelegate: HistoryTrackingDelegate = mock()
+
+        // Nothing breaks if delegate isn't set and session isn't rendered.
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
+
+        engineView.render(engineSession)
+
+        // Nothing breaks if delegate isn't set.
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
+
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(false), eq(false))
+
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", true)
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(true), eq(false))
+    }
+
+    @Test
+    fun `WebView client requests history from configured history delegate`() {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val historyDelegate = object : HistoryTrackingDelegate {
+            override fun onVisited(uri: String, isReload: Boolean?, privateMode: Boolean) {
+                fail()
+            }
+
+            override fun onTitleChanged(uri: String, title: String, privateMode: Boolean) {
+                fail()
+            }
+
+            override fun getVisited(uris: List<String>, callback: (List<Boolean>) -> Unit, privateMode: Boolean) {
+                fail()
+            }
+
+            override fun getVisited(callback: (List<String>) -> Unit, privateMode: Boolean) {
+                callback(listOf("https://www.mozilla.com"))
+            }
+        }
+
+        // Nothing breaks if delegate isn't set and session isn't rendered.
+        engineView.currentWebView.webChromeClient.getVisitedHistory(mock())
+
+        engineView.render(engineSession)
+
+        // Nothing breaks if delegate isn't set.
+        engineView.currentWebView.webChromeClient.getVisitedHistory(mock())
+
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        val historyValueCallback: ValueCallback<Array<String>> = mock()
+        engineView.currentWebView.webChromeClient.getVisitedHistory(historyValueCallback)
+        verify(historyValueCallback).onReceiveValue(arrayOf("https://www.mozilla.com"))
+    }
+
+    @Test
+    fun `WebView client notifies configured history delegate of title changes`() {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val webView: WebView = mock()
+        val historyDelegate: HistoryTrackingDelegate = mock()
+
+        // Nothing breaks if delegate isn't set and session isn't rendered.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+
+        // This initializes our settings.
+        engineView.render(engineSession)
+
+        // Nothing breaks if delegate isn't set.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+
+        // We can now set the delegate. Were it set before the render call,
+        // it'll get overwritten during settings initialization.
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        // Delegate not notified if, somehow, there's no currentUrl present in the view.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+        verify(historyDelegate, never()).onTitleChanged(eq(""), eq("New title!"), eq(false))
+
+        // This sets the currentUrl.
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.mozilla.org/", null)
+
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.org/"), eq("New title!"), eq(false))
+
+        reset(historyDelegate)
+
+        // Empty title when none provided
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, null)
+        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.org/"), eq(""), eq(false))
+    }
+
+    @Test
+    fun `WebView client notifies observers about title changes`() {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val observer: EngineSession.Observer = mock()
+        val webView: WebView = mock()
+        `when`(webView.canGoBack()).thenReturn(true)
+        `when`(webView.canGoForward()).thenReturn(true)
+
+        // This sets the currentUrl.
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.mozilla.org/", null)
+
+        // No observers notified when session isn't rendered.
+        engineSession.register(observer)
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "Hello World!")
+        verify(observer, never()).onTitleChange("Hello World!")
+        verify(observer, never()).onNavigationStateChange(true, true)
+
+        // Observers notified.
+        engineView.render(engineSession)
+
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "Hello World!")
+        verify(observer).onTitleChange(eq("Hello World!"))
+        verify(observer).onNavigationStateChange(true, true)
+
+        reset(observer)
+
+        // Empty title when none provided.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, null)
+        verify(observer).onTitleChange(eq(""))
+        verify(observer).onNavigationStateChange(true, true)
+    }
+
+    @Test
+    fun `download listener notifies observers`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         engineView.render(engineSession)
@@ -224,7 +372,7 @@ class SystemEngineViewTest {
         engineSession.register(object : EngineSession.Observer {
             override fun onExternalResource(
                 url: String,
-                fileName: String?,
+                fileName: String,
                 contentLength: Long?,
                 contentType: String?,
                 cookie: String?,
@@ -252,7 +400,7 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testWebViewClientTrackingProtection() {
+    fun `WebView client tracking protection`() {
         SystemEngineView.URL_MATCHER = UrlMatcher(arrayOf("blocked.random"))
 
         val engineSession = SystemEngineSession()
@@ -267,7 +415,7 @@ class SystemEngineViewTest {
         var response = webViewClient.shouldInterceptRequest(engineView.currentWebView, invalidRequest)
         assertNull(response)
 
-        engineSession.trackingProtectionEnabled = true
+        engineSession.trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.all()
         response = webViewClient.shouldInterceptRequest(engineView.currentWebView, invalidRequest)
         assertNotNull(response)
         assertNull(response.data)
@@ -294,7 +442,188 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testWebViewClientBlocksWebFonts() {
+    @Suppress("Deprecation")
+    fun `WebViewClient calls interceptor from deprecated onReceivedError API`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val requestInterceptor: RequestInterceptor = mock()
+        val webViewClient = engineView.currentWebView.webViewClient
+
+        // No session or interceptor attached.
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verifyZeroInteractions(requestInterceptor)
+
+        // Session attached, but not interceptor.
+        engineView.render(engineSession)
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verifyZeroInteractions(requestInterceptor)
+
+        // Session and interceptor.
+        engineSession.settings.requestInterceptor = requestInterceptor
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verify(requestInterceptor).onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random")
+
+        val webView = mock(WebView::class.java)
+        engineView.currentWebView = webView
+        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random"))
+            .thenReturn(errorResponse)
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random"))
+            .thenReturn(errorResponse2)
+        webViewClient.onReceivedError(
+            engineView.currentWebView,
+            WebViewClient.ERROR_UNKNOWN,
+            null,
+            "http://failed.random"
+        )
+        verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+    }
+
+    @Test
+    fun `WebViewClient calls interceptor from new onReceivedError API`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val requestInterceptor: RequestInterceptor = mock()
+        val webViewClient = engineView.currentWebView.webViewClient
+        val webRequest: WebResourceRequest = mock()
+        val webError: WebResourceError = mock()
+        val url: Uri = mock()
+
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verifyZeroInteractions(requestInterceptor)
+
+        engineView.render(engineSession)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verifyZeroInteractions(requestInterceptor)
+
+        `when`(webError.errorCode).thenReturn(WebViewClient.ERROR_UNKNOWN)
+        `when`(webRequest.url).thenReturn(url)
+        `when`(url.toString()).thenReturn("http://failed.random")
+        engineSession.settings.requestInterceptor = requestInterceptor
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(requestInterceptor, never()).onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random")
+
+        `when`(webRequest.isForMainFrame).thenReturn(true)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(requestInterceptor).onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random")
+
+        val webView = mock(WebView::class.java)
+        engineView.currentWebView = webView
+        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random"))
+            .thenReturn(errorResponse)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, ErrorType.UNKNOWN, "http://failed.random"))
+            .thenReturn(errorResponse2)
+        webViewClient.onReceivedError(engineView.currentWebView, webRequest, webError)
+        verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+    }
+
+    @Test
+    fun `WebViewClient calls interceptor when onReceivedSslError`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val requestInterceptor: RequestInterceptor = mock()
+        val webViewClient = engineView.currentWebView.webViewClient
+        val handler: SslErrorHandler = mock()
+        val error: SslError = mock()
+
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verifyZeroInteractions(requestInterceptor)
+
+        engineView.render(engineSession)
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verifyZeroInteractions(requestInterceptor)
+
+        `when`(error.primaryError).thenReturn(SslError.SSL_EXPIRED)
+        `when`(error.url).thenReturn("http://failed.random")
+        engineSession.settings.requestInterceptor = requestInterceptor
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(requestInterceptor).onErrorRequest(engineSession, ErrorType.ERROR_SECURITY_SSL, "http://failed.random")
+        verify(handler, times(3)).cancel()
+
+        val webView = mock(WebView::class.java)
+        engineView.currentWebView = webView
+        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        `when`(
+            requestInterceptor.onErrorRequest(
+                engineSession,
+                ErrorType.ERROR_SECURITY_SSL,
+                "http://failed.random"
+            )
+        ).thenReturn(errorResponse)
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
+
+        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, ErrorType.ERROR_SECURITY_SSL, "http://failed.random"))
+            .thenReturn(errorResponse2)
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView).loadDataWithBaseURL(null, "foo", "text/html", "UTF-8", null)
+
+        `when`(requestInterceptor.onErrorRequest(engineSession, ErrorType.ERROR_SECURITY_SSL, "http://failed.random"))
+            .thenReturn(RequestInterceptor.ErrorResponse("foo", "http://failed.random"))
+        webViewClient.onReceivedSslError(engineView.currentWebView, handler, error)
+        verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
+    }
+
+    @Test
+    fun `WebViewClient blocks WebFonts`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         val webViewClient = engineView.currentWebView.webViewClient
@@ -319,7 +648,7 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testFindListenerNotifiesObservers() {
+    fun `FindListener notifies observers`() {
         val engineSession = SystemEngineSession()
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         engineView.render(engineSession)
@@ -341,7 +670,7 @@ class SystemEngineViewTest {
     }
 
     @Test
-    fun testLifecycleMethods() {
+    fun `lifecycle methods are invoked`() {
         val webView = mock(WebView::class.java)
         val engineView = SystemEngineView(RuntimeEnvironment.application)
         engineView.currentWebView = webView
@@ -356,5 +685,179 @@ class SystemEngineViewTest {
 
         engineView.onDestroy()
         verify(webView).destroy()
+    }
+
+    @Test
+    fun `showCustomView notifies fullscreen mode observers and execs callback`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        val view = mock(View::class.java)
+        val customViewCallback = mock(WebChromeClient.CustomViewCallback::class.java)
+
+        engineView.currentWebView.webChromeClient.onShowCustomView(view, customViewCallback)
+
+        verify(observer).onFullScreenChange(true)
+    }
+
+    @Test
+    fun `addFullScreenView execs callback and removeView`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        val view = View(RuntimeEnvironment.systemContext)
+        val customViewCallback = mock(WebChromeClient.CustomViewCallback::class.java)
+
+        assertNull(engineView.fullScreenCallback)
+
+        engineView.currentWebView.webChromeClient.onShowCustomView(view, customViewCallback)
+
+        assertNotNull(engineView.fullScreenCallback)
+        assertEquals(customViewCallback, engineView.fullScreenCallback)
+        assertEquals("mozac_system_engine_fullscreen", view.tag)
+
+        engineView.currentWebView.webChromeClient.onHideCustomView()
+        assertEquals(View.VISIBLE, engineView.currentWebView.visibility)
+    }
+
+    @Test
+    fun `addFullScreenView with no matching webView`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        val view = View(RuntimeEnvironment.systemContext)
+        val customViewCallback = mock(WebChromeClient.CustomViewCallback::class.java)
+
+        engineView.currentWebView.tag = "not_webview"
+        engineView.currentWebView.webChromeClient.onShowCustomView(view, customViewCallback)
+
+        assertNotEquals(View.INVISIBLE, engineView.currentWebView.visibility)
+    }
+
+    @Test
+    fun `removeFullScreenView with no matching views`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        val view = View(RuntimeEnvironment.systemContext)
+        val customViewCallback = mock(WebChromeClient.CustomViewCallback::class.java)
+
+        // When the fullscreen view isn't available
+        engineView.currentWebView.webChromeClient.onShowCustomView(view, customViewCallback)
+        engineView.findViewWithTag<View>("mozac_system_engine_fullscreen").tag = "not_fullscreen"
+
+        engineView.currentWebView.webChromeClient.onHideCustomView()
+
+        assertNotNull(engineView.fullScreenCallback)
+        verify(engineView.fullScreenCallback, never())?.onCustomViewHidden()
+        assertEquals(View.INVISIBLE, engineView.currentWebView.visibility)
+
+        // When fullscreen view is available, but WebView isn't.
+        engineView.findViewWithTag<View>("not_fullscreen").tag = "mozac_system_engine_fullscreen"
+        engineView.currentWebView.tag = "not_webView"
+
+        engineView.currentWebView.webChromeClient.onHideCustomView()
+
+        assertEquals(View.INVISIBLE, engineView.currentWebView.visibility)
+    }
+
+    @Test
+    fun `fullscreenCallback is null`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        engineView.currentWebView.webChromeClient.onHideCustomView()
+        assertNull(engineView.fullScreenCallback)
+    }
+
+    @Test
+    fun `when a page is loaded a thumbnail should be captured`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+        var thumbnailChanged = false
+        engineSession.register(object : EngineSession.Observer {
+
+            override fun onThumbnailChange(bitmap: Bitmap?) {
+                thumbnailChanged = bitmap != null
+            }
+        })
+
+        engineView.currentWebView.webViewClient.onPageFinished(null, "http://mozilla.org")
+        assertTrue(thumbnailChanged)
+    }
+
+    @Test
+    fun `when a page is loaded and the os is in low memory condition none thumbnail should be captured`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        engineView.testLowMemory = true
+
+        var thumbnailChanged = false
+        engineSession.register(object : EngineSession.Observer {
+
+            override fun onThumbnailChange(bitmap: Bitmap?) {
+                thumbnailChanged = bitmap != null
+            }
+        })
+        engineView.currentWebView.webViewClient.onPageFinished(null, "http://mozilla.org")
+        assertFalse(thumbnailChanged)
+    }
+
+    @Test
+    fun `onPageFinished handles invalid URL`() {
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        var observedUrl = ""
+        var observedLoadingState = true
+        var observedSecurityChange: Triple<Boolean, String?, String?> = Triple(false, null, null)
+        engineSession.register(object : EngineSession.Observer {
+            override fun onLoadingStateChange(loading: Boolean) { observedLoadingState = loading }
+            override fun onLocationChange(url: String) { observedUrl = url }
+            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
+                observedSecurityChange = Triple(secure, host, issuer)
+            }
+        })
+
+        // We need a certificate to trigger parsing the potentially invalid URL for
+        // the host parameter in onSecurityChange
+        val view = mock(WebView::class.java)
+        val certificate = mock(SslCertificate::class.java)
+        val dName = mock(SslCertificate.DName::class.java)
+        doReturn("testCA").`when`(dName).oName
+        doReturn(dName).`when`(certificate).issuedBy
+        doReturn(certificate).`when`(view).certificate
+
+        engineView.currentWebView.webViewClient.onPageFinished(view, "invalid:")
+        assertEquals("invalid:", observedUrl)
+        assertFalse(observedLoadingState)
+        assertEquals(Triple(true, null, "testCA"), observedSecurityChange)
+    }
+
+    @Test
+    fun `URL matcher categories can be changed`() {
+        SystemEngineView.URL_MATCHER = null
+
+        var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(RuntimeEnvironment.application,
+                TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.ANALYTICS)
+        )
+        assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.ANALYTICS), urlMatcher.enabledCategories)
+
+        urlMatcher = SystemEngineView.getOrCreateUrlMatcher(RuntimeEnvironment.application,
+                TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.SOCIAL)
+        )
+        assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.SOCIAL), urlMatcher.enabledCategories)
     }
 }

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -20,11 +21,12 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class ExperimentEvaluatorTest {
     @Test
-    fun testEvaluateEmtpyMatchers() {
+    fun evaluateEmtpyMatchers() {
         val experiment = Experiment(
             "testid",
             "testexperiment",
@@ -55,7 +57,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateBuckets() {
+    fun evaluateBuckets() {
         val experiment = Experiment(
             "testid",
             "testexperiment",
@@ -96,7 +98,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateAppId() {
+    fun evaluateAppId() {
         val experiment = Experiment(
             "testid",
             "testexperiment",
@@ -134,7 +136,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateLanguage() {
+    fun evaluateLanguage() {
         var experiment = Experiment(
             "testid",
             "testexperiment",
@@ -189,7 +191,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateCountry() {
+    fun evaluateCountry() {
         var experiment = Experiment(
             "testid",
             "testexperiment",
@@ -246,7 +248,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateVersion() {
+    fun evaluateVersion() {
         val experiment = Experiment(
             "testid",
             "testexperiment",
@@ -285,7 +287,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateDevice() {
+    fun evaluateDevice() {
         var experiment = Experiment(
             "testid",
             "testexperiment",
@@ -342,7 +344,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateReleaseChannel() {
+    fun evaluateReleaseChannel() {
         val experiment = Experiment(
             "testid",
             "testexperiment",
@@ -392,7 +394,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateManufacturer() {
+    fun evaluateManufacturer() {
         var experiment = Experiment(
             "testid",
             "testexperiment",
@@ -449,7 +451,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateRegion() {
+    fun evaluateRegion() {
         val experiment = Experiment(
             "testid",
             "testexperiment",
@@ -498,7 +500,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateActivateOverride() {
+    fun evaluateActivateOverride() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)
         `when`(sharedPreferences.getBoolean(eq("id"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
@@ -511,7 +513,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateDeactivateOverride() {
+    fun evaluateDeactivateOverride() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)
         `when`(sharedPreferences.getBoolean(eq("name"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
@@ -524,7 +526,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testEvaluateNoExperimentSameAsDescriptor() {
+    fun evaluateNoExperimentSameAsDescriptor() {
         val savedExperiment = Experiment("wrongid", name = "wrongname")
         val descriptor = ExperimentDescriptor("testname")
         val context = mock(Context::class.java)
@@ -532,7 +534,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testSetOverrideActivate() {
+    fun setOverrideActivate() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
@@ -545,7 +547,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testSetOverrideDeactivate() {
+    fun setOverrideDeactivate() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
@@ -558,7 +560,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testClearOverride() {
+    fun clearOverride() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
@@ -571,7 +573,7 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
-    fun testClearAllOverrides() {
+    fun clearAllOverrides() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
@@ -581,5 +583,20 @@ class ExperimentEvaluatorTest {
         val evaluator = ExperimentEvaluator()
         evaluator.clearAllOverrides(context)
         verify(sharedPreferencesEditor).clear()
+    }
+
+    @Test
+    fun overridingClientId() {
+        val evaluator1 = ExperimentEvaluator(object : ValuesProvider() {
+            override fun getClientId(context: Context): String = "c641eacf-c30c-4171-b403-f077724e848a"
+        })
+
+        assertEquals(79, evaluator1.getUserBucket(RuntimeEnvironment.application))
+
+        val evaluator2 = ExperimentEvaluator(object : ValuesProvider() {
+            override fun getClientId(context: Context): String = "01a15650-9a5d-4383-a7ba-2f047b25c620"
+        })
+
+        assertEquals(55, evaluator2.getUserBucket(RuntimeEnvironment.application))
     }
 }

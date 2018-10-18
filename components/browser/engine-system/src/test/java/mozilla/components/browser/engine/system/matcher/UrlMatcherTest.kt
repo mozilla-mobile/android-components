@@ -5,16 +5,19 @@
 package mozilla.components.browser.engine.system.matcher
 
 import android.net.Uri
-import android.preference.PreferenceManager
+import mozilla.components.support.test.any
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import java.io.StringReader
 import java.util.HashMap
 
@@ -22,7 +25,7 @@ import java.util.HashMap
 class UrlMatcherTest {
 
     @Test
-    fun testBasicMatching() {
+    fun basicMatching() {
         val matcher = UrlMatcher(arrayOf("bcd.random"))
 
         assertTrue(matcher.matches("http://bcd.random/something", "http://mozilla.org"))
@@ -51,25 +54,23 @@ class UrlMatcherTest {
      * and test that only the expected domains are actually blocked.
      */
     @Test
-    fun testEnableDisableCategories() {
+    fun enableDisableCategories() {
         val categories = HashMap<String, Trie>()
-        val categoryPrefMap = HashMap<String, String>()
+        val suppportedCategories = mutableSetOf<String>()
+        val enabledCategories = mutableSetOf<String>()
         val categoryCount = 4
 
-        val preferences = PreferenceManager.getDefaultSharedPreferences(RuntimeEnvironment.application)
-        val editor = preferences.edit()
         for (i in 0 until categoryCount) {
             val trie = Trie.createRootNode()
             trie.put("category$i.com".reverse())
 
             val categoryName = "category$i"
             categories[categoryName] = trie
-            editor.putBoolean(categoryName, false)
-            categoryPrefMap[categoryName] = categoryName
+            enabledCategories.add(categoryName)
+            suppportedCategories.add(categoryName)
         }
-        editor.apply()
 
-        val matcher = UrlMatcher(RuntimeEnvironment.application, categoryPrefMap, categories)
+        val matcher = UrlMatcher(suppportedCategories, enabledCategories, categories)
 
         // We can test every permutation by iterating over every value of a 4-bit integer (each bit
         // indicates whether a given category is enabled or disabled).
@@ -81,7 +82,7 @@ class UrlMatcherTest {
             for (currentCategory in 0 until categoryCount) {
                 val currentBit = 1 shl currentCategory
                 val enabled = currentBit and categoryPattern == currentBit
-                editor.putBoolean("category$currentCategory", enabled)
+                matcher.setCategoryEnabled("category$currentCategory", enabled)
 
                 // Make sure our category enabling code actually sets the correct
                 // values for a few known combinations (i.e. we're doing a test within the test)
@@ -97,7 +98,6 @@ class UrlMatcherTest {
                     }
                 }
             }
-            editor.apply()
 
             for (currentCategory in 0 until categoryCount) {
                 val currentBit = 1 shl currentCategory
@@ -223,9 +223,8 @@ class UrlMatcherTest {
       }
     }"""
     @Test
-    fun testCreateMatcher() {
+    fun createMatcher() {
         val matcher = UrlMatcher.createMatcher(
-                RuntimeEnvironment.application,
                 StringReader(BLOCK_LIST),
                 listOf(StringReader(OVERRIDES)),
                 StringReader(WHITE_LIST))
@@ -252,7 +251,7 @@ class UrlMatcherTest {
     }
 
     @Test
-    fun testIsWebFont() {
+    fun isWebFont() {
         assertFalse(UrlMatcher.isWebFont(mock(Uri::class.java)))
         assertFalse(UrlMatcher.isWebFont(Uri.parse("mozilla.org")))
         assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.woff2")))
@@ -260,5 +259,23 @@ class UrlMatcherTest {
         assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.eot")))
         assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.ttf")))
         assertTrue(UrlMatcher.isWebFont(Uri.parse("/fonts/test.otf")))
+    }
+
+    @Test
+    fun setCategoriesEnabled() {
+        val matcher = spy(UrlMatcher.createMatcher(
+                StringReader(BLOCK_LIST),
+                listOf(StringReader(OVERRIDES)),
+                StringReader(WHITE_LIST),
+                setOf("Advertising", "Analytics"))
+        )
+
+        matcher.setCategoriesEnabled(setOf("Advertising", "Analytics"))
+        verify(matcher, never()).setCategoryEnabled(any(), anyBoolean())
+
+        matcher.setCategoriesEnabled(setOf("Advertising", "Analytics", "Content"))
+        verify(matcher).setCategoryEnabled("Advertising", true)
+        verify(matcher).setCategoryEnabled("Analytics", true)
+        verify(matcher).setCategoryEnabled("Content", true)
     }
 }

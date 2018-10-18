@@ -13,8 +13,10 @@ import mozilla.components.support.base.observer.ObserverRegistry
 /**
  * This class provides access to a centralized registry of all active sessions.
  */
+@Suppress("TooManyFunctions")
 class SessionManager(
     val engine: Engine,
+    val defaultSession: (() -> Session)? = null,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
 ) : Observable<SessionManager.Observer> by delegate {
     private val values = mutableListOf<Session>()
@@ -77,7 +79,7 @@ class SessionManager(
 
         notifyObservers { onSessionAdded(session) }
 
-        if (selected || selectedIndex == NO_SELECTION) {
+        if (selected || (selectedIndex == NO_SELECTION && !session.isCustomTabSession())) {
             select(session)
         }
     }
@@ -157,6 +159,13 @@ class SessionManager(
 
         notifyObservers { onSessionRemoved(session) }
 
+        // NB: we're not explicitly calling notifyObservers here, since adding a session when none
+        // are present will notify observers with onSessionSelected.
+        if (selectedIndex == NO_SELECTION && defaultSession != null) {
+            add(defaultSession.invoke())
+            return
+        }
+
         if (selectionUpdated && selectedIndex != NO_SELECTION) {
             notifyObservers { onSessionSelected(selectedSessionOrThrow) }
         }
@@ -172,18 +181,35 @@ class SessionManager(
         }
 
         selectedIndex = NO_SELECTION
+
+        // NB: This callback indicates to observers that either removeSessions or removeAll were
+        // invoked, not that the manager is now empty.
         notifyObservers { onAllSessionsRemoved() }
+
+        if (defaultSession != null) {
+            add(defaultSession.invoke())
+        }
     }
 
     /**
      * Removes all sessions including CustomTab sessions.
      */
     fun removeAll() = synchronized(values) {
+        val onlyCustomTabSessionsPresent = values.isNotEmpty() && sessions.isEmpty()
+
         values.forEach { unlink(it) }
         values.clear()
 
         selectedIndex = NO_SELECTION
+
+        // NB: This callback indicates to observers that either removeSessions or removeAll were
+        // invoked, not that the manager is now empty.
         notifyObservers { onAllSessionsRemoved() }
+
+        // Don't create a default session if we only had CustomTab sessions to begin with.
+        if (!onlyCustomTabSessionsPresent && defaultSession != null) {
+            add(defaultSession.invoke())
+        }
     }
 
     /**
@@ -206,6 +232,19 @@ class SessionManager(
      * found.
      */
     fun findSessionById(id: String): Session? = values.find { session -> session.id == id }
+
+    /**
+     * Informs this [SessionManager] that the OS is in low memory condition so it
+     * can reduce its allocated objects.
+     */
+    fun onLowMemory() {
+        // Removing the all the thumbnails except for the selected session to
+        // reduce memory consumption.
+        sessions.forEach {
+            if (it != selectedSession)
+                it.thumbnail = null
+        }
+    }
 
     companion object {
         const val NO_SELECTION = -1

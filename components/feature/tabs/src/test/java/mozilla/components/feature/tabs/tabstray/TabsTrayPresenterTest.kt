@@ -167,64 +167,55 @@ class TabsTrayPresenterTest {
     }
 
     @Test
-    fun `presenter will close tabs tray and execute callback when all sessions get removed`() {
+    fun `presenter will close tabs tray when all sessions get removed`() {
         val sessionManager = SessionManager(engine = mock())
 
         sessionManager.add(Session("A"))
         sessionManager.add(Session("B"))
 
         var closed = false
-        var callbackExecuted = false
 
         val presenter = TabsTrayPresenter(
             mock(),
             sessionManager,
-            closeTabsTray = { closed = true },
-            onTabsTrayEmpty = { callbackExecuted = true })
+            closeTabsTray = { closed = true })
 
         presenter.start()
 
         assertFalse(closed)
-        assertFalse(callbackExecuted)
 
         sessionManager.removeAll()
 
         assertTrue(closed)
-        assertTrue(callbackExecuted)
 
         presenter.stop()
     }
 
     @Test
-    fun `presenter will close tabs tray and execute callback when last session gets removed`() {
+    fun `presenter will close tabs tray when last session gets removed`() {
         val sessionManager = SessionManager(engine = mock())
 
         val session1 = Session("A").also { sessionManager.add(it) }
         val session2 = Session("B").also { sessionManager.add(it) }
 
         var closed = false
-        var callbackExecuted = false
 
         val presenter = TabsTrayPresenter(
                 mock(),
                 sessionManager,
-                closeTabsTray = { closed = true },
-                onTabsTrayEmpty = { callbackExecuted = true })
+                closeTabsTray = { closed = true })
 
         presenter.start()
 
         assertFalse(closed)
-        assertFalse(callbackExecuted)
 
         sessionManager.remove(session1)
 
         assertFalse(closed)
-        assertFalse(callbackExecuted)
 
         sessionManager.remove(session2)
 
         assertTrue(closed)
-        assertTrue(callbackExecuted)
 
         presenter.stop()
     }
@@ -256,7 +247,7 @@ private class MockedTabsTray : TabsTray {
 
     override fun register(observer: TabsTray.Observer) {}
 
-    override fun register(observer: TabsTray.Observer, owner: LifecycleOwner) {}
+    override fun register(observer: TabsTray.Observer, owner: LifecycleOwner, autoPause: Boolean) {}
 
     override fun register(observer: TabsTray.Observer, view: View) {}
 
@@ -267,4 +258,8 @@ private class MockedTabsTray : TabsTray {
     override fun notifyObservers(block: TabsTray.Observer.() -> Unit) {}
 
     override fun <R> wrapConsumers(block: TabsTray.Observer.(R) -> Boolean): List<(R) -> Boolean> = emptyList()
+
+    override fun pauseObserver(observer: TabsTray.Observer) {}
+
+    override fun resumeObserver(observer: TabsTray.Observer) {}
 }

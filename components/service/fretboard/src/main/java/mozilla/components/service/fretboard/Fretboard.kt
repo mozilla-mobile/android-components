@@ -20,7 +20,7 @@ class Fretboard(
     private val storage: ExperimentStorage,
     valuesProvider: ValuesProvider = ValuesProvider()
 ) {
-    private var experimentsResult: ExperimentsSnapshot = ExperimentsSnapshot(listOf(), null)
+    @Volatile private var experimentsResult: ExperimentsSnapshot = ExperimentsSnapshot(listOf(), null)
     private var experimentsLoaded: Boolean = false
     private val evaluator = ExperimentEvaluator(valuesProvider)
     private val logger = Logger(LOG_TAG)
@@ -45,17 +45,19 @@ class Fretboard(
      * saves them to local storage
      */
     @Synchronized
-    fun updateExperiments() {
+    fun updateExperiments(): Boolean {
         if (!experimentsLoaded) {
             loadExperiments()
         }
-        try {
+        return try {
             val serverExperiments = source.getExperiments(experimentsResult)
             experimentsResult = serverExperiments
             storage.save(serverExperiments)
+            true
         } catch (e: ExperimentDownloadException) {
             // Keep using the local experiments
             logger.error(e.message, e)
+            false
         }
     }
 
@@ -103,6 +105,20 @@ class Fretboard(
      */
     fun getActiveExperiments(context: Context): List<Experiment> {
         return experiments.filter { isInExperiment(context, ExperimentDescriptor(it.name)) }.toList()
+    }
+
+    /**
+     * Provides a map of active/inactive experiments
+     *
+     * @param context context
+     *
+     * @return map of experiments to A/B state
+     */
+    fun getExperimentsMap(context: Context): Map<String, Boolean> {
+        return experiments.associate {
+            it.name to
+                    isInExperiment(context, ExperimentDescriptor(it.name))
+        }
     }
 
     /**
@@ -167,6 +183,16 @@ class Fretboard(
      */
     fun clearAllOverridesNow(context: Context) {
         evaluator.clearAllOverridesNow(context)
+    }
+
+    /**
+     * Returns the user bucket number used to determine whether the user
+     * is in or out of the experiment
+     *
+     * @param context context
+     */
+    fun getUserBucket(context: Context): Int {
+        return evaluator.getUserBucket(context)
     }
 
     companion object {

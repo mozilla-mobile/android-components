@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-private object GeckoVersions {
-    const val nightly_version = "64.0.20180905100117"
+internal object GeckoVersions {
+    const val nightly_version = "64.0.20181004100221"
 }
 
 object Gecko {

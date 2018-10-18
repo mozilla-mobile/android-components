@@ -4,11 +4,13 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.graphics.Bitmap
 import kotlinx.coroutines.experimental.CompletableDeferred
 import kotlinx.coroutines.experimental.runBlocking
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
@@ -29,17 +31,19 @@ import org.mozilla.geckoview.GeckoSessionSettings
 @Suppress("TooManyFunctions")
 class GeckoEngineSession(
     runtime: GeckoRuntime,
-    privateMode: Boolean = false,
+    private val privateMode: Boolean = false,
     defaultSettings: Settings? = null
 ) : EngineSession() {
 
     internal var geckoSession = GeckoSession()
+    internal var currentUrl: String? = null
 
     /**
      * See [EngineSession.settings]
      */
-    override val settings: Settings = object : Settings {
+    override val settings: Settings = object : Settings() {
         override var requestInterceptor: RequestInterceptor? = null
+        override var historyTrackingDelegate: HistoryTrackingDelegate? = null
     }
 
     private var initialLoad = true
@@ -165,6 +169,13 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.clearData]
+     */
+    override fun clearData() {
+        // API not available yet.
+    }
+
+    /**
      * See [EngineSession.findAll]
      */
     override fun findAll(text: String) {
@@ -195,6 +206,13 @@ class GeckoEngineSession(
      */
     override fun clearFindMatches() {
         geckoSession.finder.clear()
+    }
+
+    /**
+     * See [EngineSession.exitFullScreenMode]
+     */
+    override fun exitFullScreenMode() {
+        geckoSession.exitFullScreen()
     }
 
     /**
@@ -261,15 +279,17 @@ class GeckoEngineSession(
             }
 
             notifyObservers {
-                if (securityInfo != null) {
-                    onSecurityChange(securityInfo.isSecure, securityInfo.host, securityInfo.issuerOrganization)
-                } else {
+                if (securityInfo == null) {
                     onSecurityChange(false)
+                    return@notifyObservers
                 }
+                onSecurityChange(securityInfo.isSecure, securityInfo.host, securityInfo.issuerOrganization)
             }
         }
 
         override fun onPageStart(session: GeckoSession?, url: String?) {
+            url?.let { currentUrl = it }
+
             notifyObservers {
                 onProgress(PROGRESS_START)
                 onLoadingStateChange(true)
@@ -286,6 +306,7 @@ class GeckoEngineSession(
         }
     }
 
+    @Suppress("ComplexMethod")
     internal fun createContentDelegate() = object : GeckoSession.ContentDelegate {
         override fun onContextMenu(
             session: GeckoSession,
@@ -303,7 +324,9 @@ class GeckoEngineSession(
 
         override fun onCrash(session: GeckoSession?) = Unit
 
-        override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) = Unit
+        override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
+            notifyObservers { onFullScreenChange(fullScreen) }
+        }
 
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
             notifyObservers {
@@ -318,6 +341,9 @@ class GeckoEngineSession(
         override fun onCloseRequest(session: GeckoSession) = Unit
 
         override fun onTitleChange(session: GeckoSession, title: String) {
+            currentUrl?.let {
+                settings.historyTrackingDelegate?.onTitleChanged(it, title, privateMode)
+            }
             notifyObservers { onTitleChange(title) }
         }
 
@@ -363,6 +389,12 @@ class GeckoEngineSession(
             }
             else -> HitResult.UNKNOWN("")
         }
+    }
+
+    override fun captureThumbnail(): Bitmap? {
+        // TODO Waiting for the Gecko team to create an API for this
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1462018
+        return null
     }
 
     companion object {

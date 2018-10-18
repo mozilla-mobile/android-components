@@ -3,22 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.browser.session.engine
-
+import android.graphics.Bitmap
 import mozilla.components.browser.session.Session
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.Settings
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.spy
 
 class EngineObserverTest {
 
     @Test
-    fun testEngineSessionObserver() {
+    fun engineSessionObserver() {
         val session = Session("")
         val engineSession = object : EngineSession() {
             override val settings: Settings
@@ -32,13 +33,14 @@ class EngineObserverTest {
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun disableTrackingProtection() {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
-                notifyObservers {
-                    onDesktopModeChange(enable)
-                }
+                notifyObservers { onDesktopModeChange(enable) }
             }
+            override fun clearData() {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
+            override fun exitFullScreenMode() {}
+            override fun captureThumbnail(): Bitmap? = null
             override fun saveState(): Map<String, Any> {
                 return emptyMap()
             }
@@ -70,7 +72,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineSessionObserverWithSecurityChanges() {
+    fun engineSessionObserverWithSecurityChanges() {
         val session = Session("")
         val engineSession = object : EngineSession() {
             override val settings: Settings
@@ -84,9 +86,12 @@ class EngineObserverTest {
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun disableTrackingProtection() {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
+            override fun clearData() {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
+            override fun exitFullScreenMode() {}
+            override fun captureThumbnail(): Bitmap? = null
             override fun saveState(): Map<String, Any> {
                 return emptyMap()
             }
@@ -110,7 +115,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineSessionObserverWithTrackingProtection() {
+    fun engineSessionObserverWithTrackingProtection() {
         val session = Session("")
         val engineSession = object : EngineSession() {
             override val settings: Settings
@@ -129,15 +134,18 @@ class EngineObserverTest {
             }
 
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
+            override fun captureThumbnail(): Bitmap? = null
             override fun saveState(): Map<String, Any> {
                 return emptyMap()
             }
 
             override fun loadUrl(url: String) {}
             override fun loadData(data: String, mimeType: String, encoding: String) {}
+            override fun clearData() {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
+            override fun exitFullScreenMode() {}
         }
         val observer = EngineObserver(session)
         engineSession.register(observer)
@@ -156,7 +164,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineObserverClearsWebsiteTitleIfNewPageStartsLoading() {
+    fun engineObserverClearsWebsiteTitleIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org")
         session.title = "Hello World"
 
@@ -171,7 +179,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineObserverClearsBlockedTrackersIfNewPageStartsLoading() {
+    fun engineObserverClearsBlockedTrackersIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org")
         val observer = EngineObserver(session)
 
@@ -184,7 +192,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineObserverPassingHitResult() {
+    fun engineObserverPassingHitResult() {
         val session = Session("https://www.mozilla.org")
         val observer = EngineObserver(session)
         val hitResult = HitResult.UNKNOWN("data://foobar")
@@ -199,7 +207,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineObserverClearsFindResults() {
+    fun engineObserverClearsFindResults() {
         val session = Session("https://www.mozilla.org")
         val observer = EngineObserver(session)
 
@@ -214,7 +222,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun testEngineObserverClearsFindResultIfNewPageStartsLoading() {
+    fun engineObserverClearsFindResultIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org")
         val observer = EngineObserver(session)
 
@@ -226,5 +234,25 @@ class EngineObserverTest {
 
         observer.onLoadingStateChange(true)
         assertEquals(emptyList<String>(), session.findResults)
+    }
+
+    @Test
+    fun engineObserverNotifiesFullscreenMode() {
+        val session = Session("https://www.mozilla.org")
+        val observer = EngineObserver(session)
+
+        observer.onFullScreenChange(true)
+        assertEquals(true, session.fullScreenMode)
+        observer.onFullScreenChange(false)
+        assertEquals(false, session.fullScreenMode)
+    }
+
+    @Test
+    fun `Engine observer notified when thumbnail is assigned`() {
+        val session = Session("https://www.mozilla.org")
+        val observer = EngineObserver(session)
+        val emptyBitmap = spy(Bitmap::class.java)
+        observer.onThumbnailChange(emptyBitmap)
+        assertEquals(emptyBitmap, session.thumbnail)
     }
 }

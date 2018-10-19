@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+sourceSets {
+    test {
+        output.resourcesDir = "build/classes/java/test"
+    }
+}
+
+dependencies {
+    // build.gradle file.
+    testImplementation project(':telemetry-compiler')
+    testImplementation project(':telemetry-annotation')
+    testImplementation "junit:junit:${Versions.junit}"
+
+    testImplementation 'com.google.testing.compile:compile-testing:0.15'
+}

@@ -93,6 +93,9 @@ setupProject(':service-fretboard', 'components/service/fretboard', 'An Android f
 setupProject(':service-glean', 'components/service/glean', 'A client-side telemetry SDK for collecting metrics and sending them to Mozilla\'s telemetry service')
 setupProject(':service-telemetry', 'components/service/telemetry', 'A generic library for generating and sending telemetry pings from Android applications to Mozilla\'s telemetry service.')
 
+setupProject(':service-telemetry-annotation', 'components/service/telemetry-annotation', 'Annotaions that help generate .md and .csv files for Telemetry pings')
+setupProject(':service-telemetry-compiler', 'components/service/telemetry-compiler', 'The annotaion processor that help generate .md and .csv files for Telemetry pings')
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Support components
 ////////////////////////////////////////////////////////////////////////////////////////////////////

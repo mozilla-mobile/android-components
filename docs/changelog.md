@@ -4,13 +4,39 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.28.0-SNAPSHOT (In Development)
+# 0.29.0-SNAPSHOT (In Development)
 
-Release date: TBD
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/31?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.29.0/index)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.27.0...master),
-[Milestone](https://github.com/mozilla-mobile/android-components/milestone/30?closed=1)
+* Compiled against:
+  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Kotlin (Stdlib: 1.2.61, Coroutines: 0.23.4)
+  * GeckoView
+    * Nightly: 64.0.20181004100221
+    * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
+    * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
+* **lib-jexl**
+  * New component for for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
 
+# 0.28.0
+
+Release date: 2018-10-23
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.27.0...v0.28.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/30?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.28.0/index)
+
+⚠️ **Note**: This and upcoming releases are **only** available from *maven.mozilla.org*.
+
+* Compiled against:
+  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Kotlin (Stdlib: 1.2.61, Coroutines: 0.23.4)
+  * GeckoView
+    * Nightly: 64.0.20181004100221
+    * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
+    * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
 * **concept-engine**
   * Added `HistoryTrackingDelegate` interface for integrating engine implementations with history storage backends. Intended to be used via engine settings.
 * **browser-engine**
@@ -19,12 +45,38 @@ Release date: TBD
   * Added support for `HistoryTrackingDelegate`, if it's specified in engine settings.
 * **browser-engine-servo**
   * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
+* **browser-session** - basic session hierarchy:
+  * Sessions can have a parent `Session` now. A `Session` with a parent will be added *after* the parent `Session`. On removal of a selected `Session` the parent `Session` can be selected automatically if desired:
+  ```kotlin
+  val parent = Session("https://www.mozilla.org")
+  val session = Session("https://www.mozilla.org/en-US/firefox/")
+
+  sessionManager.add(parent)
+  sessionManager.add(session, parent = parent)
+
+  sessionManager.remove(session, selectParentIfExists = true)
+  ```
+* **browser-session** - obtaining an restoring a SessionsSnapshot:
+  * It's now possible to request a SessionsSnapshot from the `SessionManager`, which encapsulates currently active sessions, their order and state, and which session is the selected one. Private and Custom Tab sessions are omitted from the snapshot. A new public `restore` method allows restoring a `SessionsSnapshot`.
+  ```kotlin
+  val snapshot = sessionManager.createSnapshot()
+  // ... persist snapshot somewhere, perhaps using the DefaultSessionStorage
+  sessionManager.restore(snapshot)
+  ```
+  * `restore` follows a different observer notification pattern from regular `add` flow. See method documentation for details. A new `onSessionsRestored` notification is now available.
+* **browser-session** - new SessionStorage API, new DefaultSessionStorage data format:
+  * Coupled with the `SessionManager` changes, the SessionStorage API has been changed to operate over `SessionsSnapshot`. New API no longer operates over a SessionManager, and instead reads/writes snapshots which may used together with the SessionManager (see above). An explicit `clear` method is provided for wiping SessionStorage.
+  * `DefaultSessionStorage` now uses a new storage format internally, which allows maintaining session ordering and preserves session parent information.
 * **browser-errorpages**
   * Added translation annotations to our error page strings. Translated strings will follow in a future release.
 * **service-glean**
   * A new client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service. This component is going to eventually replace `service-telemetry`. The SDK is currently in development and the component is not ready to be used yet.
-* **lib-jexl**:
-  * New component for for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
+* **lib-dataprotect**
+  * The `Keystore` class and its `encryptBytes()` and `decryptBytes()` methods are now open to simplify mocking in unit tests.
+* **ui-tabcounter**
+  * The `TabCounter` class is now open and can get extended.
+* **feature-downloads**
+  * Now you're able to provide a dialog before a download starts and customize it to your wish. Take a look at the [updated docs](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/downloads/README.md).
 
 # 0.27.0
 

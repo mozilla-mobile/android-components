@@ -18,13 +18,15 @@ private object Versions {
 
     const val dokka = "0.9.16"
     const val android_gradle_plugin = "3.1.4"
-    const val bintray_gradle_plugin = "1.7.3"
     const val maven_gradle_plugin = "2.1"
     const val lint = "26.1.3"
 
     const val jna = "4.5.2"
 
-    const val mozilla_app_services = "0.5.1"
+    const val sentry = "1.7.10"
+
+    const val mozilla_app_services = "0.6.0"
+    const val servo = "0.0.1.20181017.aa95911"
 }
 
 // Synchronized dependencies used by (some) modules
@@ -52,7 +54,6 @@ object Deps {
     const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
-    const val tools_bintray = "com.jfrog.bintray.gradle:gradle-bintray-plugin:${Versions.bintray_gradle_plugin}"
     const val tools_mavengradle = "com.github.dcendents:android-maven-gradle-plugin:${Versions.maven_gradle_plugin}"
 
     const val tools_lint = "com.android.tools.lint:lint:${Versions.lint}"
@@ -61,6 +62,9 @@ object Deps {
 
     const val mozilla_fxa = "org.mozilla.fxa_client:fxa_client:${Versions.mozilla_app_services}"
     const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.mozilla_app_services}"
+    const val mozilla_servo = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
+
+    const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
 
     const val jna = "net.java.dev.jna:jna:${Versions.jna}@aar"
     const val jnaForTest = "net.java.dev.jna:jna:${Versions.jna}@jar"

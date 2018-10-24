@@ -91,12 +91,6 @@ android {
     }
 }
 
-repositories {
-    flatDir {
-        dirs project(':browser-engine-servo').file('libs')
-    }
-}
-
 configurations {
     geckoNightlyArmImplementation {}
     geckoNightlyX86Implementation {}
@@ -133,6 +127,8 @@ dependencies {
     implementation project(':ui-autocomplete')
 
     implementation project(':support-utils')
+    implementation project(':feature-downloads')
+    implementation project(':support-ktx')
 
     servoImplementation project(':browser-engine-servo')
 
@@ -142,14 +138,14 @@ dependencies {
     geckoNightlyAarch64Implementation Gecko.geckoview_nightly_aarch64
 
     geckoBetaImplementation project(':browser-engine-gecko-beta')
-    geckoBetaArmImplementation "org.mozilla.geckoview:geckoview-beta-armeabi-v7a:${rootProject.ext.geckoBeta['version']}"
-    geckoBetaX86Implementation "org.mozilla.geckoview:geckoview-beta-x86:${rootProject.ext.geckoBeta['version']}"
-    geckoBetaAarch64Implementation "org.mozilla.geckoview:geckoview-beta-arm64-v8a:${rootProject.ext.geckoBeta['version']}"
+    geckoBetaArmImplementation Gecko.geckoview_beta_arm
+    geckoBetaX86Implementation Gecko.geckoview_beta_x86
+    geckoBetaAarch64Implementation Gecko.geckoview_beta_aarch64
 
     geckoReleaseImplementation project(':browser-engine-gecko')
-    geckoReleaseArmImplementation "org.mozilla:geckoview-release-armeabi-v7a:${rootProject.ext.geckoRelease['version']}"
-    geckoReleaseX86Implementation "org.mozilla:geckoview-release-x86:${rootProject.ext.geckoRelease['version']}"
-    geckoReleaseAarch64Implementation "org.mozilla:geckoview-release-arm64-v8a:${rootProject.ext.geckoRelease['version']}"
+    geckoReleaseArmImplementation Gecko.geckoview_release_arm
+    geckoReleaseX86Implementation Gecko.geckoview_release_x86
+    geckoReleaseAarch64Implementation Gecko.geckoview_release_aarch64
 
     implementation Deps.kotlin_stdlib
     implementation Deps.kotlin_coroutines

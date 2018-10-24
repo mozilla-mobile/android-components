@@ -39,10 +39,5 @@ dependencies {
     testImplementation project(':support-test')
 }
 
-archivesBaseName = "fretboard"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'fretboard',
-        'An Android framework for segmenting users in order to run A/B tests and rollout features gradually.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

@@ -62,6 +62,7 @@ object Deps {
 
     const val mozilla_fxa = "org.mozilla.fxa_client:fxa_client:${Versions.mozilla_app_services}"
     const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.mozilla_app_services}"
+    const val mozilla_places = "org.mozilla.places:places:0.7.1" // should be a -snapshot
     const val mozilla_servo = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
 
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"

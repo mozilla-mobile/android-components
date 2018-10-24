@@ -38,6 +38,8 @@ allprojects {
         google()
         jcenter()
 
+        mavenLocal()
+
         maven {
             url "https://maven.mozilla.org/maven2"
         }

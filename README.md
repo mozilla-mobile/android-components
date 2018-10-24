@@ -3,7 +3,6 @@
 [![Task Status](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/badge.svg)](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/latest)
 [![Build Status](https://travis-ci.org/mozilla-mobile/android-components.svg?branch=master)](https://travis-ci.org/mozilla-mobile/android-components)
 [![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
-![](https://api.bintray.com/packages/pocmo/Mozilla-Mobile/errorpages/images/download.svg)
 
 _A collection of Android libraries to build browsers or browser-like applications._
 
@@ -220,6 +219,8 @@ _Sample apps using various components._
 * [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component.
 
 * [**DataProtect**](samples/dataprotect) - An app demoing how to use the [**Dataprotect**](components/lib/dataprotect/README.md) component to load and store encrypted data in `SharedPreferences`.
+
+* [**Glean**](samples/glean) - An app demoing how to use the [**Glean**](components/service/glean/README.md) library to collect and send telemetry data.
 
 # License
 

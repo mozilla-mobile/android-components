@@ -30,7 +30,7 @@ configurations {
 dependencies {
     jnaForTest Deps.jnaForTest
 
-//    api Deps.mozilla_sync_places
+    api Deps.mozilla_places
 
     implementation Deps.kotlin_stdlib
     implementation Deps.jna

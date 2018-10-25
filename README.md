@@ -6,9 +6,9 @@
 
 _A collection of Android libraries to build browsers or browser-like applications._
 
- For more information [see the website](https://mozilla-mobile.github.io/android-components/).
+ℹ️ For more information **[see the website](https://mozilla-mobile.github.io/android-components/)**.
 
-[Reference browser](https://github.com/mozilla-mobile/reference-browser).
+A full featured reference browser implementation based on the components can be found in the [reference-browser repository](https://github.com/mozilla-mobile/reference-browser).
 
 # Getting Involved
 
@@ -24,65 +24,16 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
 
-# Architecture and Overview
+# Maven repository
 
-Our main design goal is to provide independently reusable Android components. We strive to keep dependencies between components as minimal as possible. However, standalone components aren't always feasible, which is why we have grouped components based on their interactions and dependencies.
+All components are getting published on [maven.mozilla.org](http://maven.mozilla.org/).
 
-On the lowest level, we provide standalone UI components (e.g. autocomplete, progressbar, colors) as well as independent service and suppport libraries (e.g. Telemetry, Kotlin extensions and Utilities).
-
-The second level consist of so called `Concept` modules. These are abstractions that describe contracts for component implementations such as `Engine` or `Session Storage`, which may in turn have multiple implementations. The purpose of these concepts is to allow for customization and pluggability. Therefore, where available, components should always depend on concept modules (not their implementations) to support bringing in alternative implementations.
-
-On top of `Concept` modules we provide `Browser` components. These components provide browser-specific functionality by implementing concepts and using lower level components.
-
-On the highest level, we provide `Feature` components which provide use case implementations (e.g search, load URL). Features can connect multiple `Browser` components with concepts, and will therefore depend on other components.
-
-The following diagram does not contain all available components. See [Components](#components) for a complete and up-to-date list.
-
-```
-    ┌─────────────────────┬───────────────────────────────────────────────────────────────────────┐
-    │                     │ ┌───────────────────────────────────────────────────────────────────┐ │
-    │                     │ │                              Feature                              │ │
-    │  Features combine   │ │ ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─   ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─  │ │
-    │ browser components  │ │       Session      │         Toolbar      │         Search      │ │ │
-    │    with concepts    │ │ └ ─ ─ ─ ─ ─ ─ ─ ─ ─    └ ─ ─ ─ ─ ─ ─ ─ ─ ─   └ ─ ─ ─ ─ ─ ─ ─ ─ ─  │ │
-    │                     │ └───────────────────────────────────────────────────────────────────┘ │
-    ├─────────────────────┼───────────────────────────────────────────────────────────────────────┤
-    │                     │ ┌───────────────────────────────────────────────────────────────────┐ │
-    │                     │ │                              Browser                              │ │
-    │ Browser components  │ │ ┌ ─ ─ ─ ─ ─ ─ ┐ ┌ ─ ─ ─ ─ ─ ─ ┐  ┌ ─ ─ ─ ─ ─ ─ ┐  ┌ ─ ─ ─ ─ ─ ─ ┐ │ │
-    │   may implement     │ │  Engine-Gecko       Search           Toolbar        Errorpages    │ │
-    │  concepts and use   │ │ └ ─ ─ ─ ─ ─ ─ ┘ └ ─ ─ ─ ─ ─ ─ ┘  └ ─ ─ ─ ─ ─ ─ ┘  └ ─ ─ ─ ─ ─ ─ ┘ │ │
-    │    lower level      │ │ ┌ ─ ─ ─ ─ ─ ─ ┐ ┌ ─ ─ ─ ─ ─ ─ ┐  ┌ ─ ─ ─ ─ ─ ─ ┐  ┌ ─ ─ ─ ─ ─ ─ ┐ │ │
-    │     components      │ │  Engine-System      Session          Domains           Menu       │ │
-    │                     │ │ └ ─ ─ ─ ─ ─ ─ ┘ └ ─ ─ ─ ─ ─ ─ ┘  └ ─ ─ ─ ─ ─ ─ ┘  └ ─ ─ ─ ─ ─ ─ ┘ │ │
-    │                     │ └───────────────────────────────────────────────────────────────────┘ │
-    ├─────────────────────┼───────────────────────────────────────────────────────────────────────┤
-    │                     │ ┌───────────────────────────────────────────────────────────────────┐ │
-    │  Abstractions and   │ │                              Concept                              │ │
-    │   contracts for     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │     component       │ │               Engine          │             Toolbar          │    │ │
-    │  implementations    │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │                     │ └───────────────────────────────────────────────────────────────────┘ │
-    ├─────────────────────├───────────────────────────────────────────────────────────────────────┤
-    │                     │ ┌────────────────────────────────┐ ┌────────────────────────────────┐ │
-    │                     │ │               UI               │ │            Service             │ │
-    │     Standalone      │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │     components      │ │          Autocomplete     │    │ │           Telemetry       │    │ │
-    │                     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │                     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ └────────────────────────────────┘ │
-    │                     │ │            Progress       │    │ ┌────────────────────────────────┐ │
-    │                     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │            Support             │ │
-    │                     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │                     │ │             Colors        │    │ │       Kotlin extensions   │    │ │
-    │                     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │                     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │                     │ │             Fonts         │    │ │           Utilities       │    │ │
-    │                     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │
-    │                     │ │    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │                                │ │
-    │                     │ │             Icons         │    │ │                                │ │
-    │                     │ │    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     │ │                                │ │
-    │                     │ └────────────────────────────────┘ └────────────────────────────────┘ │
-    └─────────────────────┴───────────────────────────────────────────────────────────────────────┘
+```groovy
+repositories {
+    maven {
+       url "https://maven.mozilla.org/maven2"
+    }
+}
 ```
 
 # Components
@@ -90,15 +41,6 @@ The following diagram does not contain all available components. See [Components
 * 🔴 **In Development** - Not ready to be used in shipping products.
 * ⚪ **Preview** - This component is almost/partially ready and can be tested in products.
 * 🔵 **Production ready** - Used by shipping products.
-
-Our artifacts live in [maven.mozilla.org](https://maven.mozilla.org/maven2) remember to add it in your root ```build.gradle``` file:
-```groovy
-repositories {
-  maven {
-   url "https://maven.mozilla.org/maven2"
-  }
-}
-```
 
 ## Browser
 
@@ -122,7 +64,7 @@ High-level components for building browser(-like) apps.
 
 * 🔵 [**Search**](components/browser/search/README.md) - Search plugins and companion code to load, parse and use them.
 
-* ⚪ [**Session**](components/browser/session/README.md) - A generic representation of a browser session.
+* 🔵 [**Session**](components/browser/session/README.md) - A generic representation of a browser session.
 
 * 🔴 [**Tabstray**](components/browser/tabstray/README.md) - A customizable tabs tray for browsers.
 
@@ -132,7 +74,7 @@ High-level components for building browser(-like) apps.
 
 _API contracts and abstraction layers for browser components._
 
-* 🔴 [**Engine**](components/concept/engine/README.md) - Abstraction layer that allows hiding the actual browser engine implementation.
+* ⚪ [**Engine**](components/concept/engine/README.md) - Abstraction layer that allows hiding the actual browser engine implementation.
 
 * 🔴 [**Tabstray**](components/concept/tabstray/README.md) - Abstract definition of a tabs tray component.
 
@@ -142,13 +84,13 @@ _API contracts and abstraction layers for browser components._
 
 _Combined components to implement feature-specific use cases._
 
-* 🔴 [**Downloads**](components/feature/downloads/README.md) - A component to perform downloads using the [Android downloads manager](https://developer.android.com/reference/android/app/DownloadManager).
+* ⚪ [**Downloads**](components/feature/downloads/README.md) - A component to perform downloads using the [Android downloads manager](https://developer.android.com/reference/android/app/DownloadManager).
 
 * 🔴 [**Intent**](components/feature/intent/README.md) - A component that provides intent processing functionality by combining various other feature modules.
 
 * 🔴 [**Search**](components/feature/search/README.md) - A component that connects an (concept) engine implementation with the browser search module.
 
-* 🔴 [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session module.
+* ⚪ [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session module.
 
 * 🔴 [**Tabs**](components/feature/tabs/README.md) - A component that connects a tabs tray implementation with the session and toolbar modules.
 
@@ -178,7 +120,7 @@ _Components and libraries to interact with backend services._
 
 * 🔴 [**Firefox Sync - Logins**](components/service/sync-logins/README.md) - A library for integrating with Firefox Sync - Logins.
 
-* ⚪ [**Fretboard**](components/service/fretboard/README.md) - An Android framework for segmenting users in order to run A/B tests and roll out features gradually.
+* 🔵 [**Fretboard**](components/service/fretboard/README.md) - An Android framework for segmenting users in order to run A/B tests and roll out features gradually.
 
 * 🔴 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
 
@@ -188,11 +130,11 @@ _Components and libraries to interact with backend services._
 
 _Supporting components with generic helper code._
 
-* ⚪ [**Base**](components/support/base/README.md) - Base component containing building blocks for components.
+* 🔵 [**Base**](components/support/base/README.md) - Base component containing building blocks for components.
 
 * 🔵 [**Ktx**](components/support/ktx/README.md) - A set of Kotlin extensions on top of the Android framework and Kotlin standard library.
 
-* ⚪ [**Test**](components/support/test/README.md) - A collection of helpers for testing components.
+* 🔵 [**Test**](components/support/test/README.md) - A collection of helpers for testing components.
 
 * 🔵 [**Utils**](components/support/utils/README.md) - Generic utility classes to be shared between projects.
 
@@ -212,7 +154,7 @@ _Supporting components with generic helper code._
 
 _Sample apps using various components._
 
-* [**Browser**](samples/browser) - A simple browser composed from browser components.
+* [**Browser**](samples/browser) - A simple browser composed from browser components. This sample application is only a very basic browser. For a full-featured reference browser implementation see the **[reference-browser repository](https://github.com/mozilla-mobile/reference-browser)**.
 
 * [**Firefox Accounts (FxA)**](samples/firefox-accounts) - A simple app demoing Firefox Accounts integration.
 

@@ -64,10 +64,7 @@ internal class DisplayToolbar(
     internal var menuBuilder: BrowserMenuBuilder? = null
         set(value) {
             field = value
-            menuView.visibility = if (value == null)
-                View.GONE
-            else
-                View.VISIBLE
+            menuView.visibility = if (value == null) View.GONE else View.VISIBLE
         }
 
     internal val iconView = ImageView(context).apply {
@@ -289,6 +286,7 @@ internal class DisplayToolbar(
         val sizeSpec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY)
 
         return actions
+            .asSequence()
             .mapNotNull { it.view }
             .map { view ->
                 val widthSpec = if (view.minimumWidth > size) {
@@ -312,6 +310,7 @@ internal class DisplayToolbar(
         //   +-------------+------------------------------------------------+
 
         val navigationActionsWidth = navigationActions
+            .asSequence()
             .mapNotNull { it.view }
             .fold(0) { usedWidth, view ->
                 val viewLeft = usedWidth

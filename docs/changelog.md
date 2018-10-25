@@ -12,7 +12,7 @@ permalink: /changelog/
 
 * Compiled against:
   * Android (SDK: 27, Support Libraries: 27.1.1)
-  * Kotlin (Stdlib: 1.2.61, Coroutines: 0.23.4)
+  * Kotlin (Stdlib: **1.2.71** 🔺, Coroutines: **0.30.2** 🔺)
   * GeckoView (Nightly: **65.0.20181023100123** 🔺, Beta: **64.0.20181022150107** 🔺, Release: **63.0.20181018182531** 🔺)
 * **browser-toolbar**:
   * Added new listener to get notified when the user is editing the URL:
@@ -30,6 +30,29 @@ permalink: /changelog/
               // Fired when the toolbar switches back to display mode.
             }
         })
+  ```
+* **concept-engine**, **browser-engine-system**, **browser-engine-gecko(-beta/nightly)**
+  * `RequestInterceptor` was enhanced to support loading an alternative URL.  
+  :warning: **This is a breaking change for the `RequestInterceptor` method signature!**
+  ```kotlin
+          // To provide alternative content the new InterceptionResponse.Content type needs to be used
+          requestInterceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+                return when (uri) {
+                    "sample:about" -> InterceptionResponse.Content("<h1>I am the sample browser</h1>")
+                    else -> null
+                }
+            }
+          }
+          // To provide an alternative URL the new InterceptionResponse.Url type needs to be used
+          requestInterceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+               return when (uri) {
+                    "sample:about" -> InterceptionResponse.Url("sample:aboutNew")
+                    else -> null
+               }
+            }
+         }
   ```
 * **lib-jexl**
   * New component for for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).

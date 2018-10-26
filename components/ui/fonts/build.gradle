@@ -24,10 +24,5 @@ dependencies {
     // None
 }
 
-archivesBaseName = "fonts"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.photon',
-        'fonts',
-        'Convenience accessor for fonts used by Mozilla.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

@@ -32,12 +32,11 @@ dependencies {
 
     implementation Deps.testing_junit
     implementation Deps.testing_mockito
+    implementation Deps.testing_robolectric
+    testImplementation Deps.support_compat
+    testImplementation project(':support-ktx')
 }
 
-archivesBaseName = "test"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'test',
-        'A collection of helpers for testing components.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+

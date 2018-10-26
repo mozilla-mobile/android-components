@@ -6,9 +6,14 @@ permalink: /contributing/
 
 We encourage you to participate in this open source project. We love pull requests, bug reports, ideas, (security) code reviews or any kind of positive contribution.
 
-Before you attempt to make a contribution please read the [Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/).
+Thank you for taking the time to contribute to one of Mozilla's Android projects!
+
+Before contributing, please review our [Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/).
 
 ## Docs
+
+* [Contributing to Mozilla Mobile's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/master/android/CONTRIBUTING.md)
+* [Contributing code to Mozilla's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/master/android/CONTRIBUTING_code.md)
 
 ### Project
 
@@ -16,6 +21,7 @@ Before you attempt to make a contribution please read the [Community Participati
 
 ### Development
 
+* [Architecture and Overview]({{ site.baseurl }}/contributing/architecture)
 * [Code coverage]({{ site.baseurl }}/contributing/code-coverage)
 * [Working on unreleased component code in an app]({{ site.baseurl }}{% link contribute/components_inside_app.md %})
 

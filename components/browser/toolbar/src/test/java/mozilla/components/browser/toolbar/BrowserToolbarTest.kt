@@ -5,9 +5,14 @@
 package mozilla.components.browser.toolbar
 
 import android.view.View
+import android.widget.LinearLayout
 import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.toolbar.BrowserToolbar.Companion.ACTION_PADDING_DP
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.browser.toolbar.edit.EditToolbar
+import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.support.base.android.Padding
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -202,6 +207,7 @@ class BrowserToolbarTest {
         assertEquals(56, toolbar.editToolbar.measuredHeight)
     }
 
+    @Test
     fun `toolbar will switch back to display mode after an URL has been entered`() {
         val toolbar = BrowserToolbar(RuntimeEnvironment.application)
         toolbar.editMode()
@@ -285,6 +291,7 @@ class BrowserToolbarTest {
         verify(displayToolbar).addPageAction(action)
     }
 
+    @Test
     fun `URL update does not override search terms in edit mode`() {
         val toolbar = BrowserToolbar(RuntimeEnvironment.application)
         val displayToolbar = mock(DisplayToolbar::class.java)
@@ -294,9 +301,9 @@ class BrowserToolbarTest {
         toolbar.editToolbar = editToolbar
 
         toolbar.setSearchTerms("mozilla android")
-        toolbar.url = "https://www.mozilla.org"
+        toolbar.url = "https://www.mozilla.com"
         toolbar.editMode()
-        verify(displayToolbar).updateUrl("https://www.mozilla.org")
+        verify(displayToolbar).updateUrl("https://www.mozilla.com")
         verify(editToolbar).updateUrl("mozilla android")
 
         toolbar.setSearchTerms("")
@@ -417,5 +424,124 @@ class BrowserToolbarTest {
 
             verify(it).layout(50, 20, 940, 185)
         }
+    }
+
+    @Test
+    fun `editListener is set on EditToolbar`() {
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        assertNull(toolbar.editToolbar.editListener)
+
+        val listener: Toolbar.OnEditListener = mock()
+        toolbar.setOnEditListener(listener)
+
+        assertEquals(listener, toolbar.editToolbar.editListener)
+    }
+
+    @Test
+    fun `editListener is invoked when switching between modes`() {
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+
+        val listener: Toolbar.OnEditListener = mock()
+        toolbar.setOnEditListener(listener)
+
+        toolbar.editMode()
+
+        verify(listener).onStartEditing()
+        verifyNoMoreInteractions(listener)
+
+        toolbar.displayMode()
+
+        verify(listener).onStopEditing()
+        verifyNoMoreInteractions(listener)
+    }
+
+    @Test
+    fun `editListener is invoked when text changes`() {
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+
+        val listener: Toolbar.OnEditListener = mock()
+        toolbar.setOnEditListener(listener)
+
+        toolbar.editToolbar.urlView.onAttachedToWindow()
+
+        toolbar.editMode()
+
+        toolbar.editToolbar.urlView.setText("Hello")
+        toolbar.editToolbar.urlView.setText("Hello World")
+
+        verify(listener).onStartEditing()
+        verify(listener).onTextChanged("Hello")
+        verify(listener).onTextChanged("Hello World")
+    }
+
+    @Test
+    fun `BrowserToolbar Button must set padding`() {
+        var button = BrowserToolbar.Button(0, "imageResource", visible = { true }) {}
+        val linearLayout = LinearLayout(RuntimeEnvironment.application)
+        var view = button.createView(linearLayout)
+        val padding = Padding(0, 0, 0, 0)
+        assertEquals(view.paddingLeft, ACTION_PADDING_DP)
+        assertEquals(view.paddingTop, ACTION_PADDING_DP)
+        assertEquals(view.paddingRight, ACTION_PADDING_DP)
+        assertEquals(view.paddingBottom, ACTION_PADDING_DP)
+        button = BrowserToolbar.Button(0, "imageResource", padding = padding.copy(left = 16)) {}
+        view = button.createView(linearLayout)
+        assertEquals(view.paddingLeft, 16)
+        button = BrowserToolbar.Button(0, "imageResource", padding = padding.copy(top = 16)) {}
+        view = button.createView(linearLayout)
+        assertEquals(view.paddingTop, 16)
+        button = BrowserToolbar.Button(0, "imageResource", padding = padding.copy(right = 16)) {}
+        view = button.createView(linearLayout)
+        assertEquals(view.paddingRight, 16)
+        button = BrowserToolbar.Button(0, "imageResource", padding = padding.copy(bottom = 16)) {}
+        view = button.createView(linearLayout)
+        assertEquals(view.paddingBottom, 16)
+        button = BrowserToolbar.Button(
+            0, "imageResource",
+            padding = Padding(16, 20, 24, 28)
+        ) {}
+        view = button.createView(linearLayout)
+        view.paddingLeft
+        assertEquals(view.paddingLeft, 16)
+        assertEquals(view.paddingTop, 20)
+        assertEquals(view.paddingRight, 24)
+        assertEquals(view.paddingBottom, 28)
+    }
+
+    @Test
+    fun `BrowserToolbar ToggleButton must set padding`() {
+        var button = BrowserToolbar.ToggleButton(
+            0,
+            0,
+            "imageResource",
+            "",
+            visible = { true },
+            selected = false,
+            background = 0
+        ) {}
+        val linearLayout = LinearLayout(RuntimeEnvironment.application)
+        var view = button.createView(linearLayout)
+        val padding = Padding(0, 0, 0, 0)
+        assertEquals(view.paddingLeft, ACTION_PADDING_DP)
+        assertEquals(view.paddingTop, ACTION_PADDING_DP)
+        assertEquals(view.paddingRight, ACTION_PADDING_DP)
+        assertEquals(view.paddingBottom, ACTION_PADDING_DP)
+
+        button = BrowserToolbar.ToggleButton(
+            0,
+            0,
+            "imageResource",
+            "",
+            visible = { true },
+            selected = false,
+            background = 0,
+            padding = Padding(16, 20, 24, 28)
+        ) {}
+        view = button.createView(linearLayout)
+        view.paddingLeft
+        assertEquals(view.paddingLeft, 16)
+        assertEquals(view.paddingTop, 20)
+        assertEquals(view.paddingRight, 24)
+        assertEquals(view.paddingBottom, 28)
     }
 }

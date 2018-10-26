@@ -9,6 +9,9 @@ object Config {
     // See https://semver.org/
     const val componentsVersion = "0.28.0-SNAPSHOT"
 
+    // Maven group ID used for all components
+    const val componentsGroupId = "org.mozilla.components"
+
     // Synchronized build configuration for all modules
     const val compileSdkVersion = 27
     const val minSdkVersion = 21

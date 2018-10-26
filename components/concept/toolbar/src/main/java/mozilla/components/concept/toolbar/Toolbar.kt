@@ -16,6 +16,7 @@ import java.lang.ref.WeakReference
 /**
  * Interface to be implemented by components that provide browser toolbar functionality.
  */
+@Suppress("TooManyFunctions")
 interface Toolbar {
     /**
      * Sets/Gets the URL to be displayed on the toolbar.
@@ -74,6 +75,41 @@ interface Toolbar {
      * Casts this toolbar to an Android View object.
      */
     fun asView(): View = this as View
+
+    /**
+     * Registers the given listener to be invoked when the user edits the URL.
+     */
+    fun setOnEditListener(listener: OnEditListener)
+
+    /**
+     * Switches to URL displaying mode (from editing mode) if supported by the toolbar implementation.
+     */
+    fun displayMode()
+
+    /**
+     * Switches to URL editing mode (from displaying mode) if supported by the toolbar implementation.
+     */
+    fun editMode()
+
+    /**
+     * Listener to be invoked when the user edits the URL.
+     */
+    interface OnEditListener {
+        /**
+         * Fired when the toolbar switches to edit mode.
+         */
+        fun onStartEditing() = Unit
+
+        /**
+         * Fired when the toolbar switches back to display mode.
+         */
+        fun onStopEditing() = Unit
+
+        /**
+         * Fired whenever the user changes the text in the address bar.
+         */
+        fun onTextChanged(text: String) = Unit
+    }
 
     /**
      * Generic interface for actions to be added to the toolbar.

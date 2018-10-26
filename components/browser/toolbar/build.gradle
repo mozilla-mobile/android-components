@@ -34,15 +34,11 @@ dependencies {
     implementation Deps.support_appcompat
     implementation Deps.kotlin_stdlib
 
+    testImplementation project(':support-test')
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito
 }
 
-archivesBaseName = "browser-toolbar"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'browser-toolbar',
-        'A customizable toolbar for browsers.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

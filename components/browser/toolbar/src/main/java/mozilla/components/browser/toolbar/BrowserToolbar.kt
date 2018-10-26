@@ -44,7 +44,6 @@ class BrowserToolbar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ViewGroup(context, attrs, defStyleAttr), Toolbar {
-
     // displayToolbar and editToolbar are only visible internally and mutable so that we can mock
     // them in tests.
     @VisibleForTesting internal var displayToolbar = DisplayToolbar(context, this)
@@ -106,6 +105,10 @@ class BrowserToolbar @JvmOverloads constructor(
         editToolbar.urlView.onFocusChangeListener = OnFocusChangeListener { _, hasFocus ->
             listener.invoke(hasFocus)
         }
+    }
+
+    override fun setOnEditListener(listener: Toolbar.OnEditListener) {
+        editToolbar.editListener = listener
     }
 
     /**
@@ -247,7 +250,7 @@ class BrowserToolbar @JvmOverloads constructor(
     /**
      * Switches to URL editing mode.
      */
-    fun editMode() {
+    override fun editMode() {
         val urlValue = if (searchTerms.isEmpty()) url else searchTerms
         editToolbar.updateUrl(urlValue)
 
@@ -259,7 +262,7 @@ class BrowserToolbar @JvmOverloads constructor(
     /**
      * Switches to URL displaying mode.
      */
-    fun displayMode() {
+    override fun displayMode() {
         updateState(State.DISPLAY)
     }
 
@@ -281,8 +284,14 @@ class BrowserToolbar @JvmOverloads constructor(
         this.state = state
 
         val (show, hide) = when (state) {
-            State.DISPLAY -> Pair(displayToolbar, editToolbar)
-            State.EDIT -> Pair(editToolbar, displayToolbar)
+            State.DISPLAY -> {
+                editToolbar.editListener?.onStopEditing()
+                Pair(displayToolbar, editToolbar)
+            }
+            State.EDIT -> {
+                editToolbar.editListener?.onStartEditing()
+                Pair(editToolbar, displayToolbar)
+            }
         }
 
         show.visibility = View.VISIBLE

@@ -17,20 +17,21 @@ import android.util.AttributeSet
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
+import android.webkit.PermissionRequest
 import android.webkit.SslErrorHandler
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.webkit.ValueCallback
 import android.webkit.WebView.HitTestResult.EMAIL_TYPE
 import android.webkit.WebView.HitTestResult.GEO_TYPE
 import android.webkit.WebView.HitTestResult.IMAGE_TYPE
 import android.webkit.WebView.HitTestResult.PHONE_TYPE
 import android.webkit.WebView.HitTestResult.SRC_ANCHOR_TYPE
 import android.webkit.WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
+import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.errorpages.ErrorType
@@ -38,6 +39,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.support.ktx.android.content.isOSOnLowMemory
 import mozilla.components.support.utils.DownloadUtils
 import java.lang.ref.WeakReference
@@ -113,7 +115,7 @@ class SystemEngineView @JvmOverloads constructor(
         return webView
     }
 
-    @Suppress("ComplexMethod")
+    @Suppress("ComplexMethod", "NestedBlockDepth")
     private fun createWebViewClient() = object : WebViewClient() {
         override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
             // TODO private browsing not supported for SystemEngine
@@ -144,14 +146,15 @@ class SystemEngineView @JvmOverloads constructor(
 
                     if (!isLowOnMemory()) {
                         val thumbnail = session?.captureThumbnail()
-                        if (thumbnail != null)
+                        if (thumbnail != null) {
                             onThumbnailChange(thumbnail)
+                        }
                     }
                 }
             }
         }
 
-        @Suppress("ReturnCount")
+        @Suppress("ReturnCount", "NestedBlockDepth")
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
             if (session?.webFontsEnabled == false && UrlMatcher.isWebFont(request.url)) {
                 return WebResourceResponse(null, null, null)
@@ -190,7 +193,14 @@ class SystemEngineView @JvmOverloads constructor(
                     interceptor.onLoadRequest(
                         session, request.url.toString()
                     )?.apply {
-                        return WebResourceResponse(mimeType, encoding, data.byteInputStream())
+                        return when (this) {
+                            is InterceptionResponse.Content ->
+                                WebResourceResponse(mimeType, encoding, data.byteInputStream())
+                            is InterceptionResponse.Url -> {
+                                view.post { view.loadUrl(url) }
+                                super.shouldInterceptRequest(view, request)
+                            }
+                        }
                     }
                 }
             }
@@ -247,6 +257,7 @@ class SystemEngineView @JvmOverloads constructor(
 
     private fun isLowOnMemory() = testLowMemory || (context?.isOSOnLowMemory() == true)
 
+    @Suppress("ComplexMethod")
     private fun createWebChromeClient() = object : WebChromeClient() {
         override fun getVisitedHistory(callback: ValueCallback<Array<String>>) {
             // TODO private browsing not supported for SystemEngine
@@ -283,6 +294,16 @@ class SystemEngineView @JvmOverloads constructor(
         override fun onHideCustomView() {
             removeFullScreenView()
             session?.internalNotifyObservers { onFullScreenChange(false) }
+        }
+
+        override fun onPermissionRequest(request: PermissionRequest) {
+            if (request.resources.contains(PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID)) {
+                // For now we automatically grant playing protected media (EME APIs).
+                // See https://github.com/mozilla-mobile/android-components/issues/1128
+                request.grant(arrayOf(PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID))
+            } else {
+                super.onPermissionRequest(request)
+            }
         }
     }
 

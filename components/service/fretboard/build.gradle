@@ -28,6 +28,7 @@ dependencies {
 
     implementation project(':support-ktx')
     implementation project(':support-base')
+    implementation project(':lib-jexl')
 
 
     testImplementation Deps.testing_junit

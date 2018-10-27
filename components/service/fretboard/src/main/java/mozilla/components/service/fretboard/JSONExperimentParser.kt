@@ -36,7 +36,8 @@ class JSONExperimentParser {
                 matchObject.tryGetString(MANUFACTURER_KEY),
                 matchObject.tryGetString(DEVICE_KEY),
                 matchObject.tryGetString(COUNTRY_KEY),
-                matchObject.tryGetString(RELEASE_CHANNEL_KEY))
+                matchObject.tryGetString(RELEASE_CHANNEL_KEY),
+                matchObject.tryGetString(JEXL_KEY))
         } else null
         val bucket = if (bucketsObject != null) {
             Experiment.Bucket(bucketsObject.tryGetInt(MAX_KEY), bucketsObject.tryGetInt(MIN_KEY))
@@ -87,6 +88,7 @@ class JSONExperimentParser {
         matchObject.putIfNotNull(REGIONS_KEY, experiment.match?.regions?.let { JSONArray(it) })
         matchObject.putIfNotNull(RELEASE_CHANNEL_KEY, experiment.match?.releaseChannel)
         matchObject.putIfNotNull(VERSION_KEY, experiment.match?.version)
+        matchObject.putIfNotNull(JEXL_KEY, experiment.match?.jexl)
         return matchObject
     }
 
@@ -139,5 +141,6 @@ class JSONExperimentParser {
         private const val LAST_MODIFIED_KEY = "last_modified"
         private const val SCHEMA_KEY = "schema"
         private const val PAYLOAD_KEY = "values"
+        private const val JEXL_KEY = "jexl"
     }
 }

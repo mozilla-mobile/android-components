@@ -8,6 +8,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Looper
 import android.text.TextUtils
+import mozilla.components.lib.jexl.Jexl
+import mozilla.components.lib.jexl.JexlException
 import java.util.zip.CRC32
 
 /**
@@ -71,7 +73,8 @@ internal class ExperimentEvaluator(private val valuesProvider: ValuesProvider = 
                 matchesExperiment(experiment.match.country, valuesProvider.getCountry(context)) &&
                 matchesExperiment(experiment.match.version, valuesProvider.getVersion(context)) &&
                 matchesExperiment(experiment.match.manufacturer, valuesProvider.getManufacturer(context)) &&
-                matchesExperiment(experiment.match.device, valuesProvider.getDevice(context))
+                matchesExperiment(experiment.match.device, valuesProvider.getDevice(context)) &&
+                matchesJexl(experiment.match.jexl, context)
         }
         return true
     }
@@ -80,6 +83,20 @@ internal class ExperimentEvaluator(private val valuesProvider: ValuesProvider = 
         return !(experimentValue != null &&
             !TextUtils.isEmpty(experimentValue) &&
             !deviceValue.matches(experimentValue.toRegex()))
+    }
+
+    private fun matchesJexl(jexlExpression: String?, context: Context): Boolean {
+        return if (jexlExpression != null && jexlExpression.isNotEmpty()) {
+            try {
+                Jexl().evaluateBooleanExpression(
+                    jexlExpression,
+                    valuesProvider.toJexlContext(context),
+                    defaultValue = false
+                )
+            } catch (e: JexlException) {
+                false
+            }
+        } else true
     }
 
     private fun isInBucket(userBucket: Int, experiment: Experiment): Boolean {

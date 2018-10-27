@@ -500,6 +500,191 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
+    fun evaluateJexlLanguage() {
+        evaluateJexl("language=='eng'", "language=='esp'")
+    }
+
+    @Test
+    fun evaluateJexlAppId() {
+        evaluateJexl("appId=='test.appId'", "appId=='other.appId'")
+    }
+
+    @Test
+    fun evaluateJexlVersion() {
+        evaluateJexl("version=='test.version'", "version=='other.version'")
+    }
+
+    @Test
+    fun evaluateJexlManufacturer() {
+        evaluateJexl("manufacturer=='unknown'", "manufacturer=='other'")
+    }
+
+    @Test
+    fun evaluateJexlDevice() {
+        evaluateJexl("device=='robolectric'", "device=='other'")
+    }
+
+    @Test
+    fun evaluateJexlCountry() {
+        evaluateJexl("country=='USA'", "country=='UK'")
+    }
+
+    @Test
+    fun evaluateJexlRegion() {
+        evaluateJexl("region=='UK'", "region=='USA'", object : ValuesProvider() {
+            override fun getRegion(context: Context): String? {
+                return "UK"
+            }
+        })
+    }
+
+    @Test
+    fun evaluateJexlReleaseChannel() {
+        evaluateJexl("releaseChannel=='alpha'", "releaseChannel=='other'", object : ValuesProvider() {
+            override fun getReleaseChannel(context: Context): String? {
+                return "alpha"
+            }
+        })
+    }
+
+    @Test
+    fun evaluateJexlMultipleConditions() {
+        evaluateJexl("appId=='test.appId'&&language=='eng'", "appId=='test.appId'&&language=='esp'")
+    }
+
+    @Test
+    fun evaluateJexlEmptyString() {
+        val experiment = Experiment(
+            "testid",
+            "testexperiment",
+            "testdesc",
+            Experiment.Matcher(
+                jexl = ""
+            ),
+            lastModified = 1528916183)
+
+        val context = mock(Context::class.java)
+        `when`(context.packageName).thenReturn("test.appId")
+        val sharedPreferences = mock(SharedPreferences::class.java)
+        `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
+        `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
+        val packageManager = mock(PackageManager::class.java)
+        val packageInfo = PackageInfo()
+        packageInfo.versionName = "test.version"
+        `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
+        `when`(context.packageManager).thenReturn(packageManager)
+
+        assertNotNull(ExperimentEvaluator().evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    @Test
+    fun evaluateJexlWithErrors() {
+        val experiment = Experiment(
+            "testid",
+            "testexperiment",
+            "testdesc",
+            Experiment.Matcher(
+                jexl = "error"
+            ),
+            lastModified = 1528916183)
+
+        val context = mock(Context::class.java)
+        `when`(context.packageName).thenReturn("test.appId")
+        val sharedPreferences = mock(SharedPreferences::class.java)
+        `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
+        `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
+        val editor = mock(SharedPreferences.Editor::class.java)
+        `when`(editor.putString(anyString(), anyString())).thenReturn(editor)
+        `when`(sharedPreferences.edit()).thenReturn(editor)
+        val packageManager = mock(PackageManager::class.java)
+        val packageInfo = PackageInfo()
+        packageInfo.versionName = "test.version"
+        `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
+        `when`(context.packageManager).thenReturn(packageManager)
+
+        assertNull(ExperimentEvaluator().evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    @Test
+    fun evaluateJexlAndFilters() {
+        var experiment = Experiment(
+            "testid",
+            "testexperiment",
+            "testdesc",
+            Experiment.Matcher(
+                language = "eng",
+                jexl = "appId=='test.appId'"
+            ),
+            lastModified = 1528916183)
+
+        val context = mock(Context::class.java)
+        `when`(context.packageName).thenReturn("test.appId")
+        val sharedPreferences = mock(SharedPreferences::class.java)
+        `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
+        `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
+        val editor = mock(SharedPreferences.Editor::class.java)
+        `when`(editor.putString(anyString(), anyString())).thenReturn(editor)
+        `when`(sharedPreferences.edit()).thenReturn(editor)
+        val packageManager = mock(PackageManager::class.java)
+        val packageInfo = PackageInfo()
+        packageInfo.versionName = "test.version"
+        `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
+        `when`(context.packageManager).thenReturn(packageManager)
+
+        assertNotNull(ExperimentEvaluator().evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        experiment = Experiment(
+            "testid",
+            "testexperiment",
+            "testdesc",
+            Experiment.Matcher(
+                language = "esp",
+                jexl = "appId=='test.appId'"
+            ),
+            lastModified = 1528916183)
+
+        assertNull(ExperimentEvaluator().evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    private fun evaluateJexl(jexlPass: String, jexlFail: String, valuesProvider: ValuesProvider = ValuesProvider()) {
+        var experiment = Experiment(
+            "testid",
+            "testexperiment",
+            "testdesc",
+            Experiment.Matcher(
+                jexl = jexlPass
+            ),
+            lastModified = 1528916183)
+
+        val context = mock(Context::class.java)
+        `when`(context.packageName).thenReturn("test.appId")
+        val sharedPreferences = mock(SharedPreferences::class.java)
+        `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
+        `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
+        val editor = mock(SharedPreferences.Editor::class.java)
+        `when`(editor.putString(anyString(), anyString())).thenReturn(editor)
+        `when`(sharedPreferences.edit()).thenReturn(editor)
+        val packageManager = mock(PackageManager::class.java)
+        val packageInfo = PackageInfo()
+        packageInfo.versionName = "test.version"
+        `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
+        `when`(context.packageManager).thenReturn(packageManager)
+
+        assertNotNull(ExperimentEvaluator(valuesProvider).evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        experiment = Experiment(
+            "testid",
+            "testexperiment",
+            "testdesc",
+            Experiment.Matcher(
+                jexl = jexlFail
+            ),
+            lastModified = 1528916183)
+
+        assertNull(ExperimentEvaluator(valuesProvider).evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    @Test
     fun evaluateActivateOverride() {
         val context = mock(Context::class.java)
         val sharedPreferences = mock(SharedPreferences::class.java)

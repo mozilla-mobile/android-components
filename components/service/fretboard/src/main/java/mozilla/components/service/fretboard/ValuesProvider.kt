@@ -14,6 +14,12 @@ import java.util.MissingResourceException
  * custom filter values
  */
 open class ValuesProvider {
+
+    private val valuesMap: MutableMap<String, Any> = mutableMapOf()
+
+    val values: Map<String, Any>
+        get() = valuesMap.toMap()
+
     /**
      * Provides the user's language
      *
@@ -99,5 +105,9 @@ open class ValuesProvider {
      */
     open fun getClientId(context: Context): String {
         return DeviceUuidFactory(context).uuid
+    }
+
+    fun putValue(key: String, value: Any) {
+        valuesMap[key] = value
     }
 }

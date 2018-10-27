@@ -43,4 +43,15 @@ class ValuesProviderTest {
         Locale.setDefault(Locale("cnr", "CS"))
         assertEquals("CS", ValuesProvider().getCountry(mock(Context::class.java)))
     }
+
+    @Test
+    fun `custom values`() {
+        val provider = ValuesProvider()
+        provider.putValue("first", 1)
+        provider.putValue("second", "other")
+        val values = provider.values
+        assertEquals(2, values.size)
+        assertEquals(1, values["first"])
+        assertEquals("other", values["second"])
+    }
 }

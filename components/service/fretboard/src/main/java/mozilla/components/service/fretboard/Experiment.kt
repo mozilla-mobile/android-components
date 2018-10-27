@@ -76,7 +76,11 @@ data class Experiment(
         /**
          * Required app release channel (alpha, beta, ...), as a regex
          */
-        val releaseChannel: String? = null
+        val releaseChannel: String? = null,
+        /**
+         * Activation condition as a JEXL expression
+         */
+        val jexl: String? = null
     )
 
     data class Bucket(

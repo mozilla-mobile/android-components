@@ -5,18 +5,23 @@
 package mozilla.components.browser.domains
 
 import android.content.Context
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.CoroutineScope
+import kotlinx.coroutines.experimental.Dispatchers
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.launch
 import java.util.Locale
+import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * Provides autocomplete functionality for domains, based on a provided list
  * of assets (see [Domains]) and/or a custom domain list managed by
  * [CustomDomains].
  */
-class DomainAutoCompleteProvider {
+class DomainAutoCompleteProvider :CoroutineScope {
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main
+
     object AutocompleteSource {
         const val DEFAULT_LIST = "default"
         const val CUSTOM_LIST = "custom"
@@ -116,9 +121,9 @@ class DomainAutoCompleteProvider {
         this.useShippedDomains = useShippedDomains
 
         if (loadDomainsFromDisk) {
-            launch(UI) {
-                val domains = async(CommonPool) { Domains.load(context) }
-                val customDomains = async(CommonPool) { CustomDomains.load(context) }
+            launch {
+                val domains = async { Domains.load(context) }
+                val customDomains = async { CustomDomains.load(context) }
 
                 onDomainsLoaded(domains.await(), customDomains.await())
             }

@@ -43,10 +43,5 @@ dependencies {
     testImplementation Deps.testing_mockito
 }
 
-archivesBaseName = "search"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'search',
-        'Search plugins and companion code to load, parse and use them.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

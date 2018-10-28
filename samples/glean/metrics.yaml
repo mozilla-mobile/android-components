@@ -1,0 +1,21 @@
+# This file defines the metrics that are recorded by glean telemetry. They are
+# automatically converted to Kotlin code at build time using the `glean_parser`
+# PyPI package.
+
+$schema: http://mozilla.org/schemas/glean/metrics
+
+browser_engagement:
+  click:
+    type: event
+    description: >
+      Just testing events
+    bugs:
+      - 123456789
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    objects:
+      - object1
+      - object2
+    extra_keys:
+      key1: "This is key one"
+      key2: "This is key two"

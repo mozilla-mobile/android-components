@@ -4,21 +4,29 @@
 
 package org.mozilla.samples.browser
 
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.fragment_browser.*
+import mozilla.components.feature.downloads.DownloadsFeature
+import mozilla.components.feature.downloads.SimpleDownloadDialogFragment.DownloadDialogListener
 import mozilla.components.feature.session.SessionFeature
+import mozilla.components.feature.storage.HistoryTrackingFeature
 import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarFeature
+import mozilla.components.support.ktx.android.content.isPermissionGranted
 import org.mozilla.samples.browser.ext.components
 
-class BrowserFragment : Fragment(), BackHandler {
+class BrowserFragment : Fragment(), BackHandler, DownloadDialogListener {
     private lateinit var sessionFeature: SessionFeature
     private lateinit var toolbarFeature: ToolbarFeature
     private lateinit var tabsToolbarFeature: TabsToolbarFeature
+    private lateinit var downloadsFeature: DownloadsFeature
+    private lateinit var historyTrackingFeature: HistoryTrackingFeature
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_browser, container, false)
@@ -30,6 +38,11 @@ class BrowserFragment : Fragment(), BackHandler {
         toolbar.setMenuBuilder(components.menuBuilder)
 
         val sessionId = arguments?.getString(SESSION_ID)
+
+        historyTrackingFeature = HistoryTrackingFeature(
+                components.engine,
+                components.historyStorage
+        )
 
         sessionFeature = SessionFeature(
                 components.sessionManager,
@@ -45,7 +58,17 @@ class BrowserFragment : Fragment(), BackHandler {
                 components.defaultSearchUseCase,
                 sessionId)
 
-        tabsToolbarFeature = TabsToolbarFeature(context!!, toolbar, ::showTabs)
+        tabsToolbarFeature = TabsToolbarFeature(requireContext(), toolbar, ::showTabs)
+
+        downloadsFeature = DownloadsFeature(
+            requireContext(),
+            sessionManager = components.sessionManager,
+            fragmentManager = childFragmentManager
+        )
+
+        downloadsFeature.onNeedToRequestPermissions = { _, _ ->
+            requestPermissions(arrayOf(WRITE_EXTERNAL_STORAGE), PERMISSION_WRITE_STORAGE_REQUEST)
+        }
     }
 
     private fun showTabs() {
@@ -62,6 +85,7 @@ class BrowserFragment : Fragment(), BackHandler {
 
         sessionFeature.start()
         toolbarFeature.start()
+        downloadsFeature.start()
     }
 
     override fun onStop() {
@@ -69,6 +93,7 @@ class BrowserFragment : Fragment(), BackHandler {
 
         sessionFeature.stop()
         toolbarFeature.stop()
+        downloadsFeature.stop()
     }
 
     override fun onBackPressed(): Boolean {
@@ -83,12 +108,26 @@ class BrowserFragment : Fragment(), BackHandler {
         return false
     }
 
+    private fun isStoragePermissionAvailable() = requireContext().isPermissionGranted(WRITE_EXTERNAL_STORAGE)
+
     companion object {
         private const val SESSION_ID = "session_id"
+        private const val PERMISSION_WRITE_STORAGE_REQUEST = 1
 
         fun create(sessionId: String? = null): BrowserFragment = BrowserFragment().apply {
             arguments = Bundle().apply {
                 putString(SESSION_ID, sessionId)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        when (requestCode) {
+            PERMISSION_WRITE_STORAGE_REQUEST -> {
+                if ((grantResults.isNotEmpty() && grantResults[0] == PERMISSION_GRANTED) && isStoragePermissionAvailable()) {
+                    // permission was granted, yay!
+                    downloadsFeature.onPermissionsGranted()
+                }
             }
         }
     }

@@ -26,15 +26,11 @@ dependencies {
 
     implementation Deps.support_annotations
     implementation Deps.support_appcompat
-
+    api project(':support-base')
+    implementation project(':support-ktx')
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
 }
 
-archivesBaseName = "abstract-toolbar"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'abstract-toolbar',
-        'An abstract definition of a toolbar component.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

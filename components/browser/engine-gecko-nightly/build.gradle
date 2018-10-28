@@ -31,6 +31,7 @@ android {
 dependencies {
     implementation project(':concept-engine')
     implementation project(':support-ktx')
+    implementation project(path: ':support-utils')
 
     // We only compile against the ARM artifact. We let the app decide which artifact to actually
     // use at runtime. As the Kotlin/Java API is the same for all ABIs it is not important which one
@@ -48,10 +49,5 @@ dependencies {
     testImplementation project(':support-test')
 }
 
-archivesBaseName = "engine-gecko-nightly"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'engine-gecko-nightly',
-        'Engine implementation based on GeckoView (Nightly).')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

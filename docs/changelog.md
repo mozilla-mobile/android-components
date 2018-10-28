@@ -4,12 +4,170 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.27.0-SNAPTSHOT (In Development)
+# 0.29.0-SNAPSHOT (In Development)
 
-Release date: TBD
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/31?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.29.0/index)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.26.0..master),
-[Milestone](https://github.com/mozilla-mobile/android-components/milestone/27?closed=1)
+* Compiled against:
+  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Kotlin (Stdlib: **1.2.71** 🔺, Coroutines: **0.30.2** 🔺)
+  * GeckoView (Nightly: **65.0.20181023100123** 🔺, Beta: **64.0.20181022150107** 🔺, Release: **63.0.20181018182531** 🔺)
+* **browser-toolbar**:
+  * Added new listener to get notified when the user is editing the URL:
+  ```kotlin
+          toolbar.setOnEditListener(object : Toolbar.OnEditListener {
+            override fun onTextChanged(text: String) {
+              // Fired whenever the user changes the text in the address bar.
+            }
+
+            override fun onStartEditing() {
+              // Fired when the toolbar switches to edit mode.
+            }
+
+            override fun onStopEditing() {
+              // Fired when the toolbar switches back to display mode.
+            }
+        })
+  ```
+  * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `BrowserToolbar.Button`,
+  and `BrowserToolbar.ToggleButton`, now you can provide a custom padding:
+  ```kotlin
+     val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
+     val button = BrowserToolbar.Button(mozac_ic_back, "Forward", padding = padding) {}
+     var toggle = BrowserToolbar.ToggleButton(mozac_ic_pin, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
+  ```
+* **concept-toolbar**:
+  * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `Toolbar.ActionToggleButton`,
+  `Toolbar.ActionButton`, `Toolbar.ActionSpace` and `Toolbar.ActionImage`, now you can provide a custom padding:
+  ```kotlin
+     val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
+     var toggle = Toolbar.ActionToggleButton(0, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
+     val button = Toolbar.ActionButton(mozac_ic_back, "Forward", padding = padding) {}
+     val space = Toolbar.ActionSpace(pxToDp(128), padding = padding)
+     val image = Toolbar.ActionImage(brand, padding = padding)
+  ```
+* **support-base**:
+  * A new class add for representing an Android Padding.
+    ```kotlin
+       val padding = Padding(16, 24, 32, 40)
+       val (start, top, end, bottom) = padding
+    ```
+* **support-ktx**:
+  * A new extention function that allows you to set `Padding` object to a `View`.
+    ```kotlin
+       val padding = Padding(16, 24, 32, 40)
+       val view = View(context)
+       view.setPadding(padding)
+    ```
+* **concept-engine**, **browser-engine-system**, **browser-engine-gecko(-beta/nightly)**
+  * `RequestInterceptor` was enhanced to support loading an alternative URL.
+  :warning: **This is a breaking change for the `RequestInterceptor` method signature!**
+  ```kotlin
+          // To provide alternative content the new InterceptionResponse.Content type needs to be used
+          requestInterceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+                return when (uri) {
+                    "sample:about" -> InterceptionResponse.Content("<h1>I am the sample browser</h1>")
+                    else -> null
+                }
+            }
+          }
+          // To provide an alternative URL the new InterceptionResponse.Url type needs to be used
+          requestInterceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+               return when (uri) {
+                    "sample:about" -> InterceptionResponse.Url("sample:aboutNew")
+                    else -> null
+               }
+            }
+         }
+  ```
+* **concept-storage**:
+  * Added a new concept for describing an interface for storing browser data. First iteration includes a description of `HistoryStorage`.
+* **browser-storage-memory**:
+  * Added an in-memory implementation of `concept-storage`.
+* **feature-storage**:
+  * Added a first iteration of `feature-storage`, which includes `HistoryTrackingFeature` that ties together `concept-storage` and `concept-engine` and allows engines to track history visits and page meta information. It does so by implementing `HistoryTrackingDelegate` defined by `concept-engine`.
+  Before adding a first session to the engine, initialize the history tracking feature:
+  ```kotlin
+  val historyTrackingFeature = HistoryTrackingFeature(
+    components.engine,
+    components.historyStorage
+  )
+  ```
+  Once the feature has been initialized, history will be tracked for all subsequently added sessions.
+* **sample-browser**:
+  * Updated the sample browser to track browsing history using an in-memory history storage implementation (how much is actually tracked in practice depends on which engine is being used. As of this release, only `SystemEngine` provides a full set of necessary APIs).
+* **lib-jexl**
+  * New component for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
+
+# 0.28.0
+
+Release date: 2018-10-23
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.27.0...v0.28.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/30?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.28.0/index)
+
+⚠️ **Note**: This and upcoming releases are **only** available from *maven.mozilla.org*.
+
+* Compiled against:
+  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Kotlin (Stdlib: 1.2.61, Coroutines: 0.23.4)
+  * GeckoView
+    * Nightly: 64.0.20181004100221
+    * Beta: 63.0b3 (0269319281578bff4e01d77a21350bf91ba08620)
+    * Release: 62.0 (9cbae12a3fff404ed2c12070ad475424d0ae869f)
+* **concept-engine**
+  * Added `HistoryTrackingDelegate` interface for integrating engine implementations with history storage backends. Intended to be used via engine settings.
+* **browser-engine**
+  * `Download.fileName` cannot be `null` anymore. All engine implementations are guaranteed to return a proposed file name for Downloads now.
+* **browser-engine-gecko-**, **browser-engine-system**
+  * Added support for `HistoryTrackingDelegate`, if it's specified in engine settings.
+* **browser-engine-servo**
+  * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
+* **browser-session** - basic session hierarchy:
+  * Sessions can have a parent `Session` now. A `Session` with a parent will be added *after* the parent `Session`. On removal of a selected `Session` the parent `Session` can be selected automatically if desired:
+  ```kotlin
+  val parent = Session("https://www.mozilla.org")
+  val session = Session("https://www.mozilla.org/en-US/firefox/")
+
+  sessionManager.add(parent)
+  sessionManager.add(session, parent = parent)
+
+  sessionManager.remove(session, selectParentIfExists = true)
+  ```
+* **browser-session** - obtaining an restoring a SessionsSnapshot:
+  * It's now possible to request a SessionsSnapshot from the `SessionManager`, which encapsulates currently active sessions, their order and state, and which session is the selected one. Private and Custom Tab sessions are omitted from the snapshot. A new public `restore` method allows restoring a `SessionsSnapshot`.
+  ```kotlin
+  val snapshot = sessionManager.createSnapshot()
+  // ... persist snapshot somewhere, perhaps using the DefaultSessionStorage
+  sessionManager.restore(snapshot)
+  ```
+  * `restore` follows a different observer notification pattern from regular `add` flow. See method documentation for details. A new `onSessionsRestored` notification is now available.
+* **browser-session** - new SessionStorage API, new DefaultSessionStorage data format:
+  * Coupled with the `SessionManager` changes, the SessionStorage API has been changed to operate over `SessionsSnapshot`. New API no longer operates over a SessionManager, and instead reads/writes snapshots which may used together with the SessionManager (see above). An explicit `clear` method is provided for wiping SessionStorage.
+  * `DefaultSessionStorage` now uses a new storage format internally, which allows maintaining session ordering and preserves session parent information.
+* **browser-errorpages**
+  * Added translation annotations to our error page strings. Translated strings will follow in a future release.
+* **service-glean**
+  * A new client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service. This component is going to eventually replace `service-telemetry`. The SDK is currently in development and the component is not ready to be used yet.
+* **lib-dataprotect**
+  * The `Keystore` class and its `encryptBytes()` and `decryptBytes()` methods are now open to simplify mocking in unit tests.
+* **ui-tabcounter**
+  * The `TabCounter` class is now open and can get extended.
+* **feature-downloads**
+  * Now you're able to provide a dialog before a download starts and customize it to your wish. Take a look at the [updated docs](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/downloads/README.md).
+
+# 0.27.0
+
+Release date: 2018-10-16
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.26.0...v0.27.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/27?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.27.0/index)
 
 * Compiled against:
   * Android (SDK: 27, Support Libraries: 27.1.1)
@@ -24,11 +182,20 @@ Release date: TBD
     ```kotlin
     @Before
     fun setup() {
-      SystemEngine.defaultUserAgent = "test-ua-string"
+        SystemEngine.defaultUserAgent = "test-ua-string"
     }
     ```
-* **browser-engine-servo**:
-  * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
+* **browser-engine-gecko-nightly**:
+  * Enabled [Java 8 support](https://developer.android.com/studio/write/java8-support) to meet upstream [GeckoView requirements](https://mail.mozilla.org/pipermail/mobile-firefox-dev/2018-September/002411.html). Apps using this component need to enable Java 8 support as well:
+  ```Groovy
+  android {
+    ...
+    compileOptions {
+      sourceCompatibility JavaVersion.VERSION_1_8
+      targetCompatibility JavaVersion.VERSION_1_8
+    }
+  }
+  ```
 * **browser-search**
   * Fixed an issue where a locale change at runtime would not update the search engines.
 * **browser-session**:
@@ -54,31 +221,31 @@ Release date: TBD
          // Progress of selected session changed
       }
 
-      // More observer functions...      
-  }  
+      // More observer functions...
+  }
   ```
 * **browser-errorpages**
   * Added more detailed documentation in the README.
+* **feature-downloads**
+  * A new components for apps that want to process downloads, for more examples take a look at [here](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/downloads/README.md).
+* **lib-crash**
+  * A new generic crash reporter component that can report crashes to multiple services ([documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/crash/README.md)).
 * **support-ktx**
   * Added new helper method to run a block of code with a different StrictMode policy:
   ```kotlin
   StrictMode.allowThreadDiskReads().resetAfter {
     // In this block disk reads are not triggering a strict mode violation
   }
-
   ```
   * Added a new helper for checking if you have permission to do something or not:
   ```kotlin
     var isGranted = context.isPermissionGranted(INTERNET)
-    if(isGranted){
+    if (isGranted) {
         //You can proceed
-    }else{
+    } else {
         //Request permission
     }
   ```
-* **feature-downloads**
-  * A new components for apps that want to process downloads, for more examples take a look at [here](components/feature/downloads/README.md).
-
 * **support-test**
   * Added a new helper for granting permissions in  Robolectric tests:
   ```kotlin
@@ -92,18 +259,6 @@ Release date: TBD
      isGranted = context.isPermissionGranted(INTERNET)
 
      assertTrue(isGranted) // True :D
-  ```
-
-* browser-engine-gecko-nightly:
-  * Enabled [Java 8 support](https://developer.android.com/studio/write/java8-support) to meet upstream [GeckoView requirements](https://mail.mozilla.org/pipermail/mobile-firefox-dev/2018-September/002411.html). Apps using this component need to enable Java 8 support as well:
-  ```Groovy
-  android {
-    ...
-    compileOptions {
-      sourceCompatibility JavaVersion.VERSION_1_8
-      targetCompatibility JavaVersion.VERSION_1_8
-    }
-  }
   ```
 
 # 0.26.0

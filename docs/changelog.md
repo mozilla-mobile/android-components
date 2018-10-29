@@ -31,8 +31,38 @@ permalink: /changelog/
             }
         })
   ```
+  * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `BrowserToolbar.Button`,
+  and `BrowserToolbar.ToggleButton`, now you can provide a custom padding:
+  ```kotlin
+     val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
+     val button = BrowserToolbar.Button(mozac_ic_back, "Forward", padding = padding) {}
+     var toggle = BrowserToolbar.ToggleButton(mozac_ic_pin, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
+  ```
+* **concept-toolbar**:
+  * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `Toolbar.ActionToggleButton`,
+  `Toolbar.ActionButton`, `Toolbar.ActionSpace` and `Toolbar.ActionImage`, now you can provide a custom padding:
+  ```kotlin
+     val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
+     var toggle = Toolbar.ActionToggleButton(0, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
+     val button = Toolbar.ActionButton(mozac_ic_back, "Forward", padding = padding) {}
+     val space = Toolbar.ActionSpace(pxToDp(128), padding = padding)
+     val image = Toolbar.ActionImage(brand, padding = padding)
+  ```
+* **support-base**:
+  * A new class add for representing an Android Padding.
+    ```kotlin
+       val padding = Padding(16, 24, 32, 40)
+       val (start, top, end, bottom) = padding
+    ```
+* **support-ktx**:
+  * A new extention function that allows you to set `Padding` object to a `View`.
+    ```kotlin
+       val padding = Padding(16, 24, 32, 40)
+       val view = View(context)
+       view.setPadding(padding)
+    ```
 * **concept-engine**, **browser-engine-system**, **browser-engine-gecko(-beta/nightly)**
-  * `RequestInterceptor` was enhanced to support loading an alternative URL.  
+  * `RequestInterceptor` was enhanced to support loading an alternative URL.
   :warning: **This is a breaking change for the `RequestInterceptor` method signature!**
   ```kotlin
           // To provide alternative content the new InterceptionResponse.Content type needs to be used
@@ -54,8 +84,24 @@ permalink: /changelog/
             }
          }
   ```
+* **concept-storage**:
+  * Added a new concept for describing an interface for storing browser data. First iteration includes a description of `HistoryStorage`.
+* **browser-storage-memory**:
+  * Added an in-memory implementation of `concept-storage`.
+* **feature-storage**:
+  * Added a first iteration of `feature-storage`, which includes `HistoryTrackingFeature` that ties together `concept-storage` and `concept-engine` and allows engines to track history visits and page meta information. It does so by implementing `HistoryTrackingDelegate` defined by `concept-engine`.
+  Before adding a first session to the engine, initialize the history tracking feature:
+  ```kotlin
+  val historyTrackingFeature = HistoryTrackingFeature(
+    components.engine,
+    components.historyStorage
+  )
+  ```
+  Once the feature has been initialized, history will be tracked for all subsequently added sessions.
+* **sample-browser**:
+  * Updated the sample browser to track browsing history using an in-memory history storage implementation (how much is actually tracked in practice depends on which engine is being used. As of this release, only `SystemEngine` provides a full set of necessary APIs).
 * **lib-jexl**
-  * New component for for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
+  * New component for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
 
 # 0.28.0
 

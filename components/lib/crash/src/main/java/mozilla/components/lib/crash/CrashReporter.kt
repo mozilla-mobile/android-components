@@ -7,6 +7,7 @@ package mozilla.components.lib.crash
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.support.annotation.StyleRes
 import android.support.annotation.VisibleForTesting
 import mozilla.components.lib.crash.handler.ExceptionHandler
 import mozilla.components.lib.crash.prompt.CrashReporterActivity
@@ -117,6 +118,7 @@ class CrashReporter(
         val intent = Intent(context, CrashReporterActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
 
         crash.fillIn(intent)
 
@@ -153,7 +155,9 @@ class CrashReporter(
      */
     data class PromptConfiguration(
         internal val appName: String = "App",
-        internal val organizationName: String = "Mozilla"
+        internal val organizationName: String = "Mozilla",
+        internal val message: String? = null,
+        @StyleRes internal val theme: Int = R.style.Theme_Mozac_CrashReporter
     )
 
     companion object {

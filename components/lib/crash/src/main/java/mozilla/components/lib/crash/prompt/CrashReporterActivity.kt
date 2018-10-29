@@ -7,10 +7,12 @@ package mozilla.components.lib.crash.prompt
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.view.View
 import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.*
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.Dispatchers
+import kotlinx.coroutines.experimental.GlobalScope
 import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.withContext
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
@@ -19,14 +21,13 @@ import mozilla.components.lib.crash.R
  * Activity showing the crash reporter prompt asking the user for confirmation before submitting a crash report.
  */
 class CrashReporterActivity : AppCompatActivity() {
-    private lateinit var crashReporter: CrashReporter
-    private lateinit var crash: Crash
+    private val crashReporter: CrashReporter by lazy { CrashReporter.requireInstance }
+    private val crash: Crash by lazy { Crash.fromIntent(intent) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        setTheme(crashReporter.promptConfiguration.theme)
 
-        crashReporter = CrashReporter.requireInstance
-        crash = Crash.fromIntent(intent)
+        super.onCreate(savedInstanceState)
 
         setContentView(R.layout.mozac_lib_crash_crashreporter)
 
@@ -44,6 +45,12 @@ class CrashReporterActivity : AppCompatActivity() {
             setOnClickListener { restart() }
         }
         closeButton.setOnClickListener { close() }
+
+        if (crashReporter.promptConfiguration.message == null) {
+            messageView.visibility = View.GONE
+        } else {
+            messageView.text = crashReporter.promptConfiguration.message
+        }
     }
 
     private fun close() {
@@ -70,12 +77,12 @@ class CrashReporterActivity : AppCompatActivity() {
             return
         }
 
-        launch(UI) {
-            launch(CommonPool) {
-                crashReporter.submitReport(crash)
-            }.join()
+        GlobalScope.launch {
+            crashReporter.submitReport(crash)
 
-            then()
+            withContext(Dispatchers.Main) {
+                then()
+            }
         }
     }
 }

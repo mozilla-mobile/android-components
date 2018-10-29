@@ -4,7 +4,7 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.29.0-SNAPSHOT (In Development)
+# 0.29.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...master),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/31?closed=1),
@@ -17,19 +17,36 @@ permalink: /changelog/
 * **browser-toolbar**:
   * Added new listener to get notified when the user is editing the URL:
   ```kotlin
-          toolbar.setOnEditListener(object : Toolbar.OnEditListener {
-            override fun onTextChanged(text: String) {
-              // Fired whenever the user changes the text in the address bar.
-            }
+  toolbar.setOnEditListener(object : Toolbar.OnEditListener {
+      override fun onTextChanged(text: String) {
+          // Fired whenever the user changes the text in the address bar.
+      }
 
-            override fun onStartEditing() {
-              // Fired when the toolbar switches to edit mode.
-            }
+      override fun onStartEditing() {
+          // Fired when the toolbar switches to edit mode.
+      }
 
-            override fun onStopEditing() {
-              // Fired when the toolbar switches back to display mode.
-            }
-        })
+      override fun onStopEditing() {
+          // Fired when the toolbar switches back to display mode.
+      }
+  })
+  ```
+  * Added new toolbar APIs:
+  ```kotlin
+  toolbar.textColor: Int = getColor(R.color.photonRed50)
+  toolbar.hintColor: Int = getColor(R.color.photonGreen50)
+  toolbar.textSize: Float = 12f
+  toolbar.typeface: Typeface = Typeface.createFromFile("fonts/foo.tff")
+  ```
+    These attributes are also available in XML (except for typeface):
+  ```xml
+  <mozilla.components.browser.toolbar.BrowserToolbar
+    android:id="@+id/toolbar"
+    app:browserToolbarTextColor="#ff0000"
+    app:browserToolbarHintColor="#00ff00"
+    app:browserToolbarTextSize="12sp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"/>
   ```
   * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `BrowserToolbar.Button`,
   and `BrowserToolbar.ToggleButton`, now you can provide a custom padding:
@@ -100,8 +117,37 @@ permalink: /changelog/
   Once the feature has been initialized, history will be tracked for all subsequently added sessions.
 * **sample-browser**:
   * Updated the sample browser to track browsing history using an in-memory history storage implementation (how much is actually tracked in practice depends on which engine is being used. As of this release, only `SystemEngine` provides a full set of necessary APIs).
+* **lib-crash**
+  * Added option to display additional message in prompt and define the theme to be used:
+  ```Kotlin
+    CrashReporter(
+    promptConfiguration = CrashReporter.PromptConfiguration(
+      // ..
+
+      // An additional message that will be shown in the prompt
+      message = "We are very sorry!"
+
+      // Use a custom theme for the prompt (Extend Theme.Mozac.CrashReporter)
+      theme = android.R.style.Theme_Holo_Dialog
+    ),
+    // ..
+  ).install(applicationContext)
+  ```
+  * Showing the crash prompt won't play the default activity animation anymore.
+  * Added a new sample app `samples-crash` to show and test crash reporter integration.
+* **feature-tabs**:
+  * `TabsToolbarFeature` is now adding a `TabCounter` from the `ui-tabcounter` component to the toolbar.
 * **lib-jexl**
   * New component for evaluating Javascript Expression Language (JEXL) expressions. This implementation is based on [Mozjexl](https://github.com/mozilla/mozjexl) used at Mozilla, specifically as a part of SHIELD and Normandy. In a future version of Fretboard JEXL will allow more complex rules for experiments. For more see [documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/jexl/README.md).
+* **service-telemetry**
+  * Added option to send list of experiments in event pings: `Telemetry.recordExperiments(Map<String, Boolean> experiments)`
+  * Fixed an issue where `DebugLogClient` didn't use the provided log tag.
+* **service-fretboard**
+  * Fixed an issue where for some locales a `MissingResourceException` would occur.
+* **browser-engine-system**
+  * Playback of protected media (DRM) is now granted automatically.
+* **browser-engine-gecko**
+  * Updated components to follow merge day: (Nightly: 65.0, Beta: 64.0, Release: 63.0)
 
 # 0.28.0
 

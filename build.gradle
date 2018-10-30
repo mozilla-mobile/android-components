@@ -30,6 +30,10 @@ allprojects {
         jcenter()
 
         maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+        }
+
+        maven {
             url "https://maven.mozilla.org/maven2"
         }
 
@@ -69,7 +73,7 @@ subprojects {
     afterEvaluate {
         if (it.hasProperty('android')) {
             jacoco {
-                toolVersion = "0.8.2"
+                toolVersion = "0.8.3-SNAPSHOT"
             }
 
             dependencies {

@@ -2,3 +2,8 @@ coverage:
   precision: 2
   round: down 
   range: 60..80
+  ci:
+    - Taskcluster
+    - tools.taskcluster.net
+    - !travis-ci.org
+    - Taskcluster (pull_request)

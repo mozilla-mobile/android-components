@@ -35,6 +35,7 @@ dependencies {
     implementation Deps.kotlin_stdlib
     implementation Deps.jna
     implementation Deps.kotlin_coroutines
+    implementation project(':support-base')
 
     testImplementation files(configurations.jnaForTest.files)
 
@@ -45,10 +46,10 @@ dependencies {
     testImplementation Deps.testing_mockito
 }
 
-archivesBaseName = "sync-places"
+archivesBaseName = "service-sync-places"
 
 apply from: '../../../publish.gradle'
 ext.configurePublish(
         'org.mozilla.components',
-        'sync-places',
+        'service-sync-places',
         'A library for sync-enabled Places.')

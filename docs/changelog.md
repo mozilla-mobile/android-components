@@ -4,9 +4,59 @@ title: Changelog
 permalink: /changelog/
 ---
 
+# 0.30.0-SNAPSHOT (In Development)
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.20.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/32?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.30.0/index)
+
+* Compiled against:
+  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Kotlin (Stdlib: 1.2.71, Coroutines: 0.30.2)
+  * GeckoView (Nightly: 65.0.20181023100123, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+* **browser-storage-memory**:
+  * Added an in-memory implementation of `concept-storage`.
+* **service-firefox-accounts**:
+  * :warning: **This is a breaking API change** :warning:
+  * The `FxaResult` type served as a custom promise-like type to support older versions of Java. We have now removed this type and switched to Kotlin's `Deferred` instead. We've also made sure all required types are `Closeable`:
+
+  ```kotlin
+  // Before
+  Config.custom(CONFIG_URL).then { config: Config ->    
+    account = FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+  }
+
+  // Now  
+  val account = async {
+    Config.custom(CONFIG_URL).await().use { config ->
+      FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+    }                  
+  }    
+  ```
+  In case error handling is needed, the new API will also become easier to work with:
+   ```kotlin
+  // Before
+  account.beginOAuthFlow(scopes, wantsKeys).then({ url ->
+    showLoginScreen(url)
+  }, { exception ->
+    handleException(exception)
+  }
+
+  // Now
+  async {
+      try {
+        account.beginOAuthFlow(scopes, wantsKeys).await()
+      } catch (e: FxaException) {
+        handleException(e)
+      }
+  }
+
+  ```
+  For a full working example, take a look at our [Firefox Accounts sample application](https://github.com/mozilla-mobile/android-components/blob/master/samples/firefox-accounts/src/main/java/org/mozilla/samples/fxa/MainActivity.kt#L25).
+
 # 0.29.0
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...v0.29.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/31?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.29.0/index)
 
@@ -106,8 +156,6 @@ permalink: /changelog/
   ```
 * **concept-storage**:
   * Added a new concept for describing an interface for storing browser data. First iteration includes a description of `HistoryStorage`.
-* **browser-storage-memory**:
-  * Added an in-memory implementation of `concept-storage`.
 * **feature-storage**:
   * Added a first iteration of `feature-storage`, which includes `HistoryTrackingFeature` that ties together `concept-storage` and `concept-engine` and allows engines to track history visits and page meta information. It does so by implementing `HistoryTrackingDelegate` defined by `concept-engine`.
   Before adding a first session to the engine, initialize the history tracking feature:

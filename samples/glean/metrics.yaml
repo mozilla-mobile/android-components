@@ -2,7 +2,7 @@
 # automatically converted to Kotlin code at build time using the `glean_parser`
 # PyPI package.
 
-$schema: http://mozilla.org/schemas/glean/metrics
+$schema: moz://mozilla.org/schemas/glean/metrics/1-0-0
 
 browser_engagement:
   click:
@@ -25,6 +25,17 @@ basic:
     type: string
     description: >
       The name of the os
+    bugs:
+      - 123456789
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+
+  client_id:
+    type: uuid
+    user_property: true
+    description: >
+      A UUID identifying a profile and allowing user-oriented correlation of
+      data.
     bugs:
       - 123456789
     notification_emails:

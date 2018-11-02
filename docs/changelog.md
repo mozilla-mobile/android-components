@@ -4,9 +4,59 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.29.0-SNAPSHOT (In Development)
+# 0.30.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.20.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/32?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.30.0/index)
+
+* Compiled against:
+  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Kotlin (Stdlib: 1.2.71, Coroutines: 0.30.2)
+  * GeckoView (Nightly: 65.0.20181023100123, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+* **browser-storage-memory**:
+  * Added an in-memory implementation of `concept-storage`.
+* **service-firefox-accounts**:
+  * :warning: **This is a breaking API change** :warning:
+  * The `FxaResult` type served as a custom promise-like type to support older versions of Java. We have now removed this type and switched to Kotlin's `Deferred` instead. We've also made sure all required types are `Closeable`:
+
+  ```kotlin
+  // Before
+  Config.custom(CONFIG_URL).then { config: Config ->    
+    account = FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+  }
+
+  // Now  
+  val account = async {
+    Config.custom(CONFIG_URL).await().use { config ->
+      FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+    }                  
+  }    
+  ```
+  In case error handling is needed, the new API will also become easier to work with:
+   ```kotlin
+  // Before
+  account.beginOAuthFlow(scopes, wantsKeys).then({ url ->
+    showLoginScreen(url)
+  }, { exception ->
+    handleException(exception)
+  }
+
+  // Now
+  async {
+      try {
+        account.beginOAuthFlow(scopes, wantsKeys).await()
+      } catch (e: FxaException) {
+        handleException(e)
+      }
+  }
+
+  ```
+  For a full working example, take a look at our [Firefox Accounts sample application](https://github.com/mozilla-mobile/android-components/blob/master/samples/firefox-accounts/src/main/java/org/mozilla/samples/fxa/MainActivity.kt#L25).
+
+# 0.29.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.28.0...v0.29.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/31?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.29.0/index)
 
@@ -33,85 +83,86 @@ permalink: /changelog/
   ```
   * Added new toolbar APIs:
   ```kotlin
+  val toolbar = BrowserToolbar(context)
   toolbar.textColor: Int = getColor(R.color.photonRed50)
   toolbar.hintColor: Int = getColor(R.color.photonGreen50)
   toolbar.textSize: Float = 12f
   toolbar.typeface: Typeface = Typeface.createFromFile("fonts/foo.tff")
   ```
-    These attributes are also available in XML (except for typeface):
-  ```xml
-  <mozilla.components.browser.toolbar.BrowserToolbar 
-    android:id="@+id/toolbar"
-    app:browserToolbarTextColor="#ff0000"
-    app:browserToolbarHintColor="#00ff00"
-    app:browserToolbarTextSize="12sp"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"/>
-  ```
-  * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `BrowserToolbar.Button`,
+  These attributes are also available in XML (except for typeface):
+
+    ```xml
+    <mozilla.components.browser.toolbar.BrowserToolbar
+      android:id="@+id/toolbar"
+      app:browserToolbarTextColor="#ff0000"
+      app:browserToolbarHintColor="#00ff00"
+      app:browserToolbarTextSize="12sp"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"/>
+    ```
+
+  * [API improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `BrowserToolbar.Button`,
   and `BrowserToolbar.ToggleButton`, now you can provide a custom padding:
   ```kotlin
-     val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
-     val button = BrowserToolbar.Button(mozac_ic_back, "Forward", padding = padding) {}
-     var toggle = BrowserToolbar.ToggleButton(mozac_ic_pin, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
+  val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
+  val button = BrowserToolbar.Button(mozac_ic_back, "Forward", padding = padding) {}
+  var toggle = BrowserToolbar.ToggleButton(mozac_ic_pin, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
   ```
 * **concept-toolbar**:
-  * [Api improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `Toolbar.ActionToggleButton`,
+  * [API improvement](https://github.com/mozilla-mobile/android-components/issues/772) for more flexibility to create a `Toolbar.ActionToggleButton`,
   `Toolbar.ActionButton`, `Toolbar.ActionSpace` and `Toolbar.ActionImage`, now you can provide a custom padding:
   ```kotlin
-     val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
-     var toggle = Toolbar.ActionToggleButton(0, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
-     val button = Toolbar.ActionButton(mozac_ic_back, "Forward", padding = padding) {}
-     val space = Toolbar.ActionSpace(pxToDp(128), padding = padding)
-     val image = Toolbar.ActionImage(brand, padding = padding)
+  val padding = Padding(start = 16, top = 16, end = 16, bottom = 16)
+  var toggle = Toolbar.ActionToggleButton(0, mozac_ic_pin_filled, "Pin", "Unpin", padding = padding) {}
+  val button = Toolbar.ActionButton(mozac_ic_back, "Forward", padding = padding) {}
+  val space = Toolbar.ActionSpace(pxToDp(128), padding = padding)
+  val image = Toolbar.ActionImage(brand, padding = padding)
   ```
 * **support-base**:
   * A new class add for representing an Android Padding.
     ```kotlin
-       val padding = Padding(16, 24, 32, 40)
-       val (start, top, end, bottom) = padding
+    val padding = Padding(16, 24, 32, 40)
+    val (start, top, end, bottom) = padding
     ```
 * **support-ktx**:
   * A new extention function that allows you to set `Padding` object to a `View`.
     ```kotlin
-       val padding = Padding(16, 24, 32, 40)
-       val view = View(context)
-       view.setPadding(padding)
+    val padding = Padding(16, 24, 32, 40)
+    val view = View(context)
+    view.setPadding(padding)
     ```
 * **concept-engine**, **browser-engine-system**, **browser-engine-gecko(-beta/nightly)**
   * `RequestInterceptor` was enhanced to support loading an alternative URL.
   :warning: **This is a breaking change for the `RequestInterceptor` method signature!**
   ```kotlin
-          // To provide alternative content the new InterceptionResponse.Content type needs to be used
-          requestInterceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
-                return when (uri) {
-                    "sample:about" -> InterceptionResponse.Content("<h1>I am the sample browser</h1>")
-                    else -> null
-                }
-            }
+  // To provide alternative content the new InterceptionResponse.Content type needs to be used
+  requestInterceptor = object : RequestInterceptor {
+      override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+          return when (uri) {
+              "sample:about" -> InterceptionResponse.Content("<h1>I am the sample browser</h1>")
+              else -> null
           }
-          // To provide an alternative URL the new InterceptionResponse.Url type needs to be used
-          requestInterceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
-               return when (uri) {
-                    "sample:about" -> InterceptionResponse.Url("sample:aboutNew")
-                    else -> null
-               }
-            }
-         }
+      }
+  }
+  // To provide an alternative URL the new InterceptionResponse.Url type needs to be used
+  requestInterceptor = object : RequestInterceptor {
+      override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+          return when (uri) {
+              "sample:about" -> InterceptionResponse.Url("sample:aboutNew")
+              else -> null
+          }
+      }
+  }
   ```
 * **concept-storage**:
   * Added a new concept for describing an interface for storing browser data. First iteration includes a description of `HistoryStorage`.
-* **browser-storage-memory**:
-  * Added an in-memory implementation of `concept-storage`.
 * **feature-storage**:
   * Added a first iteration of `feature-storage`, which includes `HistoryTrackingFeature` that ties together `concept-storage` and `concept-engine` and allows engines to track history visits and page meta information. It does so by implementing `HistoryTrackingDelegate` defined by `concept-engine`.
   Before adding a first session to the engine, initialize the history tracking feature:
   ```kotlin
   val historyTrackingFeature = HistoryTrackingFeature(
-    components.engine,
-    components.historyStorage
+      components.engine,
+      components.historyStorage
   )
   ```
   Once the feature has been initialized, history will be tracked for all subsequently added sessions.
@@ -119,18 +170,18 @@ permalink: /changelog/
   * Updated the sample browser to track browsing history using an in-memory history storage implementation (how much is actually tracked in practice depends on which engine is being used. As of this release, only `SystemEngine` provides a full set of necessary APIs).
 * **lib-crash**
   * Added option to display additional message in prompt and define the theme to be used:
-  ```Kotlin
-    CrashReporter(
-    promptConfiguration = CrashReporter.PromptConfiguration(
+  ```kotlin
+  CrashReporter(
+      promptConfiguration = CrashReporter.PromptConfiguration(
+        // ..
+
+        // An additional message that will be shown in the prompt
+        message = "We are very sorry!"
+
+        // Use a custom theme for the prompt (Extend Theme.Mozac.CrashReporter)
+        theme = android.R.style.Theme_Holo_Dialog
+      )
       // ..
-
-      // An additional message that will be shown in the prompt
-      message = "We are very sorry!"
-
-      // Use a custom theme for the prompt (Extend Theme.Mozac.CrashReporter)
-      theme = android.R.style.Theme_Holo_Dialog
-    ),
-    // ..
   ).install(applicationContext)
   ```
   * Showing the crash prompt won't play the default activity animation anymore.

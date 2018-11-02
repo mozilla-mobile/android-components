@@ -94,14 +94,12 @@ class CrashReporterActivity : AppCompatActivity() {
         }
     }
 
-
     override fun onStop() {
         super.onStop()
 
         /* Save the state of send checkbox into shared preferences. We can't use onSaveInstanceState here
             because the state of the checkbox should also be preserved upon app restart.
-         */
+        */
         sharedPreferences.edit().putBoolean(sendCheckboxKey, sendCheckbox.isChecked).apply()
-
-    }
+        }
 }

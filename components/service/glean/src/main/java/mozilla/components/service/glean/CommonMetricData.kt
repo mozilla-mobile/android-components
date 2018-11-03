@@ -7,16 +7,33 @@ package mozilla.components.service.glean
 import mozilla.components.support.base.log.logger.Logger
 
 /**
+ * Enumeration of different metric lifetimes.
+ */
+enum class Lifetime {
+    /**
+     * The metric is reset with each sent ping
+     */
+    Ping,
+    /**
+     * The metric is reset on application restart
+     */
+    Application,
+    /**
+     * The metric is reset with each user profile
+     */
+    User
+}
+
+/**
  * This defines the common set of data shared across all the different
  * metric types.
  */
 interface CommonMetricData {
-    val applicationProperty: Boolean
     val disabled: Boolean
     val category: String
+    val lifetime: Lifetime
     val name: String
     val sendInPings: List<String>
-    val userProperty: Boolean
 
     public fun shouldRecord(logger: Logger): Boolean {
         // Silently drop recording for disabled events.
@@ -27,7 +44,7 @@ interface CommonMetricData {
         // TODO implement "user" metric lifetime. See bug 1499756.
         // Metrics can be recorded with application or user lifetime. For now,
         // we only support "application": metrics live as long as the application lives.
-        if (!applicationProperty) {
+        if (lifetime != Lifetime.Application) {
             logger.error("The metric lifetime must be explicitly set.")
             return false
         }

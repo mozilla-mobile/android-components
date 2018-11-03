@@ -5,9 +5,7 @@
 package mozilla.components.lib.crash.prompt
 
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.support.v7.app.AppCompatActivity
 import android.view.View
 import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.*
@@ -18,6 +16,8 @@ import kotlinx.coroutines.experimental.withContext
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
+import java.io.File
+import java.io.IOException
 
 /**
  * Activity showing the crash reporter prompt asking the user for confirmation before submitting a crash report.
@@ -25,8 +25,8 @@ import mozilla.components.lib.crash.R
 class CrashReporterActivity : AppCompatActivity() {
     private val crashReporter: CrashReporter by lazy { CrashReporter.requireInstance }
     private val crash: Crash by lazy { Crash.fromIntent(intent) }
-    private val sendCheckboxKey = "send_checkbox_value"
-    private lateinit var sharedPreferences: SharedPreferences
+    private val sendCheckboxFile = "mozac_lib_crash_settings.xml"
+    private lateinit var newFile: File
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(crashReporter.promptConfiguration.theme)
@@ -45,8 +45,26 @@ class CrashReporterActivity : AppCompatActivity() {
         titleView.text = getString(R.string.mozac_lib_crash_dialog_title, appName)
         sendCheckbox.text = getString(R.string.mozac_lib_crash_dialog_checkbox, organizationName)
 
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
-        sendCheckbox.isChecked = sharedPreferences.getBoolean(sendCheckboxKey, true)
+        newFile = File(this.filesDir.path.toString() + sendCheckboxFile)
+
+        if (!newFile.exists()) {
+
+            try {
+                newFile.createNewFile()
+                /* After creating a new file, store a default value of 1 so that the
+                checkbox remains checked initially when the file is not present.
+                 */
+                newFile.writeText(true.toString())
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+
+        try {
+            sendCheckbox.isChecked = newFile.readText().toBoolean()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
 
         restartButton.apply {
             text = getString(R.string.mozac_lib_crash_dialog_button_restart, appName)
@@ -80,6 +98,14 @@ class CrashReporterActivity : AppCompatActivity() {
     }
 
     private fun sendCrashReportIfNeeded(then: () -> Unit) {
+
+        /* Store the value of send checkbox in a file to persist the value*/
+        try {
+            newFile.writeText(sendCheckbox.isChecked.toString())
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+
         if (!sendCheckbox.isChecked) {
             then()
             return
@@ -93,13 +119,4 @@ class CrashReporterActivity : AppCompatActivity() {
             }
         }
     }
-
-    override fun onStop() {
-        super.onStop()
-
-        /* Save the state of send checkbox into shared preferences. We can't use onSaveInstanceState here
-            because the state of the checkbox should also be preserved upon app restart.
-        */
-        sharedPreferences.edit().putBoolean(sendCheckboxKey, sendCheckbox.isChecked).apply()
-        }
 }

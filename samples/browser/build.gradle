@@ -80,7 +80,7 @@ android {
             setIgnore(true)
         }
 
-        if (flavors.contains("servo") && !flavors.contains("arm")) {
+        if (flavors.contains("servo") && flavors.contains("universal")) {
             setIgnore(true)
         }
     }

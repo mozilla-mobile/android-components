@@ -36,7 +36,10 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':support-utils')
 
-    implementation Deps.mozilla_servo
+    // We only compile against the ARM artifact. External module will decide which module to provide by build configuration.
+    // As the Kotlin/Java API is the same for all ABIs it is not important which one we import here.
+    compileOnly Deps.mozilla_servo_arm
+    testImplementation Deps.mozilla_servo_arm
 
     implementation Deps.kotlin_stdlib
     implementation Deps.kotlin_coroutines

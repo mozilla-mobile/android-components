@@ -80,7 +80,7 @@ android {
             setIgnore(true)
         }
 
-        if (flavors.contains("servo") && flavors.contains("universal")) {
+        if (flavors.contains("servo") && (flavors.contains("universal") || flavors.contains("aarch64"))) {
             setIgnore(true)
         }
     }
@@ -103,6 +103,9 @@ configurations {
     geckoReleaseArmImplementation {}
     geckoReleaseX86Implementation {}
     geckoReleaseAarch64Implementation {}
+
+    servoX86Implementation {}
+    servoArmImplementation {}
 }
 
 dependencies {
@@ -134,6 +137,8 @@ dependencies {
     implementation project(':support-ktx')
 
     servoImplementation project(':browser-engine-servo')
+    servoX86Implementation Deps.mozilla_servo_x86
+    servoArmImplementation Deps.mozilla_servo_arm
 
     geckoNightlyImplementation project(':browser-engine-gecko-nightly')
     geckoNightlyArmImplementation Gecko.geckoview_nightly_arm

@@ -4,10 +4,10 @@
 
 package mozilla.components.browser.awesomebar
 
-import kotlinx.coroutines.experimental.CoroutineScope
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.newSingleThreadContext
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -27,7 +27,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `BrowserAwesomeBar forwards input to providers`() {
-        runBlocking {
+        runBlocking(testMainScope.coroutineContext) {
             val provider1 = mockProvider()
             val provider2 = mockProvider()
             val provider3 = mockProvider()
@@ -87,7 +87,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `onInputCancelled stops jobs`() {
-        runBlocking {
+        runBlocking(testMainScope.coroutineContext) {
             var providerTriggered = false
             var providerCancelled = false
 
@@ -127,7 +127,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `BrowserAwesomeBar stops jobs when getting detached`() {
-        runBlocking {
+        runBlocking(testMainScope.coroutineContext) {
             var providerTriggered = false
             var providerCancelled = false
 
@@ -167,7 +167,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `BrowserAwesomeBar cancels previous jobs if onInputStarted gets called again`() {
-        runBlocking {
+        runBlocking(testMainScope.coroutineContext) {
             var firstProviderCallCancelled = false
             var timesProviderCalled = 0
 

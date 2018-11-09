@@ -12,12 +12,34 @@ permalink: /changelog/
 
 * Compiled against:
   * Android (SDK: 27, Support Libraries: 27.1.1)
-  * Kotlin (Stdlib: 1.2.71, Coroutines: 0.30.2)
-  * GeckoView (Nightly: 65.0.20181023100123, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Kotlin (Stdlib: **1.3.0** 🔺, Coroutines: **1.0.1** 🔺)
+  * GeckoView (Nightly: **65.0.20181107100135** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
 
 * **concept-storage**, **browser-storage-memory**, **browser-storage-sync**
   * Added a `getDomainSuggestion` method to `HistoryStorage` which is intended to power awesomebar-like functionality.
   * Added basic implementations of `getDomainSuggestion` to existing storage components.
+
+* **browser-session**, **concept-engine**, **browser-engine-system**, **browser-engine-gecko(-beta/nightly)**:
+  * ⚠️ **This is a breaking change**
+  * Added functionality to observe permission requests from the browser engine. We have now removed the workaround that automatically granted permission to play protected (DRM) media. Permission requests can be observed via the browser session:
+
+  ```Kotlin
+  // Grant permission to all DRM content
+  permissionObserver = object : SelectionAwareSessionObserver(sessionManager) {
+      override fun onContentPermissionRequested(session: Session, permissionRequest: PermissionRequest): Boolean =
+          permissionRequest.grantIf { it is Permission.ContentProtectedMediaId }
+  }
+
+  override fun onStart() {
+    // Observe permission requests on selected sessions
+    permissionObserver.observeSelected()
+  }
+
+  override fun onStop() {
+    permissionObserver.stop()
+  }
+
+  ```
 
 # 0.30.0
 

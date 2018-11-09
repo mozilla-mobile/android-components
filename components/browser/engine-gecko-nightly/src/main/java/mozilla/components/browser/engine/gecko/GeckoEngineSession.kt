@@ -6,8 +6,9 @@ package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import kotlinx.coroutines.experimental.CompletableDeferred
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
+import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
@@ -31,6 +32,7 @@ import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_NONE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_VIDEO
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSessionSettings
+import org.mozilla.geckoview.WebRequestError
 
 /**
  * Gecko-based EngineSession implementation.
@@ -67,6 +69,7 @@ class GeckoEngineSession(
         geckoSession.progressDelegate = createProgressDelegate()
         geckoSession.contentDelegate = createContentDelegate()
         geckoSession.trackingProtectionDelegate = createTrackingProtectionDelegate()
+        geckoSession.permissionDelegate = createPermissionDelegate()
     }
 
     /**
@@ -286,12 +289,11 @@ class GeckoEngineSession(
         override fun onLoadError(
             session: GeckoSession?,
             uri: String,
-            category: Int,
-            error: Int
+            error: WebRequestError
         ): GeckoResult<String> {
             settings.requestInterceptor?.onErrorRequest(
                 this@GeckoEngineSession,
-                geckoErrorToErrorType(error),
+                geckoErrorToErrorType(error.code),
                 uri
             )?.apply {
                 return GeckoResult.fromValue(Base64.encodeToUriString(data))
@@ -400,6 +402,45 @@ class GeckoEngineSession(
             session?.let { uri?.let { notifyObservers { onTrackerBlocked(it) } } }
     }
 
+    private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
+        override fun onContentPermissionRequest(
+            session: GeckoSession?,
+            uri: String?,
+            type: Int,
+            access: String?,
+            callback: GeckoSession.PermissionDelegate.Callback
+        ) {
+            val request = GeckoPermissionRequest.Content(uri ?: "", type, callback)
+            notifyObservers { onContentPermissionRequest(request) }
+        }
+
+        override fun onMediaPermissionRequest(
+            session: GeckoSession?,
+            uri: String?,
+            video: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
+            audio: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
+            callback: GeckoSession.PermissionDelegate.MediaCallback
+        ) {
+            val request = GeckoPermissionRequest.Media(
+                    uri ?: "",
+                    video?.toList() ?: emptyList(),
+                    audio?.toList() ?: emptyList(),
+                    callback)
+            notifyObservers { onContentPermissionRequest(request) }
+        }
+
+        override fun onAndroidPermissionsRequest(
+            session: GeckoSession?,
+            permissions: Array<out String>?,
+            callback: GeckoSession.PermissionDelegate.Callback
+        ) {
+            val request = GeckoPermissionRequest.App(
+                    permissions?.toList() ?: emptyList(),
+                    callback)
+            notifyObservers { onAppPermissionRequest(request) }
+        }
+    }
+
     @Suppress("ComplexMethod")
     fun handleLongClick(elementSrc: String?, elementType: Int, uri: String? = null): HitResult? {
         return when (elementType) {
@@ -453,34 +494,34 @@ class GeckoEngineSession(
          * Provides an ErrorType corresponding to the error code provided.
          */
         @Suppress("ComplexMethod")
-        internal fun geckoErrorToErrorType(@NavigationDelegate.LoadError errorCode: Int) =
+        internal fun geckoErrorToErrorType(@WebRequestError.Error errorCode: Int) =
             when (errorCode) {
-                NavigationDelegate.ERROR_UNKNOWN -> ErrorType.UNKNOWN
-                NavigationDelegate.ERROR_SECURITY_SSL -> ErrorType.ERROR_SECURITY_SSL
-                NavigationDelegate.ERROR_SECURITY_BAD_CERT -> ErrorType.ERROR_SECURITY_BAD_CERT
-                NavigationDelegate.ERROR_NET_INTERRUPT -> ErrorType.ERROR_NET_INTERRUPT
-                NavigationDelegate.ERROR_NET_TIMEOUT -> ErrorType.ERROR_NET_TIMEOUT
-                NavigationDelegate.ERROR_CONNECTION_REFUSED -> ErrorType.ERROR_CONNECTION_REFUSED
-                NavigationDelegate.ERROR_UNKNOWN_SOCKET_TYPE -> ErrorType.ERROR_UNKNOWN_SOCKET_TYPE
-                NavigationDelegate.ERROR_REDIRECT_LOOP -> ErrorType.ERROR_REDIRECT_LOOP
-                NavigationDelegate.ERROR_OFFLINE -> ErrorType.ERROR_OFFLINE
-                NavigationDelegate.ERROR_PORT_BLOCKED -> ErrorType.ERROR_PORT_BLOCKED
-                NavigationDelegate.ERROR_NET_RESET -> ErrorType.ERROR_NET_RESET
-                NavigationDelegate.ERROR_UNSAFE_CONTENT_TYPE -> ErrorType.ERROR_UNSAFE_CONTENT_TYPE
-                NavigationDelegate.ERROR_CORRUPTED_CONTENT -> ErrorType.ERROR_CORRUPTED_CONTENT
-                NavigationDelegate.ERROR_CONTENT_CRASHED -> ErrorType.ERROR_CONTENT_CRASHED
-                NavigationDelegate.ERROR_INVALID_CONTENT_ENCODING -> ErrorType.ERROR_INVALID_CONTENT_ENCODING
-                NavigationDelegate.ERROR_UNKNOWN_HOST -> ErrorType.ERROR_UNKNOWN_HOST
-                NavigationDelegate.ERROR_MALFORMED_URI -> ErrorType.ERROR_MALFORMED_URI
-                NavigationDelegate.ERROR_UNKNOWN_PROTOCOL -> ErrorType.ERROR_UNKNOWN_PROTOCOL
-                NavigationDelegate.ERROR_FILE_NOT_FOUND -> ErrorType.ERROR_FILE_NOT_FOUND
-                NavigationDelegate.ERROR_FILE_ACCESS_DENIED -> ErrorType.ERROR_FILE_ACCESS_DENIED
-                NavigationDelegate.ERROR_PROXY_CONNECTION_REFUSED -> ErrorType.ERROR_PROXY_CONNECTION_REFUSED
-                NavigationDelegate.ERROR_UNKNOWN_PROXY_HOST -> ErrorType.ERROR_UNKNOWN_PROXY_HOST
-                NavigationDelegate.ERROR_SAFEBROWSING_MALWARE_URI -> ErrorType.ERROR_SAFEBROWSING_MALWARE_URI
-                NavigationDelegate.ERROR_SAFEBROWSING_UNWANTED_URI -> ErrorType.ERROR_SAFEBROWSING_UNWANTED_URI
-                NavigationDelegate.ERROR_SAFEBROWSING_HARMFUL_URI -> ErrorType.ERROR_SAFEBROWSING_HARMFUL_URI
-                NavigationDelegate.ERROR_SAFEBROWSING_PHISHING_URI -> ErrorType.ERROR_SAFEBROWSING_PHISHING_URI
+                WebRequestError.ERROR_UNKNOWN -> ErrorType.UNKNOWN
+                WebRequestError.ERROR_SECURITY_SSL -> ErrorType.ERROR_SECURITY_SSL
+                WebRequestError.ERROR_SECURITY_BAD_CERT -> ErrorType.ERROR_SECURITY_BAD_CERT
+                WebRequestError.ERROR_NET_INTERRUPT -> ErrorType.ERROR_NET_INTERRUPT
+                WebRequestError.ERROR_NET_TIMEOUT -> ErrorType.ERROR_NET_TIMEOUT
+                WebRequestError.ERROR_CONNECTION_REFUSED -> ErrorType.ERROR_CONNECTION_REFUSED
+                WebRequestError.ERROR_UNKNOWN_SOCKET_TYPE -> ErrorType.ERROR_UNKNOWN_SOCKET_TYPE
+                WebRequestError.ERROR_REDIRECT_LOOP -> ErrorType.ERROR_REDIRECT_LOOP
+                WebRequestError.ERROR_OFFLINE -> ErrorType.ERROR_OFFLINE
+                WebRequestError.ERROR_PORT_BLOCKED -> ErrorType.ERROR_PORT_BLOCKED
+                WebRequestError.ERROR_NET_RESET -> ErrorType.ERROR_NET_RESET
+                WebRequestError.ERROR_UNSAFE_CONTENT_TYPE -> ErrorType.ERROR_UNSAFE_CONTENT_TYPE
+                WebRequestError.ERROR_CORRUPTED_CONTENT -> ErrorType.ERROR_CORRUPTED_CONTENT
+                WebRequestError.ERROR_CONTENT_CRASHED -> ErrorType.ERROR_CONTENT_CRASHED
+                WebRequestError.ERROR_INVALID_CONTENT_ENCODING -> ErrorType.ERROR_INVALID_CONTENT_ENCODING
+                WebRequestError.ERROR_UNKNOWN_HOST -> ErrorType.ERROR_UNKNOWN_HOST
+                WebRequestError.ERROR_MALFORMED_URI -> ErrorType.ERROR_MALFORMED_URI
+                WebRequestError.ERROR_UNKNOWN_PROTOCOL -> ErrorType.ERROR_UNKNOWN_PROTOCOL
+                WebRequestError.ERROR_FILE_NOT_FOUND -> ErrorType.ERROR_FILE_NOT_FOUND
+                WebRequestError.ERROR_FILE_ACCESS_DENIED -> ErrorType.ERROR_FILE_ACCESS_DENIED
+                WebRequestError.ERROR_PROXY_CONNECTION_REFUSED -> ErrorType.ERROR_PROXY_CONNECTION_REFUSED
+                WebRequestError.ERROR_UNKNOWN_PROXY_HOST -> ErrorType.ERROR_UNKNOWN_PROXY_HOST
+                WebRequestError.ERROR_SAFEBROWSING_MALWARE_URI -> ErrorType.ERROR_SAFEBROWSING_MALWARE_URI
+                WebRequestError.ERROR_SAFEBROWSING_UNWANTED_URI -> ErrorType.ERROR_SAFEBROWSING_UNWANTED_URI
+                WebRequestError.ERROR_SAFEBROWSING_HARMFUL_URI -> ErrorType.ERROR_SAFEBROWSING_HARMFUL_URI
+                WebRequestError.ERROR_SAFEBROWSING_PHISHING_URI -> ErrorType.ERROR_SAFEBROWSING_PHISHING_URI
                 else -> ErrorType.UNKNOWN
             }
     }

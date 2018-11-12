@@ -122,16 +122,6 @@ subprojects {
                     }
                 }
             }
-
-            if (it.hasProperty('kotlin')) {
-                android {
-                    kotlin {
-                        experimental {
-                            coroutines 'enable'
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -208,9 +198,12 @@ task ktlint(type: JavaExec, group: "verification") {
 
 task printModules {
     doLast {
-        subprojects.each { p ->
-            println "module: " + p.path
-        }
+        def modules = subprojects.collect { p -> [
+            name: p.path.toString(),
+            buildPath: p.buildDir.toString(),
+            shouldPublish: p.ext.shouldPublish
+        ] }
+        println groovy.json.JsonOutput.toJson(modules)
     }
 }
 

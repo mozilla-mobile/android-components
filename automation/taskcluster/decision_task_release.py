@@ -11,8 +11,8 @@ import argparse
 import json
 import os
 import taskcluster
-import yaml
 
+import lib.module_definitions
 import lib.tasks
 
 TASK_ID = os.environ.get('TASK_ID')
@@ -29,15 +29,10 @@ BUILDER = lib.tasks.TaskBuilder(
 )
 
 
-def load_artifacts_manifest():
-    return yaml.safe_load(open('automation/taskcluster/artifacts.yml', 'r'))
-
-
-def fetch_build_task_artifacts():
-    artifacts_info = load_artifacts_manifest()
+def fetch_build_task_artifacts(artifacts_info):
     artifacts = {}
-    for artifact, info in artifacts_info.items():
-        artifacts[artifact] = {
+    for info in artifacts_info:
+        artifacts[info['artifact']] = {
             'type': 'file',
             'expires': taskcluster.stringDate(taskcluster.fromNow('1 year')),
             'path': info['path']
@@ -46,13 +41,13 @@ def fetch_build_task_artifacts():
     return artifacts
 
 
-def generate_build_task(version):
+def generate_build_task(version, artifacts_info):
     checkout = ("git fetch origin --tags && "
                 "git config advice.detachedHead false && "
                 "git checkout {}".format(version))
 
     assemble_task = 'assembleRelease'
-    artifacts = fetch_build_task_artifacts()
+    artifacts = fetch_build_task_artifacts(artifacts_info)
 
     return taskcluster.slugId(), BUILDER.build_task(
         name="Android Components - Release ({})".format(version),
@@ -70,9 +65,9 @@ def generate_build_task(version):
     )
 
 
-def generate_beetmover_task(build_task_id, version, artifact, info):
+def generate_beetmover_task(build_task_id, version, artifact, artifact_name):
     version = version.lstrip('v')
-    upstreamArtifacts = [
+    upstream_artifacts = [
         {
             "paths": [
                 artifact
@@ -87,12 +82,12 @@ def generate_beetmover_task(build_task_id, version, artifact, info):
         "project:mobile:android-components:releng:beetmover:action:push-to-maven"
     ]
     return taskcluster.slugId(), BUILDER.beetmover_task(
-        name="Android Components - Publish Module :{} via beetmover".format(info['name']),
-        description="Publish release module {} to https://maven.mozilla.org".format(info['name']),
+        name="Android Components - Publish Module :{} via beetmover".format(artifact_name),
+        description="Publish release module {} to https://maven.mozilla.org".format(artifact_name),
         version=version,
-        artifact_id=info['name'],
+        artifact_id=artifact_name,
         dependencies=[build_task_id],
-        upstreamArtifacts=upstreamArtifacts,
+        upstreamArtifacts=upstream_artifacts,
         scopes=scopes
     )
 
@@ -111,17 +106,17 @@ def release(version):
     queue = taskcluster.Queue({'baseUrl': 'http://taskcluster/queue/v1'})
 
     task_graph = {}
+    artifacts_info = lib.module_definitions.from_gradle()
 
-    build_task_id, build_task = generate_build_task(version)
+    build_task_id, build_task = generate_build_task(version, artifacts_info)
     lib.tasks.schedule_task(queue, build_task_id, build_task)
 
     task_graph[build_task_id] = {}
     task_graph[build_task_id]["task"] = queue.task(build_task_id)
 
-    artifacts_info = load_artifacts_manifest()
-
-    for artifact, info in artifacts_info.items():
-        beetmover_task_id, beetmover_task = generate_beetmover_task(build_task_id, version, artifact, info)
+    for info in artifacts_info:
+        beetmover_task_id, beetmover_task = generate_beetmover_task(build_task_id, version, info['artifact'],
+                                                                    info['name'])
         lib.tasks.schedule_task(queue, beetmover_task_id, beetmover_task)
 
         task_graph[beetmover_task_id] = {}

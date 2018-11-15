@@ -3,21 +3,62 @@
 
 package mozilla.components.service.glean.storages
 
+import android.content.Context
+import android.content.SharedPreferences
+import mozilla.components.service.glean.Lifetime
 import java.util.UUID
 
 import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.eq
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class UuidsStorageEngineTest {
 
     @Before
     fun setUp() {
+        UuidsStorageEngine.applicationContext = RuntimeEnvironment.application
+        // Clear the stored "user" preferences between tests.
+        RuntimeEnvironment.application
+            .getSharedPreferences(UuidsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
         UuidsStorageEngine.clearAllStores()
+    }
+
+    @Test
+    fun `uuid deserializer should correctly parse UUIDs`() {
+        val persistedSample = mapOf(
+            "store1#telemetry.invalid_number" to 1,
+            "store1#telemetry.invalid_bool" to false,
+            "store1#telemetry.invalid_string" to "c4ff33",
+            "store1#telemetry.valid" to "ce2adeb8-843a-4232-87a5-a099ed1e7bb3"
+        )
+
+        val storageEngine = UuidsStorageEngineImplementation()
+
+        // Create a fake application context that will be used to load our data.
+        val context = mock(Context::class.java)
+        val sharedPreferences = mock(SharedPreferences::class.java)
+        `when`(sharedPreferences.all).thenAnswer { persistedSample }
+        `when`(context.getSharedPreferences(
+            eq(storageEngine::class.java.simpleName),
+            eq(Context.MODE_PRIVATE)
+        )).thenReturn(sharedPreferences)
+
+        storageEngine.applicationContext = context
+        val snapshot = storageEngine.getSnapshot(storeName = "store1", clearStore = true)
+        assertEquals(1, snapshot!!.size)
+        assertEquals("ce2adeb8-843a-4232-87a5-a099ed1e7bb3", snapshot["telemetry.valid"].toString())
     }
 
     @Test
@@ -30,6 +71,7 @@ class UuidsStorageEngineTest {
                 stores = storeNames,
                 category = "telemetry",
                 name = "uuid_metric",
+                lifetime = Lifetime.Ping,
                 value = uuid
         )
 
@@ -58,6 +100,7 @@ class UuidsStorageEngineTest {
                 stores = storeNames,
                 category = "telemetry",
                 name = "uuid_metric",
+                lifetime = Lifetime.Ping,
                 value = uuid
         )
 
@@ -73,5 +116,55 @@ class UuidsStorageEngineTest {
         for (s in listOf(snapshot, snapshot2)) {
             assertEquals(1, s!!.size)
         }
+    }
+
+    @Test
+    fun `Uuids are serialized in the correct JSON format`() {
+        val testUUID = "ce2adeb8-843a-4232-87a5-a099ed1e7bb3"
+
+        // Record the string in the store, without providing optional arguments.
+        UuidsStorageEngine.record(
+            stores = listOf("store1"),
+            category = "telemetry",
+            name = "uuid_metric",
+            lifetime = Lifetime.Ping,
+            value = UUID.fromString(testUUID)
+        )
+
+        // Get the snapshot from "store1" and clear it.
+        val snapshot = UuidsStorageEngine.getSnapshotAsJSON(storeName = "store1", clearStore = true)
+        // Check that getting a new snapshot for "store1" returns an empty store.
+        assertNull("The engine must report 'null' on empty stores",
+            UuidsStorageEngine.getSnapshotAsJSON(storeName = "store1", clearStore = false))
+        // Check that this serializes to the expected JSON format.
+        assertEquals("{\"telemetry.uuid_metric\":\"$testUUID\"}",
+            snapshot.toString())
+    }
+
+    @Test
+    fun `uuids with 'user' lifetime must be correctly persisted`() {
+        val sampleUUID = "decaffde-caff-d3ca-ffd3-caffd3caffd3"
+
+        val storageEngine = UuidsStorageEngineImplementation()
+        storageEngine.applicationContext = RuntimeEnvironment.application
+
+        storageEngine.record(
+            stores = listOf("some_store", "other_store"),
+            category = "telemetry",
+            name = "uuidMetric",
+            lifetime = Lifetime.User,
+            value = UUID.fromString(sampleUUID)
+        )
+
+        // Check that the persisted shared prefs contains the expected data.
+        val storedData = RuntimeEnvironment.application
+            .getSharedPreferences(storageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
+            .all
+
+        assertEquals(2, storedData.size)
+        assertTrue(storedData.containsKey("some_store#telemetry.uuidMetric"))
+        assertTrue(storedData.containsKey("other_store#telemetry.uuidMetric"))
+        assertEquals(sampleUUID, storedData.getValue("some_store#telemetry.uuidMetric"))
+        assertEquals(sampleUUID, storedData.getValue("other_store#telemetry.uuidMetric"))
     }
 }

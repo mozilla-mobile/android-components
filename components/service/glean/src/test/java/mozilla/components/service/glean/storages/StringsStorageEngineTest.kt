@@ -3,19 +3,59 @@
 
 package mozilla.components.service.glean.storages
 
+import android.content.Context
+import android.content.SharedPreferences
+import mozilla.components.service.glean.Lifetime
 import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.eq
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.mock
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class StringsStorageEngineTest {
 
     @Before
     fun setUp() {
+        StringsStorageEngine.applicationContext = RuntimeEnvironment.application
+        // Clear the stored "user" preferences between tests.
+        RuntimeEnvironment.application
+            .getSharedPreferences(StringsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
         StringsStorageEngine.clearAllStores()
+    }
+
+    @Test
+    fun `string deserializer should correctly parse strings`() {
+        val persistedSample = mapOf(
+            "store1#telemetry.invalid_number" to 1,
+            "store1#telemetry.invalid_bool" to false,
+            "store1#telemetry.null" to null,
+            "store1#telemetry.valid" to "test"
+        )
+
+        val storageEngine = StringsStorageEngineImplementation()
+
+        // Create a fake application context that will be used to load our data.
+        val context = mock(Context::class.java)
+        val sharedPreferences = mock(SharedPreferences::class.java)
+        `when`(sharedPreferences.all).thenAnswer { persistedSample }
+        `when`(context.getSharedPreferences(
+            eq(storageEngine::class.java.simpleName),
+            eq(Context.MODE_PRIVATE)
+        )).thenReturn(sharedPreferences)
+
+        storageEngine.applicationContext = context
+        val snapshot = storageEngine.getSnapshot(storeName = "store1", clearStore = true)
+        assertEquals(1, snapshot!!.size)
+        assertEquals("test", snapshot["telemetry.valid"])
     }
 
     @Test
@@ -27,6 +67,7 @@ class StringsStorageEngineTest {
                 stores = storeNames,
                 category = "telemetry",
                 name = "string_metric",
+                lifetime = Lifetime.Ping,
                 value = "test_string_object"
         )
 
@@ -50,10 +91,11 @@ class StringsStorageEngineTest {
 
         // Record the string in the stores, without providing optional arguments.
         StringsStorageEngine.record(
-                stores = storeNames,
-                category = "telemetry",
-                name = "string_metric",
-                value = "test_string_value"
+            stores = storeNames,
+            category = "telemetry",
+            name = "string_metric",
+            lifetime = Lifetime.Ping,
+            value = "test_string_value"
         )
 
         // Get the snapshot from "store1" and clear it.
@@ -77,6 +119,7 @@ class StringsStorageEngineTest {
             stores = listOf("store1"),
             category = "telemetry",
             name = "string_metric",
+            lifetime = Lifetime.Ping,
             value = "test_string_value"
         )
 

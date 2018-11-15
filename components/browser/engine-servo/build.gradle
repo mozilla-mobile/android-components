@@ -31,18 +31,12 @@ android {
     }
 }
 
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
-
 dependencies {
     implementation project(':concept-engine')
     implementation project(':support-ktx')
     implementation project(':support-utils')
 
-    implementation(name: 'servo-2018-10-08', ext: 'aar')
+    implementation Deps.mozilla_servo
 
     implementation Deps.kotlin_stdlib
     implementation Deps.kotlin_coroutines
@@ -54,10 +48,5 @@ dependencies {
     testImplementation Deps.testing_mockito
 }
 
-archivesBaseName = "browser-engine-servo"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'browser-engine-servo',
-        'Engine implementation based on the Servo Browser Engine.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

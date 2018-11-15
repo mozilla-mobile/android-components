@@ -6,6 +6,7 @@ package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import android.support.annotation.CallSuper
+import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 
@@ -36,11 +37,14 @@ abstract class EngineSession(
         fun onFindResult(activeMatchOrdinal: Int, numberOfMatches: Int, isDoneCounting: Boolean) = Unit
         fun onFullScreenChange(enabled: Boolean) = Unit
         fun onThumbnailChange(bitmap: Bitmap?) = Unit
+        fun onAppPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
+        fun onContentPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
+        fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
             url: String,
-            fileName: String? = null,
+            fileName: String,
             contentLength: Long? = null,
             contentType: String? = null,
             cookie: String? = null,
@@ -64,7 +68,8 @@ abstract class EngineSession(
             const val ANALYTICS: Int = 1 shl 1
             const val SOCIAL: Int = 1 shl 2
             const val CONTENT: Int = 1 shl 3
-            const val WEBFONTS: Int = 1 shl 4
+            // This policy is just to align categories with GeckoView (which has CATEGORY_TEST = 1 << 4)
+            const val TEST: Int = 1 shl 4
             internal const val ALL: Int = (1 shl 5) - 1
 
             fun none(): TrackingProtectionPolicy = TrackingProtectionPolicy(NONE)

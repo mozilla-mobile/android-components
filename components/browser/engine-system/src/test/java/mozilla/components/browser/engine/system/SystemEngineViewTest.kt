@@ -16,13 +16,19 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
-import android.webkit.WebView.HitTestResult
+import android.webkit.ValueCallback
 import android.webkit.WebViewClient
+import android.webkit.WebView.HitTestResult
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -32,6 +38,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
@@ -211,6 +218,123 @@ class SystemEngineViewTest {
     }
 
     @Test
+    fun `SystemEngineView keeps track of current url via onPageStart events`() {
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val webView: WebView = mock()
+
+        assertEquals("", engineView.currentUrl)
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.mozilla.org/", null)
+        assertEquals("https://www.mozilla.org/", engineView.currentUrl)
+
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.firefox.com/", null)
+        assertEquals("https://www.firefox.com/", engineView.currentUrl)
+    }
+
+    @Test
+    fun `WebView client notifies configured history delegate of url visits`() = runBlocking {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val webView: WebView = mock()
+        val historyDelegate: HistoryTrackingDelegate = mock()
+
+        // Nothing breaks if delegate isn't set and session isn't rendered.
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
+
+        engineView.render(engineSession)
+
+        // Nothing breaks if delegate isn't set.
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
+
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(false), eq(false))
+
+        engineView.currentWebView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", true)
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(true), eq(false))
+    }
+
+    @Test
+    fun `WebView client requests history from configured history delegate`() {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val historyDelegate = object : HistoryTrackingDelegate {
+            override suspend fun onVisited(uri: String, isReload: Boolean, privateMode: Boolean) {
+                fail()
+            }
+
+            override suspend fun onTitleChanged(uri: String, title: String, privateMode: Boolean) {
+                fail()
+            }
+
+            override fun getVisited(uris: List<String>, privateMode: Boolean): Deferred<List<Boolean>> {
+                fail()
+                return CompletableDeferred(listOf())
+            }
+
+            override fun getVisited(privateMode: Boolean): Deferred<List<String>> {
+                return CompletableDeferred(listOf("https://www.mozilla.com"))
+            }
+        }
+
+        // Nothing breaks if delegate isn't set and session isn't rendered.
+        engineView.currentWebView.webChromeClient.getVisitedHistory(mock())
+
+        engineView.render(engineSession)
+
+        // Nothing breaks if delegate isn't set.
+        engineView.currentWebView.webChromeClient.getVisitedHistory(mock())
+
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        val historyValueCallback: ValueCallback<Array<String>> = mock()
+        runBlocking {
+            engineView.currentWebView.webChromeClient.getVisitedHistory(historyValueCallback)
+        }
+        verify(historyValueCallback).onReceiveValue(arrayOf("https://www.mozilla.com"))
+    }
+
+    @Test
+    fun `WebView client notifies configured history delegate of title changes`() = runBlocking {
+        val engineSession = SystemEngineSession()
+
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        val webView: WebView = mock()
+        val historyDelegate: HistoryTrackingDelegate = mock()
+
+        // Nothing breaks if delegate isn't set and session isn't rendered.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+
+        // This initializes our settings.
+        engineView.render(engineSession)
+
+        // Nothing breaks if delegate isn't set.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+
+        // We can now set the delegate. Were it set before the render call,
+        // it'll get overwritten during settings initialization.
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        // Delegate not notified if, somehow, there's no currentUrl present in the view.
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+        verify(historyDelegate, never()).onTitleChanged(eq(""), eq("New title!"), eq(false))
+
+        // This sets the currentUrl.
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.mozilla.org/", null)
+
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, "New title!")
+        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.org/"), eq("New title!"), eq(false))
+
+        reset(historyDelegate)
+
+        // Empty title when none provided
+        engineView.currentWebView.webChromeClient.onReceivedTitle(webView, null)
+        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.org/"), eq(""), eq(false))
+    }
+
+    @Test
     fun `WebView client notifies observers about title changes`() {
         val engineSession = SystemEngineSession()
 
@@ -219,6 +343,9 @@ class SystemEngineViewTest {
         val webView: WebView = mock()
         `when`(webView.canGoBack()).thenReturn(true)
         `when`(webView.canGoForward()).thenReturn(true)
+
+        // This sets the currentUrl.
+        engineView.currentWebView.webViewClient.onPageStarted(webView, "https://www.mozilla.org/", null)
 
         // No observers notified when session isn't rendered.
         engineSession.register(observer)
@@ -252,7 +379,7 @@ class SystemEngineViewTest {
         engineSession.register(object : EngineSession.Observer {
             override fun onExternalResource(
                 url: String,
-                fileName: String?,
+                fileName: String,
                 contentLength: Long?,
                 contentType: String?,
                 cookie: String?,
@@ -739,5 +866,34 @@ class SystemEngineViewTest {
                 TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.SOCIAL)
         )
         assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.SOCIAL), urlMatcher.enabledCategories)
+    }
+
+    @Test
+    fun `permission requests are forwarded to observers`() {
+        val permissionRequest: android.webkit.PermissionRequest = mock()
+        `when`(permissionRequest.resources).thenReturn(emptyArray())
+        `when`(permissionRequest.origin).thenReturn(Uri.parse("https://mozilla.org"))
+
+        val engineSession = SystemEngineSession()
+        val engineView = SystemEngineView(RuntimeEnvironment.application)
+        engineView.render(engineSession)
+
+        var observedPermissionRequest: PermissionRequest? = null
+        var cancelledPermissionRequest: PermissionRequest? = null
+        engineSession.register(object : EngineSession.Observer {
+            override fun onContentPermissionRequest(permissionRequest: PermissionRequest) {
+                observedPermissionRequest = permissionRequest
+            }
+
+            override fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) {
+                cancelledPermissionRequest = permissionRequest
+            }
+        })
+
+        engineView.currentWebView.webChromeClient.onPermissionRequest(permissionRequest)
+        assertNotNull(observedPermissionRequest)
+
+        engineView.currentWebView.webChromeClient.onPermissionRequestCanceled(permissionRequest)
+        assertNotNull(cancelledPermissionRequest)
     }
 }

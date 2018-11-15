@@ -13,17 +13,30 @@ import android.view.View
 import android.content.Intent
 import android.widget.CheckBox
 import android.widget.TextView
-import mozilla.components.service.fxa.Config
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mozilla.components.service.fxa.FirefoxAccount
-import mozilla.components.service.fxa.FxaResult
-import mozilla.components.service.fxa.OAuthInfo
+import mozilla.components.service.fxa.FxaException
+import mozilla.components.service.fxa.Config
 import mozilla.components.service.fxa.Profile
+import kotlin.coroutines.CoroutineContext
 
-open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener {
+open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
 
-    private var account: FirefoxAccount? = null
-    private var scopes: Array<String> = arrayOf("profile")
+    private lateinit var whenAccount: Deferred<FirefoxAccount>
+    private var scopesWithoutKeys: Array<String> = arrayOf("profile")
+    private var scopesWithKeys: Array<String> = arrayOf("profile", "https://identity.mozilla.com/apps/oldsync")
+    private var scopes: Array<String> = scopesWithoutKeys
     private var wantsKeys: Boolean = false
+
+    private lateinit var job: Job
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
 
     companion object {
         const val CLIENT_ID = "12cc4070a481bc73"
@@ -37,46 +50,39 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        job = Job()
 
-        getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).getString(FXA_STATE_KEY, "").let {
-            FirefoxAccount.fromJSONString(it).then({
-                this.account = it
-                account?.getProfile()
-            }, {
-                getIntent().getExtras()?.getString("pairingUrl")?.let {
-                    Config.custom(CONFIG_URL_PAIRING).then { value: Config ->
-                        val acct = FirefoxAccount(value, CLIENT_ID, REDIRECT_URL)
-                        account = acct
-
-                        account?.beginPairingFlow(it, scopes)?.whenComplete {
-                            openWebView(it)
-                        }
-
-                        acct.getProfile()
-                    }
-                } ?: run {
-                    Config.custom(CONFIG_URL).then { value: Config ->
-                        val acct = FirefoxAccount(value, CLIENT_ID, REDIRECT_URL)
-                        account = acct
-
-                        acct.getProfile()
+        whenAccount = async {
+            getAuthenticatedAccount()?.let {
+                val profile = it.getProfile(true).await()
+                displayProfile(profile)
+                return@async it
+            }
+            intent.extras?.getString("pairingUrl")?.let { pairingUrl ->
+                Config.custom(CONFIG_URL_PAIRING).await().use { config ->
+                    val acct = FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+                    val url = acct.beginPairingFlow(pairingUrl, scopes).await()
+                    openWebView(url)
+                    return@async acct
                 }
-
-                }
-            }).whenComplete {
-                val txtView: TextView = findViewById(R.id.txtView)
-                runOnUiThread {
-                    txtView.text = getString(R.string.signed_in, "${it.displayName ?: ""} ${it.email}")
-                }
+            }
+            return@async Config.custom(CONFIG_URL).await().use { config ->
+                FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
             }
         }
 
         findViewById<View>(R.id.buttonCustomTabs).setOnClickListener {
-            account?.beginOAuthFlow(scopes, wantsKeys)?.whenComplete { openTab(it) }
+            launch {
+                val url = whenAccount.await().beginOAuthFlow(scopes, wantsKeys).await()
+                openTab(url)
+            }
         }
 
         findViewById<View>(R.id.buttonWebView).setOnClickListener {
-            account?.beginOAuthFlow(scopes, wantsKeys)?.whenComplete { openWebView(it) }
+            launch {
+                val url = whenAccount.await().beginOAuthFlow(scopes, wantsKeys).await()
+                openWebView(url)
+            }
         }
 
         findViewById<View>(R.id.buttonPair).setOnClickListener {
@@ -92,22 +98,14 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
 
         findViewById<CheckBox>(R.id.checkboxKeys).setOnCheckedChangeListener { _, isChecked ->
             wantsKeys = isChecked
+            scopes = if (isChecked) scopesWithKeys else scopesWithoutKeys
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        account?.close()
-    }
-
-    private fun openTab(url: String) {
-        val customTabsIntent = CustomTabsIntent.Builder()
-                .addDefaultShareMenuItem()
-                .setShowTitle(true)
-                .build()
-
-        customTabsIntent.intent.data = Uri.parse(url)
-        customTabsIntent.launchUrl(this@MainActivity, Uri.parse(url))
+        runBlocking { whenAccount.await().close() }
+        job.cancel()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -123,6 +121,32 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         }
     }
 
+    override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
+        displayAndPersistProfile(code, state)
+        supportFragmentManager?.popBackStack()
+    }
+
+    private fun getAuthenticatedAccount(): FirefoxAccount? {
+        val savedJSON = getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).getString(FXA_STATE_KEY, "")
+        return savedJSON?.let {
+            try {
+                FirefoxAccount.fromJSONString(it)
+            } catch (e: FxaException) {
+                null
+            }
+        }
+    }
+
+    private fun openTab(url: String) {
+        val customTabsIntent = CustomTabsIntent.Builder()
+                .addDefaultShareMenuItem()
+                .setShowTitle(true)
+                .build()
+
+        customTabsIntent.intent.data = Uri.parse(url)
+        customTabsIntent.launchUrl(this@MainActivity, Uri.parse(url))
+    }
+
     private fun openWebView(url: String) {
         supportFragmentManager?.beginTransaction()?.apply {
             replace(R.id.container, LoginFragment.create(url, REDIRECT_URL))
@@ -131,23 +155,21 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         }
     }
 
-    override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
-        displayAndPersistProfile(code, state)
-        supportFragmentManager?.popBackStack()
-    }
-
     private fun displayAndPersistProfile(code: String, state: String) {
-        val txtView: TextView = findViewById(R.id.txtView)
-        val handleAuth = { _: OAuthInfo -> account?.getProfile() }
-        val handleProfile = { value: Profile ->
-            runOnUiThread {
-                txtView.text = getString(R.string.signed_in, "${value.displayName ?: ""} ${value.email}")
-            }
-            account?.toJSONString().let {
-                getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit().putString(FXA_STATE_KEY, it).apply()
+        launch {
+            val account = whenAccount.await()
+            account.completeOAuthFlow(code, state).await()
+            val profile = account.getProfile().await()
+            displayProfile(profile)
+            account.toJSONString().let {
+                getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE)
+                        .edit().putString(FXA_STATE_KEY, it).apply()
             }
         }
+    }
 
-        account?.completeOAuthFlow(code, state)?.then(handleAuth)?.whenComplete(handleProfile)
+    private fun displayProfile(profile: Profile) {
+        val txtView: TextView = findViewById(R.id.txtView)
+        txtView.text = getString(R.string.signed_in, "${profile.displayName ?: ""} ${profile.email}")
     }
 }

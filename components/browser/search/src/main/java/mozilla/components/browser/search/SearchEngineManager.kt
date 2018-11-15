@@ -8,11 +8,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.Deferred
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.search.provider.AssetsSearchEngineProvider
 import mozilla.components.browser.search.provider.SearchEngineProvider
 import mozilla.components.browser.search.provider.localization.LocaleSearchLocalizationProvider
@@ -25,13 +27,16 @@ class SearchEngineManager(
             AssetsSearchEngineProvider(LocaleSearchLocalizationProvider()))
 ) {
     private var deferredSearchEngines: Deferred<List<SearchEngine>>? = null
+    private val scope = CoroutineScope(Dispatchers.Default)
 
     /**
-     * Asynchronously load search engines from providers.
+     * Asynchronously load search engines from providers. Inherits caller's [CoroutineScope.coroutineContext].
      */
     @Synchronized
-    suspend fun load(context: Context): Deferred<List<SearchEngine>> {
-        return async {
+    suspend fun load(context: Context): Deferred<List<SearchEngine>> = coroutineScope {
+        // We might have previous 'load' calls still running; cancel them.
+        deferredSearchEngines?.cancel()
+        scope.async {
             loadSearchEngines(context)
         }.also { deferredSearchEngines = it }
     }
@@ -79,7 +84,7 @@ class SearchEngineManager(
         val deferredSearchEngines = mutableListOf<Deferred<List<SearchEngine>>>()
 
         providers.forEach {
-            deferredSearchEngines.add(async {
+            deferredSearchEngines.add(scope.async {
                 it.loadSearchEngines(context)
             })
         }
@@ -94,8 +99,8 @@ class SearchEngineManager(
     private val localeChangedReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
-                launch(CommonPool) {
-                    load(context.applicationContext)
+                scope.launch {
+                    load(context.applicationContext).await()
                 }
             }
         }

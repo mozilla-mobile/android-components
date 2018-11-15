@@ -1,17 +1,8 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    // Synchronized versions numbers of GeckoView (Beta) artifacts.
-    ext.geckoBeta = [
-        // mozilla-beta: FENNEC_63_0b3
-        revision: '0269319281578bff4e01d77a21350bf91ba08620',
-        version: '63.0.20180904170936'
-    ]
-
     ext.geckoRelease = [
-        // mozilla-release: FENNEC_62_0_RELEASE
-        revision: '9cbae12a3fff404ed2c12070ad475424d0ae869f',
-        version: '62.0.20180830143136'
+        revision: '84219fbf133cacfc6e31c9471ad20ee7162a02af',
     ]
 
     repositories {
@@ -25,13 +16,12 @@ buildscript {
         classpath Deps.tools_dokka
 
         // Publish.
-        classpath Deps.tools_bintray
         classpath Deps.tools_mavengradle
     }
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("1.0.0.RC7-3")
+    id("io.gitlab.arturbosch.detekt").version("1.0.0.RC9.2")
 }
 
 allprojects {
@@ -44,26 +34,7 @@ allprojects {
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
-        // GeckoView Beta
-        ////////////////////////////////////////////////////////////////////////////////////////////
-
-        // ARM
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-beta.revision.${geckoBeta['revision']}.mobile.android-api-16-opt/artifacts/public/android/maven"
-        }
-
-        // x86
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-beta.revision.${geckoBeta['revision']}.mobile.android-x86-opt/artifacts/public/android/maven"
-        }
-
-        // aarch64
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-beta.revision.${geckoBeta['revision']}.mobile.android-aarch64-opt/artifacts/public/android/maven"
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        // GeckoView Release (60.0.2)
+        // GeckoView Release
         ////////////////////////////////////////////////////////////////////////////////////////////
 
         // ARM
@@ -79,6 +50,14 @@ allprojects {
         // aarch64
         maven {
             url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-aarch64-opt/artifacts/public/android/maven"
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        // Servo
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
+        maven {
+            url "https://download.servo.org/nightly/maven"
         }
     }
 }
@@ -143,16 +122,6 @@ subprojects {
                     }
                 }
             }
-
-            if (it.hasProperty('kotlin')) {
-                android {
-                    kotlin {
-                        experimental {
-                            coroutines 'enable'
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -195,15 +164,20 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
+
 detekt {
     // The version number is duplicated, please refer to plugins block for more details
-    version = "1.0.0.RC7-3"
-    profile("main") {
-        input = "$projectDir/components"
-        config = "$projectDir/config/detekt.yml"
-        filters = ".*test.*,.*/resources/.*,.*/tmp/.*"
-        output = "$projectDir/build/reports/detekt"
-        baseline = "$projectDir/config/detekt-baseline.xml"
+    version = "1.0.0.RC9.2"
+    input = files("$projectDir/components")
+    config = files("$projectDir/config/detekt.yml")
+    filters = ".*test.*,.*/resources/.*,.*/tmp/.*"
+    baseline = file("$projectDir/config/detekt-baseline.xml")
+
+    reports {
+        html {
+            enabled = true
+            destination = file("$projectDir/build/reports/detekt.html")
+        }
     }
 }
 
@@ -212,21 +186,24 @@ configurations {
 }
 
 dependencies {
-    ktlint "com.github.shyiko:ktlint:0.24.0"
+    ktlint "com.github.shyiko:ktlint:0.29.0"
 }
 
 task ktlint(type: JavaExec, group: "verification") {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     main = "com.github.shyiko.ktlint.Main"
-    args "components/**/*.kt"
+    args "components/**/*.kt", "samples/**/*.kt", "!**/build"
 }
 
 task printModules {
     doLast {
-        subprojects.each { p ->
-            println "module: " + p.path
-        }
+        def modules = subprojects.collect { p -> [
+            name: p.path.toString(),
+            buildPath: p.buildDir.toString(),
+            shouldPublish: p.ext.shouldPublish
+        ] }
+        println "modules: " + groovy.json.JsonOutput.toJson(modules)
     }
 }
 

@@ -1,22 +1,15 @@
 package mozilla.components.service.fxa
 
 /**
- * Wrapper class for the exceptions thrown in the Rust library, which ensures that the
- * error messages will be consumed and freed properly in Rust.
+ * Wrapper class for the exceptions thrown in the Rust library.
+ *
+ * Broken down into the following subclasses:
+ *
+ * - `FxaException.Unauthorized`: Thrown when the operation requires additional authorization.
+ * - `FxaException.Panic`: Thrown when the Rust library hits an assertion or panic (this is always
+ *   a bug).
+ * - `FxaException.Unspecified`: Thrown when the Rust library hits an unexpected error that isn't
+ *   a panic. This may indicate library misuse, network errors, etc.
+ *
  */
-open class FxaException(message: String) : Exception(message) {
-    class Unspecified(msg: String) : FxaException(msg)
-    class Unauthorized(msg: String) : FxaException(msg)
-    class Panic(msg: String) : FxaException(msg)
-
-    companion object {
-        fun fromConsuming(e: Error): FxaException {
-            val message = e.consumeMessage() ?: ""
-            return when (e.code) {
-                FxaClient.ErrorCode.AuthenticationError.ordinal -> Unauthorized(message)
-                FxaClient.ErrorCode.InternalPanic.ordinal -> Panic(message)
-                else -> Unspecified(message)
-            }
-        }
-    }
-}
+typealias FxaException = org.mozilla.fxaclient.internal.FxaException

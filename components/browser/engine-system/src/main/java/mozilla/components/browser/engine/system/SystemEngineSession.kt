@@ -12,12 +12,15 @@ import android.webkit.WebSettings
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.DefaultSettings
 import android.webkit.WebViewDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.ktx.kotlin.toBundle
 import java.lang.ref.WeakReference
@@ -39,6 +42,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
 
     internal var view: WeakReference<SystemEngineView>? = null
     internal var scheduledLoad = ScheduledLoad(null)
+    @Volatile internal var historyTrackingDelegate: HistoryTrackingDelegate? = null
     @Volatile internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
     @Volatile internal var webFontsEnabled = true
     @Volatile internal var internalSettings: Settings? = null
@@ -127,7 +131,9 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
         currentView()?.let {
             // Make sure Url matcher is preloaded now that tracking protection is enabled
-            launch { SystemEngineView.getOrCreateUrlMatcher(it.context, policy) }
+            CoroutineScope(Dispatchers.IO).launch {
+                SystemEngineView.getOrCreateUrlMatcher(it.context, policy)
+            }
         }
 
         trackingProtectionPolicy = policy
@@ -262,6 +268,10 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 get() = this@SystemEngineSession.trackingProtectionPolicy
                 set(value) = value?.let { enableTrackingProtection(it) } ?: disableTrackingProtection()
 
+            override var historyTrackingDelegate: HistoryTrackingDelegate?
+                get() = this@SystemEngineSession.historyTrackingDelegate
+                set(value) { this@SystemEngineSession.historyTrackingDelegate = value }
+
             override var requestInterceptor: RequestInterceptor? = null
         }.apply {
             defaultSettings?.let {
@@ -271,6 +281,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 displayZoomControls = it.displayZoomControls
                 loadWithOverviewMode = it.loadWithOverviewMode
                 trackingProtectionPolicy = it.trackingProtectionPolicy
+                historyTrackingDelegate = it.historyTrackingDelegate
                 requestInterceptor = it.requestInterceptor
                 mediaPlaybackRequiresUserGesture = it.mediaPlaybackRequiresUserGesture
                 javaScriptCanOpenWindowsAutomatically = it.javaScriptCanOpenWindowsAutomatically

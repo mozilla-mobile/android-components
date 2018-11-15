@@ -5,19 +5,24 @@
 package mozilla.components.browser.toolbar
 
 import android.content.Context
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.support.annotation.DrawableRes
 import android.support.annotation.VisibleForTesting
 import android.util.AttributeSet
 import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.view.ViewGroup
+import android.widget.ImageButton
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.support.base.android.Padding
 import mozilla.components.support.ktx.android.content.res.pxToDp
 import mozilla.components.support.ktx.android.view.forEach
 import mozilla.components.support.ktx.android.view.isVisible
+import mozilla.components.support.ktx.android.view.setPadding
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 
 /**
@@ -44,7 +49,6 @@ class BrowserToolbar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ViewGroup(context, attrs, defStyleAttr), Toolbar {
-
     // displayToolbar and editToolbar are only visible internally and mutable so that we can mock
     // them in tests.
     @VisibleForTesting internal var displayToolbar = DisplayToolbar(context, this)
@@ -100,12 +104,56 @@ class BrowserToolbar @JvmOverloads constructor(
         }
 
     /**
+     * Sets the colour of the text to be displayed when the URL of the toolbar is empty.
+     */
+    var hintColor: Int
+        get() = displayToolbar.urlView.currentHintTextColor
+        set(value) {
+            displayToolbar.urlView.setHintTextColor(value)
+            editToolbar.urlView.setHintTextColor(value)
+        }
+
+    /**
+     * Sets the colour of the text for the URL/search term displayed in the toolbar.
+     */
+    var textColor: Int
+        get() = displayToolbar.urlView.currentTextColor
+        set(value) {
+            displayToolbar.urlView.setTextColor(value)
+            editToolbar.urlView.setTextColor(value)
+        }
+
+    /**
+     * Sets the size of the text for the URL/search term displayed in the toolbar.
+     */
+    var textSize: Float
+        get() = displayToolbar.urlView.textSize
+        set(value) {
+            displayToolbar.urlView.textSize = value
+            editToolbar.urlView.textSize = value
+        }
+
+    /**
+     * Sets the typeface of the text for the URL/search term displayed in the toolbar.
+     */
+    var typeface: Typeface
+        get() = displayToolbar.urlView.typeface
+        set(value) {
+            displayToolbar.urlView.typeface = value
+            editToolbar.urlView.typeface = value
+        }
+
+    /**
      * Sets a listener to be invoked when focus of the URL input view (in edit mode) changed.
      */
     fun setOnEditFocusChangeListener(listener: (Boolean) -> Unit) {
         editToolbar.urlView.onFocusChangeListener = OnFocusChangeListener { _, hasFocus ->
             listener.invoke(hasFocus)
         }
+    }
+
+    override fun setOnEditListener(listener: Toolbar.OnEditListener) {
+        editToolbar.editListener = listener
     }
 
     /**
@@ -139,7 +187,30 @@ class BrowserToolbar @JvmOverloads constructor(
             field = value
         }
 
+    override var siteSecure: Toolbar.SiteSecurity = Toolbar.SiteSecurity.INSECURE
+        set(value) {
+            displayToolbar.setSiteSecurity(value)
+            field = value
+        }
+
     init {
+        context.obtainStyledAttributes(attrs, R.styleable.BrowserToolbar, defStyleAttr, 0).apply {
+            attrs?.let {
+                hintColor = getColor(
+                    R.styleable.BrowserToolbar_browserToolbarHintColor,
+                    hintColor
+                )
+                textColor = getColor(
+                    R.styleable.BrowserToolbar_browserToolbarTextColor,
+                    textColor
+                )
+                textSize = getDimension(
+                    R.styleable.BrowserToolbar_browserToolbarTextSize,
+                    textSize
+                ) / resources.displayMetrics.density
+            }
+            recycle()
+        }
         addView(displayToolbar)
         addView(editToolbar)
 
@@ -247,7 +318,7 @@ class BrowserToolbar @JvmOverloads constructor(
     /**
      * Switches to URL editing mode.
      */
-    fun editMode() {
+    override fun editMode() {
         val urlValue = if (searchTerms.isEmpty()) url else searchTerms
         editToolbar.updateUrl(urlValue)
 
@@ -259,7 +330,7 @@ class BrowserToolbar @JvmOverloads constructor(
     /**
      * Switches to URL displaying mode.
      */
-    fun displayMode() {
+    override fun displayMode() {
         updateState(State.DISPLAY)
     }
 
@@ -281,8 +352,14 @@ class BrowserToolbar @JvmOverloads constructor(
         this.state = state
 
         val (show, hide) = when (state) {
-            State.DISPLAY -> Pair(displayToolbar, editToolbar)
-            State.EDIT -> Pair(editToolbar, displayToolbar)
+            State.DISPLAY -> {
+                editToolbar.editListener?.onStopEditing()
+                Pair(displayToolbar, editToolbar)
+            }
+            State.EDIT -> {
+                editToolbar.editListener?.onStartEditing()
+                Pair(editToolbar, displayToolbar)
+            }
         }
 
         show.visibility = View.VISIBLE
@@ -297,26 +374,26 @@ class BrowserToolbar @JvmOverloads constructor(
     /**
      * An action button to be added to the toolbar.
      *
-     * @param imageResource The drawable to be shown.
+     * @param imageDrawable The drawable to be shown.
      * @param contentDescription The content description to use.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param background A custom (stateful) background drawable resource to be used.
+     * @param padding a custom [Padding] for this Button.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class Button(
-        imageResource: Int,
+        imageDrawable: Drawable,
         contentDescription: String,
         visible: () -> Boolean = { true },
-        @DrawableRes background: Int? = null,
+        @DrawableRes background: Int = 0,
+        val padding: Padding = DEFAULT_PADDING,
         listener: () -> Unit
-    ) : Toolbar.ActionButton(imageResource, contentDescription, visible, background, listener) {
+    ) : Toolbar.ActionButton(imageDrawable, contentDescription, visible, background, padding, listener) {
+
         override fun createView(parent: ViewGroup): View {
-            val view = super.createView(parent)
-
-            val padding = view.resources.pxToDp(ACTION_PADDING_DP)
-            view.setPadding(padding, padding, padding, padding)
-
-            return view
+            return super.createView(parent).apply {
+                setPadding(padding)
+            }
         }
     }
 
@@ -324,44 +401,93 @@ class BrowserToolbar @JvmOverloads constructor(
      * An action button with two states, selected and unselected. When the button is pressed, the
      * state changes automatically.
      *
-     * @param imageResource The drawable to be shown if the button is in unselected state.
-     * @param imageResourceSelected The drawable to be shown if the button is in selected state.
+     * @param image The drawable to be shown if the button is in unselected state.
+     * @param imageSelected The drawable to be shown if the button is in selected state.
      * @param contentDescription The content description to use if the button is in unselected state.
      * @param contentDescriptionSelected The content description to use if the button is in selected state.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param selected Sets whether this button should be selected initially.
      * @param background A custom (stateful) background drawable resource to be used.
+     * @param padding a custom [Padding] for this Button.
      * @param listener Callback that will be invoked whenever the checked state changes.
      */
     open class ToggleButton(
-        @DrawableRes imageResource: Int,
-        @DrawableRes imageResourceSelected: Int,
+        image: Drawable,
+        imageSelected: Drawable,
         contentDescription: String,
         contentDescriptionSelected: String,
         visible: () -> Boolean = { true },
         selected: Boolean = false,
-        @DrawableRes background: Int? = null,
+        @DrawableRes background: Int = 0,
+        val padding: Padding = DEFAULT_PADDING,
         listener: (Boolean) -> Unit
     ) : Toolbar.ActionToggleButton(
-        imageResource,
-        imageResourceSelected,
+        image,
+        imageSelected,
         contentDescription,
         contentDescriptionSelected,
         visible,
         selected,
         background,
+        padding,
         listener
     ) {
+
         override fun createView(parent: ViewGroup): View {
             return super.createView(parent).apply {
-                val padding = resources.pxToDp(ACTION_PADDING_DP)
-                setPadding(padding, padding, padding, padding)
+                setPadding(padding)
+            }
+        }
+    }
+
+    /**
+     * An action that either shows an active button or an inactive button based on the provided
+     * <code>isEnabled</code> lambda.
+     *
+     * @param enabledImage The drawable to be show if the button is in the enabled stated.
+     * @param enabledContentDescription The content description to use if the button is in the enabled state.
+     * @param disabledImage The drawable to be show if the button is in the disabled stated.
+     * @param disabledContentDescription The content description to use if the button is in the enabled state.
+     * @param isEnabled Lambda that returns true of false to indicate whether this button should be enabled/disabled.
+     * @param background A custom (stateful) background drawable resource to be used.
+     * @param listener Callback that will be invoked whenever the checked state changes.
+     */
+    open class TwoStateButton(
+        private val enabledImage: Drawable,
+        private val enabledContentDescription: String,
+        private val disabledImage: Drawable,
+        private val disabledContentDescription: String,
+        private val isEnabled: () -> Boolean = { true },
+        background: Int = 0,
+        listener: () -> Unit
+    ) : BrowserToolbar.Button(
+        enabledImage,
+        enabledContentDescription,
+        listener = listener,
+        background = background
+    ) {
+        var enabled: Boolean = false
+            private set
+
+        override fun bind(view: View) {
+            enabled = isEnabled.invoke()
+
+            val button = view as ImageButton
+
+            if (enabled) {
+                button.setImageDrawable(disabledImage)
+                button.contentDescription = disabledContentDescription
+            } else {
+                button.setImageDrawable(enabledImage)
+                button.contentDescription = enabledContentDescription
             }
         }
     }
 
     companion object {
-        private const val ACTION_PADDING_DP = 16
         private const val DEFAULT_TOOLBAR_HEIGHT_DP = 56
+        internal const val ACTION_PADDING_DP = 16
+        internal val DEFAULT_PADDING =
+            Padding(ACTION_PADDING_DP, ACTION_PADDING_DP, ACTION_PADDING_DP, ACTION_PADDING_DP)
     }
 }

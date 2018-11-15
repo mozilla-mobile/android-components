@@ -53,17 +53,12 @@ dependencies {
     implementation Deps.jna
     implementation Deps.kotlin_coroutines
 
-    testImplementation files(configurations.jnaForTest.files)
+    testImplementation configurations.jnaForTest.dependencies
 
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito
 }
 
-archivesBaseName = "fxa"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'fxa',
-        'A library for integrating with Firefox Accounts.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

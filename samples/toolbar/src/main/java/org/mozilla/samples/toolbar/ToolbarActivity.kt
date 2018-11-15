@@ -4,16 +4,20 @@
 
 package org.mozilla.samples.toolbar
 
+import android.content.res.Resources
 import android.os.Bundle
+import android.support.annotation.DrawableRes
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import kotlinx.android.synthetic.main.activity_toolbar.*
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import mozilla.components.browser.domains.DomainAutoCompleteProvider
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
@@ -55,7 +59,11 @@ class ToolbarActivity : AppCompatActivity() {
             view?.let {
                 val result = autoCompleteProvider.autocomplete(value)
                 view.applyAutocompleteResult(
-                        InlineAutocompleteEditText.AutocompleteResult(result.text, result.source, result.size, { result.url }))
+                    InlineAutocompleteEditText.AutocompleteResult(
+                        result.text,
+                        result.source,
+                        result.size
+                    ) { result.url })
             }
         }
     }
@@ -80,47 +88,49 @@ class ToolbarActivity : AppCompatActivity() {
      * A toolbar that looks like Firefox Focus on tablets.
      */
     private fun setupFocusTabletToolbar() {
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Use the iconic gradient background
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val background = ContextCompat.getDrawable(this, R.drawable.focus_background)
         toolbar.background = background
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Add "back" and "forward" navigation actions
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val back = BrowserToolbar.Button(
-            mozilla.components.ui.icons.R.drawable.mozac_ic_back,
-            "Back") {
+            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_back),
+            "Back"
+        ) {
             simulateReload()
         }
 
         toolbar.addNavigationAction(back)
 
         val forward = BrowserToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
-                "Forward") {
+            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_forward),
+            "Forward"
+        ) {
             simulateReload()
         }
 
         toolbar.addNavigationAction(forward)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Add a "reload" browser action that simulates reloading the current page
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val reload = BrowserToolbar.Button(
-            mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
+            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_refresh),
             "Reload") {
             simulateReload()
         }
         toolbar.addBrowserAction(reload)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Create a menu that looks like the one in Firefox Focus
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val share = SimpleBrowserMenuItem("Share…") { /* Do nothing */ }
         val homeScreen = SimpleBrowserMenuItem("Add to Home screen") { /* Do nothing */ }
@@ -130,9 +140,9 @@ class ToolbarActivity : AppCompatActivity() {
         val builder = BrowserMenuBuilder(listOf(share, homeScreen, open, settings))
         toolbar.setMenuBuilder(builder)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Display a URL
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.url = "https://www.mozilla.org/en-US/firefox/mobile/"
     }
@@ -141,16 +151,16 @@ class ToolbarActivity : AppCompatActivity() {
      * A toolbar that looks like Firefox Focus on phones.
      */
     private fun setupFocusPhoneToolbar() {
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Use the iconic gradient background
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val background = ContextCompat.getDrawable(this, R.drawable.focus_background)
         toolbar.background = background
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Create a "mini" toolbar to be shown inside the menu (forward, reload)
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val forward = BrowserMenuItemToolbar.Button(
             mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
@@ -166,9 +176,9 @@ class ToolbarActivity : AppCompatActivity() {
 
         val menuToolbar = BrowserMenuItemToolbar(listOf(forward, reload))
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Create a custom "menu item" implementation that resembles Focus' global content blocking switch.
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val blocking = object : BrowserMenuItem {
             // Always display this item. This lambda is executed when the user clicks on the menu
@@ -182,9 +192,9 @@ class ToolbarActivity : AppCompatActivity() {
             }
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Create a menu that looks like the one in Firefox Focus
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val share = SimpleBrowserMenuItem("Share…") { /* Do nothing */ }
         val homeScreen = SimpleBrowserMenuItem("Add to Home screen") { /* Do nothing */ }
@@ -194,9 +204,9 @@ class ToolbarActivity : AppCompatActivity() {
         val builder = BrowserMenuBuilder(listOf(menuToolbar, blocking, share, homeScreen, open, settings))
         toolbar.setMenuBuilder(builder)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Display a URL
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.url = "https://www.mozilla.org/en-US/firefox/mobile/"
     }
@@ -205,9 +215,9 @@ class ToolbarActivity : AppCompatActivity() {
      * A large dark toolbar with padding, flexible space and branding.
      */
     private fun setupSeedlingToolbar() {
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Setup background and size/padding
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.setBackgroundColor(0xFF38383D.toInt())
         toolbar.layoutParams.height = toolbar.resources.pxToDp(104)
@@ -217,9 +227,9 @@ class ToolbarActivity : AppCompatActivity() {
                 resources.pxToDp(58),
                 resources.pxToDp(24))
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Hide the site security icon and set padding around the URL
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.displaySiteSecurityIcon = false
 
@@ -230,22 +240,22 @@ class ToolbarActivity : AppCompatActivity() {
 
         toolbar.browserActionMargin = toolbar.resources.pxToDp(16)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Add a custom "URL box" (url + page actions) background view that also acts as a custom
         // progress bar.
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val urlBoxProgress = UrlBoxProgressView(this)
 
         toolbar.urlBoxView = urlBoxProgress
         toolbar.urlBoxMargin = toolbar.resources.pxToDp(16)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Add navigation actions
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val grid = BrowserToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_grid,
+            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_grid),
                 "Grid",
                 background = R.drawable.button_background) {
             // Do nothing
@@ -254,7 +264,7 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.addNavigationAction(grid)
 
         val back = BrowserToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_back,
+            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_back),
                 "Back",
                 visible = ::canGoBack,
                 background = R.drawable.button_background) {
@@ -266,7 +276,7 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.addNavigationAction(back)
 
         val forward = BrowserToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
+            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_forward),
                 "Forward",
                 visible = ::canGoForward,
                 background = R.drawable.button_background) {
@@ -277,16 +287,16 @@ class ToolbarActivity : AppCompatActivity() {
 
         toolbar.addNavigationAction(forward)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Add a custom page action for reload and two browser actions
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
-        val reload = ReloadPageAction(
-            reloadImageResource = mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
-            reloadContentDescription = "Reload",
-            stopImageResource = mozilla.components.ui.icons.R.drawable.mozac_ic_stop,
-            stopContentDescription = "Stop",
-            isLoading = { loading },
+        val reload = BrowserToolbar.TwoStateButton(
+            enabledImage = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_refresh),
+            enabledContentDescription = "Reload",
+            disabledImage = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_stop),
+            disabledContentDescription = "Stop",
+            isEnabled = { loading },
             background = R.drawable.pageaction_background
         ) {
             if (loading) {
@@ -299,8 +309,8 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.addPageAction(reload)
 
         val pin = BrowserToolbar.ToggleButton(
-            imageResource = mozilla.components.ui.icons.R.drawable.mozac_ic_pin,
-            imageResourceSelected = mozilla.components.ui.icons.R.drawable.mozac_ic_pin_filled,
+            image = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_pin),
+            imageSelected = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_pin),
             contentDescription = "Pin",
             contentDescriptionSelected = "Unpin",
             background = R.drawable.toggle_background) {
@@ -310,8 +320,8 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.addBrowserAction(pin)
 
         val turbo = BrowserToolbar.ToggleButton(
-            imageResource = mozilla.components.ui.icons.R.drawable.mozac_ic_rocket,
-            imageResourceSelected = mozilla.components.ui.icons.R.drawable.mozac_ic_rocket_filled,
+            image = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_rocket),
+            imageSelected = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_rocket_filled),
             contentDescription = "Turbo: Off",
             contentDescriptionSelected = "Turbo: On",
             background = R.drawable.toggle_background) {
@@ -320,37 +330,37 @@ class ToolbarActivity : AppCompatActivity() {
 
         toolbar.addBrowserAction(turbo)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Add a fixed size element for spacing and a branding image
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         val space = Toolbar.ActionSpace(toolbar.resources.pxToDp(128))
 
         toolbar.addBrowserAction(space)
 
-        val brand = Toolbar.ActionImage(R.drawable.brand)
+        val brand = Toolbar.ActionImage(resources.getThemedDrawable(R.drawable.brand))
 
         toolbar.addBrowserAction(brand)
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Intercept clicks on the URL to not open editing mode
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.onUrlClicked = {
             // Return false to not go to editing mode and then handle the event manually here...
             true
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Display a URL and set custom text to be displayed if no URL is set
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.hint = "Search or enter address"
         toolbar.url = "https://www.nytimes.com/video"
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
         // Whenever an URL was entered.. pretend to load it and re-insert it into the toolbar
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.setOnUrlCommitListener { url ->
             simulateReload(urlBoxProgress)
@@ -387,7 +397,7 @@ class ToolbarActivity : AppCompatActivity() {
 
         loading = true
 
-        job = launch(UI) {
+        job = CoroutineScope(Dispatchers.Main).launch {
             try {
                 loop@ for (progress in 0..100 step 5) {
                     if (!isActive) {
@@ -400,7 +410,7 @@ class ToolbarActivity : AppCompatActivity() {
                         view.progress = progress
                     }
 
-                    delay(progress * 5)
+                    delay(progress * 5L)
                 }
             } catch (t: Throwable) {
                 if (view == null) {
@@ -421,4 +431,6 @@ class ToolbarActivity : AppCompatActivity() {
         // Update toolbar buttons to reflect loading state
         toolbar.invalidateActions()
     }
+
+    private fun Resources.getThemedDrawable(@DrawableRes resId: Int) = getDrawable(resId, theme)
 }

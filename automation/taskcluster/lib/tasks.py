@@ -8,13 +8,14 @@ import taskcluster
 
 
 class TaskBuilder(object):
-    def __init__(self, task_id, repo_url, branch, commit, owner, source):
+    def __init__(self, task_id, repo_url, branch, commit, owner, source, scheduler_id):
         self.task_id = task_id
         self.repo_url = repo_url
         self.branch = branch
         self.commit = commit
         self.owner = owner
         self.source = source
+        self.scheduler_id = scheduler_id
 
     def build_task(self, name, description, command, dependencies=[],
                    artifacts={}, scopes=[], routes=[], features={},
@@ -31,6 +32,7 @@ class TaskBuilder(object):
         return {
             "workerType": worker_type,
             "taskGroupId": self.task_id,
+            "schedulerId": self.scheduler_id,
             "expires": taskcluster.stringDate(expires),
             "retries": 5,
             "created": taskcluster.stringDate(created),
@@ -45,7 +47,7 @@ class TaskBuilder(object):
             "payload": {
                 "features": features,
                 "maxRunTime": 7200,
-                "image": "mozillamobile/android-components:1.5",
+                "image": "mozillamobile/android-components:1.9",
                 "command": [
                     "/bin/bash",
                     "--login",
@@ -53,48 +55,6 @@ class TaskBuilder(object):
                     command
                 ],
                 "artifacts": artifacts
-            },
-            "provisionerId": "aws-provisioner-v1",
-            "metadata": {
-                "name": name,
-                "description": description,
-                "owner": self.owner,
-                "source": self.source
-            }
-        }
-
-    def massager_task(self, name, description, command, dependencies=[], scopes=[],
-                      features={}, artifacts={}, upstreamZip=[]):
-        created = datetime.datetime.now()
-        expires = taskcluster.fromNow('1 year')
-        deadline = taskcluster.fromNow('1 day')
-
-        return {
-            "workerType": "gecko-focus",
-            "taskGroupId": self.task_id,
-            "expires": taskcluster.stringDate(expires),
-            "retries": 5,
-            "created": taskcluster.stringDate(created),
-            "tags": {},
-            "priority": "lowest",
-            "schedulerId": "taskcluster-github",
-            "deadline": taskcluster.stringDate(deadline),
-            "dependencies": [self.task_id] + dependencies,
-            "routes": [],
-            "scopes": scopes,
-            "requires": "all-completed",
-            "payload": {
-                "maxRunTime": 3600,
-                "features": features,
-                "image": "mozillamobile/android-components:1.5",
-                "command": [
-                    "/bin/bash",
-                    "--login",
-                    "-cx",
-                    command,
-                ],
-                "artifacts": artifacts,
-                "upstreamZip": upstreamZip
             },
             "provisionerId": "aws-provisioner-v1",
             "metadata": {
@@ -114,6 +74,7 @@ class TaskBuilder(object):
         return {
             "workerType": "mobile-beetmover-v1",
             "taskGroupId": self.task_id,
+            "schedulerId": self.scheduler_id,
             "expires": taskcluster.stringDate(expires),
             "retries": 5,
             "created": taskcluster.stringDate(created),

@@ -17,7 +17,7 @@ for help with integrating this component into your application.
 
 ### Setting up the dependency
 
-Use gradle to download the library from JCenter:
+Use Gradle to download the library from [maven.mozilla.org](https://maven.mozilla.org/) ([Setup repository](../../../README.md#maven-repository)):
 
 ```Groovy
 implementation "org.mozilla.components:service-firefox-accounts:{latest-version}"
@@ -51,39 +51,39 @@ val STATE_KEY = "fxaState"
 Then you can write the following:
 
 ```kotlin
-getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).getString(FXA_STATE_KEY, "").let {
-    FirefoxAccount.fromJSONString(it).then({
-        account = it
-        FxaResult<Void>()
-    }, {
-        Config.custom(CONFIG_URL).whenComplete { value: Config ->
-            account = FirefoxAccount(value, CLIENT_ID, REDIRECT_URL)
+
+account = getAuthenticatedAccount()
+if (account == null) {
+  // Start authentication flow
+  account = async {
+    // Note: Config implements autoclosable
+    Config.custom(CONFIG_URL).await().use { config -> 
+        FirefoxAccount(config, CLIENT_ID, REDIRECT_URL) 
+    }.await()
+  }
+}
+
+fun getAuthenticatedAccount(): FirefoxAccount? {
+    val savedJSON = getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).getString(FXA_STATE_KEY, "")
+    return savedJSON?.let {
+        try {
+            FirefoxAccount.fromJSONString(it)
+        } catch (e: FxaException) {
+            null
         }
-        FxaResult<Void>()
-    })
+    } ?: null
 }
 ```
 
-> For more info on the chainable Promise-like type `FxaResult`, check out the source code [here](https://github.com/mozilla-mobile/android-components/blob/master/components/service/firefox-accounts/src/main/java/mozilla/components/service/fxa/FxaResult.kt)
+The code above checks if you have some existing state for FxA, otherwise it configures it. This involves fetching a configuration from the server, which is done asynchronously. All asynchronous methods on `FirefoxAccount` and `Config` are executed on `Dispatchers.IO`'s dedicated thread pool. They return `Deferred` which is Kotlin's non-blocking cancellable Future type. 
 
-The code above checks if you have some existing state for FxA, otherwise it configures it.
-
-You can now attempt to fetch the FxA profile. The first time the application starts it won't have any state, so
-`account.getProfile()` will fail and proceed to the `account.beginOAuthFlow` branch and it will open the FxA OAuth login
-in the web view.
+Once the configuration is available and an account instance was created, the authentication flow can be started:
 
 ```kotlin
-account.getProfile().then({ profile: Profile ->
-    // Render the profile
-    val txtView: TextView = findViewById(R.id.txtView)
-    runOnUiThread {
-        txtView.text = profile.displayName
-    }
-    FxaResult<Void>()
-}, { exception: Exception ->
-    account?.beginOAuthFlow(scopes, wantsKeys)?.whenComplete { openWebView(it) }
-    FxaResult<Void>()
-})
+launch {
+    val url = account.beginOAuthFlow(scopes, wantsKeys).await()
+    openWebView(url)
+}
 ```
 
 When spawning the WebView, be sure to override the `OnPageStarted` function to intercept the redirect url and fetch the code + state parameters:
@@ -104,19 +104,21 @@ override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
 }
 ```
 
-Finally, complete the OAuth flow, try to retrieve the profile information, then save your login state once you've gotten valid profile information:
+Finally, complete the OAuth flow, retrieve the profile information, then save your login state once you've gotten valid profile information:
 
 ```kotlin
-account?.completeOAuthFlow(code, state)?.then {
-    account?.getProfile()
-}.whenComplete { profile: Profile ->
-    runOnUiThread {
-        txtView.text = profile.displayName
-    }
-    account?.toJSONString().let {
-        getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit()
-            .putString(FXA_STATE_KEY, it).apply()
-    }
+launch {
+    // Complete authentication flow    
+    account.completeOAuthFlow(code, state).await()
+
+    // Display profile information
+    val profile = account.getProfile().await()    
+    txtView.txt = profile.displayName
+
+    // Persist login state    
+    val json = account.toJSONString()
+    getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit()
+        .putString(FXA_STATE_KEY, json).apply()
 }
 ```
 

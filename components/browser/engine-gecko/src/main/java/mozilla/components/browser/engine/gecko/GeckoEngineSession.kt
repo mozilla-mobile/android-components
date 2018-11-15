@@ -4,16 +4,23 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import kotlinx.coroutines.experimental.CompletableDeferred
-import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
+import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
+import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.support.ktx.android.util.Base64
+import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
+import mozilla.components.support.utils.DownloadUtils
 import org.mozilla.gecko.util.ThreadUtils
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
@@ -22,6 +29,7 @@ import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_AUDIO
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_IMAGE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_NONE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_VIDEO
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSessionSettings
 
 /**
@@ -30,17 +38,19 @@ import org.mozilla.geckoview.GeckoSessionSettings
 @Suppress("TooManyFunctions")
 class GeckoEngineSession(
     runtime: GeckoRuntime,
-    privateMode: Boolean = false,
+    private val privateMode: Boolean = false,
     defaultSettings: Settings? = null
 ) : EngineSession() {
 
     internal var geckoSession = GeckoSession()
+    internal var currentUrl: String? = null
 
     /**
      * See [EngineSession.settings]
      */
     override val settings: Settings = object : Settings() {
         override var requestInterceptor: RequestInterceptor? = null
+        override var historyTrackingDelegate: HistoryTrackingDelegate? = null
     }
 
     private var initialLoad = true
@@ -48,6 +58,7 @@ class GeckoEngineSession(
     init {
         defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
+        defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }
 
         geckoSession.settings.setBoolean(GeckoSessionSettings.USE_PRIVATE_MODE, privateMode)
         geckoSession.open(runtime)
@@ -56,6 +67,7 @@ class GeckoEngineSession(
         geckoSession.progressDelegate = createProgressDelegate()
         geckoSession.contentDelegate = createContentDelegate()
         geckoSession.trackingProtectionDelegate = createTrackingProtectionDelegate()
+        geckoSession.permissionDelegate = createPermissionDelegate()
     }
 
     /**
@@ -124,7 +136,7 @@ class GeckoEngineSession(
                 stateMap.complete(mapOf(GECKO_STATE_KEY to state.toString()))
                 GeckoResult<Void>()
             }, { throwable ->
-                stateMap.completeExceptionally(throwable)
+                stateMap.cancel(throwable)
                 GeckoResult<Void>()
             })
         }
@@ -162,7 +174,21 @@ class GeckoEngineSession(
      * See [EngineSession.settings]
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
-        // no-op (requires v63+)
+        val currentMode = geckoSession.settings.getInt(GeckoSessionSettings.USER_AGENT_MODE)
+        val newMode = if (enable) {
+            GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
+        } else {
+            GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+        }
+
+        if (newMode != currentMode) {
+            geckoSession.settings.setInt(GeckoSessionSettings.USER_AGENT_MODE, newMode)
+            notifyObservers { onDesktopModeChange(enable) }
+        }
+
+        if (reload) {
+            geckoSession.reload()
+        }
     }
 
     /**
@@ -188,6 +214,7 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.findNext]
      */
+    @SuppressLint("WrongConstant") // FinderFindFlags annotation doesn't include a 0 value.
     override fun findNext(forward: Boolean) {
         val findFlags = if (forward) 0 else GeckoSession.FINDER_FIND_BACKWARDS
         geckoSession.finder.find(null, findFlags).then { result: GeckoSession.FinderResult? ->
@@ -215,7 +242,9 @@ class GeckoEngineSession(
     /**
      * NavigationDelegate implementation for forwarding callbacks to observers of the session.
      */
+    @Suppress("ComplexMethod")
     private fun createNavigationDelegate() = object : GeckoSession.NavigationDelegate {
+
         override fun onLocationChange(session: GeckoSession?, url: String) {
             // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
             if (initialLoad && url == ABOUT_BLANK) {
@@ -236,7 +265,10 @@ class GeckoEngineSession(
                 this@GeckoEngineSession,
                 uri
             )?.apply {
-                loadData(data, mimeType, encoding)
+                when (this) {
+                    is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
+                    is InterceptionResponse.Url -> loadUrl(url)
+                }
             }
 
             return GeckoResult.fromValue(response != null)
@@ -253,14 +285,28 @@ class GeckoEngineSession(
         override fun onNewSession(
             session: GeckoSession,
             uri: String
-        ): GeckoResult<GeckoSession> {
+        ): GeckoResult<GeckoSession> = GeckoResult.fromValue(null)
+
+        override fun onLoadError(
+            session: GeckoSession?,
+            uri: String?,
+            category: Int,
+            error: Int
+        ): GeckoResult<String> {
+            settings.requestInterceptor?.onErrorRequest(
+                this@GeckoEngineSession,
+                geckoErrorToErrorType(error),
+                uri
+            )?.apply {
+                return GeckoResult.fromValue(Base64.encodeToUriString(data))
+            }
             return GeckoResult.fromValue(null)
         }
     }
 
     /**
-    * ProgressDelegate implementation for forwarding callbacks to observers of the session.
-    */
+     * ProgressDelegate implementation for forwarding callbacks to observers of the session.
+     */
     private fun createProgressDelegate() = object : GeckoSession.ProgressDelegate {
         override fun onProgressChange(session: GeckoSession?, progress: Int) {
             notifyObservers { onProgress(progress) }
@@ -276,15 +322,17 @@ class GeckoEngineSession(
             }
 
             notifyObservers {
-                if (securityInfo != null) {
-                    onSecurityChange(securityInfo.isSecure, securityInfo.host, securityInfo.issuerOrganization)
-                } else {
+                if (securityInfo == null) {
                     onSecurityChange(false)
+                    return@notifyObservers
                 }
+                onSecurityChange(securityInfo.isSecure, securityInfo.host, securityInfo.issuerOrganization)
             }
         }
 
         override fun onPageStart(session: GeckoSession?, url: String?) {
+            url?.let { currentUrl = it }
+
             notifyObservers {
                 onProgress(PROGRESS_START)
                 onLoadingStateChange(true)
@@ -301,6 +349,7 @@ class GeckoEngineSession(
         }
     }
 
+    @Suppress("ComplexMethod")
     internal fun createContentDelegate() = object : GeckoSession.ContentDelegate {
         override fun onContextMenu(
             session: GeckoSession,
@@ -324,17 +373,26 @@ class GeckoEngineSession(
 
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
             notifyObservers {
+                val fileName = response.filename
+                        ?: DownloadUtils.guessFileName(response.uri, null, null)
                 onExternalResource(
-                    url = response.uri,
-                    contentLength = response.contentLength,
-                    contentType = response.contentType,
-                    fileName = response.filename)
+                        url = response.uri,
+                        contentLength = response.contentLength,
+                        contentType = response.contentType,
+                        fileName = fileName)
             }
         }
 
         override fun onCloseRequest(session: GeckoSession) = Unit
 
         override fun onTitleChange(session: GeckoSession, title: String) {
+            currentUrl?.let { url ->
+                settings.historyTrackingDelegate?.let { delegate ->
+                    runBlocking {
+                        delegate.onTitleChanged(url, title, privateMode)
+                    }
+                }
+            }
             notifyObservers { onTitleChange(title) }
         }
 
@@ -344,6 +402,45 @@ class GeckoEngineSession(
     private fun createTrackingProtectionDelegate() = GeckoSession.TrackingProtectionDelegate {
         session, uri, _ ->
             session?.let { uri?.let { notifyObservers { onTrackerBlocked(it) } } }
+    }
+
+    private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
+        override fun onContentPermissionRequest(
+            session: GeckoSession?,
+            uri: String?,
+            type: Int,
+            access: String?,
+            callback: GeckoSession.PermissionDelegate.Callback
+        ) {
+            val request = GeckoPermissionRequest.Content(uri ?: "", type, callback)
+            notifyObservers { onContentPermissionRequest(request) }
+        }
+
+        override fun onMediaPermissionRequest(
+            session: GeckoSession?,
+            uri: String?,
+            video: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
+            audio: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
+            callback: GeckoSession.PermissionDelegate.MediaCallback
+        ) {
+            val request = GeckoPermissionRequest.Media(
+                    uri ?: "",
+                    video?.toList() ?: emptyList(),
+                    audio?.toList() ?: emptyList(),
+                    callback)
+            notifyObservers { onContentPermissionRequest(request) }
+        }
+
+        override fun onAndroidPermissionsRequest(
+            session: GeckoSession?,
+            permissions: Array<out String>?,
+            callback: GeckoSession.PermissionDelegate.Callback
+        ) {
+            val request = GeckoPermissionRequest.App(
+                    permissions?.toList() ?: emptyList(),
+                    callback)
+            notifyObservers { onAppPermissionRequest(request) }
+        }
     }
 
     @Suppress("ComplexMethod")
@@ -394,5 +491,40 @@ class GeckoEngineSession(
         internal const val GECKO_STATE_KEY = "GECKO_STATE"
         internal const val MOZ_NULL_PRINCIPAL = "moz-nullprincipal:"
         internal const val ABOUT_BLANK = "about:blank"
+
+        /**
+         * Provides an ErrorType corresponding to the error code provided.
+         */
+        @Suppress("ComplexMethod")
+        internal fun geckoErrorToErrorType(@NavigationDelegate.LoadError errorCode: Int) =
+            when (errorCode) {
+                NavigationDelegate.ERROR_UNKNOWN -> ErrorType.UNKNOWN
+                NavigationDelegate.ERROR_SECURITY_SSL -> ErrorType.ERROR_SECURITY_SSL
+                NavigationDelegate.ERROR_SECURITY_BAD_CERT -> ErrorType.ERROR_SECURITY_BAD_CERT
+                NavigationDelegate.ERROR_NET_INTERRUPT -> ErrorType.ERROR_NET_INTERRUPT
+                NavigationDelegate.ERROR_NET_TIMEOUT -> ErrorType.ERROR_NET_TIMEOUT
+                NavigationDelegate.ERROR_CONNECTION_REFUSED -> ErrorType.ERROR_CONNECTION_REFUSED
+                NavigationDelegate.ERROR_UNKNOWN_SOCKET_TYPE -> ErrorType.ERROR_UNKNOWN_SOCKET_TYPE
+                NavigationDelegate.ERROR_REDIRECT_LOOP -> ErrorType.ERROR_REDIRECT_LOOP
+                NavigationDelegate.ERROR_OFFLINE -> ErrorType.ERROR_OFFLINE
+                NavigationDelegate.ERROR_PORT_BLOCKED -> ErrorType.ERROR_PORT_BLOCKED
+                NavigationDelegate.ERROR_NET_RESET -> ErrorType.ERROR_NET_RESET
+                NavigationDelegate.ERROR_UNSAFE_CONTENT_TYPE -> ErrorType.ERROR_UNSAFE_CONTENT_TYPE
+                NavigationDelegate.ERROR_CORRUPTED_CONTENT -> ErrorType.ERROR_CORRUPTED_CONTENT
+                NavigationDelegate.ERROR_CONTENT_CRASHED -> ErrorType.ERROR_CONTENT_CRASHED
+                NavigationDelegate.ERROR_INVALID_CONTENT_ENCODING -> ErrorType.ERROR_INVALID_CONTENT_ENCODING
+                NavigationDelegate.ERROR_UNKNOWN_HOST -> ErrorType.ERROR_UNKNOWN_HOST
+                NavigationDelegate.ERROR_MALFORMED_URI -> ErrorType.ERROR_MALFORMED_URI
+                NavigationDelegate.ERROR_UNKNOWN_PROTOCOL -> ErrorType.ERROR_UNKNOWN_PROTOCOL
+                NavigationDelegate.ERROR_FILE_NOT_FOUND -> ErrorType.ERROR_FILE_NOT_FOUND
+                NavigationDelegate.ERROR_FILE_ACCESS_DENIED -> ErrorType.ERROR_FILE_ACCESS_DENIED
+                NavigationDelegate.ERROR_PROXY_CONNECTION_REFUSED -> ErrorType.ERROR_PROXY_CONNECTION_REFUSED
+                NavigationDelegate.ERROR_UNKNOWN_PROXY_HOST -> ErrorType.ERROR_UNKNOWN_PROXY_HOST
+                NavigationDelegate.ERROR_SAFEBROWSING_MALWARE_URI -> ErrorType.ERROR_SAFEBROWSING_MALWARE_URI
+                NavigationDelegate.ERROR_SAFEBROWSING_UNWANTED_URI -> ErrorType.ERROR_SAFEBROWSING_UNWANTED_URI
+                NavigationDelegate.ERROR_SAFEBROWSING_HARMFUL_URI -> ErrorType.ERROR_SAFEBROWSING_HARMFUL_URI
+                NavigationDelegate.ERROR_SAFEBROWSING_PHISHING_URI -> ErrorType.ERROR_SAFEBROWSING_PHISHING_URI
+                else -> ErrorType.UNKNOWN
+            }
     }
 }

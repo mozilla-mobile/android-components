@@ -25,18 +25,12 @@ android {
 
 dependencies {
     implementation Deps.kotlin_stdlib
-
     implementation Deps.support_compat
-
+    implementation project(':support-base')
     testImplementation Deps.testing_junit
     testImplementation Deps.testing_robolectric
     testImplementation Deps.testing_mockito
 }
 
-archivesBaseName = "ktx"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'ktx',
-        'A set of Kotlin extensions.')
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

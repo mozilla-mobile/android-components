@@ -4,9 +4,10 @@
 
 package mozilla.components.feature.tabs.tabstray
 
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import mozilla.components.browser.session.Session
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.feature.tabs.TabsUseCases
@@ -33,7 +34,7 @@ class TabsTrayInteractor(
     override fun onTabSelected(session: Session) {
         selectTabUseCase.invoke(session)
 
-        launch(UI) {
+        CoroutineScope(Dispatchers.Main).launch {
             delay(CLOSE_TABS_TRAY_DELAY_MS)
 
             closeTabsTray.invoke()

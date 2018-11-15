@@ -5,29 +5,36 @@
 package mozilla.components.browser.engine.gecko
 
 import android.os.Handler
+import android.os.Message
+import kotlinx.coroutines.runBlocking
+import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.UnsupportedSettingException
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.test.expectException
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.eq
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
 import org.mozilla.gecko.util.BundleEventListener
@@ -41,13 +48,21 @@ import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_AUDIO
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_IMAGE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_NONE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_VIDEO
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate.ERROR_CATEGORY_UNKNOWN
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate.ERROR_UNKNOWN
 import org.mozilla.geckoview.GeckoSession.ProgressDelegate.SecurityInformation
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.SessionFinder
+import org.mozilla.geckoview.createMockedWebResponseInfo
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class GeckoEngineSessionTest {
+
+    @Before
+    fun setup() {
+        ThreadUtils.sGeckoHandler = null
+    }
 
     @Test
     fun engineSessionInitialization() {
@@ -68,9 +83,7 @@ class GeckoEngineSessionTest {
         var observedSecurityChange = false
         engineSession.register(object : EngineSession.Observer {
             override fun onLoadingStateChange(loading: Boolean) { observedLoadingState = loading }
-            override fun onLocationChange(url: String) { }
             override fun onProgress(progress: Int) { observedProgress = progress }
-            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) { }
             override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
                 // We cannot assert on actual parameters as SecurityInfo's fields can't be set
                 // from the outside and its constructor isn't accessible either.
@@ -104,10 +117,7 @@ class GeckoEngineSessionTest {
         var observedCanGoBack: Boolean = false
         var observedCanGoForward: Boolean = false
         engineSession.register(object : EngineSession.Observer {
-            override fun onLoadingStateChange(loading: Boolean) {}
             override fun onLocationChange(url: String) { observedUrl = url }
-            override fun onProgress(progress: Int) { }
-            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) { }
             override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) {
                 canGoBack?.let { observedCanGoBack = canGoBack }
                 canGoForward?.let { observedCanGoForward = canGoForward }
@@ -122,6 +132,99 @@ class GeckoEngineSessionTest {
 
         engineSession.geckoSession.navigationDelegate.onCanGoForward(null, true)
         assertEquals(true, observedCanGoForward)
+    }
+
+    @Test
+    fun contentDelegateNotifiesObserverAboutDownloads() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        val info: GeckoSession.WebResponseInfo = createMockedWebResponseInfo(
+                uri = "https://download.mozilla.org",
+                contentLength = 42,
+                contentType = "image/png",
+                filename = "image.png"
+        )
+
+        engineSession.geckoSession.contentDelegate.onExternalResponse(mock(), info)
+
+        verify(observer).onExternalResource(
+                url = "https://download.mozilla.org",
+                fileName = "image.png",
+                contentLength = 42,
+                contentType = "image/png",
+                userAgent = null,
+                cookie = null)
+    }
+
+    @Test
+    fun permissionDelegateNotifiesObservers() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        var observedContentPermissionRequests: MutableList<PermissionRequest> = mutableListOf()
+        var observedAppPermissionRequests: MutableList<PermissionRequest> = mutableListOf()
+        engineSession.register(object : EngineSession.Observer {
+            override fun onContentPermissionRequest(permissionRequest: PermissionRequest) {
+                observedContentPermissionRequests.add(permissionRequest)
+            }
+
+            override fun onAppPermissionRequest(permissionRequest: PermissionRequest) {
+                observedAppPermissionRequests.add(permissionRequest)
+            }
+        })
+
+        engineSession.geckoSession.permissionDelegate.onContentPermissionRequest(
+            engineSession.geckoSession,
+            "originContent",
+            GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION,
+            null,
+            mock(GeckoSession.PermissionDelegate.Callback::class.java)
+        )
+
+        engineSession.geckoSession.permissionDelegate.onContentPermissionRequest(
+            engineSession.geckoSession,
+            null,
+            GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION,
+            null,
+            mock(GeckoSession.PermissionDelegate.Callback::class.java)
+        )
+
+        engineSession.geckoSession.permissionDelegate.onMediaPermissionRequest(
+            engineSession.geckoSession,
+            "originMedia",
+            emptyArray(),
+            emptyArray(),
+            mock(GeckoSession.PermissionDelegate.MediaCallback::class.java)
+        )
+
+        engineSession.geckoSession.permissionDelegate.onMediaPermissionRequest(
+            engineSession.geckoSession,
+            null,
+            null,
+            null,
+            mock(GeckoSession.PermissionDelegate.MediaCallback::class.java)
+        )
+
+        engineSession.geckoSession.permissionDelegate.onAndroidPermissionsRequest(
+            engineSession.geckoSession,
+            emptyArray(),
+            mock(GeckoSession.PermissionDelegate.Callback::class.java)
+        )
+
+        engineSession.geckoSession.permissionDelegate.onAndroidPermissionsRequest(
+            engineSession.geckoSession,
+            null,
+            mock(GeckoSession.PermissionDelegate.Callback::class.java)
+        )
+
+        assertEquals(4, observedContentPermissionRequests.size)
+        assertEquals("originContent", observedContentPermissionRequests[0].uri)
+        assertEquals("", observedContentPermissionRequests[1].uri)
+        assertEquals("originMedia", observedContentPermissionRequests[2].uri)
+        assertEquals("", observedContentPermissionRequests[3].uri)
+        assertEquals(2, observedAppPermissionRequests.size)
     }
 
     @Test
@@ -143,8 +246,8 @@ class GeckoEngineSessionTest {
 
         var loadUriReceived = false
         engineSession.geckoSession.eventDispatcher.registerUiThreadListener(
-            BundleEventListener { _, _, _ -> loadUriReceived = true },
-            "GeckoView:LoadUri"
+                BundleEventListener { _, _, _ -> loadUriReceived = true },
+                "GeckoView:LoadUri"
         )
 
         engineSession.loadData("<html><body>Hello!</body></html>")
@@ -236,15 +339,25 @@ class GeckoEngineSessionTest {
 
     @Test
     fun saveState() {
-        ThreadUtils.sGeckoHandler = Handler()
-
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
         engineSession.geckoSession = mock(GeckoSession::class.java)
         val currentState = GeckoSession.SessionState("")
         val stateMap = mapOf(GeckoEngineSession.GECKO_STATE_KEY to currentState.toString())
 
+        ThreadUtils.sGeckoHandler = object : Handler() {
+            override fun sendMessageAtTime(msg: Message?, uptimeMillis: Long): Boolean {
+                val wrappedRunnable = Runnable {
+                    try {
+                        msg?.callback?.run()
+                    } catch (t: Throwable) {
+                        // We ignore this in the test as the runnable could be calling
+                        // a native method (disposeNative) which won't work in Robolectric
+                    }
+                }
+                return super.sendMessageAtTime(Message.obtain(this, wrappedRunnable), uptimeMillis)
+            }
+        }
         `when`(engineSession.geckoSession.saveState()).thenReturn(GeckoResult.fromValue(currentState))
-
         assertEquals(stateMap, engineSession.saveState())
     }
 
@@ -267,10 +380,6 @@ class GeckoEngineSessionTest {
 
         var observedSecurityChange = false
         engineSession.register(object : EngineSession.Observer {
-            override fun onLoadingStateChange(loading: Boolean) { }
-            override fun onLocationChange(url: String) { }
-            override fun onProgress(progress: Int) { }
-            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) { }
             override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
                 observedSecurityChange = true
             }
@@ -284,7 +393,7 @@ class GeckoEngineSessionTest {
         `when`(bundle.getBundle(any())).thenReturn(mock(GeckoBundle::class.java))
         `when`(bundle.getString("origin")).thenReturn("moz-nullprincipal:{uuid}")
         engineSession.geckoSession.progressDelegate.onSecurityChange(null, constructor.newInstance(bundle))
-        Assert.assertFalse(observedSecurityChange)
+        assertFalse(observedSecurityChange)
 
         `when`(bundle.getBundle(any())).thenReturn(mock(GeckoBundle::class.java))
         `when`(bundle.getString("origin")).thenReturn("https://www.mozilla.org")
@@ -298,11 +407,7 @@ class GeckoEngineSessionTest {
 
         var observedUrl = ""
         engineSession.register(object : EngineSession.Observer {
-            override fun onLoadingStateChange(loading: Boolean) {}
             override fun onLocationChange(url: String) { observedUrl = url }
-            override fun onProgress(progress: Int) { }
-            override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) { }
-            override fun onNavigationStateChange(canGoBack: Boolean?, canGoForward: Boolean?) { }
         })
 
         engineSession.geckoSession.navigationDelegate.onLocationChange(null, "about:blank")
@@ -316,6 +421,70 @@ class GeckoEngineSessionTest {
 
         engineSession.geckoSession.navigationDelegate.onLocationChange(null, "about:blank")
         assertEquals("about:blank", observedUrl)
+    }
+
+    @Test
+    fun websiteTitleUpdates() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+
+        verify(observer).onTitleChange("Hello World!")
+    }
+
+    @Test
+    fun `GeckoEngineSession keeps track of current url via onPageStart events`() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+
+        assertNull(engineSession.currentUrl)
+        engineSession.geckoSession.progressDelegate.onPageStart(engineSession.geckoSession, "https://www.mozilla.org")
+        assertEquals("https://www.mozilla.org", engineSession.currentUrl)
+
+        engineSession.geckoSession.progressDelegate.onPageStart(engineSession.geckoSession, "https://www.firefox.com")
+        assertEquals("https://www.firefox.com", engineSession.currentUrl)
+    }
+
+    @Test
+    fun `WebView client notifies configured history delegate of title changes`() = runBlocking {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+        val historyDelegate: HistoryTrackingDelegate = mock()
+
+        // Nothing breaks if history delegate isn't configured.
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+        verify(historyDelegate, never()).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"), eq(false))
+
+        // This sets the currentUrl.
+        engineSession.geckoSession.progressDelegate.onPageStart(engineSession.geckoSession, "https://www.mozilla.com")
+
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"), eq(false))
+    }
+
+    @Test
+    fun `WebView client notifies configured history delegate of title changes for private sessions`() = runBlocking {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java), privateMode = true)
+        val historyDelegate: HistoryTrackingDelegate = mock()
+
+        // Nothing breaks if history delegate isn't configured.
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+
+        engineSession.settings.historyTrackingDelegate = historyDelegate
+
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+        verify(historyDelegate, never()).onTitleChanged(eq(""), eq("Hello World!"), eq(true))
+
+        // This sets the currentUrl.
+        engineSession.geckoSession.progressDelegate.onPageStart(engineSession.geckoSession, "https://www.mozilla.com")
+
+        engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
+        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"), eq(true))
     }
 
     @Test
@@ -400,26 +569,49 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun settingRequestInterceptor() {
+    fun settingInterceptorToProvideAlternativeContent() {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
             override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
-                return RequestInterceptor.InterceptionResponse("<h1>Hello World</h1>")
+                return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
             }
         }
 
         val defaultSettings = DefaultSettings(requestInterceptor = interceptor)
 
         val engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
-        engineSession.geckoSession = Mockito.spy(engineSession.geckoSession)
+        engineSession.geckoSession = spy(engineSession.geckoSession)
 
         engineSession.geckoSession.navigationDelegate.onLoadRequest(
-            engineSession.geckoSession, "sample:about", 0, 0)
+                engineSession.geckoSession, "sample:about", 0, 0)
 
-        assertEquals("sample:about", interceptorCalledWithUri!!)
+        assertEquals("sample:about", interceptorCalledWithUri)
         verify(engineSession.geckoSession).loadString("<h1>Hello World</h1>", "text/html")
+    }
+
+    @Test
+    fun settingInterceptorToProvideAlternativeUrl() {
+        var interceptorCalledWithUri: String? = null
+
+        val interceptor = object : RequestInterceptor {
+            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+                interceptorCalledWithUri = uri
+                return RequestInterceptor.InterceptionResponse.Url("https://mozilla.org")
+            }
+        }
+
+        val defaultSettings = DefaultSettings(requestInterceptor = interceptor)
+
+        val engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
+        engineSession.geckoSession = spy(engineSession.geckoSession)
+
+        engineSession.geckoSession.navigationDelegate.onLoadRequest(
+                engineSession.geckoSession, "sample:about", 0, 0)
+
+        assertEquals("sample:about", interceptorCalledWithUri)
+        verify(engineSession.geckoSession).loadUri("https://mozilla.org")
     }
 
     @Test
@@ -427,12 +619,12 @@ class GeckoEngineSessionTest {
         val defaultSettings = DefaultSettings()
 
         val engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
-        engineSession.geckoSession = Mockito.spy(engineSession.geckoSession)
+        engineSession.geckoSession = spy(engineSession.geckoSession)
 
         engineSession.geckoSession.navigationDelegate.onLoadRequest(
-            engineSession.geckoSession, "sample:about", 0, 0)
+                engineSession.geckoSession, "sample:about", 0, 0)
 
-        verify(engineSession.geckoSession, Mockito.never()).loadString(anyString(), anyString())
+        verify(engineSession.geckoSession, never()).loadString(anyString(), anyString())
     }
 
     @Test
@@ -449,13 +641,194 @@ class GeckoEngineSessionTest {
         val defaultSettings = DefaultSettings(requestInterceptor = interceptor)
 
         val engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
-        engineSession.geckoSession = Mockito.spy(engineSession.geckoSession)
+        engineSession.geckoSession = spy(engineSession.geckoSession)
 
         engineSession.geckoSession.navigationDelegate.onLoadRequest(
-            engineSession.geckoSession, "sample:about", 0, 0)
+                engineSession.geckoSession, "sample:about", 0, 0)
 
         assertEquals("sample:about", interceptorCalledWithUri!!)
-        verify(engineSession.geckoSession, Mockito.never()).loadString(anyString(), anyString())
+        verify(engineSession.geckoSession, never()).loadString(anyString(), anyString())
+    }
+
+    @Test
+    fun onLoadErrorCallsInterceptorWithNull() {
+        var interceptedUri: String? = null
+        val requestInterceptor: RequestInterceptor = mock()
+        var defaultSettings = DefaultSettings()
+        var engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
+
+        // Interceptor is not called when there is none attached.
+        var onLoadError = engineSession.geckoSession.navigationDelegate.onLoadError(
+            engineSession.geckoSession,
+            "",
+            ERROR_CATEGORY_UNKNOWN,
+            ERROR_UNKNOWN
+        )
+        verify(requestInterceptor, never()).onErrorRequest(engineSession, ErrorType.UNKNOWN, "")
+        onLoadError.then { value: String? ->
+            interceptedUri = value
+            GeckoResult<String>(null)
+        }
+        assertNull(interceptedUri)
+
+        // Interceptor is called correctly
+        defaultSettings = DefaultSettings(requestInterceptor = requestInterceptor)
+        engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
+        onLoadError = engineSession.geckoSession.navigationDelegate.onLoadError(
+            engineSession.geckoSession,
+            "",
+            ERROR_CATEGORY_UNKNOWN,
+            ERROR_UNKNOWN
+        )
+        verify(requestInterceptor).onErrorRequest(engineSession, ErrorType.UNKNOWN, "")
+        onLoadError.then { value: String? ->
+            interceptedUri = value
+            GeckoResult<String>(null)
+        }
+        assertNull(interceptedUri)
+    }
+
+    @Test
+    fun onLoadErrorCallsInterceptorWithErrorPage() {
+        val requestInterceptor: RequestInterceptor = object : RequestInterceptor {
+            override fun onErrorRequest(
+                session: EngineSession,
+                errorType: ErrorType,
+                uri: String?
+            ): RequestInterceptor.ErrorResponse? =
+                RequestInterceptor.ErrorResponse("nonNullData")
+        }
+        val defaultSettings = DefaultSettings(requestInterceptor = requestInterceptor)
+        val engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
+
+        val onLoadError = engineSession.geckoSession.navigationDelegate.onLoadError(
+            engineSession.geckoSession,
+            "about:failed",
+            ERROR_CATEGORY_UNKNOWN,
+            ERROR_UNKNOWN
+        )
+        onLoadError.then { value: String? ->
+            assertTrue(value!!.contains("data:text/html;base64,"))
+            GeckoResult<String>(null)
+        }
+    }
+
+    @Test
+    fun geckoErrorMappingToErrorType() {
+        Assert.assertEquals(
+            ErrorType.ERROR_SECURITY_SSL,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_SECURITY_SSL)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_SECURITY_BAD_CERT,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_SECURITY_BAD_CERT)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_NET_INTERRUPT,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_NET_INTERRUPT)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_NET_TIMEOUT,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_NET_TIMEOUT)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_NET_RESET,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_NET_RESET)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_CONNECTION_REFUSED,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_CONNECTION_REFUSED)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_UNKNOWN_SOCKET_TYPE,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_UNKNOWN_SOCKET_TYPE)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_REDIRECT_LOOP,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_REDIRECT_LOOP)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_OFFLINE,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_OFFLINE)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_PORT_BLOCKED,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_PORT_BLOCKED)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_UNSAFE_CONTENT_TYPE,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_UNSAFE_CONTENT_TYPE)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_CORRUPTED_CONTENT,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_CORRUPTED_CONTENT)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_CONTENT_CRASHED,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_CONTENT_CRASHED)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_INVALID_CONTENT_ENCODING,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_INVALID_CONTENT_ENCODING)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_UNKNOWN_HOST,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_UNKNOWN_HOST)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_MALFORMED_URI,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_MALFORMED_URI)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_UNKNOWN_PROTOCOL,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_UNKNOWN_PROTOCOL)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_FILE_NOT_FOUND,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_FILE_NOT_FOUND)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_FILE_ACCESS_DENIED,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_FILE_ACCESS_DENIED)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_PROXY_CONNECTION_REFUSED,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_PROXY_CONNECTION_REFUSED)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_UNKNOWN_PROXY_HOST,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_UNKNOWN_PROXY_HOST)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_SAFEBROWSING_MALWARE_URI,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_SAFEBROWSING_MALWARE_URI)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_SAFEBROWSING_HARMFUL_URI,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_SAFEBROWSING_HARMFUL_URI)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_SAFEBROWSING_PHISHING_URI,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_SAFEBROWSING_PHISHING_URI)
+        )
+        Assert.assertEquals(
+            ErrorType.ERROR_SAFEBROWSING_UNWANTED_URI,
+            GeckoEngineSession.geckoErrorToErrorType(GeckoSession.NavigationDelegate.ERROR_SAFEBROWSING_UNWANTED_URI)
+        )
+        Assert.assertEquals(
+            ErrorType.UNKNOWN,
+            GeckoEngineSession.geckoErrorToErrorType(-500)
+        )
+    }
+
+    @Test
+    fun defaultSettings() {
+        val runtime = mock(GeckoRuntime::class.java)
+        `when`(runtime.settings).thenReturn(mock(GeckoRuntimeSettings::class.java))
+
+        val defaultSettings = DefaultSettings(trackingProtectionPolicy = TrackingProtectionPolicy.all())
+        val session = GeckoEngineSession(runtime, false, defaultSettings)
+        assertTrue(session.geckoSession.settings.getBoolean(GeckoSessionSettings.USE_TRACKING_PROTECTION))
     }
 
     @Test
@@ -529,6 +902,32 @@ class GeckoEngineSessionTest {
 
         result = engineSession.handleLongClick(null, ELEMENT_TYPE_NONE, null)
         assertNull(result)
+    }
+
+    @Test
+    fun setDesktopMode() {
+        val runtime = mock(GeckoRuntime::class.java)
+        val engineSession = GeckoEngineSession(runtime)
+
+        var desktopModeEnabled = false
+        engineSession.register(object : EngineSession.Observer {
+            override fun onDesktopModeChange(enabled: Boolean) {
+                desktopModeEnabled = true
+            }
+        })
+        engineSession.toggleDesktopMode(true)
+        assertTrue(desktopModeEnabled)
+
+        desktopModeEnabled = false
+        engineSession.toggleDesktopMode(true)
+        assertFalse(desktopModeEnabled)
+
+        engineSession.geckoSession.settings.setInt(GeckoSessionSettings.USER_AGENT_MODE, GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+        engineSession.toggleDesktopMode(true)
+        assertFalse(desktopModeEnabled)
+
+        engineSession.toggleDesktopMode(false)
+        assertTrue(desktopModeEnabled)
     }
 
     @Test
@@ -608,11 +1007,12 @@ class GeckoEngineSessionTest {
         assertTrue(clearMatchesReceived)
     }
 
+    @Test
     fun `toggle fullscreen mode triggers exit event`() {
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
-        val geckoSession = Mockito.spy(engineSession.geckoSession)
+        val geckoSession = spy(engineSession.geckoSession)
         engineSession.geckoSession = geckoSession
-        val observer: EngineSession.Observer = mock(EngineSession.Observer::class.java)
+        val observer: EngineSession.Observer = mock()
 
         // Verify the event is triggered for exiting fullscreen mode and GeckoView is called.
         var fullScreenExitReceived = false
@@ -633,14 +1033,13 @@ class GeckoEngineSessionTest {
     @Test
     fun `toggle fullscreen true has no interaction`() {
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
-        val geckoSession = Mockito.spy(engineSession.geckoSession)
+        val geckoSession = spy(engineSession.geckoSession)
         engineSession.geckoSession = geckoSession
 
         engineSession.exitFullScreenMode()
         verify(geckoSession).exitFullScreen()
     }
 
-    @Test
     fun clearData() {
         val runtime = mock(GeckoRuntime::class.java)
         val engineSession = GeckoEngineSession(runtime)

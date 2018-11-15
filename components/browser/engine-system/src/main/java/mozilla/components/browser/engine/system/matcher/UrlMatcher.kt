@@ -23,7 +23,6 @@ class UrlMatcher {
     private val whiteList: WhiteList?
     private val previouslyMatched = HashSet<String>()
     private val previouslyUnmatched = HashSet<String>()
-    private var blockWebfonts = true
 
     constructor(patterns: Array<String>) {
         categories = HashMap()
@@ -66,11 +65,6 @@ class UrlMatcher {
     }
 
     internal fun setCategoryEnabled(category: String, enabled: Boolean) {
-        if (WEBFONTS == category) {
-            blockWebfonts = enabled
-            return
-        }
-
         if (enabled) {
             if (enabledCategories.contains(category)) {
                 return
@@ -114,10 +108,6 @@ class UrlMatcher {
         val resourceHost = resourceURI.host
         val pageHost = pageURI.host
 
-        if (blockWebfonts && isWebFont(resourceURI)) {
-            return true
-        }
-
         if (previouslyUnmatched.contains(resourceURLString)) {
             return false
         }
@@ -151,14 +141,12 @@ class UrlMatcher {
         const val CONTENT = "Content"
         const val DISCONNECT = "Disconnect"
         const val SOCIAL = "Social"
-        const val WEBFONTS = "Webfonts"
         const val DEFAULT = "default"
 
-        private val IGNORED_CATEGORIES = setOf("Legacy Disconnect", "Legacy Content")
-        private val DISCONNECT_MOVED = setOf("Facebook", "Twitter")
-        private val WEBFONT_EXTENSIONS = arrayOf(".woff2", ".woff", ".eot", ".ttf", ".otf")
-
-        private val SUPPORTED_CATEGORIES = setOf(ADVERTISING, ANALYTICS, SOCIAL, CONTENT, WEBFONTS)
+        private val ignoredCategories = setOf("Legacy Disconnect", "Legacy Content")
+        private val disconnectMoved = setOf("Facebook", "Twitter")
+        private val webfontExtensions = arrayOf(".woff2", ".woff", ".eot", ".ttf", ".otf")
+        private val supportedCategories = setOf(ADVERTISING, ANALYTICS, SOCIAL, CONTENT)
 
         /**
          * Creates a new matcher instance for the provided URL lists.
@@ -172,7 +160,7 @@ class UrlMatcher {
             blackListFile: Int,
             overrides: IntArray?,
             whiteListFile: Int,
-            enabledCategories: Set<String> = SUPPORTED_CATEGORIES
+            enabledCategories: Set<String> = supportedCategories
         ): UrlMatcher {
             val blackListReader = InputStreamReader(context.resources.openRawResource(blackListFile), UTF_8)
             val whiteListReader = InputStreamReader(context.resources.openRawResource(whiteListFile), UTF_8)
@@ -191,7 +179,7 @@ class UrlMatcher {
             black: Reader,
             overrides: List<Reader>?,
             white: Reader,
-            enabledCategories: Set<String> = SUPPORTED_CATEGORIES
+            enabledCategories: Set<String> = supportedCategories
         ): UrlMatcher {
             val categoryMap = HashMap<String, Trie>()
 
@@ -207,7 +195,7 @@ class UrlMatcher {
 
             var whiteList: WhiteList? = null
             JsonReader(white).use { jsonReader -> whiteList = WhiteList.fromJson(jsonReader) }
-            return UrlMatcher(enabledCategories, SUPPORTED_CATEGORIES, categoryMap, whiteList)
+            return UrlMatcher(enabledCategories, supportedCategories, categoryMap, whiteList)
         }
 
         /**
@@ -218,7 +206,7 @@ class UrlMatcher {
          */
         fun isWebFont(uri: Uri): Boolean {
             val path = uri.path ?: return false
-            return WEBFONT_EXTENSIONS.find { path.endsWith(it) } != null
+            return webfontExtensions.find { path.endsWith(it) } != null
         }
 
         private fun loadCategories(
@@ -249,10 +237,10 @@ class UrlMatcher {
             while (reader.hasNext()) {
                 val categoryName = reader.nextName()
                 when {
-                    IGNORED_CATEGORIES.contains(categoryName) -> reader.skipValue()
+                    ignoredCategories.contains(categoryName) -> reader.skipValue()
                     categoryName == DISCONNECT -> {
                         extractCategory(reader) { url, owner ->
-                            if (DISCONNECT_MOVED.contains(owner)) socialOverrides.add(url)
+                            if (disconnectMoved.contains(owner)) socialOverrides.add(url)
                         }
                     }
                     else -> {

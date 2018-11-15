@@ -8,6 +8,7 @@ import android.annotation.TargetApi
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import java.security.GeneralSecurityException
 import java.security.InvalidKeyException
 import java.security.Key
 import java.security.KeyStore
@@ -34,7 +35,7 @@ internal const val CIPHER_NONCE_LEN = 12
  *
  */
 @TargetApi(Build.VERSION_CODES.M)
-internal open class KeyStoreWrapper {
+open class KeyStoreWrapper {
     private var keystore: KeyStore? = null
 
     /**
@@ -133,10 +134,21 @@ internal open class KeyStoreWrapper {
  *
  * @property label The label the cryptographic key is identified as
  * @constructor Creates a new instance around a key identified by the given label
+ *
+ * Unless `manual` is `true`, the key is created if not already present in the
+ * platform's key storage.
  */
 @TargetApi(Build.VERSION_CODES.M)
-class Keystore(val label: String) {
-    internal var wrapper: KeyStoreWrapper = KeyStoreWrapper()
+open class Keystore(
+    val label: String,
+    manual: Boolean = false,
+    internal val wrapper: KeyStoreWrapper = KeyStoreWrapper()
+) {
+    init {
+        if (!manual and !available()) {
+            generateKey()
+        }
+    }
 
     private fun getKey(): SecretKey? =
             wrapper.getKeyFor(label) as? SecretKey?
@@ -155,19 +167,20 @@ class Keystore(val label: String) {
      *
      * @return `true` if a new key was generated; `false` if the key already exists and can
      * be used.
-     * @throws InvalidKeyException If a key for [labael] exists, but is not a SecretKey
-     * @throws NoSuchAlgorithmException If the key cipher algorithm is not supported
+     * @throws GeneralSecurityException If the key could not be created
      */
+    @Throws(GeneralSecurityException::class)
     fun generateKey(): Boolean {
         val key = wrapper.getKeyFor(label)
         if (key != null) {
             when (key) {
-                is SecretKey -> return true
+                is SecretKey -> return false
                 else -> throw InvalidKeyException("unsupported key type")
             }
         }
 
         wrapper.makeKeyFor(label)
+
         return true
     }
 
@@ -193,8 +206,10 @@ class Keystore(val label: String) {
      *
      * @param plain The "plaintext" data to encrypt
      * @return The encrypted data to be stored
+     * @throws GeneralSecurityException If the data could not be encrypted
      */
-    fun encryptBytes(plain: ByteArray): ByteArray {
+    @Throws(GeneralSecurityException::class)
+    open fun encryptBytes(plain: ByteArray): ByteArray {
         // 5116-style interface  = [ inputs || ciphertext || atag ]
         // - inputs = [ version = 0x02 || cipher.iv (always 12 bytes) ]
         // - cipher.doFinal() provides [ ciphertext || atag ]
@@ -214,11 +229,13 @@ class Keystore(val label: String) {
      *
      * @param encrypted The encrypted data to decrypt
      * @return The decrypted "plaintext" data
+     * @throws KeystoreException If the data could not be decrypted
      */
-    fun decryptBytes(encrypted: ByteArray): ByteArray {
+    @Throws(KeystoreException::class)
+    open fun decryptBytes(encrypted: ByteArray): ByteArray {
         val version = encrypted[0].toInt()
         if (version != ENCRYPTED_VERSION) {
-            throw IllegalArgumentException("unsupported encrypted version: $version")
+            throw KeystoreException("unsupported encrypted version: $version")
         }
 
         val iv = encrypted.sliceArray(1..CIPHER_NONCE_LEN)
@@ -238,11 +255,10 @@ class Keystore(val label: String) {
      * ciphertext or decryption will fail.
      *
      * @return The [Cipher], initialized and ready to encrypt data with.
-     * @throws InvalidKeyException If the key does not exist, or is not a SecretKey
-     * @throws NoSuchAlgorithmException If the cipher algorithm is not supported
-     * @throws NoSuchPaddingException If the padding format is not supported
+     * @throws GeneralSecurityException If the Cipher could not be created and initialized
      */
-    fun createEncryptCipher(): Cipher {
+    @Throws(GeneralSecurityException::class)
+    open fun createEncryptCipher(): Cipher {
         val key = getKey() ?: throw InvalidKeyException("unknown label: $label")
         val cipher = Cipher.getInstance(CIPHER_SPEC)
         cipher.init(Cipher.ENCRYPT_MODE, key)
@@ -262,10 +278,10 @@ class Keystore(val label: String) {
      *
      * @param iv The initialization vector/nonce to decrypt with
      * @return The [Cipher], initialized and ready to decrypt data with.
-     * @throws InvalidKeyException If the key is not found, or is not a SecretKey
-     * @throws IllegalArgumentException If `iv` is `null` or invalid (e.g., not 12 bytes in length)
+     * @throws GeneralSecurityException If the cipher could not be created and initialized
      */
-    fun createDecryptCipher(iv: ByteArray): Cipher {
+    @Throws(GeneralSecurityException::class)
+    open fun createDecryptCipher(iv: ByteArray): Cipher {
         val key = getKey() ?: throw InvalidKeyException("unknown label: $label")
         val cipher = Cipher.getInstance(CIPHER_SPEC)
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(CIPHER_TAG_LEN, iv))

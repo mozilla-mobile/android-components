@@ -19,7 +19,7 @@ import android.widget.TextView
 import mozilla.components.support.utils.DrawableUtils
 import java.text.NumberFormat
 
-class TabCounter @JvmOverloads constructor(
+open class TabCounter @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0
@@ -64,24 +64,19 @@ class TabCounter @JvmOverloads constructor(
     }
 
     fun setCountWithAnimation(count: Int) {
-        var exitEarly = true
         // Don't animate from initial state.
         if (this.count == 0) {
             setCount(count)
-            exitEarly = true
+            return
         }
 
         if (this.count == count) {
-            exitEarly = true
+            return
         }
 
         // Don't animate if there are still over MAX_VISIBLE_TABS tabs open.
         if (this.count > MAX_VISIBLE_TABS && count > MAX_VISIBLE_TABS) {
             this.count = count
-            exitEarly = true
-        }
-
-        if (exitEarly) {
             return
         }
 

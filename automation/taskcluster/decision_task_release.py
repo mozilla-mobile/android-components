@@ -11,31 +11,28 @@ import argparse
 import json
 import os
 import taskcluster
-import yaml
 
+import lib.module_definitions
 import lib.tasks
 
 TASK_ID = os.environ.get('TASK_ID')
+HEAD_REV = os.environ.get('MOBILE_HEAD_REV')
 
 BUILDER = lib.tasks.TaskBuilder(
     task_id=TASK_ID,
-    repo_url=os.environ.get('GITHUB_HEAD_REPO_URL'),
-    branch=os.environ.get('GITHUB_HEAD_BRANCH'),
-    commit=os.environ.get('GITHUB_HEAD_SHA'),
+    repo_url=os.environ.get('MOBILE_HEAD_REPOSITORY'),
+    branch=os.environ.get('MOBILE_HEAD_BRANCH'),
+    commit=HEAD_REV,
     owner="skaspari@mozilla.com",
-    source="https://github.com/mozilla-mobile/android-components.git"
+    source='https://github.com/mozilla-mobile/android-components/raw/{}/.taskcluster.yml'.format(HEAD_REV),
+    scheduler_id=os.environ.get('SCHEDULER_ID'),
 )
 
 
-def load_artifacts_manifest():
-    return yaml.safe_load(open('automation/taskcluster/artifacts.yml', 'r'))
-
-
-def fetch_build_task_artifacts():
-    artifacts_info = load_artifacts_manifest()
+def fetch_build_task_artifacts(artifacts_info):
     artifacts = {}
-    for artifact, info in artifacts_info.items():
-        artifacts[artifact] = {
+    for info in artifacts_info:
+        artifacts[info['artifact']] = {
             'type': 'file',
             'expires': taskcluster.stringDate(taskcluster.fromNow('1 year')),
             'path': info['path']
@@ -44,79 +41,33 @@ def fetch_build_task_artifacts():
     return artifacts
 
 
-def generate_build_task(version):
+def generate_build_task(version, artifacts_info):
     checkout = ("git fetch origin --tags && "
                 "git config advice.detachedHead false && "
                 "git checkout {}".format(version))
-    bintray_publishing = (" && python automation/taskcluster/release/fetch-bintray-api-key.py"
-                          " && ./gradlew bintrayUpload --debug")
 
     assemble_task = 'assembleRelease'
-    scopes = [
-        "secrets:get:project/android-components/publish",
-    ]
-    artifacts = fetch_build_task_artifacts()
+    artifacts = fetch_build_task_artifacts(artifacts_info)
 
     return taskcluster.slugId(), BUILDER.build_task(
         name="Android Components - Release ({})".format(version),
         description="Building and publishing release versions.",
         command=(checkout +
-                 ' && ./gradlew --no-daemon clean test detektCheck ktlint '
+                 ' && ./gradlew --no-daemon clean test detekt ktlint '
                  + assemble_task +
-                 ' docs uploadArchives zipMavenArtifacts' +
-                 bintray_publishing),
+                 ' docs uploadArchives zipMavenArtifacts'),
         features={
             "chainOfTrust": True
         },
         worker_type='gecko-focus',
-        scopes=scopes,
+        scopes=[],
         artifacts=artifacts,
     )
 
 
-def generate_massager_task(build_task_id, massager_task_id,
-                           artifacts_info, version):
-    command = ("git fetch origin --tags && "
-               "git config advice.detachedHead false && "
-               "git checkout {} && "
-               "apt-get install -y python3-pip && "
-               "pip3 install scriptworker && "
-               "python3 automation/taskcluster/release/convert_group_and_artifact_ids.py {}".format(version, massager_task_id))
-    scopes = []
-    upstreamZip = []
-    for artifact, info in artifacts_info.items():
-        new_artifact_id = None if info['name'] == info['old_artifact_id'] else info['name']
-        new_group_id = info['new_group_id'] if new_artifact_id else None
-        upstreamZip.append({
-                "path": artifact,
-                "taskId": build_task_id,
-                "newGroupId": new_group_id,
-                "newArtifactId": new_artifact_id,
-        })
-
-    return BUILDER.massager_task(
-        name="Android Components - Massager",
-        description="Task to massage the group/artifact ids",
-        dependencies=[build_task_id],
-        command=command,
-        scopes=scopes,
-        features={
-            "chainOfTrust": True
-        },
-        artifacts={
-            "public/build": {
-                "expires": taskcluster.stringDate(taskcluster.fromNow('1 year')),
-                "path": "/build/android-components/work_dir/public/build",
-                "type": "directory"
-            }
-        },
-        upstreamZip=upstreamZip,
-    )
-
-
-def generate_beetmover_task(build_task_id, version, artifact, info):
+def generate_beetmover_task(build_task_id, version, artifact, artifact_name):
     version = version.lstrip('v')
-    upstreamArtifacts = [
+    upstream_artifacts = [
         {
             "paths": [
                 artifact
@@ -131,12 +82,12 @@ def generate_beetmover_task(build_task_id, version, artifact, info):
         "project:mobile:android-components:releng:beetmover:action:push-to-maven"
     ]
     return taskcluster.slugId(), BUILDER.beetmover_task(
-        name="Android Components - Publish Module :{} via beetmover".format(info['name']),
-        description="Publish release module {} to https://maven.mozilla.org".format(info['name']),
+        name="Android Components - Publish Module :{} via beetmover".format(artifact_name),
+        description="Publish release module {} to https://maven.mozilla.org".format(artifact_name),
         version=version,
-        artifact_id=info['name'],
+        artifact_id=artifact_name,
         dependencies=[build_task_id],
-        upstreamArtifacts=upstreamArtifacts,
+        upstreamArtifacts=upstream_artifacts,
         scopes=scopes
     )
 
@@ -155,34 +106,17 @@ def release(version):
     queue = taskcluster.Queue({'baseUrl': 'http://taskcluster/queue/v1'})
 
     task_graph = {}
+    artifacts_info = [info for info in lib.module_definitions.from_gradle() if info['shouldPublish']]
 
-    build_task_id, build_task = generate_build_task(version)
+    build_task_id, build_task = generate_build_task(version, artifacts_info)
     lib.tasks.schedule_task(queue, build_task_id, build_task)
 
     task_graph[build_task_id] = {}
     task_graph[build_task_id]["task"] = queue.task(build_task_id)
 
-    artifacts_info = load_artifacts_manifest()
-    # XXX: temporary hack: along with the release pipeline rewrite changes for
-    # https://github.com/mozilla-mobile/android-components/issues/368 have also
-    # been taken into consideration. But changing the `artifact_id` solely here
-    # will break Cot on beetmover tasks as the build task still generates them
-    # with the `artifact_id` that's baked within the `build.gradle` of each of
-    # the components. Therefore we inject a temporary task in between Build
-    # task and beetmover tasks that's to massage the ids according to the new
-    # ones. That means, downloading the zip archives from the Build task,
-    # extracting, renaming files and re-zipping things back to feed Beetmover
-    # job.
-    massager_task_id = taskcluster.slugId()
-    massager_task = generate_massager_task(build_task_id, massager_task_id,
-                                           artifacts_info, version)
-    lib.tasks.schedule_task(queue, massager_task_id, massager_task)
-
-    task_graph[massager_task_id] = {}
-    task_graph[massager_task_id]["task"] = queue.task(massager_task_id)
-
-    for artifact, info in artifacts_info.items():
-        beetmover_task_id, beetmover_task = generate_beetmover_task(massager_task_id, version, artifact, info)
+    for info in artifacts_info:
+        beetmover_task_id, beetmover_task = generate_beetmover_task(build_task_id, version, info['artifact'],
+                                                                    info['name'])
         lib.tasks.schedule_task(queue, beetmover_task_id, beetmover_task)
 
         task_graph[beetmover_task_id] = {}

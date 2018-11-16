@@ -16,6 +16,9 @@ permalink: /changelog/
   * GeckoView (Nightly: **65.0.20181116100120**, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: **0.10.0**, Sync Logins: **0.10.0**, Places: **0.10.0**)
 
+* **feature-session**
+  * Introducing `CoordinateScrollingFeature` a new feature to coordinate scrolling behavior between an `EngineView` and the view that you specify. For a full example take a look at its usages in [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
+
 # 0.32.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.31.0...v0.32.0),

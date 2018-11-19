@@ -9,7 +9,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:id="@+id/container"
-    tools:context="org.mozilla.samples.sync.logins.MainActivity">
+    tools:context="org.mozilla.samples.glean.MainActivity">
 
 
     <LinearLayout
@@ -19,14 +19,21 @@
         android:layout_alignParentTop="true"
         android:orientation="vertical"
         android:id="@+id/buttonList"
-        tools:context="org.mozilla.samples.sync.logins.MainActivity"
+        tools:context="org.mozilla.samples.glean.MainActivity"
         tools:ignore="UselessParent">
 
         <Button
-            android:id="@+id/buttonWebView"
+            android:id="@+id/buttonGenerateData"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/sign_in_webview" />
+            android:text="@string/generate_data" />
+
+        <Button
+            android:id="@+id/buttonSendPing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/send_baseline_ping" />
 
     </LinearLayout>
+
 </RelativeLayout>

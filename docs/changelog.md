@@ -16,6 +16,9 @@ permalink: /changelog/
   * GeckoView (Nightly: **65.0.20181116100120**, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: **0.10.0**, Sync Logins: **0.10.0**, Places: **0.10.0**)
 
+* **engine-gecko,engine-gecko-beta and engine-gecko-nightly**
+  * Fixing bug #1333. This issue didn't allow to use a `GeckoEngineSession` after sending a crash report.
+
 # 0.32.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.31.0...v0.32.0),

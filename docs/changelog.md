@@ -4,19 +4,58 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.32.0-SNAPSHOT (In Development)
+# 0.33.0-SNAPSHOT (In Development)
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.32.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/35?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.32.0/index)
+
+* Compiled against:
+  * Android (SDK: **28**, Support Libraries: **28.0.0**)
+  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
+  * GeckoView (Nightly: **65.0.20181116100120**, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.10.0**, Sync Logins: **0.10.0**, Places: **0.10.0**)
+  * Third Party Libs (Sentry: **1.7.14**, Okhttp: **3.12.0**)
+
+* **feature-session**
+  * Introducing `CoordinateScrollingFeature` a new feature to coordinate scrolling behavior between an `EngineView` and the view that you specify. For a full example take a look at its usages in [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
+
+* **engine-gecko,engine-gecko-beta and engine-gecko-nightly**
+  * Fixing bug #1333. This issue didn't allow to use a `GeckoEngineSession` after sending a crash report.
+
+# 0.32.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.31.0...v0.32.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/34?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.32.0/index)
 
 * Compiled against:
-  * Android (SDK: 27, Support Libraries: 27.1.1)
+  * Android (SDK: **28** 🔺, Support Libraries: **28.0.0** 🔺)
   * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: **65.0.20181116100120** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.10.0** 🔺, Sync Logins: **0.10.0** 🔺, Places: **0.10.0** 🔺)
+
+* ⚠️ **This is the first release compiled against Android SDK 28.**
 
 * **lib-crash**
-  * The state of the "Send crash report" checkbox is now getting saved and restored once the dialog is shown again. 
+  * The state of the "Send crash report" checkbox is now getting saved and restored once the dialog is shown again.
+  * The crash reporter can now sends reports if the prompt is closed by pressing the back button.
+
+* **lib-fetch-httpurlconnection**
+  * 🆕 New component: `concept-fetch` implementation using [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection.html).
+
+* **lib-fetch-okhttp**
+  * 🆕 New component: `concept-fetch` implementation using [OkHttp](https://github.com/square/okhttp).
+
+* **browser-session**:
+  * Replace `DefaultSessionStorage` with a new configurable implementation called `SessionStorage`:
+
+  ```Kotlin
+  SessionStorage().autoSave(sessionManager)
+    .periodicallyInForeground(interval = 30, unit = TimeUnit.SECONDS)
+    .whenGoingToBackground()
+    .whenSessionsChange()
+  ```
 
 # 0.31.0
 

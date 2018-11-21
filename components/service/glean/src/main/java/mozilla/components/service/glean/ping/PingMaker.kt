@@ -7,6 +7,9 @@ package mozilla.components.service.glean.ping
 import android.support.annotation.VisibleForTesting
 import mozilla.components.service.glean.BuildConfig
 import mozilla.components.service.glean.storages.StorageEngineManager
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.android.org.json.mergeWith
+import org.json.JSONException
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -15,6 +18,7 @@ import java.util.Locale
 internal class PingMaker(
     private val storageManager: StorageEngineManager
 ) {
+    private val logger = Logger("glean/PingMaker")
     private val pingStartTimes: MutableMap<String, String> = mutableMapOf()
     private val objectStartTime = getISOTimeString()
 
@@ -36,11 +40,16 @@ internal class PingMaker(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     fun getPingInfo(pingName: String): JSONObject {
-        // TODO this section is still missing app_build, client_id, seq and experiments.
-        // These fields will be added by bug 1497894 when 1499756 and 1501318 land.
         val pingInfo = JSONObject()
         pingInfo.put("ping_type", pingName)
         pingInfo.put("telemetry_sdk_build", BuildConfig.LIBRARY_VERSION)
+
+        // TODO this section is still missing real app_build, seq and experiments.
+        // These fields will be added by bug 1497894 when 1499756 and 1501318 land.
+        pingInfo.put("seq", 0)
+        pingInfo.put("app_build", "test-placeholder")
+
+        pingInfo.mergeWith(getPingInfoMetrics())
 
         // This needs to be a bit more involved for start-end times. "start_time" is
         // the time the ping was generated the last time. If not available, we use the
@@ -52,6 +61,32 @@ internal class PingMaker(
         // Update the start time with the current time.
         pingStartTimes[pingName] = endTime
         return pingInfo
+    }
+
+    /**
+     * Collect the metrics stored in the "glean_ping_info" bucket.
+     *
+     * @return a [JSONObject] containing the metrics belonging to the "ping_info"
+     *         section of the ping.
+     */
+    private fun getPingInfoMetrics(): JSONObject {
+        val pingInfoData = storageManager.collect("glean_ping_info")
+
+        // The data returned by the manager is keyed by the storage engine name.
+        // For example, the client id will live in the "uuid" object, within
+        // `pingInfoData`. Remove the first level of indirection and return
+        // the flattened data to the caller.
+        val flattenedData = JSONObject()
+        try {
+            val metricsData = pingInfoData.getJSONObject("metrics")
+            for (key in metricsData.keys()) {
+                flattenedData.mergeWith(metricsData.getJSONObject(key))
+            }
+        } catch (e: JSONException) {
+            logger.warn("Empty ping info data.")
+        }
+
+        return flattenedData
     }
 
     /**

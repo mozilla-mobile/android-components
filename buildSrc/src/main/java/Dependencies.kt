@@ -30,7 +30,7 @@ private object Versions {
 
     const val mozilla_fxa = "0.10.0"
     const val mozilla_sync_logins = "0.10.0"
-    const val mozilla_places = "0.10.0"
+    const val mozilla_places = "0.10.3"
     const val servo = "0.0.1.20181017.aa95911"
 }
 

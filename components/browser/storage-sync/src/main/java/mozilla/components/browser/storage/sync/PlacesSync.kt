@@ -35,7 +35,7 @@ open class PlacesSync(context: Context) {
     // other connection - but it's important they are both opening the same file!
     @VisibleForTesting
     internal open val places: Connection by lazy {
-        RustPlacesConnection.init(context.getDatabasePath(DB_NAME).canonicalPath, null)
+        RustPlacesConnection.init(context.filesDir, null)
         RustPlacesConnection
     }
 

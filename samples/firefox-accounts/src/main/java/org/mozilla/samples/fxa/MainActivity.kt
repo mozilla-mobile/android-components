@@ -19,7 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.FxaException
 import mozilla.components.service.fxa.Config
@@ -104,7 +103,12 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
 
     override fun onDestroy() {
         super.onDestroy()
-        runBlocking { whenAccount.await().close() }
+
+        if (whenAccount.isCompleted) {
+            whenAccount.getCompleted().close()
+        } else {
+            whenAccount.cancel()
+        }
         job.cancel()
     }
 

@@ -4,7 +4,8 @@
 
 package org.mozilla.samples.sync.logins
 
-import android.Manifest
+import android.Manifest.permission.READ_EXTERNAL_STORAGE
+import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -12,7 +13,8 @@ import android.support.v7.app.AppCompatActivity
 import android.view.View
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.support.v4.content.ContextCompat
 import android.widget.Toast
 import android.widget.ArrayAdapter
@@ -23,10 +25,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import mozilla.components.service.fxa.Config
 import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.FxaException
+import mozilla.components.service.sync.logins.AsyncLoginsStorageAdapter
+import mozilla.components.service.sync.logins.SyncLoginsClient
+import java.lang.IllegalStateException
 import kotlin.coroutines.CoroutineContext
 
 open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
@@ -49,6 +53,11 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         const val CONFIG_URL = "https://latest.dev.lcip.org"
         const val FXA_STATE_PREFS_KEY = "fxaAppState"
         const val FXA_STATE_KEY = "fxaState"
+        const val STORE_PATH = "/logins.sqlite"
+        const val SCOPE = "https://identity.mozilla.com/apps/oldsync"
+        // Hardcoded to keep the example simple. IRL this should be
+        // fetched from a secure storage (or the user)
+        const val SECRET_KEY = "my_cool_secret_key"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,7 +92,12 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
 
     override fun onDestroy() {
         super.onDestroy()
-        runBlocking { whenAccount.await().close() }
+
+        if (whenAccount.isCompleted) {
+            whenAccount.getCompleted().close()
+        } else {
+            whenAccount.cancel()
+        }
         job.cancel()
     }
 
@@ -118,23 +132,26 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
             val account = whenAccount.await()
             val oauthInfo = account.completeOAuthFlow(code, state).await()
 
-            val permissionCheck = ContextCompat.checkSelfPermission(this@MainActivity,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
-            if (permissionCheck != PackageManager.PERMISSION_GRANTED &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-            ) {
-                requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
+            val permissionCheck = ContextCompat.checkSelfPermission(this@MainActivity, WRITE_EXTERNAL_STORAGE)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED && VERSION.SDK_INT >= VERSION_CODES.M) {
+                requestPermissions(arrayOf(READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE), 1)
             }
 
-            val appFiles = this@MainActivity.applicationContext.getExternalFilesDir(null)
-            SyncLoginsClient(appFiles.absolutePath + "/logins.sqlite").use { logins ->
-                val tokenServer = account.getTokenServerEndpointURL()
-                val syncLogins = logins.syncAndGetPasswords(oauthInfo, tokenServer)
+            val dbPath = "${applicationContext.getExternalFilesDir(null).absolutePath}$STORE_PATH"
+            AsyncLoginsStorageAdapter.forDatabase(dbPath).use { store ->
+                val keyInfo = oauthInfo.keys?.get(SCOPE) ?: throw IllegalStateException("Key info is missing")
+
+                val syncedLogins = SyncLoginsClient(store).syncAndGetPasswords(
+                    oauthInfo.accessToken,
+                    keyInfo.kid,
+                    keyInfo.k,
+                    SECRET_KEY,
+                    account.getTokenServerEndpointURL()
+                )
+
                 Toast.makeText(this@MainActivity, "Logins success", Toast.LENGTH_SHORT).show()
-                for (i in 0 until syncLogins.size) {
-                    adapter.addAll("Login: " + syncLogins[i].hostname)
+                syncedLogins.forEach {
+                    adapter.add("Login: " + it.hostname)
                     adapter.notifyDataSetChanged()
                 }
             }

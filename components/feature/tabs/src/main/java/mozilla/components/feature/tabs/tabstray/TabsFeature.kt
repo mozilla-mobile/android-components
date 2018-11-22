@@ -24,8 +24,8 @@ class TabsFeature(
 
     private val interactor = TabsTrayInteractor(
         tabsTray,
-        tabsUseCases.selectSession,
-        tabsUseCases.removeSession,
+        tabsUseCases.selectTab,
+        tabsUseCases.removeTab,
         closeTabsTray)
 
     fun start() {

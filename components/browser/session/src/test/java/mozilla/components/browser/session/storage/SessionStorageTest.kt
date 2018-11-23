@@ -19,6 +19,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
@@ -198,7 +199,13 @@ class SessionStorageTest {
 
             lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 
-            autoSave.saveJob?.join()
+            val job = autoSave.saveJob!!
+
+            job.join()
+
+            assertFalse(job.isActive)
+            assertTrue(job.isCompleted)
+            assertFalse(job.isCancelled)
 
             verify(sessionStorage).save(snapshot)
         }

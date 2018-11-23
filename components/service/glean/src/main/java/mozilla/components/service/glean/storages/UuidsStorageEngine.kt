@@ -5,9 +5,9 @@
 package mozilla.components.service.glean.storages
 
 import android.annotation.SuppressLint
+import mozilla.components.service.glean.CommonMetricData
 import java.util.UUID
 
-import mozilla.components.service.glean.Lifetime
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -37,20 +37,14 @@ open class UuidsStorageEngineImplementation(
     /**
      * Record a uuid in the desired stores.
      *
-     * @param stores the list of stores to record the uuid into
-     * @param category the category of the uuid
-     * @param name the name of the uuid
-     * @param lifetime the lifetime of the stored metric data
+     * @param metricData object with metric settings
      * @param value the uuid value to record
      */
     @Synchronized
     fun record(
-        stores: List<String>,
-        category: String,
-        name: String,
-        lifetime: Lifetime,
+        metricData: CommonMetricData,
         value: UUID
     ) {
-        super.recordScalar(stores, category, name, lifetime, value)
+        super.recordScalar(metricData, value)
     }
 }

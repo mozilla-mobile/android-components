@@ -49,6 +49,7 @@ import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_IMAGE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_NONE
 import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_VIDEO
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate.ERROR_CATEGORY_UNKNOWN
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate.ERROR_MALFORMED_URI
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate.ERROR_UNKNOWN
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION
 import org.mozilla.geckoview.GeckoSession.ProgressDelegate.SecurityInformation
@@ -715,6 +716,21 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun onLoadErrorCallsInterceptorWithInvalidUri() {
+        val requestInterceptor: RequestInterceptor = mock()
+        val defaultSettings = DefaultSettings(requestInterceptor = requestInterceptor)
+        val engineSession = GeckoEngineSession(mock(), defaultSettings = defaultSettings)
+
+        engineSession.geckoSession.navigationDelegate.onLoadError(
+            engineSession.geckoSession,
+            null,
+            ERROR_CATEGORY_UNKNOWN,
+            ERROR_MALFORMED_URI
+        )
+        verify(requestInterceptor).onErrorRequest(engineSession, ErrorType.ERROR_MALFORMED_URI, null)
+    }
+
+    @Test
     fun geckoErrorMappingToErrorType() {
         Assert.assertEquals(
             ErrorType.ERROR_SECURITY_SSL,
@@ -1077,5 +1093,36 @@ class GeckoEngineSessionTest {
 
         assertFalse(oldGeckoSession.isOpen)
         assertTrue(engineSession.geckoSession != oldGeckoSession)
+    }
+
+    @Test
+    fun whenOnExternalResponseDoNotProvideAFileNameMustProvideMeaningFulFileNameToTheSessionObserver() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+        var meaningFulFileName = ""
+
+        val observer = object : EngineSession.Observer {
+            override fun onExternalResource(
+                url: String,
+                fileName: String,
+                contentLength: Long?,
+                contentType: String?,
+                cookie: String?,
+                userAgent: String?
+            ) {
+                meaningFulFileName = fileName
+            }
+        }
+        engineSession.register(observer)
+
+        val info: GeckoSession.WebResponseInfo = createMockedWebResponseInfo(
+            uri = "http://ipv4.download.thinkbroadband.com/1MB.zip",
+            contentLength = 0,
+            contentType = "",
+            filename = null
+        )
+
+        engineSession.geckoSession.contentDelegate.onExternalResponse(mock(), info)
+
+        assertEquals("1MB.zip", meaningFulFileName)
     }
 }

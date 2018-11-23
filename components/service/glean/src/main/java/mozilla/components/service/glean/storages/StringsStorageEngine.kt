@@ -5,7 +5,7 @@
 package mozilla.components.service.glean.storages
 
 import android.annotation.SuppressLint
-import mozilla.components.service.glean.Lifetime
+import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -31,20 +31,14 @@ open class StringsStorageEngineImplementation(
     /**
      * Record a string in the desired stores.
      *
-     * @param stores the list of stores to record the string into
-     * @param category the category of the string
-     * @param name the name of the string
-     * @param lifetime the lifetime of the stored metric data
+     * @param metricData object with metric settings
      * @param value the string value to record
      */
     @Synchronized
     fun record(
-        stores: List<String>,
-        category: String,
-        name: String,
-        lifetime: Lifetime,
+        metricData: CommonMetricData,
         value: String
     ) {
-        super.recordScalar(stores, category, name, lifetime, value)
+        super.recordScalar(metricData, value)
     }
 }

@@ -4,6 +4,7 @@
 
 package mozilla.components.service.glean.storages
 
+import androidx.test.core.app.ApplicationProvider
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
@@ -18,7 +19,7 @@ import org.robolectric.RuntimeEnvironment
 class StorageEngineManagerTest {
     @Test
     fun `collect() must return an empty object for empty or unknown stores`() {
-        val manager = StorageEngineManager(applicationContext = RuntimeEnvironment.application)
+        val manager = StorageEngineManager(applicationContext = ApplicationProvider.getApplicationContext())
         val data = manager.collect("thisStoreNameDoesNotExist")
         assertNotNull(data)
         assertEquals("{}", data.toString())
@@ -29,7 +30,7 @@ class StorageEngineManagerTest {
         val manager = StorageEngineManager(storageEngines = mapOf(
             "engine1" to MockStorageEngine(JSONObject(mapOf("test" to "val"))),
             "engine2" to MockStorageEngine(JSONArray(listOf("a", "b", "c")))
-        ), applicationContext = RuntimeEnvironment.application)
+        ), applicationContext = ApplicationProvider.getApplicationContext())
 
         val data = manager.collect("test")
         assertEquals("{\"metrics\":{\"engine1\":{\"test\":\"val\"},\"engine2\":[\"a\",\"b\",\"c\"]}}",

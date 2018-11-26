@@ -5,6 +5,7 @@
 package mozilla.components.service.glean
 
 import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import java.util.UUID
 
 import mozilla.components.service.glean.storages.UuidsStorageEngine
@@ -22,9 +23,9 @@ class UuidMetricTypeTest {
 
     @Before
     fun setUp() {
-        UuidsStorageEngine.applicationContext = RuntimeEnvironment.application
+        UuidsStorageEngine.applicationContext = ApplicationProvider.getApplicationContext()
         // Clear the stored "user" preferences between tests.
-        RuntimeEnvironment.application
+        ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences(UuidsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
             .edit()
             .clear()

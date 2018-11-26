@@ -5,6 +5,7 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.test.core.app.ApplicationProvider
 import mozilla.components.service.glean.Lifetime
 import mozilla.components.service.glean.StringMetricType
 import org.junit.Before
@@ -23,9 +24,9 @@ class StringsStorageEngineTest {
 
     @Before
     fun setUp() {
-        StringsStorageEngine.applicationContext = RuntimeEnvironment.application
+        StringsStorageEngine.applicationContext = ApplicationProvider.getApplicationContext()
         // Clear the stored "user" preferences between tests.
-        RuntimeEnvironment.application
+        ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences(StringsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
             .edit()
             .clear()

@@ -6,6 +6,7 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.test.core.app.ApplicationProvider
 import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.service.glean.Lifetime
 import mozilla.components.support.base.log.logger.Logger
@@ -60,7 +61,7 @@ class GenericScalarStorageEngineTest {
         val dataPingLifetime = 3
 
         val storageEngine = MockScalarStorageEngine()
-        storageEngine.applicationContext = RuntimeEnvironment.application
+        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
         val metric1 = GenericMetricType(
             disabled = false,
@@ -108,7 +109,7 @@ class GenericScalarStorageEngineTest {
     @Test
     fun `metrics with empty 'category' must be properly recorded`() {
         val storageEngine = MockScalarStorageEngine()
-        storageEngine.applicationContext = RuntimeEnvironment.application
+        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
         val metric = GenericMetricType(
             disabled = false,
@@ -298,7 +299,7 @@ class GenericScalarStorageEngineTest {
     @Test
     fun `snapshotting must only clear 'ping' lifetime`() {
         val storageEngine = MockScalarStorageEngine()
-        storageEngine.applicationContext = RuntimeEnvironment.application
+        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
         val stores = listOf("store1", "store2")
 
@@ -369,7 +370,7 @@ class GenericScalarStorageEngineTest {
         // for the SharedPreferences.
         run {
             val storageEngine = MockScalarStorageEngine()
-            storageEngine.applicationContext = RuntimeEnvironment.application
+            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
             val metric1 = GenericMetricType(
                 disabled = false,
@@ -409,7 +410,7 @@ class GenericScalarStorageEngineTest {
         // Re-instantiate the engine: application lifetime probes should have been cleared.
         run {
             val storageEngine = MockScalarStorageEngine()
-            storageEngine.applicationContext = RuntimeEnvironment.application
+            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
             val snapshot = storageEngine.getSnapshot("store1", true)
             assertEquals(1, snapshot!!.size)

@@ -5,6 +5,7 @@
 package mozilla.components.service.glean
 
 import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -20,9 +21,9 @@ class StringMetricTypeTest {
 
     @Before
     fun setUp() {
-        StringsStorageEngine.applicationContext = RuntimeEnvironment.application
+        StringsStorageEngine.applicationContext = ApplicationProvider.getApplicationContext()
         // Clear the stored "user" preferences between tests.
-        RuntimeEnvironment.application
+        ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences(StringsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
             .edit()
             .clear()

@@ -17,7 +17,7 @@ private object Versions {
     const val support_libraries = "28.0.0"
     const val constraint_layout = "1.1.2"
     const val workmanager = "1.0.0-alpha09"
-    const val lifecycle = "1.1.1"
+    const val lifecycle = "2.0.0-rc01"//"1.1.1"
 
     const val dokka = "0.9.16"
     const val android_gradle_plugin = "3.1.4"
@@ -58,7 +58,7 @@ object Dependencies {
     const val support_constraintlayout = "com.android.support.constraint:constraint-layout:${Versions.constraint_layout}"
     const val support_compat = "com.android.support:support-compat:${Versions.support_libraries}"
 
-    const val arch_lifecycle = "android.arch.lifecycle:extensions:${Versions.lifecycle}"
+    const val arch_lifecycle = "androidx.lifecycle:lifecycle-extensions:${Versions.lifecycle}"
     const val arch_workmanager = "android.arch.work:work-runtime:${Versions.workmanager}"
 
     const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"

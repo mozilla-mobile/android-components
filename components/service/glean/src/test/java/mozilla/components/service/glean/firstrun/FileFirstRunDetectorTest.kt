@@ -4,6 +4,8 @@
 
 package mozilla.components.service.glean.firstrun
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Test
 
 import org.junit.Assert.assertFalse
@@ -17,7 +19,8 @@ import java.io.IOException
 
 @RunWith(RobolectricTestRunner::class)
 class FileFirstRunDetectorTest {
-    private val dataDir: File = File(RuntimeEnvironment.application.applicationInfo.dataDir)
+    private val dataDir: File =
+        File(ApplicationProvider.getApplicationContext<Context>().applicationInfo.dataDir)
 
     @Before
     fun setUp() {

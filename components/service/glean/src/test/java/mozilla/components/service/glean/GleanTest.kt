@@ -4,6 +4,8 @@
 
 package mozilla.components.service.glean
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,7 +37,7 @@ class GleanTest {
     @Before
     fun setup() {
         Glean.initialize(
-            applicationContext = RuntimeEnvironment.application
+            applicationContext = ApplicationProvider.getApplicationContext()
         )
     }
 
@@ -163,7 +165,10 @@ class GleanTest {
     @Test
     fun `initialize() must not crash the app if Glean's data dir is messed up`() {
         // Remove the Glean's data directory.
-        val gleanDir = File(RuntimeEnvironment.application.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR)
+        val gleanDir = File(
+            ApplicationProvider.getApplicationContext<Context>().applicationInfo.dataDir,
+            Glean.GLEAN_DATA_DIR
+        )
         assertTrue(gleanDir.deleteRecursively())
 
         // Create a file in its place.
@@ -171,7 +176,7 @@ class GleanTest {
 
         // Try to init Glean: it should not crash.
         Glean.initialize(
-            applicationContext = RuntimeEnvironment.application
+            applicationContext = ApplicationProvider.getApplicationContext()
         )
 
         // Clean up after this, so that other tests don't fail.

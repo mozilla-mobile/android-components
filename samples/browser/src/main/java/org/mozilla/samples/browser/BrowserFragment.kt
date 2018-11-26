@@ -12,6 +12,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.fragment_browser.*
+import mozilla.components.feature.contextmenu.ContextMenuCandidate
+import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
@@ -27,7 +29,8 @@ class BrowserFragment : Fragment(), BackHandler {
     private lateinit var tabsToolbarFeature: TabsToolbarFeature
     private lateinit var downloadsFeature: DownloadsFeature
     private lateinit var historyTrackingFeature: HistoryTrackingFeature
-        private lateinit var scrollFeature: CoordinateScrollingFeature
+    private lateinit var scrollFeature: CoordinateScrollingFeature
+    private lateinit var contextMenuFeature: ContextMenuFeature
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_browser, container, false)
@@ -71,6 +74,14 @@ class BrowserFragment : Fragment(), BackHandler {
         }
 
         scrollFeature = CoordinateScrollingFeature(components.sessionManager, engineView, toolbar)
+
+        contextMenuFeature = ContextMenuFeature(
+            requireFragmentManager(),
+            components.sessionManager,
+            ContextMenuCandidate.defaultCandidates(
+                requireContext(),
+                components.tabsUseCases,
+                view))
     }
 
     private fun showTabs() {
@@ -89,6 +100,7 @@ class BrowserFragment : Fragment(), BackHandler {
         toolbarFeature.start()
         downloadsFeature.start()
         scrollFeature.start()
+        contextMenuFeature.start()
     }
 
     override fun onStop() {
@@ -98,6 +110,7 @@ class BrowserFragment : Fragment(), BackHandler {
         toolbarFeature.stop()
         downloadsFeature.stop()
         scrollFeature.stop()
+        contextMenuFeature.stop()
     }
 
     override fun onBackPressed(): Boolean {

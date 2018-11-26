@@ -19,9 +19,11 @@ import java.util.UUID
 interface AwesomeBar {
 
     /**
-     * Adds the following [SuggestionProvider] instances to be queried for [Suggestion]s whenever the text changes.
+     * Adds the following [SuggestionProvider] to be queried for [Suggestion]s whenever the text changes. An optional
+     * weight is applied to suggestions returned by this provider when ranking them against suggestions from other
+     * providers.
      */
-    fun addProviders(vararg providers: SuggestionProvider)
+    fun addProvider(provider: AwesomeBar.SuggestionProvider, weight: Double = 1.0)
 
     /**
      * Fired when the user starts interacting with the awesome bar by entering text in the toolbar.
@@ -77,7 +79,7 @@ interface AwesomeBar {
         val flags: Set<Flag> = emptySet(),
         val onSuggestionClicked: (() -> Unit)? = null,
         val onChipClicked: ((Chip) -> Unit)? = null,
-        val score: Int = 0
+        val score: Double = 0.0
     ) {
         /**
          * Chips are compact actions that are shown as part of a suggestion. For example a [Suggestion] from a search
@@ -148,5 +150,9 @@ interface AwesomeBar {
          */
         val shouldClearSuggestions
             get() = true
+
+
+        // TODO: KDoc!
+        val scoreRange: Pair<Double, Double>
     }
 }

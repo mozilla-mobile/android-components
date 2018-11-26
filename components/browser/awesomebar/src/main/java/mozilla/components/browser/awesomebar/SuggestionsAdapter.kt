@@ -11,6 +11,7 @@ import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import mozilla.components.concept.awesomebar.AwesomeBar
+import java.lang.IllegalStateException
 
 /**
  * [RecyclerView.Adapter] for displaying [AwesomeBar.Suggestion] in [BrowserAwesomeBar].
@@ -23,23 +24,30 @@ internal class SuggestionsAdapter(
      */
     @GuardedBy("suggestions")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var suggestions = listOf<AwesomeBar.Suggestion>()
+    internal var suggestions = listOf<WeightedSuggestion>()
 
     /**
      * Mapping a provider to the suggestions that it provided. This allows us to remove/update the suggestions of
      * a specific provider after they have been added to the list.
      */
-    private val suggestionMap: MutableMap<AwesomeBar.SuggestionProvider, List<AwesomeBar.Suggestion>> = mutableMapOf()
+    private val suggestionMap: MutableMap<AwesomeBar.SuggestionProvider, List<WeightedSuggestion>> = mutableMapOf()
 
     /**
      * Adds the given list of suggestions (from the given provider) to this adapter.
      */
     fun addSuggestions(
         provider: AwesomeBar.SuggestionProvider,
-        providerSuggestions: List<AwesomeBar.Suggestion>
+        providerSuggestions: List<AwesomeBar.Suggestion>,
+        weight: Double
     ) = synchronized(suggestions) {
         // Start with the current list of suggestions
         val updatedSuggestions = suggestions.toMutableList()
+
+        val (providerMin, providerMax) = provider.scoreRange
+        if (providerMin > providerMax) {
+            // TODO: Rounding issues?
+            throw IllegalStateException("Illegal provider score range: [$providerMin, $providerMax]")
+        }
 
         if (!provider.shouldClearSuggestions) {
             // This provider doesn't want its suggestions to be cleared when the typed text changes. This means now
@@ -47,12 +55,24 @@ internal class SuggestionsAdapter(
             suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
         }
 
+        val weightedSuggestions = providerSuggestions.map { suggestion ->
+            val score = suggestion.score
+            if (score > providerMax || score < providerMin) {
+                // TODO: Rounding issues
+                throw IllegalStateException("Score $score out of range [$providerMin, $providerMax]")
+            }
+
+            val normalizedScore = (score - providerMin) / (providerMax - providerMin)
+
+            WeightedSuggestion(suggestion, normalizedScore * weight)
+        }
+
         // Remember which suggestions this provider added
-        suggestionMap[provider] = providerSuggestions
+        suggestionMap[provider] = weightedSuggestions
 
-        updatedSuggestions.addAll(providerSuggestions)
+        updatedSuggestions.addAll(weightedSuggestions)
 
-        updateTo(updatedSuggestions.sortedByDescending { it.score })
+        updateTo(updatedSuggestions.sortedByDescending { it.weightedNormalizedScore })
     }
 
     /**
@@ -74,7 +94,7 @@ internal class SuggestionsAdapter(
      * Takes an updated list of suggestions, calculates the diff and then dispatches the appropriate notifications to
      * update the RecyclerView.
      */
-    private fun updateTo(updatedSuggestions: List<AwesomeBar.Suggestion>) {
+    private fun updateTo(updatedSuggestions: List<WeightedSuggestion>) {
         val result = DiffUtil.calculateDiff(SuggestionDiffCallback(suggestions, updatedSuggestions))
 
         this.suggestions = updatedSuggestions
@@ -101,7 +121,7 @@ internal class SuggestionsAdapter(
     }
 
     override fun getItemViewType(position: Int): Int = synchronized(suggestions) {
-        val suggestion = suggestions.get(position)
+        val suggestion = suggestions.get(position).suggestion
 
         return if (suggestion.chips.isNotEmpty()) {
             SuggestionViewHolder.ChipsSuggestionViewHolder.LAYOUT_ID
@@ -118,22 +138,27 @@ internal class SuggestionsAdapter(
         holder: SuggestionViewHolder,
         position: Int
     ) = synchronized(suggestions) {
-        val suggestion = suggestions[position]
+        val suggestion = suggestions[position].suggestion
         holder.bind(suggestion)
     }
 }
 
+internal data class WeightedSuggestion(
+    val suggestion: AwesomeBar.Suggestion,
+    val weightedNormalizedScore: Double
+)
+
 internal class SuggestionDiffCallback(
-    private val suggestions: List<AwesomeBar.Suggestion>,
-    private val updatedSuggestions: List<AwesomeBar.Suggestion>
+    private val suggestions: List<WeightedSuggestion>,
+    private val updatedSuggestions: List<WeightedSuggestion>
 ) : DiffUtil.Callback() {
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
-        suggestions[oldItemPosition].id == updatedSuggestions[newItemPosition].id
+        suggestions[oldItemPosition].suggestion.id == updatedSuggestions[newItemPosition].suggestion.id
 
     override fun getOldListSize(): Int = suggestions.size
 
     override fun getNewListSize(): Int = updatedSuggestions.size
 
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
-        suggestions[oldItemPosition].areContentsTheSame(updatedSuggestions[newItemPosition])
+        suggestions[oldItemPosition].suggestion.areContentsTheSame(updatedSuggestions[newItemPosition].suggestion)
 }

@@ -18,6 +18,10 @@ import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 
+private const val DEFAULT_WEIGHT_SESSION_PROVIDER = 1.0
+private const val DEFAULT_WEIGHT_SEARCH_PROVIDER = 1.0
+private const val DEFAULT_WEIGHT_HISTORY_PROVIDER = 1.0
+
 /**
  * Connects an [AwesomeBar] with a [Toolbar] and allows adding multiple [AwesomeBar.SuggestionProvider] implementations.
  */
@@ -43,10 +47,11 @@ class AwesomeBarFeature(
      */
     fun addSessionProvider(
         sessionManager: SessionManager,
-        selectTabUseCase: TabsUseCases.SelectTabUseCase
+        selectTabUseCase: TabsUseCases.SelectTabUseCase,
+        weight: Double = DEFAULT_WEIGHT_SESSION_PROVIDER
     ): AwesomeBarFeature {
         val provider = SessionSuggestionProvider(sessionManager, selectTabUseCase)
-        awesomeBar.addProviders(provider)
+        awesomeBar.addProvider(provider, weight)
         return this
     }
 
@@ -55,9 +60,11 @@ class AwesomeBarFeature(
      */
     fun addSearchProvider(
         searchEngine: SearchEngine,
-        searchUseCase: SearchUseCases.DefaultSearchUseCase
+        searchUseCase: SearchUseCases.DefaultSearchUseCase,
+        weight: Double = DEFAULT_WEIGHT_SEARCH_PROVIDER
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchSuggestionProvider(searchEngine, searchUseCase))
+        val provider = SearchSuggestionProvider(searchEngine, searchUseCase)
+        awesomeBar.addProvider(provider, weight)
         return this
     }
 
@@ -66,9 +73,11 @@ class AwesomeBarFeature(
      */
     fun addHistoryProvider(
         historyStorage: HistoryStorage,
-        loadUrlUseCase: SessionUseCases.LoadUrlUseCase
+        loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
+        weight: Double = DEFAULT_WEIGHT_HISTORY_PROVIDER
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase))
+        val provider = HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase)
+        awesomeBar.addProvider(provider, weight)
         return this
     }
 

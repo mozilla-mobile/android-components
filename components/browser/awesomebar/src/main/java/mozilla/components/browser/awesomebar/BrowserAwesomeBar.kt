@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
@@ -33,7 +34,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 ) : RecyclerView(context, attrs, defStyleAttr), AwesomeBar {
     private val jobDispatcher = newFixedThreadPoolContext(PROVIDER_QUERY_THREADS, "AwesomeBarProviders")
     private val suggestionsAdapter = SuggestionsAdapter(this)
-    private val providers: MutableList<AwesomeBar.SuggestionProvider> = mutableListOf()
+    private val providers: MutableList<ProviderWithWeight> = mutableListOf()
     internal var scope = CoroutineScope(Dispatchers.Main)
     internal var job: Job? = null
     internal var listener: (() -> Unit)? = null
@@ -54,13 +55,13 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     }
 
     @Synchronized
-    override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
-        this.providers.addAll(providers)
+    override fun addProvider(provider: AwesomeBar.SuggestionProvider, weight: Double) {
+        this.providers.add(ProviderWithWeight(provider, weight))
     }
 
     @Synchronized
     override fun onInputStarted() {
-        providers.forEach { provider -> provider.onInputStarted() }
+        providers.forEach { weightedProvider -> weightedProvider.provider.onInputStarted() }
     }
 
     @Synchronized
@@ -70,10 +71,12 @@ class BrowserAwesomeBar @JvmOverloads constructor(
         suggestionsAdapter.clearSuggestions()
 
         job = scope.launch {
-            providers.forEach { provider ->
+            providers.forEach { weightedProvider ->
+                val provider = weightedProvider.provider
+
                 launch {
                     val suggestions = async(jobDispatcher) { provider.onInputChanged(text) }
-                    suggestionsAdapter.addSuggestions(provider, suggestions.await())
+                    suggestionsAdapter.addSuggestions(provider, suggestions.await(), weightedProvider.weight)
                 }
             }
         }
@@ -90,7 +93,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     override fun onInputCancelled() {
         job?.cancel()
 
-        providers.forEach { provider -> provider.onInputCancelled() }
+        providers.forEach { weightedProvider -> weightedProvider.provider.onInputCancelled() }
     }
 
     override fun setOnStopListener(listener: () -> Unit) {
@@ -103,4 +106,9 @@ internal data class BrowserAwesomeBarStyling(
     val descriptionTextColor: Int,
     val chipTextColor: Int,
     val chipBackgroundColor: Int
+)
+
+internal data class ProviderWithWeight(
+    val provider: AwesomeBar.SuggestionProvider,
+    val weight: Double = 1.0
 )

@@ -122,11 +122,9 @@ class TabsUseCasesTest {
         useCases.addPrivateTab.invoke("https://www.mozilla.org")
         useCases.addTab.invoke("https://www.mozilla.org")
 
-
         assertEquals(2, sessionManager.size)
 
         useCases.removeAllTabs.invoke()
-
 
         assertEquals(0, sessionManager.size)
 
@@ -144,21 +142,17 @@ class TabsUseCasesTest {
         useCases.addPrivateTab.invoke("https://www.mozilla.org")
         useCases.addTab.invoke("https://www.mozilla.org")
 
-
         assertEquals(2, sessionManager.size)
 
         useCases.removeAllTabsOfTypeUseCase.invoke(private = false)
 
-
         assertEquals(1, sessionManager.all.size)
-
 
         useCases.addPrivateTab.invoke("https://www.mozilla.org")
         useCases.addTab.invoke("https://www.mozilla.org")
         useCases.addTab.invoke("https://www.mozilla.org")
 
         assertEquals(4, sessionManager.size)
-
 
         useCases.removeAllTabsOfTypeUseCase.invoke(private = true)
 

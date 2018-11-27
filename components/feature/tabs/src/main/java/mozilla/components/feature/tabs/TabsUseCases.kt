@@ -12,10 +12,10 @@ import mozilla.components.browser.session.SessionManager
  * Contains use cases related to the tabs feature.
  */
 class TabsUseCases(
-    sessionManager: SessionManager
+        sessionManager: SessionManager
 ) {
     class SelectTabUseCase internal constructor(
-        private val sessionManager: SessionManager
+            private val sessionManager: SessionManager
     ) {
         /**
          * Marks the provided session as selected.
@@ -28,7 +28,7 @@ class TabsUseCases(
     }
 
     class RemoveTabUseCase internal constructor(
-        private val sessionManager: SessionManager
+            private val sessionManager: SessionManager
     ) {
         /**
          * Removes the provided session.
@@ -41,7 +41,7 @@ class TabsUseCases(
     }
 
     class AddNewTabUseCase internal constructor(
-        private val sessionManager: SessionManager
+            private val sessionManager: SessionManager
     ) {
         /**
          * Add a new tab and load the provided URL.
@@ -51,10 +51,10 @@ class TabsUseCases(
          * @param startLoading True (default) if the new tab should start loading immediately.
          */
         fun invoke(
-            url: String,
-            selectTab: Boolean = true,
-            startLoading: Boolean = true,
-            parent: Session? = null
+                url: String,
+                selectTab: Boolean = true,
+                startLoading: Boolean = true,
+                parent: Session? = null
         ): Session {
             val session = Session(url, false, Source.NEW_TAB)
             sessionManager.add(session, selected = selectTab, parent = parent)
@@ -68,7 +68,7 @@ class TabsUseCases(
     }
 
     class AddNewPrivateTabUseCase internal constructor(
-        private val sessionManager: SessionManager
+            private val sessionManager: SessionManager
     ) {
         /**
          * Add a new private tab and load the provided URL.
@@ -77,10 +77,10 @@ class TabsUseCases(
          * @param selectTab True (default) if the new tab should be selected immediately.
          */
         fun invoke(
-            url: String,
-            selectTab: Boolean = true,
-            startLoading: Boolean = true,
-            parent: Session? = null
+                url: String,
+                selectTab: Boolean = true,
+                startLoading: Boolean = true,
+                parent: Session? = null
         ): Session {
             val session = Session(url, true, Source.NEW_TAB)
             sessionManager.add(session, selected = selectTab, parent = parent)
@@ -93,8 +93,48 @@ class TabsUseCases(
         }
     }
 
+    class RemoveAllTabsUseCase internal constructor(
+            private val sessionManager: SessionManager
+    ) {
+
+        fun invoke() {
+            sessionManager.removeAll()
+
+        }
+    }
+
+    class RemovePrivateTabsUseCase internal constructor(
+            private val sessionManager: SessionManager
+    ) {
+
+        fun invoke() {
+            sessionManager.all.filter { it.private }.forEach {
+
+                sessionManager.remove(it)
+            }
+
+        }
+    }
+
+    class RemoveNonPrivateTabsUseCase internal constructor(
+            private val sessionManager: SessionManager
+    ) {
+
+        fun invoke() {
+
+            sessionManager.all.filter { !it.private }.forEach {
+
+                sessionManager.remove(it)
+            }
+
+        }
+    }
+
     val selectTab: SelectTabUseCase by lazy { SelectTabUseCase(sessionManager) }
     val removeTab: RemoveTabUseCase by lazy { RemoveTabUseCase(sessionManager) }
     val addTab: AddNewTabUseCase by lazy { AddNewTabUseCase(sessionManager) }
     val addPrivateTab: AddNewPrivateTabUseCase by lazy { AddNewPrivateTabUseCase(sessionManager) }
+    val removeAllTabs: RemoveAllTabsUseCase by lazy { RemoveAllTabsUseCase(sessionManager) }
+    val removeOnlyPrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(sessionManager) }
+    val removeOnlyNonPrivateTabs: RemoveNonPrivateTabsUseCase by lazy { RemoveNonPrivateTabsUseCase(sessionManager) }
 }

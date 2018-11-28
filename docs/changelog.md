@@ -18,6 +18,45 @@ permalink: /changelog/
   * Mozilla App Services (FxA: 0.10.0, Sync Logins: 0.10.0, Places: 0.10.0)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
 
+* **feature-prompts**
+  * 🆕 New component: A component that will subscribe to the selected session and will handle all the common prompt dialogs from web content.
+
+  ```kotlin
+  val promptFeature = PromptFeature(sessionManager,fragmentManager)
+
+  //It will start listing for new prompt requests for web content.
+  promptFeature.start()
+
+  //It will stop listing for future prompt requests for web content.
+  promptFeature.stop()
+  ```
+
+* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:  
+  * Added functionality to observe window requests from the browser engine. These requests can be observed on the session directly using `onOpenWindowRequest` and `onCloseWindowRequest`, but we also provide a feature class, which will automatically open and close the corresponding window:
+
+  ```Kotlin
+  windowFeature = WindowFeature(engine, sessionManager)
+
+  override fun onStart() {    
+    windowFeature.start()
+  }
+
+  override fun onStop() {
+    windowFeature.stop()
+  }
+
+  ```
+
+  In addition, to observe window requests the new engine setting `supportMultipleWindows` has to be set to true:
+
+  ```Kotlin
+  val engine = SystemEngine(context, 
+    DefaultSettings(
+      supportMultipleWindows = true
+    )
+  )
+  ```
+
 # 0.33.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.32.0...v0.33.0),

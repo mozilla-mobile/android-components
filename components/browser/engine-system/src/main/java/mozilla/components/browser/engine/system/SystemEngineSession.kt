@@ -47,6 +47,10 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     @Volatile internal var webFontsEnabled = true
     @Volatile internal var internalSettings: Settings? = null
 
+    // This is currently only used for window requests:
+    // TODO https://github.com/mozilla-mobile/android-components/issues/1195
+    @Volatile internal var webView: WebView? = null
+
     /**
      * See [EngineSession.loadUrl]
      */
@@ -184,7 +188,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     }
 
     /**
-     * See [EngineSession.clearFindResults]
+     * See [EngineSession.clearFindMatches]
      */
     override fun clearFindMatches() {
         currentView()?.clearMatches()
@@ -243,6 +247,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
             override var userAgentString by WebSetting(s::getUserAgentString, s::setUserAgentString)
             override var displayZoomControls by WebSetting(s::getDisplayZoomControls, s::setDisplayZoomControls)
             override var loadWithOverviewMode by WebSetting(s::getLoadWithOverviewMode, s::setLoadWithOverviewMode)
+            override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
             override var allowUniversalAccessFromFileURLs by WebSetting(
@@ -292,6 +297,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 verticalScrollBarEnabled = it.verticalScrollBarEnabled
                 horizontalScrollBarEnabled = it.horizontalScrollBarEnabled
                 userAgentString = it.userAgentString
+                supportMultipleWindows = it.supportMultipleWindows
             }
         }
 

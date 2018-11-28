@@ -9,6 +9,9 @@ import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.permission.PermissionRequest
+
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
@@ -541,6 +544,8 @@ class SessionTest {
         val defaultObserver = object : Session.Observer {}
         val contentPermissionRequest: PermissionRequest = mock()
         val appPermissionRequest: PermissionRequest = mock()
+        val promptRequest: PromptRequest = mock()
+        val windowRequest: WindowRequest = mock()
 
         defaultObserver.onUrlChanged(session, "")
         defaultObserver.onTitleChanged(session, "")
@@ -560,6 +565,9 @@ class SessionTest {
         defaultObserver.onThumbnailChanged(session, spy(Bitmap::class.java))
         defaultObserver.onContentPermissionRequested(session, contentPermissionRequest)
         defaultObserver.onAppPermissionRequested(session, appPermissionRequest)
+        defaultObserver.onPromptRequested(session, promptRequest)
+        defaultObserver.onOpenWindowRequested(session, windowRequest)
+        defaultObserver.onCloseWindowRequested(session, windowRequest)
     }
 
     @Test
@@ -615,5 +623,97 @@ class SessionTest {
 
         assertTrue(appPermissionCallbackExecuted)
         assertTrue(session.appPermissionRequest.isConsumed())
+    }
+
+    @Test
+    fun `prompt requests will be set on session if no observer consumes it`() {
+        val promptRequest: PromptRequest = mock()
+
+        val session = Session("https://www.mozilla.org")
+        session.promptRequest = Consumable.from(promptRequest)
+        assertFalse(session.promptRequest.isConsumed())
+
+        var promptRequestRequestIsSet = false
+        session.promptRequest.consume {
+            promptRequestRequestIsSet = true
+            true
+        }
+
+        assertTrue(promptRequestRequestIsSet)
+    }
+
+    @Test
+    fun `prompt requests will not be set on session if consumed by observer`() {
+        var promptCallbackExecuted = false
+
+        val session = Session("https://www.mozilla.org")
+        session.register(object : Session.Observer {
+            override fun onPromptRequested(session: Session, promptRequest: PromptRequest): Boolean {
+                promptCallbackExecuted = true
+                return true
+            }
+        })
+
+        val promptRequest: PromptRequest = mock()
+        session.promptRequest = Consumable.from(promptRequest)
+
+        assertTrue(promptCallbackExecuted)
+        assertTrue(session.contentPermissionRequest.isConsumed())
+    }
+
+    @Test
+    fun `window requests will be set on session if no observer consumes them`() {
+        val openWindowRequest: WindowRequest = mock()
+        val closeWindowRequest: WindowRequest = mock()
+
+        val session = Session("https://www.mozilla.org")
+        session.openWindowRequest = Consumable.from(openWindowRequest)
+        session.closeWindowRequest = Consumable.from(closeWindowRequest)
+        assertFalse(session.openWindowRequest.isConsumed())
+        assertFalse(session.closeWindowRequest.isConsumed())
+
+        var createWindowRequestIsSet = false
+        var closeWindowRequestIsSet = false
+        session.openWindowRequest.consume {
+            createWindowRequestIsSet = true
+            true
+        }
+        session.closeWindowRequest.consume {
+            closeWindowRequestIsSet = true
+            true
+        }
+        assertTrue(createWindowRequestIsSet)
+        assertTrue(closeWindowRequestIsSet)
+    }
+
+    @Test
+    fun `window requests will not be set on session if consumed by observer`() {
+        var openWindowRequestExecuted = false
+        var closeWindowRequestExecuted = false
+
+        val session = Session("https://www.mozilla.org")
+        session.register(object : Session.Observer {
+            override fun onOpenWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
+                openWindowRequestExecuted = true
+                return true
+            }
+
+            override fun onCloseWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
+                closeWindowRequestExecuted = true
+                return true
+            }
+        })
+
+        val createWindowRequest: WindowRequest = mock()
+        session.openWindowRequest = Consumable.from(createWindowRequest)
+
+        val closeWindowRequest: WindowRequest = mock()
+        session.closeWindowRequest = Consumable.from(closeWindowRequest)
+
+        assertTrue(openWindowRequestExecuted)
+        assertTrue(session.openWindowRequest.isConsumed())
+
+        assertTrue(closeWindowRequestExecuted)
+        assertTrue(session.closeWindowRequest.isConsumed())
     }
 }

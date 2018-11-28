@@ -7,6 +7,9 @@ package mozilla.components.concept.engine
 import android.graphics.Bitmap
 import android.support.annotation.CallSuper
 import mozilla.components.concept.engine.permission.PermissionRequest
+
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 
@@ -40,6 +43,9 @@ abstract class EngineSession(
         fun onAppPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onContentPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
+        fun onPromptRequest(promptRequest: PromptRequest) = Unit
+        fun onOpenWindowRequest(windowRequest: WindowRequest) = Unit
+        fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(

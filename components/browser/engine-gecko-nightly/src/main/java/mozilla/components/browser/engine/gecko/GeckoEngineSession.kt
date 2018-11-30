@@ -6,7 +6,12 @@ package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
@@ -27,10 +32,6 @@ import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
-import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_AUDIO
-import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_IMAGE
-import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_NONE
-import org.mozilla.geckoview.GeckoSession.ContentDelegate.ELEMENT_TYPE_VIDEO
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.WebRequestError
@@ -43,11 +44,13 @@ class GeckoEngineSession(
     private val runtime: GeckoRuntime,
     private val privateMode: Boolean = false,
     private val defaultSettings: Settings? = null,
-    private val geckoSessionProvider: () -> GeckoSession = { GeckoSession() }
-) : EngineSession() {
+    private val geckoSessionProvider: () -> GeckoSession = { GeckoSession() },
+    private val context: CoroutineContext = Dispatchers.IO
+) : CoroutineScope, EngineSession() {
 
     internal var geckoSession: GeckoSession = geckoSessionProvider()
     internal var currentUrl: String? = null
+    internal var job: Job = Job()
 
     /**
      * See [EngineSession.settings]
@@ -58,6 +61,9 @@ class GeckoEngineSession(
     }
 
     private var initialLoad = true
+
+    override val coroutineContext: CoroutineContext
+        get() = context + job
 
     init {
         initGeckoSession()
@@ -237,7 +243,7 @@ class GeckoEngineSession(
      */
     override fun close() {
         super.close()
-
+        job.cancel()
         geckoSession.close()
     }
 
@@ -348,16 +354,63 @@ class GeckoEngineSession(
     }
 
     @Suppress("ComplexMethod")
+    internal fun createHistoryDelegate() = object : GeckoSession.HistoryDelegate {
+        override fun onVisited(
+            session: GeckoSession,
+            url: String,
+            lastVisitedURL: String?,
+            flags: Int
+        ): GeckoResult<Boolean>? {
+            if (privateMode ||
+                (flags and GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL) == 0 ||
+                (flags and GeckoSession.HistoryDelegate.VISIT_UNRECOVERABLE_ERROR) != 0) {
+
+                // Don't track visits in private mode, redirects, or error
+                // pages, even if they're top-level visits.
+                return GeckoResult.fromValue(false)
+            }
+
+            val delegate = settings.historyTrackingDelegate ?: return GeckoResult.fromValue(false)
+
+            val isReload = lastVisitedURL?.let { it == url } ?: false
+            val result = GeckoResult<Boolean>()
+            launch {
+                delegate.onVisited(url, isReload)
+                result.complete(true)
+            }
+            return result
+        }
+
+        override fun getVisited(
+            session: GeckoSession,
+            urls: Array<out String>
+        ): GeckoResult<BooleanArray>? {
+            if (privateMode) {
+                return GeckoResult.fromValue(null)
+            }
+
+            val delegate = settings.historyTrackingDelegate ?: return GeckoResult.fromValue(null)
+
+            val result = GeckoResult<BooleanArray>()
+            launch {
+                val visits: List<Boolean>? = delegate.getVisited(urls.toList())
+                result.complete(visits?.toBooleanArray())
+            }
+            return result
+        }
+    }
+
+    @Suppress("ComplexMethod")
     internal fun createContentDelegate() = object : GeckoSession.ContentDelegate {
+        override fun onFirstComposite(session: GeckoSession?) = Unit
+
         override fun onContextMenu(
             session: GeckoSession,
             screenX: Int,
             screenY: Int,
-            uri: String?,
-            elementType: Int,
-            elementSrc: String?
+            element: GeckoSession.ContentDelegate.ContextElement
         ) {
-            val hitResult = handleLongClick(elementSrc, elementType, uri)
+            val hitResult = handleLongClick(element.srcUri, element.type, element.linkUri)
             hitResult?.let {
                 notifyObservers { onLongPress(it) }
             }
@@ -387,10 +440,12 @@ class GeckoEngineSession(
         override fun onCloseRequest(session: GeckoSession) = Unit
 
         override fun onTitleChange(session: GeckoSession, title: String) {
-            currentUrl?.let { url ->
-                settings.historyTrackingDelegate?.let { delegate ->
-                    runBlocking {
-                        delegate.onTitleChanged(url, title, privateMode)
+            if (!privateMode) {
+                currentUrl?.let { url ->
+                    settings.historyTrackingDelegate?.let { delegate ->
+                        runBlocking {
+                            delegate.onTitleChanged(url, title)
+                        }
                     }
                 }
             }
@@ -446,15 +501,15 @@ class GeckoEngineSession(
     @Suppress("ComplexMethod")
     fun handleLongClick(elementSrc: String?, elementType: Int, uri: String? = null): HitResult? {
         return when (elementType) {
-            ELEMENT_TYPE_AUDIO ->
+            GeckoSession.ContentDelegate.ContextElement.TYPE_AUDIO ->
                 elementSrc?.let {
                     HitResult.AUDIO(it)
                 }
-            ELEMENT_TYPE_VIDEO ->
+            GeckoSession.ContentDelegate.ContextElement.TYPE_VIDEO ->
                 elementSrc?.let {
                     HitResult.VIDEO(it)
                 }
-            ELEMENT_TYPE_IMAGE -> {
+            GeckoSession.ContentDelegate.ContextElement.TYPE_IMAGE -> {
                 when {
                     elementSrc != null && uri != null ->
                         HitResult.IMAGE_SRC(elementSrc, uri)
@@ -463,7 +518,7 @@ class GeckoEngineSession(
                     else -> HitResult.UNKNOWN("")
                 }
             }
-            ELEMENT_TYPE_NONE -> {
+            GeckoSession.ContentDelegate.ContextElement.TYPE_NONE -> {
                 elementSrc?.let {
                     when {
                         it.isPhone() -> HitResult.PHONE(it)
@@ -500,6 +555,7 @@ class GeckoEngineSession(
         geckoSession.trackingProtectionDelegate = createTrackingProtectionDelegate()
         geckoSession.permissionDelegate = createPermissionDelegate()
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
+        geckoSession.historyDelegate = createHistoryDelegate()
     }
 
     companion object {

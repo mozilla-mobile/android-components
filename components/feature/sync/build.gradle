@@ -2,21 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion Config.compileSdkVersion
 
     defaultConfig {
-        applicationId "org.mozilla.samples.sync.logins"
         minSdkVersion Config.minSdkVersion
         targetSdkVersion Config.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -25,25 +19,22 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'x86', 'arm64-v8a', 'armeabi-v7a'
-        }
-    }
 }
 
 dependencies {
     implementation project(':concept-storage')
-    implementation project(':feature-sync')
     implementation project(':service-firefox-accounts')
-    implementation project(':service-sync-logins')
+    implementation project(':support-base')
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines
 
-    implementation Dependencies.support_appcompat
-    implementation Dependencies.support_customtabs
+    testImplementation Dependencies.testing_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+
+    testImplementation project(':support-test')
 }
+
+apply from: '../../../publish.gradle'
+ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])

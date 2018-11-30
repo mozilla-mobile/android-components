@@ -31,7 +31,7 @@ tasks:
         provisionerId: aws-provisioner-v1
         workerType: android-components-g
         scopes:
-          - queue:create-task:aws-provisioner-v1/android-components-g
+          - queue:create-task:high:aws-provisioner-v1/android-components-g
           - queue:scheduler-id:${scheduler_id}
           - secrets:get:project/mobile/android-components/public-tokens
         payload:
@@ -85,7 +85,7 @@ tasks:
           provisionerId: aws-provisioner-v1
           workerType: android-components-g
           scopes:
-            - queue:create-task:aws-provisioner-v1/android-components-g
+            - queue:create-task:high:aws-provisioner-v1/android-components-g
             - queue:scheduler-id:${scheduler_id}
             - secrets:get:project/mobile/android-components/public-tokens
           payload:

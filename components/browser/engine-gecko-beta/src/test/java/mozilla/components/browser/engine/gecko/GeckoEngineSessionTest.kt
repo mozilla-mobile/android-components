@@ -426,7 +426,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `GeckoEngineSession keeps track of current url via onPageStart events`() {
+    fun `keeps track of current url via onPageStart events`() {
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
 
         assertNull(engineSession.currentUrl)
@@ -438,43 +438,43 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `WebView client notifies configured history delegate of title changes`() = runBlocking {
+    fun `notifies configured history delegate of title changes`() = runBlocking {
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
-        val historyDelegate: HistoryTrackingDelegate = mock()
+        val historyTrackingDelegate: HistoryTrackingDelegate = mock()
 
         // Nothing breaks if history delegate isn't configured.
         engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
 
-        engineSession.settings.historyTrackingDelegate = historyDelegate
+        engineSession.settings.historyTrackingDelegate = historyTrackingDelegate
 
         engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
-        verify(historyDelegate, never()).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"), eq(false))
+        verify(historyTrackingDelegate, never()).onTitleChanged(anyString(), anyString())
 
         // This sets the currentUrl.
         engineSession.geckoSession.progressDelegate.onPageStart(engineSession.geckoSession, "https://www.mozilla.com")
 
         engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
-        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"), eq(false))
+        verify(historyTrackingDelegate).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"))
     }
 
     @Test
-    fun `WebView client notifies configured history delegate of title changes for private sessions`() = runBlocking {
+    fun `notifies configured history delegate of title changes for private sessions`() = runBlocking {
         val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java), privateMode = true)
-        val historyDelegate: HistoryTrackingDelegate = mock()
+        val historyTrackingDelegate: HistoryTrackingDelegate = mock()
 
         // Nothing breaks if history delegate isn't configured.
         engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
 
-        engineSession.settings.historyTrackingDelegate = historyDelegate
+        engineSession.settings.historyTrackingDelegate = historyTrackingDelegate
 
         engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
-        verify(historyDelegate, never()).onTitleChanged(eq(""), eq("Hello World!"), eq(true))
+        verify(historyTrackingDelegate, never()).onTitleChanged(anyString(), anyString())
 
         // This sets the currentUrl.
         engineSession.geckoSession.progressDelegate.onPageStart(engineSession.geckoSession, "https://www.mozilla.com")
 
         engineSession.geckoSession.contentDelegate.onTitleChange(engineSession.geckoSession, "Hello World!")
-        verify(historyDelegate).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"), eq(true))
+        verify(historyTrackingDelegate).onTitleChanged(eq("https://www.mozilla.com"), eq("Hello World!"))
     }
 
     @Test
@@ -1124,5 +1124,24 @@ class GeckoEngineSessionTest {
         engineSession.geckoSession.contentDelegate.onExternalResponse(mock(), info)
 
         assertEquals("1MB.zip", meaningFulFileName)
+    }
+
+    @Test
+    fun `Closing engine session should close underlying gecko session`() {
+        val geckoSession = mockGeckoSession()
+
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java))
+        engineSession.geckoSession = geckoSession
+
+        engineSession.close()
+
+        verify(geckoSession).close()
+    }
+
+    private fun mockGeckoSession(): GeckoSession {
+        val session = mock(GeckoSession::class.java)
+        `when`(session.settings).thenReturn(
+            mock(GeckoSessionSettings::class.java))
+        return session
     }
 }

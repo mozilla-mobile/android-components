@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
+import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
@@ -230,6 +231,15 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.close].
+     */
+    override fun close() {
+        super.close()
+
+        geckoSession.close()
+    }
+
+    /**
      * NavigationDelegate implementation for forwarding callbacks to observers of the session.
      */
     @Suppress("ComplexMethod")
@@ -379,7 +389,7 @@ class GeckoEngineSession(
             currentUrl?.let { url ->
                 settings.historyTrackingDelegate?.let { delegate ->
                     runBlocking {
-                        delegate.onTitleChanged(url, title, privateMode)
+                        delegate.onTitleChanged(url, title)
                     }
                 }
             }
@@ -489,6 +499,7 @@ class GeckoEngineSession(
         geckoSession.contentDelegate = createContentDelegate()
         geckoSession.trackingProtectionDelegate = createTrackingProtectionDelegate()
         geckoSession.permissionDelegate = createPermissionDelegate()
+        geckoSession.promptDelegate = GeckoPromptDelegate(this)
     }
 
     companion object {

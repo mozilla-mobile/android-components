@@ -9,29 +9,37 @@ import android.support.annotation.VisibleForTesting
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.concept.storage.HistoryAutocompleteResult
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.SearchResult
+import mozilla.components.concept.storage.SyncError
+import mozilla.components.concept.storage.SyncOk
+import mozilla.components.concept.storage.SyncStatus
+import mozilla.components.concept.storage.SyncableStore
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.utils.segmentAwareDomainMatch
 import org.mozilla.places.PlacesConnection
+import org.mozilla.places.PlacesException
+import org.mozilla.places.SyncAuthInfo
 import org.mozilla.places.VisitObservation
 
 const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
 
+typealias SyncAuthInfo = org.mozilla.places.SyncAuthInfo
+
 /**
  * Implementation of the [HistoryStorage] which is backed by a Rust Places lib via [PlacesConnection].
  */
-open class PlacesHistoryStorage(context: Context) : HistoryStorage {
+open class PlacesHistoryStorage(context: Context) : HistoryStorage, SyncableStore<SyncAuthInfo> {
     private val scope by lazy { CoroutineScope(Dispatchers.IO) }
+    private val storageDir by lazy { context.filesDir }
 
     @VisibleForTesting
     internal open val places: Connection by lazy {
-        RustPlacesConnection.init(context.filesDir, null)
+        RustPlacesConnection.createLongLivedConnection(storageDir)
         RustPlacesConnection
     }
 
@@ -54,18 +62,18 @@ open class PlacesHistoryStorage(context: Context) : HistoryStorage {
         }.join()
     }
 
-    override fun getVisited(uris: List<String>): Deferred<List<Boolean>> {
-        return scope.async { places.api().getVisited(uris) }
+    override suspend fun getVisited(uris: List<String>): List<Boolean> {
+        return scope.async { places.api().getVisited(uris) }.await()
     }
 
-    override fun getVisited(): Deferred<List<String>> {
+    override suspend fun getVisited(): List<String> {
         return scope.async {
             places.api().getVisitedUrlsInRange(
                 start = 0,
                 end = System.currentTimeMillis(),
                 includeRemote = true
             )
-        }
+        }.await()
     }
 
     override fun cleanup() {
@@ -85,6 +93,17 @@ open class PlacesHistoryStorage(context: Context) : HistoryStorage {
         val resultText = segmentAwareDomainMatch(query, urls.map { it.url })
         resultText?.let {
             return HistoryAutocompleteResult(it.matchedSegment, it.url, AUTOCOMPLETE_SOURCE_NAME, urls.size)
+        }
+    }
+
+    override suspend fun sync(authInfo: SyncAuthInfo): SyncStatus {
+        return RustPlacesConnection.newConnection(storageDir).use {
+            try {
+                it.sync(authInfo)
+                SyncOk
+            } catch (e: PlacesException) {
+                SyncError(e)
+            }
         }
     }
 

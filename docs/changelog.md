@@ -4,9 +4,48 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.34.0-SNAPSHOT (In Development)
+# 0.35.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.33.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/37?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.35.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 65.0.20181129095546, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **feature-customtabs**
+  * 
+  * ⚠️ **This is a breaking change** `CustomTabsService` has been renamed to `AbstractCustomTabsService` and is now an abstract class in order to allow apps to inject the `Engine` they are using. An app that wants to support custom tabs will need to create its own class and reference it in the manifest:
+
+  ```Kotlin
+  class CustomTabsService : AbstractCustomTabsService() {
+    override val engine: Engine by lazy { components.engine }
+  }
+  ```
+
+# 0.34.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...v0.34.1)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
+  * GeckoView (Nightly: **65.0.20181129095546** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-engine-gecko-nightly**
+  * Updated GeckoView dependency.
+
+# 0.34.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.33.0...v0.34.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/36?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.34.0/index)
 
@@ -15,8 +54,101 @@ permalink: /changelog/
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
   * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: 65.0.20181123100059, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
-  * Mozilla App Services (FxA: 0.10.0, Sync Logins: 0.10.0, Places: 0.10.0)
+  * Mozilla App Services (FxA: **0.11.2** 🔺, Sync Logins: **0.11.2** 🔺, Places: **0.11.2** 🔺)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-engine-gecko-nightly**
+  * Added support for observing history events and providing visited URLs (`HistoryTrackingDelegate`).
+
+* **browser-engine-system**
+  * Fixed a crash when calling `SystemEngineSession.saveState()` from a non-UI thread.
+
+* **browser-awesomebar**
+  * Added ability for search suggestions to span multiple rows.
+
+* **browser-toolbar**
+  * Fixed rendering issue when displaying site security icons.
+
+* **feature-prompts**
+  * 🆕 New component: A component that will subscribe to the selected session and will handle all the common prompt dialogs from web content.
+
+  ```kotlin
+  val promptFeature = PromptFeature(sessionManager,fragmentManager)
+
+  //It will start listing for new prompt requests for web content.
+  promptFeature.start()
+
+  //It will stop listing for future prompt requests for web content.
+  promptFeature.stop()
+  ```
+
+* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:  
+  * Added functionality to observe window requests from the browser engine. These requests can be observed on the session directly using `onOpenWindowRequest` and `onCloseWindowRequest`, but we also provide a feature class, which will automatically open and close the corresponding window:
+
+  ```Kotlin
+  windowFeature = WindowFeature(engine, sessionManager)
+
+  override fun onStart() {    
+    windowFeature.start()
+  }
+
+  override fun onStop() {
+    windowFeature.stop()
+  }
+
+  ```
+
+  In addition, to observe window requests the new engine setting `supportMultipleWindows` has to be set to true:
+
+  ```Kotlin
+  val engine = SystemEngine(context, 
+    DefaultSettings(
+      supportMultipleWindows = true
+    )
+  )
+  ```
+
+* **concept-storage**, **browser-storage-sync**, **services-logins-sync**:
+  * Added a new interface, `SyncableStore<AuthType>`, which allows a storage layer to be used with `feature-sync`.
+  * Added a `SyncableStore<SyncAuthInfo>` implementation for `browser-storage-sync`
+  * Added a `SyncableStore<SyncUnlockInfo>` implementation for `services-logins-sync`.
+
+* **feature-sync**:
+  * 🆕 New component: A component which orchestrates synchronization of groups of similar `SyncableStore` objects using a `FirefoxAccount`.
+  * Here is an example of configuring and synchronizing a places-backed `HistoryStorage` (provided by `browser-storage-sync` component):
+
+  ```Kotlin
+  val historyStorage = PlacesHistoryStorage(context)
+  val featureSync = FirefoxSyncFeature(Dispatchers.IO + job) { authInfo ->
+      SyncAuthInfo(
+          fxaAccessToken = authInfo.fxaAccessToken,
+          kid = authInfo.kid,
+          syncKey = authInfo.syncKey,
+          tokenserverURL = authInfo.tokenServerUrl
+      )
+  }.also {
+      it.addSyncable("placesHistory", historyStorage)
+  }
+  val syncResult = featureSync.sync().await()
+  assert(syncResults["placesHistory"]!!.status is SyncOk)
+  ```
+
+* **service-firefox-accounts**:
+  * ⚠️ **This is a breaking change**
+  * We've simplified the API to provide the FxA configuration:
+
+  ```Kotlin
+  // Before
+  Config.custom(CONFIG_URL).await().use { 
+    config -> FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+  }
+
+  // Now
+  val config = Config(CONFIG_URL, CLIENT_ID, REDIRECT_URL)
+  FirefoxAccount(config)
+  ```
+
+  A full working example can be found [here](https://github.com/mozilla-mobile/android-components/blob/master/samples/firefox-accounts/src/main/java/org/mozilla/samples/fxa/MainActivity.kt).
 
 # 0.33.0
 

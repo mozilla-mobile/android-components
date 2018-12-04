@@ -36,6 +36,7 @@ import android.widget.FrameLayout
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.engine.system.permission.SystemPermissionRequest
+import mozilla.components.browser.engine.system.window.SystemWindowRequest
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
@@ -72,6 +73,15 @@ class SystemEngineView @JvmOverloads constructor(
     override fun render(session: EngineSession) {
         val internalSession = session as SystemEngineSession
         this.session = internalSession
+
+        // TODO https://github.com/mozilla-mobile/android-components/issues/1195
+        val sessionWebView = internalSession.webView
+        if (sessionWebView != null && sessionWebView != currentWebView) {
+            removeView(currentWebView)
+
+            (sessionWebView.parent as? SystemEngineView)?.removeView(sessionWebView)
+            addView(sessionWebView)
+        }
 
         internalSession.view = WeakReference(this)
         internalSession.initSettings()
@@ -122,7 +132,7 @@ class SystemEngineView @JvmOverloads constructor(
             // TODO private browsing not supported for SystemEngine
             // https://github.com/mozilla-mobile/android-components/issues/649
             runBlocking {
-                session?.settings?.historyTrackingDelegate?.onVisited(url, isReload, privateMode = false)
+                session?.settings?.historyTrackingDelegate?.onVisited(url, isReload)
             }
         }
 
@@ -268,7 +278,7 @@ class SystemEngineView @JvmOverloads constructor(
             // https://github.com/mozilla-mobile/android-components/issues/649
             session?.settings?.historyTrackingDelegate?.let {
                 runBlocking {
-                    callback.onReceiveValue(it.getVisited(false).await().toTypedArray())
+                    callback.onReceiveValue(it.getVisited().toTypedArray())
                 }
             }
         }
@@ -284,7 +294,7 @@ class SystemEngineView @JvmOverloads constructor(
             currentUrl.takeIf { it.isNotEmpty() }?.let { url ->
                 session?.settings?.historyTrackingDelegate?.let { delegate ->
                     runBlocking {
-                        delegate.onTitleChanged(url, titleOrEmpty, privateMode = false)
+                        delegate.onTitleChanged(url, titleOrEmpty)
                     }
                 }
             }
@@ -310,6 +320,24 @@ class SystemEngineView @JvmOverloads constructor(
 
         override fun onPermissionRequest(request: PermissionRequest) {
             session?.internalNotifyObservers { onContentPermissionRequest(SystemPermissionRequest(request)) }
+        }
+
+        override fun onCreateWindow(
+            view: WebView,
+            isDialog: Boolean,
+            isUserGesture: Boolean,
+            resultMsg: Message?
+        ): Boolean {
+            session?.internalNotifyObservers {
+                onOpenWindowRequest(SystemWindowRequest(
+                    view, createWebView(context), isDialog, isUserGesture, resultMsg
+                ))
+            }
+            return true
+        }
+
+        override fun onCloseWindow(window: WebView) {
+            session?.internalNotifyObservers { onCloseWindowRequest(SystemWindowRequest(window)) }
         }
     }
 

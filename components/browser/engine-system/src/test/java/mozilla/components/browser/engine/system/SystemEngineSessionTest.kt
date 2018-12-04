@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
+import android.webkit.WebBackForwardList
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -181,6 +183,25 @@ class SystemEngineSessionTest {
     }
 
     @Test
+    fun saveStateRunsOnMainThread() {
+        val engineSession = spy(SystemEngineSession())
+        var calledOnMainThread = false
+        var saveStateCalled = false
+        val webView = object : WebView(RuntimeEnvironment.application) {
+            override fun saveState(outState: Bundle?): WebBackForwardList? {
+                saveStateCalled = true
+                calledOnMainThread = Looper.getMainLooper().isCurrentThread
+                return null
+            }
+        }
+        `when`(engineSession.currentView()).thenReturn(webView)
+
+        engineSession.saveState()
+        assertTrue(saveStateCalled)
+        assertTrue(calledOnMainThread)
+    }
+
+    @Test
     fun restoreState() {
         val engineSession = spy(SystemEngineSession())
         val webView = mock(WebView::class.java)
@@ -261,6 +282,7 @@ class SystemEngineSessionTest {
         `when`(webViewSettings.allowContentAccess).thenReturn(true)
         `when`(webViewSettings.allowFileAccess).thenReturn(true)
         `when`(webViewSettings.mediaPlaybackRequiresUserGesture).thenReturn(true)
+        `when`(webViewSettings.supportMultipleWindows()).thenReturn(false)
 
         val webView = mock(WebView::class.java)
         `when`(webView.context).thenReturn(RuntimeEnvironment.application)
@@ -328,6 +350,10 @@ class SystemEngineSessionTest {
         engineSession.settings.horizontalScrollBarEnabled = false
         verify(webView).isHorizontalScrollBarEnabled = false
 
+        assertFalse(engineSession.settings.supportMultipleWindows)
+        engineSession.settings.supportMultipleWindows = true
+        verify(webViewSettings).setSupportMultipleWindows(true)
+
         assertTrue(engineSession.webFontsEnabled)
         assertTrue(engineSession.settings.webFontsEnabled)
         engineSession.settings.webFontsEnabled = false
@@ -360,7 +386,8 @@ class SystemEngineSessionTest {
                 mediaPlaybackRequiresUserGesture = false,
                 javaScriptCanOpenWindowsAutomatically = true,
                 displayZoomControls = false,
-                loadWithOverviewMode = true)
+                loadWithOverviewMode = true,
+                supportMultipleWindows = true)
         val engineSession = spy(SystemEngineSession(defaultSettings))
         val webView = mock(WebView::class.java)
         `when`(webView.context).thenReturn(RuntimeEnvironment.application)
@@ -377,6 +404,7 @@ class SystemEngineSessionTest {
         verify(webViewSettings).javaScriptCanOpenWindowsAutomatically = true
         verify(webViewSettings).displayZoomControls = false
         verify(webViewSettings).loadWithOverviewMode = true
+        verify(webViewSettings).setSupportMultipleWindows(true)
         verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.all())
         assertFalse(engineSession.webFontsEnabled)
     }

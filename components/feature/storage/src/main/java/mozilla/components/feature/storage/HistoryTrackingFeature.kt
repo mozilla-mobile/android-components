@@ -19,6 +19,11 @@ class HistoryTrackingFeature(engine: Engine, historyStorage: HistoryStorage) {
     init {
         engine.settings.historyTrackingDelegate = HistoryDelegate(historyStorage)
     }
+
+    /**
+     * Dummy start method intended to allow straightforward lazy initialization of this feature.
+     */
+    fun start() {}
 }
 
 @VisibleForTesting

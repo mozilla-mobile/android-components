@@ -10,7 +10,6 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.support.test.mock
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -162,58 +161,6 @@ class BrowserAwesomeBarTest {
 
             assertTrue(providerTriggered)
             assertTrue(providerCancelled)
-        }
-    }
-
-    @Test
-    fun `BrowserAwesomeBar cancels previous jobs if onInputStarted gets called again`() {
-        runBlocking(testMainScope.coroutineContext) {
-            var firstProviderCallCancelled = false
-            var timesProviderCalled = 0
-
-            val provider = object : AwesomeBar.SuggestionProvider {
-                var isFirstCall = true
-
-                override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
-                    println("Provider called with: $text")
-
-                    timesProviderCalled++
-
-                    // Our first call is blocking indefinitely and should get cancelled by the second
-                    // call that just passes.
-
-                    if (!isFirstCall) {
-                        return emptyList()
-                    }
-
-                    isFirstCall = false
-
-                    try {
-                        // We can only escape this by cancelling the coroutine
-                        while (true) {
-                            delay(10)
-                        }
-                    } finally {
-                        firstProviderCallCancelled = true
-                    }
-                }
-            }
-
-            val awesomeBar = BrowserAwesomeBar(RuntimeEnvironment.application)
-            awesomeBar.scope = testMainScope
-            awesomeBar.addProviders(provider)
-
-            awesomeBar.onInputChanged("Hello!")
-
-            // Give the jobs some time to start
-            delay(50)
-
-            awesomeBar.onInputChanged("World!")
-
-            awesomeBar.job!!.join()
-
-            assertTrue(firstProviderCallCancelled)
-            assertEquals(2, timesProviderCalled)
         }
     }
 

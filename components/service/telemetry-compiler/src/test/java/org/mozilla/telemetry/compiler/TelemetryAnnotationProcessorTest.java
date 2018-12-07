@@ -32,7 +32,7 @@ public class TelemetryAnnotationProcessorTest {
                                 "class TelemetryWrapper {" +
                                         "@TelemetryDoc(\n" +
                                         "        name = \"n\",\n" +
-                                        "        action = \"a\",\n" +
+                                        "        category = \"a\",\n" +
                                         "        method = \"m\",\n" +
 //                                        "        object = \"o\",\n" +
                                         "        value = \"v\",\n" +
@@ -58,7 +58,7 @@ public class TelemetryAnnotationProcessorTest {
                                 "class TelemetryWrapper {" +
                                         "@TelemetryDoc(\n" +
                                         "        name = \"n\",\n" +
-                                        "        action = \"a\",\n" +
+                                        "        category = \"a\",\n" +
                                         "        method = \"m\",\n" +
                                         "        object = \"o\",\n" +
                                         "        value = \"v\",\n" +

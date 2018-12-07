@@ -152,7 +152,7 @@ public class TelemetryAnnotationProcessor extends AbstractProcessor {
     private void verifyEventFormat(TelemetryDoc annotation) {
         final String action = annotation.action();
         if (action.length() > TelemetryEventConstant.MAX_LENGTH_CATEGORY) {
-            throw new IllegalArgumentException("The length of action is too long:" + action);
+            throw new IllegalArgumentException("The length of category is too long:" + action);
         }
         final String method = annotation.method();
         if (method.length() > TelemetryEventConstant.MAX_LENGTH_METHOD) {

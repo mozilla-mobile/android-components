@@ -9,10 +9,10 @@ import kotlin.annotation.Retention
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class TelemetryDoc(
-    val name: String,
-    val value: String,
-    val action: String,
-    val method: String,
-    val `object`: String,
-    val extras: Array<TelemetryExtra>
+        val name: String,
+        val value: String,
+        val category: String,
+        val method: String,
+        val `object`: String,
+        val extras: Array<TelemetryExtra>
 )

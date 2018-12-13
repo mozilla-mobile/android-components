@@ -17,6 +17,9 @@ permalink: /changelog/
   * Mozilla App Services (FxA: 0.11.5, Sync Logins: 0.11.5, Places: 0.11.5)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
 
+* **ui-autocomplete**
+  * Fixing bug [#1489](https://github.com/mozilla-mobile/android-components/issues/1489).
+
 # 0.35.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...v0.35.0),

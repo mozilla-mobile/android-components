@@ -13,13 +13,15 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: 65.0.20181129095546, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
-  * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
+  * Mozilla App Services (FxA: 0.11.5, Sync Logins: 0.11.5, Places: 0.11.5)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
 
+* **browser-errorpages**
+  * Localized strings for de, es, fr, it, ja, ko, zh-rCN, zh-rTW.
+
 * **feature-customtabs**
-  * 
+  *
   * ⚠️ **This is a breaking change** `CustomTabsService` has been renamed to `AbstractCustomTabsService` and is now an abstract class in order to allow apps to inject the `Engine` they are using. An app that wants to support custom tabs will need to create its own class and reference it in the manifest:
 
   ```Kotlin
@@ -27,6 +29,41 @@ permalink: /changelog/
     override val engine: Engine by lazy { components.engine }
   }
   ```
+* **feature-prompts**
+  * Added support for alerts dialogs.
+  * Added support for date picker dialogs.
+
+* **support-ktx**
+  New extension function `toDate` that converts a string to a Date object from a formatter input.
+  ```Kotlin
+       val date = "2019-11-28".toDate("yyyy-MM-dd")
+  ```
+
+* **concept-engine**, **engine-gecko-nightly**:
+  * Add setting to enable testing mode which is used in engine-gecko to set `FULL_ACCESSIBILITY_TREE` to `true`. This allows access to the full DOM tree for testing purposes.
+
+  ```Kotlin
+  // Turn testing mode on by default when the engine is created
+  val engine = GeckoEngine(runtime, DefaultSettings(testingModeEnabled=true))
+
+  // Or turn testing mode on at a later point
+  engine.settings.testingModeEnabled = true
+  ```
+
+  * The existing `userAgentString` setting is now supported by `engine-gecko-nightly`.
+
+# 0.34.2
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.1...v0.34.2)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 65.0.20181129095546, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.11.5** 🔺, Sync Logins: **0.11.5** 🔺, Places: **0.11.5** 🔺)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* Re-release of 0.34.1 with updated App Services dependencies (0.11.5).
 
 # 0.34.1
 
@@ -35,7 +72,6 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: **65.0.20181129095546** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
@@ -52,7 +88,6 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: 65.0.20181123100059, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: **0.11.2** 🔺, Sync Logins: **0.11.2** 🔺, Places: **0.11.2** 🔺)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
@@ -82,13 +117,13 @@ permalink: /changelog/
   promptFeature.stop()
   ```
 
-* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:  
+* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:
   * Added functionality to observe window requests from the browser engine. These requests can be observed on the session directly using `onOpenWindowRequest` and `onCloseWindowRequest`, but we also provide a feature class, which will automatically open and close the corresponding window:
 
   ```Kotlin
   windowFeature = WindowFeature(engine, sessionManager)
 
-  override fun onStart() {    
+  override fun onStart() {
     windowFeature.start()
   }
 
@@ -101,7 +136,7 @@ permalink: /changelog/
   In addition, to observe window requests the new engine setting `supportMultipleWindows` has to be set to true:
 
   ```Kotlin
-  val engine = SystemEngine(context, 
+  val engine = SystemEngine(context,
     DefaultSettings(
       supportMultipleWindows = true
     )
@@ -139,7 +174,7 @@ permalink: /changelog/
 
   ```Kotlin
   // Before
-  Config.custom(CONFIG_URL).await().use { 
+  Config.custom(CONFIG_URL).await().use {
     config -> FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
   }
 
@@ -159,7 +194,6 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: **1.3.10** 🔺, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: **65.0.20181123100059** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: 0.10.0, Sync Logins: 0.10.0, Places: 0.10.0)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)

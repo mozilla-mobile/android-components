@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentTransaction
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
@@ -26,6 +27,10 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 import java.util.UUID
+import java.util.Date
+import mozilla.components.concept.engine.prompt.PromptRequest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 
 @RunWith(RobolectricTestRunner::class)
 class PromptFeatureTest {
@@ -203,6 +208,121 @@ class PromptFeatureTest {
         promptFeature.onMultipleChoiceSelect(session.id, arrayOf())
 
         assertTrue(session.promptRequest.isConsumed())
+    }
+
+    @Test
+    fun `onNoMoreDialogsChecked will consume promptRequest`() {
+        val session = getSelectedSession()
+
+        var onShowNoMoreAlertsWasCalled = false
+        var onDismissWasCalled = false
+
+        val promptRequest = Alert("title", "message", false, { onDismissWasCalled = true }) {
+            onShowNoMoreAlertsWasCalled = true
+        }
+
+        promptFeature.start()
+
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onShouldMoreDialogsChecked(session.id, false)
+
+        assertTrue(session.promptRequest.isConsumed())
+        assertTrue(onShowNoMoreAlertsWasCalled)
+
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onCancel(session.id)
+        assertTrue(onDismissWasCalled)
+    }
+
+    @Test
+    fun `Calling onNoMoreDialogsChecked or onCancel with unknown sessionId will not consume promptRequest`() {
+        val session = getSelectedSession()
+
+        var onShowNoMoreAlertsWasCalled = false
+        var onDismissWasCalled = false
+
+        val promptRequest = Alert("title", "message", false, { onDismissWasCalled = true }) {
+            onShowNoMoreAlertsWasCalled = true
+        }
+
+        promptFeature.start()
+
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onShouldMoreDialogsChecked("unknown_session_id", false)
+
+        assertFalse(session.promptRequest.isConsumed())
+        assertFalse(onShowNoMoreAlertsWasCalled)
+
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onCancel("unknown_session_id")
+        assertFalse(onDismissWasCalled)
+    }
+
+    @Test
+    fun `Calling onCancel with an alert request will consume promptRequest and call onDismiss`() {
+        val session = getSelectedSession()
+
+        var onDismissWasCalled = false
+
+        val promptRequest = Alert("title", "message", false, { onDismissWasCalled = true }) {}
+
+        promptFeature.start()
+
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onCancel(session.id)
+
+        assertTrue(session.promptRequest.isConsumed())
+        assertTrue(onDismissWasCalled)
+    }
+
+    @Test
+    fun `Selecting a date or calling onClear with unknown sessionId will not consume promptRequest`() {
+        val session = getSelectedSession()
+        var onClearWasCalled = false
+        var selectedDate: Date? = null
+        val promptRequest = PromptRequest.Date("title", Date(), null, null, { date -> selectedDate = date }) {
+            onClearWasCalled = true
+        }
+
+        promptFeature.start()
+
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onSelect("unknown_sessionId", Date())
+
+        assertFalse(session.promptRequest.isConsumed())
+        assertNull(selectedDate)
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onClear("unknown_sessionId")
+        assertFalse(onClearWasCalled)
+    }
+    @Test
+    fun `selecting a date will consume promptRequest`() {
+        val session = getSelectedSession()
+        var onClearWasCalled = false
+        var selectedDate: Date? = null
+        val promptRequest = PromptRequest.Date("title", Date(), null, null, { date -> selectedDate = date }) {
+            onClearWasCalled = true
+        }
+
+        promptFeature.start()
+        session.promptRequest = Consumable.from(promptRequest)
+
+        val date = Date()
+        promptFeature.onSelect(session.id, Date())
+
+        assertTrue(session.promptRequest.isConsumed())
+        assertEquals(selectedDate, date)
+        session.promptRequest = Consumable.from(promptRequest)
+
+        promptFeature.onClear(session.id)
+        assertTrue(onClearWasCalled)
     }
 
     private fun getSelectedSession(): Session {

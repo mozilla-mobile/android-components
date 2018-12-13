@@ -11,12 +11,14 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.prompt.Choice
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.feature.prompts.ChoiceDialogFragment.Companion.MULTIPLE_CHOICE_DIALOG_TYPE
 import mozilla.components.feature.prompts.ChoiceDialogFragment.Companion.MENU_CHOICE_DIALOG_TYPE
 import mozilla.components.feature.prompts.ChoiceDialogFragment.Companion.SINGLE_CHOICE_DIALOG_TYPE
+import java.util.Date
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
@@ -65,8 +67,8 @@ class PromptFeature(
      * Event that is triggered when a native dialog needs to be shown.
      * Displays suitable dialog for the type of the [promptRequest].
      *
-     * @property session The session the request the dialog.
-     * @property promptRequest The session the request the dialog.
+     * @param session The session which requested the dialog.
+     * @param promptRequest The session the request the dialog.
      */
     internal fun onPromptRequested(session: Session, promptRequest: PromptRequest) {
 
@@ -86,6 +88,18 @@ class PromptFeature(
             is MenuChoice -> ChoiceDialogFragment.newInstance(
                 promptRequest.choices, session.id, MENU_CHOICE_DIALOG_TYPE
             )
+
+            is Alert -> {
+                with(promptRequest) {
+                    AlertDialogFragment.newInstance(session.id, title, message, hasShownManyDialogs)
+                }
+            }
+
+            is PromptRequest.Date -> {
+                with(promptRequest) {
+                    DatePickerDialogFragment.newInstance(session.id, title, initialDate, minimumDate, maximumDate)
+                }
+            }
         }
 
         dialog.feature = this
@@ -94,8 +108,8 @@ class PromptFeature(
 
     /**
      * Event that is triggered when a single choice or menu item is selected in a dialog.
-     * @property sessionId the id for which session was selected.
-     * @property choice the selection from the dialog.
+     * @param sessionId this is the id of the session which requested the prompt.
+     * @param choice the selection from the dialog.
      */
     internal fun onSingleChoiceSelect(sessionId: String, choice: Choice) {
         val session = sessionManager.findSessionById(sessionId) ?: return
@@ -111,8 +125,8 @@ class PromptFeature(
 
     /**
      * Event that is triggered when a multiple choice items are selected in a dialog.
-     * @property sessionId the id for which session was selected.
-     * @property choices the selected items from the dialog.
+     * @param sessionId this is the id of the session which requested the prompt.
+     * @param choices the selected items from the dialog.
      */
     internal fun onMultipleChoiceSelect(sessionId: String, choices: Array<Choice>) {
         val session = sessionManager.findSessionById(sessionId) ?: return
@@ -126,11 +140,63 @@ class PromptFeature(
     /**
      * Event that is called when a dialog is dismissed.
      * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
-     * @property sessionId the id for which session was dismissed.
+     * @param sessionId this is the id of the session which requested the prompt.
      */
     internal fun onCancel(sessionId: String) {
         val session = sessionManager.findSessionById(sessionId) ?: return
-        session.promptRequest.consume { true }
+        session.promptRequest.consume {
+            when (it) {
+                is Alert -> it.onDismiss()
+            }
+            true
+        }
+    }
+
+    /**
+     * Invoked when the user requested no more dialogs to be shown from this [sessionId].
+     * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
+     * @param sessionId the id for which session the user doesn't want to show more dialogs.
+     * @param isChecked tells if the user want to show more dialogs from this [sessionId].
+     */
+    internal fun onShouldMoreDialogsChecked(sessionId: String, isChecked: Boolean) {
+        val session = sessionManager.findSessionById(sessionId) ?: return
+        session.promptRequest.consume {
+            when (it) {
+                is Alert -> it.onShouldShowNoMoreDialogs(isChecked)
+            }
+            true
+        }
+    }
+
+    /**
+     * Event that is called when the user is requesting to select a date from the date picker dialog.
+     * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
+     * @param sessionId that requested to show the dialog.
+     * @param selectedDate the selected date from the dialog.
+     */
+    internal fun onSelect(sessionId: String, selectedDate: Date) {
+        val session = sessionManager.findSessionById(sessionId) ?: return
+        session.promptRequest.consume {
+            when (it) {
+                is PromptRequest.Date -> it.onSelect(selectedDate)
+            }
+            true
+        }
+    }
+
+    /**
+     * Event that is called when the user is requesting to clear the selected value from the dialog.
+     * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
+     * @param sessionId that requested to show the dialog.
+     */
+    internal fun onClear(sessionId: String) {
+        val session = sessionManager.findSessionById(sessionId) ?: return
+        session.promptRequest.consume {
+            when (it) {
+                is PromptRequest.Date -> it.onClear()
+            }
+            true
+        }
     }
 
     /**

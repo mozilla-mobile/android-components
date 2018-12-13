@@ -4,8 +4,11 @@
 
 package mozilla.components.browser.engine.gecko.prompt
 
+import android.support.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.concept.engine.prompt.Choice
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
@@ -21,6 +24,15 @@ import org.mozilla.geckoview.GeckoSession.PromptDelegate.Choice.CHOICE_TYPE_SING
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.ChoiceCallback
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.FileCallback
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.TextCallback
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import mozilla.components.support.ktx.kotlin.toDate
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_DATE
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_DATETIME_LOCAL
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_MONTH
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_TIME
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_WEEK
 
 typealias GeckoChoice = GeckoSession.PromptDelegate.Choice
 
@@ -77,6 +89,81 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         }
     }
 
+    override fun onAlert(
+        session: GeckoSession?,
+        title: String?,
+        message: String?,
+        callback: AlertCallback
+    ) {
+
+        val hasShownManyDialogs = callback.hasCheckbox()
+        val onDismiss: () -> Unit = {
+            callback.dismiss()
+        }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(Alert(title ?: "", message ?: "", hasShownManyDialogs, onDismiss) { showMoreDialogs ->
+                callback.checkboxValue = showMoreDialogs
+                callback.dismiss()
+            })
+        }
+    }
+
+    override fun onDateTimePrompt(
+        session: GeckoSession?,
+        title: String?,
+        type: Int,
+        value: String?,
+        minDate: String?,
+        maxDate: String?,
+        geckoCallback: TextCallback
+    ) {
+        val initialDateString = value ?: ""
+        val onClear: () -> Unit = {
+            geckoCallback.confirm("")
+        }
+
+        when (type) {
+            DATETIME_TYPE_DATE -> {
+                notifyDatePromptRequest(
+                    title ?: "",
+                    initialDateString,
+                    minDate,
+                    maxDate,
+                    onClear,
+                    "yyyy-MM-dd",
+                    geckoCallback
+                )
+            }
+            DATETIME_TYPE_MONTH -> {
+                notifyDatePromptRequest(
+                    title ?: "",
+                    initialDateString,
+                    minDate,
+                    maxDate,
+                    onClear,
+                    "yyyy-MM",
+                    geckoCallback
+                )
+            }
+            DATETIME_TYPE_WEEK -> {
+                notifyDatePromptRequest(
+                    title ?: "",
+                    initialDateString,
+                    minDate,
+                    maxDate,
+                    onClear,
+                    "yyyy-'W'ww",
+                    geckoCallback
+                )
+            }
+            DATETIME_TYPE_TIME -> {
+            } // Related issue: https://github.com/mozilla-mobile/android-components/issues/1530
+            DATETIME_TYPE_DATETIME_LOCAL -> {
+            } // Related issue: https://github.com/mozilla-mobile/android-components/issues/1530
+        }
+    }
+
     override fun onButtonPrompt(
         session: GeckoSession?,
         title: String?,
@@ -84,16 +171,6 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         btnMsg: Array<out String>?,
         callback: ButtonCallback?
     ) = Unit
-
-    override fun onDateTimePrompt(
-        session: GeckoSession?,
-        title: String?,
-        type: Int,
-        value: String?,
-        min: String?,
-        max: String?,
-        callback: TextCallback?
-    ) = Unit // Related issue: https://github.com/mozilla-mobile/android-components/issues/1436
 
     override fun onFilePrompt(
         session: GeckoSession?,
@@ -118,13 +195,6 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         callback: AuthCallback?
     ) = Unit // Related issue: https://github.com/mozilla-mobile/android-components/issues/1378
 
-    override fun onAlert(
-        session: GeckoSession?,
-        title: String?,
-        msg: String?,
-        callback: AlertCallback?
-    ) = Unit // Related issue: https://github.com/mozilla-mobile/android-components/issues/1435
-
     override fun onTextPrompt(
         session: GeckoSession?,
         title: String?,
@@ -140,10 +210,6 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
     private fun GeckoChoice.toChoice(): Choice {
         val choiceChildren = items?.map { it.toChoice() }?.toTypedArray()
         return Choice(id, !disabled, label ?: "", selected, separator, choiceChildren)
-    }
-
-    private fun Array<Choice>.toIdsArray(): Array<String> {
-        return this.map { it.id }.toTypedArray()
     }
 
     /**
@@ -167,4 +233,39 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         return Pair(arrayOfChoices, mapChoicesToGeckoChoices)
     }
+
+    @Suppress("LongParameterList")
+    private fun notifyDatePromptRequest(
+        title: String,
+        initialDateString: String,
+        minDateString: String?,
+        maxDateString: String?,
+        onClear: () -> Unit,
+        format: String,
+        geckoCallback: TextCallback
+    ) {
+        val initialDate = initialDateString.toDate(format)
+        val minDate = if (minDateString.isNullOrEmpty()) null else minDateString.toDate(format)
+        val maxDate = if (maxDateString.isNullOrEmpty()) null else maxDateString.toDate(format)
+        val onSelect: (Date) -> Unit = {
+            val stringDate = it.toString(format)
+            geckoCallback.confirm(stringDate)
+        }
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.Date(title, initialDate, minDate, maxDate, onSelect, onClear)
+            )
+        }
+    }
+}
+
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal fun Array<Choice>.toIdsArray(): Array<String> {
+    return this.map { it.id }.toTypedArray()
+}
+
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal fun Date.toString(format: String): String {
+    val formatter = SimpleDateFormat(format, Locale.ROOT)
+    return formatter.format(this) ?: ""
 }

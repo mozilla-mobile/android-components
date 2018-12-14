@@ -6,6 +6,7 @@ package mozilla.components.browser.awesomebar
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -190,12 +191,13 @@ class BrowserAwesomeBarTest {
 
                     try {
                         // We can only escape this by cancelling the coroutine
-                        while (true) {
+                        while (isActive) {
                             delay(10)
                         }
                     } finally {
                         firstProviderCallCancelled = true
                     }
+                    return emptyList()
                 }
             }
 

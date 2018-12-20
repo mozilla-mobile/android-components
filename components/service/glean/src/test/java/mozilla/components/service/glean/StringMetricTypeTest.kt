@@ -4,20 +4,37 @@
 
 package mozilla.components.service.glean
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Test
-
 import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
+@ObsoleteCoroutinesApi
+@ExperimentalCoroutinesApi
 @RunWith(RobolectricTestRunner::class)
 class StringMetricTypeTest {
 
+    @get:Rule
+    val fakeDispatchers = FakeDispatchersInTest()
+
     @Before
     fun setUp() {
+        Glean.initialized = true
+        StringsStorageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        // Clear the stored "user" preferences between tests.
+        ApplicationProvider.getApplicationContext<Context>()
+            .getSharedPreferences(StringsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
         StringsStorageEngine.clearAllStores()
     }
 

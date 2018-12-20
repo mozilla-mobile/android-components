@@ -4,6 +4,7 @@
 
 package mozilla.components.service.glean.storages
 
+import android.content.Context
 import org.json.JSONObject
 
 /**
@@ -13,10 +14,20 @@ import org.json.JSONObject
  */
 internal class StorageEngineManager(
     private val storageEngines: Map<String, StorageEngine> = mapOf(
+        "counter" to CountersStorageEngine,
         "events" to EventsStorageEngine,
-        "strings" to StringsStorageEngine
-    )
+        "string" to StringsStorageEngine,
+        "string_list" to StringListsStorageEngine,
+        "uuid" to UuidsStorageEngine
+    ),
+    applicationContext: Context
 ) {
+    init {
+        for ((_, engine) in storageEngines) {
+            engine.applicationContext = applicationContext
+        }
+    }
+
     /**
      * Collect the recorded data for the requested storage.
      *
@@ -26,10 +37,17 @@ internal class StorageEngineManager(
      */
     fun collect(storeName: String): JSONObject {
         val jsonPing = JSONObject()
-
+        val metricsSection = JSONObject()
         for ((sectionName, engine) in storageEngines) {
             val engineData = engine.getSnapshotAsJSON(storeName, clearStore = true)
-            jsonPing.put(sectionName, engineData)
+            if (engine.sendAsTopLevelField) {
+                jsonPing.put(sectionName, engineData)
+            } else {
+                metricsSection.put(sectionName, engineData)
+            }
+        }
+        if (metricsSection.length() != 0) {
+            jsonPing.put("metrics", metricsSection)
         }
 
         return jsonPing

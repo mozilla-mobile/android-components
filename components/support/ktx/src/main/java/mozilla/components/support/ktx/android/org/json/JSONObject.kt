@@ -66,3 +66,23 @@ fun JSONObject.sortKeys(): JSONObject {
     }
     return jsonObject
 }
+
+/**
+ * Convert a Map<String, String> to a JSONObject
+ */
+fun Map<String, String>.toJSON() = JSONObject().apply {
+    forEach { (key, value) -> put(key, value) }
+}
+
+/**
+ * Merge the contents of another [JSONObject] with this object,
+ * overwriting the colliding keys.
+ *
+ * @param other the [JSONObject] providing the data to be
+ *        merged with this one.
+ */
+fun JSONObject.mergeWith(other: JSONObject) {
+    for (key in other.keys()) {
+        put(key, other[key])
+    }
+}

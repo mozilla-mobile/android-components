@@ -4,11 +4,15 @@
 
 package mozilla.components.service.glean.storages
 
+import android.content.Context
+
 /**
  * Base interface intended to be implemented by the different
  * storage engines
  */
 internal interface StorageEngine {
+    var applicationContext: Context
+
     /**
      * Get a snapshot of the stored data as a JSON object.
      *
@@ -20,4 +24,11 @@ internal interface StorageEngine {
      *         ancestor is [Object], so we need to return [Any].
      */
     fun getSnapshotAsJSON(storeName: String, clearStore: Boolean): Any?
+
+    /**
+     * Indicate whether this storage engine is sent at the top level of the ping
+     * (rather than in the metrics section).
+     */
+    val sendAsTopLevelField: Boolean
+        get() = false
 }

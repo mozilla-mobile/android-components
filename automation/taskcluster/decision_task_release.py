@@ -11,9 +11,11 @@ import argparse
 import json
 import os
 import taskcluster
+import sys
 
 import lib.module_definitions
 import lib.tasks
+import lib.util
 
 TASK_ID = os.environ.get('TASK_ID')
 HEAD_REV = os.environ.get('MOBILE_HEAD_REV')
@@ -53,7 +55,7 @@ def generate_build_task(version, artifacts_info):
         name="Android Components - Release ({})".format(version),
         description="Building and publishing release versions.",
         command=(checkout +
-                 ' && ./gradlew --no-daemon clean test detekt ktlint '
+                 ' && ./gradlew --no-daemon clean test '
                  + assemble_task +
                  ' docs uploadArchives zipMavenArtifacts'),
         features={
@@ -88,25 +90,19 @@ def generate_beetmover_task(build_task_id, version, artifact, artifact_name):
         artifact_id=artifact_name,
         dependencies=[build_task_id],
         upstreamArtifacts=upstream_artifacts,
-        scopes=scopes
+        scopes=scopes,
+        worker_type='mobile-beetmover-v1'
     )
-
-
-def populate_chain_of_trust_required_but_unused_files():
-    # Thoses files are needed to keep chainOfTrust happy. However, they have no
-    # need for android-components, at the moment. For more details, see:
-    # https://github.com/mozilla-releng/scriptworker/pull/209/files#r184180585
-
-    for file_names in ('actions.json', 'parameters.yml'):
-        with open(file_names, 'w') as f:
-            json.dump({}, f)    # Yaml is a super-set of JSON.
 
 
 def release(version):
     queue = taskcluster.Queue({'baseUrl': 'http://taskcluster/queue/v1'})
 
     task_graph = {}
-    artifacts_info = lib.module_definitions.from_gradle()
+    artifacts_info = [info for info in lib.module_definitions.from_gradle() if info['shouldPublish']]
+    if len(artifacts_info) == 0:
+        print("Could not get module names from gradle")
+        sys.exit(2)
 
     build_task_id, build_task = generate_build_task(version, artifacts_info)
     lib.tasks.schedule_task(queue, build_task_id, build_task)
@@ -128,7 +124,7 @@ def release(version):
     with open(task_graph_path, 'w') as f:
         json.dump(task_graph, f)
 
-    populate_chain_of_trust_required_but_unused_files()
+    lib.util.populate_chain_of_trust_required_but_unused_files()
 
 
 if __name__ == "__main__":

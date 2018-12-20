@@ -9,6 +9,7 @@ import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
 import mozilla.components.browser.engine.system.SystemEngine
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
@@ -17,57 +18,68 @@ import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.storage.DefaultSessionStorage
+import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.storage.memory.InMemoryHistoryStorage
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.intent.IntentProcessor
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.tabs.TabsUseCases
 import org.mozilla.samples.browser.request.SampleRequestInterceptor
+import java.util.concurrent.TimeUnit
 
 open class DefaultComponents(private val applicationContext: Context) {
 
+    // Engine Settings
+    val engineSettings by lazy {
+        DefaultSettings().apply {
+            historyTrackingDelegate = HistoryDelegate(historyStorage)
+            requestInterceptor = SampleRequestInterceptor(applicationContext)
+            supportMultipleWindows = true
+        }
+    }
+
     // Engine
     open val engine: Engine by lazy {
-        val settings = DefaultSettings(
-            requestInterceptor = SampleRequestInterceptor(applicationContext)
-        )
-        SystemEngine(applicationContext, settings)
+        SystemEngine(applicationContext, engineSettings)
     }
 
     // Storage
     val historyStorage by lazy { InMemoryHistoryStorage() }
 
-    // Session
-    val sessionStorage by lazy { DefaultSessionStorage(applicationContext) }
+    private val sessionStorage by lazy { SessionStorage(applicationContext, engine) }
 
     val sessionManager by lazy {
         SessionManager(engine,
                 defaultSession = { Session("about:blank") }
         ).apply {
-            sessionStorage.read(engine)?.let {
-                restore(it)
-            }
+            sessionStorage.restore()?.let { snapshot -> restore(snapshot) }
 
             if (size == 0) {
                 add(Session("https://www.mozilla.org"))
             }
+
+            sessionStorage.autoSave(this)
+                .periodicallyInForeground(interval = 30, unit = TimeUnit.SECONDS)
+                .whenGoingToBackground()
+                .whenSessionsChange()
         }
     }
 
     val sessionUseCases by lazy { SessionUseCases(sessionManager) }
 
     // Search
-    private val searchEngineManager by lazy {
+    val searchEngineManager by lazy {
         SearchEngineManager().apply {
             CoroutineScope(Dispatchers.Default).launch {
                 load(applicationContext).await()
             }
         }
     }
-    private val searchUseCases by lazy { SearchUseCases(applicationContext, searchEngineManager, sessionManager) }
+
+    val searchUseCases by lazy { SearchUseCases(applicationContext, searchEngineManager, sessionManager) }
     val defaultSearchUseCase by lazy { { searchTerms: String -> searchUseCases.defaultSearch.invoke(searchTerms) } }
 
     // Intent
@@ -88,7 +100,9 @@ open class DefaultComponents(private val applicationContext: Context) {
                 SimpleBrowserMenuItem("Clear Data") {
                     sessionUseCases.clearData.invoke()
                 },
-                SimpleBrowserMenuCheckbox("Request desktop site") { checked ->
+                SimpleBrowserMenuCheckbox("Request desktop site", {
+                    sessionManager.selectedSessionOrThrow.desktopMode
+                }) { checked ->
                     sessionUseCases.requestDesktopSite.invoke(checked)
                 }
         )
@@ -117,6 +131,10 @@ open class DefaultComponents(private val applicationContext: Context) {
         }
 
         BrowserMenuItemToolbar(listOf(forward, refresh, stop))
+    }
+
+    val shippedDomainsProvider by lazy {
+        ShippedDomainsProvider().also { it.initialize(applicationContext) }
     }
 
     // Tabs

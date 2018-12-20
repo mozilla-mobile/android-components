@@ -7,6 +7,7 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
+        xmlns:mozac="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         tools:context=".BrowserActivity">
@@ -19,15 +20,27 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:background="#aaaaaa"
-                app:layout_scrollFlags="scroll|enterAlways|snap|exitUntilCollapsed" />
+                android:background="#aaaaaa"/>
 
     </android.support.design.widget.AppBarLayout>
 
-    <mozilla.components.concept.engine.EngineView
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <mozilla.components.concept.engine.EngineView
             android:id="@+id/engineView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
+            android:layout_height="match_parent" />
+
+        <mozilla.components.browser.awesomebar.BrowserAwesomeBar
+            android:id="@+id/awesomeBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="4dp"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </android.support.design.widget.CoordinatorLayout>

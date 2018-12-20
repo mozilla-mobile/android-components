@@ -11,17 +11,17 @@ buildscript {
     }
 
     dependencies {
-        classpath Deps.tools_androidgradle
-        classpath Deps.tools_kotlingradle
-        classpath Deps.tools_dokka
+        classpath Dependencies.tools_androidgradle
+        classpath Dependencies.tools_kotlingradle
+        classpath Dependencies.tools_dokka
 
         // Publish.
-        classpath Deps.tools_mavengradle
+        classpath Dependencies.tools_mavengradle
     }
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("1.0.0.RC9.2")
+    id("io.gitlab.arturbosch.detekt").version("1.0.0-RC11")
 }
 
 allprojects {
@@ -31,25 +31,6 @@ allprojects {
 
         maven {
             url "https://maven.mozilla.org/maven2"
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        // GeckoView Release
-        ////////////////////////////////////////////////////////////////////////////////////////////
-
-        // ARM
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-api-16-opt/artifacts/public/android/maven"
-        }
-
-        // x86
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-x86-opt/artifacts/public/android/maven"
-        }
-
-        // aarch64
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-aarch64-opt/artifacts/public/android/maven"
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -65,6 +46,16 @@ allprojects {
 subprojects {
     apply plugin: 'jacoco'
     apply plugin: 'org.jetbrains.dokka-android'
+
+    // Enforce that all (transitive) dependencies are using the same support library version as we do.
+    project.configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'com.android.support'
+                    && !details.requested.name.contains('multidex') ) {
+                details.useVersion Versions.support_libraries
+            }
+        }
+    }
 
     afterEvaluate {
         if (it.hasProperty('android')) {
@@ -122,16 +113,6 @@ subprojects {
                     }
                 }
             }
-
-            if (it.hasProperty('kotlin')) {
-                android {
-                    kotlin {
-                        experimental {
-                            coroutines 'enable'
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -177,10 +158,10 @@ task clean(type: Delete) {
 
 detekt {
     // The version number is duplicated, please refer to plugins block for more details
-    version = "1.0.0.RC9.2"
-    input = files("$projectDir/components")
+    version = "1.0.0-RC11"
+    input = files("$projectDir/components", "$projectDir/buildSrc", "$projectDir/samples")
     config = files("$projectDir/config/detekt.yml")
-    filters = ".*test.*,.*/resources/.*,.*/tmp/.*"
+    filters = ".*test.*,.*/resources/.*,.*/tmp/.*,.*/build/.*"
     baseline = file("$projectDir/config/detekt-baseline.xml")
 
     reports {
@@ -203,7 +184,7 @@ task ktlint(type: JavaExec, group: "verification") {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     main = "com.github.shyiko.ktlint.Main"
-    args "components/**/*.kt", "samples/**/*.kt", "!**/build"
+    args "components/**/*.kt" , "samples/**/*.kt", "!**/build", "buildSrc/**/*.kt"
 }
 
 task printModules {
@@ -213,7 +194,7 @@ task printModules {
             buildPath: p.buildDir.toString(),
             shouldPublish: p.ext.shouldPublish
         ] }
-        println groovy.json.JsonOutput.toJson(modules)
+        println "modules: " + groovy.json.JsonOutput.toJson(modules)
     }
 }
 

@@ -5,11 +5,10 @@
 package mozilla.components.browser.session
 
 import android.graphics.Bitmap
-import mozilla.components.browser.session.storage.SessionWithState
-import mozilla.components.browser.session.storage.SessionsSnapshot
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -334,7 +333,7 @@ class SessionManagerTest {
     @Test(expected = IllegalArgumentException::class)
     fun `restore checks validity of a snapshot - empty`() {
         val manager = SessionManager(mock())
-        manager.restore(SessionsSnapshot(listOf(), selectedSessionIndex = 0))
+        manager.restore(SessionManager.Snapshot(listOf(), selectedSessionIndex = 0))
     }
 
     @Test
@@ -343,8 +342,8 @@ class SessionManagerTest {
 
         // Just one session in the snapshot.
         manager.restore(
-            SessionsSnapshot(
-                listOf(SessionWithState(session = Session("http://www.mozilla.org"))),
+            SessionManager.Snapshot(
+                listOf(SessionManager.Snapshot.Item(session = Session("http://www.mozilla.org"))),
                 selectedSessionIndex = 0
             )
         )
@@ -353,26 +352,25 @@ class SessionManagerTest {
 
         // Multiple sessions in the snapshot.
         val regularSession = Session("http://www.firefox.com")
-        val engineSessionState = mutableMapOf("k0" to "v0", "k1" to 1, "k2" to true, "k3" to emptyList<Any>())
+        val engineSessionState: EngineSessionState = mock()
         val engineSession = mock(EngineSession::class.java)
         `when`(engineSession.saveState()).thenReturn(engineSessionState)
 
-        val snapshot = SessionsSnapshot(
+        val snapshot = SessionManager.Snapshot(
             listOf(
-                SessionWithState(session = regularSession, engineSession = engineSession),
-                SessionWithState(session = Session("http://www.wikipedia.org"))
+                SessionManager.Snapshot.Item(
+                    session = regularSession,
+                    engineSession = engineSession
+                ),
+                SessionManager.Snapshot.Item(session = Session("http://www.wikipedia.org"))
             ),
             selectedSessionIndex = 0
         )
         manager.restore(snapshot)
         assertEquals(3, manager.size)
         assertEquals("http://www.firefox.com", manager.selectedSessionOrThrow.url)
-        val snapshotState = manager.selectedSessionOrThrow.engineSessionHolder.engineSession!!.saveState()
-        assertEquals(4, snapshotState.size)
-        assertEquals("v0", snapshotState["k0"])
-        assertEquals(1, snapshotState["k1"])
-        assertEquals(true, snapshotState["k2"])
-        assertEquals(emptyList<Any>(), snapshotState["k3"])
+        assertEquals(engineSession, manager.selectedSessionOrThrow.engineSessionHolder.engineSession)
+        assertNull(manager.selectedSessionOrThrow.engineSessionHolder.engineSessionState)
     }
 
     @Test
@@ -384,7 +382,11 @@ class SessionManagerTest {
 
         val session = Session("http://www.mozilla.org")
         // Snapshot with a single session.
-        manager.restore(SessionsSnapshot(listOf(SessionWithState(session)), 0))
+        manager.restore(SessionManager.Snapshot(listOf(
+            SessionManager.Snapshot.Item(
+                session
+            )
+        ), 0))
 
         verify(observer, times(1)).onSessionsRestored()
         verify(observer, never()).onSessionAdded(session)
@@ -396,8 +398,12 @@ class SessionManagerTest {
         val session2 = Session("http://www.firefox.com")
         val session3 = Session("http://www.wikipedia.org")
         // Snapshot with multiple sessions.
-        manager.restore(SessionsSnapshot(
-            listOf(SessionWithState(session2), SessionWithState(session3), SessionWithState(session)),
+        manager.restore(SessionManager.Snapshot(
+            listOf(
+                SessionManager.Snapshot.Item(session2),
+                SessionManager.Snapshot.Item(session3),
+                SessionManager.Snapshot.Item(session)
+            ),
             1
         ))
 
@@ -421,7 +427,7 @@ class SessionManagerTest {
         privateCustomTabSession.customTabConfig = Mockito.mock(CustomTabConfig::class.java)
 
         val regularSession = Session("http://www.firefox.com")
-        val engineSessionState = mutableMapOf("k0" to "v0", "k1" to 1, "k2" to true, "k3" to emptyList<Any>())
+        val engineSessionState: EngineSessionState = mock()
         val engineSession = mock(EngineSession::class.java)
         `when`(engineSession.saveState()).thenReturn(engineSessionState)
 
@@ -444,11 +450,7 @@ class SessionManagerTest {
         assertEquals("http://www.firefox.com", snapshotSession.session.url)
 
         val snapshotState = snapshotSession.engineSession!!.saveState()
-        assertEquals(4, snapshotState.size)
-        assertEquals("v0", snapshotState["k0"])
-        assertEquals(1, snapshotState["k1"])
-        assertEquals(true, snapshotState["k2"])
-        assertEquals(emptyList<Any>(), snapshotState["k3"])
+        assertEquals(engineSessionState, snapshotState)
     }
 
     @Test

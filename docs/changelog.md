@@ -4,11 +4,333 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.31.0-SNAPSHOT (In Development)
+# 0.36.0-SNAPSHOT (In Development)
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/38?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **feature-customtabs**
+ * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
+
+# 0.35.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...v0.35.1)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: **0.12.1** 🔺, Sync Logins: **0.12.1** 🔺, Places: **0.12.1** 🔺)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* Re-release of 0.34.1 with updated App Services dependencies (0.12.1).
+
+# 0.35.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...v0.35.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/37?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.35.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: **66.0.20181217093726** 🔺, Beta: **65.0.20181211223337** 🔺, Release: **64.0.20181214004633** 🔺)
+  * Mozilla App Services (FxA: 0.11.5, Sync Logins: 0.11.5, Places: 0.11.5)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-errorpages**
+  * Localized strings for de, es, fr, it, ja, ko, zh-rCN, zh-rTW.
+
+* **feature-customtabs**
+  * Added support for warming up the browser process asynchronously.
+  * ⚠️ **This is a breaking change** 
+  * `CustomTabsService` has been renamed to `AbstractCustomTabsService` and is now an abstract class in order to allow apps to inject the `Engine` they are using. An app that wants to support custom tabs will need to create its own class and reference it in the manifest:
+
+  ```Kotlin
+  class CustomTabsService : AbstractCustomTabsService() {
+    override val engine: Engine by lazy { components.engine }
+  }
+  ```
+* **feature-prompts**
+  * Added support for alerts dialogs.
+  * Added support for date picker dialogs.
+
+* **support-ktx**
+  New extension function `toDate` that converts a string to a Date object from a formatter input.
+  ```Kotlin
+       val date = "2019-11-28".toDate("yyyy-MM-dd")
+  ```
+
+* **concept-engine**, **engine-gecko-beta**, **engine-gecko-nightly**:
+  * Add setting to enable testing mode which is used in engine-gecko to set `FULL_ACCESSIBILITY_TREE` to `true`. This allows access to the full DOM tree for testing purposes.
+
+  ```Kotlin
+  // Turn testing mode on by default when the engine is created
+  val engine = GeckoEngine(runtime, DefaultSettings(testingModeEnabled=true))
+
+  // Or turn testing mode on at a later point
+  engine.settings.testingModeEnabled = true
+  ```
+
+  * The existing `userAgentString` setting is now supported by `engine-gecko-beta` and `engine-gecko-nightly`.
+
+* **feature-session**
+  * Added a `HistoryTrackingDelegate` implementation, which previously lived in **feature-storage**.
+
+* **feature-storage**
+  * Removed! See **feature-session** instead.
+
+* **sample-browser**
+  * Added in-memory browsing history as one of the AwesomeBar data providers.
+
+* **feature-sync**
+  * Simplified error handling. Errors are wrapped in a SyncResult, exceptions are no longer thrown.
+  * `FirefoxSyncFeature`'s constructor now takes a map of `Syncable` instances. That is, the internal list of `Syncables` is no longer mutable.
+  * `sync` is now a `suspend` function. Callers are expected to manage scoping themselves.
+  * Ability to observe "sync is running" and "sync is idle" events vs `SyncStatusObserver` interface.
+  * Ability to query for current sync state (running or idle).
+  * See included `sample-sync-history` application for example usage of these observers.
+
+# 0.34.2
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.1...v0.34.2)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 65.0.20181129095546, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.11.5** 🔺, Sync Logins: **0.11.5** 🔺, Places: **0.11.5** 🔺)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* Re-release of 0.34.1 with updated App Services dependencies (0.11.5).
+
+# 0.34.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...v0.34.1)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: **65.0.20181129095546** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-engine-gecko-nightly**
+  * Updated GeckoView dependency.
+
+# 0.34.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.33.0...v0.34.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/36?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.34.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 65.0.20181123100059, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.11.2** 🔺, Sync Logins: **0.11.2** 🔺, Places: **0.11.2** 🔺)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-engine-gecko-nightly**
+  * Added support for observing history events and providing visited URLs (`HistoryTrackingDelegate`).
+
+* **browser-engine-system**
+  * Fixed a crash when calling `SystemEngineSession.saveState()` from a non-UI thread.
+
+* **browser-awesomebar**
+  * Added ability for search suggestions to span multiple rows.
+
+* **browser-toolbar**
+  * Fixed rendering issue when displaying site security icons.
+
+* **feature-prompts**
+  * 🆕 New component: A component that will subscribe to the selected session and will handle all the common prompt dialogs from web content.
+
+  ```kotlin
+  val promptFeature = PromptFeature(sessionManager,fragmentManager)
+
+  //It will start listing for new prompt requests for web content.
+  promptFeature.start()
+
+  //It will stop listing for future prompt requests for web content.
+  promptFeature.stop()
+  ```
+
+* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:
+  * Added functionality to observe window requests from the browser engine. These requests can be observed on the session directly using `onOpenWindowRequest` and `onCloseWindowRequest`, but we also provide a feature class, which will automatically open and close the corresponding window:
+
+  ```Kotlin
+  windowFeature = WindowFeature(engine, sessionManager)
+
+  override fun onStart() {
+    windowFeature.start()
+  }
+
+  override fun onStop() {
+    windowFeature.stop()
+  }
+
+  ```
+
+  In addition, to observe window requests the new engine setting `supportMultipleWindows` has to be set to true:
+
+  ```Kotlin
+  val engine = SystemEngine(context,
+    DefaultSettings(
+      supportMultipleWindows = true
+    )
+  )
+  ```
+
+* **concept-storage**, **browser-storage-sync**, **services-logins-sync**:
+  * Added a new interface, `SyncableStore<AuthType>`, which allows a storage layer to be used with `feature-sync`.
+  * Added a `SyncableStore<SyncAuthInfo>` implementation for `browser-storage-sync`
+  * Added a `SyncableStore<SyncUnlockInfo>` implementation for `services-logins-sync`.
+
+* **feature-sync**:
+  * 🆕 New component: A component which orchestrates synchronization of groups of similar `SyncableStore` objects using a `FirefoxAccount`.
+  * Here is an example of configuring and synchronizing a places-backed `HistoryStorage` (provided by `browser-storage-sync` component):
+
+  ```Kotlin
+  val historyStorage = PlacesHistoryStorage(context)
+  val featureSync = FirefoxSyncFeature(Dispatchers.IO + job) { authInfo ->
+      SyncAuthInfo(
+          fxaAccessToken = authInfo.fxaAccessToken,
+          kid = authInfo.kid,
+          syncKey = authInfo.syncKey,
+          tokenserverURL = authInfo.tokenServerUrl
+      )
+  }.also {
+      it.addSyncable("placesHistory", historyStorage)
+  }
+  val syncResult = featureSync.sync().await()
+  assert(syncResults["placesHistory"]!!.status is SyncOk)
+  ```
+
+* **service-firefox-accounts**:
+  * ⚠️ **This is a breaking change**
+  * We've simplified the API to provide the FxA configuration:
+
+  ```Kotlin
+  // Before
+  Config.custom(CONFIG_URL).await().use {
+    config -> FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
+  }
+
+  // Now
+  val config = Config(CONFIG_URL, CLIENT_ID, REDIRECT_URL)
+  FirefoxAccount(config)
+  ```
+
+  A full working example can be found [here](https://github.com/mozilla-mobile/android-components/blob/master/samples/firefox-accounts/src/main/java/org/mozilla/samples/fxa/MainActivity.kt).
+
+# 0.33.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.32.0...v0.33.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/35?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.33.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: **1.3.10** 🔺, Coroutines: 1.0.1)
+  * GeckoView (Nightly: **65.0.20181123100059** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: 0.10.0, Sync Logins: 0.10.0, Places: 0.10.0)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **feature-contextmenu**
+  * 🆕 New component: A component for displaying context menus when *long-pressing* web content.
+
+* **concept-toolbar**: 🆕 Added autocomplete support
+  * Toolbar concept got a new `setAutocompleteListener` method.
+  * Added `AutocompleteDelegate` concept which allows tying together autocomplete results with a UI presenter.
+
+* **concept-storage** and all of its implementations
+  * ⚠️ **This is a breaking change**
+  * Renamed `getDomainSuggestion` to `getAutocompleteSuggestion`, which now returns a `HistoryAutocompleteResult`.
+
+* **feature-toolbar**
+  * 🆕 Added new `ToolbarAutocompleteFeature`:
+
+  ```Kotlin
+  toolbarAutocompleteFeature = ToolbarAutocompleteFeature(toolbar).apply {
+    this.addHistoryStorageProvider(components.historyStorage)
+    this.addDomainProvider(components.shippedDomainsProvider)
+  }
+  ```
+
+* **samples-browser**, **samples-toolbar**
+  * Converted these samples to use the new `ToolbarAutocompleteFeature`.
+
+* **feature-session**
+  * Introducing `CoordinateScrollingFeature` a new feature to coordinate scrolling behavior between an `EngineView` and the view that you specify. For a full example take a look at its usages in [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
+
+* **feature-tabs**
+  * Added a filter to `TabsFeature` to allow you to choose which sessions to show in the TabsTray. This is particularly useful if you want to filter out private tabs based on some UI interaction:
+
+  ```kotlin
+  val tabsFeature = TabsFeature(
+    tabsTray,
+    sessionManager,
+    closeTabsTray = closeTabs()
+  )
+  tabsFeature.filterTabs {
+    it.private
+  }
+  ```
+
+* **engine-gecko,engine-gecko-beta and engine-gecko-nightly**
+  * Fixing bug [#1333](https://github.com/mozilla-mobile/android-components/issues/1333). This issue didn't allow to use a `GeckoEngineSession` after sending a crash report.
+
+# 0.32.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.31.0...v0.32.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/34?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.32.0/index)
+
+* Compiled against:
+  * Android (SDK: **28** 🔺, Support Libraries: **28.0.0** 🔺)
+  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
+  * GeckoView (Nightly: **65.0.20181116100120** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.10.0** 🔺, Sync Logins: **0.10.0** 🔺, Places: **0.10.0** 🔺)
+
+* ⚠️ **This is the first release compiled against Android SDK 28.**
+
+* **browser-domains**
+  * Deprecated `DomainAutoCompleteProvider` in favour of `CustomDomainsProvider` and `ShippedDomainsProvider`.
+
+* **lib-crash**
+  * The state of the "Send crash report" checkbox is now getting saved and restored once the dialog is shown again.
+  * The crash reporter can now sends reports if the prompt is closed by pressing the back button.
+
+* **lib-fetch-httpurlconnection**
+  * 🆕 New component: `concept-fetch` implementation using [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection.html).
+
+* **lib-fetch-okhttp**
+  * 🆕 New component: `concept-fetch` implementation using [OkHttp](https://github.com/square/okhttp).
+
+* **browser-session**:
+  * Replace `DefaultSessionStorage` with a new configurable implementation called `SessionStorage`:
+
+  ```kotlin
+  SessionStorage().autoSave(sessionManager)
+    .periodicallyInForeground(interval = 30, unit = TimeUnit.SECONDS)
+    .whenGoingToBackground()
+    .whenSessionsChange()
+  ```
+
+# 0.31.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.30.0...v0.31.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/33?closed=1),
-[API reference](https://mozilla-mobile.github.io/android-components/api/0.30.1/index)
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.31.0/index)
 
 * Compiled against:
   * Android (SDK: 27, Support Libraries: 27.1.1)
@@ -40,6 +362,43 @@ permalink: /changelog/
   }
 
   ```
+
+* **concept-engine**, **engine-system**:
+  * ⚠️ **This is a breaking change**
+  * Web font blocking is now controlled by an engine setting only. `TrackingProtectionPolicy.WEBFONTS` was removed:
+
+  ```Kotlin
+  // Disable web fonts by default
+  SystemEngine(runtime, DefaultSettings(webFontsEnabled = false))
+  ```
+
+* **feature-customtabs**
+  * 🆕 New component for providing custom tabs functionality. `CustomTabsService` was moved from `browser-session` to this new component.
+
+* **browser-awesomebar**
+  * Various colors of the Awesome Bar can now be styled:
+
+  ```XML
+    <mozilla.components.browser.awesomebar.BrowserAwesomeBar
+      ..
+      mozac:awesomeBarTitleTextColor="#ffffff"
+      mozac:awesomeBarDescriptionTextColor="#dddddd"
+      mozac:awesomeBarChipTextColor="#ffffff"
+      mozac:awesomeBarChipBackgroundColor="#444444" />
+  ```
+
+* **browser-toolbar**, **feature-toolbar**
+  * Added support for displaying the site security indicator (lock/globe icon).
+
+* **concept-fetch**
+  * 🆕 New component defining an abstract definition of an HTTP client for fetching resources. Later releases will come with components implementing this concept using HttpURLConnection, OkHttp and Necko/GeckoView. Eventually all HTTP client code in the components will be replaced with `concept-fetch` and consumers can decide what HTTP client implementation components should use.
+
+* [**Reference Browser**](https://github.com/mozilla-mobile/reference-browser)
+  * Integrated crash reporting with [`lib-crash`](https://github.com/mozilla-mobile/android-components/tree/master/components/lib/crash).
+  * Added awesome bar with [`browser-awesomebar`](https://github.com/mozilla-mobile/android-components/tree/master/components/browser/awesomebar).
+  * Toolbar is hiding automatically now when scrolling web content.
+  * Added "Sync Now" button to preferences (without functionality in this release)
+  * Updated theme colors.
 
 # 0.30.0
 

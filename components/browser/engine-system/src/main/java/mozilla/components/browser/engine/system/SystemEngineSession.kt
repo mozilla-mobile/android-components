@@ -12,17 +12,18 @@ import android.webkit.WebSettings
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import kotlinx.coroutines.launch
-import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.DefaultSettings
 import android.webkit.WebViewDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.errorpages.ErrorType
+import mozilla.components.concept.engine.DefaultSettings
+import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
-import mozilla.components.support.ktx.kotlin.toBundle
 import java.lang.ref.WeakReference
 import kotlin.reflect.KProperty
 
@@ -46,6 +47,10 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     @Volatile internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
     @Volatile internal var webFontsEnabled = true
     @Volatile internal var internalSettings: Settings? = null
+
+    // This is currently only used for window requests:
+    // TODO https://github.com/mozilla-mobile/android-components/issues/1195
+    @Volatile internal var webView: WebView? = null
 
     /**
      * See [EngineSession.loadUrl]
@@ -109,20 +114,24 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     /**
      * See [EngineSession.saveState]
      */
-    override fun saveState(): Map<String, Any> {
-        val state = Bundle()
-        currentView()?.saveState(state)
+    override fun saveState(): EngineSessionState {
+        return runBlocking(Dispatchers.Main) {
+            val state = Bundle()
+            currentView()?.saveState(state)
 
-        return mutableMapOf<String, Any>().apply {
-            state.keySet().forEach { k -> put(k, state[k]) }
+            SystemEngineSessionState(state)
         }
     }
 
     /**
      * See [EngineSession.restoreState]
      */
-    override fun restoreState(state: Map<String, Any>) {
-        currentView()?.restoreState(state.toBundle())
+    override fun restoreState(state: EngineSessionState) {
+        if (state !is SystemEngineSessionState) {
+            throw IllegalArgumentException("Can only restore from SystemEngineSessionState")
+        }
+
+        currentView()?.restoreState(state.bundle)
     }
 
     /**
@@ -184,7 +193,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     }
 
     /**
-     * See [EngineSession.clearFindResults]
+     * See [EngineSession.clearFindMatches]
      */
     override fun clearFindMatches() {
         currentView()?.clearMatches()
@@ -243,6 +252,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
             override var userAgentString by WebSetting(s::getUserAgentString, s::setUserAgentString)
             override var displayZoomControls by WebSetting(s::getDisplayZoomControls, s::setDisplayZoomControls)
             override var loadWithOverviewMode by WebSetting(s::getLoadWithOverviewMode, s::setLoadWithOverviewMode)
+            override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
             override var allowUniversalAccessFromFileURLs by WebSetting(
@@ -292,6 +302,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 verticalScrollBarEnabled = it.verticalScrollBarEnabled
                 horizontalScrollBarEnabled = it.horizontalScrollBarEnabled
                 userAgentString = it.userAgentString
+                supportMultipleWindows = it.supportMultipleWindows
             }
         }
 

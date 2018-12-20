@@ -27,7 +27,7 @@ To restore an account from an existing state in shared preferences:
 ```kotlin
 // Inside a `launch` or `async` block:
 getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).getString(FXA_STATE_KEY, "").let {
-	FirefoxAccount.fromJSONString(it).await()
+	FirefoxAccount.fromJSONString(it)
 }
 ```
 
@@ -44,10 +44,10 @@ account.toJSONString().let {
 If no previous auth state was found, we have to create a new one using some default OAuth parameters. Find the hostname, or `CONFIG_URL` for your OAuth provider, then create a `CLIENT_ID` and `REDIRECT_URL` for your application. From there, we can create a `Config` object, and finally our `FirefoxAccount` object:
 
 ```kotlin
-// Inside a `launch` or `async` block:
-Config.custom(CONFIG_URL).await().use { value: Config ->
-	FirefoxAccount(value, CLIENT_ID, REDIRECT_URL)
-}
+val config = Config(CONFIG_URL, CLIENT_ID, REDIRECT_URL)
+// Some helpers such as Config.release(CLIENT_ID, REDIRECT_URL)
+// are also provided for well-known Firefox Accounts servers.
+val account = FirefoxAccount(config)
 ```
 
 ## Viewing the web pages

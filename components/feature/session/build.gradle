@@ -23,17 +23,22 @@ android {
 
 dependencies {
     implementation project(':browser-session')
+    implementation project(':concept-storage')
     implementation project(':concept-engine')
     implementation project(':support-utils')
     implementation project(':support-ktx')
 
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.support_design
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+    testImplementation project(':support-test')
+    testImplementation Dependencies.testing_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
 
-    testImplementation Deps.support_customtabs
+    testImplementation Dependencies.kotlin_coroutines
+
+    testImplementation Dependencies.support_customtabs
 }
 
 apply from: '../../../publish.gradle'

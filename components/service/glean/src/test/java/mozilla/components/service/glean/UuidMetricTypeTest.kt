@@ -4,22 +4,38 @@
 
 package mozilla.components.service.glean
 
-import java.util.UUID
-
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import mozilla.components.service.glean.storages.UuidsStorageEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Test
-
 import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.UUID
 
+@ObsoleteCoroutinesApi
+@ExperimentalCoroutinesApi
 @RunWith(RobolectricTestRunner::class)
 class UuidMetricTypeTest {
 
+    @get:Rule
+    val fakeDispatchers = FakeDispatchersInTest()
+
     @Before
     fun setUp() {
+        Glean.initialized = true
+        UuidsStorageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        // Clear the stored "user" preferences between tests.
+        ApplicationProvider.getApplicationContext<Context>()
+            .getSharedPreferences(UuidsStorageEngine.javaClass.simpleName, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
         UuidsStorageEngine.clearAllStores()
     }
 
@@ -45,6 +61,7 @@ class UuidMetricTypeTest {
 
         val uuid2 = UUID.fromString("ce2adeb8-843a-4232-87a5-a099ed1e7bb3")
         uuidMetric.set(uuid2)
+
         // Check that data was properly recorded.
         val snapshot2 = UuidsStorageEngine.getSnapshot(storeName = "store1", clearStore = false)
         assertEquals(1, snapshot2!!.size)

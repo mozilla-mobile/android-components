@@ -2,26 +2,37 @@
 basepath = "."
 
 locales = [
-
-  ]
+    "de",
+    "es",
+    "fr",
+    "it",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+]
 [env]
 
 [[paths]]
   reference = "components/ui/tabcounter/src/main/res/values/strings.xml"
-  l10n = "{l10n_base}/components/ui/tabcounter/src/main/res/values-{android_locale}/strings.xml"
+  l10n = "components/ui/tabcounter/src/main/res/values-{android_locale}/strings.xml"
 
 [[paths]]
   reference = "components/browser/errorpages/src/main/res/values/strings.xml"
-  l10n = "{l10n_base}/components/browser/errorpages/src/main/res/values-{android_locale}/strings.xml"
+  l10n = "components/browser/errorpages/src/main/res/values-{android_locale}/strings.xml"
 
 [[paths]]
   reference = "components/browser/toolbar/src/main/res/values/strings.xml"
-  l10n = "{l10n_base}/components/browser/toolbar/src/main/res/values-{android_locale}/strings.xml"
+  l10n = "components/browser/toolbar/src/main/res/values-{android_locale}/strings.xml"
 
 [[paths]]
   reference = "components/feature/tabs/src/main/res/values/strings.xml"
-  l10n = "{l10n_base}/components/feature/tabs/src/main/res/values-{android_locale}/strings.xml"
+  l10n = "components/feature/tabs/src/main/res/values-{android_locale}/strings.xml"
 
 [[paths]]
   reference = "components/feature/downloads/src/main/res/values/strings.xml"
-  l10n = "{l10n_base}/components/feature/downloads/src/main/res/values-{android_locale}/strings.xml"
+  l10n = "components/feature/downloads/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/contextmenu/src/main/res/values/strings.xml"
+  l10n = "components/feature/contextmenu/src/main/res/values-{android_locale}/strings.xml"

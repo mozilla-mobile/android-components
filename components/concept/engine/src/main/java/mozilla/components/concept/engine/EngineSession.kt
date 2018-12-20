@@ -7,6 +7,9 @@ package mozilla.components.concept.engine
 import android.graphics.Bitmap
 import android.support.annotation.CallSuper
 import mozilla.components.concept.engine.permission.PermissionRequest
+
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 
@@ -40,6 +43,9 @@ abstract class EngineSession(
         fun onAppPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onContentPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
+        fun onPromptRequest(promptRequest: PromptRequest) = Unit
+        fun onOpenWindowRequest(windowRequest: WindowRequest) = Unit
+        fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
@@ -68,7 +74,8 @@ abstract class EngineSession(
             const val ANALYTICS: Int = 1 shl 1
             const val SOCIAL: Int = 1 shl 2
             const val CONTENT: Int = 1 shl 3
-            const val WEBFONTS: Int = 1 shl 4
+            // This policy is just to align categories with GeckoView (which has CATEGORY_TEST = 1 << 4)
+            const val TEST: Int = 1 shl 4
             internal const val ALL: Int = (1 shl 5) - 1
 
             fun none(): TrackingProtectionPolicy = TrackingProtectionPolicy(NONE)
@@ -143,14 +150,14 @@ abstract class EngineSession(
      * to restore the original state. See [restoreState] and the specific
      * engine implementation for details.
      */
-    abstract fun saveState(): Map<String, Any>
+    abstract fun saveState(): EngineSessionState
 
     /**
      * Restores the engine state as provided by [saveState].
      *
      * @param state state retrieved from [saveState]
      */
-    abstract fun restoreState(state: Map<String, Any>)
+    abstract fun restoreState(state: EngineSessionState)
 
     /**
      * Enables tracking protection for this engine session.
@@ -209,5 +216,5 @@ abstract class EngineSession(
      * this session.
      */
     @CallSuper
-    fun close() = delegate.unregisterObservers()
+    open fun close() = delegate.unregisterObservers()
 }

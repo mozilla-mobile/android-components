@@ -4,6 +4,7 @@
 
 package mozilla.components.service.glean
 
+import kotlinx.coroutines.launch
 import mozilla.components.service.glean.storages.EventsStorageEngine
 import mozilla.components.support.base.log.logger.Logger
 
@@ -60,6 +61,11 @@ data class EventMetricType(
             return
         }
 
+        if (lifetime != Lifetime.Ping) {
+            logger.warn("$category.$name can only have a Ping lifetime")
+            return
+        }
+
         // We don't need to check that the objectId is short, since that
         // has already been determined at build time for each of the valid objectId values.
         if (!objects.contains(objectId)) {
@@ -96,14 +102,16 @@ data class EventMetricType(
             eventKeys
         }
 
-        // Delegate storing the event to the storage engine.
-        EventsStorageEngine.record(
-            stores = getStorageNames(),
-            category = category,
-            name = name,
-            objectId = objectId,
-            value = truncatedValue,
-            extra = truncatedExtraKeys
-        )
+        Dispatchers.API.launch {
+            // Delegate storing the event to the storage engine.
+            EventsStorageEngine.record(
+                stores = getStorageNames(),
+                category = category,
+                name = name,
+                objectId = objectId,
+                value = truncatedValue,
+                extra = truncatedExtraKeys
+            )
+        }
     }
 }

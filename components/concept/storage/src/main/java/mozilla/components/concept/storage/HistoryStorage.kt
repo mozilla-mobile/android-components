@@ -4,8 +4,6 @@
 
 package mozilla.components.concept.storage
 
-import kotlinx.coroutines.Deferred
-
 /**
  * An interface which defines read/write methods for history data.
  */
@@ -27,16 +25,16 @@ interface HistoryStorage {
     /**
      * Maps a list of page URIs to a list of booleans indicating if each URI was visited.
      * @param uris a list of page URIs about which "visited" information is being requested.
-     * @return A [Deferred] list of booleans indicating visited status of each
+     * @return A list of booleans indicating visited status of each
      * corresponding page URI from [uris].
      */
-    fun getVisited(uris: List<String>): Deferred<List<Boolean>>
+    suspend fun getVisited(uris: List<String>): List<Boolean>
 
     /**
      * Retrieves a list of all visited pages.
-     * @return A [Deferred] list of all visited page URIs.
+     * @return A list of all visited page URIs.
      */
-    fun getVisited(): Deferred<List<String>>
+    suspend fun getVisited(): List<String>
 
     /**
      * Retrieves suggestions matching the [query].
@@ -50,7 +48,7 @@ interface HistoryStorage {
      * @param query A query by which to search the underlying store.
      * @return An optional domain URL which best matches the query.
      */
-    fun getDomainSuggestion(query: String): String?
+    fun getAutocompleteSuggestion(query: String): HistoryAutocompleteResult?
 
     /**
      * Cleanup any allocated resources.
@@ -86,4 +84,18 @@ data class SearchResult(
     val url: String,
     val score: Int,
     val title: String? = null
+)
+
+/**
+ * Describes an autocompletion result against history storage.
+ * @property text Result of autocompletion, text to be displayed.
+ * @property url Result of autocompletion, full matching url.
+ * @property source Name of the autocompletion source.
+ * @property totalItems A total number of results also available.
+ */
+data class HistoryAutocompleteResult(
+    val text: String,
+    val url: String,
+    val source: String,
+    val totalItems: Int
 )

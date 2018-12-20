@@ -6,9 +6,8 @@ package org.mozilla.samples.glean
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.view.View
-import mozilla.components.support.base.log.Log
-import mozilla.components.support.base.log.sink.AndroidLogSink
+import kotlinx.android.synthetic.main.activity_main.*
+import mozilla.components.service.glean.Glean
 
 open class MainActivity : AppCompatActivity() {
 
@@ -16,13 +15,8 @@ open class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Log.addSink(AndroidLogSink())
-
-        GleanMetrics.Basic.os.set("Android")
-        GleanMetrics.Basic.clientId.generateAndSet()
-
         // Generate an event when user clicks on the button.
-        findViewById<View>(R.id.buttonWebView).setOnClickListener {
+        buttonGenerateData.setOnClickListener {
             GleanMetrics.BrowserEngagement.click.record(
                     "object1",
                     "data",
@@ -32,5 +26,15 @@ open class MainActivity : AppCompatActivity() {
                     )
             )
         }
+
+        // Generate a "baseline" ping on click.
+        buttonSendPing.setOnClickListener {
+            Glean.handleEvent(Glean.PingEvent.Background)
+        }
+
+        GleanMetrics.Test.testStringList.add("Hello")
+        GleanMetrics.Test.testStringList.add("World")
+
+        GleanMetrics.Test.testCounter.add()
     }
 }

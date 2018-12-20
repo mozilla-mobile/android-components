@@ -9,8 +9,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
+import mozilla.components.browser.awesomebar.layout.FlowLayout
 import mozilla.components.concept.awesomebar.AwesomeBar
 
 /**
@@ -31,8 +31,12 @@ internal sealed class SuggestionViewHolder(
         private val awesomeBar: BrowserAwesomeBar,
         itemView: View
     ) : SuggestionViewHolder(itemView) {
-        private val titleView = itemView.findViewById<TextView>(R.id.mozac_browser_awesomebar_title)
-        private val descriptionView = itemView.findViewById<TextView>(R.id.mozac_browser_awesomebar_description)
+        private val titleView = itemView.findViewById<TextView>(R.id.mozac_browser_awesomebar_title).apply {
+            setTextColor(awesomeBar.styling.titleTextColor)
+        }
+        private val descriptionView = itemView.findViewById<TextView>(R.id.mozac_browser_awesomebar_description).apply {
+            setTextColor(awesomeBar.styling.descriptionTextColor)
+        }
 
         override fun bind(suggestion: AwesomeBar.Suggestion) {
             val title = if (suggestion.title.isNullOrEmpty()) suggestion.description else suggestion.title
@@ -59,7 +63,9 @@ internal sealed class SuggestionViewHolder(
         itemView: View
     ) : SuggestionViewHolder(itemView) {
         private val iconView = itemView.findViewById<ImageView>(R.id.mozac_browser_awesomebar_icon)
-        private val chipsView = itemView.findViewById<LinearLayout>(R.id.mozac_browser_awesomebar_chips)
+        private val chipsView = itemView.findViewById<FlowLayout>(R.id.mozac_browser_awesomebar_chips).apply {
+            spacing = awesomeBar.styling.chipSpacing
+        }
 
         override fun bind(suggestion: AwesomeBar.Suggestion) {
             chipsView.removeAllViews()
@@ -79,6 +85,8 @@ internal sealed class SuggestionViewHolder(
                         false
                     ) as TextView
 
+                    view.setTextColor(awesomeBar.styling.chipTextColor)
+                    view.setBackgroundColor(awesomeBar.styling.chipBackgroundColor)
                     view.text = chip.title
                     view.setOnClickListener {
                         suggestion.onChipClicked?.invoke(chip)

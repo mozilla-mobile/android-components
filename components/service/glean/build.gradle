@@ -2,8 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+plugins {
+    id "com.jetbrains.python.envs" version "0.0.26"
+}
+
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+
+/*
+ * This defines the location of the JSON schema used to validate the pings
+ * created during unit testing.
+ * This uses a specific version of the schema identified by a git commit hash.
+ */
+String GLEAN_PING_SCHEMA_GIT_HASH = "6041aa6"
+String GLEAN_PING_SCHEMA_URL = "https://raw.githubusercontent.com/mozilla-services/mozilla-pipeline-schemas/$GLEAN_PING_SCHEMA_GIT_HASH/schemas/glean/baseline/baseline.1.schema.json"
 
 android {
     compileSdkVersion Config.compileSdkVersion
@@ -13,6 +25,7 @@ android {
         targetSdkVersion Config.targetSdkVersion
 
         buildConfigField("String", "LIBRARY_VERSION", "\"" + Config.componentsVersion + "\"")
+        buildConfigField("String", "GLEAN_PING_SCHEMA_URL", "\"" + GLEAN_PING_SCHEMA_URL + "\"")
     }
 
     buildTypes {
@@ -24,16 +37,21 @@ android {
 }
 
 dependencies {
-    implementation Deps.kotlin_stdlib
-    implementation Deps.kotlin_coroutines
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
+    implementation Dependencies.arch_lifecycle
 
+    implementation project(':support-ktx')
     implementation project(':support-base')
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
-    testImplementation Deps.testing_mockwebserver
+    testImplementation Dependencies.testing_androidx
+    testImplementation Dependencies.testing_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_mockwebserver
 }
 
 apply from: '../../../publish.gradle'
 ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+
+apply from: './scripts/sdk_generator.gradle'

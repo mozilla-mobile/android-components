@@ -5,8 +5,7 @@
 package mozilla.components.browser.storage.memory
 
 import android.support.annotation.VisibleForTesting
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
+import mozilla.components.concept.storage.HistoryAutocompleteResult
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.SearchResult
@@ -15,8 +14,7 @@ import mozilla.components.support.utils.segmentAwareDomainMatch
 
 data class Visit(val timestamp: Long, val type: VisitType)
 
-private const val URL_MATCH_WEIGHT = 10
-private const val TITLE_MATCH_WEIGHT = 5
+const val AUTOCOMPLETE_SOURCE_NAME = "memoryHistory"
 
 /**
  * An in-memory implementation of [mozilla.components.concept.storage.HistoryStorage].
@@ -39,27 +37,21 @@ class InMemoryHistoryStorage : HistoryStorage {
         }
     }
 
-    override suspend fun recordObservation(uri: String, observation: PageObservation) {
-        synchronized(pageMeta) {
-            pageMeta[uri] = observation
+    override suspend fun recordObservation(uri: String, observation: PageObservation) = synchronized(pageMeta) {
+        pageMeta[uri] = observation
+    }
+
+    override suspend fun getVisited(uris: List<String>): List<Boolean> = synchronized(pages) {
+        return uris.map {
+            if (pages[it] != null && pages[it]!!.size > 0) {
+                return@map true
+            }
+            return@map false
         }
     }
 
-    override fun getVisited(uris: List<String>): Deferred<List<Boolean>> {
-        return CompletableDeferred(synchronized(pages) {
-            uris.map {
-                if (pages[it] != null && pages[it]!!.size > 0) {
-                    return@map true
-                }
-                return@map false
-            }
-        })
-    }
-
-    override fun getVisited(): Deferred<List<String>> {
-        return CompletableDeferred(synchronized(pages) {
-            pages.keys.toList()
-        })
+    override suspend fun getVisited(): List<String> = synchronized(pages) {
+        return pages.keys.toList()
     }
 
     override fun getSuggestions(query: String, limit: Int): List<SearchResult> = synchronized(pages + pageMeta) {
@@ -90,14 +82,26 @@ class InMemoryHistoryStorage : HistoryStorage {
         }.take(limit).toList()
     }
 
-    override fun getDomainSuggestion(query: String): String? {
-        return segmentAwareDomainMatch(query, pages.keys)
+    override fun getAutocompleteSuggestion(query: String): HistoryAutocompleteResult? = synchronized(pages) {
+        segmentAwareDomainMatch(query, pages.keys)?.let { urlMatch ->
+            return HistoryAutocompleteResult(
+                urlMatch.matchedSegment, urlMatch.url, AUTOCOMPLETE_SOURCE_NAME, pages.size)
+        }
     }
 
     // Borrowed from https://gist.github.com/ademar111190/34d3de41308389a0d0d8
     private fun levenshteinDistance(a: String, b: String): Int {
         val lhsLength = a.length
         val rhsLength = b.length
+
+        // Levenshtein distance upper bound is at most the length of the longer string.
+        // However, for our use case we want distance from an empty string to a non-empty string to
+        // be arbitrarily high; otherwise, an empty string will be of varying distances from strings
+        // of varying lengths. This is the correct result for Levenshtein distance, but an incorrect
+        // outcome for our domain. In other words, Levenshtein distance isn't exactly what we need.
+        if (lhsLength == 0 || rhsLength == 0) {
+            return Int.MAX_VALUE
+        }
 
         var cost = Array(lhsLength) { it }
         var newCost = Array(lhsLength) { 0 }

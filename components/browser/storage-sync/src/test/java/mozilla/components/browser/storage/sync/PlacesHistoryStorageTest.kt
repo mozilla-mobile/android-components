@@ -5,6 +5,7 @@
 package mozilla.components.browser.storage.sync
 
 import junit.framework.Assert.assertEquals
+import junit.framework.Assert.assertNull
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.VisitType
@@ -83,10 +84,10 @@ class PlacesHistoryStorageTest {
         val storage = storage!!
         val places = places!!
 
-        storage.getVisited(listOf("http://www.mozilla.org", "http://www.firefox.com")).await()
+        storage.getVisited(listOf("http://www.mozilla.org", "http://www.firefox.com"))
         verify(places, times(1)).getVisited(listOf("http://www.mozilla.org", "http://www.firefox.com"))
 
-        storage.getVisited(listOf()).await()
+        storage.getVisited(listOf())
         verify(places, times(1)).getVisited(listOf())
 
         Unit
@@ -97,7 +98,7 @@ class PlacesHistoryStorageTest {
         val storage = storage!!
         val places = places!!
 
-        storage.getVisited().await()
+        storage.getVisited()
         verify(places, times(1)).getVisitedUrlsInRange(eq(0), ArgumentMatchers.anyLong(), eq(true))
         Unit
     }
@@ -152,7 +153,7 @@ class PlacesHistoryStorageTest {
     }
 
     @Test
-    fun `storage passes through getDomainSuggestion calls`() {
+    fun `storage passes through getAutocompleteSuggestion calls`() {
         val storage = storage!!
         val places = places!!
         `when`(places.queryAutocomplete("mozilla", 100)).thenReturn(listOf(
@@ -160,7 +161,13 @@ class PlacesHistoryStorageTest {
             SearchResult("mozilla", "http://www.firefox.com", "Mozilla Firefox", 5),
             SearchResult("mozilla", "https://en.wikipedia.org/wiki/Mozilla", "", 8))
         )
-        assertEquals("mozilla.org", storage.getDomainSuggestion("mozilla"))
+        val res = storage.getAutocompleteSuggestion("mozilla")!!
+        assertEquals(3, res.totalItems)
+        assertEquals("http://www.mozilla.org", res.url)
+        assertEquals("mozilla.org", res.text)
+        assertEquals("placesHistory", res.source)
+
+        assertNull(storage.getAutocompleteSuggestion("hello"))
     }
 
     @Test()

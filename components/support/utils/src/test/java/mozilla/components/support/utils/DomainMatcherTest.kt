@@ -13,12 +13,27 @@ class DomainMatcherTest {
     fun `should perform basic domain matching for a given query`() {
         assertNull(segmentAwareDomainMatch("moz", listOf()))
 
-        val urls = listOf("http://www.mozilla.org", "http://firefox.com", "https://en.wikipedia.org/wiki/Mozilla")
-        assertEquals("mozilla.org", segmentAwareDomainMatch("moz", urls))
-        assertEquals("www.mozilla.org", segmentAwareDomainMatch("www.moz", urls))
-        assertEquals("en.wikipedia.org/wiki/Mozilla", segmentAwareDomainMatch("en", urls))
-        assertEquals("firefox.com", segmentAwareDomainMatch("fire", urls))
-        assertEquals("http://www.mozilla.org", segmentAwareDomainMatch("http://www.m", urls))
+        val urls = listOf("http://www.mozilla.org", "http://firefox.com", "https://en.wikipedia.org/wiki/Mozilla", "about:config")
+        assertEquals(
+                DomainMatch("http://www.mozilla.org", "mozilla.org"),
+                segmentAwareDomainMatch("moz", urls)
+        )
+        assertEquals(
+                DomainMatch("http://www.mozilla.org", "www.mozilla.org"),
+                segmentAwareDomainMatch("www.moz", urls)
+        )
+        assertEquals(
+                DomainMatch("https://en.wikipedia.org/wiki/Mozilla", "en.wikipedia.org/wiki/Mozilla"),
+                segmentAwareDomainMatch("en", urls)
+        )
+        assertEquals(
+                DomainMatch("http://firefox.com", "firefox.com"),
+                segmentAwareDomainMatch("fire", urls)
+        )
+        assertEquals(
+                DomainMatch("http://www.mozilla.org", "http://www.mozilla.org"),
+                segmentAwareDomainMatch("http://www.m", urls)
+        )
 
         assertNull(segmentAwareDomainMatch("nomatch", urls))
     }

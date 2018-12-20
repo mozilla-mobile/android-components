@@ -57,7 +57,11 @@ class SettingsTest {
             { settings.horizontalScrollBarEnabled },
             { settings.horizontalScrollBarEnabled = false },
             { settings.remoteDebuggingEnabled },
-            { settings.remoteDebuggingEnabled = false }
+            { settings.remoteDebuggingEnabled = false },
+            { settings.supportMultipleWindows },
+            { settings.supportMultipleWindows = false },
+            { settings.testingModeEnabled },
+            { settings.testingModeEnabled = false }
         )
     }
 
@@ -87,6 +91,8 @@ class SettingsTest {
         assertTrue(settings.verticalScrollBarEnabled)
         assertTrue(settings.horizontalScrollBarEnabled)
         assertFalse(settings.remoteDebuggingEnabled)
+        assertFalse(settings.supportMultipleWindows)
+        assertFalse(settings.testingModeEnabled)
 
         val interceptor: RequestInterceptor = mock()
         val historyTrackingDelegate: HistoryTrackingDelegate = mock()
@@ -109,7 +115,9 @@ class SettingsTest {
             allowUniversalAccessFromFileURLs = true,
             verticalScrollBarEnabled = false,
             horizontalScrollBarEnabled = false,
-            remoteDebuggingEnabled = true)
+            remoteDebuggingEnabled = true,
+            supportMultipleWindows = true,
+            testingModeEnabled = true)
 
         assertFalse(defaultSettings.domStorageEnabled)
         assertFalse(defaultSettings.javascriptEnabled)
@@ -129,5 +137,7 @@ class SettingsTest {
         assertFalse(defaultSettings.verticalScrollBarEnabled)
         assertFalse(defaultSettings.horizontalScrollBarEnabled)
         assertTrue(defaultSettings.remoteDebuggingEnabled)
+        assertTrue(defaultSettings.supportMultipleWindows)
+        assertTrue(defaultSettings.testingModeEnabled)
     }
 }

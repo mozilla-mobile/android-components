@@ -40,16 +40,14 @@ interface CommonMetricData {
     }
 
     fun shouldRecord(logger: Logger): Boolean {
-        // Silently drop recording for disabled events.
-        if (disabled) {
+        // Don't record metrics if we aren't initialized
+        if (!Glean.isInitialized()) {
+            logger.error("Glean must be initialized before metrics are recorded")
             return false
         }
 
-        // TODO implement "user" metric lifetime. See bug 1499756.
-        // Metrics can be recorded with application or user lifetime. For now,
-        // we only support "application": metrics live as long as the application lives.
-        if (lifetime != Lifetime.Application) {
-            logger.error("The metric lifetime must be explicitly set.")
+        // Silently drop if metrics are turned off globally or locally
+        if (!Glean.getMetricsEnabled() || disabled) {
             return false
         }
 

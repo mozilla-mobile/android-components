@@ -4,6 +4,8 @@
 
 package mozilla.components.feature.tabs.tabstray
 
+import android.support.annotation.VisibleForTesting
+import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.feature.tabs.TabsUseCases
@@ -17,15 +19,18 @@ class TabsFeature(
     tabsUseCases: TabsUseCases,
     closeTabsTray: () -> Unit
 ) {
-    private val presenter = TabsTrayPresenter(
+    @VisibleForTesting
+    internal var presenter = TabsTrayPresenter(
         tabsTray,
         sessionManager,
-        closeTabsTray)
+        closeTabsTray
+    )
 
-    private val interactor = TabsTrayInteractor(
+    @VisibleForTesting
+    internal var interactor = TabsTrayInteractor(
         tabsTray,
-        tabsUseCases.selectSession,
-        tabsUseCases.removeSession,
+        tabsUseCases.selectTab,
+        tabsUseCases.removeTab,
         closeTabsTray)
 
     fun start() {
@@ -36,5 +41,10 @@ class TabsFeature(
     fun stop() {
         presenter.stop()
         interactor.stop()
+    }
+
+    fun filterTabs(tabsFilter: (Session) -> Boolean) {
+        presenter.sessionsFilter = tabsFilter
+        presenter.calculateDiffAndUpdateTabsTray()
     }
 }

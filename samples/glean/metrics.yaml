@@ -4,7 +4,7 @@
 
 $schema: moz://mozilla.org/schemas/glean/metrics/1-0-0
 
-browser_engagement:
+browser.engagement:
   click:
     type: event
     description: >
@@ -30,13 +30,27 @@ basic:
     notification_emails:
       - telemetry-client-dev@mozilla.com
 
-  client_id:
-    type: uuid
-    lifetime: user
+test:
+  test_string_list:
+    type: string_list
     description: >
-      A UUID identifying a profile and allowing user-oriented correlation of
-      data.
+      Testing StringList ping
+    send_in_pings:
+      - test_string_list
+    lifetime: user
     bugs:
-      - 123456789
+      - 1234567890
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+
+  test_counter:
+    type: counter
+    description: >
+      Testing counter
+    send_in_pings:
+      - test_string_list
+    lifetime: user
+    bugs:
+      - 1234567890
     notification_emails:
       - telemetry-client-dev@mozilla.com

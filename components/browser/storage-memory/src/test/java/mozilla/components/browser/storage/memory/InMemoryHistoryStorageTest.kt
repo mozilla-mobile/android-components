@@ -45,19 +45,19 @@ class InMemoryHistoryStorageTest {
         val history = InMemoryHistoryStorage()
 
         // Empty.
-        assertEquals(0, history.getVisited().await().size)
+        assertEquals(0, history.getVisited().size)
 
         // Regular visits are tracked.
         history.recordVisit("https://www.mozilla.org", VisitType.LINK)
-        assertEquals(listOf("https://www.mozilla.org"), history.getVisited().await())
+        assertEquals(listOf("https://www.mozilla.org"), history.getVisited())
 
         // Multiple visits can be tracked, results ordered by "URL's first seen first".
         history.recordVisit("https://www.firefox.com", VisitType.LINK)
-        assertEquals(listOf("https://www.mozilla.org", "https://www.firefox.com"), history.getVisited().await())
+        assertEquals(listOf("https://www.mozilla.org", "https://www.firefox.com"), history.getVisited())
 
         // Visits marked as reloads can be tracked.
         history.recordVisit("https://www.firefox.com", VisitType.RELOAD)
-        assertEquals(listOf("https://www.mozilla.org", "https://www.firefox.com"), history.getVisited().await())
+        assertEquals(listOf("https://www.mozilla.org", "https://www.firefox.com"), history.getVisited())
 
         // Visited urls are certainly a set.
         history.recordVisit("https://www.firefox.com", VisitType.LINK)
@@ -65,7 +65,7 @@ class InMemoryHistoryStorageTest {
         history.recordVisit("https://www.wikipedia.org", VisitType.LINK)
         assertEquals(
             listOf("https://www.mozilla.org", "https://www.firefox.com", "https://www.wikipedia.org"),
-            history.getVisited().await()
+            history.getVisited()
         )
     }
 
@@ -73,25 +73,25 @@ class InMemoryHistoryStorageTest {
     fun `store can be used to record and retrieve history via gecko-style callbacks`() = runBlocking {
         val history = InMemoryHistoryStorage()
 
-        assertEquals(0, history.getVisited(listOf()).await().size)
+        assertEquals(0, history.getVisited(listOf()).size)
 
         // Regular visits are tracked
         history.recordVisit("https://www.mozilla.org", VisitType.LINK)
-        assertEquals(listOf(true), history.getVisited(listOf("https://www.mozilla.org")).await())
+        assertEquals(listOf(true), history.getVisited(listOf("https://www.mozilla.org")))
 
         // Duplicate requests are handled.
-        assertEquals(listOf(true, true), history.getVisited(listOf("https://www.mozilla.org", "https://www.mozilla.org")).await())
+        assertEquals(listOf(true, true), history.getVisited(listOf("https://www.mozilla.org", "https://www.mozilla.org")))
 
         // Visit map is returned in correct order.
-        assertEquals(listOf(true, false), history.getVisited(listOf("https://www.mozilla.org", "https://www.unknown.com")).await())
+        assertEquals(listOf(true, false), history.getVisited(listOf("https://www.mozilla.org", "https://www.unknown.com")))
 
-        assertEquals(listOf(false, true), history.getVisited(listOf("https://www.unknown.com", "https://www.mozilla.org")).await())
+        assertEquals(listOf(false, true), history.getVisited(listOf("https://www.unknown.com", "https://www.mozilla.org")))
 
         // Multiple visits can be tracked. Reloads can be tracked.
         history.recordVisit("https://www.firefox.com", VisitType.LINK)
         history.recordVisit("https://www.mozilla.org", VisitType.RELOAD)
         history.recordVisit("https://www.wikipedia.org", VisitType.LINK)
-        assertEquals(listOf(true, true, false, true), history.getVisited(listOf("https://www.firefox.com", "https://www.wikipedia.org", "https://www.unknown.com", "https://www.mozilla.org")).await())
+        assertEquals(listOf(true, true, false, true), history.getVisited(listOf("https://www.firefox.com", "https://www.wikipedia.org", "https://www.unknown.com", "https://www.mozilla.org")))
     }
 
     @Test
@@ -133,12 +133,13 @@ class InMemoryHistoryStorageTest {
         history.recordObservation("http://www.mozilla.org", PageObservation("Mozilla"))
         history.recordObservation("http://www.firefox.com", PageObservation("Mozilla Firefox"))
         history.recordObservation("http://www.moscow.ru", PageObservation("Moscow City"))
+        history.recordObservation("http://www.moscow.ru/notitle", PageObservation(""))
 
         // Empty search.
-        assertEquals(4, history.getSuggestions("", 100).size)
+        assertEquals(5, history.getSuggestions("", 100).size)
 
         val search2 = history.getSuggestions("Mozilla", 100)
-        assertEquals(4, search2.size)
+        assertEquals(5, search2.size)
         assertEquals("http://www.mozilla.org", search2[0].id)
         assertEquals("http://www.mozilla.org", search2[0].url)
         assertEquals("Mozilla", search2[0].title)
@@ -180,18 +181,32 @@ class InMemoryHistoryStorageTest {
     }
 
     @Test
-    fun `store can provide domain suggestions`() = runBlocking {
+    fun `store can provide autocomplete suggestions`() = runBlocking {
         val history = InMemoryHistoryStorage()
 
-        assertNull(history.getDomainSuggestion("moz"))
+        assertNull(history.getAutocompleteSuggestion("moz"))
 
         history.recordVisit("http://www.mozilla.org", VisitType.LINK)
-        assertEquals("mozilla.org", history.getDomainSuggestion("moz"))
+        var res = history.getAutocompleteSuggestion("moz")!!
+        assertEquals("mozilla.org", res.text)
+        assertEquals("http://www.mozilla.org", res.url)
+        assertEquals("memoryHistory", res.source)
+        assertEquals(1, res.totalItems)
 
         history.recordVisit("http://firefox.com", VisitType.LINK)
-        assertEquals("firefox.com", history.getDomainSuggestion("firefox"))
+        res = history.getAutocompleteSuggestion("firefox")!!
+        assertEquals("firefox.com", res.text)
+        assertEquals("http://firefox.com", res.url)
+        assertEquals("memoryHistory", res.source)
+        assertEquals(2, res.totalItems)
 
         history.recordVisit("https://en.wikipedia.org/wiki/Mozilla", VisitType.LINK)
-        assertEquals("en.wikipedia.org/wiki/Mozilla", history.getDomainSuggestion("en"))
+        res = history.getAutocompleteSuggestion("en")!!
+        assertEquals("en.wikipedia.org/wiki/Mozilla", res.text)
+        assertEquals("https://en.wikipedia.org/wiki/Mozilla", res.url)
+        assertEquals("memoryHistory", res.source)
+        assertEquals(3, res.totalItems)
+
+        assertNull(history.getAutocompleteSuggestion("hello"))
     }
 }

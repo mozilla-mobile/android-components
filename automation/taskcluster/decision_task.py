@@ -77,10 +77,20 @@ def create_raw_task(name, description, full_command, scopes = []):
 
 
 def create_module_task(module):
+    # We have different sets of variants in different modules, and we don't want to
+    # run lint task for every variant (what just 'lint' would do), as that would take
+    # forever (not quite literally, but close when you're watching that yellow circle).
+    # This pins lint task to a single variant that's appropriate for a given module.
+    if module == ":samples-browser":
+        lintTask = "lintGeckoBetaArmDebug"
+    elif module == ":support-test" or module == ":tooling-lint":
+        lintTask = "lint"
+    else:
+        lintTask = "lintDebug"
     return create_task(
         name='Android Components - Module ' + module,
         description='Building and testing module ' + module,
-        command="-Pcoverage " + " ".join(map(lambda x: module + ":" + x, ['assemble', 'test', 'lint']))  +
+        command="-Pcoverage " + " ".join(map(lambda x: module + ":" + x, ['assemble', 'test', lintTask]))  +
             " && automation/taskcluster/action/upload_coverage_report.sh",
         scopes = [
             "secrets:get:project/mobile/android-components/public-tokens"

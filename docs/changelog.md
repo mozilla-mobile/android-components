@@ -18,7 +18,10 @@ permalink: /changelog/
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
 
 * **feature-customtabs**
- * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
+  * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
+
+* **browser-toolbar**
+  * The "urlBoxView" is now drawn behind the site security icon (in addition to the URL and the page actions)
 
 # 0.35.1
 

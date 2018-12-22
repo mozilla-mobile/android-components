@@ -26,8 +26,11 @@ PR_TITLE = os.environ.get('GITHUB_PULL_TITLE', '')
 SKIP_TASKS_TRIGGER = '[ci skip]'
 
 
-def create_task(name, description, command, scopes = []):
-    return create_raw_task(name, description, "./gradlew --no-daemon clean %s" % command, scopes)
+def create_task(name, description, command, scopes=[], clean=True):
+    full_command = "./gradlew --no-daemon clean %s" % command
+    if not clean:
+        full_command = "./gradlew --no-daemon %s" % command
+    return create_raw_task(name, description, full_command, scopes)
 
 
 def create_raw_task(name, description, full_command, scopes = []):
@@ -80,11 +83,11 @@ def create_module_task(module):
     return create_task(
         name='Android Components - Module ' + module,
         description='Building and testing module ' + module,
-        command="-Pcoverage " + " ".join(map(lambda x: module + ":" + x, ['assemble', 'test', 'lint']))  +
+        command="-Pcoverage " + " ".join(map(lambda x: module + ":" + x, ['clean', 'assemble', 'test', 'lint'])) +
             " && automation/taskcluster/action/upload_coverage_report.sh",
         scopes = [
             "secrets:get:project/mobile/android-components/public-tokens"
-        ])
+        ], clean=False)
 
 
 def create_detekt_task():

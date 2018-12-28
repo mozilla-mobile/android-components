@@ -5,6 +5,10 @@
 package mozilla.components.browser.session
 
 import android.graphics.Bitmap
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
@@ -169,7 +173,7 @@ class SessionTest {
         session.securityInfo = Session.SecurityInfo(true, "mozilla.org", "issuer")
 
         assertEquals(Session.SecurityInfo(true, "mozilla.org", "issuer"),
-            session.securityInfo)
+                session.securityInfo)
 
         assertNotNull(info)
         assertEquals(true, info!!.secure)
@@ -403,8 +407,8 @@ class SessionTest {
         session.title = "Internet for people, not profit — Mozilla"
 
         verify(observer).onTitleChanged(
-            eq(session),
-            eq("Internet for people, not profit — Mozilla"))
+                eq(session),
+                eq("Internet for people, not profit — Mozilla"))
 
         assertEquals("Internet for people, not profit — Mozilla", session.title)
     }
@@ -615,5 +619,32 @@ class SessionTest {
 
         assertTrue(appPermissionCallbackExecuted)
         assertTrue(session.appPermissionRequest.isConsumed())
+    }
+
+    @Test
+    fun `handle empty blocked trackers list race conditions`() {
+        val observer = mock(Session.Observer::class.java)
+        val observer2 = mock(Session.Observer::class.java)
+
+        val session = Session("about:blank")
+        session.register(observer)
+        session.register(observer2)
+
+        runBlocking {
+            (1..3).map {
+                val def = GlobalScope.async(IO) {
+                    session.trackersBlocked = emptyList()
+                    session.trackersBlocked += "test"
+                    session.trackersBlocked = emptyList()
+                }
+                val def2 = GlobalScope.async(IO) {
+                    session.trackersBlocked = emptyList()
+                    session.trackersBlocked += "test"
+                    session.trackersBlocked = emptyList()
+                }
+                def.await()
+                def2.await()
+            }
+        }
     }
 }

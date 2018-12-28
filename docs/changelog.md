@@ -4,9 +4,22 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.36.0-SNAPSHOT (In Development)
+# 0.37.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.36.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/39?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+# 0.36.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...v0.36.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/38?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
 
@@ -19,25 +32,46 @@ permalink: /changelog/
 
 * **browser-session**
   * Added a use case for exiting fullscreen mode.
+
   ```kotlin
   val sessionUseCases = SessionUseCases(sessionManager)
   if (isFullScreenMode) {
     sessionUseCases.exitFullscreen.invoke()
   }
   ```
+
+  * We also added a `FullScreenFeature` that manages fullscreen support.
+
+  ```kotlin
+  val fullScreenFeature = FullScreenFeature(sessionManaager, sessionUseCases) { enabled ->
+    if (enabled) {
+      // Make custom views hide.
+    } else {
+      // Make custom views unhide.
+    }
+  }
+
+  override fun onBackPressed() : Boolean {
+    // Handling back presses when in fullscreen mode
+    return fullScreenFeature.onBackPressed()
+  }
+  ```
 * **feature-customtabs**
   * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
 
-* **feature-prompts**
+* **feature-prompts**, **engine-gecko-***, **engine-system**
   * Added support for file picker requests.
 
-  There some requests that are not handled with dialogs, instead they are delegated to other apps
-  to perform the request, an example is a file picker request. As a result, now you have to override
-  `onActivityResult` on your `Activity` or `Fragment` and forward its calls to `promptFeature.onActivityResult`.
+    There some requests that are not handled with dialogs, instead they are delegated to other apps
+    to perform the request, an example is a file picker request. As a result, now you have to override
+    `onActivityResult` on your `Activity` or `Fragment` and forward its calls to `promptFeature.onActivityResult`.
 
-  Additionally, there are requests that need some permission to be granted before they can be performed, like
-  file pickers that need access to read the selected files. Like `onActivityResult` you need to override
-  `onRequestPermissionsResult` and forward its calls to `promptFeature.onRequestPermissionsResult`.
+    Additionally, there are requests that need some permission to be granted before they can be performed, like
+    file pickers that need access to read the selected files. Like `onActivityResult` you need to override
+    `onRequestPermissionsResult` and forward its calls to `promptFeature.onRequestPermissionsResult`.
+
+* **browser-toolbar**
+  * The "urlBoxView" is now drawn behind the site security icon (in addition to the URL and the page actions)
 
 # 0.35.1
 

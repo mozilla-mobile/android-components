@@ -8,8 +8,10 @@ import android.content.Context
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.UnsupportedSettingException
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -19,6 +21,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
+import org.mozilla.geckoview.GeckoWebExecutor
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
@@ -69,6 +72,10 @@ class GeckoEngineTest {
         engine.settings.testingModeEnabled = true
         assertTrue(engine.settings.testingModeEnabled)
 
+        assertNull(engine.settings.userAgentString)
+        engine.settings.userAgentString = "test-ua"
+        assertEquals("test-ua", engine.settings.userAgentString)
+
         assertEquals(TrackingProtectionPolicy.none(), engine.settings.trackingProtectionPolicy)
         engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.all()
         verify(runtimeSettings).trackingProtectionCategories = TrackingProtectionPolicy.all().categories
@@ -96,12 +103,25 @@ class GeckoEngineTest {
                 javascriptEnabled = false,
                 webFontsEnabled = false,
                 remoteDebuggingEnabled = true,
-                testingModeEnabled = true), runtime)
+                testingModeEnabled = true,
+                userAgentString = "test-ua"), runtime)
 
         verify(runtimeSettings).javaScriptEnabled = false
         verify(runtimeSettings).webFontsEnabled = false
         verify(runtimeSettings).remoteDebuggingEnabled = true
         verify(runtimeSettings).trackingProtectionCategories = TrackingProtectionPolicy.all().categories
         assertTrue(engine.settings.testingModeEnabled)
+        assertEquals("test-ua", engine.settings.userAgentString)
+    }
+
+    @Test
+    fun `speculativeConnect forwards call to executor`() {
+        val executor: GeckoWebExecutor = mock()
+
+        val engine = GeckoEngine(context, runtime = runtime, executorProvider = { executor })
+
+        engine.speculativeConnect("https://www.mozilla.org")
+
+        verify(executor).speculativeConnect("https://www.mozilla.org")
     }
 }

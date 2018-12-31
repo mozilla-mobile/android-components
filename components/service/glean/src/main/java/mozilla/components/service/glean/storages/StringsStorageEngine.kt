@@ -5,6 +5,7 @@
 package mozilla.components.service.glean.storages
 
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.support.base.log.logger.Logger
 
@@ -20,12 +21,20 @@ import mozilla.components.support.base.log.logger.Logger
 @SuppressLint("StaticFieldLeak")
 internal object StringsStorageEngine : StringsStorageEngineImplementation()
 
-open class StringsStorageEngineImplementation(
+internal open class StringsStorageEngineImplementation(
     override val logger: Logger = Logger("glean/StringsStorageEngine")
 ) : GenericScalarStorageEngine<String>() {
 
     override fun deserializeSingleMetric(value: Any?): String? {
         return value as? String
+    }
+
+    override fun serializeSingleMetric(
+        userPreferences: SharedPreferences.Editor?,
+        storeName: String,
+        value: String
+    ) {
+        userPreferences?.putString(storeName, value)
     }
 
     /**

@@ -4,29 +4,166 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.35.0-SNAPSHOT (In Development)
+# 0.37.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.36.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/39?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+# 0.36.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...v0.36.0),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/38?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-session**
+  * Added a use case for exiting fullscreen mode.
+
+  ```kotlin
+  val sessionUseCases = SessionUseCases(sessionManager)
+  if (isFullScreenMode) {
+    sessionUseCases.exitFullscreen.invoke()
+  }
+  ```
+
+  * We also added a `FullScreenFeature` that manages fullscreen support.
+
+  ```kotlin
+  val fullScreenFeature = FullScreenFeature(sessionManaager, sessionUseCases) { enabled ->
+    if (enabled) {
+      // Make custom views hide.
+    } else {
+      // Make custom views unhide.
+    }
+  }
+
+  override fun onBackPressed() : Boolean {
+    // Handling back presses when in fullscreen mode
+    return fullScreenFeature.onBackPressed()
+  }
+  ```
+* **feature-customtabs**
+  * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
+
+* **feature-prompts**, **engine-gecko-***, **engine-system**
+  * Added support for file picker requests.
+
+    There some requests that are not handled with dialogs, instead they are delegated to other apps
+    to perform the request, an example is a file picker request. As a result, now you have to override
+    `onActivityResult` on your `Activity` or `Fragment` and forward its calls to `promptFeature.onActivityResult`.
+
+    Additionally, there are requests that need some permission to be granted before they can be performed, like
+    file pickers that need access to read the selected files. Like `onActivityResult` you need to override
+    `onRequestPermissionsResult` and forward its calls to `promptFeature.onRequestPermissionsResult`.
+
+* **browser-toolbar**
+  * The "urlBoxView" is now drawn behind the site security icon (in addition to the URL and the page actions)
+
+# 0.35.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...v0.35.1)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: **0.12.1** 🔺, Sync Logins: **0.12.1** 🔺, Places: **0.12.1** 🔺)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* Re-release of 0.34.1 with updated App Services dependencies (0.12.1).
+
+# 0.35.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.0...v0.35.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/37?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.35.0/index)
 
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
-  * GeckoView (Nightly: 65.0.20181129095546, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
-  * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
+  * GeckoView (Nightly: **66.0.20181217093726** 🔺, Beta: **65.0.20181211223337** 🔺, Release: **64.0.20181214004633** 🔺)
+  * Mozilla App Services (FxA: 0.11.5, Sync Logins: 0.11.5, Places: 0.11.5)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
 
-* **feature-customtabs**
-  * 
-  * ⚠️ **This is a breaking change** `CustomTabsService` has been renamed to `AbstractCustomTabsService` and is now an abstract class in order to allow apps to inject the `Engine` they are using. An app that wants to support custom tabs will need to create its own class and reference it in the manifest:
+* **browser-errorpages**
+  * Localized strings for de, es, fr, it, ja, ko, zh-rCN, zh-rTW.
 
-  ```Kotlin
+* **feature-customtabs**
+  * Added support for warming up the browser process asynchronously.
+  * ⚠️ **This is a breaking change**
+  * `CustomTabsService` has been renamed to `AbstractCustomTabsService` and is now an abstract class in order to allow apps to inject the `Engine` they are using. An app that wants to support custom tabs will need to create its own class and reference it in the manifest:
+
+  ```kotlin
   class CustomTabsService : AbstractCustomTabsService() {
     override val engine: Engine by lazy { components.engine }
   }
   ```
+* **feature-prompts**
+  * Added support for alerts dialogs.
+  * Added support for date picker dialogs.
+
+* **support-ktx**
+  New extension function `toDate` that converts a string to a Date object from a formatter input.
+  ```kotlin
+       val date = "2019-11-28".toDate("yyyy-MM-dd")
+  ```
+
+* **concept-engine**, **engine-gecko-beta**, **engine-gecko-nightly**:
+  * Add setting to enable testing mode which is used in engine-gecko to set `FULL_ACCESSIBILITY_TREE` to `true`. This allows access to the full DOM tree for testing purposes.
+
+  ```kotlin
+  // Turn testing mode on by default when the engine is created
+  val engine = GeckoEngine(runtime, DefaultSettings(testingModeEnabled=true))
+
+  // Or turn testing mode on at a later point
+  engine.settings.testingModeEnabled = true
+  ```
+
+  * The existing `userAgentString` setting is now supported by `engine-gecko-beta` and `engine-gecko-nightly`.
+
+* **feature-session**
+  * Added a `HistoryTrackingDelegate` implementation, which previously lived in **feature-storage**.
+
+* **feature-storage**
+  * Removed! See **feature-session** instead.
+
+* **sample-browser**
+  * Added in-memory browsing history as one of the AwesomeBar data providers.
+
+* **feature-sync**
+  * Simplified error handling. Errors are wrapped in a SyncResult, exceptions are no longer thrown.
+  * `FirefoxSyncFeature`'s constructor now takes a map of `Syncable` instances. That is, the internal list of `Syncables` is no longer mutable.
+  * `sync` is now a `suspend` function. Callers are expected to manage scoping themselves.
+  * Ability to observe "sync is running" and "sync is idle" events vs `SyncStatusObserver` interface.
+  * Ability to query for current sync state (running or idle).
+  * See included `sample-sync-history` application for example usage of these observers.
+
+# 0.34.2
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.1...v0.34.2)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 65.0.20181129095546, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
+  * Mozilla App Services (FxA: **0.11.5** 🔺, Sync Logins: **0.11.5** 🔺, Places: **0.11.5** 🔺)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* Re-release of 0.34.1 with updated App Services dependencies (0.11.5).
 
 # 0.34.1
 
@@ -35,7 +172,6 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: **65.0.20181129095546** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: 0.11.2, Sync Logins: 0.11.2, Places: 0.11.2)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
@@ -52,7 +188,6 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: 65.0.20181123100059, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: **0.11.2** 🔺, Sync Logins: **0.11.2** 🔺, Places: **0.11.2** 🔺)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
@@ -82,13 +217,13 @@ permalink: /changelog/
   promptFeature.stop()
   ```
 
-* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:  
+* **feature-session**, **browser-session**, **concept-engine**, **browser-engine-system**:
   * Added functionality to observe window requests from the browser engine. These requests can be observed on the session directly using `onOpenWindowRequest` and `onCloseWindowRequest`, but we also provide a feature class, which will automatically open and close the corresponding window:
 
   ```Kotlin
   windowFeature = WindowFeature(engine, sessionManager)
 
-  override fun onStart() {    
+  override fun onStart() {
     windowFeature.start()
   }
 
@@ -101,7 +236,7 @@ permalink: /changelog/
   In addition, to observe window requests the new engine setting `supportMultipleWindows` has to be set to true:
 
   ```Kotlin
-  val engine = SystemEngine(context, 
+  val engine = SystemEngine(context,
     DefaultSettings(
       supportMultipleWindows = true
     )
@@ -139,7 +274,7 @@ permalink: /changelog/
 
   ```Kotlin
   // Before
-  Config.custom(CONFIG_URL).await().use { 
+  Config.custom(CONFIG_URL).await().use {
     config -> FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
   }
 
@@ -159,7 +294,6 @@ permalink: /changelog/
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: **1.3.10** 🔺, Coroutines: 1.0.1)
-  * Kotlin (Stdlib: 1.3.0, Coroutines: 1.0.1)
   * GeckoView (Nightly: **65.0.20181123100059** 🔺, Beta: 64.0.20181022150107, Release: 63.0.20181018182531)
   * Mozilla App Services (FxA: 0.10.0, Sync Logins: 0.10.0, Places: 0.10.0)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)

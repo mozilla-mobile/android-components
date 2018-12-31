@@ -206,12 +206,12 @@ class SystemEngineSessionTest {
         val engineSession = spy(SystemEngineSession())
         val webView = mock(WebView::class.java)
 
-        engineSession.restoreState(emptyMap())
+        engineSession.restoreState(SystemEngineSessionState(Bundle()))
         verify(webView, never()).restoreState(any(Bundle::class.java))
 
         `when`(engineSession.currentView()).thenReturn(webView)
 
-        engineSession.restoreState(emptyMap())
+        engineSession.restoreState(SystemEngineSessionState(Bundle()))
         verify(webView).restoreState(any(Bundle::class.java))
     }
 
@@ -587,10 +587,17 @@ class SystemEngineSessionTest {
         val engineSession = spy(SystemEngineSession())
         val webView = mock(WebView::class.java)
         val webViewSettings = mock(WebSettings::class.java)
+        var desktopMode = false
+        engineSession.register(object : EngineSession.Observer {
+            override fun onDesktopModeChange(enabled: Boolean) {
+                desktopMode = enabled
+            }
+        })
 
         engineSession.toggleDesktopMode(true)
         verify(engineSession).currentView()
         verify(webView, never()).settings
+        assertFalse(desktopMode)
 
         `when`(engineSession.currentView()).thenReturn(webView)
         `when`(webView.settings).thenReturn(webViewSettings)
@@ -599,6 +606,7 @@ class SystemEngineSessionTest {
         engineSession.toggleDesktopMode(true)
         verify(webViewSettings).useWideViewPort = true
         verify(engineSession).toggleDesktopUA(userAgentMobile, true)
+        assertTrue(desktopMode)
 
         engineSession.toggleDesktopMode(true)
         verify(webView, never()).reload()

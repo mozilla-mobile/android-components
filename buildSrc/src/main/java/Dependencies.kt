@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // Synchronized version numbers for dependencies used by (some) modules
-private object Versions {
+object Versions {
     const val kotlin = "1.3.10"
     const val coroutines = "1.0.1"
 
@@ -27,9 +27,9 @@ private object Versions {
     const val sentry = "1.7.14"
     const val okhttp = "3.12.0"
 
-    const val mozilla_fxa = "0.11.2"
-    const val mozilla_sync_logins = "0.11.2"
-    const val mozilla_places = "0.11.2"
+    const val mozilla_fxa = "0.12.1"
+    const val mozilla_sync_logins = "0.12.1"
+    const val mozilla_places = "0.12.1"
     const val servo = "0.0.1.20181017.aa95911"
 }
 

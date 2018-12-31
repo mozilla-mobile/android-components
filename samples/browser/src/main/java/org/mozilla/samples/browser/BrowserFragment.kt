@@ -5,6 +5,7 @@
 package org.mozilla.samples.browser
 
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -20,7 +21,6 @@ import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.WindowFeature
-import mozilla.components.feature.storage.HistoryTrackingFeature
 import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
 import mozilla.components.feature.toolbar.ToolbarFeature
@@ -33,7 +33,6 @@ class BrowserFragment : Fragment(), BackHandler {
     private lateinit var toolbarAutocompleteFeature: ToolbarAutocompleteFeature
     private lateinit var tabsToolbarFeature: TabsToolbarFeature
     private lateinit var downloadsFeature: DownloadsFeature
-    private lateinit var historyTrackingFeature: HistoryTrackingFeature
     private lateinit var scrollFeature: CoordinateScrollingFeature
     private lateinit var contextMenuFeature: ContextMenuFeature
     private lateinit var promptFeature: PromptFeature
@@ -49,11 +48,6 @@ class BrowserFragment : Fragment(), BackHandler {
         toolbar.setMenuBuilder(components.menuBuilder)
 
         val sessionId = arguments?.getString(SESSION_ID)
-
-        historyTrackingFeature = HistoryTrackingFeature(
-                components.engine,
-                components.historyStorage
-        )
 
         sessionFeature = SessionFeature(
                 components.sessionManager,
@@ -76,6 +70,7 @@ class BrowserFragment : Fragment(), BackHandler {
         tabsToolbarFeature = TabsToolbarFeature(toolbar, components.sessionManager, ::showTabs)
 
         AwesomeBarFeature(awesomeBar, toolbar, engineView)
+            .addHistoryProvider(components.historyStorage, components.sessionUseCases.loadUrl)
             .addSessionProvider(components.sessionManager, components.tabsUseCases.selectTab)
             .addSearchProvider(
                 components.searchEngineManager.getDefaultSearchEngine(requireContext()),
@@ -101,7 +96,13 @@ class BrowserFragment : Fragment(), BackHandler {
                 components.tabsUseCases,
                 view))
 
-        promptFeature = PromptFeature(components.sessionManager, requireFragmentManager())
+        promptFeature = PromptFeature(
+            null, this,
+            components.sessionManager,
+            requireFragmentManager()
+        ) { _, permissions, requestCode ->
+            requestPermissions(permissions, requestCode)
+        }
 
         windowFeature = WindowFeature(components.engine, components.sessionManager)
     }
@@ -174,5 +175,10 @@ class BrowserFragment : Fragment(), BackHandler {
                 }
             }
         }
+        promptFeature.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        promptFeature.onActivityResult(requestCode, resultCode, data)
     }
 }

@@ -4,25 +4,27 @@
 
 package mozilla.components.browser.engine.gecko
 
-import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
+import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
-import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
+import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
 import mozilla.components.support.utils.DownloadUtils
 import org.mozilla.gecko.util.ThreadUtils
+import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
@@ -108,9 +110,6 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.saveState]
      *
-     * GeckoView provides a String representing the entire session state. We
-     * store this String using a single Map entry with key GECKO_STATE_KEY.
-
      * See https://bugzilla.mozilla.org/show_bug.cgi?id=1441810 for
      * discussion on sync vs. async, where a decision was made that
      * callers should provide synchronous wrappers, if needed. In case we're
@@ -118,30 +117,35 @@ class GeckoEngineSession(
      * is used so we're not blocking anything else. In case of calling this
      * method from onPause or similar, we also want a synchronous response.
      */
-    override fun saveState(): Map<String, Any> = runBlocking {
-        val stateMap = CompletableDeferred<Map<String, Any>>()
+    override fun saveState(): EngineSessionState = runBlocking {
+        val state = CompletableDeferred<GeckoEngineSessionState>()
 
         ThreadUtils.sGeckoHandler.post {
-            geckoSession.saveState().then({ state ->
-                stateMap.complete(mapOf(GECKO_STATE_KEY to state.toString()))
+            geckoSession.saveState().then({ sessionState ->
+                state.complete(GeckoEngineSessionState(sessionState))
                 GeckoResult<Void>()
             }, { throwable ->
-                stateMap.cancel(throwable)
+                state.completeExceptionally(throwable)
                 GeckoResult<Void>()
             })
         }
 
-        stateMap.await()
+        state.await()
     }
 
     /**
      * See [EngineSession.restoreState]
      */
-    override fun restoreState(state: Map<String, Any>) {
-        if (state.containsKey(GECKO_STATE_KEY)) {
-            val sessionState = GeckoSession.SessionState(state[GECKO_STATE_KEY] as String)
-            geckoSession.restoreState(sessionState)
+    override fun restoreState(state: EngineSessionState) {
+        if (state !is GeckoEngineSessionState) {
+            throw IllegalStateException("Can only restore from GeckoEngineSessionState")
         }
+
+        if (state.actualState == null) {
+            return
+        }
+
+        geckoSession.restoreState(state.actualState)
     }
 
     /**
@@ -243,7 +247,6 @@ class GeckoEngineSession(
      */
     @Suppress("ComplexMethod")
     private fun createNavigationDelegate() = object : GeckoSession.NavigationDelegate {
-
         override fun onLocationChange(session: GeckoSession?, url: String) {
             // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
             if (initialLoad && url == ABOUT_BLANK) {
@@ -256,13 +259,11 @@ class GeckoEngineSession(
 
         override fun onLoadRequest(
             session: GeckoSession,
-            uri: String,
-            target: Int,
-            flags: Int
-        ): GeckoResult<Boolean>? {
+            request: NavigationDelegate.LoadRequest
+        ): GeckoResult<AllowOrDeny> {
             val response = settings.requestInterceptor?.onLoadRequest(
                 this@GeckoEngineSession,
-                uri
+                request.uri
             )?.apply {
                 when (this) {
                     is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
@@ -270,7 +271,7 @@ class GeckoEngineSession(
                 }
             }
 
-            return GeckoResult.fromValue(response != null)
+            return GeckoResult.fromValue(if (response != null) AllowOrDeny.DENY else AllowOrDeny.ALLOW)
         }
 
         override fun onCanGoForward(session: GeckoSession?, canGoForward: Boolean) {
@@ -366,7 +367,7 @@ class GeckoEngineSession(
 
         override fun onCrash(session: GeckoSession?) {
             geckoSession.close()
-            initGeckoSession(GeckoSession())
+            initGeckoSession()
         }
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
@@ -487,8 +488,8 @@ class GeckoEngineSession(
         return null
     }
 
-    private fun initGeckoSession(geckoSession: GeckoSession = GeckoSession()) {
-        this.geckoSession = geckoSession
+    private fun initGeckoSession() {
+        this.geckoSession = GeckoSession()
         defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }

@@ -5,10 +5,10 @@
 package mozilla.components.service.glean.storages
 
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import mozilla.components.service.glean.CommonMetricData
-import java.util.UUID
-
 import mozilla.components.support.base.log.logger.Logger
+import java.util.UUID
 
 /**
  * This singleton handles the in-memory storage logic for uuids. It is meant to be used by
@@ -22,7 +22,7 @@ import mozilla.components.support.base.log.logger.Logger
 @SuppressLint("StaticFieldLeak")
 internal object UuidsStorageEngine : UuidsStorageEngineImplementation()
 
-open class UuidsStorageEngineImplementation(
+internal open class UuidsStorageEngineImplementation(
     override val logger: Logger = Logger("glean/UuidsStorageEngine")
 ) : GenericScalarStorageEngine<UUID>() {
 
@@ -32,6 +32,14 @@ open class UuidsStorageEngineImplementation(
         } catch (e: IllegalArgumentException) {
             null
         }
+    }
+
+    override fun serializeSingleMetric(
+        userPreferences: SharedPreferences.Editor?,
+        storeName: String,
+        value: UUID
+    ) {
+        userPreferences?.putString(storeName, value.toString())
     }
 
     /**

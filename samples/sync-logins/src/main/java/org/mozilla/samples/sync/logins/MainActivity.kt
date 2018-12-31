@@ -13,14 +13,11 @@ import android.widget.ArrayAdapter
 import android.widget.ListView
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.storage.SyncError
-import mozilla.components.feature.sync.AuthException
 import mozilla.components.feature.sync.FirefoxSyncFeature
 import mozilla.components.service.fxa.Config
 import mozilla.components.service.fxa.FirefoxAccount
@@ -45,24 +42,20 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
     }
 
     private val featureSync by lazy {
-        val context = Dispatchers.IO + job
-
-        FirefoxSyncFeature(context) { authInfo ->
+        FirefoxSyncFeature(mapOf(Pair(loginsStoreName, loginsStore))) { authInfo ->
             SyncUnlockInfo(
                 fxaAccessToken = authInfo.fxaAccessToken,
                 kid = authInfo.kid,
                 syncKey = authInfo.syncKey,
                 tokenserverURL = authInfo.tokenServerUrl
             )
-        }.also {
-            it.addSyncable(loginsStoreName, loginsStore)
         }
     }
 
     private lateinit var listView: ListView
     private lateinit var adapter: ArrayAdapter<String>
     private lateinit var activityContext: MainActivity
-    private lateinit var whenAccount: Deferred<FirefoxAccount>
+    private lateinit var account: FirefoxAccount
 
     private lateinit var job: Job
     override val coroutineContext: CoroutineContext
@@ -84,18 +77,11 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
         activityContext = this
-
-        whenAccount = async {
-            getAuthenticatedAccount()?.let {
-                return@async it
-            }
-
-            FirefoxAccount(Config.release(CLIENT_ID, REDIRECT_URL))
-        }
+        account = getAuthenticatedAccount() ?: FirefoxAccount(Config.release(CLIENT_ID, REDIRECT_URL))
 
         findViewById<View>(R.id.buttonWebView).setOnClickListener {
             launch {
-                val url = whenAccount.await().beginOAuthFlow(scopes, wantsKeys).await()
+                val url = account.beginOAuthFlow(scopes, wantsKeys).await()
                 openWebView(url)
             }
         }
@@ -114,7 +100,7 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
 
     override fun onDestroy() {
         super.onDestroy()
-        runBlocking { whenAccount.await().close() }
+        account.close()
         job.cancel()
     }
 
@@ -128,8 +114,6 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
 
     override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
         launch {
-            val account = whenAccount.await()
-
             account.completeOAuthFlow(code, state).await()
             account.toJSONString().let {
                 getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE)
@@ -143,16 +127,9 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
     }
 
     private suspend fun syncLogins(account: FirefoxAccount) {
-        val syncResult = try {
-            featureSync.sync(account).await()
-        } catch (e: AuthException) {
-            Toast.makeText(
-                    this@MainActivity,
-                    "Logins sync auth error: " + e.localizedMessage,
-                    Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
+        val syncResult = CoroutineScope(Dispatchers.IO + job).async {
+            featureSync.sync(account)
+        }.await()
 
         check(loginsStoreName in syncResult) { "Expected to synchronize a logins store" }
 

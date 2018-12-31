@@ -54,7 +54,7 @@ def create_raw_task(name, description, full_command, scopes = []):
                 'taskclusterProxy': True
             },
             "maxRunTime": 7200,
-            "image": "mozillamobile/android-components:1.10",
+            "image": "mozillamobile/android-components:1.11",
             "command": [
                 "/bin/bash",
                 "--login",
@@ -105,7 +105,7 @@ def create_compare_locales_task():
     return create_raw_task(
         name='Android Components - compare-locales',
         description='Validate strings.xml with compare-locales',
-        full_command='pip install "compare-locales>=4.0.1,<5.0" && compare-locales --validate l10n.toml .')
+        full_command='pip install "compare-locales>=5.0.2,<6.0" && compare-locales --validate l10n.toml .')
 
 
 if __name__ == "__main__":

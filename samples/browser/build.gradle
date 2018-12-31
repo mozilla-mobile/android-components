@@ -128,7 +128,6 @@ dependencies {
     implementation project(':feature-intent')
     implementation project(':feature-search')
     implementation project(':feature-session')
-    implementation project(':feature-storage')
     implementation project(':feature-toolbar')
     implementation project(':feature-tabs')
     implementation project(':feature-prompts')
@@ -159,7 +158,6 @@ dependencies {
     implementation Dependencies.support_design
 
     implementation Dependencies.kotlin_stdlib
-    implementation Dependencies.kotlin_coroutines
 
     implementation Dependencies.support_appcompat
     implementation Dependencies.support_constraintlayout

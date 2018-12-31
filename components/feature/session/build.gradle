@@ -23,6 +23,7 @@ android {
 
 dependencies {
     implementation project(':browser-session')
+    implementation project(':concept-storage')
     implementation project(':concept-engine')
     implementation project(':support-utils')
     implementation project(':support-ktx')

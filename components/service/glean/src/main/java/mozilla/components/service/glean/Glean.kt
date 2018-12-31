@@ -6,10 +6,10 @@ package mozilla.components.service.glean
 
 import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
+import android.os.Build
 import android.support.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 import java.util.UUID
@@ -23,45 +23,30 @@ import mozilla.components.service.glean.scheduler.GleanLifecycleObserver
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
 import mozilla.components.service.glean.metrics.Baseline
+import mozilla.components.service.glean.utils.StringUtils
 import mozilla.components.support.base.log.logger.Logger
 import java.io.File
 
-object Glean {
-    /**
-    * Enumeration of different metric lifetimes.
-    */
-    enum class PingEvent {
-        /**
-        * When the application goes into the background
-        */
-        Background,
-        /**
-        * A periodic event to send the default ping
-        */
-        Default
-    }
-
+@Suppress("TooManyFunctions")
+open class GleanInternalAPI {
     private val logger = Logger("glean/Glean")
-
-    internal const val SCHEMA_VERSION = 1
-
-    /**
-     * The name of the directory, inside the application's directory,
-     * in which Glean files are stored.
-     */
-    internal const val GLEAN_DATA_DIR = "glean_data"
 
     // Include our singletons of StorageEngineManager and PingMaker
     private lateinit var storageEngineManager: StorageEngineManager
     private lateinit var pingMaker: PingMaker
-    private lateinit var configuration: Configuration
+    internal lateinit var configuration: Configuration
     // `internal` so this can be modified for testing
     internal lateinit var httpPingUploader: HttpPingUploader
 
     private val gleanLifecycleObserver by lazy { GleanLifecycleObserver() }
 
-    private var initialized = false
+    // `internal` so this can be modified for testing
+    internal var initialized = false
     private var metricsEnabled = true
+
+    // The application id detected by glean to be used as part of the submission
+    // endpoint.
+    internal lateinit var applicationId: String
 
     /**
      * Initialize glean.
@@ -72,17 +57,33 @@ object Glean {
      * @param applicationContext [Context] to access application features, such
      * as shared preferences
      * @param configuration A Glean [Configuration] object with global settings.
+     * @raises Exception if called more than once
      */
-    fun initialize(applicationContext: Context, configuration: Configuration = Configuration()) {
+    fun initialize(
+        applicationContext: Context,
+        configuration: Configuration = Configuration()
+    ) {
+        if (isInitialized()) {
+            throw IllegalStateException("Glean may not be initialized multiple times")
+        }
+
         storageEngineManager = StorageEngineManager(applicationContext = applicationContext)
         pingMaker = PingMaker(storageEngineManager)
         this.configuration = configuration
         httpPingUploader = HttpPingUploader(configuration)
         initialized = true
+        applicationId = applicationContext.packageName
 
         initializeCoreMetrics(applicationContext)
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(gleanLifecycleObserver)
+    }
+
+    /**
+     * Returns true if the Glean library has been initialized.
+     */
+    internal fun isInitialized(): Boolean {
+        return initialized
     }
 
     /**
@@ -140,21 +141,19 @@ object Glean {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun makePath(docType: String, uuid: UUID): String {
-        return "/submit/glean/$docType/$SCHEMA_VERSION/$uuid"
+        return "/submit/$applicationId/$docType/${Glean.SCHEMA_VERSION}/$uuid"
     }
 
     /**
      * Collect and assemble the ping. Asynchronously submits the assembled
      * payload to the designated server using [httpPingUploader].
-     *
-     * @return The [Job] created by the ping submission.
      */
-    private fun sendPing(store: String, docType: String): Job {
+    internal fun sendPing(store: String, docType: String) {
         val pingContent = pingMaker.collect(store)
         val uuid = UUID.randomUUID()
         val path = makePath(docType, uuid)
         // Asynchronously perform the HTTP upload off the main thread.
-        return GlobalScope.launch(Dispatchers.IO) {
+        GlobalScope.launch(Dispatchers.IO) {
             httpPingUploader.upload(path = path, data = pingContent)
         }
     }
@@ -163,7 +162,7 @@ object Glean {
      * Initialize the core metrics internally managed by Glean (e.g. client id).
      */
     private fun initializeCoreMetrics(applicationContext: Context) {
-        val gleanDataDir = File(applicationContext.applicationInfo.dataDir, GLEAN_DATA_DIR)
+        val gleanDataDir = File(applicationContext.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR)
 
         // Make sure the data directory exists and is writable.
         if (!gleanDataDir.exists() && !gleanDataDir.mkdirs()) {
@@ -185,6 +184,26 @@ object Glean {
 
         // Set the OS type
         Baseline.os.set("Android")
+
+        // Set the OS version
+        // https://developer.android.com/reference/android/os/Build.VERSION
+        Baseline.osVersion.set(Build.VERSION.SDK_INT.toString())
+
+        // Set the device string
+        // https://developer.android.com/reference/android/os/Build
+        // We limit the device descriptor to 32 characters because it can get long. We give fewer
+        // characters to the manufacturer because we're less likely to have manufacturers with
+        // similar names than we are for a manufacturer to have two devices with the similar names
+        // (e.g. Galaxy S6 vs. Galaxy Note 6).
+        @Suppress("MagicNumber")
+        Baseline.device.set(
+            StringUtils.safeSubstring(Build.MANUFACTURER, 0, 12) +
+            '-' +
+            StringUtils.safeSubstring(Build.MODEL, 0, 19)
+        )
+
+        // Set the CPU architecture
+        Baseline.architecture.set(Build.SUPPORTED_ABIS[0])
     }
 
     /**
@@ -197,14 +216,43 @@ object Glean {
      *   - Default: Event that triggers the default pings.
      *
      * @param pingEvent The type of the event.
-     *
-     * @return A [Job], **only** to be used when testing, which allows to wait on
-     *         the ping submission.
      */
-    fun handleEvent(pingEvent: PingEvent): Job {
-        return when (pingEvent) {
-            PingEvent.Background -> sendPing("baseline", "baseline")
-            PingEvent.Default -> sendPing("metrics", "metrics")
+    fun handleEvent(pingEvent: Glean.PingEvent) {
+        if (!isInitialized()) {
+            logger.error("Glean must be initialized before handling events.")
+            return
+        }
+
+        when (pingEvent) {
+            Glean.PingEvent.Background -> {
+                sendPing("baseline", "baseline")
+                sendPing("events", "events")
+            }
+            Glean.PingEvent.Default -> sendPing("metrics", "metrics")
         }
     }
+}
+
+object Glean : GleanInternalAPI() {
+    /**
+    * Enumeration of different metric lifetimes.
+    */
+    enum class PingEvent {
+        /**
+        * When the application goes into the background
+        */
+        Background,
+        /**
+        * A periodic event to send the default ping
+        */
+        Default
+    }
+
+    internal const val SCHEMA_VERSION = 1
+
+    /**
+    * The name of the directory, inside the application's directory,
+    * in which Glean files are stored.
+    */
+    internal const val GLEAN_DATA_DIR = "glean_data"
 }

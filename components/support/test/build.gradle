@@ -37,6 +37,10 @@ dependencies {
     implementation Dependencies.testing_mockito
     implementation Dependencies.testing_robolectric
 
+    implementation Dependencies.testing_espresso_core
+    implementation Dependencies.testing_espresso_runner
+    implementation Dependencies.testing_espresso_rules
+
     testImplementation Dependencies.support_compat
     testImplementation project(':support-ktx')
 }

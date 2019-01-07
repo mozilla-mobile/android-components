@@ -31,9 +31,11 @@ tasks:
         provisionerId: aws-provisioner-v1
         workerType: github-worker
         scopes:
-          - queue:create-task:aws-provisioner-v1/github-worker
+          - queue:create-task:high:aws-provisioner-v1/android-components-g
           - queue:scheduler-id:${scheduler_id}
           - secrets:get:project/mobile/android-components/public-tokens
+        routes:
+          - statuses  # Automatically added by taskcluster-github. It must be explicit because of Chain of Trust
         payload:
           maxRunTime: 3600
           image: mozillamobile/android-components:1.11
@@ -85,7 +87,7 @@ tasks:
           provisionerId: aws-provisioner-v1
           workerType: github-worker
           scopes:
-            - queue:create-task:aws-provisioner-v1/github-worker
+            - queue:create-task:high:aws-provisioner-v1/android-components-g
             - queue:scheduler-id:${scheduler_id}
             - secrets:get:project/mobile/android-components/public-tokens
           payload:

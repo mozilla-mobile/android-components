@@ -8,11 +8,11 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
-import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.HttpPingUploader
 import mozilla.components.service.glean.storages.EventsStorageEngine
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StringsStorageEngine
+import mozilla.components.service.glean.metrics.Baseline
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
@@ -43,10 +43,7 @@ class GleanTest {
     @Before
     fun setup() {
         Glean.initialized = false
-        Glean.initialize(
-            applicationContext = ApplicationProvider.getApplicationContext(),
-            configuration = Configuration(applicationId = "test")
-        )
+        Glean.initialize(ApplicationProvider.getApplicationContext())
     }
 
     @After
@@ -105,8 +102,10 @@ class GleanTest {
     fun `test path generation`() {
         val uuid = UUID.randomUUID()
         val path = Glean.makePath("test", uuid)
-        assertEquals("test", Glean.configuration.applicationId)
-        assertEquals(path, "/submit/test/test/${Glean.SCHEMA_VERSION}/$uuid")
+        val applicationId = ApplicationProvider.getApplicationContext<Context>().packageName
+        // Make sure that the default applicationId matches the package name.
+        assertEquals(applicationId, Glean.applicationId)
+        assertEquals(path, "/submit/$applicationId/test/${Glean.SCHEMA_VERSION}/$uuid")
     }
 
     @Test
@@ -145,7 +144,6 @@ class GleanTest {
             Glean.handleEvent(Glean.PingEvent.Default)
 
             val request = server.takeRequest()
-            assert(request.path.startsWith("/submit/test/metrics/${Glean.SCHEMA_VERSION}/"))
             assertEquals("POST", request.method)
             val metricsJsonData = request.body.readUtf8()
             val metricsJson = JSONObject(metricsJsonData)
@@ -159,6 +157,10 @@ class GleanTest {
             assertNull(metricsJson.opt("events"))
             assertNotNull(metricsJson.opt("ping_info"))
             assertNotNull(metricsJson.getJSONObject("ping_info").opt("experiments"))
+            val applicationId = ApplicationProvider.getApplicationContext<Context>().packageName
+            assert(
+                request.path.startsWith("/submit/$applicationId/metrics/${Glean.SCHEMA_VERSION}/")
+            )
         } finally {
             Glean.httpPingUploader = realClient
             server.shutdown()
@@ -188,6 +190,7 @@ class GleanTest {
 
         try {
             click.record("buttonA")
+            Baseline.sessions.add()
 
             Glean.handleEvent(Glean.PingEvent.Background)
 
@@ -201,6 +204,30 @@ class GleanTest {
             val eventsJson = JSONObject(requests["events"])
             checkPingSchema(eventsJson)
             assertEquals(1, eventsJson.getJSONArray("events")!!.length())
+
+            val baselineJson = JSONObject(requests["baseline"])
+            checkPingSchema(baselineJson)
+
+            val expectedBaselineStringMetrics = arrayOf(
+                "baseline.os",
+                "baseline.os_version",
+                "baseline.device",
+                "baseline.architecture"
+            )
+            val baselineStringMetrics = baselineJson.getJSONObject("metrics")!!.getJSONObject("string")!!
+            assertEquals(expectedBaselineStringMetrics.size, baselineStringMetrics.length())
+            for (metric in expectedBaselineStringMetrics) {
+                assertNotNull(baselineStringMetrics.get(metric))
+            }
+
+            val expectedBaselineCounterMetrics = arrayOf(
+                "baseline.sessions"
+            )
+            val baselineCounterMetrics = baselineJson.getJSONObject("metrics")!!.getJSONObject("counter")!!
+            assertEquals(expectedBaselineCounterMetrics.size, baselineCounterMetrics.length())
+            for (metric in expectedBaselineCounterMetrics) {
+                assertNotNull(baselineCounterMetrics.get(metric))
+            }
         } finally {
             Glean.httpPingUploader = realClient
             server.shutdown()
@@ -222,10 +249,7 @@ class GleanTest {
         Glean.initialized = false
 
         // Try to init Glean: it should not crash.
-        Glean.initialize(
-            applicationContext = ApplicationProvider.getApplicationContext(),
-            configuration = Configuration(applicationId = "test")
-        )
+        Glean.initialize(applicationContext = ApplicationProvider.getApplicationContext())
 
         // Clean up after this, so that other tests don't fail.
         assertTrue(gleanDir.delete())
@@ -253,10 +277,7 @@ class GleanTest {
 
     @Test(expected = IllegalStateException::class)
     fun `Don't initialize twice`() {
-        Glean.initialize(
-            applicationContext = ApplicationProvider.getApplicationContext(),
-            configuration = Configuration(applicationId = "test")
-        )
+        Glean.initialize(applicationContext = ApplicationProvider.getApplicationContext())
     }
 
     @Test

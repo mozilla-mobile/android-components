@@ -4,9 +4,42 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.36.0-SNAPSHOT (In Development)
+# 0.37.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.36.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/39?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **feature-session-bundling**
+  * 🆕 New component that saves the state of sessions (`SessionManager.Snapshot`) in grouped bundles (e.g. by time).
+
+* **service-telemetry**
+  * ⚠️ **This is a breaking change!** <br/>
+  HttpURLConnectionTelemetryClient was removed. *service-telemetry* is now using [*concept-fetch*](https://github.com/mozilla-mobile/android-components/tree/master/components/concept/fetch) which allows consumers to use a unified http client. There are two options available currently: [lib-fetch-httpurlconnection](https://github.com/mozilla-mobile/android-components/tree/master/components/lib/fetch-httpurlconnection) (Based on [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection)) and [lib-fetch-okhttp](https://github.com/mozilla-mobile/android-components/tree/master/components/lib/fetch-okhttp) (Based on [OkHttp](https://github.com/square/okhttp)).
+
+  ```Kotlin
+  // Using HttpURLConnection:
+  val client = new TelemetryClient(HttpURLConnectionClient())
+
+  // Using OkHttp:
+  val client = OkHttpClient()
+
+  val telemetry = Telemetry(configuration, storage, client, scheduler)
+  ```
+
+* **feature-customtabs**
+  * Fixed a bug where a third-party app (like Gmail or Slack) could crash when calling warmup().
+
+# 0.36.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.35.0...v0.36.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/38?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
 
@@ -17,8 +50,48 @@ permalink: /changelog/
   * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
 
+* **browser-session**
+  * Added a use case for exiting fullscreen mode.
+
+  ```kotlin
+  val sessionUseCases = SessionUseCases(sessionManager)
+  if (isFullScreenMode) {
+    sessionUseCases.exitFullscreen.invoke()
+  }
+  ```
+
+  * We also added a `FullScreenFeature` that manages fullscreen support.
+
+  ```kotlin
+  val fullScreenFeature = FullScreenFeature(sessionManaager, sessionUseCases) { enabled ->
+    if (enabled) {
+      // Make custom views hide.
+    } else {
+      // Make custom views unhide.
+    }
+  }
+
+  override fun onBackPressed() : Boolean {
+    // Handling back presses when in fullscreen mode
+    return fullScreenFeature.onBackPressed()
+  }
+  ```
 * **feature-customtabs**
- * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
+  * Added support for opening speculative connections for a likely future navigation to a URL (`mayLaunchUrl`)
+
+* **feature-prompts**, **engine-gecko-***, **engine-system**
+  * Added support for file picker requests.
+
+    There some requests that are not handled with dialogs, instead they are delegated to other apps
+    to perform the request, an example is a file picker request. As a result, now you have to override
+    `onActivityResult` on your `Activity` or `Fragment` and forward its calls to `promptFeature.onActivityResult`.
+
+    Additionally, there are requests that need some permission to be granted before they can be performed, like
+    file pickers that need access to read the selected files. Like `onActivityResult` you need to override
+    `onRequestPermissionsResult` and forward its calls to `promptFeature.onRequestPermissionsResult`.
+
+* **browser-toolbar**
+  * The "urlBoxView" is now drawn behind the site security icon (in addition to the URL and the page actions)
 
 # 0.35.1
 
@@ -51,10 +124,10 @@ permalink: /changelog/
 
 * **feature-customtabs**
   * Added support for warming up the browser process asynchronously.
-  * ⚠️ **This is a breaking change** 
+  * ⚠️ **This is a breaking change**
   * `CustomTabsService` has been renamed to `AbstractCustomTabsService` and is now an abstract class in order to allow apps to inject the `Engine` they are using. An app that wants to support custom tabs will need to create its own class and reference it in the manifest:
 
-  ```Kotlin
+  ```kotlin
   class CustomTabsService : AbstractCustomTabsService() {
     override val engine: Engine by lazy { components.engine }
   }
@@ -65,14 +138,14 @@ permalink: /changelog/
 
 * **support-ktx**
   New extension function `toDate` that converts a string to a Date object from a formatter input.
-  ```Kotlin
+  ```kotlin
        val date = "2019-11-28".toDate("yyyy-MM-dd")
   ```
 
 * **concept-engine**, **engine-gecko-beta**, **engine-gecko-nightly**:
   * Add setting to enable testing mode which is used in engine-gecko to set `FULL_ACCESSIBILITY_TREE` to `true`. This allows access to the full DOM tree for testing purposes.
 
-  ```Kotlin
+  ```kotlin
   // Turn testing mode on by default when the engine is created
   val engine = GeckoEngine(runtime, DefaultSettings(testingModeEnabled=true))
 

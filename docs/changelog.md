@@ -4,11 +4,24 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.37.0-SNAPSHOT (In Development)
+# 0.38.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.36.0...master),
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.38.0...master),
+[Milestone](https://github.com/mozilla-mobile/android-components/milestone/40?closed=1),
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.38.0/index)
+
+* Compiled against:
+  * Android (SDK: 28, Support Libraries: 28.0.0)
+  * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
+  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+# 0.37.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.36.0...v0.37.0),
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/39?closed=1),
-[API reference](https://mozilla-mobile.github.io/android-components/api/0.36.0/index)
+[API reference](https://mozilla-mobile.github.io/android-components/api/0.37.0/index)
 
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
@@ -29,10 +42,14 @@ permalink: /changelog/
   ```
   Note: this constructor API is still a work-in-progress and will change as more Custom Tabs support is added to it next release.
 
+  * Fixed a bug where a third-party app (like Gmail or Slack) could crash when calling warmup().
+
 * **feature-session-bundling**
   * 🆕 New component that saves the state of sessions (`SessionManager.Snapshot`) in grouped bundles (e.g. by time).
 
 * **service-telemetry**
+  * Added new "pocket event" ping builder ([#1606](https://github.com/mozilla-mobile/android-components/issues/1606))
+  * Added ability to get ping builder by type from `Telemetry` instance.
   * ⚠️ **This is a breaking change!** <br/>
   HttpURLConnectionTelemetryClient was removed. *service-telemetry* is now using [*concept-fetch*](https://github.com/mozilla-mobile/android-components/tree/master/components/concept/fetch) which allows consumers to use a unified http client. There are two options available currently: [lib-fetch-httpurlconnection](https://github.com/mozilla-mobile/android-components/tree/master/components/lib/fetch-httpurlconnection) (Based on [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection)) and [lib-fetch-okhttp](https://github.com/mozilla-mobile/android-components/tree/master/components/lib/fetch-okhttp) (Based on [OkHttp](https://github.com/square/okhttp)).
 
@@ -46,12 +63,31 @@ permalink: /changelog/
   val telemetry = Telemetry(configuration, storage, client, scheduler)
   ```
 
+* **browser-search**
+  * Updated search plugins ([#1563](https://github.com/mozilla-mobile/android-components/issues/1563))
+
+* **ui-autocomplete**
+  * Fixed a bug where pressing backspace could skip a character ([#1489](https://github.com/mozilla-mobile/android-components/issues/1489)).
+
 * **feature-customtabs**
   * Fixed a bug where a third-party app (like Gmail or Slack) could crash when calling warmup().
 
+* **browser-session**
+  * Added ability to notify observers when desktop mode changes (`onDesktopModeChange`)
+
+* **browser-menu**
+  * Added new `BrowserMenuSwitch` for using switch widgets inside the menu.
+
+* **support-ktx**
+  * Added extension method `Bitmap.withRoundedCorners(cornerRadiusPx: Float)`
+
+* **support-base**
+  * Introduced `LifecycleAwareFeature` for writing features that depend on a lifecycle.
+
+
 # 0.36.1
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.34.1...v0.34.2)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.36.0...v0.36.1)
 
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)

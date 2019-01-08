@@ -126,7 +126,8 @@ class GleanTest {
 
         val realClient = Glean.httpPingUploader
         val testConfig = Glean.configuration.copy(
-            serverEndpoint = "http://" + server.hostName + ":" + server.port
+            serverEndpoint = "http://" + server.hostName + ":" + server.port,
+            logPings = true
         )
         Glean.httpPingUploader = HttpPingUploader(testConfig)
 
@@ -185,7 +186,8 @@ class GleanTest {
 
         val realClient = Glean.httpPingUploader
         val testConfig = Glean.configuration.copy(
-            serverEndpoint = "http://" + server.hostName + ":" + server.port
+            serverEndpoint = "http://" + server.hostName + ":" + server.port,
+            logPings = true
         )
         Glean.httpPingUploader = HttpPingUploader(testConfig)
 

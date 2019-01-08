@@ -61,7 +61,7 @@ permalink: /changelog/
   val client = new TelemetryClient(HttpURLConnectionClient())
 
   // Using OkHttp:
-  val client = OkHttpClient()
+  val client = TelemetryClient(OkHttpClient())
 
   val telemetry = Telemetry(configuration, storage, client, scheduler)
   ```

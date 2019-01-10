@@ -52,7 +52,7 @@ tasks:
         else: mobile-1-decision
 
       build_worker_type:
-        $if: 'is_repo_trusted'
+        $if: 'is_repo_trusted && tasks_for in ["github-release", "cron"]'
         then: gecko-focus
         else: android-components-g
 
@@ -88,7 +88,7 @@ tasks:
             - statuses  # Automatically added by taskcluster-github. It must be explicit because of Chain of Trust
           payload:
             maxRunTime: 600   # Decision should remain fast enough to schedule a handful of tasks
-            image: mozillamobile/android-components:1.11
+            image: mozillamobile/android-components:1.12
             command:
               - /bin/bash
               - --login
@@ -153,7 +153,7 @@ tasks:
           then:
             $let:
               command_staging_flag:
-                $if: 'is_repo_trusted && tasks_for != "cron"'
+                $if: 'is_repo_trusted'
                 then: ''
                 else: '--staging'
 
@@ -220,8 +220,11 @@ tasks:
                     - {$eval: 'default_task_definition'}
                     - {$eval: 'nightly_or_release_definition'}
                     - scopes:
-                        # TODO Activate production workers on cron
-                        - project:mobile:android-components:releng:beetmover:bucket:maven-snapshot-staging
+                        $if: 'is_repo_trusted'
+                        then:
+                          - project:mobile:android-components:releng:beetmover:bucket:maven-snapshot-production
+                        else:
+                          - project:mobile:android-components:releng:beetmover:bucket:maven-snapshot-staging
                       payload:
                         command:
                           - >-

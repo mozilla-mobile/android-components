@@ -22,6 +22,7 @@ permalink: /changelog/
 
 * **feature-prompts**, **browser-engine-gecko***
   * Added support for Authentication dialogs.
+  * Added support for [input type color fields](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/color).
 
 # 0.37.0
 

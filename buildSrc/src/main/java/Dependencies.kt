@@ -84,6 +84,7 @@ object Dependencies {
 
     const val mozilla_fxa = "org.mozilla.fxaclient:fxaclient:${Versions.mozilla_appservices}"
     const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.mozilla_appservices}"
+    const val mozilla_sync_logins_forUnitTests = "org.mozilla.sync15:logins-forUnitTests:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.places:places:${Versions.mozilla_appservices}"
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
     const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"

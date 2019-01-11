@@ -33,6 +33,11 @@ allprojects {
             url "https://maven.mozilla.org/maven2"
         }
 
+        maven {
+            // Application Services `-forUnitTests` variants.
+            url "https://dl.bintray.com/ncalexander/application-services"
+        }
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         // Servo
         ////////////////////////////////////////////////////////////////////////////////////////////

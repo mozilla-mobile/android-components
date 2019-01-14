@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.engine.prompt
 
+import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
@@ -11,6 +12,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
@@ -39,8 +41,15 @@ class PromptRequestTest {
         alert.onDismiss()
         alert.onShouldShowNoMoreDialogs(true)
 
-        val dateRequest = PromptRequest.Date("title", Date(), Date(), Date(), {}) {}
+        val dateRequest = PromptRequest.TimeSelection(
+            "title",
+            Date(),
+            Date(),
+            Date(),
+            Type.DATE,
+            {}) {}
         assertEquals(dateRequest.title, "title")
+        assertEquals(dateRequest.type, Type.DATE)
         assertNotNull(dateRequest.initialDate)
         assertNotNull(dateRequest.minimumDate)
         assertNotNull(dateRequest.maximumDate)
@@ -53,5 +62,39 @@ class PromptRequestTest {
         filePickerRequest.onSingleFileSelected(mock(), mock())
         filePickerRequest.onMultipleFilesSelected(mock(), emptyArray())
         filePickerRequest.onDismiss()
+
+        val promptRequest = PromptRequest.Authentication(
+            "title",
+            "message",
+            "username",
+            "password",
+            PromptRequest.Authentication.Method.HOST,
+            PromptRequest.Authentication.Level.NONE,
+            false,
+            false,
+            false,
+            { _, _ -> }) {
+        }
+
+        assertEquals(promptRequest.title, "title")
+        assertEquals(promptRequest.message, "message")
+        assertEquals(promptRequest.userName, "username")
+        assertEquals(promptRequest.password, "password")
+        assertFalse(promptRequest.onlyShowPassword)
+        assertFalse(promptRequest.previousFailed)
+        assertFalse(promptRequest.isCrossOrigin)
+        promptRequest.onConfirm("", "")
+        promptRequest.onDismiss()
+
+        val onConfirm: (String) -> Unit = {
+        }
+        val onDismiss: () -> Unit = {
+        }
+
+        val colorRequest = PromptRequest.Color("defaultColor", onConfirm, onDismiss)
+        assertEquals(colorRequest.defaultColor, "defaultColor")
+
+        colorRequest.onConfirm("")
+        colorRequest.onDismiss()
     }
 }

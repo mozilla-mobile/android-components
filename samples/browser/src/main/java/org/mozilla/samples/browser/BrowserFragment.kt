@@ -14,13 +14,14 @@ import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_browser.*
+import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.feature.awesomebar.AwesomeBarFeature
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
+import mozilla.components.feature.customtabs.CustomTabsToolbarFeature
 import mozilla.components.feature.downloads.DownloadsFeature
-import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.prompts.PromptFeature
+import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.WindowFeature
 import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
@@ -39,39 +40,36 @@ class BrowserFragment : Fragment(), BackHandler {
     private lateinit var contextMenuFeature: ContextMenuFeature
     private lateinit var promptFeature: PromptFeature
     private lateinit var windowFeature: WindowFeature
+    private lateinit var customTabsToolbarFeature: CustomTabsToolbarFeature
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_browser, container, false)
-    }
+        val layout = inflater.inflate(R.layout.fragment_browser, container, false)
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        toolbar.setMenuBuilder(components.menuBuilder)
+        layout.toolbar.setMenuBuilder(components.menuBuilder)
 
         val sessionId = arguments?.getString(SESSION_ID)
 
         sessionFeature = SessionFeature(
                 components.sessionManager,
                 components.sessionUseCases,
-                engineView,
+                layout.engineView,
                 sessionId)
 
         toolbarFeature = ToolbarFeature(
-                toolbar,
+                layout.toolbar,
                 components.sessionManager,
                 components.sessionUseCases.loadUrl,
                 components.defaultSearchUseCase,
                 sessionId)
 
-        toolbarAutocompleteFeature = ToolbarAutocompleteFeature(toolbar).apply {
+        toolbarAutocompleteFeature = ToolbarAutocompleteFeature(layout.toolbar).apply {
             this.addHistoryStorageProvider(components.historyStorage)
             this.addDomainProvider(components.shippedDomainsProvider)
         }
 
-        tabsToolbarFeature = TabsToolbarFeature(toolbar, components.sessionManager, ::showTabs)
+        tabsToolbarFeature = TabsToolbarFeature(layout.toolbar, components.sessionManager, ::showTabs)
 
-        AwesomeBarFeature(awesomeBar, toolbar, engineView)
+        AwesomeBarFeature(layout.awesomeBar, layout.toolbar, layout.engineView)
             .addHistoryProvider(components.historyStorage, components.sessionUseCases.loadUrl)
             .addSessionProvider(components.sessionManager, components.tabsUseCases.selectTab)
             .addSearchProvider(
@@ -88,7 +86,7 @@ class BrowserFragment : Fragment(), BackHandler {
             requestPermissions(arrayOf(WRITE_EXTERNAL_STORAGE), PERMISSION_WRITE_STORAGE_REQUEST)
         }
 
-        scrollFeature = CoordinateScrollingFeature(components.sessionManager, engineView, toolbar)
+        scrollFeature = CoordinateScrollingFeature(components.sessionManager, layout.engineView, layout.toolbar)
 
         contextMenuFeature = ContextMenuFeature(
             requireFragmentManager(),
@@ -96,17 +94,23 @@ class BrowserFragment : Fragment(), BackHandler {
             ContextMenuCandidate.defaultCandidates(
                 requireContext(),
                 components.tabsUseCases,
-                view))
+                layout))
 
         promptFeature = PromptFeature(
-            null, this,
-            components.sessionManager,
-            requireFragmentManager()
+            fragment = this,
+            sessionManager = components.sessionManager,
+            fragmentManager = requireFragmentManager()
         ) { _, permissions, requestCode ->
             requestPermissions(permissions, requestCode)
         }
 
         windowFeature = WindowFeature(components.engine, components.sessionManager)
+
+        customTabsToolbarFeature = CustomTabsToolbarFeature(
+            components.sessionManager,
+            layout.toolbar,
+            sessionId
+        )
 
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
@@ -116,8 +120,11 @@ class BrowserFragment : Fragment(), BackHandler {
             scrollFeature,
             contextMenuFeature,
             promptFeature,
-            windowFeature
+            windowFeature,
+            customTabsToolbarFeature
         )
+
+        return layout
     }
 
     private fun showTabs() {

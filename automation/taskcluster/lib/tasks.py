@@ -8,7 +8,7 @@ import taskcluster
 
 
 class TaskBuilder(object):
-    def __init__(self, task_id, repo_url, branch, commit, owner, source, scheduler_id):
+    def __init__(self, task_id, repo_url, branch, commit, owner, source, scheduler_id, tasks_priority='lowest'):
         self.task_id = task_id
         self.repo_url = repo_url
         self.branch = branch
@@ -16,6 +16,7 @@ class TaskBuilder(object):
         self.owner = owner
         self.source = source
         self.scheduler_id = scheduler_id
+        self.tasks_priority = tasks_priority
 
     def raw_task(self, name, description, command, dependencies=[],
                    artifacts={}, scopes=[], routes=[], features={},
@@ -32,7 +33,7 @@ class TaskBuilder(object):
             "retries": 5,
             "created": taskcluster.stringDate(created),
             "tags": {},
-            "priority": "lowest",
+            "priority": self.tasks_priority,
             "deadline": taskcluster.stringDate(deadline),
             "dependencies": [self.task_id] + dependencies,
             "routes": routes,
@@ -41,7 +42,7 @@ class TaskBuilder(object):
             "payload": {
                 "features": features,
                 "maxRunTime": 7200,
-                "image": "mozillamobile/android-components:1.11",
+                "image": "mozillamobile/android-components:1.15",
                 "command": [
                     "/bin/bash",
                     "--login",
@@ -61,7 +62,7 @@ class TaskBuilder(object):
 
     def build_task(self, name, description, command, dependencies=[],
                    artifacts={}, scopes=[], routes=[], features={},
-                   worker_type='android-components-g'):
+                   is_staging=False):
         created = datetime.datetime.now()
         expires = taskcluster.fromNow('1 year')
         deadline = taskcluster.fromNow('1 day')
@@ -72,14 +73,15 @@ class TaskBuilder(object):
         })
 
         return {
-            "workerType": worker_type,
+            # TODO: Use mobile-X-build workerType
+            "workerType": 'android-components-g' if is_staging else 'gecko-focus',
             "taskGroupId": self.task_id,
             "schedulerId": self.scheduler_id,
             "expires": taskcluster.stringDate(expires),
             "retries": 5,
             "created": taskcluster.stringDate(created),
             "tags": {},
-            "priority": "lowest",
+            "priority": self.tasks_priority,
             "deadline": taskcluster.stringDate(deadline),
             "dependencies": [self.task_id] + dependencies,
             "routes": routes,
@@ -88,7 +90,7 @@ class TaskBuilder(object):
             "payload": {
                 "features": features,
                 "maxRunTime": 7200,
-                "image": "mozillamobile/android-components:1.11",
+                "image": "mozillamobile/android-components:1.15",
                 "command": [
                     "/bin/bash",
                     "--login",
@@ -108,20 +110,20 @@ class TaskBuilder(object):
 
     def beetmover_task(self, name, description, version, artifact_id,
                        dependencies=[], upstreamArtifacts=[], scopes=[],
-                       worker_type='mobile-beetmover-v1', is_snapshot=False):
+                       is_staging=False, is_snapshot=False):
         created = datetime.datetime.now()
         expires = taskcluster.fromNow('1 year')
         deadline = taskcluster.fromNow('1 day')
 
         return {
-            "workerType": worker_type,
+            "workerType": "mobile-beetmover-dev" if is_staging else "mobile-beetmover-v1",
             "taskGroupId": self.task_id,
             "schedulerId": self.scheduler_id,
             "expires": taskcluster.stringDate(expires),
             "retries": 5,
             "created": taskcluster.stringDate(created),
             "tags": {},
-            "priority": "lowest",
+            "priority": self.tasks_priority,
             "deadline": taskcluster.stringDate(deadline),
             "dependencies": [self.task_id] + dependencies,
             "routes": [],

@@ -55,17 +55,23 @@ sealed class PromptRequest {
      * @property initialDate date that dialog should be set by default.
      * @property minimumDate date allow to be selected.
      * @property maximumDate date allow to be selected.
+     * @property type indicate which [Type] of selection de user wants.
      * @property onSelect callback that is called when the date is selected.
      * @property onClear callback that is called when the user requests the picker to be clear up.
      */
-    data class Date(
+    class TimeSelection(
         val title: String,
         val initialDate: java.util.Date,
         val minimumDate: java.util.Date?,
         val maximumDate: java.util.Date?,
+        val type: Type = Type.DATE,
         val onSelect: (java.util.Date) -> Unit,
         val onClear: () -> Unit
-    ) : PromptRequest()
+    ) : PromptRequest() {
+        enum class Type {
+            DATE, DATE_AND_TIME, TIME
+        }
+    }
 
     /**
      * Value type that represents a request for a selecting one or multiple files.
@@ -80,6 +86,58 @@ sealed class PromptRequest {
         val isMultipleFilesSelection: Boolean,
         val onSingleFileSelected: (Context, Uri) -> Unit,
         val onMultipleFilesSelected: (Context, Array<Uri>) -> Unit,
+        val onDismiss: () -> Unit
+    ) : PromptRequest()
+
+    /**
+     * Value type that represents a request for an authentication prompt.
+     * For more related info take a look at
+     * <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication>MDN docs</a>
+     * @property title of the dialog.
+     * @property message the body of the dialog.
+     * @property userName default value provide for this session.
+     * @property password default value provide for this session.
+     * @property method type of authentication,  valid values [Method.HOST] and [Method.PROXY].
+     * @property level indicates the level of security of the authentication like [Level.NONE],
+     * [Level.SECURED] and [Level.PASSWORD_ENCRYPTED].
+     * @property onlyShowPassword indicates if the dialog should only include a password field.
+     * @property previousFailed indicates if this request is the result of a previous failed attempt to login.
+     * @property isCrossOrigin indicates if this request is from a cross-origin sub-resource.
+     * @property onConfirm callback to indicate the user want to start the authentication flow.
+     * @property onDismiss callback to indicate the user dismissed this request.
+     */
+    data class Authentication(
+        val title: String,
+        val message: String,
+        val userName: String,
+        val password: String,
+        val method: Method,
+        val level: Level,
+        val onlyShowPassword: Boolean = false,
+        val previousFailed: Boolean = false,
+        val isCrossOrigin: Boolean = false,
+        val onConfirm: (String, String) -> Unit,
+        val onDismiss: () -> Unit
+    ) : PromptRequest() {
+
+        enum class Level {
+            NONE, PASSWORD_ENCRYPTED, SECURED
+        }
+
+        enum class Method {
+            HOST, PROXY
+        }
+    }
+
+    /**
+     * Value type that represents a request for a selecting one or multiple files.
+     * @property defaultColor true if the user can select more that one file false otherwise.
+     * @property onConfirm callback to notify that the user has selected a single file.
+     * @property onDismiss callback to notify that the user has canceled the file selection.
+     */
+    data class Color(
+        val defaultColor: String,
+        val onConfirm: (String) -> Unit,
         val onDismiss: () -> Unit
     ) : PromptRequest()
 }

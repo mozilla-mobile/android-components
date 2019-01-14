@@ -12,11 +12,12 @@ import os
 import taskcluster
 import sys
 
-import lib.module_definitions
+import lib.build_config
 import lib.tasks
 
 
 TASK_ID = os.environ.get('TASK_ID')
+TASKS_PRIORITY = os.environ.get('TASKS_PRIORITY')
 REPO_URL = os.environ.get('MOBILE_HEAD_REPOSITORY')
 BRANCH = os.environ.get('MOBILE_HEAD_BRANCH')
 COMMIT = os.environ.get('MOBILE_HEAD_REV')
@@ -45,7 +46,7 @@ def create_raw_task(name, description, full_command, scopes = []):
         "retries": 5,
         "created": taskcluster.stringDate(created),
         "tags": {},
-        "priority": "lowest",
+        "priority": TASKS_PRIORITY,
         "schedulerId": "taskcluster-github",
         "deadline": taskcluster.stringDate(deadline),
         "dependencies": [ TASK_ID ],
@@ -57,7 +58,7 @@ def create_raw_task(name, description, full_command, scopes = []):
                 'taskclusterProxy': True
             },
             "maxRunTime": 7200,
-            "image": "mozillamobile/android-components:1.11",
+            "image": "mozillamobile/android-components:1.15",
             "command": [
                 "/bin/bash",
                 "--login",
@@ -218,7 +219,7 @@ if __name__ == "__main__":
 
     queue = taskcluster.Queue({ 'baseUrl': 'http://taskcluster/queue/v1' })
 
-    modules = [':' + artifact['name'] for artifact in lib.module_definitions.from_gradle()]
+    modules = [':' + artifact['name'] for artifact in lib.build_config.module_definitions()]
 
     if len(modules) == 0:
         print("Could not get module names from gradle")

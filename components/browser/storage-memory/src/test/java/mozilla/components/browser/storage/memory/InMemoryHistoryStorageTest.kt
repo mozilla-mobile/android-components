@@ -10,7 +10,10 @@ import mozilla.components.concept.storage.VisitType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class InMemoryHistoryStorageTest {
     @Test
     fun `store can be used to track visit information`() = runBlocking {
@@ -202,8 +205,8 @@ class InMemoryHistoryStorageTest {
 
         history.recordVisit("https://en.wikipedia.org/wiki/Mozilla", VisitType.LINK)
         res = history.getAutocompleteSuggestion("en")!!
-        assertEquals("en.wikipedia.org/wiki/Mozilla", res.text)
-        assertEquals("https://en.wikipedia.org/wiki/Mozilla", res.url)
+        assertEquals("en.wikipedia.org/wiki/mozilla", res.text)
+        assertEquals("https://en.wikipedia.org/wiki/mozilla", res.url)
         assertEquals("memoryHistory", res.source)
         assertEquals(3, res.totalItems)
 

@@ -17,6 +17,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
+import android.webkit.JsResult
 import android.webkit.PermissionRequest
 import android.webkit.SslErrorHandler
 import android.webkit.ValueCallback
@@ -47,7 +48,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.support.ktx.android.content.isOSOnLowMemory
 import mozilla.components.support.utils.DownloadUtils
-import java.lang.ref.WeakReference
+import java.util.Date
 
 /**
  * WebView-based implementation of EngineView.
@@ -58,68 +59,49 @@ class SystemEngineView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView, View.OnLongClickListener {
-    internal var currentWebView = createWebView(context)
-    internal var currentUrl = ""
+
     private var session: SystemEngineSession? = null
-    internal var fullScreenCallback: WebChromeClient.CustomViewCallback? = null
-    init {
-        // Currently this implementation supports only a single WebView. Eventually this
-        // implementation should be able to maintain at least two WebView instances to be able to
-        // animate the views when switching sessions.
-        addView(currentWebView)
-    }
+    internal var jsAlertCount = 0
+    internal var shouldShowMoreDialogs = true
+    internal var lastDialogShownAt = Date()
 
     /**
      * Render the content of the given session.
      */
     override fun render(session: EngineSession) {
-        val internalSession = session as SystemEngineSession
-        this.session = internalSession
+        removeAllViews()
 
-        // TODO https://github.com/mozilla-mobile/android-components/issues/1195
-        val sessionWebView = internalSession.webView
-        if (sessionWebView != null && sessionWebView != currentWebView) {
-            removeView(currentWebView)
-
-            (sessionWebView.parent as? SystemEngineView)?.removeView(sessionWebView)
-            addView(sessionWebView)
-        }
-
-        internalSession.view = WeakReference(this)
-        internalSession.initSettings()
-
-        internalSession.scheduledLoad.data?.let {
-            currentWebView.loadData(it, internalSession.scheduledLoad.mimeType, "UTF-8")
-            internalSession.scheduledLoad = ScheduledLoad()
-        }
-
-        internalSession.scheduledLoad.url?.let {
-            currentWebView.loadUrl(it, additionalHeaders)
-            internalSession.scheduledLoad = ScheduledLoad()
-        }
+        this.session = session as SystemEngineSession
+        (session.webView.parent as? SystemEngineView)?.removeView(session.webView)
+        addView(initWebView(session.webView))
     }
 
     override fun onLongClick(view: View?): Boolean {
-        val result = currentWebView.hitTestResult
-        return handleLongClick(result.type, result.extra)
+        val result = session?.webView?.hitTestResult
+        return result?.let { handleLongClick(result.type, result.extra) } ?: false
     }
 
     override fun onPause() {
-        currentWebView.onPause()
-        currentWebView.pauseTimers()
+        session?.apply {
+            webView.onPause()
+            webView.pauseTimers()
+        }
     }
 
     override fun onResume() {
-        currentWebView.onResume()
-        currentWebView.resumeTimers()
+        session?.apply {
+            webView.onResume()
+            webView.resumeTimers()
+        }
     }
 
     override fun onDestroy() {
-        currentWebView.destroy()
+        session?.apply {
+            webView.destroy()
+        }
     }
 
-    private fun createWebView(context: Context): WebView {
-        val webView = NestedWebView(context)
+    internal fun initWebView(webView: WebView = NestedWebView(context)): WebView {
         webView.tag = "mozac_system_engine_webview"
         webView.webViewClient = createWebViewClient()
         webView.webChromeClient = createWebChromeClient()
@@ -140,13 +122,14 @@ class SystemEngineView @JvmOverloads constructor(
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
             url?.let {
-                currentUrl = url
+                session?.currentUrl = url
                 session?.internalNotifyObservers {
                     onLoadingStateChange(true)
                     onLocationChange(it)
                     onNavigationStateChange(view.canGoBack(), view.canGoForward())
                 }
             }
+            resetJSAlertAbuseState()
         }
 
         override fun onPageFinished(view: WebView?, url: String?) {
@@ -198,7 +181,7 @@ class SystemEngineView @JvmOverloads constructor(
                 }
 
                 if (!request.isForMainFrame &&
-                        getOrCreateUrlMatcher(view.context, it).matches(resourceUri, Uri.parse(currentUrl))) {
+                        getOrCreateUrlMatcher(view.context, it).matches(resourceUri, Uri.parse(session?.currentUrl))) {
                     session?.internalNotifyObservers { onTrackerBlocked(resourceUri.toString()) }
                     return WebResourceResponse(null, null, null)
                 }
@@ -293,7 +276,7 @@ class SystemEngineView @JvmOverloads constructor(
             val titleOrEmpty = title ?: ""
             // TODO private browsing not supported for SystemEngine
             // https://github.com/mozilla-mobile/android-components/issues/649
-            currentUrl.takeIf { it.isNotEmpty() }?.let { url ->
+            session?.currentUrl?.takeIf { it.isNotEmpty() }?.let { url ->
                 session?.settings?.historyTrackingDelegate?.let { delegate ->
                     runBlocking {
                         delegate.onTitleChanged(url, titleOrEmpty)
@@ -322,6 +305,44 @@ class SystemEngineView @JvmOverloads constructor(
 
         override fun onPermissionRequest(request: PermissionRequest) {
             session?.internalNotifyObservers { onContentPermissionRequest(SystemPermissionRequest(request)) }
+        }
+
+        override fun onJsAlert(view: WebView, url: String?, message: String?, result: JsResult): Boolean {
+            val session = session ?: return super.onJsAlert(view, url, message, result)
+
+            // When an alert is triggered from a iframe, url is equals to about:blank, using currentUrl as a fallback.
+            val safeUrl = if (url.isNullOrBlank()) {
+                session.currentUrl
+            } else {
+                if (url.contains("about")) session.currentUrl else url
+            }
+
+            val title = context.getString(R.string.mozac_browser_engine_system_alert_title, safeUrl)
+
+            val onDismiss: () -> Unit = {
+                result.cancel()
+            }
+
+            if (shouldShowMoreDialogs) {
+
+                session.notifyObservers {
+                    onPromptRequest(
+                        PromptRequest.Alert(
+                            title,
+                            message ?: "",
+                            areDialogsBeingAbused(),
+                            onDismiss
+                        ) { shouldNotShowMoreDialogs ->
+                            shouldShowMoreDialogs = !shouldNotShowMoreDialogs
+                            result.confirm()
+                        })
+                }
+            } else {
+                result.cancel()
+            }
+
+            updateJSDialogAbusedState()
+            return true
         }
 
         override fun onShowFileChooser(
@@ -373,7 +394,7 @@ class SystemEngineView @JvmOverloads constructor(
         ): Boolean {
             session?.internalNotifyObservers {
                 onOpenWindowRequest(SystemWindowRequest(
-                    view, createWebView(context), isDialog, isUserGesture, resultMsg
+                    view, NestedWebView(context), isDialog, isUserGesture, resultMsg
                 ))
             }
             return true
@@ -425,7 +446,7 @@ class SystemEngineView @JvmOverloads constructor(
                 // make it available via requestFocusNodeHref...
                 val message = Message()
                 message.target = ImageHandler(session)
-                currentWebView.requestFocusNodeHref(message)
+                session?.webView?.requestFocusNodeHref(message)
                 null
             }
             else -> null
@@ -443,7 +464,7 @@ class SystemEngineView @JvmOverloads constructor(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
         webView?.apply { this.visibility = View.INVISIBLE }
 
-        fullScreenCallback = callback
+        session?.fullScreenCallback = callback
 
         view.tag = "mozac_system_engine_fullscreen"
         addView(view, layoutParams)
@@ -471,9 +492,48 @@ class SystemEngineView @JvmOverloads constructor(
         }
     }
 
-    override fun canScrollVerticallyDown() = currentWebView.canScrollVertically(1)
+    override fun canScrollVerticallyDown() = session?.webView?.canScrollVertically(1) ?: false
+
+    private fun resetJSAlertAbuseState() {
+        jsAlertCount = 0
+        shouldShowMoreDialogs = true
+    }
+
+    internal fun updateJSDialogAbusedState() {
+        if (!areDialogsAbusedByTime()) {
+            jsAlertCount = 0
+        }
+        ++jsAlertCount
+        lastDialogShownAt = Date()
+    }
+
+    internal fun areDialogsBeingAbused(): Boolean {
+        return areDialogsAbusedByTime() || areDialogsAbusedByCount()
+    }
+
+    @Suppress("MagicNumber")
+    internal fun areDialogsAbusedByTime(): Boolean {
+        return if (jsAlertCount == 0) {
+            false
+        } else {
+            val now = Date()
+            val diffInSeconds = (now.time - lastDialogShownAt.time) / 1000 // 1 second equal to 1000 milliseconds
+            diffInSeconds < MAX_SUCCESSIVE_DIALOG_SECONDS_LIMIT
+        }
+    }
+
+    internal fun areDialogsAbusedByCount(): Boolean {
+        return jsAlertCount > MAX_SUCCESSIVE_DIALOG_COUNT
+    }
 
     companion object {
+
+        // Maximum number of successive dialogs before we prompt users to disable dialogs.
+        internal const val MAX_SUCCESSIVE_DIALOG_COUNT: Int = 2
+
+        // Minimum time required between dialogs in seconds before enabling the stop dialog.
+        internal const val MAX_SUCCESSIVE_DIALOG_SECONDS_LIMIT: Int = 3
+
         @Volatile
         internal var URL_MATCHER: UrlMatcher? = null
 

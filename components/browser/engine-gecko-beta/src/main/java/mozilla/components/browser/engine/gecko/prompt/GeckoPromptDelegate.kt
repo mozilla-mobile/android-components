@@ -9,6 +9,7 @@ import android.net.Uri
 import android.support.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.concept.engine.prompt.Choice
+import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
@@ -32,12 +33,22 @@ import java.util.Date
 import java.util.Locale
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.support.ktx.kotlin.toDate
+import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Level
+import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Method
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_FLAG_CROSS_ORIGIN_SUB_RESOURCE
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_FLAG_HOST
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_FLAG_ONLY_PASSWORD
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_FLAG_PREVIOUS_FAILED
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_LEVEL_NONE
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_LEVEL_PW_ENCRYPTED
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AuthOptions.AUTH_LEVEL_SECURE
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_DATE
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_DATETIME_LOCAL
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_MONTH
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_TIME
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DATETIME_TYPE_WEEK
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.FILE_TYPE_MULTIPLE
+import java.security.InvalidParameterException
 
 typealias GeckoChoice = GeckoSession.PromptDelegate.Choice
 
@@ -127,45 +138,26 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         val onClear: () -> Unit = {
             geckoCallback.confirm("")
         }
-        when (type) {
-            DATETIME_TYPE_DATE -> {
-                notifyDatePromptRequest(
-                    title ?: "",
-                    initialDateString,
-                    minDate,
-                    maxDate,
-                    onClear,
-                    "yyyy-MM-dd",
-                    geckoCallback
-                )
-            }
-            DATETIME_TYPE_MONTH -> {
-                notifyDatePromptRequest(
-                    title ?: "",
-                    initialDateString,
-                    minDate,
-                    maxDate,
-                    onClear,
-                    "yyyy-MM",
-                    geckoCallback
-                )
-            }
-            DATETIME_TYPE_WEEK -> {
-                notifyDatePromptRequest(
-                    title ?: "",
-                    initialDateString,
-                    minDate,
-                    maxDate,
-                    onClear,
-                    "yyyy-'W'ww",
-                    geckoCallback
-                )
-            }
-            DATETIME_TYPE_TIME -> {
-            }
-            DATETIME_TYPE_DATETIME_LOCAL -> {
+        val format = when (type) {
+            DATETIME_TYPE_DATE -> "yyyy-MM-dd"
+            DATETIME_TYPE_MONTH -> "yyyy-MM"
+            DATETIME_TYPE_WEEK -> "yyyy-'W'ww"
+            DATETIME_TYPE_TIME -> "HH:mm"
+            DATETIME_TYPE_DATETIME_LOCAL -> "yyyy-MM-dd'T'HH:mm"
+            else -> {
+                throw InvalidParameterException("$type is not a valid DatetimeType")
             }
         }
+
+        notifyDatePromptRequest(
+            title ?: "",
+            initialDateString,
+            minDate,
+            maxDate,
+            onClear,
+            format,
+            geckoCallback
+        )
     }
 
     override fun onFilePrompt(
@@ -203,6 +195,76 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         }
     }
 
+    override fun onAuthPrompt(
+        session: GeckoSession,
+        title: String?,
+        message: String?,
+        options: AuthOptions,
+        geckoCallback: AuthCallback
+    ) {
+
+        val flags = options.flags
+        val userName = options.username ?: ""
+        val password = options.password ?: ""
+        val method = if (flags in AUTH_FLAG_HOST) Method.HOST else Method.PROXY
+
+        val level = getAuthLevel(options)
+
+        val onlyShowPassword = flags in AUTH_FLAG_ONLY_PASSWORD
+        val previousFailed = flags in AUTH_FLAG_PREVIOUS_FAILED
+        val isCrossOrigin = flags in AUTH_FLAG_CROSS_ORIGIN_SUB_RESOURCE
+
+        val onConfirm: (String, String) -> Unit = { user, pass ->
+            if (onlyShowPassword) {
+                geckoCallback.confirm(pass)
+            } else {
+                geckoCallback.confirm(user, pass)
+            }
+        }
+
+        val onDismiss: () -> Unit = {
+            geckoCallback.dismiss()
+        }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.Authentication(
+                    title ?: "",
+                    message ?: "",
+                    userName,
+                    password,
+                    method,
+                    level,
+                    onlyShowPassword,
+                    previousFailed,
+                    isCrossOrigin,
+                    onConfirm,
+                    onDismiss
+                )
+            )
+        }
+    }
+
+    override fun onColorPrompt(
+        session: GeckoSession,
+        title: String?,
+        defaultColor: String?,
+        callback: TextCallback
+    ) {
+
+        val onConfirm: (String) -> Unit = {
+            callback.confirm(it)
+        }
+        val onDismiss: () -> Unit = {
+            callback.dismiss()
+        }
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.Color(defaultColor ?: "", onConfirm, onDismiss)
+            )
+        }
+    }
+
     override fun onButtonPrompt(
         session: GeckoSession?,
         title: String?,
@@ -210,22 +272,6 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         btnMsg: Array<out String>?,
         callback: ButtonCallback?
     ) = Unit
-
-    override fun onColorPrompt(
-        session: GeckoSession?,
-        title: String?,
-        value: String?,
-        callback: TextCallback?
-    ) = Unit // Related issue: https://github.com/mozilla-mobile/android-components/issues/1469
-
-    override fun onAuthPrompt(
-        session: GeckoSession?,
-        title: String?,
-        msg: String?,
-        options: AuthOptions?,
-        callback: AuthCallback?
-    ) = Unit // Related issue: https://github.com/mozilla-mobile/android-components/issues/1378
-
     override fun onTextPrompt(
         session: GeckoSession?,
         title: String?,
@@ -282,11 +328,31 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
             val stringDate = it.toString(format)
             geckoCallback.confirm(stringDate)
         }
-        geckoEngineSession.notifyObservers {
-            onPromptRequest(
-                PromptRequest.Date(title, initialDate, minDate, maxDate, onSelect, onClear)
-            )
+
+        val selectionType = when (format) {
+            "HH:mm" -> PromptRequest.TimeSelection.Type.TIME
+            "yyyy-MM-dd'T'HH:mm" -> PromptRequest.TimeSelection.Type.DATE_AND_TIME
+            else -> PromptRequest.TimeSelection.Type.DATE
         }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(TimeSelection(title, initialDate, minDate, maxDate, selectionType, onSelect, onClear))
+        }
+    }
+
+    private fun getAuthLevel(options: AuthOptions): Level {
+        return when (options.level) {
+            AUTH_LEVEL_NONE -> Level.NONE
+            AUTH_LEVEL_PW_ENCRYPTED -> Level.PASSWORD_ENCRYPTED
+            AUTH_LEVEL_SECURE -> Level.SECURED
+            else -> {
+                Level.NONE
+            }
+        }
+    }
+
+    private operator fun Int.contains(mask: Int): Boolean {
+        return (this and mask) != 0
     }
 }
 

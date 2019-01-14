@@ -31,6 +31,7 @@ import org.mockito.Mockito.spy
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
@@ -102,7 +103,7 @@ class GleanTest {
     fun `test path generation`() {
         val uuid = UUID.randomUUID()
         val path = Glean.makePath("test", uuid)
-        val applicationId = ApplicationProvider.getApplicationContext<Context>().packageName
+        val applicationId = "mozilla-components-service-glean"
         // Make sure that the default applicationId matches the package name.
         assertEquals(applicationId, Glean.applicationId)
         assertEquals(path, "/submit/$applicationId/test/${Glean.SCHEMA_VERSION}/$uuid")
@@ -157,7 +158,7 @@ class GleanTest {
             assertNull(metricsJson.opt("events"))
             assertNotNull(metricsJson.opt("ping_info"))
             assertNotNull(metricsJson.getJSONObject("ping_info").opt("experiments"))
-            val applicationId = ApplicationProvider.getApplicationContext<Context>().packageName
+            val applicationId = "mozilla-components-service-glean"
             assert(
                 request.path.startsWith("/submit/$applicationId/metrics/${Glean.SCHEMA_VERSION}/")
             )
@@ -287,5 +288,90 @@ class GleanTest {
         doThrow(IllegalStateException("Shouldn't send ping")).`when`(gleanSpy).sendPing(anyString(), anyString())
         gleanSpy.initialized = false
         gleanSpy.handleEvent(Glean.PingEvent.Default)
+    }
+
+    @Test
+    fun `Don't send pings if metrics disabled`() {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody("OK"))
+
+        EventsStorageEngine.clearAllStores()
+
+        val realClient = Glean.httpPingUploader
+        val testConfig = Glean.configuration.copy(
+            serverEndpoint = "http://" + server.hostName + ":" + server.port
+        )
+        Glean.httpPingUploader = HttpPingUploader(testConfig)
+        Glean.setMetricsEnabled(false)
+
+        try {
+            Glean.handleEvent(Glean.PingEvent.Background)
+
+            // Note: this only works because we are faking the dispatchers with the @Rule above,
+            // otherwise this would probably fail due to some async weirdness
+            val request = server.takeRequest(2, TimeUnit.SECONDS)
+
+            // request will be null if no pings were sent
+            assertNull(request)
+        } finally {
+            Glean.httpPingUploader = realClient
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun `Don't send pings if there is no ping content`() {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody("OK"))
+
+        EventsStorageEngine.clearAllStores()
+
+        val realClient = Glean.httpPingUploader
+        val testConfig = Glean.configuration.copy(
+            serverEndpoint = "http://" + server.hostName + ":" + server.port
+        )
+        Glean.httpPingUploader = HttpPingUploader(testConfig)
+
+        try {
+            Baseline.sessions.add()
+
+            Glean.handleEvent(Glean.PingEvent.Background)
+
+            val requests: MutableMap<String, String> = mutableMapOf()
+            for (i in 0..1) {
+                server.takeRequest(2, TimeUnit.SECONDS)?.let { request ->
+                    val docType = request.path.split("/")[3]
+                    requests[docType] = request.body.readUtf8()
+                }
+            }
+
+            // Make sure the baseline ping is there
+            val baselineJson = JSONObject(requests["baseline"])
+            checkPingSchema(baselineJson)
+
+            // Make sure the events ping is NOT there since no events should have been recorded
+            assertNull("Events request should be null since there was no event data", requests["events"])
+        } finally {
+            Glean.httpPingUploader = realClient
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun `Application id sanitazer must correctly filter undesired characters`() {
+        assertEquals(
+            "org-mozilla-test-app",
+            Glean.sanitizeApplicationId("org.mozilla.test-app")
+        )
+
+        assertEquals(
+            "org-mozilla-test-app",
+            Glean.sanitizeApplicationId("org.mozilla..test---app")
+        )
+
+        assertEquals(
+            "org-mozilla-test-app",
+            Glean.sanitizeApplicationId("org-mozilla-test-app")
+        )
     }
 }

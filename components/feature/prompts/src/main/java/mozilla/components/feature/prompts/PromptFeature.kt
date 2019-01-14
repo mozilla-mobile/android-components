@@ -19,6 +19,8 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.prompt.Choice
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.PromptRequest.Color
+import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
@@ -276,6 +278,8 @@ class PromptFeature(
         session.promptRequest.consume {
             when (it) {
                 is Alert -> it.onDismiss()
+                is Authentication -> it.onDismiss()
+                is Color -> it.onDismiss()
             }
             true
         }
@@ -284,7 +288,7 @@ class PromptFeature(
     /**
      * Invoked when the user requested no more dialogs to be shown from this [sessionId].
      * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
-     * @param sessionId the id for which session the user doesn't want to show more dialogs.
+     * @param sessionId the id of the session that requested the dialog.
      * @param isChecked tells if the user want to show more dialogs from this [sessionId].
      */
     internal fun onShouldMoreDialogsChecked(sessionId: String, isChecked: Boolean) {
@@ -298,16 +302,34 @@ class PromptFeature(
     }
 
     /**
-     * Event that is called when the user is requesting to select a date from the date picker dialog.
+     * Invoked when the user requested to start the authentication flow.
      * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
-     * @param sessionId that requested to show the dialog.
-     * @param selectedDate the selected date from the dialog.
+     * @param sessionId the id for which session the user doesn't want to show more dialogs.
+     * @param username the value provided by the user.
+     * @param password the value provided by the user.
      */
-    internal fun onSelect(sessionId: String, selectedDate: Date) {
+    internal fun onConfirmAuthentication(sessionId: String, username: String, password: String) {
         val session = sessionManager.findSessionById(sessionId) ?: return
         session.promptRequest.consume {
             when (it) {
-                is PromptRequest.Date -> it.onSelect(selectedDate)
+                is Authentication -> it.onConfirm(username, password)
+            }
+            true
+        }
+    }
+
+    /**
+     * Event that is called when the user confirm the action on the dialog.
+     * This consumes the [PromptFeature] value from the [Session] indicated by [sessionId].
+     * @param sessionId that requested to show the dialog.
+     * @param value an optional value provided by the dialog as a result of confirming the action.
+     */
+    internal fun onConfirm(sessionId: String, value: Any? = null) {
+        val session = sessionManager.findSessionById(sessionId) ?: return
+        session.promptRequest.consume {
+            when (it) {
+                is PromptRequest.Date -> it.onSelect(value as Date)
+                is PromptRequest.Color -> it.onConfirm(value as String)
             }
             true
         }
@@ -379,6 +401,7 @@ class PromptFeature(
         }
     }
 
+    @Suppress("ComplexMethod")
     private fun handleDialogsRequest(
         promptRequest: PromptRequest,
         session: Session
@@ -410,6 +433,25 @@ class PromptFeature(
             is PromptRequest.Date -> {
                 with(promptRequest) {
                     DatePickerDialogFragment.newInstance(session.id, title, initialDate, minimumDate, maximumDate)
+                }
+            }
+
+            is PromptRequest.Authentication -> {
+                with(promptRequest) {
+                    AuthenticationDialogFragment.newInstance(
+                        session.id,
+                        title,
+                        message,
+                        userName,
+                        password,
+                        onlyShowPassword
+                    )
+                }
+            }
+
+            is PromptRequest.Color -> {
+                with(promptRequest) {
+                    ColorPickerDialogFragment.newInstance(session.id, defaultColor)
                 }
             }
 

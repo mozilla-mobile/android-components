@@ -10,15 +10,28 @@ permalink: /changelog/
 [Milestone](https://github.com/mozilla-mobile/android-components/milestone/40?closed=1),
 [API reference](https://mozilla-mobile.github.io/android-components/api/0.38.0/index)
 
-* **browser-engine-system**
-  * Added support for js alerts on SystemEngineView.
-
 * Compiled against:
   * Android (SDK: 28, Support Libraries: 28.0.0)
   * Kotlin (Stdlib: 1.3.10, Coroutines: 1.0.1)
-  * GeckoView (Nightly: 66.0.20181217093726, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
-  * Mozilla App Services (FxA: 0.12.1, Sync Logins: 0.12.1, Places: 0.12.1)
+  * GeckoView (Nightly: **66.0.20190107093040** 🔺, Beta: 65.0.20181211223337, Release: 64.0.20181214004633)
+  * Mozilla App Services (FxA: 0.13.2, Sync Logins: 0.13.2, Places: 0.13.2)
   * Third Party Libs (Sentry: 1.7.14, Okhttp: 3.12.0)
+
+* **browser-engine-system**
+  * Added support for JavaScript alerts on SystemEngineView.
+
+* **feature-prompts**, **browser-engine-gecko***
+  * Added support for Authentication dialogs.
+  * Added support for [input type color fields](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/color).
+
+* **service-sync-logins**, **service-firefox-accounts**, **concept-storage**
+  * Updated underlying library from 0.12.1 to 0.13.3, see the [release notes for 0.13.0](https://github.com/mozilla/application-services/blob/master/CHANGELOG.md#0130-2019-01-09) for futher details on the most substantial changes. ([#1690](https://github.com/mozilla-mobile/android-components/issues/1690))
+    * sync-logins: Added a new `wipeLocal` method, for clearing all local data.
+    * sync-logins: Removed `reset` because it served a nonexistant use case, callers almost certainly want `wipeLocal` or `wipe` instead.
+    * sync-logins: Added `ensureLocked` and `ensureUnlocked` for cases where checking `isLocked` is inconvenient or requires additional locking.
+    * sync-logins: Allow storage to be unlocked using a `ByteArray` instead of a `String`.
+    * firefox-accounts: Network errors will now be reported as instances of FxaException.Network, instead of `FxaException.Unspecified`.
+    * history (concept-storage): PII is no longer logged during syncing (or any other time).
 
 # 0.37.0
 

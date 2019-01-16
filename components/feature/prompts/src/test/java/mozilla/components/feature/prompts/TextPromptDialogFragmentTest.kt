@@ -14,9 +14,10 @@ import android.widget.CheckBox
 import android.widget.TextView
 import mozilla.components.support.test.mock
 import mozilla.components.feature.prompts.R.id
+import mozilla.components.support.ktx.android.view.isVisible
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
@@ -25,7 +26,7 @@ import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-class AlertDialogFragmentTest {
+class TextPromptDialogFragmentTest {
 
     private val context: Context
         get() = ContextThemeWrapper(
@@ -37,7 +38,7 @@ class AlertDialogFragmentTest {
     fun `build dialog`() {
 
         val fragment = spy(
-            AlertDialogFragment.newInstance("sessionId", "title", "message", true)
+            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", true)
         )
 
         doReturn(context).`when`(fragment).requireContext()
@@ -47,24 +48,34 @@ class AlertDialogFragmentTest {
         dialog.show()
 
         val titleTextView = dialog.findViewById<TextView>(android.support.v7.appcompat.R.id.alertTitle)
-        val messageTextView = dialog.findViewById<TextView>(android.R.id.message)
+        val inputLabel = dialog.findViewById<TextView>(id.input_label)
+        val inputValue = dialog.findViewById<TextView>(id.input_value)
         val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
 
         assertEquals(fragment.sessionId, "sessionId")
-        assertEquals(fragment.message, "message")
+        assertEquals(fragment.title, "title")
+        assertEquals(fragment.labelInput, "label")
+        assertEquals(fragment.defaultInputValue, "defaultValue")
         assertEquals(fragment.hasShownManyDialogs, true)
 
         assertEquals(titleTextView.text, "title")
         assertEquals(fragment.title, "title")
-        assertEquals(messageTextView.text, "message")
-        assertNotNull(checkBox)
+        assertEquals(inputLabel.text, "label")
+        assertEquals(inputValue.text.toString(), "defaultValue")
+        assertTrue(checkBox.isVisible())
+
+        checkBox.isChecked = true
+        assertTrue(fragment.userSelectionNoMoreDialogs)
+
+        inputValue.text = "NewValue"
+        assertEquals(inputValue.text.toString(), "NewValue")
     }
 
     @Test
-    fun `Alert with hasShownManyDialogs equals false should not have a checkbox`() {
+    fun `TextPrompt with hasShownManyDialogs equals false should not have a checkbox`() {
 
         val fragment = spy(
-            AlertDialogFragment.newInstance("sessionId", "title", "message", false)
+            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", false)
         )
 
         doReturn(context).`when`(fragment).requireContext()
@@ -75,7 +86,7 @@ class AlertDialogFragmentTest {
 
         val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
 
-        assertNull(checkBox)
+        assertFalse(checkBox.isVisible())
     }
 
     @Test
@@ -84,7 +95,7 @@ class AlertDialogFragmentTest {
         val mockFeature: PromptFeature = mock()
 
         val fragment = spy(
-            AlertDialogFragment.newInstance("sessionId", "title", "message", false)
+            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", false)
         )
 
         fragment.feature = mockFeature
@@ -97,7 +108,7 @@ class AlertDialogFragmentTest {
         val positiveButton = (dialog as AlertDialog).getButton(DialogInterface.BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onCancel("sessionId")
+        verify(mockFeature).onConfirm("sessionId", false to "defaultValue")
     }
 
     @Test
@@ -106,7 +117,7 @@ class AlertDialogFragmentTest {
         val mockFeature: PromptFeature = mock()
 
         val fragment = spy(
-            AlertDialogFragment.newInstance("sessionId", "title", "message", true)
+            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", true)
         )
 
         fragment.feature = mockFeature
@@ -123,7 +134,7 @@ class AlertDialogFragmentTest {
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", true)
+        verify(mockFeature).onConfirm("sessionId", true to "defaultValue")
     }
 
     @Test
@@ -132,7 +143,7 @@ class AlertDialogFragmentTest {
         val mockFeature: PromptFeature = mock()
 
         val fragment = spy(
-            AlertDialogFragment.newInstance("sessionId", "title", "message", true)
+            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", true)
         )
 
         fragment.feature = mockFeature

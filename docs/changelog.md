@@ -22,6 +22,24 @@ permalink: /changelog/
 
 * **feature-prompts**, **browser-engine-gecko***
   * Added support for [Window.prompt](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt).
+  * Added `BrowserMenuDivider`.[For customization take a look at the docs.](https://github.com/mozilla-mobile/android-components/tree/master/components/browser/menu)
+
+* **browser-menu**
+  * Added [docs](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/menu/README.md#browsermenu) for customizing `BrowserMenu`.
+
+* **concept-engine**, **browser-engine-gecko-***
+  * Added support for enabling tracking protection for specific session type:
+  ```kotlin
+  val engine = GeckoEngine(runtime, DefaultSettings(
+    trackingProtectionPolicy = TrackingProtectionPolicy.all().forPrivateSessionsOnly())
+  )
+  ```
+
+* **browser-toolbar**
+  * Added `BrowserToolbarBottomBehavior` - a [CoordinatorLayout.Behavior](https://developer.android.com/reference/android/support/design/widget/CoordinatorLayout.Behavior) implementation to be used when placing `BrowserToolbar` at the bottom of the screen. This behavior will:
+    * Show/Hide the `BrowserToolbar` automatically when scrolling vertically.
+    * On showing a [Snackbar] position it above the `BrowserToolbar`.
+    * Snap the `BrowserToolbar` to be hidden or visible when the user stops scrolling.
 
 # 0.38.0
 

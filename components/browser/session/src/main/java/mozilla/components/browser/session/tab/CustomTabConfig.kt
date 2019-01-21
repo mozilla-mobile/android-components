@@ -22,6 +22,7 @@ import android.support.customtabs.CustomTabsIntent.KEY_MENU_ITEM_TITLE
 import android.support.customtabs.CustomTabsIntent.EXTRA_TINT_ACTION_BUTTON
 import android.support.customtabs.CustomTabsIntent.EXTRA_REMOTEVIEWS
 import android.support.customtabs.CustomTabsIntent.EXTRA_TOOLBAR_ITEMS
+import android.util.DisplayMetrics
 
 import mozilla.components.support.utils.SafeBundle
 import mozilla.components.support.utils.SafeIntent
@@ -71,10 +72,11 @@ class CustomTabConfig internal constructor(
          *
          * @param intent the intent, wrapped as a SafeIntent, which is processed
          * to extract configuration data.
+         * @param displayMetrics needed in-order to verify that icons of a max size are only provided.
          * @return the CustomTabConfig instance.
          */
         @Suppress("ComplexMethod")
-        fun createFromIntent(intent: SafeIntent): CustomTabConfig {
+        fun createFromIntent(intent: SafeIntent, displayMetrics: DisplayMetrics? = null): CustomTabConfig {
             val id = UUID.randomUUID().toString()
 
             val options = mutableListOf<String>()
@@ -88,7 +90,11 @@ class CustomTabConfig internal constructor(
 
             val closeButtonIcon = run {
                 val icon = intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON) as? Bitmap
-                if (icon != null && icon.width <= MAX_CLOSE_BUTTON_SIZE_DP && icon.height <= MAX_CLOSE_BUTTON_SIZE_DP) {
+                val density = displayMetrics?.density ?: 1f
+                if (icon != null &&
+                    icon.width / density <= MAX_CLOSE_BUTTON_SIZE_DP &&
+                    icon.height / density <= MAX_CLOSE_BUTTON_SIZE_DP
+                ) {
                     options.add(CLOSE_BUTTON_OPTION)
                     icon
                 } else {

@@ -18,7 +18,7 @@ permalink: /changelog/
 
 * **feature-prompts**, **browser-engine-gecko***
   * Added support for [Window.prompt](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt).
-  * Added `BrowserMenuDivider`.[For customization take a look at the docs.](https://github.com/mozilla-mobile/android-components/tree/master/components/browser/menu)
+  * Fixing Issue [#1771](https://github.com/mozilla-mobile/android-components/issues/1771). Supporting single choice items with sub-menus group.
 
 * **browser-menu**
   * Added [docs](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/menu/README.md#browsermenu) for customizing `BrowserMenu`.
@@ -68,7 +68,10 @@ permalink: /changelog/
   * Added support for JavaScript alerts on SystemEngineView.
   * [Improving use of internal Webview](https://github.com/mozilla-mobile/android-components/commit/59240f7a71a9f63fc51c1ff65e604f6735196a0e).
 
-* **feature-prompts**, **browser-engine-gecko***
+* **feature-customtabs**
+  * Added a close button to a custom tab with back button handling.
+
+* **feature-prompts**, **browser-engine-gecko**
   * Added support for Authentication dialogs.
   * Added support for [datetime-local](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local) and [time](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/time) pickers.
   * Added support for [input type color fields](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/color).

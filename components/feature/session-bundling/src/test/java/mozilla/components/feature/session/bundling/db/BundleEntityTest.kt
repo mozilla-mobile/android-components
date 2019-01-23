@@ -6,11 +6,8 @@ package mozilla.components.feature.session.bundling.db
 
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
-import mozilla.components.support.test.mock
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 class BundleEntityTest {
     @Test
     fun `updateFrom updates state and time`() {
-        val bundle = BundleEntity(0, "", 0)
+        val bundle = BundleEntity(0, "", 0, UrlList(listOf()))
 
         val snapshot = SessionManager.Snapshot(
             listOf(SessionManager.Snapshot.Item(session = Session("https://www.mozilla.org"))),
@@ -30,6 +27,9 @@ class BundleEntityTest {
 
         assertTrue(bundle.savedAt > 0)
 
+        assertEquals(1, bundle.urls.entries.size)
+        assertEquals("https://www.mozilla.org", bundle.urls.entries[0])
+
         val json = JSONObject(bundle.state)
 
         assertEquals(1, json.get("version"))
@@ -37,24 +37,5 @@ class BundleEntityTest {
 
         val sessions = json.getJSONArray("sessionStateTuples")
         assertEquals(1, sessions.length())
-    }
-
-    @Test
-    fun `restoreSnapshot restores snapshot from state`() {
-        val bundle = BundleEntity(0, "", 0)
-
-        val snapshot = SessionManager.Snapshot(
-            listOf(SessionManager.Snapshot.Item(session = Session("https://www.mozilla.org"))),
-            selectedSessionIndex = 0)
-
-        bundle.updateFrom(snapshot)
-
-        val restoredSnapshot = bundle.restoreSnapshot(mock())
-
-        assertNotNull(restoredSnapshot!!)
-
-        assertFalse(restoredSnapshot.isEmpty())
-        assertEquals(1, restoredSnapshot.sessions.size)
-        assertEquals("https://www.mozilla.org", restoredSnapshot.sessions[0].session.url)
     }
 }

@@ -13,6 +13,18 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **support-ktx**
+  * Added `Lifecycle.addObservers` to observe the lifecycle for multiple classes.
+  ```kotlin
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+      lifecycle.addObservers(
+        fullscreenFeature,
+        sessionFeature,
+        customTabsToolbarFeature
+      )
+    }
+  ```
+
 # 0.39.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.38.0...v0.39.0)
@@ -25,7 +37,7 @@ permalink: /changelog/
 * **feature-awesomebar**
   * Added `ClipboardSuggestionProvider` - An `AwesomeBar.SuggestionProvider` implementation that returns a suggestions for an URL in the clipboard (if there's any).
 
-* **feature-prompts**, **browser-engine-gecko***
+* **feature-prompts**, **browser-engine-gecko**
   * Added support for [Window.prompt](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt).
   * Fixing Issue [#1771](https://github.com/mozilla-mobile/android-components/issues/1771). Supporting single choice items with sub-menus group.
 
@@ -935,7 +947,7 @@ Release date: 2018-10-23
   * Added `HistoryTrackingDelegate` interface for integrating engine implementations with history storage backends. Intended to be used via engine settings.
 * **browser-engine**
   * `Download.fileName` cannot be `null` anymore. All engine implementations are guaranteed to return a proposed file name for Downloads now.
-* **browser-engine-gecko-**, **browser-engine-system**
+* **browser-engine-gecko-***, **browser-engine-system**
   * Added support for `HistoryTrackingDelegate`, if it's specified in engine settings.
 * **browser-engine-servo**
   * Added a new experimental *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
@@ -1109,7 +1121,7 @@ Release date: 2018-10-05
     }
     ```
   * :warning: **This is a breaking change for the `RequestInterceptor#onErrorRequest` method signature!**
-* **browser-engine-***
+* **browser-engine-**
   * Added a setting for enabling remote debugging.
   * Creating an `Engine` requires a `Context` now.
       ```kotlin
@@ -1324,7 +1336,7 @@ Release date: 2018-10-05
 
 * Added initial documentation for the browser-session component: https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/README.md
 * **sync-logins**: New component for integrating with Firefox Sync (for Logins). A sample app showcasing this new functionality can be found at: https://github.com/mozilla-mobile/android-components/tree/master/samples/sync-logins
-* **browser-engine-***:
+* **browser-engine-**:
   * Added support for fullscreen mode and the ability to exit it programmatically if needed.
   ```Kotlin
   session.register(object : Session.Observer {
@@ -1393,13 +1405,13 @@ Release date: 2018-10-05
     * Release: **62.0** (9cbae12a3fff404ed2c12070ad475424d0ae869f) 🔺
 
 * We now provide aggregated API docs. The docs for this release are hosted at: https://mozilla-mobile.github.io/android-components/api/0.22
-* **browser-engine-***:
+* **browser-engine-**:
   * EngineView now exposes lifecycle methods with default implementations. A `LifecycleObserver` implementation is provided which forwards events to EngineView instances.
-  ```Kotlin
+  ```kotlin
   lifecycle.addObserver(EngineView.LifecycleObserver(view))
   ```
   * Added engine setting for blocking web fonts:
-  ```Kotlin
+  ```kotlin
   GeckoEngine(runtime, DefaultSettings(webFontsEnabled = false))
   ```
   * `setDesktopMode()` was renamed to `toggleDesktopMode()`.

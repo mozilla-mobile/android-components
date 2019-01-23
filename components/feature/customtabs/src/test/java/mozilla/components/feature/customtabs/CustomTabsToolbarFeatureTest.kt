@@ -6,13 +6,19 @@
 
 package mozilla.components.feature.customtabs
 
+import android.app.PendingIntent
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.widget.FrameLayout
+import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.tab.CustomTabActionButtonConfig
 import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.browser.session.tab.CustomTabMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -20,6 +26,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyList
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.anyString
@@ -183,7 +190,7 @@ class CustomTabsToolbarFeatureTest {
         val toolbar = spy(BrowserToolbar(RuntimeEnvironment.application))
         val captor = argumentCaptor<Toolbar.ActionButton>()
         var clicked = false
-        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", { clicked = true }) {})
+        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", shareListener = { clicked = true }) {})
 
         `when`(session.customTabConfig).thenReturn(mock())
 
@@ -191,9 +198,112 @@ class CustomTabsToolbarFeatureTest {
 
         verify(toolbar).addBrowserAction(captor.capture())
 
-        val button = captor.firstValue.createView(FrameLayout(RuntimeEnvironment.application))
+        val button = captor.value.createView(FrameLayout(RuntimeEnvironment.application))
         button.performClick()
         assertTrue(clicked)
+    }
+
+    @Test
+    fun `initialize calls addActionButton`() {
+        val session: Session = mock()
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        `when`(session.customTabConfig).thenReturn(mock())
+
+        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "") {})
+
+        feature.initialize(session)
+
+        verify(feature).addActionButton(null)
+    }
+
+    @Test
+    fun `add action button is invoked`() {
+        val session: Session = mock()
+        val toolbar = spy(BrowserToolbar(RuntimeEnvironment.application))
+        val captor = argumentCaptor<Toolbar.ActionButton>()
+        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "") {})
+        val customTabConfig: CustomTabConfig = mock()
+        val actionConfig: CustomTabActionButtonConfig = mock()
+        val size = 24
+        val closeButtonIcon = Bitmap.createBitmap(IntArray(size * size), size, size, Bitmap.Config.ARGB_8888)
+        val pendingIntent: PendingIntent = mock()
+
+        `when`(session.customTabConfig).thenReturn(customTabConfig)
+
+        feature.addActionButton(null)
+
+        verify(toolbar, never()).addBrowserAction(any())
+
+        // Show action button only when CustomTabActionButtonConfig is not null
+        `when`(customTabConfig.actionButtonConfig).thenReturn(actionConfig)
+        `when`(actionConfig.description).thenReturn("test desc")
+        `when`(actionConfig.pendingIntent).thenReturn(pendingIntent)
+        `when`(actionConfig.icon).thenReturn(closeButtonIcon)
+
+        feature.addActionButton(actionConfig)
+
+        verify(toolbar).addBrowserAction(captor.capture())
+
+        val button = captor.value.createView(FrameLayout(RuntimeEnvironment.application))
+        button.performClick()
+        verify(pendingIntent).send()
+    }
+
+    @Test
+    fun `initialize calls addMenuItems`() {
+        val session: Session = mock()
+        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val customTabConfig: CustomTabConfig = mock()
+        `when`(session.customTabConfig).thenReturn(customTabConfig)
+        `when`(customTabConfig.menuItems).thenReturn(emptyList())
+
+        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "") {})
+
+        feature.initialize(session)
+
+        verify(feature, never()).addMenuItems(anyList())
+
+        `when`(customTabConfig.menuItems).thenReturn(listOf(CustomTabMenuItem("Share", mock())))
+
+        feature.initialize(session)
+
+        verify(feature).addMenuItems(anyList())
+    }
+
+    @Test
+    fun `menu items added WITHOUT current items`() {
+        val session: Session = mock()
+        val toolbar = spy(BrowserToolbar(RuntimeEnvironment.application))
+        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "") {})
+        val captor = argumentCaptor<BrowserMenuBuilder>()
+        val customTabConfig: CustomTabConfig = mock()
+
+        `when`(session.customTabConfig).thenReturn(customTabConfig)
+        `when`(customTabConfig.menuItems).thenReturn(emptyList())
+
+        feature.addMenuItems(listOf(CustomTabMenuItem("Share", mock())))
+
+        verify(toolbar).setMenuBuilder(captor.capture())
+        assertEquals(1, captor.value.items.size)
+    }
+
+    @Test
+    fun `menu items added WITH current items`() {
+        val session: Session = mock()
+        val toolbar = spy(BrowserToolbar(RuntimeEnvironment.application))
+        val builder: BrowserMenuBuilder = mock()
+        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", builder) {})
+        val captor = argumentCaptor<BrowserMenuBuilder>()
+        val customTabConfig: CustomTabConfig = mock()
+        `when`(session.customTabConfig).thenReturn(customTabConfig)
+        `when`(customTabConfig.menuItems).thenReturn(emptyList())
+        `when`(builder.items).thenReturn(listOf(mock(), mock()))
+
+        feature.addMenuItems(listOf(CustomTabMenuItem("Share", mock())))
+
+        verify(toolbar).setMenuBuilder(captor.capture())
+
+        assertEquals(3, captor.value.items.size)
     }
 
     @Test

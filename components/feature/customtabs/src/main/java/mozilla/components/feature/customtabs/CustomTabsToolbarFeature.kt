@@ -11,9 +11,13 @@ import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.support.annotation.VisibleForTesting
 import android.support.v4.content.ContextCompat
+import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.runWithSession
+import mozilla.components.browser.session.tab.CustomTabActionButtonConfig
+import mozilla.components.browser.session.tab.CustomTabMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.base.feature.LifecycleAwareFeature
@@ -26,6 +30,7 @@ class CustomTabsToolbarFeature(
     private val sessionManager: SessionManager,
     private val toolbar: BrowserToolbar,
     private val sessionId: String? = null,
+    private val menuBuilder: BrowserMenuBuilder? = null,
     private val shareListener: (() -> Unit)? = null,
     private val closeListener: () -> Unit
 ) : LifecycleAwareFeature {
@@ -48,8 +53,12 @@ class CustomTabsToolbarFeature(
             updateToolbarColor(config.toolbarColor)
             // Add navigation close action
             addCloseButton(config.closeButtonIcon)
+            // Add action button
+            addActionButton(config.actionButtonConfig)
             // Show share button
             if (config.showShareMenuItem) addShareButton(session)
+            // Add menu items
+            if (config.menuItems.isNotEmpty()) addMenuItems(config.menuItems)
             return true
         }
         return false
@@ -79,6 +88,18 @@ class CustomTabsToolbarFeature(
     }
 
     @VisibleForTesting
+    internal fun addActionButton(buttonConfig: CustomTabActionButtonConfig?) {
+        buttonConfig?.let { config ->
+            val button = Toolbar.ActionButton(
+                BitmapDrawable(context.resources, config.icon),
+                config.description
+            ) { config.pendingIntent.send() }
+
+            toolbar.addBrowserAction(button)
+        }
+    }
+
+    @VisibleForTesting
     internal fun addShareButton(session: Session) {
         val button = Toolbar.ActionButton(
             ContextCompat.getDrawable(context, R.drawable.mozac_ic_share),
@@ -87,7 +108,23 @@ class CustomTabsToolbarFeature(
             val listener = shareListener ?: { context.share(session.url) }
             listener.invoke()
         }
+
         toolbar.addBrowserAction(button)
+    }
+
+    @VisibleForTesting
+    internal fun addMenuItems(menuItems: List<CustomTabMenuItem>) {
+        menuItems.map {
+            SimpleBrowserMenuItem(it.name) { it.pendingIntent.send() }
+        }.also {
+            val items = if (menuBuilder != null) {
+                menuBuilder.items + it
+            } else {
+                it
+            }
+
+            toolbar.setMenuBuilder(BrowserMenuBuilder(items))
+        }
     }
 
     override fun stop() {}

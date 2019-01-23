@@ -24,6 +24,8 @@ permalink: /changelog/
       )
     }
   ```
+* **feature-awesomebar**
+  * Added ability to show one item per search suggestion ([#1779](https://github.com/mozilla-mobile/android-components/issues/1779))
 
 # 0.39.0
 

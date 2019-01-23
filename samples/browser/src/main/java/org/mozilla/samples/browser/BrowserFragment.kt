@@ -6,8 +6,6 @@ package org.mozilla.samples.browser
 
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Intent
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -27,6 +25,7 @@ import mozilla.components.feature.session.WindowFeature
 import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
 import mozilla.components.feature.toolbar.ToolbarFeature
+import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import org.mozilla.samples.browser.ext.components
 
@@ -67,7 +66,7 @@ class BrowserFragment : Fragment(), BackHandler {
             this.addDomainProvider(components.shippedDomainsProvider)
         }
 
-        tabsToolbarFeature = TabsToolbarFeature(layout.toolbar, components.sessionManager, ::showTabs)
+        tabsToolbarFeature = TabsToolbarFeature(layout.toolbar, components.sessionManager, sessionId, ::showTabs)
 
         AwesomeBarFeature(layout.awesomeBar, layout.toolbar, layout.engineView)
             .addHistoryProvider(components.historyStorage, components.sessionUseCases.loadUrl)
@@ -75,6 +74,7 @@ class BrowserFragment : Fragment(), BackHandler {
             .addSearchProvider(
                 components.searchEngineManager.getDefaultSearchEngine(requireContext()),
                 components.searchUseCases.defaultSearch)
+            .addClipboardProvider(requireContext(), components.sessionUseCases.loadUrl)
 
         downloadsFeature = DownloadsFeature(
             requireContext(),
@@ -109,8 +109,9 @@ class BrowserFragment : Fragment(), BackHandler {
         customTabsToolbarFeature = CustomTabsToolbarFeature(
             components.sessionManager,
             layout.toolbar,
-            sessionId
-        )
+            sessionId,
+            components.menuBuilder
+        ) { activity?.finish() }
 
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
@@ -136,12 +137,17 @@ class BrowserFragment : Fragment(), BackHandler {
         }
     }
 
+    @Suppress("ReturnCount")
     override fun onBackPressed(): Boolean {
         if (toolbarFeature.handleBackPressed()) {
             return true
         }
 
         if (sessionFeature.handleBackPressed()) {
+            return true
+        }
+
+        if (customTabsToolbarFeature.onBackPressed()) {
             return true
         }
 
@@ -177,6 +183,4 @@ class BrowserFragment : Fragment(), BackHandler {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         promptFeature.onActivityResult(requestCode, resultCode, data)
     }
-
-    private fun Lifecycle.addObservers(vararg observers: LifecycleObserver) = observers.forEach { addObserver(it) }
 }

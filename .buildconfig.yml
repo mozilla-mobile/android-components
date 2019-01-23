@@ -1,4 +1,4 @@
-componentsVersion: 0.38.0
+componentsVersion: 0.40.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -211,6 +211,10 @@ projects:
   lib-jexl:
     path: components/lib/jexl
     description: 'Javascript Expression Language: Powerful context-based expression parser and evaluator.'
+    publish: true
+  lib-publicsuffixlist:
+    path: components/lib/publicsuffixlist
+    description: 'A library for reading and using the public suffix list.'
     publish: true
   tooling-lint:
     path: components/tooling/lint

@@ -4,8 +4,11 @@
 
 package mozilla.components.service.glean
 
+import android.view.accessibility.AccessibilityManager
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.support.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +71,7 @@ open class GleanInternalAPI {
         }
 
         storageEngineManager = StorageEngineManager(applicationContext = applicationContext)
-        pingMaker = PingMaker(storageEngineManager)
+        pingMaker = PingMaker(storageEngineManager, applicationContext)
         this.configuration = configuration
         httpPingUploader = HttpPingUploader(configuration)
         initialized = true
@@ -169,6 +172,31 @@ open class GleanInternalAPI {
     }
 
     /**
+     * Records a list of the currently enabled accessibility services.
+     *
+     * https://developer.android.com/reference/android/view/accessibility/AccessibilityManager.html
+     * @param accessibilityManager The system's [AccessibilityManager] as
+     * returned from applicationContext.getSystemService
+     * @returns services A list of ids of the enabled accessibility services. If
+     *     the accessibility manager is disabled, returns null.
+     */
+    internal fun getEnabledAccessibilityServices(
+        accessibilityManager: AccessibilityManager
+    ): List<String>? {
+        if (!accessibilityManager.isEnabled) {
+            logger.info("AccessibilityManager is disabled")
+            return null
+        }
+        return accessibilityManager.getEnabledAccessibilityServiceList(
+            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+        ).mapNotNull {
+            // Note that any reference in java code can be null, so we'd better
+            // check for null values here as well.
+            it.id
+        }
+    }
+
+    /**
      * Initialize the core metrics internally managed by Glean (e.g. client id).
      */
     private fun initializeCoreMetrics(applicationContext: Context) {
@@ -190,6 +218,19 @@ open class GleanInternalAPI {
         val firstRunDetector = FileFirstRunDetector(gleanDataDir)
         if (firstRunDetector.isFirstRun()) {
             GleanInternalMetrics.clientId.generateAndSet()
+        }
+
+        try {
+            val packageInfo = applicationContext.packageManager.getPackageInfo(
+                applicationContext.packageName, 0
+            )
+            GleanInternalMetrics.appBuild.set(packageInfo.versionCode.toString())
+            packageInfo.versionName?.let {
+                GleanInternalMetrics.appDisplayVersion.set(it)
+            }
+        } catch (e: PackageManager.NameNotFoundException) {
+            logger.error("Could not get own package info, unable to report build id and display version")
+            throw AssertionError("Could not get own package info, aborting init")
         }
 
         // Set the OS type
@@ -214,6 +255,13 @@ open class GleanInternalAPI {
 
         // Set the CPU architecture
         Baseline.architecture.set(Build.SUPPORTED_ABIS[0])
+
+        // Set the enabled accessibility services
+        getEnabledAccessibilityServices(
+            applicationContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        ) ?.let {
+            Baseline.a11yServices.set(it)
+        }
     }
 
     /**

@@ -4,15 +4,19 @@
 
 package mozilla.components.service.glean
 
+import android.arch.lifecycle.Lifecycle
+import android.arch.lifecycle.LifecycleOwner
+import android.arch.lifecycle.LifecycleRegistry
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
-import mozilla.components.service.glean.net.HttpPingUploader
 import mozilla.components.service.glean.storages.EventsStorageEngine
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StringsStorageEngine
-import mozilla.components.service.glean.metrics.Baseline
+import mozilla.components.service.glean.scheduler.GleanLifecycleObserver
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
@@ -26,9 +30,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -43,8 +50,7 @@ class GleanTest {
 
     @Before
     fun setup() {
-        Glean.initialized = false
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        resetGlean()
     }
 
     @After
@@ -124,11 +130,10 @@ class GleanTest {
             sendInPings = listOf("default")
         )
 
-        val realClient = Glean.httpPingUploader
-        val testConfig = Glean.configuration.copy(
-            serverEndpoint = "http://" + server.hostName + ":" + server.port
-        )
-        Glean.httpPingUploader = HttpPingUploader(testConfig)
+        resetGlean(getContextWithMockedInfo(), Glean.configuration.copy(
+            serverEndpoint = "http://" + server.hostName + ":" + server.port,
+            logPings = true
+        ))
 
         try {
             stringMetric.set("foo")
@@ -163,7 +168,6 @@ class GleanTest {
                 request.path.startsWith("/submit/$applicationId/metrics/${Glean.SCHEMA_VERSION}/")
             )
         } finally {
-            Glean.httpPingUploader = realClient
             server.shutdown()
         }
     }
@@ -183,17 +187,23 @@ class GleanTest {
             objects = listOf("buttonA")
         )
 
-        val realClient = Glean.httpPingUploader
-        val testConfig = Glean.configuration.copy(
-            serverEndpoint = "http://" + server.hostName + ":" + server.port
-        )
-        Glean.httpPingUploader = HttpPingUploader(testConfig)
+        resetGlean(getContextWithMockedInfo(), Glean.configuration.copy(
+            serverEndpoint = "http://" + server.hostName + ":" + server.port,
+            logPings = true
+        ))
+
+        // Fake calling the lifecycle observer.
+        val lifecycleRegistry = LifecycleRegistry(mock(LifecycleOwner::class.java))
+        val gleanLifecycleObserver = GleanLifecycleObserver()
+        lifecycleRegistry.addObserver(gleanLifecycleObserver)
 
         try {
+            // Simulate the first foreground event after the application starts.
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
             click.record("buttonA")
-            Baseline.sessions.add()
 
-            Glean.handleEvent(Glean.PingEvent.Background)
+            // Simulate going to background.
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 
             val requests: MutableMap<String, String> = mutableMapOf()
             for (i in 0..1) {
@@ -215,23 +225,19 @@ class GleanTest {
                 "baseline.device",
                 "baseline.architecture"
             )
-            val baselineStringMetrics = baselineJson.getJSONObject("metrics")!!.getJSONObject("string")!!
+            val baselineMetricsObject = baselineJson.getJSONObject("metrics")!!
+            val baselineStringMetrics = baselineMetricsObject.getJSONObject("string")!!
             assertEquals(expectedBaselineStringMetrics.size, baselineStringMetrics.length())
             for (metric in expectedBaselineStringMetrics) {
                 assertNotNull(baselineStringMetrics.get(metric))
             }
 
-            val expectedBaselineCounterMetrics = arrayOf(
-                "baseline.sessions"
-            )
-            val baselineCounterMetrics = baselineJson.getJSONObject("metrics")!!.getJSONObject("counter")!!
-            assertEquals(expectedBaselineCounterMetrics.size, baselineCounterMetrics.length())
-            for (metric in expectedBaselineCounterMetrics) {
-                assertNotNull(baselineCounterMetrics.get(metric))
-            }
+            val baselineTimespanMetrics = baselineMetricsObject.getJSONObject("timespan")!!
+            assertEquals(1, baselineTimespanMetrics.length())
+            assertNotNull(baselineTimespanMetrics.get("baseline.duration"))
         } finally {
-            Glean.httpPingUploader = realClient
             server.shutdown()
+            lifecycleRegistry.removeObserver(gleanLifecycleObserver)
         }
     }
 
@@ -247,10 +253,7 @@ class GleanTest {
         // Create a file in its place.
         assertTrue(gleanDir.createNewFile())
 
-        Glean.initialized = false
-
-        // Try to init Glean: it should not crash.
-        Glean.initialize(applicationContext = ApplicationProvider.getApplicationContext())
+        resetGlean()
 
         // Clean up after this, so that other tests don't fail.
         assertTrue(gleanDir.delete())
@@ -278,7 +281,7 @@ class GleanTest {
 
     @Test(expected = IllegalStateException::class)
     fun `Don't initialize twice`() {
-        Glean.initialize(applicationContext = ApplicationProvider.getApplicationContext())
+        Glean.initialize(ApplicationProvider.getApplicationContext())
     }
 
     @Test
@@ -297,11 +300,9 @@ class GleanTest {
 
         EventsStorageEngine.clearAllStores()
 
-        val realClient = Glean.httpPingUploader
-        val testConfig = Glean.configuration.copy(
+        resetGlean(config = Glean.configuration.copy(
             serverEndpoint = "http://" + server.hostName + ":" + server.port
-        )
-        Glean.httpPingUploader = HttpPingUploader(testConfig)
+        ))
         Glean.setMetricsEnabled(false)
 
         try {
@@ -314,7 +315,6 @@ class GleanTest {
             // request will be null if no pings were sent
             assertNull(request)
         } finally {
-            Glean.httpPingUploader = realClient
             server.shutdown()
         }
     }
@@ -326,15 +326,11 @@ class GleanTest {
 
         EventsStorageEngine.clearAllStores()
 
-        val realClient = Glean.httpPingUploader
-        val testConfig = Glean.configuration.copy(
+        resetGlean(getContextWithMockedInfo(), Glean.configuration.copy(
             serverEndpoint = "http://" + server.hostName + ":" + server.port
-        )
-        Glean.httpPingUploader = HttpPingUploader(testConfig)
+        ))
 
         try {
-            Baseline.sessions.add()
-
             Glean.handleEvent(Glean.PingEvent.Background)
 
             val requests: MutableMap<String, String> = mutableMapOf()
@@ -352,7 +348,6 @@ class GleanTest {
             // Make sure the events ping is NOT there since no events should have been recorded
             assertNull("Events request should be null since there was no event data", requests["events"])
         } finally {
-            Glean.httpPingUploader = realClient
             server.shutdown()
         }
     }
@@ -372,6 +367,35 @@ class GleanTest {
         assertEquals(
             "org-mozilla-test-app",
             Glean.sanitizeApplicationId("org-mozilla-test-app")
+        )
+    }
+
+    @Test
+    fun `Make sure a11y services are collected`() {
+        val applicationContext = ApplicationProvider.getApplicationContext<Context>()
+        val accessibilityManager = applicationContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+
+        val shadowAccessibilityManager = shadowOf(accessibilityManager)
+        shadowAccessibilityManager.setEnabled(true)
+
+        val serviceSpy1 = spy<AccessibilityServiceInfo>(AccessibilityServiceInfo::class.java)
+        doReturn("service1").`when`(serviceSpy1).id
+
+        val serviceSpy2 = spy<AccessibilityServiceInfo>(AccessibilityServiceInfo::class.java)
+        doReturn("service2").`when`(serviceSpy2).id
+
+        val nullServiceId = spy<AccessibilityServiceInfo>(AccessibilityServiceInfo::class.java)
+        doReturn(null).`when`(nullServiceId).id
+
+        shadowAccessibilityManager.setEnabledAccessibilityServiceList(
+            listOf(serviceSpy1, serviceSpy2, nullServiceId)
+        )
+
+        assertEquals(
+            listOf("service1", "service2"),
+            Glean.getEnabledAccessibilityServices(
+                accessibilityManager
+            )
         )
     }
 }

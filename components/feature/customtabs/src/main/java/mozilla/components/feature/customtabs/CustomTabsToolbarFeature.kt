@@ -6,11 +6,22 @@
 
 package mozilla.components.feature.customtabs
 
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
+import android.support.annotation.VisibleForTesting
+import android.support.v4.content.ContextCompat
+import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.runWithSession
+import mozilla.components.browser.session.tab.CustomTabActionButtonConfig
+import mozilla.components.browser.session.tab.CustomTabMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
+import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.ktx.android.content.share
 
 /**
  * Initializes and resets the Toolbar for a Custom Tab based on the CustomTabConfig.
@@ -18,21 +29,42 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 class CustomTabsToolbarFeature(
     private val sessionManager: SessionManager,
     private val toolbar: BrowserToolbar,
-    private val sessionId: String? = null
+    private val sessionId: String? = null,
+    private val menuBuilder: BrowserMenuBuilder? = null,
+    private val shareListener: (() -> Unit)? = null,
+    private val closeListener: () -> Unit
 ) : LifecycleAwareFeature {
+    private val context = toolbar.context
+    private var initialized = false
 
     override fun start() {
-        val session = sessionId?.let { sessionManager.findSessionById(sessionId) }
-        session?.let { initialize(it) }
+        if (initialized) {
+            return
+        }
+        initialized = sessionManager.runWithSession(sessionId) { initialize(it) }
     }
 
-    internal fun initialize(session: Session) {
+    @VisibleForTesting
+    internal fun initialize(session: Session): Boolean {
         session.customTabConfig?.let { config ->
+            // Don't allow clickable toolbar so a custom tab can't switch to edit mode.
+            toolbar.onUrlClicked = { false }
             // Change the toolbar colour
             updateToolbarColor(config.toolbarColor)
+            // Add navigation close action
+            addCloseButton(config.closeButtonIcon)
+            // Add action button
+            addActionButton(config.actionButtonConfig)
+            // Show share button
+            if (config.showShareMenuItem) addShareButton(session)
+            // Add menu items
+            if (config.menuItems.isNotEmpty()) addMenuItems(config.menuItems)
+            return true
         }
+        return false
     }
 
+    @VisibleForTesting
     internal fun updateToolbarColor(toolbarColor: Int?) {
         toolbarColor?.let { color ->
             toolbar.setBackgroundColor(color)
@@ -40,7 +72,75 @@ class CustomTabsToolbarFeature(
         }
     }
 
+    @VisibleForTesting
+    internal fun addCloseButton(bitmap: Bitmap?) {
+        val drawableIcon = bitmap?.let { BitmapDrawable(context.resources, it) } ?: ContextCompat.getDrawable(
+            context,
+            R.drawable.mozac_ic_close
+        )
+
+        drawableIcon?.let {
+            val button = Toolbar.ActionButton(
+                it, context.getString(R.string.mozac_feature_customtabs_exit_button)
+            ) { closeListener.invoke() }
+            toolbar.addNavigationAction(button)
+        }
+    }
+
+    @VisibleForTesting
+    internal fun addActionButton(buttonConfig: CustomTabActionButtonConfig?) {
+        buttonConfig?.let { config ->
+            val button = Toolbar.ActionButton(
+                BitmapDrawable(context.resources, config.icon),
+                config.description
+            ) { config.pendingIntent.send() }
+
+            toolbar.addBrowserAction(button)
+        }
+    }
+
+    @VisibleForTesting
+    internal fun addShareButton(session: Session) {
+        val button = Toolbar.ActionButton(
+            ContextCompat.getDrawable(context, R.drawable.mozac_ic_share),
+            context.getString(R.string.mozac_feature_customtabs_share_link)
+        ) {
+            val listener = shareListener ?: { context.share(session.url) }
+            listener.invoke()
+        }
+
+        toolbar.addBrowserAction(button)
+    }
+
+    @VisibleForTesting
+    internal fun addMenuItems(menuItems: List<CustomTabMenuItem>) {
+        menuItems.map {
+            SimpleBrowserMenuItem(it.name) { it.pendingIntent.send() }
+        }.also {
+            val items = if (menuBuilder != null) {
+                menuBuilder.items + it
+            } else {
+                it
+            }
+
+            toolbar.setMenuBuilder(BrowserMenuBuilder(items))
+        }
+    }
+
     override fun stop() {}
+
+    /**
+     * Removes the current Custom Tabs session when the back button is pressed and returns true.
+     * Should be called when the back button is pressed.
+     */
+    fun onBackPressed(): Boolean {
+        val result = sessionManager.runWithSession(sessionId) {
+            remove(it)
+            true
+        }
+        closeListener.invoke()
+        return result
+    }
 
     companion object {
         @Suppress("MagicNumber")

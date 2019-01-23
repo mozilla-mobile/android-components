@@ -14,6 +14,7 @@ import mozilla.components.browser.engine.system.SystemEngine
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.BrowserMenuCheckbox
+import mozilla.components.browser.menu.item.BrowserMenuDivider
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
@@ -83,7 +84,14 @@ open class DefaultComponents(private val applicationContext: Context) {
     val defaultSearchUseCase by lazy { { searchTerms: String -> searchUseCases.defaultSearch.invoke(searchTerms) } }
 
     // Intent
-    val sessionIntentProcessor by lazy { IntentProcessor(sessionUseCases, sessionManager, searchUseCases) }
+    val sessionIntentProcessor by lazy {
+        IntentProcessor(
+            sessionUseCases,
+            sessionManager,
+            searchUseCases,
+            applicationContext
+        )
+    }
 
     // Menu
     val menuBuilder by lazy { BrowserMenuBuilder(menuItems) }
@@ -97,6 +105,7 @@ open class DefaultComponents(private val applicationContext: Context) {
                 SimpleBrowserMenuItem("Settings") {
                     Toast.makeText(applicationContext, "Settings", Toast.LENGTH_SHORT).show()
                 },
+                BrowserMenuDivider(),
                 SimpleBrowserMenuItem("Clear Data") {
                     sessionUseCases.clearData.invoke()
                 },

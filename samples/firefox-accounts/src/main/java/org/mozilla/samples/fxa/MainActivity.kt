@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.customtabs.CustomTabsIntent
 import android.view.View
 import android.content.Intent
+import android.support.v4.app.ActivityCompat
 import android.widget.CheckBox
 import android.widget.TextView
 import kotlinx.coroutines.CoroutineScope
@@ -18,18 +19,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import mozilla.components.concept.sync.Profile
+import mozilla.components.feature.qr.QrFeature
 import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.FxaException
 import mozilla.components.service.fxa.Config
 import kotlin.coroutines.CoroutineContext
 
 open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
-
     private lateinit var account: FirefoxAccount
     private var scopesWithoutKeys: Array<String> = arrayOf("profile")
     private var scopesWithKeys: Array<String> = arrayOf("profile", "https://identity.mozilla.com/apps/oldsync")
     private var scopes: Array<String> = scopesWithoutKeys
     private var wantsKeys: Boolean = false
+
+    lateinit var qrFeature: QrFeature
 
     private lateinit var job: Job
     override val coroutineContext: CoroutineContext
@@ -39,9 +42,9 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         const val CLIENT_ID = "12cc4070a481bc73"
         const val REDIRECT_URL = "fxaclient://android.redirect"
         const val CONFIG_URL = "https://latest.dev.lcip.org"
-        const val CONFIG_URL_PAIRING = "https://pairsona.dev.lcip.org"
         const val FXA_STATE_PREFS_KEY = "fxaAppState"
         const val FXA_STATE_KEY = "fxaState"
+        private const val REQUEST_CAMERA_PERMISSIONS = 1
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,6 +52,22 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         setContentView(R.layout.activity_main)
         job = Job()
         account = initAccount()
+
+        qrFeature = QrFeature(
+            this,
+            fragmentManager = supportFragmentManager,
+            onNeedToRequestPermissions = { permissions ->
+                ActivityCompat.requestPermissions(this, permissions, REQUEST_CAMERA_PERMISSIONS)
+            },
+            onScanResult = { pairingUrl ->
+                val config = Config(CONFIG_URL, CLIENT_ID, REDIRECT_URL)
+                val acct = FirefoxAccount(config)
+                launch {
+                    val url = acct.beginPairingFlow(pairingUrl, scopes).await()
+                    openWebView(url)
+                }
+            }
+        )
 
         findViewById<View>(R.id.buttonCustomTabs).setOnClickListener {
             launch {
@@ -65,8 +84,7 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         }
 
         findViewById<View>(R.id.buttonPair).setOnClickListener {
-            val intent = Intent(this@MainActivity, ScanActivity::class.java)
-            startActivity(intent)
+            qrFeature.scan(android.R.id.content);
         }
 
         findViewById<View>(R.id.buttonLogout).setOnClickListener {
@@ -88,16 +106,6 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
                 displayProfile(profile)
             }
             return it
-        }
-
-        intent.extras?.getString("pairingUrl")?.let { pairingUrl ->
-            val config = Config(CONFIG_URL_PAIRING, CLIENT_ID, REDIRECT_URL)
-            val acct = FirefoxAccount(config)
-            launch {
-                val url = acct.beginPairingFlow(pairingUrl, scopes).await()
-                openWebView(url)
-            }
-            return acct
         }
 
         val config = Config(CONFIG_URL, CLIENT_ID, REDIRECT_URL)
@@ -172,5 +180,9 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
     private fun displayProfile(profile: Profile) {
         val txtView: TextView = findViewById(R.id.txtView)
         txtView.text = getString(R.string.signed_in, "${profile.displayName ?: ""} ${profile.email}")
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        qrFeature.onPermissionsResult(R.id.container)
     }
 }

@@ -92,6 +92,10 @@ projects:
     path: components/feature/sitepermissions
     description: 'A feature for showing site permission request prompts.'
     publish: true
+  feature-qr:
+    path: components/feature/qr
+    description: 'A QR thing.'
+    publish: true
   browser-awesomebar:
     path: components/browser/awesomebar
     description: 'A customizable awesomebar component for browsers.'

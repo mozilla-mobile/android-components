@@ -31,6 +31,7 @@ object Versions {
 
     const val room = "1.1.1"
     const val paging = "1.0.1"
+    const val zxing = "3.3.0"
 
     const val mozilla_appservices = "0.19.0"
     const val servo = "0.0.1.20181017.aa95911"
@@ -92,4 +93,5 @@ object Dependencies {
     const val thirdparty_okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val thirdparty_okhttp_urlconnection = "com.squareup.okhttp3:okhttp-urlconnection:${Versions.okhttp}"
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
+    const val thirdparty_zxing = "com.google.zxing:core:${Versions.zxing}"
 }

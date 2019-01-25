@@ -188,6 +188,8 @@ _Supporting components with generic helper code._
 
 * ⚪ [**Crash**](components/lib/crash/README.md) - A generic crash reporter component that can report crashes to multiple services.
 
+* ⚪ [**QR**](components/lib/qr/README.md) - A QR thing.
+
 * 🔴 [**Dataprotect**](components/lib/dataprotect/README.md) - A component using AndroidKeyStore to protect user data.
 
 * ⚪ [**Fetch-HttpURLConnection**](components/lib/fetch-httpurlconnection/README.md) - A [concept-fetch](concept/fetch/README.md) implementation using [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection.html).
@@ -211,6 +213,8 @@ _Sample apps using various components._
 * [**Browser**](samples/browser) - A simple browser composed from browser components. This sample application is only a very basic browser. For a full-featured reference browser implementation see the **[reference-browser repository](https://github.com/mozilla-mobile/reference-browser)**.
 
 * [**Crash**](samples/crash) - An app showing the integration of the `lib-crash` component.
+
+* [**QR**](samples/qr) - An app showing the usage of the `feature-qr` component.
 
 * [**Firefox Accounts (FxA)**](samples/firefox-accounts) - A simple app demoing Firefox Accounts integration.
 

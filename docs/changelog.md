@@ -29,6 +29,56 @@ permalink: /changelog/
   * Added ability to show one item per search suggestion ([#1779](https://github.com/mozilla-mobile/android-components/issues/1779))
   * Added ability to define custom hooks to be invoked when editing starts or is completed.
 
+* **browser-awesomebar**
+  * Added ability to let consumers define the layouting of suggestions by implementing `SuggestionLayout` in order to control layout inflation and view binding.
+
+```Kotlin
+// Create a ViewHolder for your custom layout.
+class CustomViewHolder(view: View) : SuggestionViewHolder(view) {
+    private val textView = view.findViewById<TextView>(R.id.text)
+
+    override fun bind(
+        suggestion: AwesomeBar.Suggestion,
+        selectionListener: () -> Unit
+    ) {
+        textView.text = suggestion.title
+        textView.setOnClickListener { 
+            suggestion.onSuggestionClicked?.invoke()
+            selectionListener.invoke()
+        }
+    }
+}
+
+// Create a custom SuggestionLayout for controling view inflation
+class CustomSuggestionLayout : SuggestionLayout {
+    override fun getLayoutResource(suggestion: AwesomeBar.Suggestion): Int {
+        return android.R.layout.simple_list_item_1
+    }
+
+    override fun createViewHolder(awesomeBar: BrowserAwesomeBar, view: View, layoutId: Int): SuggestionViewHolder {
+        return CustomViewHolder(view)
+    }
+}
+```
+
+  * Added ability to transform suggestions returned by provider (adding data, removing data, filtering suggestions, ...)
+
+ ```Kotlin
+awesomeBar.transformer = object : SuggestionTransformer {
+    override fun transform(
+        provider: AwesomeBar.SuggestionProvider,
+        suggestions: List<AwesomeBar.Suggestion>
+    ): List<AwesomeBar.Suggestion> {
+        return suggestions.map { suggestion ->
+            suggestion.copy(title = "Awesome!")
+        }
+    }
+}
+
+// Use the custom layout with a BrowserAwesomeBar instance
+awesomeBar.layout = CustomSuggestionLayout()
+ ```
+
 * **lib-publicsuffixlist**
   * The public suffix list shipping with this component is now updated automatically in the repository every day (if there are changes).
   * Fixed an issue when comparing domain labels against the public suffix list ([#1777](https://github.com/mozilla-mobile/android-components/issues/1777))

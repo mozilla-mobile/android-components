@@ -4,17 +4,27 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.40.0-SNAPSHOT (In Development)
+# 0.41.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.39.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/42?closed=1)
-* [API reference](https://mozilla-mobile.github.io/android-components/api/0.39.0/index)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/43?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.40.0/index)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+# 0.40.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.39.0...v0.40.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/42?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.40.0/index)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.40.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.40.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.40.0/buildSrc/src/main/java/Config.kt)
+
 * **support-ktx**
   * Added `Lifecycle.addObservers` to observe the lifecycle for multiple classes.
+
   ```kotlin
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
       lifecycle.addObservers(
@@ -28,6 +38,56 @@ permalink: /changelog/
 * **feature-awesomebar**
   * Added ability to show one item per search suggestion ([#1779](https://github.com/mozilla-mobile/android-components/issues/1779))
   * Added ability to define custom hooks to be invoked when editing starts or is completed.
+
+* **browser-awesomebar**
+  * Added ability to let consumers define the layouting of suggestions by implementing `SuggestionLayout` in order to control layout inflation and view binding.
+
+  ```kotlin
+  // Create a ViewHolder for your custom layout.
+  class CustomViewHolder(view: View) : SuggestionViewHolder(view) {
+      private val textView = view.findViewById<TextView>(R.id.text)
+
+      override fun bind(
+          suggestion: AwesomeBar.Suggestion,
+          selectionListener: () -> Unit
+      ) {
+          textView.text = suggestion.title
+          textView.setOnClickListener {
+              suggestion.onSuggestionClicked?.invoke()
+              selectionListener.invoke()
+          }
+      }
+  }
+
+  // Create a custom SuggestionLayout for controling view inflation
+  class CustomSuggestionLayout : SuggestionLayout {
+      override fun getLayoutResource(suggestion: AwesomeBar.Suggestion): Int {
+          return android.R.layout.simple_list_item_1
+      }
+
+      override fun createViewHolder(awesomeBar: BrowserAwesomeBar, view: View, layoutId: Int): SuggestionViewHolder {
+          return CustomViewHolder(view)
+      }
+  }
+  ```
+
+  * Added ability to transform suggestions returned by provider (adding data, removing data, filtering suggestions, ...)
+
+  ```kotlin
+  awesomeBar.transformer = object : SuggestionTransformer {
+      override fun transform(
+          provider: AwesomeBar.SuggestionProvider,
+          suggestions: List<AwesomeBar.Suggestion>
+      ): List<AwesomeBar.Suggestion> {
+          return suggestions.map { suggestion ->
+              suggestion.copy(title = "Awesome!")
+          }
+      }
+  }
+
+  // Use the custom layout with a BrowserAwesomeBar instance
+  awesomeBar.layout = CustomSuggestionLayout()
+  ```
 
 * **lib-publicsuffixlist**
   * The public suffix list shipping with this component is now updated automatically in the repository every day (if there are changes).
@@ -65,6 +125,9 @@ permalink: /changelog/
 
 * Mozilla App Services library updated to 0.14.0. See [release notes](https://github.com/mozilla/application-services/releases/tag/v0.14.0) for details.
   * Important: Users consuming megazords must also update the application-services gradle plugin to version 0.3.0.
+
+* **feature-findinpage**
+  * 🆕 A new feature component for [finding text in a web page](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links). [Documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/findinpage/README.md).
 
 * **service-firefox-accounts**
   * Added `FxaAccountManager`, which encapsulates a lower level accounts API and provides an observable interface for consumers that wish to be notified of account and profile changes.
@@ -108,6 +171,9 @@ permalink: /changelog/
 
 * **feature-accounts** 🆕
   * Added a new `FirefoxAccountsAuthFeature`, which ties together the **FxaAccountManager** with a session manager via **feature-tabs**.
+
+* **browser-toolbar**
+  * Fixing bug that allowed text behind the security icon being selectable. [Issue #448](https://github.com/mozilla-mobile/reference-browser/issues/448)
 
 # 0.39.0
 

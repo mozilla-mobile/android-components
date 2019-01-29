@@ -153,7 +153,7 @@ class BrowserFragment : Fragment(), BackHandler {
             layout.toolbar.visibility = View.VISIBLE
         }
 
-        components.onFindPageClicked = {
+        components.onFindInPageClicked = {
             disableToolBarScroll(layout.toolbar)
             layout.toolbar.visibility = View.GONE
             findInPageView.show()

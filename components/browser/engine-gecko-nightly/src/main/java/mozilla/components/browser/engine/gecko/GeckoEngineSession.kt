@@ -221,7 +221,8 @@ class GeckoEngineSession(
         notifyObservers { onFind(text) }
         geckoSession.finder.find(text, 0).then { result: GeckoSession.FinderResult? ->
             result?.let {
-                notifyObservers { onFindResult(it.current, it.total, true) }
+                val activeMatchOrdinal = if (it.current > 0) it.current - 1 else it.current
+                notifyObservers { onFindResult(activeMatchOrdinal, it.total, true) }
             }
             GeckoResult<Void>()
         }
@@ -235,7 +236,8 @@ class GeckoEngineSession(
         val findFlags = if (forward) 0 else GeckoSession.FINDER_FIND_BACKWARDS
         geckoSession.finder.find(null, findFlags).then { result: GeckoSession.FinderResult? ->
             result?.let {
-                notifyObservers { onFindResult(it.current, it.total, true) }
+                val activeMatchOrdinal = if (it.current > 0) it.current - 1 else it.current
+                notifyObservers { onFindResult(activeMatchOrdinal, it.total, true) }
             }
             GeckoResult<Void>()
         }
@@ -348,7 +350,7 @@ class GeckoEngineSession(
             securityInfo: GeckoSession.ProgressDelegate.SecurityInformation
         ) {
             // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
-            if (initialLoad && securityInfo?.origin?.startsWith(MOZ_NULL_PRINCIPAL) == true) {
+            if (initialLoad && securityInfo.origin?.startsWith(MOZ_NULL_PRINCIPAL) == true) {
                 return
             }
 

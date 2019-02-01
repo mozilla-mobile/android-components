@@ -4,17 +4,81 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.40.0-SNAPSHOT (In Development)
+# 0.41.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.39.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/42?closed=1)
-* [API reference](https://mozilla-mobile.github.io/android-components/api/0.39.0/index)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/43?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.40.0/index)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **feature-customtabs**
+  * Added a temporary workaround for Custom Tab intents not being recognized when using the Jetifier tool.
+
+* **feature-downloads**
+  * ⚠️ **This is a breaking API change!**
+  * The required permissions are now passed to the `onNeedToRequestPermissions` callback.
+  ```kotlin
+  downloadsFeature = DownloadsFeature(
+      requireContext(),
+      sessionManager = components.sessionManager,
+      fragmentManager = childFragmentManager,
+      onNeedToRequestPermissions = { permissions ->
+          requestPermissions(permissions, REQUEST_CODE_DOWNLOAD_PERMISSIONS)
+      }
+  )
+  ```
+  * Removed the `onPermissionsGranted` method in favour of `onPermissionsResult` which handles both granted and denied permissions. This method should be invoked from `onRequestPermissionsResult`:
+  ```kotlin
+   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+      when (requestCode) {
+          REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
+      }        
+    }
+  ```
+
+ * **feature-prompts**
+   * ⚠️ **This is a breaking API change!**
+   * These change are similar to the ones for feature-downloads above and aim to provide a consistent way of handling permission requests.
+   * The required permissions are now passed to the `onNeedToRequestPermissions` callback.
+   ```kotlin
+   promptFeature = PromptFeature(
+      fragment = this,
+      sessionManager = components.sessionManager,
+      fragmentManager = requireFragmentManager(),
+      onNeedToRequestPermissions = { permissions ->
+          requestPermissions(permissions, REQUEST_CODE_PROMPT_PERMISSIONS)
+      }
+   )
+   ```
+   * Renamed `onRequestsPermissionsResult` to `onPermissionResult` and allow applications to specify the permission request code. This method should be invoked from `onRequestPermissionsResult`:
+  ```kotlin
+   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+      when (requestCode) {
+          REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
+      }        
+    }
+  ```
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * After "Merge Day" and the release of Firefox 65 we updated our gecko-based components to follow the new upstream versions:
+    * `browser-engine-gecko`: 65.0
+    * `browser-engine-gecko-beta`: 66.0
+    * `browser-engine-gecko-nightly`: 67.0
+
+# 0.40.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.39.0...v0.40.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/42?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.40.0/index)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.40.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.40.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.40.0/buildSrc/src/main/java/Config.kt)
+
 * **support-ktx**
   * Added `Lifecycle.addObservers` to observe the lifecycle for multiple classes.
+
   ```kotlin
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
       lifecycle.addObservers(
@@ -23,9 +87,61 @@ permalink: /changelog/
         customTabsToolbarFeature
       )
     }
-  ```
+    ```
+
 * **feature-awesomebar**
   * Added ability to show one item per search suggestion ([#1779](https://github.com/mozilla-mobile/android-components/issues/1779))
+  * Added ability to define custom hooks to be invoked when editing starts or is completed.
+
+* **browser-awesomebar**
+  * Added ability to let consumers define the layouting of suggestions by implementing `SuggestionLayout` in order to control layout inflation and view binding.
+
+  ```kotlin
+  // Create a ViewHolder for your custom layout.
+  class CustomViewHolder(view: View) : SuggestionViewHolder(view) {
+      private val textView = view.findViewById<TextView>(R.id.text)
+
+      override fun bind(
+          suggestion: AwesomeBar.Suggestion,
+          selectionListener: () -> Unit
+      ) {
+          textView.text = suggestion.title
+          textView.setOnClickListener {
+              suggestion.onSuggestionClicked?.invoke()
+              selectionListener.invoke()
+          }
+      }
+  }
+
+  // Create a custom SuggestionLayout for controling view inflation
+  class CustomSuggestionLayout : SuggestionLayout {
+      override fun getLayoutResource(suggestion: AwesomeBar.Suggestion): Int {
+          return android.R.layout.simple_list_item_1
+      }
+
+      override fun createViewHolder(awesomeBar: BrowserAwesomeBar, view: View, layoutId: Int): SuggestionViewHolder {
+          return CustomViewHolder(view)
+      }
+  }
+  ```
+
+  * Added ability to transform suggestions returned by provider (adding data, removing data, filtering suggestions, ...)
+
+  ```kotlin
+  awesomeBar.transformer = object : SuggestionTransformer {
+      override fun transform(
+          provider: AwesomeBar.SuggestionProvider,
+          suggestions: List<AwesomeBar.Suggestion>
+      ): List<AwesomeBar.Suggestion> {
+          return suggestions.map { suggestion ->
+              suggestion.copy(title = "Awesome!")
+          }
+      }
+  }
+
+  // Use the custom layout with a BrowserAwesomeBar instance
+  awesomeBar.layout = CustomSuggestionLayout()
+  ```
 
 * **lib-publicsuffixlist**
   * The public suffix list shipping with this component is now updated automatically in the repository every day (if there are changes).
@@ -36,6 +152,82 @@ permalink: /changelog/
 
 * **browser-engine-system**
   * Preventing JavaScript `confirm()` and `prompt()` until providing proper implementation #1816.
+
+* **feature-search**, **feature-session**
+  * `SessionUseCases` and `SearchUseCases` now take an optional `onNoSession: String -> Session` lambda parameter. This function will be invoked when executing a use case that requires a (selected) `Session` and no such session is available. This makes using the use cases and feature components useable in browsers that may not always have sessions. The default implementation creates a new `Session` and adds it to the `SessionManager`.
+
+* **support-rustlog**
+  * 🆕 New component: This component allows consumers of [megazorded](https://mozilla.github.io/application-services/docs/applications/consuming-megazord-libraries.html) Rust libraries produced by application-services to redirect their log output to the base component's log system as follows:
+  ```kotlin
+  import mozilla.components.support.rustlog.RustLog
+  import mozilla.components.support.base.log.Log
+  // In onCreate, any time after MyMegazordClass.init()
+  RustLog.enable()
+  // Note: By default this is enabled at level DEBUG, which can be adjusted.
+  // (It is recommended you do this for performance if you adjust
+  // `Log.logLevel`).
+  RustLog.setMaxLevel(Log.Priority.INFO)
+  // You can also enable "trace logs", which may include PII
+  // (but can assist debugging) as follows. It is recommended
+  // you not do this in builds you distribute to users.
+  RustLog.setMaxLevel(Log.Priority.DEBUG, true)
+  ```
+  * This is pointless to do when not using a megazord.
+    * Megazording is required due to each dynamically loaded Rust library having its own internal/private version of the Rust logging framework. When megazording, this is still true, but there's only a single dynamically loaded library, and so it's redirected properly. (This could probably be worked around, but it would take a great effort, and given that we expect most production use of these libraries will be using megazords, we accepted this limitation)
+    * This would be very annoying during initial development (and debugging the sample apps), so by default, we'll log (directly, e.g. not through the base component logger) to logcat when not megazorded.
+  * Note that you must call `MyMegazordClass.init()` *before* any uses of this class.
+
+* Mozilla App Services library updated to 0.14.0. See [release notes](https://github.com/mozilla/application-services/releases/tag/v0.14.0) for details.
+  * Important: Users consuming megazords must also update the application-services gradle plugin to version 0.3.0.
+
+* **feature-findinpage**
+  * 🆕 A new feature component for [finding text in a web page](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links). [Documentation](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/findinpage/README.md).
+
+* **service-firefox-accounts**
+  * Added `FxaAccountManager`, which encapsulates a lower level accounts API and provides an observable interface for consumers that wish to be notified of account and profile changes.
+  * Background-worker friendly.
+  ```kotlin
+  // Long-lived instance, pinned on an application.
+  val accountManager = FxaAccountManager(context, Config.release(CLIENT_ID, REDIRECT_URL), arrayOf("profile"))
+  launch { accountManager.init() }
+
+  // Somewhere in a fragment that cares about account state...
+  accountManager.register(object : AccountObserver {
+      override fun onLoggedOut() {
+        ...
+      }
+
+      override fun onAuthenticated(account: FirefoxAccountShaped) {
+        ...
+      }
+
+      override fun onProfileUpdated(profile: Profile) {
+        ...
+      }
+
+      override fun onError(error: FxaException) {
+        ...
+      }
+  }
+
+  // Reacting to a "sign-in" user action:
+  launch {
+    val authUrl = try {
+        accountManager.beginAuthentication().await()
+    } catch (error: FxaException) {
+        // ... display error ui...
+        return@launch
+    }
+    openWebView(authUrl)
+  }
+
+  ```
+
+* **feature-accounts** 🆕
+  * Added a new `FirefoxAccountsAuthFeature`, which ties together the **FxaAccountManager** with a session manager via **feature-tabs**.
+
+* **browser-toolbar**
+  * Fixing bug that allowed text behind the security icon being selectable. [Issue #448](https://github.com/mozilla-mobile/reference-browser/issues/448)
 
 # 0.39.0
 

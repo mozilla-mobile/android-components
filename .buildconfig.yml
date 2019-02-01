@@ -1,4 +1,4 @@
-componentsVersion: 0.40.0
+componentsVersion: 0.41.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -27,6 +27,10 @@ projects:
   feature-awesomebar:
     path: components/feature/awesomebar
     description: 'Component connecting a concept-toolbar with a concept-awesomebar.'
+    publish: true
+  feature-accounts:
+    path: components/feature/accounts
+    description: 'Component for tying an account manager with the tabs feature to facilitate auth flows.'
     publish: true
   feature-contextmenu:
     path: components/feature/contextmenu
@@ -72,6 +76,10 @@ projects:
     path: components/feature/prompts
     description: 'Feature that will subscribe to the selected session and will handle all the common prompt dialogs from web content.'
     publish: true
+  feature-findinpage:
+      path: components/feature/findinpage
+      description: 'Feature that will subscribe to the selected session and show an UI for results of find in page.'
+      publish: true
   browser-awesomebar:
     path: components/browser/awesomebar
     description: 'A customizable awesomebar component for browsers.'
@@ -191,6 +199,10 @@ projects:
   support-utils:
     path: components/support/utils
     description: 'A collection of generic helper classes.'
+    publish: true
+  support-rustlog:
+    path: components/support/rustlog
+    description: 'A bridge allowing log messages from Rust code to be sent to the log system in support-base'
     publish: true
   lib-crash:
     path: components/lib/crash

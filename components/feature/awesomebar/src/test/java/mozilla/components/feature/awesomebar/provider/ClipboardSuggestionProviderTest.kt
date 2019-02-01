@@ -7,6 +7,7 @@ package mozilla.components.feature.awesomebar.provider
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session
@@ -22,7 +23,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
@@ -88,6 +89,18 @@ class ClipboardSuggestionProviderTest {
         assertClipboardYieldsUrl("My IP is 192.168.0.1.", "192.168.0.1")
     }
 
+    private fun getInt() = 1
+
+    internal var foo = {
+        val someInteger = getInt()
+        someInteger / 5
+    }()
+
+    @Test
+    fun `print foo`() {
+        println(foo)
+    }
+
     @Test
     fun `provider should return no suggestions if clipboard doesn not contain a url`() {
         assertClipboardYieldsNothing("Hello World")
@@ -98,16 +111,33 @@ class ClipboardSuggestionProviderTest {
     }
 
     @Test
+    fun `provider should allow customization of title and icon on suggestion`() {
+        clipboardManager.primaryClip = ClipData.newPlainText("Test label", "http://mozilla.org")
+        val bitmap = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
+        val provider = ClipboardSuggestionProvider(context, mock(), title = "My test title", icon = bitmap)
+
+        val suggestion = runBlocking {
+            provider.onInputStarted()
+            val suggestions = provider.onInputChanged("Hello")
+
+            suggestions.firstOrNull()
+        }
+
+        assertEquals(bitmap, suggestion?.icon?.invoke(2, 2))
+        assertEquals("My test title", suggestion?.title)
+    }
+
+    @Test
     fun `clicking suggestion loads url`() = runBlocking {
         clipboardManager.primaryClip = ClipData.newPlainText(
             "Label",
             "Hello Mozilla, https://www.mozilla.org")
 
-        val selectedEngineSession = Mockito.mock(EngineSession::class.java)
-        val selectedSession = Mockito.mock(Session::class.java)
+        val selectedEngineSession: EngineSession = mock()
+        val selectedSession: Session = mock()
         val sessionManager: SessionManager = mock()
-        Mockito.`when`(sessionManager.selectedSessionOrThrow).thenReturn(selectedSession)
-        Mockito.`when`(sessionManager.getOrCreateEngineSession()).thenReturn(selectedEngineSession)
+        `when`(sessionManager.selectedSession).thenReturn(selectedSession)
+        `when`(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
 
         val useCase = spy(SessionUseCases(sessionManager).loadUrl)
 

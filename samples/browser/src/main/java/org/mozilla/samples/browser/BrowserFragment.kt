@@ -4,15 +4,19 @@
 
 package org.mozilla.samples.browser
 
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Intent
-import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
+import android.support.design.widget.AppBarLayout
+import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS
+import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL
+import android.support.design.widget.AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.android.synthetic.main.fragment_browser.view.*
+import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.feature.awesomebar.AwesomeBarFeature
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
@@ -26,8 +30,8 @@ import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
 import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
-import mozilla.components.support.ktx.android.content.isPermissionGranted
 import org.mozilla.samples.browser.ext.components
+import org.mozilla.samples.browser.integration.FindInPageIntegration
 
 class BrowserFragment : Fragment(), BackHandler {
     private lateinit var sessionFeature: SessionFeature
@@ -40,6 +44,7 @@ class BrowserFragment : Fragment(), BackHandler {
     private lateinit var promptFeature: PromptFeature
     private lateinit var windowFeature: WindowFeature
     private lateinit var customTabsToolbarFeature: CustomTabsToolbarFeature
+    private lateinit var findInPageIntegration: FindInPageIntegration
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val layout = inflater.inflate(R.layout.fragment_browser, container, false)
@@ -79,12 +84,11 @@ class BrowserFragment : Fragment(), BackHandler {
         downloadsFeature = DownloadsFeature(
             requireContext(),
             sessionManager = components.sessionManager,
-            fragmentManager = childFragmentManager
+            fragmentManager = childFragmentManager,
+            onNeedToRequestPermissions = { permissions ->
+                requestPermissions(permissions, REQUEST_CODE_DOWNLOAD_PERMISSIONS)
+            }
         )
-
-        downloadsFeature.onNeedToRequestPermissions = { _, _ ->
-            requestPermissions(arrayOf(WRITE_EXTERNAL_STORAGE), PERMISSION_WRITE_STORAGE_REQUEST)
-        }
 
         scrollFeature = CoordinateScrollingFeature(components.sessionManager, layout.engineView, layout.toolbar)
 
@@ -99,10 +103,11 @@ class BrowserFragment : Fragment(), BackHandler {
         promptFeature = PromptFeature(
             fragment = this,
             sessionManager = components.sessionManager,
-            fragmentManager = requireFragmentManager()
-        ) { _, permissions, requestCode ->
-            requestPermissions(permissions, requestCode)
-        }
+            fragmentManager = requireFragmentManager(),
+            onNeedToRequestPermissions = { permissions ->
+                requestPermissions(permissions, REQUEST_CODE_PROMPT_PERMISSIONS)
+            }
+        )
 
         windowFeature = WindowFeature(components.engine, components.sessionManager)
 
@@ -113,6 +118,8 @@ class BrowserFragment : Fragment(), BackHandler {
             components.menuBuilder
         ) { activity?.finish() }
 
+        findInPageIntegration = FindInPageIntegration(components.sessionManager, layout.findInPage)
+
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
             sessionFeature,
@@ -122,7 +129,8 @@ class BrowserFragment : Fragment(), BackHandler {
             contextMenuFeature,
             promptFeature,
             windowFeature,
-            customTabsToolbarFeature
+            customTabsToolbarFeature,
+            findInPageIntegration
         )
 
         return layout
@@ -137,28 +145,31 @@ class BrowserFragment : Fragment(), BackHandler {
         }
     }
 
-    @Suppress("ReturnCount")
-    override fun onBackPressed(): Boolean {
-        if (toolbarFeature.handleBackPressed()) {
-            return true
-        }
-
-        if (sessionFeature.handleBackPressed()) {
-            return true
-        }
-
-        if (customTabsToolbarFeature.onBackPressed()) {
-            return true
-        }
-
-        return false
+    private fun disableToolBarScroll(toolbar: BrowserToolbar) {
+        val layoutParams = toolbar.layoutParams as (AppBarLayout.LayoutParams)
+        layoutParams.scrollFlags = 0
     }
 
-    private fun isStoragePermissionAvailable() = requireContext().isPermissionGranted(WRITE_EXTERNAL_STORAGE)
+    private fun enableToolBarScroll(toolbar: BrowserToolbar) {
+        val layoutParams = toolbar.layoutParams as (AppBarLayout.LayoutParams)
+        layoutParams.scrollFlags = SCROLL_FLAG_ENTER_ALWAYS or SCROLL_FLAG_SCROLL or
+            SCROLL_FLAG_EXIT_UNTIL_COLLAPSED or SCROLL_FLAG_SNAP
+    }
+
+    override fun onBackPressed(): Boolean {
+        return when {
+            findInPageIntegration.onBackPressed() -> true
+            toolbarFeature.handleBackPressed() -> true
+            sessionFeature.handleBackPressed() -> true
+            customTabsToolbarFeature.onBackPressed() -> true
+            else -> false
+        }
+    }
 
     companion object {
         private const val SESSION_ID = "session_id"
-        private const val PERMISSION_WRITE_STORAGE_REQUEST = 1
+        private const val REQUEST_CODE_DOWNLOAD_PERMISSIONS = 1
+        private const val REQUEST_CODE_PROMPT_PERMISSIONS = 2
 
         fun create(sessionId: String? = null): BrowserFragment = BrowserFragment().apply {
             arguments = Bundle().apply {
@@ -169,15 +180,9 @@ class BrowserFragment : Fragment(), BackHandler {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         when (requestCode) {
-            PERMISSION_WRITE_STORAGE_REQUEST -> {
-                if ((grantResults.isNotEmpty() && grantResults[0] == PERMISSION_GRANTED) &&
-                    isStoragePermissionAvailable()) {
-                    // permission was granted, yay!
-                    downloadsFeature.onPermissionsGranted()
-                }
-            }
+            REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
+            REQUEST_CODE_PROMPT_PERMISSIONS -> promptFeature.onPermissionsResult(permissions, grantResults)
         }
-        promptFeature.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

@@ -4,12 +4,9 @@
 
 package mozilla.components.service.glean
 
-import android.view.accessibility.AccessibilityManager
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
 import android.support.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -25,8 +22,8 @@ import mozilla.components.service.glean.ping.PingMaker
 import mozilla.components.service.glean.scheduler.GleanLifecycleObserver
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
-import mozilla.components.service.glean.metrics.GleanBaseline
-import mozilla.components.service.glean.utils.StringUtils
+import mozilla.components.service.glean.ping.BaselinePing
+import mozilla.components.service.glean.scheduler.MetricsPingScheduler
 import mozilla.components.support.base.log.logger.Logger
 import java.io.File
 
@@ -50,6 +47,13 @@ open class GleanInternalAPI {
     // The application id detected by glean to be used as part of the submission
     // endpoint.
     internal lateinit var applicationId: String
+
+    // This object holds data related to any persistent information about the metrics ping,
+    // such as the last time it was sent and the store name
+    internal lateinit var metricsPingScheduler: MetricsPingScheduler
+
+    // This object encapsulates initialization and information related to the baseline ping
+    internal lateinit var baselinePing: BaselinePing
 
     /**
      * Initialize glean.
@@ -172,31 +176,6 @@ open class GleanInternalAPI {
     }
 
     /**
-     * Records a list of the currently enabled accessibility services.
-     *
-     * https://developer.android.com/reference/android/view/accessibility/AccessibilityManager.html
-     * @param accessibilityManager The system's [AccessibilityManager] as
-     * returned from applicationContext.getSystemService
-     * @returns services A list of ids of the enabled accessibility services. If
-     *     the accessibility manager is disabled, returns null.
-     */
-    internal fun getEnabledAccessibilityServices(
-        accessibilityManager: AccessibilityManager
-    ): List<String>? {
-        if (!accessibilityManager.isEnabled) {
-            logger.info("AccessibilityManager is disabled")
-            return null
-        }
-        return accessibilityManager.getEnabledAccessibilityServiceList(
-            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
-        ).mapNotNull {
-            // Note that any reference in java code can be null, so we'd better
-            // check for null values here as well.
-            it.id
-        }
-    }
-
-    /**
      * Initialize the core metrics internally managed by Glean (e.g. client id).
      */
     private fun initializeCoreMetrics(applicationContext: Context) {
@@ -233,35 +212,9 @@ open class GleanInternalAPI {
             throw AssertionError("Could not get own package info, aborting init")
         }
 
-        // Set the OS type
-        GleanBaseline.os.set("Android")
-
-        // Set the OS version
-        // https://developer.android.com/reference/android/os/Build.VERSION
-        GleanBaseline.osVersion.set(Build.VERSION.SDK_INT.toString())
-
-        // Set the device string
-        // https://developer.android.com/reference/android/os/Build
-        // We limit the device descriptor to 32 characters because it can get long. We give fewer
-        // characters to the manufacturer because we're less likely to have manufacturers with
-        // similar names than we are for a manufacturer to have two devices with the similar names
-        // (e.g. Galaxy S6 vs. Galaxy Note 6).
-        @Suppress("MagicNumber")
-        GleanBaseline.device.set(
-            StringUtils.safeSubstring(Build.MANUFACTURER, 0, 12) +
-            '-' +
-            StringUtils.safeSubstring(Build.MODEL, 0, 19)
-        )
-
-        // Set the CPU architecture
-        GleanBaseline.architecture.set(Build.SUPPORTED_ABIS[0])
-
-        // Set the enabled accessibility services
-        getEnabledAccessibilityServices(
-            applicationContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
-        ) ?.let {
-            GleanBaseline.a11yServices.set(it)
-        }
+        // Set up information and scheduling for glean owned pings
+        metricsPingScheduler = MetricsPingScheduler(applicationContext)
+        baselinePing = BaselinePing(applicationContext)
     }
 
     /**
@@ -295,10 +248,15 @@ open class GleanInternalAPI {
 
         when (pingEvent) {
             Glean.PingEvent.Background -> {
-                sendPing("baseline", "baseline")
+                sendPing(BaselinePing.STORE_NAME, BaselinePing.STORE_NAME)
                 sendPing("events", "events")
             }
-            Glean.PingEvent.Default -> sendPing("metrics", "metrics")
+            Glean.PingEvent.Default -> {
+                if (metricsPingScheduler.canSendPing()) {
+                    sendPing(MetricsPingScheduler.STORE_NAME, MetricsPingScheduler.STORE_NAME)
+                    metricsPingScheduler.updateSentTimestamp()
+                }
+            }
         }
     }
 }

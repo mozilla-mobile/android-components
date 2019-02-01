@@ -9,28 +9,59 @@ import mozilla.components.browser.session.SessionManager
 
 /**
  * Contains use cases related to the session feature.
+ *
+ * @param sessionManager the application's [SessionManager].
+ * @param onNoSession When invoking a use case that requires a (selected) [Session] and when no [Session] is available
+ * this (optional) lambda will be invoked to create a [Session]. The default implementation creates a [Session] and adds
+ * it to the [SessionManager].
  */
 class SessionUseCases(
-    sessionManager: SessionManager
+    sessionManager: SessionManager,
+    onNoSession: (String) -> Session = { url ->
+        Session(url).apply { sessionManager.add(this) }
+    }
 ) {
 
-    class LoadUrlUseCase internal constructor(
-        private val sessionManager: SessionManager
-    ) {
+    /**
+     * Contract for use cases that load a provided URL.
+     */
+    interface LoadUrlUseCase {
+        fun invoke(url: String)
+    }
+
+    class DefaultLoadUrlUseCase internal constructor(
+        private val sessionManager: SessionManager,
+        private val onNoSession: (String) -> Session
+    ) : LoadUrlUseCase {
+
         /**
-         * Loads the provided URL using the provided session (or the currently
-         * selected session if none is provided).
+         * Loads the provided URL using the currently selected session. If
+         * there's no selected session a new session will be created using
+         * [onNoSession].
          *
-         * @param url url to load.
+         * @param url The URL to be loaded using the selected session.
+         */
+        override fun invoke(url: String) {
+            this.invoke(url, sessionManager.selectedSession)
+        }
+
+        /**
+         * Loads the provided URL using the specified session. If no session
+         * is provided the currently selected session will be used. If there's
+         * no selected session a new session will be created using [onNoSession].
+         *
+         * @param url The URL to be loaded using the provided session.
          * @param session the session for which the URL should be loaded.
          */
-        fun invoke(url: String, session: Session = sessionManager.selectedSessionOrThrow) {
-            sessionManager.getOrCreateEngineSession(session).loadUrl(url)
+        fun invoke(url: String, session: Session? = sessionManager.selectedSession) {
+            val loadSession = session ?: onNoSession.invoke(url)
+            sessionManager.getOrCreateEngineSession(loadSession).loadUrl(url)
         }
     }
 
     class LoadDataUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val sessionManager: SessionManager,
+        private val onNoSession: (String) -> Session
     ) {
         /**
          * Loads the provided data based on the mime type using the provided session (or the
@@ -40,9 +71,10 @@ class SessionUseCases(
             data: String,
             mimeType: String,
             encoding: String = "UTF-8",
-            session: Session = sessionManager.selectedSessionOrThrow
+            session: Session? = sessionManager.selectedSession
         ) {
-            sessionManager.getOrCreateEngineSession(session).loadData(data, mimeType, encoding)
+            val loadSession = session ?: onNoSession.invoke("about:blank")
+            sessionManager.getOrCreateEngineSession(loadSession).loadData(data, mimeType, encoding)
         }
     }
 
@@ -55,8 +87,10 @@ class SessionUseCases(
          *
          * @param session the session for which reload should be triggered.
          */
-        fun invoke(session: Session = sessionManager.selectedSessionOrThrow) {
-            sessionManager.getOrCreateEngineSession(session).reload()
+        fun invoke(session: Session? = sessionManager.selectedSession) {
+            if (session != null) {
+                sessionManager.getOrCreateEngineSession(session).reload()
+            }
         }
     }
 
@@ -68,8 +102,10 @@ class SessionUseCases(
          *
          * @param session the session for which loading should be stopped.
          */
-        fun invoke(session: Session = sessionManager.selectedSessionOrThrow) {
-            sessionManager.getOrCreateEngineSession(session).stopLoading()
+        fun invoke(session: Session? = sessionManager.selectedSession) {
+            if (session != null) {
+                sessionManager.getOrCreateEngineSession(session).stopLoading()
+            }
         }
     }
 
@@ -80,7 +116,9 @@ class SessionUseCases(
          * Navigates back in the history of the currently selected session
          */
         fun invoke() {
-            sessionManager.getOrCreateEngineSession().goBack()
+            sessionManager.selectedSession?.let {
+                sessionManager.getOrCreateEngineSession(it).goBack()
+            }
         }
     }
 
@@ -91,7 +129,9 @@ class SessionUseCases(
          * Navigates forward in the history of the currently selected session
          */
         fun invoke() {
-            sessionManager.getOrCreateEngineSession().goForward()
+            sessionManager.selectedSession?.let {
+                sessionManager.getOrCreateEngineSession(it).goForward()
+            }
         }
     }
 
@@ -99,10 +139,12 @@ class SessionUseCases(
         private val sessionManager: SessionManager
     ) {
         /**
-         * Request the desktop version of the current session and reloads the page.
+         * Requests the desktop version of the current session and reloads the page.
          */
-        fun invoke(enable: Boolean, session: Session = sessionManager.selectedSessionOrThrow) {
-            sessionManager.getOrCreateEngineSession(session).toggleDesktopMode(enable, true)
+        fun invoke(enable: Boolean, session: Session? = sessionManager.selectedSession) {
+            if (session != null) {
+                sessionManager.getOrCreateEngineSession(session).toggleDesktopMode(enable, true)
+            }
         }
     }
 
@@ -112,8 +154,10 @@ class SessionUseCases(
         /**
          * Exits fullscreen mode of the current session.
          */
-        fun invoke(session: Session = sessionManager.selectedSessionOrThrow) {
-            sessionManager.getOrCreateEngineSession(session).exitFullScreenMode()
+        fun invoke(session: Session? = sessionManager.selectedSession) {
+            if (session != null) {
+                sessionManager.getOrCreateEngineSession(session).exitFullScreenMode()
+            }
         }
     }
 
@@ -123,13 +167,15 @@ class SessionUseCases(
         /**
          * Clears all user data sources available.
          */
-        fun invoke(session: Session = sessionManager.selectedSessionOrThrow) {
-            sessionManager.getOrCreateEngineSession(session).clearData()
+        fun invoke(session: Session? = sessionManager.selectedSession) {
+            if (session != null) {
+                sessionManager.getOrCreateEngineSession(session).clearData()
+            }
         }
     }
 
-    val loadUrl: LoadUrlUseCase by lazy { LoadUrlUseCase(sessionManager) }
-    val loadData: LoadDataUseCase by lazy { LoadDataUseCase(sessionManager) }
+    val loadUrl: DefaultLoadUrlUseCase by lazy { DefaultLoadUrlUseCase(sessionManager, onNoSession) }
+    val loadData: LoadDataUseCase by lazy { LoadDataUseCase(sessionManager, onNoSession) }
     val reload: ReloadUrlUseCase by lazy { ReloadUrlUseCase(sessionManager) }
     val stopLoading: StopLoadingUseCase by lazy { StopLoadingUseCase(sessionManager) }
     val goBack: GoBackUseCase by lazy { GoBackUseCase(sessionManager) }

@@ -39,9 +39,10 @@ permalink: /changelog/
    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
       when (requestCode) {
           REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
-      }        
+      }
     }
   ```
+  * Fixed Downloads feature to work with Custom Tabs by passing in the session ID when applicable.
 
  * **feature-prompts**
    * ⚠️ **This is a breaking API change!**
@@ -62,7 +63,7 @@ permalink: /changelog/
    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
       when (requestCode) {
           REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
-      }        
+      }
     }
   ```
 

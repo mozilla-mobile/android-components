@@ -4,19 +4,45 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.41.0-SNAPSHOT  (In Development)
+# 0.42.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/43?closed=1)
-* [API reference](https://mozilla-mobile.github.io/android-components/api/0.40.0/index)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.41.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/44?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.41.0/index)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+# 0.41.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...v0.41.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/43?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.41.0/index)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.41.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.41.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.41.0/buildSrc/src/main/java/Config.kt)
+
 * Mozilla App Services dependency upgraded: **0.15.0** 🔺
+  * [0.15.0 release notes](https://github.com/mozilla/application-services/releases/tag/v0.15.0)
 
 * **browser-engine-gecko-nightly**
   * Tweaked `NestedGeckoView` to "stick" to `AppBar` in nested scroll, like other Android apps. This is possible after a [fix](https://bugzilla.mozilla.org/show_bug.cgi?id=1515774) in APZ gesture detection.
+
+* **feature-browser**
+  * Added `BrowserToolbar` attributes to color the menu.
+  ```xml
+  <mozilla.components.browser.toolbar.BrowserToolbar
+      android:id="@+id/toolbar"
+      android:layout_width="match_parent"
+      android:layout_height="56dp"
+      android:background="#aaaaaa"
+      app:browserToolbarMenuColor="@color/photonBlue50"
+      app:browserToolbarInsecureColor="@color/photonRed50"
+      app:browserToolbarSecureColor="@color/photonGreen50" />
+  ```
+
+* **feature-contextmenu**
+  * Fixed Context Menus feature to work with Custom Tabs by passing in the session ID when applicable.
 
 * **feature-customtabs**
   * Added a temporary workaround for Custom Tab intents not being recognized when using the Jetifier tool.
@@ -39,9 +65,10 @@ permalink: /changelog/
    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
       when (requestCode) {
           REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
-      }        
+      }
     }
   ```
+  * Fixed Downloads feature to work with Custom Tabs by passing in the session ID when applicable.
 
  * **feature-prompts**
    * ⚠️ **This is a breaking API change!**
@@ -62,9 +89,12 @@ permalink: /changelog/
    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
       when (requestCode) {
           REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
-      }        
+      }
     }
   ```
+
+* **feature-contextmenu**
+  * The component is now performing [haptic feedback](https://material.io/design/platform-guidance/android-haptics.html#) when showing a context menu.
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * After "Merge Day" and the release of Firefox 65 we updated our gecko-based components to follow the new upstream versions:

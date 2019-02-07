@@ -4,14 +4,55 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.41.0-SNAPSHOT  (In Development)
+# 0.42.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/43?closed=1)
-* [API reference](https://mozilla-mobile.github.io/android-components/api/0.40.0/index)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.41.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/44?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.41.0/index)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **feature-session**
+  * Fixed an issue causing `EngineViewPresenter` to render a selected `Session` even though it was configured to show a fixed `Session`. This issue caused a crash (`IllegalStateException: Display already acquired`) in the [Reference Browser](https://github.com/mozilla-mobile/reference-browser) when a "Custom Tab" and the "Browser" tried to render the same `Session`.
+
+* **browser-engine-system**
+  * Added support for [JavaScript prompt alerts](https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt) on WebView.
+
+* **feature-customtabs**
+  * Fixed an issue causing the `closeListener` to be invoked even when the current session isn't a Custom Tab.
+
+# 0.41.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...v0.41.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/43?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.41.0/index)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.41.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.41.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.41.0/buildSrc/src/main/java/Config.kt)
+
+* Mozilla App Services dependency upgraded: **0.15.0** 🔺
+  * [0.15.0 release notes](https://github.com/mozilla/application-services/releases/tag/v0.15.0)
+
+* **browser-engine-gecko-nightly**
+  * Tweaked `NestedGeckoView` to "stick" to `AppBar` in nested scroll, like other Android apps. This is possible after a [fix](https://bugzilla.mozilla.org/show_bug.cgi?id=1515774) in APZ gesture detection.
+
+* **feature-browser**
+  * Added `BrowserToolbar` attributes to color the menu.
+
+  ```xml
+  <mozilla.components.browser.toolbar.BrowserToolbar
+      android:id="@+id/toolbar"
+      android:layout_width="match_parent"
+      android:layout_height="56dp"
+      android:background="#aaaaaa"
+      app:browserToolbarMenuColor="@color/photonBlue50"
+      app:browserToolbarInsecureColor="@color/photonRed50"
+      app:browserToolbarSecureColor="@color/photonGreen50" />
+  ```
+
+* **feature-contextmenu**
+  * Fixed Context Menus feature to work with Custom Tabs by passing in the session ID when applicable.
 
 * **feature-customtabs**
   * Added a temporary workaround for Custom Tab intents not being recognized when using the Jetifier tool.
@@ -19,6 +60,7 @@ permalink: /changelog/
 * **feature-downloads**
   * ⚠️ **This is a breaking API change!**
   * The required permissions are now passed to the `onNeedToRequestPermissions` callback.
+
   ```kotlin
   downloadsFeature = DownloadsFeature(
       requireContext(),
@@ -29,14 +71,47 @@ permalink: /changelog/
       }
   )
   ```
+
   * Removed the `onPermissionsGranted` method in favour of `onPermissionsResult` which handles both granted and denied permissions. This method should be invoked from `onRequestPermissionsResult`:
+
   ```kotlin
    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
       when (requestCode) {
           REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
-      }        
+      }
     }
   ```
+
+  * Fixed Downloads feature to work with Custom Tabs by passing in the session ID when applicable.
+
+ * **feature-prompts**
+   * ⚠️ **This is a breaking API change!**
+   * These change are similar to the ones for feature-downloads above and aim to provide a consistent way of handling permission requests.
+   * The required permissions are now passed to the `onNeedToRequestPermissions` callback.
+
+   ```kotlin
+   promptFeature = PromptFeature(
+      fragment = this,
+      sessionManager = components.sessionManager,
+      fragmentManager = requireFragmentManager(),
+      onNeedToRequestPermissions = { permissions ->
+          requestPermissions(permissions, REQUEST_CODE_PROMPT_PERMISSIONS)
+      }
+   )
+   ```
+
+   * Renamed `onRequestsPermissionsResult` to `onPermissionResult` and allow applications to specify the permission request code. This method should be invoked from `onRequestPermissionsResult`:
+
+  ```kotlin
+   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+      when (requestCode) {
+          REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.onPermissionsResult(permissions, grantResults)
+      }
+    }
+  ```
+
+* **feature-contextmenu**
+  * The component is now performing [haptic feedback](https://material.io/design/platform-guidance/android-haptics.html#) when showing a context menu.
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * After "Merge Day" and the release of Firefox 65 we updated our gecko-based components to follow the new upstream versions:

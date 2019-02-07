@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Message
 import android.support.annotation.VisibleForTesting
+import android.support.annotation.VisibleForTesting.PRIVATE
 import android.util.AttributeSet
 import android.view.View
 import android.webkit.CookieManager
@@ -61,7 +62,8 @@ class SystemEngineView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView, View.OnLongClickListener {
 
-    private var session: SystemEngineSession? = null
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal var session: SystemEngineSession? = null
     internal var jsAlertCount = 0
     internal var shouldShowMoreDialogs = true
     internal var lastDialogShownAt = Date()
@@ -98,11 +100,23 @@ class SystemEngineView @JvmOverloads constructor(
 
     override fun onDestroy() {
         session?.apply {
-            webView.destroy()
+            // The WebView instance is long-lived, as it's referenced in the
+            // engine session. We can't destroy it here since the session
+            // might be used with a different engine view instance later.
+
+            // Further, when this engine view gets destroyed, we need to
+            // remove/detach the WebView so that engine view's activity context
+            // can properly be destroyed and gc'ed. The WebView instances are
+            // created with the context provided to the engine (application
+            // context) and reference their parent (this engine view). Since
+            // we're keeping the engine session (and their WebView) instances
+            // in the SessionManager until closed we'd otherwise prevent
+            // this engine view and its context from getting gc'ed.
+            (webView.parent as? SystemEngineView)?.removeView(webView)
         }
     }
 
-    internal fun initWebView(webView: WebView = NestedWebView(context)): WebView {
+    internal fun initWebView(webView: WebView): WebView {
         webView.tag = "mozac_system_engine_webview"
         webView.webViewClient = createWebViewClient()
         webView.webChromeClient = createWebChromeClient()
@@ -346,15 +360,44 @@ class SystemEngineView @JvmOverloads constructor(
             return true
         }
 
-        // Related Issue: https://github.com/mozilla-mobile/android-components/issues/1815
         override fun onJsPrompt(
             view: WebView?,
             url: String?,
             message: String?,
             defaultValue: String?,
-            result: JsPromptResult?
+            result: JsPromptResult
         ): Boolean {
-            return applyDefaultJsDialogBehavior(result)
+            val session = session ?: return applyDefaultJsDialogBehavior(result)
+
+            val title = context.getString(R.string.mozac_browser_engine_system_alert_title, url ?: session.currentUrl)
+
+            val onDismiss: () -> Unit = {
+                result.cancel()
+            }
+
+            val onConfirm: (Boolean, String) -> Unit = { shouldNotShowMoreDialogs, valueInput ->
+                shouldShowMoreDialogs = !shouldNotShowMoreDialogs
+                result.confirm(valueInput)
+            }
+
+            if (shouldShowMoreDialogs) {
+                session.notifyObservers {
+                    onPromptRequest(
+                        PromptRequest.TextPrompt(
+                            title ?: "",
+                            message ?: "",
+                            defaultValue ?: "",
+                            areDialogsBeingAbused(),
+                            onDismiss,
+                            onConfirm
+                        )
+                    )
+                }
+            } else {
+                result.cancel()
+            }
+            updateJSDialogAbusedState()
+            return true
         }
 
         // Related Issue: https://github.com/mozilla-mobile/android-components/issues/1814

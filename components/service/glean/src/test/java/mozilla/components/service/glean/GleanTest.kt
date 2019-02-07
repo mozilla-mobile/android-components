@@ -7,9 +7,7 @@ package mozilla.components.service.glean
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleOwner
 import android.arch.lifecycle.LifecycleRegistry
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
-import android.view.accessibility.AccessibilityManager
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -27,17 +25,16 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -226,7 +223,8 @@ class GleanTest {
                 "glean.baseline.os_version",
                 "glean.baseline.device_manufacturer",
                 "glean.baseline.device_model",
-                "glean.baseline.architecture"
+                "glean.baseline.architecture",
+                "glean.baseline.locale"
             )
             val baselineMetricsObject = baselineJson.getJSONObject("metrics")!!
             val baselineStringMetrics = baselineMetricsObject.getJSONObject("string")!!
@@ -446,31 +444,11 @@ class GleanTest {
     }
 
     @Test
-    fun `Make sure a11y services are collected`() {
-        val applicationContext = ApplicationProvider.getApplicationContext<Context>()
-        val accessibilityManager = applicationContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+    fun `metricsPingScheduler is properly initialized`() {
+        Glean.metricsPingScheduler.clearSchedulerData()
+        Glean.metricsPingScheduler.updateSentTimestamp()
 
-        val shadowAccessibilityManager = shadowOf(accessibilityManager)
-        shadowAccessibilityManager.setEnabled(true)
-
-        val serviceSpy1 = spy<AccessibilityServiceInfo>(AccessibilityServiceInfo::class.java)
-        doReturn("service1").`when`(serviceSpy1).id
-
-        val serviceSpy2 = spy<AccessibilityServiceInfo>(AccessibilityServiceInfo::class.java)
-        doReturn("service2").`when`(serviceSpy2).id
-
-        val nullServiceId = spy<AccessibilityServiceInfo>(AccessibilityServiceInfo::class.java)
-        doReturn(null).`when`(nullServiceId).id
-
-        shadowAccessibilityManager.setEnabledAccessibilityServiceList(
-            listOf(serviceSpy1, serviceSpy2, nullServiceId)
-        )
-
-        assertEquals(
-            listOf("service1", "service2"),
-            Glean.getEnabledAccessibilityServices(
-                accessibilityManager
-            )
-        )
+        // Should return false since we just updated the last time the ping was sent above
+        assertFalse(Glean.metricsPingScheduler.canSendPing())
     }
 }

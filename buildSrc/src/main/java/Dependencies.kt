@@ -29,7 +29,7 @@ object Versions {
     const val sentry = "1.7.14"
     const val okhttp = "3.12.1"
 
-    const val mozilla_appservices = "0.14.0"
+    const val mozilla_appservices = "0.15.0"
     const val servo = "0.0.1.20181017.aa95911"
 }
 
@@ -73,7 +73,8 @@ object Dependencies {
     const val mozilla_sync_logins = "org.mozilla.sync15:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.places:places:${Versions.mozilla_appservices}"
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
-    const val mozilla_servo = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
+    const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
+    const val mozilla_servo_x86 = "org.mozilla.servoview:servoview-x86:${Versions.servo}"
 
     const val thirdparty_okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"

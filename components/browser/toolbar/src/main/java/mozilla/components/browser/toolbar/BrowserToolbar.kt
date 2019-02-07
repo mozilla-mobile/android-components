@@ -56,7 +56,7 @@ class BrowserToolbar @JvmOverloads constructor(
     @VisibleForTesting internal var editToolbar = EditToolbar(context, this)
 
     /**
-     * Set/Get whether a site security icon (usually a lock or globe icon) should be next to the URL.
+     * Set/Get whether a site security icon (usually a lock or globe icon) should be visible next to the URL.
      */
     var displaySiteSecurityIcon: Boolean
         get() = displayToolbar.siteSecurityIconView.isVisible()
@@ -65,11 +65,23 @@ class BrowserToolbar @JvmOverloads constructor(
         }
 
     /**
+     *  Set/Get the site security icon colours (usually a lock or globe icon). It uses a pair of integers
+     *  which represent the insecure and secure colours respectively.
+     */
+    var siteSecurityColor: Pair<Int, Int>
+        get() = displayToolbar.securityIconColor
+        set(value) { displayToolbar.securityIconColor = value }
+
+    /**
      * Gets/Sets a custom view that will be drawn as behind the URL and page actions in display mode.
      */
     var urlBoxView: View?
         get() = displayToolbar.urlBoxView
         set(value) { displayToolbar.urlBoxView = value }
+
+    var menuViewColor: Int
+        get() = displayToolbar.menuViewColor
+        set(value) { displayToolbar.menuViewColor = value }
 
     /**
      * Gets/Sets the margin to be used between browser actions.
@@ -222,7 +234,7 @@ class BrowserToolbar @JvmOverloads constructor(
                     R.styleable.BrowserToolbar_browserToolbarTextSize,
                     textSize
                 ) / resources.displayMetrics.density
-                displayToolbar.menuViewColor = getColor(
+                menuViewColor = getColor(
                     R.styleable.BrowserToolbar_browserToolbarMenuColor,
                     displayToolbar.menuViewColor
                 )
@@ -234,7 +246,7 @@ class BrowserToolbar @JvmOverloads constructor(
                     R.styleable.BrowserToolbar_browserToolbarSecureColor,
                     displayToolbar.securityIconColor.second
                 )
-                displayToolbar.securityIconColor = Pair(inSecure, secure)
+                siteSecurityColor = Pair(inSecure, secure)
             }
             recycle()
         }

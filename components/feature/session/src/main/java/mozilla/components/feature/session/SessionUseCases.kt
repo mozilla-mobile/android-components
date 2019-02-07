@@ -17,6 +17,7 @@ import mozilla.components.browser.session.SessionManager
  */
 class SessionUseCases(
     sessionManager: SessionManager,
+    useNewSession: Boolean = false,
     onNoSession: (String) -> Session = { url ->
         Session(url).apply { sessionManager.add(this) }
     }
@@ -31,6 +32,7 @@ class SessionUseCases(
 
     class DefaultLoadUrlUseCase internal constructor(
         private val sessionManager: SessionManager,
+        private val useNewSession: Boolean = false,
         private val onNoSession: (String) -> Session
     ) : LoadUrlUseCase {
 
@@ -42,7 +44,8 @@ class SessionUseCases(
          * @param url The URL to be loaded using the selected session.
          */
         override fun invoke(url: String) {
-            this.invoke(url, sessionManager.selectedSession)
+            val loadSession = if (useNewSession) onNoSession.invoke(url) else sessionManager.selectedSession
+            this.invoke(url, loadSession)
         }
 
         /**
@@ -61,6 +64,7 @@ class SessionUseCases(
 
     class LoadDataUseCase internal constructor(
         private val sessionManager: SessionManager,
+        private val useNewSession: Boolean = false,
         private val onNoSession: (String) -> Session
     ) {
         /**
@@ -73,7 +77,8 @@ class SessionUseCases(
             encoding: String = "UTF-8",
             session: Session? = sessionManager.selectedSession
         ) {
-            val loadSession = session ?: onNoSession.invoke("about:blank")
+            val loadSession = if (useNewSession) { onNoSession.invoke("about:blank") }
+                else { session ?: onNoSession.invoke("about:blank") }
             sessionManager.getOrCreateEngineSession(loadSession).loadData(data, mimeType, encoding)
         }
     }
@@ -174,8 +179,8 @@ class SessionUseCases(
         }
     }
 
-    val loadUrl: DefaultLoadUrlUseCase by lazy { DefaultLoadUrlUseCase(sessionManager, onNoSession) }
-    val loadData: LoadDataUseCase by lazy { LoadDataUseCase(sessionManager, onNoSession) }
+    val loadUrl: DefaultLoadUrlUseCase by lazy { DefaultLoadUrlUseCase(sessionManager, useNewSession, onNoSession) }
+    val loadData: LoadDataUseCase by lazy { LoadDataUseCase(sessionManager, useNewSession, onNoSession) }
     val reload: ReloadUrlUseCase by lazy { ReloadUrlUseCase(sessionManager) }
     val stopLoading: StopLoadingUseCase by lazy { StopLoadingUseCase(sessionManager) }
     val goBack: GoBackUseCase by lazy { GoBackUseCase(sessionManager) }

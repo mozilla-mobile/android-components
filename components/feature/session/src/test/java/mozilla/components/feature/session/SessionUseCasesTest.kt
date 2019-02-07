@@ -16,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 
@@ -167,6 +168,53 @@ class SessionUseCasesTest {
         `when`(sessionManager.getOrCreateEngineSession(any())).thenReturn(engineSession)
 
         val loadUseCase = SessionUseCases.LoadDataUseCase(sessionManager) { url ->
+            sessionCreatedForUrl = url
+            Session(url).also { createdSession = it }
+        }
+
+        loadUseCase.invoke("Hello", mimeType = "plain/text", encoding = "UTF-8")
+
+        assertEquals("about:blank", sessionCreatedForUrl)
+        assertNotNull(createdSession)
+        verify(sessionManager).getOrCreateEngineSession(createdSession!!)
+        verify(engineSession).loadData("Hello", mimeType = "plain/text", encoding = "UTF-8")
+    }
+
+    @Test
+    fun `LoadUrlUseCase will invoke onNoSession lambda if useNewSession is set`() {
+        var createdSession: Session? = null
+        var sessionCreatedForUrl: String? = null
+
+        val engineSession: EngineSession = mock()
+
+        `when`(sessionManager.selectedSession).thenReturn(Session("mozilla.org"))
+        `when`(sessionManager.getOrCreateEngineSession(any())).thenReturn(engineSession)
+
+        val loadUseCase = SessionUseCases.LoadDataUseCase(sessionManager, true) { url ->
+            sessionCreatedForUrl = url
+            Session(url).also { createdSession = it }
+        }
+
+        loadUseCase.invoke("Hello", mimeType = "plain/text", encoding = "UTF-8")
+
+        assertEquals("about:blank", sessionCreatedForUrl)
+        assertNotNull(createdSession)
+        verify(sessionManager).getOrCreateEngineSession(createdSession!!)
+        verify(engineSession)
+                .loadData("Hello", mimeType = "plain/text", encoding = "UTF-8")
+    }
+
+    @Test
+    fun `LoadDataUseCase will invoke onNoSession lambda if useNewSession is set`() {
+        var createdSession: Session? = null
+        var sessionCreatedForUrl: String? = null
+
+        val engineSession: EngineSession = mock()
+
+        `when`(sessionManager.selectedSession).thenReturn(Session("mozilla.org"))
+        `when`(sessionManager.getOrCreateEngineSession(any())).thenReturn(engineSession)
+
+        val loadUseCase = SessionUseCases.LoadDataUseCase(sessionManager, true) { url ->
             sessionCreatedForUrl = url
             Session(url).also { createdSession = it }
         }

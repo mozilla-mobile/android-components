@@ -7,6 +7,7 @@ package mozilla.components.service.glean.storages
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.support.annotation.VisibleForTesting
 import mozilla.components.service.glean.Lifetime
 import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.support.base.log.logger.Logger
@@ -36,7 +37,7 @@ internal typealias ScalarRecordingCombiner<T> = (currentValue: T?, newValue: T) 
  * A base class for 'scalar' like metrics. This allows sharing the common
  * store managing and lifetime behaviours.
  */
-abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
+internal abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
     override lateinit var applicationContext: Context
 
     // Let derived class define a logger so that they can provide a proper name,
@@ -76,20 +77,6 @@ abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
         value: ScalarType,
         extraSerializationData: Any?
     )
-
-    /**
-     * Helper function to return the name of the stored metric.
-     * This is used to support empty categories.
-     */
-    protected fun getStoredName(metricData: CommonMetricData): String {
-        with(metricData) {
-            return if (category.isEmpty()) {
-                name
-            } else {
-                "$category.$name"
-            }
-        }
-    }
 
     /**
      * Deserialize the metrics with a lifetime = User that are on disk.
@@ -229,7 +216,7 @@ abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
             val storeData = dataStores[metricData.lifetime.ordinal].getOrPut(it) { mutableMapOf() }
             // We support empty categories for enabling the internal use of metrics
             // when assembling pings in [PingMaker].
-            val entryName = getStoredName(metricData)
+            val entryName = metricData.identifier
             val combinedValue = combine(storeData[entryName], value)
             storeData[entryName] = combinedValue
             // Persist data with "user" lifetime
@@ -245,5 +232,9 @@ abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
         userPrefs?.apply()
     }
 
-    internal open fun clearAllStores() = dataStores.forEach { it.clear() }
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    override fun clearAllStores() {
+        userLifetimeStorage.edit().clear().apply()
+        dataStores.forEach { it.clear() }
+    }
 }

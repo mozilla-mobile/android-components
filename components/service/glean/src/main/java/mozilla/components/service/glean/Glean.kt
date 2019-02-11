@@ -28,7 +28,7 @@ import mozilla.components.support.base.log.logger.Logger
 import java.io.File
 
 @Suppress("TooManyFunctions")
-open class GleanInternalAPI {
+open class GleanInternalAPI internal constructor () {
     private val logger = Logger("glean/Glean")
 
     // Include our singletons of StorageEngineManager and PingMaker
@@ -268,6 +268,15 @@ open class GleanInternalAPI {
                 }
             }
         }
+    }
+
+    /**
+     * Test only function to clear all storages and metrics.  Note that this also includes 'user'
+     * lifetime metrics so be aware that things like clientId will be wiped as well.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    fun testClearAllData() {
+        storageEngineManager.clearAllStores()
     }
 }
 

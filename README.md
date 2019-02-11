@@ -128,6 +128,8 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Find In Page**](components/feature/findinpage/README.md) - A component that provides an UI widget for [find in page functionality](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links).
 
+* 🔴 [**Site Permissions**](components/feature/sidepermissions/README.md) - A feature for showing site permission request prompts.
+
 ## UI
 
 _Generic low-level UI components for building apps._
@@ -135,6 +137,8 @@ _Generic low-level UI components for building apps._
 * 🔵 [**Autocomplete**](components/ui/autocomplete/README.md) - A set of components to provide autocomplete functionality.
 
 * 🔵 [**Colors**](components/ui/colors/README.md) - The standard set of [Photon](https://design.firefox.com/photon/) colors.
+
+* ⚪ [**Doorhanger**](components/ui/doorhanger/README.md) - A generic floating heads-up popup that can be anchored to a view.
 
 * 🔵 [**Fonts**](components/ui/fonts/README.md) - The standard set of fonts used by Mozilla Android products.
 

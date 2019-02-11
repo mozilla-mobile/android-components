@@ -13,6 +13,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **engine-gecko-nightly**
+  * Now also serves as an implementation of `concept-fetch` by providing the new `GeckoViewFetchClient`. This allows applications to rely on Gecko's networking capabilities when issuing HTTP requests, even outside the browser view (GeckoView).
+  
+* **feature-prompts**, **browser-engine-gecko***
+  * Added support for [JavaScript Confirm dialogs](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm).
+
 * **feature-session**
   * Fixed an issue causing `EngineViewPresenter` to render a selected `Session` even though it was configured to show a fixed `Session`. This issue caused a crash (`IllegalStateException: Display already acquired`) in the [Reference Browser](https://github.com/mozilla-mobile/reference-browser) when a "Custom Tab" and the "Browser" tried to render the same `Session`.
   * Fixed an issue where back and forward button handling would not take place on the session whose ID was provided.
@@ -25,10 +31,17 @@ permalink: /changelog/
 
 * **feature-customtabs**
   * Fixed an issue causing the `closeListener` to be invoked even when the current session isn't a Custom Tab.
+  * Fixed an issue with the image resources in the toolbar were not tinted when an app provided a light colour for the background.
 
 * **support-base**
   * Added `ViewBoundFeatureWrapper` for wrapping `LifecycleAwareFeature` references that will automatically be cleared if the provided `View` gets detached. This is helpful for fragments that want to keep a reference to a `LifecycleAwareFeature` (e.g. to be able call `onBackPressed()`) that itself has strong references to `View` objects. In cases where the fragment gets detached (e.g. to be added to the backstack) and the `View` gets detached (and destroyed) the wrapper will automatically stop the `LifecycleAwareFeature`  and clear all references..
   * Added generic `BackHandler` interface for fragments, features and other components that want to handle 'back' button presses.
+
+* **ui-doorhanger**
+  * 🆕 New component: A `Doorhanger` is a floating heads-up popup that can be anchored to a view. They are presented to notify the user of something that is important (e.g. a content permission request).
+
+* **feature-sitepermissions**
+  * 🆕 New component: A feature that will subscribe to the selected session, and will provide an UI for all the incoming appPermission and contentPermission request.
 
 # 0.41.0
 
@@ -126,6 +139,17 @@ permalink: /changelog/
     * `browser-engine-gecko`: 65.0
     * `browser-engine-gecko-beta`: 66.0
     * `browser-engine-gecko-nightly`: 67.0
+
+* **browser-toolbar**
+  * Toolbar URL autocompletion is now performed off the UI thread.
+
+* **concept-storage**
+  * ⚠️ **This is a breaking API change!**
+  * `HistoryAutocompleteResult` now includes an `input` field.
+
+* **browser-domains**
+  * ⚠️ **This is a breaking API change!**
+  * `DomainAutocompleteResult` now includes an `input` field.
 
 # 0.40.0
 

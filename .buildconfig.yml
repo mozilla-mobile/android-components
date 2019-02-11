@@ -148,6 +148,10 @@ projects:
     path: components/ui/colors
     description: 'The standard set of Photon colors.'
     publish: true
+  ui-doorhanger:
+    path: components/ui/doorhanger
+    description: 'A generic floating heads-up popup that can be anchored to a view.'
+    publish: true
   ui-fonts:
     path: components/ui/fonts
     description: 'Convenience accessor for fonts used by Mozilla.'
@@ -251,6 +255,10 @@ projects:
   samples-glean:
     path: samples/glean
     description: 'An app demoing how to use the Glean library to collect and send telemetry data.'
+    publish: false
+  samples-glean-library:
+    path: samples/glean/samples-glean-library
+    description: 'A third-party library used by samples-glean to demonstrate multi-library support for Glean.'
     publish: false
   samples-sync-history:
     path: samples/sync-history

@@ -40,6 +40,8 @@ dependencies {
 
     implementation Dependencies.support_appcompat
     implementation Dependencies.support_customtabs
+
+    implementation project(':samples-glean-library')
 }
 
 apply from: '../../components/service/glean/scripts/sdk_generator.gradle'

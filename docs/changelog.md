@@ -31,6 +31,9 @@ permalink: /changelog/
   * Added `ViewBoundFeatureWrapper` for wrapping `LifecycleAwareFeature` references that will automatically be cleared if the provided `View` gets detached. This is helpful for fragments that want to keep a reference to a `LifecycleAwareFeature` (e.g. to be able call `onBackPressed()`) that itself has strong references to `View` objects. In cases where the fragment gets detached (e.g. to be added to the backstack) and the `View` gets detached (and destroyed) the wrapper will automatically stop the `LifecycleAwareFeature`  and clear all references..
   * Added generic `BackHandler` interface for fragments, features and other components that want to handle 'back' button presses.
 
+* **ui-doorhanger**
+  * 🆕 New component: A `Doorhanger` is a floating heads-up popup that can be anchored to a view. They are presented to notify the user of something that is important (e.g. a content permission request).
+
 # 0.41.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.40.0...v0.41.0)
@@ -127,6 +130,17 @@ permalink: /changelog/
     * `browser-engine-gecko`: 65.0
     * `browser-engine-gecko-beta`: 66.0
     * `browser-engine-gecko-nightly`: 67.0
+
+* **browser-toolbar**
+  * Toolbar URL autocompletion is now performed off the UI thread.
+
+* **concept-storage**
+  * ⚠️ **This is a breaking API change!**
+  * `HistoryAutocompleteResult` now includes an `input` field.
+
+* **browser-domains**
+  * ⚠️ **This is a breaking API change!**
+  * `DomainAutocompleteResult` now includes an `input` field.
 
 # 0.40.0
 

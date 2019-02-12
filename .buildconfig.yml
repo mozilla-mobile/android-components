@@ -188,6 +188,10 @@ projects:
     path: components/service/glean
     description: 'A client-side telemetry SDK for collecting metrics and sending them to the Mozilla telemetry service'
     publish: true
+  service-glean-no-op:
+    path: components/service/glean-no-op
+    description: 'A no-op version of the glean telemetry library'
+    publish: true
   service-telemetry:
     path: components/service/telemetry
     description: 'A generic library for generating and sending telemetry pings from Android applications to the Mozilla telemetry service.'

@@ -3,16 +3,30 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
+# 0.43.0-SNAPSHOT  (In Development)
 
-# 0.42.0-SNAPSHOT  (In Development)
-
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.41.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/44?closed=1)
-* [API reference](https://mozilla-mobile.github.io/android-components/api/0.41.0/index)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.42.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/45?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.42.0/index)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **ui-doorhanger**
+  * Added `DoorhangerPrompt` - a builder for creating a prompt `Doorhanger` providing a way to present decisions to users.
+
+# 0.42.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.41.0...v0.42.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/44?closed=1)
+* [API reference](https://mozilla-mobile.github.io/android-components/api/0.42.0/index)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.42.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.42.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.42.0/buildSrc/src/main/java/Config.kt)
+
+* **engine-gecko-nightly**
+  * Now also serves as an implementation of `concept-fetch` by providing the new `GeckoViewFetchClient`. This allows applications to rely on Gecko's networking capabilities when issuing HTTP requests, even outside the browser view (GeckoView).
+  
 * **feature-prompts**, **browser-engine-gecko***
   * Added support for [JavaScript Confirm dialogs](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm).
 
@@ -36,6 +50,9 @@ permalink: /changelog/
 
 * **ui-doorhanger**
   * 🆕 New component: A `Doorhanger` is a floating heads-up popup that can be anchored to a view. They are presented to notify the user of something that is important (e.g. a content permission request).
+
+* **feature-sitepermissions**
+  * 🆕 New component: A feature that will subscribe to the selected session, and will provide an UI for all the incoming appPermission and contentPermission request.
 
 # 0.41.0
 

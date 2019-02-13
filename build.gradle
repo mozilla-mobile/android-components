@@ -122,7 +122,7 @@ evaluationDependsOnChildren()
 task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
     moduleName = "$rootProject.name"
     outputDirectory = "$buildDir/javadoc"
-    outputFormat = "html"
+    outputFormat = "gfm"
     jdkVersion = 7
 
     subprojects.findAll {
@@ -132,6 +132,10 @@ task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
         it.android.libraryVariants.all { variant ->
             classpath += files(variant.javaCompile.classpath.files)
         }
+    }
+
+    externalDocumentationLink {
+        url = new URL("https://mozilla.github.io/geckoview/javadoc/mozilla-central/package-list")
     }
 
     sourceDirs = files(subprojects.findAll {

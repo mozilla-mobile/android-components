@@ -12,8 +12,42 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **concept-fetch**
+  * Added API to specify whether or not cookies should be sent with a request. This can be controlled using the `cookiePolicy` parameter when creating a `Request`.
+
+  ```kotlin
+  // Do not send cookies with this request
+  client.fetch(Request(url, cookiePolicy = CookiePolicy.OMIT)).use { response ->
+    val body = response.body.string()
+  }
+  ```
+
 * **ui-doorhanger**
   * Added `DoorhangerPrompt` - a builder for creating a prompt `Doorhanger` providing a way to present decisions to users.
+
+* **feature-downloads**
+  * Ignoring schemes that are not https or http [#issue 554](https://github.com/mozilla-mobile/reference-browser/issues/554)
+
+* **support-ktx**
+  * Added `Uri.hostWithoutCommonPrefixes` to return the host with common prefixes removed:
+
+  ```kotlin
+  "https://www.mozilla.org"
+      .toUri()
+      .hostWithoutCommonPrefixes // mozilla.org
+
+  "https://mobile.twitter.com/home"
+      .toUri()
+      .hostWithoutCommonPrefixes  // twitter.com
+
+  "https://m.facebook.com/"
+      .toUri()
+      .hostWithoutCommonPrefixes
+  ```
+
+  ℹ️ Note that this method only strips common prefixes like "www", "m" or "mobile". If you are interested in extracting something like the [eTLD](https://en.wikipedia.org/wiki/Public_Suffix_List) from a host then use [PublicSuffixList](https://mozac.org/api/mozilla.components.lib.publicsuffixlist/-public-suffix-list/) of the `lib-publicsuffixlist` component.
+
+  * Added `String.toUri()` as a shorthand for `Uri.parse()` and in addition to other `to*()` methods already available in the Kotlin Standard Library.
 
 # 0.42.0
 

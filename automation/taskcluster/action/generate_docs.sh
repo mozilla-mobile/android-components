@@ -12,10 +12,10 @@ git config --global user.email "sebastian@mozilla.com"
 git config --global user.name "MickeyMoz"
 
 # Generate docs and copy to destination
-./gradlew clean assemble docs
+./gradlew clean docs
 rm -rf docs/api
 mkdir docs/api
-cp -R build/javadoc/android-components/ docs/api
+cp -R build/javadoc/android-components/* docs/api/
 
 # Timestamp used in branch name and commit
 TIMESTAMP=`date "+%Y%m%d-%H%M%S"`
@@ -50,4 +50,4 @@ git push  --no-verify --quiet $URL $BRANCH
 echo "Done ($?)"
 
 echo "Opening pull request"
-./gradlew openPR -Ptitle="Docs update ($TIMESTAMP)" -Pbranch="$BRANCH" -PtokenFile="token.properties"
+./gradlew openPR -Ptitle="Docs update ($TIMESTAMP) [ci skip]" -Pbranch="$BRANCH" -PtokenFile="token.properties"

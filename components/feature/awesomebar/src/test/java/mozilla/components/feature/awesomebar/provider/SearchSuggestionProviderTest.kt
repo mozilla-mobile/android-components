@@ -11,6 +11,7 @@ import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.feature.search.SearchUseCases
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -56,7 +57,7 @@ class SearchSuggestionProviderTest {
             ).defaultSearch)
             doNothing().`when`(useCase).invoke(anyString(), any<Session>())
 
-            val provider = SearchSuggestionProvider(searchEngine, useCase)
+            val provider = SearchSuggestionProvider(searchEngine, useCase, HttpURLConnectionClient())
 
             try {
                 val suggestions = provider.onInputChanged("fire")
@@ -114,6 +115,7 @@ class SearchSuggestionProviderTest {
             val provider = SearchSuggestionProvider(
                 searchEngine,
                 useCase,
+                HttpURLConnectionClient(),
                 SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS
             )
 
@@ -149,13 +151,13 @@ class SearchSuggestionProviderTest {
 
     @Test
     fun `Provider should not clear suggestions`() {
-        val provider = SearchSuggestionProvider(mock(), mock())
+        val provider = SearchSuggestionProvider(mock(), mock(), mock())
         assertFalse(provider.shouldClearSuggestions)
     }
 
     @Test
     fun `Provider returns empty list if text is empty`() = runBlocking {
-        val provider = SearchSuggestionProvider(mock(), mock())
+        val provider = SearchSuggestionProvider(mock(), mock(), mock())
 
         val suggestions = provider.onInputChanged("")
         assertTrue(suggestions.isEmpty())
@@ -166,7 +168,7 @@ class SearchSuggestionProviderTest {
         val searchEngine: SearchEngine = mock()
         doReturn(false).`when`(searchEngine).canProvideSearchSuggestions
 
-        val provider = SearchSuggestionProvider(searchEngine, mock())
+        val provider = SearchSuggestionProvider(searchEngine, mock(), mock())
 
         val suggestions = provider.onInputChanged("fire")
         assertEquals(1, suggestions.size)
@@ -175,5 +177,71 @@ class SearchSuggestionProviderTest {
         assertEquals(1, suggestion.chips.size)
 
         assertEquals("fire", suggestion.chips[0].title)
+    }
+
+    @Test
+    fun `Provider doesn't fail if fetch returns HTTP error`() {
+        runBlocking {
+            val server = MockWebServer()
+            server.enqueue(MockResponse().setResponseCode(404).setBody("error"))
+            server.start()
+
+            val searchEngine: SearchEngine = mock()
+            doReturn(server.url("/").toString())
+                    .`when`(searchEngine).buildSuggestionsURL("fire")
+            doReturn(true).`when`(searchEngine).canProvideSearchSuggestions
+            doReturn("google").`when`(searchEngine).name
+
+            val searchEngineManager: SearchEngineManager = mock()
+            doReturn(searchEngine).`when`(searchEngineManager).getDefaultSearchEngine(any(), any())
+
+            val useCase = spy(SearchUseCases(
+                    RuntimeEnvironment.application,
+                    searchEngineManager,
+                    SessionManager(mock()).apply { add(Session("https://www.mozilla.org")) }
+            ).defaultSearch)
+            doNothing().`when`(useCase).invoke(anyString(), any<Session>())
+
+            val provider = SearchSuggestionProvider(searchEngine, useCase, HttpURLConnectionClient())
+
+            try {
+                val suggestions = provider.onInputChanged("fire")
+                assertEquals(1, suggestions.size)
+
+                val suggestion = suggestions[0]
+                assertEquals(1, suggestion.chips.size)
+                assertEquals("fire", suggestion.chips[0].title)
+            } finally {
+                server.shutdown()
+            }
+        }
+    }
+
+    @Test
+    fun `Provider doesn't fail if fetch throws exception`() {
+        runBlocking {
+            val searchEngine: SearchEngine = mock()
+            doReturn("/").`when`(searchEngine).buildSuggestionsURL("fire")
+            doReturn(true).`when`(searchEngine).canProvideSearchSuggestions
+            doReturn("google").`when`(searchEngine).name
+
+            val searchEngineManager: SearchEngineManager = mock()
+            doReturn(searchEngine).`when`(searchEngineManager).getDefaultSearchEngine(any(), any())
+
+            val useCase = spy(SearchUseCases(
+                    RuntimeEnvironment.application,
+                    searchEngineManager,
+                    SessionManager(mock()).apply { add(Session("https://www.mozilla.org")) }
+            ).defaultSearch)
+            doNothing().`when`(useCase).invoke(anyString(), any<Session>())
+
+            val provider = SearchSuggestionProvider(searchEngine, useCase, HttpURLConnectionClient())
+            val suggestions = provider.onInputChanged("fire")
+            assertEquals(1, suggestions.size)
+
+            val suggestion = suggestions[0]
+            assertEquals(1, suggestion.chips.size)
+            assertEquals("fire", suggestion.chips[0].title)
+        }
     }
 }

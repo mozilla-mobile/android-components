@@ -12,6 +12,10 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-icons**
+  * 🆕 New component for loading and storing website icons (like [Favicons](https://en.wikipedia.org/wiki/Favicon)).
+  * Supports generating a "fallback" icon if no icon could be loaded.
+
 * **concept-fetch**
   * Added API to specify whether or not cookies should be sent with a request. This can be controlled using the `cookiePolicy` parameter when creating a `Request`.
 
@@ -20,6 +24,20 @@ permalink: /changelog/
   client.fetch(Request(url, cookiePolicy = CookiePolicy.OMIT)).use { response ->
     val body = response.body.string()
   }
+  ```
+* **feature-awesomebar**
+  * ⚠️ **This is a breaking API change!**
+  * Now makes use of our concept-fetch module when fetching search suggestions. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when adding a search provider. 
+
+  ```kotlin
+  AwesomeBarFeature(layout.awesomeBar, layout.toolbar, layout.engineView)
+    .addHistoryProvider(components.historyStorage, components.sessionUseCases.loadUrl)
+    .addSessionProvider(components.sessionManager, components.tabsUseCases.selectTab)
+    .addSearchProvider(
+      components.searchEngineManager.getDefaultSearchEngine(requireContext()),
+      components.searchUseCases.defaultSearch,
+      // Specify that the GV-based fetch client should be used.
+      GeckoViewFetchClient(context))
   ```
 
 * **ui-doorhanger**
@@ -48,6 +66,15 @@ permalink: /changelog/
   ℹ️ Note that this method only strips common prefixes like "www", "m" or "mobile". If you are interested in extracting something like the [eTLD](https://en.wikipedia.org/wiki/Public_Suffix_List) from a host then use [PublicSuffixList](https://mozac.org/api/mozilla.components.lib.publicsuffixlist/-public-suffix-list/) of the `lib-publicsuffixlist` component.
 
   * Added `String.toUri()` as a shorthand for `Uri.parse()` and in addition to other `to*()` methods already available in the Kotlin Standard Library.
+
+* **browser-session**, **feature-session-bundling**
+  * `SessionStorage` and `SessionBundleStorage` now save and restore the title of `Session` objects.
+  * `SessionManager.restore()` now allows passing in empty snapshots.
+
+* **feature-session-bundling**
+  * Empty snapshots are no longer saved in the database:
+    * If no restored bundle exists then no new bundle is saved for an empty snapshot.
+    * If there is an active bundle then the bundle will be removed instead of updated with the empty snapshot.
 
 # 0.42.0
 

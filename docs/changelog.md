@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-engine-system**
+  * Added support for [JavaScript confirm alerts](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm) on WebView.
+
 * **browser-icons**
   * 🆕 New component for loading and storing website icons (like [Favicons](https://en.wikipedia.org/wiki/Favicon)).
   * Supports generating a "fallback" icon if no icon could be loaded.
@@ -25,6 +28,15 @@ permalink: /changelog/
     val body = response.body.string()
   }
   ```
+  * Added flag to specify whether or not caches should be used. This can be controlled with the `useCaches` parameter when creating a `Request`.
+
+  ```kotlin
+  // Force a network request (do not use cached responses)
+  client.fetch(Request(url, useCaches = false)).use { response ->
+    val body = response.body.string()
+  }
+  ```
+
 * **feature-awesomebar**
   * ⚠️ **This is a breaking API change!**
   * Now makes use of our concept-fetch module when fetching search suggestions. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when adding a search provider. 

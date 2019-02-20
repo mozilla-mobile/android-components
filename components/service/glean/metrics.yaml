@@ -147,3 +147,17 @@ glean.internal.metrics:
     notification_emails:
     - telemetry-client-dev@mozilla.com
 
+  first_run_date:
+    type: datetime
+    lifetime: user
+    send_in_pings:
+      - glean_ping_info
+    time_unit: day
+    description: |
+      The date of the first run of the application.
+    bugs:
+      - 1525045
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1525045#c18
+    notification_emails:
+      - telemetry-client-dev@mozilla.com

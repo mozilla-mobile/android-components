@@ -218,6 +218,7 @@ open class GleanInternalAPI internal constructor () {
         if (firstRunDetector.isFirstRun()) {
             val uuid = UUID.randomUUID()
             UuidsStorageEngine.record(GleanInternalMetrics.clientId, uuid)
+            GleanInternalMetrics.firstRunDate.set()
         }
 
         try {
@@ -310,7 +311,7 @@ object Glean : GleanInternalAPI() {
         Default
     }
 
-    internal const val SCHEMA_VERSION = 1
+    internal const val SCHEMA_VERSION = 2
 
     /**
     * The name of the directory, inside the application's directory,

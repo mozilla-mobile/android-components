@@ -13,6 +13,7 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.webextension.WebExtension
 import org.json.JSONObject
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoWebExecutor
@@ -58,6 +59,19 @@ class GeckoEngine(
     override fun speculativeConnect(url: String) {
         executor.speculativeConnect(url)
     }
+
+    /**
+     * See [Engine.installWebExtension].
+     */
+    override fun installWebExtension(ext: WebExtension) {
+        fakeRuntime.registerWebExtension(org.mozilla.geckoview.WebExtension(ext.id, ext.url))
+    }
+
+    // TODO remove once GV API lands
+    class FakeRuntime {
+        fun registerWebExtension(ext: org.mozilla.geckoview.WebExtension) { }
+    }
+    internal var fakeRuntime = FakeRuntime()
 
     override fun name(): String = "Gecko"
 

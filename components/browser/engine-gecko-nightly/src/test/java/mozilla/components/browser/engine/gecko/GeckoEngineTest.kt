@@ -8,6 +8,8 @@ import android.content.Context
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.UnsupportedSettingException
+import mozilla.components.concept.engine.webextension.WebExtension
+import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -139,9 +141,24 @@ class GeckoEngineTest {
         val executor: GeckoWebExecutor = mock()
 
         val engine = GeckoEngine(context, runtime = runtime, executorProvider = { executor })
-
         engine.speculativeConnect("https://www.mozilla.org")
-
         verify(executor).speculativeConnect("https://www.mozilla.org")
+    }
+
+    @Test
+    fun `install web extension`() {
+        val runtime = mock(GeckoRuntime::class.java)
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        // TODO remove once GV API lands
+        engine.fakeRuntime = mock(GeckoEngine.FakeRuntime::class.java)
+
+        engine.installWebExtension(WebExtension("test-webext", "resource://android/assets/extensions/test"))
+
+        val extCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension>()
+        verify(engine.fakeRuntime).registerWebExtension(extCaptor.capture())
+
+        assertEquals("test-webext", extCaptor.value.id)
+        assertEquals("resource://android/assets/extensions/test", extCaptor.value.location)
     }
 }

@@ -12,28 +12,30 @@ object Versions {
 
     const val junit = "4.12"
     const val robolectric = "4.2"
-    const val mockito = "2.23.0"
+    const val mockito = "2.24.5"
 
     const val mockwebserver = "3.10.0"
 
     const val support_libraries = "28.0.0"
     const val constraint_layout = "1.1.2"
-    const val workmanager = "1.0.0-beta01"
+    const val workmanager = "1.0.0-rc02"
     const val lifecycle = "1.1.1"
 
-    const val dokka = "0.9.16"
+    const val dokka = "0.9.17"
     const val android_gradle_plugin = "3.2.1"
     const val maven_gradle_plugin = "2.1"
     const val lint = "26.2.1"
 
-    const val sentry = "1.7.14"
-    const val okhttp = "3.12.1"
+    const val sentry = "1.7.21"
+    const val okhttp = "3.13.1"
 
     const val room = "1.1.1"
     const val paging = "1.0.1"
 
     const val mozilla_appservices = "0.15.0"
     const val servo = "0.0.1.20181017.aa95911"
+
+    const val work_testing = "1.0.0-beta05"
 }
 
 // Synchronized dependencies used by (some) modules
@@ -90,4 +92,6 @@ object Dependencies {
     const val thirdparty_okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val thirdparty_okhttp_urlconnection = "com.squareup.okhttp3:okhttp-urlconnection:${Versions.okhttp}"
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
+
+    const val androidx_work_testing = "android.arch.work:work-testing:${Versions.work_testing}"
 }

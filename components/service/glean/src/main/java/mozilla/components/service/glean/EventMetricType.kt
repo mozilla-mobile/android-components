@@ -114,6 +114,11 @@ data class EventMetricType(
                 extra = truncatedExtraKeys
             )
         }
+
+        // Log event to console
+        if (Glean.configuration.logPings) {
+            logger.info("Glean event recorded | $category.$name | $truncatedExtraKeys")
+        }
     }
 
     /**

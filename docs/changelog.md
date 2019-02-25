@@ -27,6 +27,7 @@ permalink: /changelog/
 
 * **browser-toolbar**
   * Added option to configure fading edge length by using `browserToolbarFadingEdgeSize` XML attribute.
+  * Added `BrowserToolbar` attribute `browserToolbarCancelColor` to color the cancel icon.
 
 * **feature-toolbar**
   * `ToolbarPresenter` now handles situations where no `Session` is selected.
@@ -35,7 +36,7 @@ permalink: /changelog/
   * ⚠️ **This is a breaking API change!**
   * Now makes use of our concept-fetch module when communicating with the server. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when creating a `KintoExperimentSource`. 
 
-  ```kotlin
+```kotlin
   val fretboard = Fretboard(    
     KintoExperimentSource(
       baseUrl,
@@ -53,6 +54,9 @@ permalink: /changelog/
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**:
   * Fixed an issue that caused [autofill](https://developer.android.com/guide/topics/text/autofill) to not work with those components.
+
+* **feature-sitepermissions**
+  * 🆕 A feature for showing site permission request prompts. For more info take a look at the [docs](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/sitepermissions/README.md).
 
 # 0.43.0
 

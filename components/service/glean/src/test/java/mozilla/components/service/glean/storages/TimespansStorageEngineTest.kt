@@ -82,7 +82,7 @@ class TimespansStorageEngineTest {
         storageEngine.applicationContext = context
         val snapshot = storageEngine.getSnapshotWithTimeUnit(storeName = "store1", clearStore = true)
         assertEquals(1, snapshot!!.size)
-        assertEquals(Pair("nanosecond", expectedValue), snapshot["telemetry.valid"])
+        assertEquals(Pair("nanosecond", expectedValue + 1), snapshot["telemetry.valid"])
     }
 
     @Test
@@ -109,7 +109,7 @@ class TimespansStorageEngineTest {
 
         val snapshot = spiedEngine.getSnapshotWithTimeUnit(storeName = "store1", clearStore = false)
         assertEquals(1, snapshot!!.size)
-        assertEquals(Pair("nanosecond", expectedTimespanNanos), snapshot["telemetry.single_elapsed_test"])
+        assertEquals(Pair("nanosecond", expectedTimespanNanos + 1), snapshot["telemetry.single_elapsed_test"])
     }
 
     @Test
@@ -139,7 +139,7 @@ class TimespansStorageEngineTest {
 
         val snapshot = spiedEngine.getSnapshotWithTimeUnit(storeName = "store1", clearStore = false)
         assertEquals(1, snapshot!!.size)
-        assertEquals(Pair("nanosecond", expectedChunkNanos * 2), snapshot["telemetry.single_elapsed_test"])
+        assertEquals(Pair("nanosecond", expectedChunkNanos * 2 + 1), snapshot["telemetry.single_elapsed_test"])
     }
 
     @Test
@@ -189,7 +189,7 @@ class TimespansStorageEngineTest {
         val snapshot = spiedEngine.getSnapshotWithTimeUnit(storeName = "store1", clearStore = false)
         assertEquals(1, snapshot!!.size)
         assertEquals(
-            Pair("nanosecond", expectedChunkNanos),
+            Pair("nanosecond", expectedChunkNanos + 1),
             snapshot["telemetry.single_elapsed_test"]
         )
     }
@@ -225,13 +225,13 @@ class TimespansStorageEngineTest {
     fun `the recorded time must conform to the chosen resolution`() {
         val expectedLengthInNanos: Long = AndroidTimeUnit.DAYS.toNanos(3)
         val expectedResults = mapOf(
-            TimeUnit.Nanosecond to expectedLengthInNanos,
-            TimeUnit.Microsecond to AndroidTimeUnit.NANOSECONDS.toMicros(expectedLengthInNanos),
-            TimeUnit.Millisecond to AndroidTimeUnit.NANOSECONDS.toMillis(expectedLengthInNanos),
-            TimeUnit.Second to AndroidTimeUnit.NANOSECONDS.toSeconds(expectedLengthInNanos),
-            TimeUnit.Minute to AndroidTimeUnit.NANOSECONDS.toMinutes(expectedLengthInNanos),
-            TimeUnit.Hour to AndroidTimeUnit.NANOSECONDS.toHours(expectedLengthInNanos),
-            TimeUnit.Day to AndroidTimeUnit.NANOSECONDS.toDays(expectedLengthInNanos)
+            TimeUnit.Nanosecond to expectedLengthInNanos + 1,
+            TimeUnit.Microsecond to AndroidTimeUnit.NANOSECONDS.toMicros(expectedLengthInNanos) + 1,
+            TimeUnit.Millisecond to AndroidTimeUnit.NANOSECONDS.toMillis(expectedLengthInNanos) + 1,
+            TimeUnit.Second to AndroidTimeUnit.NANOSECONDS.toSeconds(expectedLengthInNanos) + 1,
+            TimeUnit.Minute to AndroidTimeUnit.NANOSECONDS.toMinutes(expectedLengthInNanos) + 1,
+            TimeUnit.Hour to AndroidTimeUnit.NANOSECONDS.toHours(expectedLengthInNanos) + 1,
+            TimeUnit.Day to AndroidTimeUnit.NANOSECONDS.toDays(expectedLengthInNanos) + 1
         )
 
         val metric = TestMetricData(
@@ -290,7 +290,7 @@ class TimespansStorageEngineTest {
         val snapshot = spiedEngine.getSnapshotWithTimeUnit(storeName = "store1", clearStore = true)
         assertEquals(1, snapshot!!.size)
         assertEquals(
-            Pair("second", expectedTimespanSeconds),
+            Pair("second", expectedTimespanSeconds + 1),
             snapshot["telemetry.many_short_lived_test"]
         )
     }

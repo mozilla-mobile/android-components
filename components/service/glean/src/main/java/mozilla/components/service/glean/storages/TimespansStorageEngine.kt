@@ -128,7 +128,9 @@ internal open class TimespansStorageEngineImplementation(
             TimeUnit.Minute -> AndroidTimeUnit.NANOSECONDS.toMinutes(elapsedNanos)
             TimeUnit.Hour -> AndroidTimeUnit.NANOSECONDS.toHours(elapsedNanos)
             TimeUnit.Day -> AndroidTimeUnit.NANOSECONDS.toDays(elapsedNanos)
-        }
+        } + 1
+        // The above methods truncate (floor), but we always want to round up (ceil),
+        // hence the "+ 1"
     }
 
     /**

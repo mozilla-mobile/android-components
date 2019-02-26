@@ -331,8 +331,8 @@ def is_task_too_old(task_id):
     task_definition = queue.task(task_id)
     task_created = datetime.strptime(task_definition['created'], TASKCLUSTER_DATE_ISO_FORMAT)
     time_since_task_was_created = datetime.utcnow() - task_created
-    # We want to rebuild the docker image roughly once a month, at least:
-    return time_since_task_was_created.days > 30
+    # We want to rebuild the docker image roughly twice a month, at least:
+    return time_since_task_was_created.days > 15
 
 
 if __name__ == "__main__":

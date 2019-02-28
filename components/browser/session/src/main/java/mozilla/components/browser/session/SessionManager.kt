@@ -404,6 +404,27 @@ class SessionManager(
     }
 
     /**
+     * Removes all private sessions.
+     */
+    fun removePrivateSessions() = synchronized(values) {
+        sessions.filter { it.private }
+                .forEach {
+                    unlink(it)
+                    values.remove(it)
+                }
+
+        selectedIndex = NO_SELECTION
+
+        // NB: This callback indicates to observers that either removeSessions or removeAll were
+        // invoked, not that the manager is now empty.
+        notifyObservers { onAllSessionsRemoved() }
+
+        if (defaultSession != null) {
+            add(defaultSession.invoke())
+        }
+    }
+    
+    /**
      * Removes all sessions but CustomTab sessions.
      */
     fun removeSessions() = synchronized(values) {

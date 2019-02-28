@@ -587,6 +587,34 @@ class SessionManagerTest {
     }
 
     @Test
+    fun `removePrivateSessions removes only private sessions and notifies observer`() {
+        val manager = SessionManager(mock())
+
+        val session1 = Session("https://www.mozilla.org", private = true)
+        val session2 = Session("https://www.firefox.com", private = false)
+        val session3 = Session("https://wiki.mozilla.org", private = true)
+        val session4 = Session("https://github.com/mozilla-mobile/android-components",
+                private = false)
+
+        manager.add(session1)
+        manager.add(session2)
+        manager.add(session3)
+        manager.add(session4)
+
+        val observer: SessionManager.Observer = mock()
+        manager.register(observer)
+
+        assertEquals(4, manager.size)
+
+        manager.removePrivateSessions()
+
+        assertEquals(2, manager.size)
+
+        verify(observer).onAllSessionsRemoved()
+        verifyNoMoreInteractions(observer)
+    }
+
+    @Test
     fun `findSessionById returns session with same id`() {
         val manager = SessionManager(mock())
 

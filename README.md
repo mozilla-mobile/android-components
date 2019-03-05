@@ -162,17 +162,21 @@ _Components and libraries to interact with backend services._
 
 * 🔴 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
 
+* 🔴 [**Pocket**](components/service/pocket/README.md) - A library for communicating with the Pocket API.
+
 * 🔵 [**Telemetry**](components/service/telemetry/README.md) - A generic library for sending telemetry pings from Android applications to Mozilla's telemetry service.
 
 ## Support
 
 _Supporting components with generic helper code._
 
+* 🔵 [**Android Test**](components/support/android-test/README.md) - A collection of helpers for testing components in instrumented (on device) tests (`src/androidTest`).
+
 * 🔵 [**Base**](components/support/base/README.md) - Base component containing building blocks for components.
 
 * 🔵 [**Ktx**](components/support/ktx/README.md) - A set of Kotlin extensions on top of the Android framework and Kotlin standard library.
 
-* 🔵 [**Test**](components/support/test/README.md) - A collection of helpers for testing components.
+* 🔵 [**Test**](components/support/test/README.md) - A collection of helpers for testing components in local unit tests (`src/test`).
 
 * 🔵 [**Utils**](components/support/utils/README.md) - Generic utility classes to be shared between projects.
 

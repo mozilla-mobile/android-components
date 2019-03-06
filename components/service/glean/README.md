@@ -93,7 +93,7 @@ file. This file should be at the root of the application module (the same
 directory as the `build.gradle` file you updated). The format of that file is
 documented [here](https://mozilla.github.io/glean_parser/metrics-yaml.html).
 
-To learn more, see [adding new metrics](docs/metrics/adding-new-metrics.md)
+To learn more, see [adding new metrics](docs/metrics/adding-new-metrics.md).
 
 **Important**: as stated [here](#before-using-the-library), any new data collection requires
 documentation and data-review. This is also required for any new metric automatically collected

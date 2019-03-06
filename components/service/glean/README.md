@@ -8,7 +8,7 @@ A client-side telemetry SDK for collecting metrics and sending them to Mozilla's
     - [Setting up the dependency](#setting-up-the-dependency)
     - [Integrating with the build system](#integrating-with-the-build-system)
     - [Initializing glean](#initializing-glean)
-    - [Defining metrics](#defining-metrics)
+    - [Adding new metrics](#adding-new-metrics)
     - [Providing UI to enable / disable metrics](#providing-ui-to-enable--disable-metrics)
 - [Debugging products using glean](#debugging-products-using-glean)
 - [License](#license)

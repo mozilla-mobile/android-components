@@ -1,7 +1,7 @@
 # Adding new metrics
 
-All metrics that your application collects must be defined in a `metrics.yaml`
-file. This file should be at the root of the application module (the same
+All metrics that your project collects must be defined in a `metrics.yaml`
+file. This file should be at the root of the application or library module (the same
 directory as the `build.gradle` file you updated). The format of that file is
 documented [here](https://mozilla.github.io/glean_parser/metrics-yaml.html).
 
@@ -10,11 +10,7 @@ When adding a new metric, the workflow is:
 * Add a new entry to metrics.yaml.
 * Add code to your application to record into the metric by calling Glean.
 
-<<<<<<< HEAD
 **Important**: as stated [here](../../README.md#before-using-the-library), any new data collection requires
-=======
-**Important**: as stated [here](#before-using-the-library), any new data collection requires
->>>>>>> Add documentation on adding new metrics
 documentation and data-review. This is also required for any new metric automatically collected
 by glean.
 
@@ -29,7 +25,7 @@ There are different metrics to choose from, depending on what you want to achiev
 Events allow recording of e.g. individual occurences of user actions, say every time a view was open and from where.
 Each time you record an event, it records a timestamp, the events name and a set of custom values.
 
-Say you're adding a new event for when a view is shown. First you need to add an entry for the event to the metrics.yaml file:
+Say you're adding a new event for when a view is shown. First you need to add an entry for the event to the `metrics.yaml` file:
 
 ```YAML
 views:

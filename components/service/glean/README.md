@@ -25,7 +25,7 @@ Products using glean to collect telemetry **must**:
 
 ### Setting up the dependency
 
-Use Gradle to download the library from [maven.mozilla.org](https://maven.mozilla.org/) 
+Use Gradle to download the library from [maven.mozilla.org](https://maven.mozilla.org/)
 ([Setup repository](../../../README.md#maven-repository)):
 
 ```Groovy

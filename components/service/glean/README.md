@@ -8,7 +8,7 @@ A client-side telemetry SDK for collecting metrics and sending them to Mozilla's
     - [Setting up the dependency](#setting-up-the-dependency)
     - [Integrating with the build system](#integrating-with-the-build-system)
     - [Initializing glean](#initializing-glean)
-    - [Defining metrics](#defining-metrics)
+    - [Adding new metrics](#adding-new-metrics)
     - [Providing UI to enable / disable metrics](#providing-ui-to-enable--disable-metrics)
 - [Debugging products using glean](#debugging-products-using-glean)
 - [License](#license)
@@ -16,7 +16,7 @@ A client-side telemetry SDK for collecting metrics and sending them to Mozilla's
 ## Before using the library
 Products using glean to collect telemetry **must**:
 
-- add documentation for any new metric collected with the library in its repository (see [an example](https://github.com/mozilla-mobile/android-components/blob/df429df1a193516f796f2330863af384cce820bc/components/service/glean/docs/pings.md));
+- add documentation for any new metric collected with the library in its repository (see [an example](https://github.com/mozilla-mobile/android-components/blob/df429df1a193516f796f2330863af384cce820bc/components/service/glean/docs/pings/pings.md));
 - go through data review for the newly collected data by following [this process](https://wiki.mozilla.org/Firefox/Data_Collection);
 - provide a way for users to turn data collection off (e.g. providing settings to control
   `Glean.setUploadEnabled()`).
@@ -80,18 +80,19 @@ class SampleApplication : Application() {
 ```
 
 Once initialized, if collection is enabled, glean will automatically start collecting [baseline metrics](metrics.yaml)
-and sending its [pings](docs/pings.md).
+and sending its [pings](docs/pings/pings.md).
 
 Glean should be initialized as soon as possible, and importantly, before any
 other libraries in the application start using Glean. Library code should never
 call `Glean.initialize`, since it should be called exactly once per application.
 
-### Defining metrics
+### Adding new metrics
 
-The metrics that your application collects must be defined in a `metrics.yaml`
+All metrics that your application collects must be defined in a `metrics.yaml`
 file. This file should be at the root of the application module (the same
 directory as the `build.gradle` file you updated). The format of that file is
 documented [here](https://mozilla.github.io/glean_parser/metrics-yaml.html).
+To learn more, see [adding new metrics](docs/metrics/adding-new-metrics.md).
 
 **Important**: as stated [here](#before-using-the-library), any new data collection requires
 documentation and data-review. This is also required for any new metric automatically collected

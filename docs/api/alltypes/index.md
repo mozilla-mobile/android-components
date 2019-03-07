@@ -274,6 +274,7 @@
 | [mozilla.components.concept.engine.prompt.PromptRequest](../mozilla.components.concept.engine.prompt/-prompt-request/index.md) | Value type that represents a request for showing a native dialog for prompt web content. |
 | [mozilla.components.lib.publicsuffixlist.PublicSuffixList](../mozilla.components.lib.publicsuffixlist/-public-suffix-list/index.md) | API for reading and accessing the public suffix list. |
 | [mozilla.components.service.glean.storages.RecordedEventData](../mozilla.components.service.glean.storages/-recorded-event-data/index.md) |  |
+| [mozilla.components.service.glean.storages.RecordedExperimentData](../mozilla.components.service.glean.storages/-recorded-experiment-data/index.md) |  |
 | [mozilla.components.concept.fetch.Request](../mozilla.components.concept.fetch/-request/index.md) | The [Request](../mozilla.components.concept.fetch/-request/index.md) data class represents a resource request to be send by a [Client](../mozilla.components.concept.fetch/-client/index.md). |
 | [mozilla.components.lib.fetch.okhttp.RequestBuilder](../mozilla.components.lib.fetch.okhttp/-request-builder.md) |  |
 | [mozilla.components.service.sync.logins.RequestFailedException](../mozilla.components.service.sync.logins/-request-failed-exception.md) | This error is emitted if a request to a sync server failed. |

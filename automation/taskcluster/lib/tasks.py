@@ -176,7 +176,7 @@ class TaskBuilder(object):
             self.build_worker_type,
             'aws-provisioner-v1',
             dependencies,
-            routes,
+            routes + ['checks'],
             scopes,
             name,
             description,

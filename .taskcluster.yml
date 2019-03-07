@@ -5,6 +5,7 @@
 version: 1
 policy:
   pullRequests: public
+reporting: checks-v1
 tasks:
   $let:
     decision_task_id: {$eval: as_slugid("decision_task")}
@@ -81,11 +82,9 @@ tasks:
           requires: all-completed   # Must be explicit because of Chain of Trust
           retries: 5
           scopes:
-            - queue:create-task:${tasks_priority}:aws-provisioner-v1/${build_worker_type}
-            - queue:route:statuses
-            - queue:scheduler-id:${scheduler_id}
+            - assume:repo:github.com/mozilla-mobile/android-components:pull-request
           routes:
-            - statuses  # Automatically added by taskcluster-github. It must be explicit because of Chain of Trust
+            - checks  # Automatically added by taskcluster-github. It must be explicit because of Chain of Trust
           payload:
             maxRunTime: 600   # Decision should remain fast enough to schedule a handful of tasks
             image: mozillamobile/android-components:1.15

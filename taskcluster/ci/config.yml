@@ -1,0 +1,25 @@
+---
+trust-domain: garbage
+treeherder:
+    group-names:
+        'I': 'Docker Image Builds'
+
+task-priority: low
+
+index:
+    products:
+        - mobile
+taskgraph: {}
+
+workers:
+    aliases:
+        b-android:
+            provisioner: aws-provisioner-v1
+            implementation: docker-worker
+            os: linux
+            worker-type: 'mobile-{level}-b-ref-browser'
+        images:
+            provisioner: aws-provisioner-v1
+            implementation: docker-worker
+            os: linux
+            worker-type: 'mobile-{level}-images'

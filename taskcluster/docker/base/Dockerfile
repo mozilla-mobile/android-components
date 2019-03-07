@@ -6,6 +6,12 @@ FROM ubuntu:18.04
 
 MAINTAINER Sebastian Kaspari "skaspari@mozilla.com"
 
+# Add worker user
+RUN mkdir /builds && \
+    useradd -d /builds/worker -s /bin/bash -m worker && \
+    mkdir /builds/worker/artifacts && \
+    chown worker:worker /builds/worker/artifacts
+
 #----------------------------------------------------------------------------------------------------------------------
 #-- Configuration -----------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------
@@ -42,6 +48,7 @@ RUN apt-get update -qq \
                           python-pip \
                           locales \
                           unzip \
+			  mercurial \
     && apt-get clean
 
 RUN pip install --upgrade pip
@@ -50,6 +57,8 @@ RUN pip install arrow
 RUN pip install pyyaml
 
 RUN locale-gen en_US.UTF-8
+
+# %include-run-task
 
 #----------------------------------------------------------------------------------------------------------------------
 #-- Android -----------------------------------------------------------------------------------------------------------
@@ -73,7 +82,8 @@ RUN curl -L https://dl.google.com/android/repository/sdk-tools-linux-${ANDROID_S
 #-- Project -----------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------
 
-RUN git clone --depth=1 $PROJECT_REPOSITORY
+# %include .
+ADD topsrcdir /build/android-components
 
 WORKDIR /build/android-components
 
@@ -88,3 +98,12 @@ RUN ./gradlew clean \
     && ./gradlew --no-daemon docs \
     && ./gradlew clean
 
+
+
+ENV SHELL=/bin/bash \
+    HOME=/builds/worker \
+    PATH=/builds/worker/.local/bin:$PATH
+
+VOLUME /builds/worker/checkouts
+VOLUME /builds/worker/.cache
+WORKDIR /builds/worker/checkout

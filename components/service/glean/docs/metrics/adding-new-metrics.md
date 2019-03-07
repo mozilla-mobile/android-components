@@ -1,7 +1,7 @@
 # Adding new metrics
 
-All metrics that your application collects must be defined in a `metrics.yaml`
-file. This file should be at the root of the application module (the same
+All metrics that your project collects must be defined in a `metrics.yaml`
+file. This file should be at the root of the application or library module (the same
 directory as the `build.gradle` file you updated). The format of that file is
 documented [here](https://mozilla.github.io/glean_parser/metrics-yaml.html).
 
@@ -25,7 +25,7 @@ There are different metrics to choose from, depending on what you want to achiev
 Events allow recording of e.g. individual occurences of user actions, say every time a view was open and from where.
 Each time you record an event, it records a timestamp, the events name and a set of custom values.
 
-Say you're adding a new event for when a view is shown. First you need to add an entry for the event to the metrics.yaml file:
+Say you're adding a new event for when a view is shown. First you need to add an entry for the event to the `metrics.yaml` file:
 
 ```YAML
 views:

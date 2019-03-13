@@ -122,9 +122,6 @@ class SystemEngineView @JvmOverloads constructor(
         webView.webChromeClient = createWebChromeClient()
         webView.setDownloadListener(createDownloadListener())
         webView.setFindListener(createFindListener())
-        // Disable zoom button on pages #1628
-        webView.settings.builtInZoomControls = true
-        webView.settings.displayZoomControls = false
         return webView
     }
 

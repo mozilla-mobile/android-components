@@ -17,10 +17,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import mozilla.components.concept.sync.Profile
 import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.FxaException
 import mozilla.components.service.fxa.Config
-import mozilla.components.service.fxa.Profile
 import kotlin.coroutines.CoroutineContext
 
 open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
@@ -117,8 +117,8 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
 
         if (Intent.ACTION_VIEW == action && data != null) {
             val url = Uri.parse(data)
-            val code = url.getQueryParameter("code")
-            val state = url.getQueryParameter("state")
+            val code = url.getQueryParameter("code")!!
+            val state = url.getQueryParameter("state")!!
             displayAndPersistProfile(code, state)
         }
     }

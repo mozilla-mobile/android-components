@@ -13,10 +13,9 @@ import kotlinx.coroutines.plus
 import mozilla.appservices.logins.DatabaseLoginsStorage
 import mozilla.appservices.logins.LoginsStorage
 import mozilla.appservices.logins.MemoryLoginsStorage
-import mozilla.components.concept.storage.SyncError
-import mozilla.components.concept.storage.SyncOk
-import mozilla.components.concept.storage.SyncStatus
-import mozilla.components.concept.storage.SyncableStore
+import mozilla.components.concept.sync.AuthInfo
+import mozilla.components.concept.sync.SyncStatus
+import mozilla.components.concept.sync.SyncableStore
 
 /**
  * This type contains the set of information required to successfully
@@ -369,15 +368,15 @@ open class AsyncLoginsStorageAdapter<T : LoginsStorage>(private val wrapped: T) 
 data class SyncableLoginsStore(
     val store: AsyncLoginsStorage,
     val key: () -> Deferred<String>
-) : SyncableStore<SyncUnlockInfo> {
-    override suspend fun sync(authInfo: SyncUnlockInfo): SyncStatus {
+) : SyncableStore {
+    override suspend fun sync(authInfo: AuthInfo): SyncStatus {
         return try {
             withUnlocked {
-                it.sync(authInfo).await()
-                SyncOk
+                it.sync(authInfo.into()).await()
+                SyncStatus.Ok
             }
         } catch (e: LoginsStorageException) {
-            SyncError(e)
+            SyncStatus.Error(e)
         }
     }
 

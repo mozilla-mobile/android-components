@@ -15,6 +15,26 @@ permalink: /changelog/
 * **browser-session**
   * Added `Session.webAppManifest` to expose the [Web App Manifest](https://developer.mozilla.org/en-US/docs/Web/Manifest) of the currently visible page. This functionality will only be available in [GeckoView](https://mozilla.github.io/geckoview/)-flavored [concept-engine](https://github.com/mozilla-mobile/android-components/tree/master/components/concept/engine) implementations.
 
+* **browser-menu**
+   * Added `TwoStateButton` in `BrowserMenuItemToolbar` that will change resources based on the `isInPrimaryState` lambda and added ability to disable the button with optional `disableInSecondaryState` argument.
+
+* **browser-toolbar**
+  * Adds `onCancelEditing` to `onEditListener` in `BrowserToolbar` which is fired when a back button press occurs while the keyboard is displayed.
+    This is especially useful if you want to call `activity.onBackPressed()` to navigate away rather than just dismiss the keyboard.
+    Its return value is used to determine if `displayMode` will switch from edit to view.
+
+* **concept-sync**
+  * 🆕 New component which describes sync-related interfaces, such as SyncManager, SyncableStore, SyncStatusObserver and others.
+
+* **concept-storage**
+  * ⚠️ **This is a breaking API change!**: Removed sync-related interfaces. See **concept-sync**.
+
+* **feature-sync**
+  * ⚠️ **This is a breaking API change!** Complete overhaul of this component.
+  * Added `BackgroundSyncManager`, a WorkManager-based implementation of the SyncManager defined in `concept-sync`.
+  * An instance of a SyncManager is an entry point for interacting with background data synchronization.
+  * See component's README for usage details.
+
 # 0.46.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.45.0...v0.46.0)

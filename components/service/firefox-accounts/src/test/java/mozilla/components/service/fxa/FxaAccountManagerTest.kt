@@ -7,6 +7,9 @@ package mozilla.components.service.fxa
 import android.content.Context
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import mozilla.components.concept.sync.AccountObserver
+import mozilla.components.concept.sync.OAuthAccount
+import mozilla.components.concept.sync.Profile
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import org.junit.Test
@@ -35,11 +38,15 @@ class TestableFxaAccountManager(
     context: Context,
     config: Config,
     scopes: Array<String>,
-    accountStorage: AccountStorage = SharedPrefAccountStorage(context),
-    val block: () -> FirefoxAccountShaped = { mock() }
-) : FxaAccountManager(context, config, scopes, accountStorage) {
-    override fun createAccount(config: Config): FirefoxAccountShaped {
+    private val storage: AccountStorage,
+    val block: () -> OAuthAccount = { mock() }
+) : FxaAccountManager(context, config, scopes, null) {
+    override fun createAccount(config: Config): OAuthAccount {
         return block()
+    }
+
+    override fun getAccountStorage(): AccountStorage {
+        return storage
     }
 }
 
@@ -114,16 +121,14 @@ class FxaAccountManagerTest {
             accountStorage
         )
 
-        var onLoggedOutCalled = false
         var onErrorCalled = false
 
         val accountObserver = object : AccountObserver {
             override fun onLoggedOut() {
-                assertFalse(onLoggedOutCalled)
-                onLoggedOutCalled = true
+                fail()
             }
 
-            override fun onAuthenticated(account: FirefoxAccountShaped) {
+            override fun onAuthenticated(account: OAuthAccount) {
                 fail()
             }
 
@@ -142,11 +147,10 @@ class FxaAccountManagerTest {
         manager.register(accountObserver)
 
         runBlocking {
-            manager.init().await()
+            manager.initAsync().await()
         }
 
         assertTrue(onErrorCalled)
-        assertTrue(onLoggedOutCalled)
     }
 
     @Test
@@ -165,12 +169,12 @@ class FxaAccountManagerTest {
         val accountObserver: AccountObserver = mock()
 
         manager.register(accountObserver)
-        manager.init().await()
+        manager.initAsync().await()
 
         verify(accountObserver, never()).onError(any())
         verify(accountObserver, never()).onAuthenticated(any())
         verify(accountObserver, never()).onProfileUpdated(any())
-        verify(accountObserver, times(1)).onLoggedOut()
+        verify(accountObserver, never()).onLoggedOut()
 
         verify(accountStorage, times(1)).read()
         verify(accountStorage, never()).write(any())
@@ -183,7 +187,7 @@ class FxaAccountManagerTest {
     @Test
     fun `with persisted account and profile`() = runBlocking {
         val accountStorage = mock<AccountStorage>()
-        val mockAccount: FirefoxAccountShaped = mock()
+        val mockAccount: OAuthAccount = mock()
         val profile = Profile(
                 "testUid", "test@example.com", null, "Test Profile")
         `when`(mockAccount.getProfile(ArgumentMatchers.anyBoolean())).thenReturn(CompletableDeferred(profile))
@@ -201,7 +205,7 @@ class FxaAccountManagerTest {
 
         manager.register(accountObserver)
 
-        manager.init().await()
+        manager.initAsync().await()
 
         // Make sure that account and profile observers are fired exactly once.
         verify(accountObserver, never()).onError(any())
@@ -216,10 +220,10 @@ class FxaAccountManagerTest {
         assertEquals(mockAccount, manager.authenticatedAccount())
         assertEquals(profile, manager.accountProfile())
 
-        // Make sure 'logout' clears out state and fires correct observers.
+        // Make sure 'logoutAsync' clears out state and fires correct observers.
         reset(accountObserver)
         reset(accountStorage)
-        manager.logout().await()
+        manager.logoutAsync().await()
 
         verify(accountObserver, never()).onError(any())
         verify(accountObserver, never()).onAuthenticated(any())
@@ -241,7 +245,7 @@ class FxaAccountManagerTest {
     @Test
     fun `happy authentication and profile flow`() {
         val accountStorage = mock<AccountStorage>()
-        val mockAccount: FirefoxAccountShaped = mock()
+        val mockAccount: OAuthAccount = mock()
 
         val profile = Profile(
             uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
@@ -274,21 +278,22 @@ class FxaAccountManagerTest {
         manager.register(accountObserver)
 
         runBlocking {
-            manager.init().await()
+            manager.initAsync().await()
         }
 
-        // We start off as logged-out.
-        verify(accountObserver, times(1)).onLoggedOut()
+        // We start off as logged-out, but the event won't be called (initial default state is assumed).
+        verify(accountObserver, never()).onLoggedOut()
+        verify(accountObserver, never()).onAuthenticated(any())
 
         reset(accountObserver)
         runBlocking {
-            assertEquals("auth://url", manager.beginAuthentication().await())
+            assertEquals("auth://url", manager.beginAuthenticationAsync().await())
         }
         assertNull(manager.authenticatedAccount())
         assertNull(manager.accountProfile())
 
         runBlocking {
-            manager.finishAuthentication("dummyCode", "dummyState").await()
+            manager.finishAuthenticationAsync("dummyCode", "dummyState").await()
         }
 
         verify(accountStorage, times(1)).read()
@@ -308,7 +313,7 @@ class FxaAccountManagerTest {
     @Test
     fun `unhappy authentication flow`() {
         val accountStorage = mock<AccountStorage>()
-        val mockAccount: FirefoxAccountShaped = mock()
+        val mockAccount: OAuthAccount = mock()
 
         val profile = Profile(
                 uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
@@ -348,16 +353,17 @@ class FxaAccountManagerTest {
         manager.register(accountObserver)
 
         runBlocking {
-            manager.init().await()
+            manager.initAsync().await()
         }
 
-        // We start off as logged-out.
-        verify(accountObserver, times(1)).onLoggedOut()
+        // We start off as logged-out, but the event won't be called (initial default state is assumed).
+        verify(accountObserver, never()).onLoggedOut()
+        verify(accountObserver, never()).onAuthenticated(any())
 
         reset(accountObserver)
         runBlocking {
             try {
-                manager.beginAuthentication().await()
+                manager.beginAuthenticationAsync().await()
                 fail()
             } catch (e: FxaNetworkException) {
                 assertEquals(fxaException, e)
@@ -374,14 +380,14 @@ class FxaAccountManagerTest {
                 .thenReturn(CompletableDeferred("auth://url"))
 
         runBlocking {
-            assertEquals("auth://url", manager.beginAuthentication().await())
+            assertEquals("auth://url", manager.beginAuthenticationAsync().await())
         }
 
         assertNull(manager.authenticatedAccount())
         assertNull(manager.accountProfile())
 
         runBlocking {
-            manager.finishAuthentication("dummyCode", "dummyState").await()
+            manager.finishAuthenticationAsync("dummyCode", "dummyState").await()
         }
 
         verify(accountStorage, times(1)).read()
@@ -401,7 +407,7 @@ class FxaAccountManagerTest {
     @Test
     fun `unhappy profile fetching flow`() {
         val accountStorage = mock<AccountStorage>()
-        val mockAccount: FirefoxAccountShaped = mock()
+        val mockAccount: OAuthAccount = mock()
 
         val exceptionalProfile = CompletableDeferred<Profile>()
         val fxaException = FxaException("test exception")
@@ -435,21 +441,22 @@ class FxaAccountManagerTest {
         manager.register(accountObserver)
 
         runBlocking {
-            manager.init().await()
+            manager.initAsync().await()
         }
 
-        // We start off as logged-out.
-        verify(accountObserver, times(1)).onLoggedOut()
+        // We start off as logged-out, but the event won't be called (initial default state is assumed).
+        verify(accountObserver, never()).onLoggedOut()
+        verify(accountObserver, never()).onAuthenticated(any())
 
         reset(accountObserver)
         runBlocking {
-            assertEquals("auth://url", manager.beginAuthentication().await())
+            assertEquals("auth://url", manager.beginAuthenticationAsync().await())
         }
         assertNull(manager.authenticatedAccount())
         assertNull(manager.accountProfile())
 
         runBlocking {
-            manager.finishAuthentication("dummyCode", "dummyState").await()
+            manager.finishAuthenticationAsync("dummyCode", "dummyState").await()
         }
 
         verify(accountStorage, times(1)).read()
@@ -473,7 +480,7 @@ class FxaAccountManagerTest {
         `when`(mockAccount.getProfile(ArgumentMatchers.anyBoolean())).thenReturn(CompletableDeferred(profile))
 
         runBlocking {
-            manager.updateProfile().await()
+            manager.updateProfileAsync().await()
         }
 
         verify(accountObserver, times(1)).onProfileUpdated(profile)

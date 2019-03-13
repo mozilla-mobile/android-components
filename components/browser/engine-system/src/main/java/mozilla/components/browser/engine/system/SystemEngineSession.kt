@@ -232,6 +232,8 @@ class SystemEngineSession(
 
             // webViewSettings built-in zoom controls are the only supported ones, so they should be turned on.
             webSettings.builtInZoomControls = true
+            // Disable zoom button on pages #1628
+            webView.settings.displayZoomControls = false
 
             initSettings(webView, webSettings)
         }

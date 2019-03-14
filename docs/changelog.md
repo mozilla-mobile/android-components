@@ -14,6 +14,7 @@ permalink: /changelog/
 
 * **browser-session**
   * Added `Session.webAppManifest` to expose the [Web App Manifest](https://developer.mozilla.org/en-US/docs/Web/Manifest) of the currently visible page. This functionality will only be available in [GeckoView](https://mozilla.github.io/geckoview/)-flavored [concept-engine](https://github.com/mozilla-mobile/android-components/tree/master/components/concept/engine) implementations.
+  * Added `WebAppManifestParser` to create [WebAppManifest](https://mozac.org/api/mozilla.components.browser.session.manifest/-web-app-manifest/) from JSON.
 
 * **browser-menu**
    * Added `TwoStateButton` in `BrowserMenuItemToolbar` that will change resources based on the `isInPrimaryState` lambda and added ability to disable the button with optional `disableInSecondaryState` argument.
@@ -34,6 +35,19 @@ permalink: /changelog/
   * Added `BackgroundSyncManager`, a WorkManager-based implementation of the SyncManager defined in `concept-sync`.
   * An instance of a SyncManager is an entry point for interacting with background data synchronization.
   * See component's README for usage details.
+
+* **browser-engine-system** and **browser-engine-gecko-nightly**
+  * ⚠️ **This is a breaking API change**: The [`captureThumbnail`](https://github.com/mozilla-mobile/android-components/blob/1b1600a7e8aa83a7e7d09b30cecd49762f7781f5/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineSession.kt#L245) function has been moved to [`EngineView`](https://github.com/mozilla-mobile/android-components/blob/1b1600a7e8aa83a7e7d09b30cecd49762f7781f5/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineView.kt#L15). From now on for taking screenshots automatically you will have to opt-in by using `ThumbnailsFeature`. The decision was made to reduce overhead memory consumption for apps that are not using screenshots. Find more info in [feature-session](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/session/README.md) and a practical example can be found in the [sample-browser project](https://github.com/mozilla-mobile/android-components/blob/master/samples/browser).
+
+* **feature-session-bundling**
+  * Saving, restoring and removing `SessionBundle` instances need to happen on a worker thread now (off the main thread).
+  * The actual session state is now saved on the file system outside of the internally used SQLite database.
+
+* **support-ktx**
+  * Added `File.truncateDirectory()` to remove all files (and sub directories) in a directory.
+
+* **feature-session**
+  * Adds support for the picture-in-picture mode in `PictureInPictureFeature`.
 
 # 0.46.0
 

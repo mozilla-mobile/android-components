@@ -25,10 +25,10 @@ internal fun AuthInfo.into(): SyncAuthInfo {
 /**
  * Conversion from a generic [VisitType] into its richer comrade within the 'places' lib.
  */
-internal fun VisitType.into(): org.mozilla.places.VisitType {
+internal fun VisitType.into(): mozilla.appservices.places.VisitType {
     return when (this) {
-        VisitType.LINK -> org.mozilla.places.VisitType.LINK
-        VisitType.RELOAD -> org.mozilla.places.VisitType.RELOAD
-        VisitType.TYPED -> org.mozilla.places.VisitType.TYPED
+        VisitType.LINK -> mozilla.appservices.places.VisitType.LINK
+        VisitType.RELOAD -> mozilla.appservices.places.VisitType.RELOAD
+        VisitType.TYPED -> mozilla.appservices.places.VisitType.TYPED
     }
 }

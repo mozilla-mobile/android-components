@@ -19,10 +19,10 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.times
 import org.mockito.Mockito.never
-import org.mozilla.places.ReadablePlacesConnectionInterface
-import org.mozilla.places.SearchResult
-import org.mozilla.places.VisitObservation
-import org.mozilla.places.WritablePlacesConnectionInterface
+import mozilla.appservices.places.ReadablePlacesConnectionInterface
+import mozilla.appservices.places.SearchResult
+import mozilla.appservices.places.VisitObservation
+import mozilla.appservices.places.WritablePlacesConnectionInterface
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.lang.IllegalArgumentException
@@ -54,17 +54,17 @@ class PlacesHistoryStorageTest {
 
         storage.recordVisit("http://www.mozilla.org", VisitType.LINK)
         verify(writer, times(1)).noteObservation(
-                VisitObservation("http://www.mozilla.org", visitType = org.mozilla.places.VisitType.LINK)
+                VisitObservation("http://www.mozilla.org", visitType = mozilla.appservices.places.VisitType.LINK)
         )
 
         storage.recordVisit("http://www.mozilla.org", VisitType.RELOAD)
         verify(writer, times(1)).noteObservation(
-                VisitObservation("http://www.mozilla.org", visitType = org.mozilla.places.VisitType.RELOAD)
+                VisitObservation("http://www.mozilla.org", visitType = mozilla.appservices.places.VisitType.RELOAD)
         )
 
         storage.recordVisit("http://www.firefox.com", VisitType.TYPED)
         verify(writer, times(1)).noteObservation(
-                VisitObservation("http://www.firefox.com", visitType = org.mozilla.places.VisitType.TYPED)
+                VisitObservation("http://www.firefox.com", visitType = mozilla.appservices.places.VisitType.TYPED)
         )
     }
 
@@ -75,12 +75,12 @@ class PlacesHistoryStorageTest {
 
         storage.recordObservation("http://www.mozilla.org", PageObservation(title = "Mozilla"))
         verify(writer, times(1)).noteObservation(
-                VisitObservation("http://www.mozilla.org", visitType = org.mozilla.places.VisitType.UPDATE_PLACE, title = "Mozilla")
+                VisitObservation("http://www.mozilla.org", visitType = mozilla.appservices.places.VisitType.UPDATE_PLACE, title = "Mozilla")
         )
 
         storage.recordObservation("http://www.firefox.com", PageObservation(title = null))
         verify(writer, times(1)).noteObservation(
-                VisitObservation("http://www.firefox.com", visitType = org.mozilla.places.VisitType.UPDATE_PLACE, title = null)
+                VisitObservation("http://www.firefox.com", visitType = mozilla.appservices.places.VisitType.UPDATE_PLACE, title = null)
         )
     }
 

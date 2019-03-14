@@ -5,11 +5,11 @@
 package mozilla.components.browser.storage.sync
 
 import android.support.annotation.GuardedBy
-import org.mozilla.places.PlacesApi
-import org.mozilla.places.ReadablePlacesConnection
-import org.mozilla.places.ReadablePlacesConnectionInterface
-import org.mozilla.places.SyncAuthInfo
-import org.mozilla.places.WritablePlacesConnectionInterface
+import mozilla.appservices.places.PlacesApi
+import mozilla.appservices.places.ReadablePlacesConnection
+import mozilla.appservices.places.ReadablePlacesConnectionInterface
+import mozilla.appservices.places.SyncAuthInfo
+import mozilla.appservices.places.WritablePlacesConnectionInterface
 import java.io.Closeable
 import java.io.File
 

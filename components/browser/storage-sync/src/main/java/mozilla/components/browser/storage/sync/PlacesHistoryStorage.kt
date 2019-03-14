@@ -20,13 +20,13 @@ import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.concept.sync.AuthInfo
 import mozilla.components.support.utils.segmentAwareDomainMatch
-import org.mozilla.places.PlacesConnection
-import org.mozilla.places.PlacesException
-import org.mozilla.places.VisitObservation
+import mozilla.appservices.places.PlacesConnection
+import mozilla.appservices.places.PlacesException
+import mozilla.appservices.places.VisitObservation
 
 const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
 
-typealias SyncAuthInfo = org.mozilla.places.SyncAuthInfo
+typealias SyncAuthInfo = mozilla.appservices.places.SyncAuthInfo
 
 /**
  * Implementation of the [HistoryStorage] which is backed by a Rust Places lib via [PlacesConnection].
@@ -53,7 +53,7 @@ open class PlacesHistoryStorage(context: Context) : HistoryStorage, SyncableStor
             places.writer().noteObservation(
                 VisitObservation(
                     url = uri,
-                    visitType = org.mozilla.places.VisitType.UPDATE_PLACE,
+                    visitType = mozilla.appservices.places.VisitType.UPDATE_PLACE,
                     title = observation.title
                 )
             )

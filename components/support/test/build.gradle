@@ -35,7 +35,9 @@ dependencies {
 
     implementation Dependencies.testing_junit
     implementation Dependencies.testing_mockito
-    implementation Dependencies.testing_robolectric
+    implementation (Dependencies.testing_robolectric) {
+        exclude module: 'maven-ant-tasks'
+    }
 
     testImplementation Dependencies.androidx_core
     testImplementation project(':support-ktx')

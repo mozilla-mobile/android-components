@@ -29,6 +29,10 @@ permalink: /changelog/
 
 * **concept-storage**
   * ⚠️ **This is a breaking API change!**: Removed sync-related interfaces. See **concept-sync**.
+  * **HistoryStorage** interface has a new method: `getDetailedVisits(start, end) -> List<VisitInfo>`. It provides detailed information about page visits (title, visit type, timestamp, etc).
+
+* **browser-storage-memory**, **browser-storage-sync**:
+  * Added implementations for the new getDetailedVisits API from **concept-storage**.
 
 * **feature-sync**
   * ⚠️ **This is a breaking API change!** Complete overhaul of this component.
@@ -51,6 +55,9 @@ permalink: /changelog/
 
 * **browser-storage-sync**
   * Changed how Rust Places database connections are maintained, based on [new reader/writer APIs](https://github.com/mozilla/application-services/pull/718).
+
+* **service-pocket**
+  * Access the list of global video recommendations via `PocketEndpoint.getGlobalVideoRecommendations`.
 
 # 0.46.0
 

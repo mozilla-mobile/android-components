@@ -380,7 +380,6 @@ class SystemEngineSessionTest {
         verify(webViewSettings).userAgentString = "userAgent"
         verify(webViewSettings).mediaPlaybackRequiresUserGesture = false
         verify(webViewSettings).javaScriptCanOpenWindowsAutomatically = true
-        verify(webViewSettings).displayZoomControls = false
         verify(webViewSettings).loadWithOverviewMode = true
         verify(webViewSettings).setSupportMultipleWindows(true)
         verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.all())

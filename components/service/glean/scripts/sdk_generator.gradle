@@ -112,7 +112,13 @@ ext.gleanGenerateMetricsAPI = {
     variant ->
 
     def sourceOutputDir =  "$buildDir/telemetry/src/${variant.name}/kotlin"
-    def fullNamespace = "${variant.applicationId}.GleanMetrics"
+    def applicationId = variant.applicationId
+    if (applicationId.endsWith(".debug")) {
+        applicationId = applicationId.subString[0..-7]
+    } else if (applicationId.endsWith(".release")) {
+        applicationId = applicationId.subString[0..-9]
+    }
+    def fullNamespace = "${applicationId}.GleanMetrics"
     def generateKotlinAPI = task("generateMetricsSourceFor${variant.name.capitalize()}", type: Exec) {
         description = "Generate the Kotlin code for the Metrics API"
 

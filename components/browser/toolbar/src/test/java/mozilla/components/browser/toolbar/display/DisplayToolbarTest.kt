@@ -109,6 +109,21 @@ class DisplayToolbarTest {
     }
 
     @Test
+    fun `progress view changes with topProgressBar`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(context, toolbar)
+        val progressView = extractProgressView(displayToolbar)
+
+        displayToolbar.topProgressBar = true
+        assertEquals(true, displayToolbar.topProgressBar)
+        assertEquals(progressView.measuredHeight, progressView.bottom)
+
+        displayToolbar.topProgressBar = false
+        assertEquals(false, displayToolbar.topProgressBar)
+        assertEquals(toolbar.measuredHeight, progressView.bottom)
+    }
+
+    @Test
     fun `menu view is gone by default`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(context, toolbar)

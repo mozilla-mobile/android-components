@@ -182,6 +182,15 @@ class BrowserToolbar @JvmOverloads constructor(
         }
 
     /**
+     * Set progress bar to be at the top of the toolbar. It's on bottom by default.
+     */
+    var topProgressBar: Boolean
+        get() = displayToolbar.topProgressBar
+        set(value) {
+            displayToolbar.topProgressBar = value
+        }
+
+    /**
      * Sets the colour of the text for the URL/search term displayed in the toolbar.
      */
     var textColor: Int
@@ -281,6 +290,10 @@ class BrowserToolbar @JvmOverloads constructor(
     init {
         context.obtainStyledAttributes(attrs, R.styleable.BrowserToolbar, defStyleAttr, 0).run {
             attrs?.let {
+                topProgressBar = getBoolean(
+                    R.styleable.BrowserToolbar_topProgressBar,
+                    false
+                )
                 hintColor = getColor(
                     R.styleable.BrowserToolbar_browserToolbarHintColor,
                     hintColor

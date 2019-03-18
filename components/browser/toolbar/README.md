@@ -26,6 +26,7 @@ implementation "org.mozilla.components:browser-toolbar:{latest-version}"
 | browserToolbarSuggestionBackgroundColor | color     | Background color of the autocomplete suggestion.        |
 | browserToolbarSuggestionForegroundColor | color     | Foreground (text) color of the autocomplete suggestion. |
 | browserToolbarFadingEdgeSize            | dimension | Size of the fading edge shown when the URL is too long. |
+| topProgressBar                          | boolean   | Boolean for progress bar to be at the top of toolbar.   |
 
 ## Facts
 

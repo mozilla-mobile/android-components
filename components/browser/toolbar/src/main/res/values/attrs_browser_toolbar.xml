@@ -15,5 +15,6 @@
     <attr name="browserToolbarSuggestionForegroundColor" format="color" />
     <attr name="browserToolbarClearColor" format="color"/>
     <attr name="browserToolbarFadingEdgeSize" format="dimension" />
+    <attr name="topProgressBar" format="boolean" />
   </declare-styleable>
 </resources>

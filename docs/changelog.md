@@ -23,6 +23,7 @@ permalink: /changelog/
   * Adds `onCancelEditing` to `onEditListener` in `BrowserToolbar` which is fired when a back button press occurs while the keyboard is displayed.
     This is especially useful if you want to call `activity.onBackPressed()` to navigate away rather than just dismiss the keyboard.
     Its return value is used to determine if `displayMode` will switch from edit to view.
+   * Adds `topProgressBar` `Boolean` attr to give option for progress bar to be displayed at top of the toolbar.
 
 * **concept-sync**
   * 🆕 New component which describes sync-related interfaces, such as SyncManager, SyncableStore, SyncStatusObserver and others.

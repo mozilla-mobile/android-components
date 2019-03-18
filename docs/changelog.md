@@ -29,6 +29,10 @@ permalink: /changelog/
 
 * **concept-storage**
   * ⚠️ **This is a breaking API change!**: Removed sync-related interfaces. See **concept-sync**.
+  * **HistoryStorage** interface has a new method: `getDetailedVisits(start, end) -> List<VisitInfo>`. It provides detailed information about page visits (title, visit type, timestamp, etc).
+
+* **browser-storage-memory**, **browser-storage-sync**:
+  * Added implementations for the new getDetailedVisits API from **concept-storage**.
 
 * **feature-sync**
   * ⚠️ **This is a breaking API change!** Complete overhaul of this component.
@@ -45,6 +49,16 @@ permalink: /changelog/
 
 * **support-ktx**
   * Added `File.truncateDirectory()` to remove all files (and sub directories) in a directory.
+  * Added `Context.isMainProcess` and `Context.runOnlyInMainProcess(block: () -> Unit)` to detect when you're running on the main process.
+```kotlin
+      // true if we are running in the main process otherwise false .
+      val isMainProcess = context.isMainProcess()
+
+      context.runOnlyInMainProcess {
+            /* This function is only going to run if we are
+                in the main process, otherwise it won't be executed.  */
+       }
+```
 
 * **feature-session**
   * Adds support for the picture-in-picture mode in `PictureInPictureFeature`.
@@ -54,6 +68,9 @@ permalink: /changelog/
 
 * **service-pocket**
   * Access the list of global video recommendations via `PocketEndpoint.getGlobalVideoRecommendations`.
+
+* **concept-fetch**
+  * Added common HTTP header constants in `Headers.Common`. This collection is incomplete: add your own!
 
 # 0.46.0
 

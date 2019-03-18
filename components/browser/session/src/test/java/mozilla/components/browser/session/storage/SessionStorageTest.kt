@@ -7,7 +7,8 @@ package mozilla.components.browser.session.storage
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleOwner
 import android.arch.lifecycle.LifecycleRegistry
-import android.util.AtomicFile
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session
@@ -30,22 +31,21 @@ import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-import java.io.FileNotFoundException
-import java.io.IOException
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 class SessionStorageTest {
+    private val context: Context
+        get() = ApplicationProvider.getApplicationContext()
+
     @Test
     fun `Restored snapshot should contain sessions of saved snapshot`() {
         val session1 = Session("http://mozilla.org", id = "session1")
@@ -76,7 +76,7 @@ class SessionStorageTest {
         )
 
         // Persist the snapshot
-        val storage = SessionStorage(RuntimeEnvironment.application, engine)
+        val storage = SessionStorage(context, engine)
         val persisted = storage.save(sessionsSnapshot)
         assertTrue(persisted)
 
@@ -110,7 +110,7 @@ class SessionStorageTest {
         val engine = mock(Engine::class.java)
         `when`(engine.name()).thenReturn("gecko")
 
-        val storage = spy(SessionStorage(RuntimeEnvironment.application, engine))
+        val storage = spy(SessionStorage(context, engine))
         storage.save(SessionManager.Snapshot(emptyList(), SessionManager.NO_SELECTION))
 
         verify(storage).clear()
@@ -140,7 +140,7 @@ class SessionStorageTest {
         )
 
         // Persist the snapshot
-        val storage = SessionStorage(RuntimeEnvironment.application, engine)
+        val storage = SessionStorage(context, engine)
         val persisted = storage.save(sessionsSnapshot)
         assertTrue(persisted)
 
@@ -156,7 +156,7 @@ class SessionStorageTest {
         val engine = mock(Engine::class.java)
         `when`(engine.name()).thenReturn("gecko")
 
-        val storage = SessionStorage(RuntimeEnvironment.application, engine)
+        val storage = SessionStorage(context, engine)
 
         val session = Session("http://mozilla.org")
         val engineSession = mock(EngineSession::class.java)
@@ -385,7 +385,7 @@ class SessionStorageTest {
 
         val lifecycle = LifecycleRegistry(mock(LifecycleOwner::class.java))
 
-        val storage = SessionStorage(RuntimeEnvironment.application, engine)
+        val storage = SessionStorage(context, engine)
         storage.autoSave(mock())
             .periodicallyInForeground(300, TimeUnit.SECONDS, scheduler, lifecycle)
 
@@ -439,44 +439,6 @@ class SessionStorageTest {
 
         val saveJob = autoSave.triggerSave()
         assertNotSame(completed, saveJob)
-    }
-
-    @Test
-    fun `saveSnapshotToDisk - Fails write on IOException`() {
-        val file: AtomicFile = mock()
-        doThrow(IOException::class.java).`when`(file).startWrite()
-
-        val snapshot = SessionManager.Snapshot(
-            sessions = listOf(
-                SessionManager.Snapshot.Item(Session("http://mozilla.org"))
-            ),
-            selectedSessionIndex = 0
-        )
-
-        saveSnapshotToDisk(file, SnapshotSerializer(), snapshot)
-
-        verify(file).failWrite(any())
-    }
-
-    @Test
-    fun `readSnapshotFromDisk - Returns null on FileNotFoundException`() {
-        val file: AtomicFile = mock()
-        doThrow(FileNotFoundException::class.java).`when`(file).openRead()
-
-        val snapshot = readSnapshotFromDisk(file, engine = mock(), serializer = SnapshotSerializer())
-        assertNull(snapshot)
-    }
-
-    @Test
-    fun `readSnapshotFromDisk - Returns null on corrupt JSON`() {
-        val file = getFileForEngine(RuntimeEnvironment.application, engine = mock())
-
-        val stream = file.startWrite()
-        stream.bufferedWriter().write("{ name: 'Foo")
-        file.finishWrite(stream)
-
-        val snapshot = readSnapshotFromDisk(file, engine = mock(), serializer = SnapshotSerializer())
-        assertNull(snapshot)
     }
 
     @Test

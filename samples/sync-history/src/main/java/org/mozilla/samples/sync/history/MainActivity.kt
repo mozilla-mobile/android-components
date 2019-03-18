@@ -12,47 +12,41 @@ import kotlinx.android.synthetic.main.activity_main.historySyncStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
-import mozilla.components.browser.storage.sync.SyncAuthInfo
-import mozilla.components.concept.storage.SyncError
-import mozilla.components.feature.sync.FirefoxSyncFeature
-import mozilla.components.feature.sync.SyncStatusObserver
+import mozilla.components.concept.sync.AccountObserver
+import mozilla.components.concept.sync.OAuthAccount
+import mozilla.components.concept.sync.Profile
+import mozilla.components.concept.sync.SyncStatusObserver
 import mozilla.components.service.fxa.FxaAccountManager
-import mozilla.components.service.fxa.AccountObserver
 import mozilla.components.service.fxa.Config
-import mozilla.components.service.fxa.FirefoxAccountShaped
 import mozilla.components.service.fxa.FxaException
-import mozilla.components.service.fxa.Profile
+import mozilla.components.feature.sync.BackgroundSyncManager
+import mozilla.components.feature.sync.GlobalSyncableStoreProvider
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
 
 class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
+    private val historyStorage by lazy {
+        PlacesHistoryStorage(this)
+    }
 
-    private val historyStoreName = "placesHistory"
-    private val historyStorage by lazy { PlacesHistoryStorage(applicationContext) }
+    private val syncManager by lazy {
+        GlobalSyncableStoreProvider.configureStore("history" to historyStorage)
+        BackgroundSyncManager("https://identity.mozilla.com/apps/oldsync").also {
+            it.addStore("history")
+        }
+    }
 
     private val accountManager by lazy {
         FxaAccountManager(
             this,
             Config.release(CLIENT_ID, REDIRECT_URL),
-            arrayOf("profile", "https://identity.mozilla.com/apps/oldsync")
+            arrayOf("profile", "https://identity.mozilla.com/apps/oldsync"),
+            syncManager
         )
-    }
-    private val featureSync by lazy {
-        FirefoxSyncFeature(
-            mapOf(historyStoreName to historyStorage)
-        ) { authInfo ->
-            SyncAuthInfo(
-                fxaAccessToken = authInfo.fxaAccessToken,
-                kid = authInfo.kid,
-                syncKey = authInfo.syncKey,
-                tokenserverURL = authInfo.tokenServerUrl
-            )
-        }
     }
 
     private var job = Job()
@@ -74,7 +68,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         findViewById<View>(R.id.buttonSignIn).setOnClickListener {
             launch {
                 val authUrl = try {
-                    accountManager.beginAuthentication().await()
+                    accountManager.beginAuthenticationAsync().await()
                 } catch (error: FxaException) {
                     val txtView: TextView = findViewById(R.id.fxaStatusView)
                     txtView.text = getString(R.string.account_error, error.toString())
@@ -85,42 +79,20 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         }
 
         findViewById<View>(R.id.buttonLogout).setOnClickListener {
-            launch { accountManager.logout().await() }
+            launch { accountManager.logoutAsync().await() }
         }
 
         // NB: ObserverRegistry takes care of unregistering this observer when appropriate, and
         // cleaning up any internal references to 'observer' and 'owner'.
-        featureSync.register(syncObserver, owner = this, autoPause = true)
+        syncManager.register(syncObserver, owner = this, autoPause = true)
         // Observe changes to the account and profile.
         accountManager.register(accountObserver, owner = this, autoPause = true)
 
         // Now that our account state observer is registered, we can kick off the account manager.
-        launch { accountManager.init().await() }
+        launch { accountManager.initAsync().await() }
 
         findViewById<View>(R.id.buttonSyncHistory).setOnClickListener {
-            val account = accountManager.authenticatedAccount() ?: return@setOnClickListener
-
-            val txtView: TextView = findViewById(R.id.historySyncResult)
-
-            launch {
-                val syncResult = CoroutineScope(Dispatchers.IO + job).async {
-                    featureSync.sync(account)
-                }.await()
-
-                check(historyStoreName in syncResult) { "Expected to synchronize a history store" }
-
-                val historySyncStatus = syncResult[historyStoreName]!!.status
-                if (historySyncStatus is SyncError) {
-                    txtView.text = getString(R.string.sync_error, historySyncStatus.exception)
-                } else {
-                    val visitedCount = historyStorage.getVisited().size
-                    // visitedCount is passed twice: to get the correct plural form, and then as
-                    // an argument for string formatting.
-                    txtView.text = resources.getQuantityString(
-                        R.plurals.visited_url_count, visitedCount, visitedCount
-                    )
-                }
-            }
+            syncManager.syncNow()
         }
     }
 
@@ -133,7 +105,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
     override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
         launch {
             supportFragmentManager?.popBackStack()
-            accountManager.finishAuthentication(code, state).await()
+            accountManager.finishAuthenticationAsync(code, state).await()
         }
     }
 
@@ -157,7 +129,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
             }
         }
 
-        override fun onAuthenticated(account: FirefoxAccountShaped) {
+        override fun onAuthenticated(account: OAuthAccount) {
             launch {
                 val txtView: TextView = findViewById(R.id.fxaStatusView)
                 txtView.text = getString(R.string.signed_in_waiting_for_profile)
@@ -196,6 +168,14 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         override fun onIdle() {
             CoroutineScope(Dispatchers.Main).launch {
                 historySyncStatus?.text = getString(R.string.sync_idle)
+
+                val resultTextView: TextView = findViewById(R.id.historySyncResult)
+                val visitedCount = historyStorage.getVisited().size
+                // visitedCount is passed twice: to get the correct plural form, and then as
+                // an argument for string formatting.
+                resultTextView.text = resources.getQuantityString(
+                    R.plurals.visited_url_count, visitedCount, visitedCount
+                )
             }
         }
 

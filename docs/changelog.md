@@ -4,28 +4,107 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.46.0-SNAPSHOT  (In Development)
+# 0.47.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.45.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/49?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.46.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/50?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **browser-session**
+  * Added `Session.webAppManifest` to expose the [Web App Manifest](https://developer.mozilla.org/en-US/docs/Web/Manifest) of the currently visible page. This functionality will only be available in [GeckoView](https://mozilla.github.io/geckoview/)-flavored [concept-engine](https://github.com/mozilla-mobile/android-components/tree/master/components/concept/engine) implementations.
+  * Added `WebAppManifestParser` to create [WebAppManifest](https://mozac.org/api/mozilla.components.browser.session.manifest/-web-app-manifest/) from JSON.
+
+* **browser-menu**
+   * Added `TwoStateButton` in `BrowserMenuItemToolbar` that will change resources based on the `isInPrimaryState` lambda and added ability to disable the button with optional `disableInSecondaryState` argument.
+
+* **browser-toolbar**
+  * Adds `onCancelEditing` to `onEditListener` in `BrowserToolbar` which is fired when a back button press occurs while the keyboard is displayed.
+    This is especially useful if you want to call `activity.onBackPressed()` to navigate away rather than just dismiss the keyboard.
+    Its return value is used to determine if `displayMode` will switch from edit to view.
+
+* **concept-sync**
+  * 🆕 New component which describes sync-related interfaces, such as SyncManager, SyncableStore, SyncStatusObserver and others.
+
+* **concept-storage**
+  * ⚠️ **This is a breaking API change!**: Removed sync-related interfaces. See **concept-sync**.
+  * **HistoryStorage** interface has a new method: `getDetailedVisits(start, end) -> List<VisitInfo>`. It provides detailed information about page visits (title, visit type, timestamp, etc).
+
+* **browser-storage-memory**, **browser-storage-sync**:
+  * Added implementations for the new getDetailedVisits API from **concept-storage**.
+
+* **feature-sync**
+  * ⚠️ **This is a breaking API change!** Complete overhaul of this component.
+  * Added `BackgroundSyncManager`, a WorkManager-based implementation of the SyncManager defined in `concept-sync`.
+  * An instance of a SyncManager is an entry point for interacting with background data synchronization.
+  * See component's README for usage details.
+
+* **browser-engine-system** and **browser-engine-gecko-nightly**
+  * ⚠️ **This is a breaking API change**: The [`captureThumbnail`](https://github.com/mozilla-mobile/android-components/blob/1b1600a7e8aa83a7e7d09b30cecd49762f7781f5/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineSession.kt#L245) function has been moved to [`EngineView`](https://github.com/mozilla-mobile/android-components/blob/1b1600a7e8aa83a7e7d09b30cecd49762f7781f5/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineView.kt#L15). From now on for taking screenshots automatically you will have to opt-in by using `ThumbnailsFeature`. The decision was made to reduce overhead memory consumption for apps that are not using screenshots. Find more info in [feature-session](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/session/README.md) and a practical example can be found in the [sample-browser project](https://github.com/mozilla-mobile/android-components/blob/master/samples/browser).
+
+* **feature-session-bundling**
+  * Saving, restoring and removing `SessionBundle` instances need to happen on a worker thread now (off the main thread).
+  * The actual session state is now saved on the file system outside of the internally used SQLite database.
+
+* **support-ktx**
+  * Added `File.truncateDirectory()` to remove all files (and sub directories) in a directory.
+  * Added `Context.isMainProcess` and `Context.runOnlyInMainProcess(block: () -> Unit)` to detect when you're running on the main process.
+```kotlin
+      // true if we are running in the main process otherwise false .
+      val isMainProcess = context.isMainProcess()
+
+      context.runOnlyInMainProcess {
+            /* This function is only going to run if we are
+                in the main process, otherwise it won't be executed.  */
+       }
+```
+
+* **feature-session**
+  * Adds support for the picture-in-picture mode in `PictureInPictureFeature`.
+
+* **browser-storage-sync**
+  * Changed how Rust Places database connections are maintained, based on [new reader/writer APIs](https://github.com/mozilla/application-services/pull/718).
+
+* **service-pocket**
+  * Access the list of global video recommendations via `PocketEndpoint.getGlobalVideoRecommendations`.
+
+* **concept-fetch**
+  * Added common HTTP header constants in `Headers.Common`. This collection is incomplete: add your own!
+
+# 0.46.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.45.0...v0.46.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/49?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.46.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.46.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.46.0/buildSrc/src/main/java/Config.kt)
 
 * **browser-awesomebar**
   * Adds ability to remove `SuggestionProvider`s with `removeProviders` and `removeAllProviders`
 
 * **browser-menu**
   * ⚠️ **This is a breaking API change!**: Removed redundant `BrowserMenuImageText` `contentDescription`
+  * Adds `textSize` parameter to `SimpleBrowserMenuItem`
   
 * **concept-fetch**
   * ⚠️ **This is a breaking API change**: the [`Response`](https://mozac.org/api/mozilla.components.concept.fetch/-response/) properties `.success` and `.clientError` were renamed to `.isSuccess` and `isClientError` respectively to match Java conventions.
 
 * **feature-downloads**
   * Fixing bug #2265. In some occasions, when trying to download a file, the download failed and the download notification shows "Unsuccessful download".
+  
+* **feature-search**
+  * Adds default search engine var to `SearchEngineManager`
+  * Adds optional `SearchEngine` to `invoke()` in `SearchUseCases`
 
 * **service-experiments**
   * A new client-side experiments SDK for running segmenting user populations to run multi-branch experiments on them. This component is going to replace `service-fretboard`. The SDK is currently in development and the component is not ready to be used yet.
+
+* * **browser-icons**
+  * Adding a decoder for decoding ICO files see #2040.
+
+* **service-pocket**
+  * 🆕 New component to interact with the Pocket APIs.
 
 # 0.45.0
 

@@ -5,7 +5,6 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -481,8 +480,10 @@ class GeckoEngineSession(
         override fun onFocusRequest(session: GeckoSession) = Unit
     }
 
-    private fun createContentBlockingDelegate() = ContentBlocking.Delegate {
-        _, event -> notifyObservers { onTrackerBlocked(event.uri) }
+    private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {
+        override fun onContentBlocked(session: GeckoSession, event: ContentBlocking.BlockEvent) {
+            notifyObservers { onTrackerBlocked(event.uri) }
+        }
     }
 
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
@@ -557,12 +558,6 @@ class GeckoEngineSession(
             }
             else -> HitResult.UNKNOWN("")
         }
-    }
-
-    override fun captureThumbnail(): Bitmap? {
-        // TODO Waiting for the Gecko team to create an API for this
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1462018
-        return null
     }
 
     private fun createGeckoSession() {

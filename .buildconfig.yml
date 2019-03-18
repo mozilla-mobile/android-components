@@ -1,4 +1,4 @@
-componentsVersion: 0.46.0
+componentsVersion: 0.47.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -23,6 +23,10 @@ projects:
   concept-storage:
     path: components/concept/storage
     description: 'An abstract definition of a browser storage layer.'
+    publish: true
+  concept-sync:
+    path: components/concept/sync
+    description: 'An abstract definition of a browser data synchronization layer.'
     publish: true
   feature-awesomebar:
     path: components/feature/awesomebar
@@ -75,6 +79,10 @@ projects:
   feature-prompts:
     path: components/feature/prompts
     description: 'Feature that will subscribe to the selected session and will handle all the common prompt dialogs from web content.'
+    publish: true
+  feature-pwa:
+    path: components/feature/pwa
+    description: 'Feature implementation for Progressive Web Apps (PWA).'
     publish: true
   feature-findinpage:
       path: components/feature/findinpage

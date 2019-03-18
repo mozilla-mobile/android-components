@@ -31,6 +31,9 @@ dependencies {
     // Parts of this dependency are typealiase'd or are otherwise part of this module's public API.
     api Dependencies.mozilla_sync_logins
 
+    // Types defined in concept-sync are part of this module's public API.
+    api project(':concept-sync')
+
     implementation project(':concept-storage')
 
     implementation Dependencies.kotlin_stdlib

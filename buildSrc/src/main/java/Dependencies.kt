@@ -18,13 +18,13 @@ object Versions {
 
     const val support_libraries = "28.0.0"
     const val constraint_layout = "1.1.2"
-    const val workmanager = "1.0.0-rc02"
+    const val workmanager = "1.0.0"
     const val lifecycle = "1.1.1"
 
     const val dokka = "0.9.17"
     const val android_gradle_plugin = "3.2.1"
     const val maven_gradle_plugin = "2.1"
-    const val lint = "26.2.1"
+    const val lint = "26.3.2"
 
     const val sentry = "1.7.21"
     const val okhttp = "3.13.1"
@@ -32,7 +32,7 @@ object Versions {
     const val room = "1.1.1"
     const val paging = "1.0.1"
 
-    const val mozilla_appservices = "0.18.0"
+    const val mozilla_appservices = "0.19.0"
     const val servo = "0.0.1.20181017.aa95911"
 }
 

@@ -13,11 +13,11 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import kotlinx.android.synthetic.main.activity_toolbar.*
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import mozilla.components.browser.domains.autocomplete.CustomDomainsProvider
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
 import mozilla.components.browser.menu.BrowserMenu
@@ -135,12 +135,13 @@ class ToolbarActivity : AppCompatActivity() {
         // Create a menu that looks like the one in Firefox Focus
         // //////////////////////////////////////////////////////////////////////////////////////////
 
+        val fenix = SimpleBrowserMenuItem("POWERED BY MOZILLA")
         val share = SimpleBrowserMenuItem("Share…") { /* Do nothing */ }
         val homeScreen = SimpleBrowserMenuItem("Add to Home screen") { /* Do nothing */ }
         val open = SimpleBrowserMenuItem("Open in…") { /* Do nothing */ }
         val settings = SimpleBrowserMenuItem("Settings") { /* Do nothing */ }
 
-        val builder = BrowserMenuBuilder(listOf(share, homeScreen, open, settings))
+        val builder = BrowserMenuBuilder(listOf(fenix, share, homeScreen, open, settings))
         toolbar.setMenuBuilder(builder)
 
         // //////////////////////////////////////////////////////////////////////////////////////////
@@ -203,10 +204,19 @@ class ToolbarActivity : AppCompatActivity() {
             simulateReload()
         }
 
-        val reload = BrowserMenuItemToolbar.Button(
-            mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
-            "Reload") {
-            simulateReload()
+        val reload = BrowserMenuItemToolbar.TwoStateButton(
+            primaryImageResource = mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
+            primaryContentDescription = "Reload",
+            secondaryImageResource = R.drawable.mozac_ic_stop,
+            secondaryContentDescription = "Stop",
+            isInPrimaryState = { !loading },
+            disableInSecondaryState = false
+        ) {
+            if (loading) {
+                job?.cancel()
+            } else {
+                simulateReload()
+            }
         }
 
         val menuToolbar = BrowserMenuItemToolbar(listOf(forward, reload))

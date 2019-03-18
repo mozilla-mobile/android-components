@@ -11,13 +11,18 @@ import android.arch.paging.DataSource
 import android.content.Context
 import android.support.annotation.CheckResult
 import android.support.annotation.VisibleForTesting
+import android.support.annotation.WorkerThread
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.ext.writeSnapshot
 import mozilla.components.browser.session.storage.AutoSave
+import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.session.bundling.adapter.SessionBundleAdapter
 import mozilla.components.feature.session.bundling.db.BundleDatabase
 import mozilla.components.feature.session.bundling.db.BundleEntity
 import mozilla.components.feature.session.bundling.ext.toBundleEntity
+import mozilla.components.support.ktx.java.io.truncateDirectory
+import java.io.File
 import java.lang.IllegalArgumentException
 import java.util.concurrent.TimeUnit
 
@@ -29,7 +34,8 @@ import java.util.concurrent.TimeUnit
  */
 @Suppress("TooManyFunctions")
 class SessionBundleStorage(
-    context: Context,
+    private val context: Context,
+    private val engine: Engine,
     internal val bundleLifetime: Pair<Long, TimeUnit>
 ) : AutoSave.Storage {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -44,6 +50,7 @@ class SessionBundleStorage(
      * Restores the last [SessionBundle] if there is one without expired lifetime.
      */
     @Synchronized
+    @WorkerThread
     fun restore(): SessionBundle? {
         val since = now() - bundleLifetime.second.toMillis(bundleLifetime.first)
 
@@ -52,7 +59,7 @@ class SessionBundleStorage(
             .getLastBundle(since)
             .also { lastBundle = it }
 
-        return entity?.let { SessionBundleAdapter(it) }
+        return entity?.let { SessionBundleAdapter(context, engine, it) }
     }
 
     /**
@@ -60,6 +67,7 @@ class SessionBundleStorage(
      * updated with the data from the snapshot. If no bundle was restored a new bundle will be created.
      */
     @Synchronized
+    @WorkerThread
     override fun save(snapshot: SessionManager.Snapshot): Boolean {
         val bundle = lastBundle
 
@@ -77,6 +85,7 @@ class SessionBundleStorage(
      * next time a [SessionManager.Snapshot] is saved.
      */
     @Synchronized
+    @WorkerThread
     fun remove(bundle: SessionBundle) {
         if (bundle !is SessionBundleAdapter) {
             throw IllegalArgumentException("Unexpected bundle type")
@@ -87,15 +96,21 @@ class SessionBundleStorage(
         }
 
         bundle.actual.let { database.bundleDao().deleteBundle(it) }
+
+        bundle.actual.stateFile(context, engine).delete()
     }
 
     /**
      * Removes all saved [SessionBundle] instances permanently.
      */
     @Synchronized
+    @WorkerThread
     fun removeAll() {
         lastBundle = null
         database.clearAllTables()
+
+        getStateDirectory(context)
+            .truncateDirectory()
     }
 
     /**
@@ -104,7 +119,7 @@ class SessionBundleStorage(
      */
     @Synchronized
     fun current(): SessionBundle? {
-        return lastBundle?.let { SessionBundleAdapter(it) }
+        return lastBundle?.let { SessionBundleAdapter(context, engine, it) }
     }
 
     /**
@@ -141,7 +156,7 @@ class SessionBundleStorage(
             .bundleDao()
             .getBundles(since, limit)
         ) { list ->
-            list.map { SessionBundleAdapter(it) }
+            list.map { SessionBundleAdapter(context, engine, it) }
         }
     }
 
@@ -161,7 +176,7 @@ class SessionBundleStorage(
         return database
             .bundleDao()
             .getBundlesPaged(since)
-            .map { entity -> SessionBundleAdapter(entity) }
+            .map { entity -> SessionBundleAdapter(context, engine, entity) }
     }
 
     /**
@@ -198,7 +213,12 @@ class SessionBundleStorage(
             return
         }
 
-        val bundle = snapshot.toBundleEntity().also { lastBundle = it }
+        val bundle = snapshot.toBundleEntity().also {
+            lastBundle = it
+        }
+
+        bundle.stateFile(context, engine).writeSnapshot(snapshot)
+
         bundle.id = database.bundleDao().insertBundle(bundle)
     }
 
@@ -209,8 +229,10 @@ class SessionBundleStorage(
         if (snapshot.isEmpty()) {
             // If this snapshot is empty then instead of saving an empty bundle: Remove the bundle. Otherwise
             // we end up with empty bundles to restore and that is not helpful at all.
-            remove(SessionBundleAdapter(bundle))
+            remove(SessionBundleAdapter(context, engine, bundle))
         } else {
+            bundle.stateFile(context, engine).writeSnapshot(snapshot)
+
             bundle.updateFrom(snapshot)
             database.bundleDao().updateBundle(bundle)
         }
@@ -218,4 +240,12 @@ class SessionBundleStorage(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun now() = System.currentTimeMillis()
+
+    companion object {
+        internal fun getStateDirectory(context: Context): File {
+            return File(context.filesDir, "mozac.feature.session.bundling").apply {
+                mkdirs()
+            }
+        }
+    }
 }

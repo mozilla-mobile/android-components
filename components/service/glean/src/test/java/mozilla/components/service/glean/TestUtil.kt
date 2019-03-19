@@ -131,6 +131,7 @@ internal fun resetGlean(
     firstRun.reset()
     // Init glean.
     Glean.initialized = false
+    Glean.setUploadEnabled(true)
     Glean.initialize(context, config)
 }
 

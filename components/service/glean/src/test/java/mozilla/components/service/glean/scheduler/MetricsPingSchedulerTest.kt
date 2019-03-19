@@ -60,24 +60,6 @@ class MetricsPingSchedulerTest {
         return null as T
     }
 
-    /**
-     * Run a function that uses [Dispatchers.API] in the Unconfined
-     * dispatcher. This can be used instead of FakeDispatchersInTest if we want the dispatchers
-     * to be faked in a single test.
-     *
-     * @param func the function to call with the Unconfined dispatcher
-     */
-    @Suppress("EXPERIMENTAL_API_USAGE")
-    private fun blockDispatchersAPI(func: () -> Unit) {
-        val originalDispatcher = Dispatchers.API
-        try {
-            // Dispatchers.API = CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
-            func()
-        } finally {
-            // Dispatchers.API = originalDispatcher
-        }
-    }
-
     @Before
     fun setup() {
         WorkManagerTestInitHelper.initializeTestWorkManager(
@@ -311,10 +293,7 @@ class MetricsPingSchedulerTest {
         // Trigger the startup check. We need to wrap this in `blockDispatchersAPI` since
         // the immediate startup collection happens in the Dispatchers.API context. If we
         // don't, test will fail due to async weirdness.
-        blockDispatchersAPI {
-            mpsSpy.startupCheck()
-        }
-
+        mpsSpy.startupCheck()
         Dispatchers.API.awaitJob()
 
         // And that we're storing the current date (this only reports the date, not the time).

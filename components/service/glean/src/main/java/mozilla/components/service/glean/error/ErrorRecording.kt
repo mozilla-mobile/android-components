@@ -68,24 +68,22 @@ object ErrorRecording {
 
         logger.warn("${metricData.identifier}: $message")
 
-        Dispatchers.API.launch {
-            // There are two reasons for using `CountersStorageEngine.record` below
-            // and not just using the public `CounterMetricType` API.
+        // There are two reasons for using `CountersStorageEngine.record` below
+        // and not just using the public `CounterMetricType` API.
 
-            // 1) The labeled counter metrics that store the errors are defined in the
-            // `metrics.yaml` for documentation purposes, but are not actually used
-            // directly, since the `sendInPings` value needs to match the pings of the
-            // metric that is erroring (plus the "metrics" ping), not some constant value
-            // that we could define in `metrics.yaml`.
+        // 1) The labeled counter metrics that store the errors are defined in the
+        // `metrics.yaml` for documentation purposes, but are not actually used
+        // directly, since the `sendInPings` value needs to match the pings of the
+        // metric that is erroring (plus the "metrics" ping), not some constant value
+        // that we could define in `metrics.yaml`.
 
-            // 2) We want to bybass the restriction that there are only N values in a
-            // dynamically labeled metric.  Error reporting should never report errors
-            // in the __other__ category.
-            CountersStorageEngine.record(
-                errorMetric,
-                amount = 1
-            )
-        }
+        // 2) We want to bybass the restriction that there are only N values in a
+        // dynamically labeled metric.  Error reporting should never report errors
+        // in the __other__ category.
+        CountersStorageEngine.record(
+            errorMetric,
+            amount = 1
+        )
     }
 
     /**

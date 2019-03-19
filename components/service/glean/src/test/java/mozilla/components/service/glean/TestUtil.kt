@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.service.glean.config.Configuration
+import mozilla.components.service.glean.error.ErrorRecording
 import mozilla.components.service.glean.firstrun.FileFirstRunDetector
 import mozilla.components.service.glean.ping.PingMaker
 import mozilla.components.service.glean.scheduler.PingUploadWorker
@@ -113,6 +114,8 @@ internal fun resetGlean(
     context: Context = ApplicationProvider.getApplicationContext(),
     config: Configuration = Configuration()
 ) {
+    ErrorRecording.testAwait()
+
     // We're using the WorkManager in a bunch of places, and glean will crash
     // in tests without this line. Let's simply put it here.
     WorkManagerTestInitHelper.initializeTestWorkManager(context)

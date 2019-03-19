@@ -8,6 +8,8 @@ package mozilla.components.service.glean.error
 import android.support.annotation.VisibleForTesting
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.service.glean.CounterMetricType
 import mozilla.components.service.glean.Dispatchers
@@ -94,6 +96,17 @@ object ErrorRecording {
         }
     }
 
+    @Suppress("MagicNumber")
+    internal fun testAwait() {
+        ioTask?.let { job ->
+            runBlocking {
+                withTimeout(250L) {
+                    job.join()
+                }
+            }
+        }
+    }
+
     /**
     * Get the number of recorded errors for the given metric and error type.
     *
@@ -109,7 +122,7 @@ object ErrorRecording {
         errorType: ErrorType,
         pingName: String? = null
     ): Int {
-        ioTask?.let { metricData.awaitJob(it) }
+        testAwait()
 
         val usePingName = pingName?.let {
             pingName

@@ -133,6 +133,7 @@ internal fun resetGlean(
     Glean.initialized = false
     Glean.setUploadEnabled(true)
     Glean.initialize(context, config)
+    GleanDispatchers.API.awaitJob()
 }
 
 /**

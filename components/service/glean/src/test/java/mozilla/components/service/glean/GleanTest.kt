@@ -278,7 +278,7 @@ class GleanTest {
     }
 
     @Test
-    fun `Application id sanitazer must correctly filter undesired characters`() {
+    fun `Application id sanitizer must correctly filter undesired characters`() {
         assertEquals(
             "org-mozilla-test-app",
             Glean.sanitizeApplicationId("org.mozilla.test-app")

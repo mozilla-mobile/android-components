@@ -187,7 +187,7 @@ internal abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
             dataStores[Lifetime.Ping.ordinal][storeName]?.keys?.forEach { key ->
                 editor.remove("$storeName#$key")
             }
-            editor.apply()
+            editor.commit()
             dataStores[Lifetime.Ping.ordinal].remove(storeName)
         }
 
@@ -287,13 +287,13 @@ internal abstract class GenericScalarStorageEngine<ScalarType> : StorageEngine {
                 )
             }
         }
-        editor?.apply()
+        editor?.commit()
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     override fun clearAllStores() {
-        userLifetimeStorage.edit().clear().apply()
-        pingLifetimeStorage.edit().clear().apply()
+        userLifetimeStorage.edit().clear().commit()
+        pingLifetimeStorage.edit().clear().commit()
         dataStores.forEach { it.clear() }
     }
 }

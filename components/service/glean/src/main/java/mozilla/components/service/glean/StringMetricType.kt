@@ -32,6 +32,7 @@ data class StringMetricType(
     private val logger = Logger("glean/StringMetricType")
 
     // Holds the Job returned from launch{} for awaiting purposes
+    @Volatile
     private var ioTask: Job? = null
 
     /**

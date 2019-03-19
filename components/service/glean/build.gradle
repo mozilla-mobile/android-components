@@ -59,6 +59,11 @@ dependencies {
     testImplementation project(':lib-fetch-okhttp')
 }
 
+tasks.matching {it instanceof Test}.all {
+    testLogging.events = ["failed", "passed", "skipped"]
+    testLogging.showStandardStreams = true
+}
+
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)
 

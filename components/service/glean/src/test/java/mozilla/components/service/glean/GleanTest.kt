@@ -276,7 +276,7 @@ class GleanTest {
     }
 
     @Test
-    fun `Application id sanitazer must correctly filter undesired characters`() {
+    fun `Application id sanitizer must correctly filter undesired characters`() {
         assertEquals(
             "org-mozilla-test-app",
             Glean.sanitizeApplicationId("org.mozilla.test-app")
@@ -292,13 +292,4 @@ class GleanTest {
             Glean.sanitizeApplicationId("org-mozilla-test-app")
         )
     }
-/*
-    @Test
-    fun `metricsPingScheduler is properly initialized`() {
-        Glean.metricsPingScheduler.clearSchedulerData()
-        Glean.metricsPingScheduler.updateSentTimestamp()
-
-        // Should return false since we just updated the last time the ping was sent above
-        assertFalse(Glean.metricsPingScheduler.canSendPing())
-    }*/
 }

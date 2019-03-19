@@ -4,8 +4,11 @@
 
 package mozilla.components.service.glean
 
+import kotlinx.coroutines.async
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.lang.NullPointerException
+import java.lang.Thread.sleep
 
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
@@ -114,6 +118,42 @@ class StringMetricTypeTest {
             sendInPings = listOf("store1")
         )
         stringMetric.testGetValue()
+    }
+
+    @Test
+    fun `testHasValue() should not cause deadlocks`() {
+        val stringMetric = StringMetricType(
+            disabled = true,
+            category = "telemetry",
+            lifetime = Lifetime.Application,
+            name = "stringMetric",
+            sendInPings = listOf("store1")
+        )
+
+        var stopWrites = true
+        val stringWriter = GlobalScope.async {
+            do {
+                stringMetric.set("should_not_be_recorded")
+            } while (!stopWrites)
+        }
+
+        // Deadlocky?
+        val stringConsumer = GlobalScope.async {
+            for (i in 1..100) {
+                stringMetric.testHasValue()
+            }
+        }
+        sleep(10000)
+
+
+        // Stop recording to the test metric and wait for the async stuff
+        // to complete.
+        runBlocking {
+            stopWrites = true
+            stringConsumer.await()
+            stringWriter.await()
+        }
+
     }
 
     @Test

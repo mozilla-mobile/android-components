@@ -24,10 +24,10 @@ class FakeDispatchersInTest : ExternalResource() {
     }
 
     override fun before() {
-        Dispatchers.API = testMainScope
+        // Dispatchers.API = testMainScope
     }
 
     override fun after() {
-        Dispatchers.API = originalAPIScope
+        // Dispatchers.API = originalAPIScope
     }
 }

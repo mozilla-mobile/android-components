@@ -6,10 +6,6 @@
 package mozilla.components.service.glean.error
 
 import android.support.annotation.VisibleForTesting
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.service.glean.CounterMetricType
 import mozilla.components.service.glean.Dispatchers
@@ -34,10 +30,6 @@ object ErrorRecording {
         ErrorType.InvalidValue to "invalid_value",
         ErrorType.InvalidLabel to "invalid_label"
     )
-
-    // Holds the Job returned from launch{} for awaiting purposes
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    var ioTask: Job? = null
 
     /**
      * Record an error that will be sent as a labeled counter in the `glean.error` category
@@ -76,7 +68,7 @@ object ErrorRecording {
 
         logger.warn("${metricData.identifier}: $message")
 
-        ioTask = Dispatchers.API.launch {
+        Dispatchers.API.launch {
             // There are two reasons for using `CountersStorageEngine.record` below
             // and not just using the public `CounterMetricType` API.
 
@@ -96,17 +88,6 @@ object ErrorRecording {
         }
     }
 
-    @Suppress("MagicNumber")
-    internal fun testAwait() {
-        ioTask?.let { job ->
-            runBlocking {
-                withTimeout(250L) {
-                    job.join()
-                }
-            }
-        }
-    }
-
     /**
     * Get the number of recorded errors for the given metric and error type.
     *
@@ -122,7 +103,7 @@ object ErrorRecording {
         errorType: ErrorType,
         pingName: String? = null
     ): Int {
-        testAwait()
+        Dispatchers.API.awaitJob()
 
         val usePingName = pingName?.let {
             pingName

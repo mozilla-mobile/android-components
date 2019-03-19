@@ -94,7 +94,7 @@ projects:
     publish: true
   feature-qr:
     path: components/feature/qr
-    description: 'A QR thing.'
+    description: 'A QR reader component that can read QR codes.'
     publish: true
   browser-awesomebar:
     path: components/browser/awesomebar

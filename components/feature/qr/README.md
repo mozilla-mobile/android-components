@@ -1,10 +1,10 @@
 # [Android Components](../../../README.md) > Libraries > QR
 
-A QR component.
+A QR reader component that can read QR codes.
 
 Main features:
 
-* All of them
+* Reading QR codes.
 
 ## Usage
 
@@ -17,6 +17,26 @@ implementation "org.mozilla.components:feature-qr:{latest-version}"
 ```
 
 ### Setting up the QR reader
+
+Create the feature:
+```
+qrFeature = QrFeature(
+    this,
+    fragmentManager = supportFragmentManager,
+    onNeedToRequestPermissions = { permissions ->
+        ActivityCompat.requestPermissions(this, permissions, REQUEST_CAMERA_PERMISSIONS)
+    },
+    onScanResult = { scanResult ->
+
+    }
+)
+```
+
+When ready to scan use the following:
+
+```
+qrFeature.scan(android.R.id.content);
+```
 
 ## License
 

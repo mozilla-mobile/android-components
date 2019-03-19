@@ -9,7 +9,6 @@ import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.async
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -72,10 +71,10 @@ class MetricsPingSchedulerTest {
     private fun blockDispatchersAPI(func: () -> Unit) {
         val originalDispatcher = Dispatchers.API
         try {
-            Dispatchers.API = CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
+            // Dispatchers.API = CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
             func()
         } finally {
-            Dispatchers.API = originalDispatcher
+            // Dispatchers.API = originalDispatcher
         }
     }
 
@@ -315,6 +314,8 @@ class MetricsPingSchedulerTest {
         blockDispatchersAPI {
             mpsSpy.startupCheck()
         }
+
+        Dispatchers.API.awaitJob()
 
         // And that we're storing the current date (this only reports the date, not the time).
         fakeNow.set(Calendar.HOUR_OF_DAY, 0)

@@ -58,14 +58,11 @@ data class UuidMetricType(
             return
         }
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the event to the storage engine.
-            UuidsStorageEngine.record(
-                this@UuidMetricType,
-                value = value
-            )
-        }
+        // Delegate storing the event to the storage engine.
+        UuidsStorageEngine.record(
+            this@UuidMetricType,
+            value = value
+        )
     }
 
     /**
@@ -80,8 +77,6 @@ data class UuidMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
-        Dispatchers.API.awaitJob()
-
         return UuidsStorageEngine.getSnapshot(pingName, false)?.get(identifier) != null
     }
 
@@ -97,8 +92,6 @@ data class UuidMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testGetValue(pingName: String = getStorageNames().first()): UUID {
-        Dispatchers.API.awaitJob()
-
         return UuidsStorageEngine.getSnapshot(pingName, false)!![identifier]!!
     }
 }

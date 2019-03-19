@@ -38,14 +38,11 @@ data class BooleanMetricType(
             return
         }
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the boolean to the storage engine.
-            BooleansStorageEngine.record(
-                this@BooleanMetricType,
-                value = value
-            )
-        }
+        // Delegate storing the boolean to the storage engine.
+        BooleansStorageEngine.record(
+            this@BooleanMetricType,
+            value = value
+        )
     }
 
     /**
@@ -60,8 +57,6 @@ data class BooleanMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
-        Dispatchers.API.awaitJob()
-
         return BooleansStorageEngine.getSnapshot(pingName, false)?.get(identifier) != null
     }
 
@@ -77,8 +72,6 @@ data class BooleanMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testGetValue(pingName: String = getStorageNames().first()): Boolean {
-        Dispatchers.API.awaitJob()
-
         return BooleansStorageEngine.getSnapshot(pingName, false)!![identifier]!!
     }
 }

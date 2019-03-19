@@ -41,14 +41,11 @@ data class StringListMetricType(
             return
         }
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the string to the storage engine.
-            StringListsStorageEngine.add(
-                metricData = this@StringListMetricType,
-                value = value
-            )
-        }
+        // Delegate storing the string to the storage engine.
+        StringListsStorageEngine.add(
+            metricData = this@StringListMetricType,
+            value = value
+        )
     }
 
     /**
@@ -62,14 +59,11 @@ data class StringListMetricType(
             return
         }
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the string list to the storage engine.
-            StringListsStorageEngine.set(
-                metricData = this@StringListMetricType,
-                value = value
-            )
-        }
+        // Delegate storing the string list to the storage engine.
+        StringListsStorageEngine.set(
+            metricData = this@StringListMetricType,
+            value = value
+        )
     }
 
     /**
@@ -84,8 +78,6 @@ data class StringListMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
-        Dispatchers.API.awaitJob()
-
         return StringListsStorageEngine.getSnapshot(pingName, false)?.get(identifier) != null
     }
 
@@ -101,8 +93,6 @@ data class StringListMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testGetValue(pingName: String = getStorageNames().first()): List<String> {
-        Dispatchers.API.awaitJob()
-
         return StringListsStorageEngine.getSnapshot(pingName, false)!![identifier]!!
     }
 }

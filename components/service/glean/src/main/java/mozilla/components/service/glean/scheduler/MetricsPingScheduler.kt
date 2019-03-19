@@ -13,8 +13,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.Worker
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.launch
-import mozilla.components.service.glean.Dispatchers
 import mozilla.components.service.glean.Glean
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.service.glean.utils.getISOTimeString
@@ -207,11 +205,8 @@ internal class MetricsPingScheduler(val applicationContext: Context) {
                 // the ping is collected. All the exposed metrics API dispatch calls to the
                 // engines through the `Dispatchers.API` context, so this ensures we are enqueued
                 // before any other recording API call.
-                @Suppress("EXPERIMENTAL_API_USAGE")
-                Dispatchers.API.launch {
-                    // This addresses (2).
-                    collectPingAndReschedule(now)
-                }
+                // This addresses (2).
+                collectPingAndReschedule(now)
             }
             else -> {
                 // This covers (3).

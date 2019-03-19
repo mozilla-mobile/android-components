@@ -8,7 +8,6 @@ package mozilla.components.service.glean.error
 import android.support.annotation.VisibleForTesting
 import mozilla.components.service.glean.CommonMetricData
 import mozilla.components.service.glean.CounterMetricType
-import mozilla.components.service.glean.Dispatchers
 import mozilla.components.service.glean.Lifetime
 import mozilla.components.service.glean.storages.CountersStorageEngine
 import mozilla.components.support.base.log.logger.Logger
@@ -101,8 +100,6 @@ object ErrorRecording {
         errorType: ErrorType,
         pingName: String? = null
     ): Int {
-        Dispatchers.API.awaitJob()
-
         val usePingName = pingName?.let {
             pingName
         } ?: run {

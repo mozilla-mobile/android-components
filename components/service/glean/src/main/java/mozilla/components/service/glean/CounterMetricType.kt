@@ -40,14 +40,11 @@ data class CounterMetricType(
             return
         }
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the new counter value to the storage engine.
-            CountersStorageEngine.record(
-                    this@CounterMetricType,
-                    amount = amount
-            )
-        }
+        // Delegate storing the new counter value to the storage engine.
+        CountersStorageEngine.record(
+            this@CounterMetricType,
+            amount = amount
+        )
     }
 
     /**
@@ -62,8 +59,6 @@ data class CounterMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
-        Dispatchers.API.awaitJob()
-
         return CountersStorageEngine.getSnapshot(pingName, false)?.get(identifier) != null
     }
 
@@ -79,8 +74,6 @@ data class CounterMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testGetValue(pingName: String = getStorageNames().first()): Int {
-        Dispatchers.API.awaitJob()
-
         return CountersStorageEngine.getSnapshot(pingName, false)!![identifier]!!
     }
 }

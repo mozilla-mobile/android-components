@@ -49,15 +49,12 @@ data class EventMetricType(
         // might get executed.
         val monotonicElapsed = SystemClock.elapsedRealtime()
 
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the event to the storage engine.
-            EventsStorageEngine.record(
-                metricData = this@EventMetricType,
-                monotonicElapsedMs = monotonicElapsed,
-                extra = extra
-            )
-        }
+        // Delegate storing the event to the storage engine.
+        EventsStorageEngine.record(
+            metricData = this@EventMetricType,
+            monotonicElapsedMs = monotonicElapsed,
+            extra = extra
+        )
     }
 
     /**
@@ -72,8 +69,6 @@ data class EventMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
-        Dispatchers.API.awaitJob()
-
         val snapshot = EventsStorageEngine.getSnapshot(pingName, false) ?: return false
         return snapshot.any { event ->
             event.identifier == identifier
@@ -92,8 +87,6 @@ data class EventMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testGetValue(pingName: String = getStorageNames().first()): List<RecordedEventData> {
-        Dispatchers.API.awaitJob()
-
         return EventsStorageEngine.getSnapshot(pingName, false)!!.filter { event ->
             event.identifier == identifier
         }

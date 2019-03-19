@@ -45,12 +45,16 @@ internal object Dispatchers {
         */
         @VisibleForTesting(otherwise = VisibleForTesting.NONE)
         fun awaitJob(timeout: Long = JOB_TIMEOUT_MS) {
-            ioTask?.let { job ->
-                runBlocking() {
-                    withTimeout(timeout) {
-                        job.join()
+            try {
+                ioTask?.let { job ->
+                    runBlocking() {
+                        withTimeout(timeout) {
+                            job.join()
+                        }
                     }
                 }
+            } finally {
+                ioTask = null
             }
         }
     }

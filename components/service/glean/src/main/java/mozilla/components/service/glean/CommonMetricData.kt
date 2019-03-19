@@ -98,10 +98,17 @@ interface CommonMetricData {
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun awaitJob(job: Job, timeout: Long = JOB_TIMEOUT_MS) {
-        runBlocking {
-            withTimeout(timeout) {
-                job.join()
+        runBlocking() {
+            println("before job status: $job ${job.isActive} ${job.isCancelled} ${job.isCompleted}")
+            try {
+                withTimeout(timeout) {
+                    job.join()
+                }
+            } catch (e: TimeoutCancellationException) {
+                println("timed out. job status: $job ${job.isActive} ${job.isCancelled} ${job.isCompleted}")
+                throw e
             }
+            println("after job status: $job ${job.isActive} ${job.isCancelled} ${job.isCompleted}")
         }
     }
 }

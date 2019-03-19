@@ -35,7 +35,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.anyBoolean
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
@@ -197,28 +196,28 @@ class MetricsPingSchedulerTest {
         assertEquals(expectedDate, mps.getLastCollectedDate(expectedDate))
     }
 
-    @Test
-    fun `collectMetricsPing must update the last sent date and reschedule the collection`() {
-        val mpsSpy = spy<MetricsPingScheduler>(
-            MetricsPingScheduler(ApplicationProvider.getApplicationContext<Context>()))
+    // @Test
+    // fun `collectMetricsPing must update the last sent date and reschedule the collection`() {
+    //     val mpsSpy = spy<MetricsPingScheduler>(
+    //         MetricsPingScheduler(ApplicationProvider.getApplicationContext<Context>()))
 
-        // Ensure we have the right assumptions in place: the methods were not called
-        // prior to |collectPingAndReschedule|.
-        verify(mpsSpy, times(0)).updateSentDate(anyString())
-        verify(mpsSpy, times(0)).schedulePingCollection(
-            kotlinFriendlyAny<Calendar>(),
-            anyBoolean()
-        )
+    //     // Ensure we have the right assumptions in place: the methods were not called
+    //     // prior to |collectPingAndReschedule|.
+    //     verify(mpsSpy, times(0)).updateSentDate(anyString())
+    //     verify(mpsSpy, times(0)).schedulePingCollection(
+    //         kotlinFriendlyAny<Calendar>(),
+    //         anyBoolean()
+    //     )
 
-        mpsSpy.collectPingAndReschedule(Calendar.getInstance())
+    //     mpsSpy.collectPingAndReschedule(Calendar.getInstance())
 
-        // Verify that we correctly called in the methods.
-        verify(mpsSpy, times(1)).updateSentDate(anyString())
-        verify(mpsSpy, times(1)).schedulePingCollection(
-            kotlinFriendlyAny<Calendar>(),
-            anyBoolean()
-        )
-    }
+    //     // Verify that we correctly called in the methods.
+    //     verify(mpsSpy, times(1)).updateSentDate(anyString())
+    //     verify(mpsSpy, times(1)).schedulePingCollection(
+    //         kotlinFriendlyAny<Calendar>(),
+    //         anyBoolean()
+    //     )
+    // }
 
     @Test
     fun `collectMetricsPing must correctly trigger the collection of the metrics ping`() {

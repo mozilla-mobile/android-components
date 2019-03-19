@@ -10,6 +10,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers as KotlinDispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.support.base.log.logger.Logger
@@ -36,12 +38,16 @@ internal class PingStorageEngine(context: Context) {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     val storageDirectory: File = File(context.applicationInfo.dataDir, PING_STORAGE_DIRECTORY)
 
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    var ioTask: Job? = null
+
     companion object {
         // Since ping file names are UUIDs, this matches UUIDs for filtering purposes
         private const val FILE_PATTERN =
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
         // Base directory for storing serialized pings
         private const val PING_STORAGE_DIRECTORY = "${Glean.GLEAN_DATA_DIR}/pending_pings"
+        private const val JOB_TIMEOUT_MS = 500L
     }
 
     /**
@@ -53,7 +59,7 @@ internal class PingStorageEngine(context: Context) {
      */
     fun store(uuidFileName: UUID, pingPath: String, pingData: String): Job {
         logger.debug("Storing ping $uuidFileName in $pingPath")
-        return GlobalScope.launch(KotlinDispatchers.IO) {
+        ioTask = GlobalScope.launch(KotlinDispatchers.IO) {
             // Check that the director exists and create it if needed
             ensureDirectoryExists(storageDirectory)
 
@@ -63,6 +69,7 @@ internal class PingStorageEngine(context: Context) {
             // Write ping to file
             writePingToFile(pingFile, pingPath, pingData)
         }
+        return ioTask!!
     }
 
     /**
@@ -165,6 +172,16 @@ internal class PingStorageEngine(context: Context) {
                 it.flush()
             } catch (e: IOException) {
                 logger.warn("IOException while writing ping to file", e)
+            }
+        }
+    }
+
+    fun testWait() {
+        ioTask?.let { job ->
+            runBlocking() {
+                withTimeout(JOB_TIMEOUT_MS) {
+                    job.join()
+                }
             }
         }
     }

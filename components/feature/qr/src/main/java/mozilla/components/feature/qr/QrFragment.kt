@@ -189,7 +189,7 @@ class QrFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_camera2_basic, container, false)
+        return inflater.inflate(R.layout.fragment_layout, container, false)
     }
 
 
@@ -401,7 +401,6 @@ class QrFragment : Fragment() {
             mPreviewRequestBuilder!!.addTarget(mImageSurface)
             mPreviewRequestBuilder!!.addTarget(surface)
 
-            //mCameraDevice.createCaptureSession(Arrays.asList(surface, mImageReader.getSurface()),
             mCameraDevice!!.createCaptureSession(Arrays.asList(mImageSurface, surface),
                     object : CameraCaptureSession.StateCallback() {
 

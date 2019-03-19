@@ -44,6 +44,24 @@ class FirefoxAccountsAuthFeature(
         }
     }
 
+    fun beginPairingAuthentication(pairingUrl: String) {
+        CoroutineScope(coroutineContext).launch {
+            val authUrl = try {
+                accountManager.beginPairingAuthenticationAsync(pairingUrl).await()
+            } catch (e: FxaException) {
+                // FIXME return a fallback URL provided by Config...
+                "https://accounts.firefox.com/signin"
+            }
+            // TODO
+            // We may fail to obtain an authentication URL, for example due to transient network errors.
+            // If that happens, open up a fallback URL in order to present some kind of a "no network"
+            // UI to the user.
+            // It's possible that the underlying problem will go away by the time the tab actually
+            // loads, resulting in a confusing experience.
+            tabsUseCases.addTab.invoke(authUrl)
+        }
+    }
+
     val interceptor = object : RequestInterceptor {
         override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
             if (!uri.startsWith(redirectUrl)) {

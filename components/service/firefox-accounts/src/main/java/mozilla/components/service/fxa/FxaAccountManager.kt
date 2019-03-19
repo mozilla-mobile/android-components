@@ -48,6 +48,13 @@ internal sealed class Event {
     object AccountRestored : Event()
 
     object Authenticate : Event()
+    data class Pair(val pairingUrl: String) : Event() {
+        override fun toString(): String {
+            // data classes define their own toString, so we override it here as well as in the base
+            // class to avoid exposing 'code' and 'state' in logs.
+            return this.javaClass.simpleName
+        }
+    }
     data class Authenticated(val code: String, val state: String) : Event() {
         override fun toString(): String {
             // data classes define their own toString, so we override it here as well as in the base
@@ -137,6 +144,7 @@ open class FxaAccountManager(
                 AccountState.NotAuthenticated -> {
                     when (event) {
                         Event.Authenticate -> AccountState.NotAuthenticated
+                        is Event.Pair -> AccountState.NotAuthenticated
                         Event.FailedToAuthenticate -> AccountState.NotAuthenticated
                         is Event.Authenticated -> AccountState.AuthenticatedNoProfile
                         else -> null
@@ -222,6 +230,28 @@ open class FxaAccountManager(
 
         return deferredAuthUrl
     }
+
+    fun beginPairingAuthenticationAsync(pairUri: String): Deferred<String> {
+        val deferredAuthUrl: CompletableDeferred<String> = CompletableDeferred()
+
+        oauthObservers.register(object : OAuthObserver {
+            override fun onBeginOAuthFlow(authUrl: String) {
+                oauthObservers.unregister(this)
+                deferredAuthUrl.complete(authUrl)
+            }
+
+            override fun onError(error: FxaException) {
+                oauthObservers.unregister(this)
+                deferredAuthUrl.completeExceptionally(error)
+            }
+        })
+
+        processQueueAsync(Event.Pair(pairUri))
+
+        return deferredAuthUrl
+    }
+
+
 
     fun finishAuthenticationAsync(code: String, state: String): Deferred<Unit> {
         return processQueueAsync(Event.Authenticated(code, state))
@@ -335,6 +365,16 @@ open class FxaAccountManager(
                     Event.Authenticate -> {
                         val url = try {
                             account.beginOAuthFlow(scopes, true).await()
+                        } catch (e: FxaException) {
+                            oauthObservers.notifyObservers { onError(e) }
+                            return Event.FailedToAuthenticate
+                        }
+                        oauthObservers.notifyObservers { onBeginOAuthFlow(url) }
+                        null
+                    }
+                    is Event.Pair -> {
+                        val url = try {
+                            account.beginPairingFlow(via.pairingUrl, scopes).await()
                         } catch (e: FxaException) {
                             oauthObservers.notifyObservers { onError(e) }
                             return Event.FailedToAuthenticate

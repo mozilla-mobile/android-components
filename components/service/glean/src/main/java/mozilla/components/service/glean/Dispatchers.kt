@@ -18,6 +18,7 @@ internal object Dispatchers {
     class WaitableCoroutineScope(val coroutineScope: CoroutineScope) {
         // Holds the Job returned from launch{} for awaiting purposes
         @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+        @Volatile
         var ioTask: Job? = null
 
         companion object {
@@ -26,7 +27,7 @@ internal object Dispatchers {
             // slow or under-stress hardware.
             private const val JOB_TIMEOUT_MS = 5000L
         }
-
+ 
         fun launch(
             block: suspend CoroutineScope.() -> Unit
         ): Job {
@@ -35,16 +36,15 @@ internal object Dispatchers {
         }
 
         /**
-         * Helper function to wait for any pending Jobs used by the metrics to finish.
-         * This is to help ensure that data is updated before test functions
-         * check or access them.
+         * Helper function to ensure glean is being used in testing mode and async
+         * jobs are being run synchronously.  This should be called from every method
+         * in the testing API to make sure that the results of the main API can be
+         * tested synchronously.
          *
-         * @param timeout Length of time in milliseconds that .join will be awaited. Defaults to
-         *                [JOB_TIMEOUT_MS].
-         * @throws TimeoutCancellationException if the function times out waiting for the join()
+         * @throws AssertionException if the function times out waiting for the join()
         */
         @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-        fun awaitJob(timeout: Long = JOB_TIMEOUT_MS) {
+        fun assertInTestingMode() {
             ioTask?.let { job ->
                 runBlocking() {
                     withTimeout(timeout) {

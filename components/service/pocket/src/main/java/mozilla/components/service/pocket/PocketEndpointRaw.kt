@@ -5,15 +5,12 @@
 package mozilla.components.service.pocket
 
 import android.net.Uri
-import android.support.annotation.VisibleForTesting
-import android.support.annotation.VisibleForTesting.PRIVATE
 import android.support.annotation.WorkerThread
 import mozilla.components.concept.fetch.Client
+import mozilla.components.concept.fetch.Headers.Names.USER_AGENT
 import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
-import mozilla.components.concept.fetch.Response
-import mozilla.components.concept.fetch.isSuccess
-import java.io.IOException
+import mozilla.components.service.pocket.ext.fetchBodyOrNull
 
 /**
  * Make requests to the Pocket endpoint and returns the raw JSON data: this class is intended to be very dumb.
@@ -39,20 +36,8 @@ internal class PocketEndpointRaw(
     private fun makeRequest(pocketEndpoint: Uri): String? {
         val request = Request(
             url = pocketEndpoint.toString(),
-            headers = MutableHeaders(HEADER_USER_AGENT to userAgent)
+            headers = MutableHeaders(USER_AGENT to userAgent)
         )
-
-        val response: Response? = try {
-            client.fetch(request)
-        } catch (e: IOException) {
-            logger.debug("getGlobalVideoRecommedations: network error", e)
-            null
-        }
-
-        return response?.use { if (response.isSuccess) response.body.string() else null }
-    }
-
-    companion object {
-        @VisibleForTesting(otherwise = PRIVATE) const val HEADER_USER_AGENT = "User-Agent"
+        return client.fetchBodyOrNull(request)
     }
 }

@@ -4,9 +4,8 @@
 
 package mozilla.components.service.pocket.data
 
-import org.junit.Assert.assertEquals
+import mozilla.components.service.pocket.helpers.assertConstructorsVisibility
 import org.junit.Test
-import kotlin.reflect.KClass
 import kotlin.reflect.KVisibility
 
 class PocketGlobalVideoRecommendationTest {
@@ -19,11 +18,5 @@ class PocketGlobalVideoRecommendationTest {
     @Test // See PocketGlobalVideoRecommendation constructor for details.
     fun `GIVEN an Author THEN its constructors are internal`() {
         assertConstructorsVisibility(PocketGlobalVideoRecommendation.Author::class, KVisibility.INTERNAL)
-    }
-}
-
-private fun <T : Any> assertConstructorsVisibility(assertedClass: KClass<T>, visibility: KVisibility) {
-    assertedClass.constructors.forEach {
-        assertEquals(visibility, it.visibility)
     }
 }

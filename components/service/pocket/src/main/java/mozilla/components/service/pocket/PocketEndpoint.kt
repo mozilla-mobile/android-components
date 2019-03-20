@@ -36,13 +36,7 @@ class PocketEndpoint internal constructor(
     fun getGlobalVideoRecommendations(): PocketResponse<List<PocketGlobalVideoRecommendation>> {
         val json = rawEndpoint.getGlobalVideoRecommendations()
         val videoRecs = json?.let { jsonParser.jsonToGlobalVideoRecommendations(it) }
-        return videoRecs.wrapInResponse()
-    }
-
-    private fun <T> List<T>?.wrapInResponse(): PocketResponse<List<T>> = if (isNullOrEmpty()) {
-        PocketResponse.Failure()
-    } else {
-        PocketResponse.Success(this!!)
+        return PocketResponse.wrap(videoRecs)
     }
 
     companion object {
@@ -58,7 +52,7 @@ class PocketEndpoint internal constructor(
          */
         fun newInstance(client: Client, pocketApiKey: String, userAgent: String): PocketEndpoint {
             assertIsValidApiKey(pocketApiKey)
-            assertIsValidUserAgent(userAgent)
+            Arguments.assertIsValidUserAgent(userAgent)
 
             val endpoint = PocketEndpointRaw(client, PocketURLs(pocketApiKey), userAgent)
             return PocketEndpoint(endpoint, PocketJSONParser())
@@ -67,9 +61,5 @@ class PocketEndpoint internal constructor(
 }
 
 private fun assertIsValidApiKey(apiKey: String) {
-    if (apiKey.isBlank()) throw IllegalArgumentException("Expected non-blank API key")
-}
-
-private fun assertIsValidUserAgent(userAgent: String) {
-    if (userAgent.isBlank()) throw java.lang.IllegalArgumentException("Expected non-blank user agent")
+    Arguments.assertIsNotBlank(apiKey, "API key")
 }

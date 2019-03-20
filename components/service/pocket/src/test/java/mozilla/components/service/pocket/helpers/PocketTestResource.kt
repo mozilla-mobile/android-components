@@ -5,6 +5,7 @@
 package mozilla.components.service.pocket.helpers
 
 import mozilla.components.service.pocket.data.PocketGlobalVideoRecommendation
+import mozilla.components.service.pocket.data.PocketListenArticleMetadata
 
 private const val POCKET_DIR = "pocket"
 
@@ -12,16 +13,19 @@ private const val POCKET_DIR = "pocket"
  * Accessors to resources used in testing. These files are available in `app/src/test/resources`.
  */
 enum class PocketTestResource(private val path: String) {
+    // For expected Kotlin data type representations of this test data, see the companion object.
     POCKET_VIDEO_RECOMMENDATION("$POCKET_DIR/video_recommendations.json"),
+    LISTEN_ARTICLE_METADATA("$POCKET_DIR/listen_article_metadata.json"),
 
-    // NEVER COMMIT THE API KEY FILE. Add this file with a valid API key to use this resource.
-    API_KEY("$POCKET_DIR/apiKey.txt");
+    // NEVER COMMIT THESE KEY FILES. Add this file with a valid API key to use this resource.
+    API_KEY("$POCKET_DIR/apiKey.txt"),
+    LISTEN_ACCESS_TOKEN("$POCKET_DIR/listenAccessToken.txt"); // note: file must not end in newline.
 
+    /** @return the raw resource. */
     fun get(): String = this::class.java.classLoader!!.getResource(path)!!.readText()
 
     companion object {
-
-        val videoRecommendationFirstTwo by lazy { listOf(
+        fun getExpectedPocketVideoRecommendationFirstTwo(): List<PocketGlobalVideoRecommendation> = listOf(
             PocketGlobalVideoRecommendation(
                 id = 27587,
                 url = "https://www.youtube.com/watch?v=953Qt4FnAcU",
@@ -60,6 +64,15 @@ enum class PocketTestResource(private val path: String) {
                     )
                 )
             )
-        ) }
+        )
+
+        fun getExpectedListenArticleMetadata(): PocketListenArticleMetadata = PocketListenArticleMetadata(
+            format = "mp3",
+            audioUrl = "https://scout-streaming-2018.s3.amazonaws.com/76cd4614-3bba-4272-b07c-0b3161aed7d9.mp3",
+            status = "available",
+            voice = "Salli",
+            durationSeconds = 353,
+            size = "1771738"
+        )
     }
 }

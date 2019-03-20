@@ -37,7 +37,8 @@ views:
       Recorded when the login view is opened.
     ...
     extra_keys:
-      source: The source from which the login view was opened, e.g. "toolbar".
+      source: 
+        description: The source from which the login view was opened, e.g. "toolbar".
 ```
 
 Now you can use the event from the applications code:
@@ -61,6 +62,9 @@ assertEquals(2, snapshot.size)
 val first = snapshot.single()
 assertEquals("login_opened", first.name)
 ```
+
+NOTE: Using the testing API requires calling `Glean.enableTestingMode()` first,
+such as from a `@Before` method.
 
 ## Counters
 
@@ -88,6 +92,7 @@ Controls.refreshPressed.add(5) // Adds 5 to the counter.
 ```
 
 There are test APIs available too:
+
 ```Kotlin
 import org.mozilla.yourApplication.GleanMetrics.Controls
 
@@ -96,3 +101,6 @@ assertTrue(Controls.refreshPressed.testHasValue())
 // Does the counter have the expected value?
 assertEquals(6, Controls.refreshPressed.testGetValue())
 ```
+
+NOTE: Using the testing API requires calling `Glean.enableTestingMode()` first,
+such as from a `@Before` method.

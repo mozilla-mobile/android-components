@@ -113,6 +113,8 @@ internal fun resetGlean(
     context: Context = ApplicationProvider.getApplicationContext(),
     config: Configuration = Configuration()
 ) {
+    Glean.enableTestingMode()
+
     // We're using the WorkManager in a bunch of places, and glean will crash
     // in tests without this line. Let's simply put it here.
     WorkManagerTestInitHelper.initializeTestWorkManager(context)
@@ -128,6 +130,7 @@ internal fun resetGlean(
     firstRun.reset()
     // Init glean.
     Glean.initialized = false
+    Glean.setUploadEnabled(true)
     Glean.initialize(context, config)
 }
 

@@ -38,6 +38,9 @@ permalink: /changelog/
 
 * **feature-awesomebar**
   * `SearchSuggestionProvider` and `AwesomeBarFeature` now allow setting a search suggestion limit.
+  
+* **feature-bookmarks**
+  * New component, which adds an interface for accessing, searching, storing, and editing bookmarks.
 
 * **feature-findinpage**
   * ⚠️ **This is a breaking API change!**: `FindInPageFeature` constructor now takes an `EngineView` instance.

@@ -22,7 +22,7 @@ object Versions {
     const val lifecycle = "1.1.1"
 
     const val dokka = "0.9.17"
-    const val android_gradle_plugin = "3.2.1"
+    const val android_gradle_plugin = "3.3.2"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "26.3.2"
 

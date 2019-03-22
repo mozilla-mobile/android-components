@@ -28,7 +28,7 @@
 
     <!-- Option in a dialog for requesting a camera permission, this option will give access to
      front facing camera-->
-    <string name="mozac_feature_sitepermissions_selfie_camera">Selfie back camera</string>
+    <string name="mozac_feature_sitepermissions_selfie_camera">Selfie camera</string>
 
     <!-- Text for a positive button in a permission request dialog, this button will give
         access to this permission-->

@@ -50,6 +50,22 @@ permalink: /changelog/
   * Added `Matchers.maybeInvertMatcher` to optionally apply `not` based on the Boolean argument
   * Added `ViewInteraction.click()` extension function for short-hand.
 
+* **service-glean**
+  * ⚠️ **This is a breaking API change!**: `Configuration` now accepts a Lazy<Client> to make sure the HTTP client (lib) is initialized lazily.
+    ```kotlin
+      val config = Configuration(httpClient = lazy { GeckoViewFetchClient(context, GeckoRuntime()) })
+      Glean.initialize(context, config)
+    ```
+* **feature-accounts**, **service-firefox-account**
+  * Added API to start an FxA pairing flow. See `FirefoxAccountsAuthFeature.beginPairingAuthentication` and `FxaAccountsManager.beingAuthentication` respectively.
+
+* **concept-storage**
+  * ⚠️ **This is a breaking API change!** for non-component implementations of `HistoryStorage`.
+  * `HistoryStorage` got new APIs: `deleteEverything`, `deleteVisitsSince`, `deleteVisitsBetween`, `deleteVisitsFor`, `prune` and `runMaintenance`.
+
+* **browser-storage-sync**, **browser-storage-memory**
+  * Implementations of `concept-storage`/`HistoryStorage` expose the newly added APIs.
+
 # 0.47.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.46.0...v0.47.0)

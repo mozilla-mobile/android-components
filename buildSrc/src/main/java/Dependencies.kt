@@ -36,6 +36,9 @@ object Versions {
 
     const val mozilla_appservices = "0.23.0"
     const val servo = "0.0.1.20181017.aa95911"
+
+    const val firebase_core = "16.0.1"
+    const val firebase_messaging = "17.3.4"
 }
 
 // Synchronized dependencies used by (some) modules
@@ -88,6 +91,7 @@ object Dependencies {
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
+    const val mozilla_push = "org.mozilla.appservices:push:${Versions.mozilla_appservices}"
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
     const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
     const val mozilla_servo_x86 = "org.mozilla.servoview:servoview-x86:${Versions.servo}"
@@ -96,4 +100,6 @@ object Dependencies {
     const val thirdparty_okhttp_urlconnection = "com.squareup.okhttp3:okhttp-urlconnection:${Versions.okhttp}"
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
     const val thirdparty_zxing = "com.google.zxing:core:${Versions.zxing}"
+    const val thirdparty_firebase_core = "com.google.firebase:firebase-core:${Versions.firebase_core}"
+    const val thirdparty_firebase_messaging = "com.google.firebase:firebase-messaging:${Versions.firebase_messaging}"
 }

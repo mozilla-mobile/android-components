@@ -25,8 +25,9 @@ dependencies {
     implementation Dependencies.kotlin_stdlib
 
     implementation project(':concept-push')
-    implementation 'com.google.firebase:firebase-core:16.0.1'
-    implementation 'com.google.firebase:firebase-messaging:17.3.4'
+    implementation Dependencies.thirdparty_firebase_core
+    implementation Dependencies.thirdparty_firebase_messaging
+    implementation Dependencies.mozilla_push
 
     testImplementation Dependencies.testing_junit
     testImplementation Dependencies.testing_robolectric

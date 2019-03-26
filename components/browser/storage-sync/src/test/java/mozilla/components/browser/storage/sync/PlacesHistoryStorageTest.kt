@@ -392,6 +392,7 @@ class PlacesHistoryStorageTest {
         verify(writer, never()).deleteVisitsBetween(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())
         verify(writer, never()).deleteVisitsSince(ArgumentMatchers.anyLong())
         verify(writer, never()).deletePlace(ArgumentMatchers.anyString())
+        verify(writer, never()).deleteVisit(ArgumentMatchers.anyString(), ArgumentMatchers.anyLong())
         Unit
     }
 
@@ -404,6 +405,7 @@ class PlacesHistoryStorageTest {
         verify(writer).deleteVisitsBetween(15, 20)
         verify(writer, never()).deleteVisitsSince(ArgumentMatchers.anyLong())
         verify(writer, never()).deletePlace(ArgumentMatchers.anyString())
+        verify(writer, never()).deleteVisit(ArgumentMatchers.anyString(), ArgumentMatchers.anyLong())
         Unit
     }
 
@@ -416,6 +418,7 @@ class PlacesHistoryStorageTest {
         verify(writer, never()).deleteVisitsBetween(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())
         verify(writer).deleteVisitsSince(15)
         verify(writer, never()).deletePlace(ArgumentMatchers.anyString())
+        verify(writer, never()).deleteVisit(ArgumentMatchers.anyString(), ArgumentMatchers.anyLong())
         Unit
     }
 
@@ -428,6 +431,20 @@ class PlacesHistoryStorageTest {
         verify(writer, never()).deleteVisitsBetween(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())
         verify(writer, never()).deleteVisitsSince(ArgumentMatchers.anyLong())
         verify(writer).deletePlace("http://www.firefox.com")
+        verify(writer, never()).deleteVisit(ArgumentMatchers.anyString(), ArgumentMatchers.anyLong())
+        Unit
+    }
+
+    @Test
+    fun `storage passes through calls to deleteVisit`() = runBlocking {
+        val storage = storage!!
+        val writer = writer!!
+        storage.deleteVisit("http://www.firefox.com", 123L)
+        verify(writer, never()).deleteEverything()
+        verify(writer, never()).deleteVisitsBetween(ArgumentMatchers.anyLong(), ArgumentMatchers.anyLong())
+        verify(writer, never()).deleteVisitsSince(ArgumentMatchers.anyLong())
+        verify(writer, never()).deletePlace("http://www.firefox.com")
+        verify(writer).deleteVisit("http://www.firefox.com", 123L)
         Unit
     }
 

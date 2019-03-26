@@ -15,17 +15,17 @@ class PushProcessorTest {
     fun init() {
         val push = TestPushProcessor()
 
-        push.initialize()
+        PushProvider.install(push)
 
-        assertNotNull(PushProcessor.requireInstance)
+        assertNotNull(PushProvider.requireInstance)
     }
 
     @Test(expected = IllegalStateException::class)
     fun `requireInstance throws exception if not initialized`() {
-        PushProcessor.requireInstance
+        PushProvider.requireInstance
     }
 
-    class TestPushProcessor : PushProcessor() {
+    class TestPushProcessor : PushProcessor {
         override fun start() {}
 
         override fun stop() {}

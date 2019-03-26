@@ -13,12 +13,6 @@ package mozilla.components.concept.push
 interface PushService {
 
     /**
-     * The instance of the running service. This can be useful for push SDKs that are started automatically and more
-     * control is needed.
-     */
-    val instance: PushService
-
-    /**
      * Starts the push service.
      */
     fun start()

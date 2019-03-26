@@ -249,5 +249,5 @@ task ktlint(type: JavaExec, group: "verification") {
     args "components/**/*.kt" , "samples/**/*.kt", "!**/build", "buildSrc/**/*.kt"
 }
 
-apply plugin: GVNightlyVersionVerifierPlugin
+apply plugin: GVVersionVerifierPlugin
 apply plugin: GitHubPlugin

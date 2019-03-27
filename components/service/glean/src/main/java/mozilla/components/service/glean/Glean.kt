@@ -7,6 +7,7 @@ package mozilla.components.service.glean
 import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.support.annotation.VisibleForTesting
 import java.io.File
 import java.util.UUID
@@ -24,8 +25,10 @@ import mozilla.components.service.glean.storages.PingStorageEngine
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.UuidsStorageEngine
 import mozilla.components.service.glean.storages.DatetimesStorageEngine
+import mozilla.components.service.glean.storages.EventsStorageEngine
 import mozilla.components.service.glean.storages.RecordedExperimentData
 import mozilla.components.service.glean.storages.StringsStorageEngine
+import mozilla.components.service.glean.utils.ensureDirectoryExists
 import mozilla.components.support.base.log.logger.Logger
 
 @Suppress("TooManyFunctions")
@@ -89,17 +92,23 @@ open class GleanInternalAPI internal constructor () {
         // API. For this reason we're safe to set `initialized = true` right after it.
         initializeCoreMetrics(applicationContext)
 
+        // This must be set before anything that might trigger the sending of pings.
+        initialized = true
+
+        // Deal with any pending events so we can start recording new ones
+        EventsStorageEngine.onReadyToSendPings(applicationContext)
+
         // Set up information and scheduling for glean owned pings. Ideally, the "metrics"
         // ping startup check should be performed before any other ping, since it relies
         // on being dispatched to the API context before any other metric.
         metricsPingScheduler = MetricsPingScheduler(applicationContext)
         metricsPingScheduler.startupCheck()
-        initialized = true
 
         // Other pings might set some other metrics (i.e. the baseline metrics),
         // so we need to be initialized by now.
         baselinePing = BaselinePing()
 
+        // At this point, all metrics and events can be recorded.
         ProcessLifecycleOwner.get().lifecycle.addObserver(gleanLifecycleObserver)
     }
 
@@ -200,16 +209,7 @@ open class GleanInternalAPI internal constructor () {
 
         val gleanDataDir = File(applicationContext.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR)
 
-        // Make sure the data directory exists and is writable.
-        if (!gleanDataDir.exists() && !gleanDataDir.mkdirs()) {
-            logger.error("Failed to create Glean's data dir ${gleanDataDir.absolutePath}")
-            return
-        }
-
-        if (!gleanDataDir.isDirectory || !gleanDataDir.canWrite()) {
-            logger.error("Glean's data directory is not a writable directory ${gleanDataDir.absolutePath}")
-            return
-        }
+        ensureDirectoryExists(gleanDataDir)
 
         // The first time Glean runs, we set the client id and other internal
         // one-time only metrics.
@@ -219,6 +219,15 @@ open class GleanInternalAPI internal constructor () {
             UuidsStorageEngine.record(GleanInternalMetrics.clientId, uuid)
             DatetimesStorageEngine.set(GleanInternalMetrics.firstRunDate)
         }
+
+        // Set a few more metrics that will be sent as part of every ping.
+        StringsStorageEngine.record(GleanInternalMetrics.os, "Android")
+        // https://developer.android.com/reference/android/os/Build.VERSION
+        StringsStorageEngine.record(GleanInternalMetrics.osVersion, Build.VERSION.SDK_INT.toString())
+        // https://developer.android.com/reference/android/os/Build
+        StringsStorageEngine.record(GleanInternalMetrics.deviceManufacturer, Build.MANUFACTURER)
+        StringsStorageEngine.record(GleanInternalMetrics.deviceModel, Build.MODEL)
+        StringsStorageEngine.record(GleanInternalMetrics.architecture, Build.SUPPORTED_ABIS[0])
 
         try {
             val packageInfo = applicationContext.packageManager.getPackageInfo(

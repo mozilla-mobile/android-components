@@ -6,7 +6,7 @@ package mozilla.components.service.glean
 
 /**
  * Enumeration of different resolutions supported by
- * the Timespan metric type.
+ * the Timespan and TimingDistribution metric types.
  */
 enum class TimeUnit {
     Nanosecond,

@@ -11,9 +11,11 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import mozilla.components.concept.fetch.Client
+import mozilla.components.concept.fetch.Headers
+import mozilla.components.concept.fetch.MutableHeaders
+import mozilla.components.concept.fetch.Request
+import mozilla.components.concept.fetch.Response
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.firstrun.FileFirstRunDetector
 import mozilla.components.service.glean.ping.PingMaker
@@ -108,10 +110,12 @@ internal fun collectAndCheckPingSchema(storeName: String): JSONObject {
  *
  * @param context the application context to init glean with
  * @param config the [Configuration] to init glean with
+ * @param clearStores if true, clear the contents of all stores
  */
 internal fun resetGlean(
     context: Context = ApplicationProvider.getApplicationContext(),
-    config: Configuration = Configuration()
+    config: Configuration = Configuration(),
+    clearStores: Boolean = true
 ) {
     Glean.enableTestingMode()
 
@@ -119,12 +123,15 @@ internal fun resetGlean(
     // in tests without this line. Let's simply put it here.
     WorkManagerTestInitHelper.initializeTestWorkManager(context)
 
-    // Clear all the stored data.
-    val storageManager = StorageEngineManager(applicationContext = context)
-    storageManager.clearAllStores()
-    // The experiments storage engine needs to be cleared manually as it's not listed
-    // in the `StorageEngineManager`.
-    ExperimentsStorageEngine.clearAllStores()
+    if (clearStores) {
+        // Clear all the stored data.
+        val storageManager = StorageEngineManager(applicationContext = context)
+        storageManager.clearAllStores()
+        // The experiments storage engine needs to be cleared manually as it's not listed
+        // in the `StorageEngineManager`.
+        ExperimentsStorageEngine.clearAllStores()
+    }
+
     // Clear the "first run" flag.
     val firstRun = FileFirstRunDetector(File(context.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR))
     firstRun.reset()
@@ -187,7 +194,30 @@ internal fun triggerWorkManager() {
         isWorkScheduled(PingUploadWorker.PING_WORKER_TAG))
 
     // Since WorkManager does not properly run in tests, simulate the work being done
-    GlobalScope.launch(Dispatchers.IO) {
-        PingUploadWorker.uploadPings()
+    PingUploadWorker.uploadPings()
+}
+
+/**
+ * This is a helper class to facilitate testing of ping tagging
+ */
+internal class TestPingTagClient(
+    private val responseUrl: String = Configuration.DEFAULT_DEBUGVIEW_ENDPOINT,
+    private val responseStatus: Int = 200,
+    private val responseHeaders: Headers = MutableHeaders(),
+    private val responseBody: Response.Body = Response.Body.empty(),
+    private val debugHeaderValue: String? = null
+) : Client() {
+    override fun fetch(request: Request): Response {
+        Assert.assertTrue("URL must be redirected for tagged pings",
+            request.url.startsWith(responseUrl))
+        Assert.assertEquals("Debug headers must match what the ping tag was set to",
+            debugHeaderValue, request.headers!!["X-Debug-ID"])
+
+        // Have to return a response here.
+        return Response(
+            responseUrl ?: request.url,
+            responseStatus,
+            request.headers ?: responseHeaders,
+            responseBody)
     }
 }

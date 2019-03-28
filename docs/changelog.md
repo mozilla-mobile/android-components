@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-awesomebar**
+   * `DefaultSuggestionViewHolder` now centers titles if no description is provided by the suggestion.
+
 * **feature-awesomebar**
   * Added optional `icon` parameter to `SearchSuggestionProvider`
 
@@ -46,7 +49,7 @@ permalink: /changelog/
 * **concept-fetch**
   * ⚠️ **This is a breaking API change!**: `Headers.Common` was renamed to `Headers.Names`.
   * Added `Headers.Values`.
-
+  
 * **service-pocket**
   * Access an article's text-to-speech listen metadata via `PocketListenEndpoint.getListenArticleMetadata`.
   * ⚠️ **This is a breaking API change!**: `PocketGlobalVideoRecommendation.id` is now a Long instead of an Int
@@ -80,9 +83,30 @@ permalink: /changelog/
 * **concept-storage**
   * ⚠️ **This is a breaking API change!** for non-component implementations of `HistoryStorage`.
   * `HistoryStorage` got new APIs: `deleteEverything`, `deleteVisitsSince`, `deleteVisitsBetween`, `deleteVisitsFor`, `prune` and `runMaintenance`.
+  * Added `BookmarksStorage` for handling the saving, searching, and management of browser bookmarks.
 
 * **browser-storage-sync**, **browser-storage-memory**
   * Implementations of `concept-storage`/`HistoryStorage` expose the newly added APIs.
+  
+* **browser-storage-sync**
+  * Implementations of `concept-storage`/`BookmarksStorage` expose the newly added APIs.
+
+  * **feature-qr**
+  * 🆕 New component/feature that provides functionality for scanning QR codes.
+    ```kotlin
+      val qrFeature = QrFeature(
+          context,
+          fragmentManager = supportFragmentManager,
+          onNeedToRequestPermissions = { permissions ->
+              requestPermissions(this, permissions, REQUEST_CODE_CAMERA_PERMISSIONS)
+          },
+          onScanResult = { qrScanResult ->
+              // qrScanResult is a String (e.g. a URL) returned by the QR scanner
+          }
+      )
+      // When ready to scan simply call
+      qrFeature.scan()
+    ```
 
 # 0.47.0
 

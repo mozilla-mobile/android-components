@@ -37,11 +37,10 @@ android {
 
 dependencies {
     implementation project(':service-firefox-accounts')
+    implementation project(':feature-qr')
+    implementation project(':support-base')
 
     implementation Dependencies.support_constraintlayout
-    implementation ('me.dm7.barcodescanner:zxing:1.9.8') {
-        exclude module: 'support-v4'
-    }
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines

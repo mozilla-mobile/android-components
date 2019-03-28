@@ -13,9 +13,13 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import mozilla.components.service.glean.GleanMetrics.GleanInternalMetrics
+import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.scheduler.GleanLifecycleObserver
 import mozilla.components.service.glean.scheduler.PingUploadWorker
+import mozilla.components.service.glean.storages.StorageEngineManager
+import mozilla.components.service.glean.TimeUnit as GleanTimeUnit
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
@@ -26,6 +30,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,8 +40,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
-import java.util.UUID
+import java.util.Date
 import java.util.concurrent.TimeUnit
+import java.util.UUID
 
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
@@ -280,13 +286,100 @@ class GleanTest {
             Glean.sanitizeApplicationId("org-mozilla-test-app")
         )
     }
-/*
-    @Test
-    fun `metricsPingScheduler is properly initialized`() {
-        Glean.metricsPingScheduler.clearSchedulerData()
-        Glean.metricsPingScheduler.updateSentTimestamp()
 
-        // Should return false since we just updated the last time the ping was sent above
-        assertFalse(Glean.metricsPingScheduler.canSendPing())
-    }*/
+    @Test
+    fun `The appChannel must be correctly set, if requested`() {
+        // No appChannel must be set if nothing was provided through the config
+        // options.
+        resetGlean(getContextWithMockedInfo(), Configuration())
+        assertFalse(GleanInternalMetrics.appChannel.testHasValue())
+
+        // The appChannel must be correctly reported if a channel value
+        // was provided.
+        val testChannelName = "my-test-channel"
+        resetGlean(getContextWithMockedInfo(), Configuration(channel = testChannelName))
+        assertTrue(GleanInternalMetrics.appChannel.testHasValue())
+        assertEquals(testChannelName, GleanInternalMetrics.appChannel.testGetValue())
+    }
+
+    @Test
+    fun `client_id and first_run_date metrics should be copied from the old location`() {
+        // 1539480 BACKWARD COMPATIBILITY HACK
+
+        // The resetGlean called right before this function will add client_id
+        // and first_run_date to the new location in glean_client_info.  We
+        // need to clear those out again so we can test what happens when they
+        // are missing.
+        val storageManager = StorageEngineManager(
+            applicationContext = ApplicationProvider.getApplicationContext()
+        ).clearAllStores()
+
+        val clientIdMetric = UuidMetricType(
+            disabled = false,
+            category = "",
+            name = "client_id",
+            lifetime = Lifetime.User,
+            sendInPings = listOf("glean_ping_info")
+        )
+        val clientIdValue = clientIdMetric.generateAndSet()
+
+        val firstRunDateMetric = DatetimeMetricType(
+            disabled = false,
+            category = "",
+            name = "first_run_date",
+            lifetime = Lifetime.User,
+            sendInPings = listOf("glean_ping_info"),
+            timeUnit = GleanTimeUnit.Day
+        )
+        firstRunDateMetric.set()
+
+        assertFalse(GleanInternalMetrics.clientId.testHasValue())
+        assertFalse(GleanInternalMetrics.firstRunDate.testHasValue())
+
+        // This should copy the values to their new locations
+        Glean.initialized = false
+        Glean.initialize(ApplicationProvider.getApplicationContext())
+
+        assertEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
+        assertTrue(GleanInternalMetrics.firstRunDate.testHasValue())
+    }
+
+    @Test
+    fun `client_id and first_run_date metrics should not override new location`() {
+        // 1539480 BACKWARD COMPATIBILITY HACK
+
+        // The resetGlean called right before this function will add client_id
+        // and first_run_date to the new location in glean_client_info.
+        // In this case we want to keep those and confirm that any old values
+        // won't override the new ones.
+
+        val clientIdMetric = UuidMetricType(
+            disabled = false,
+            category = "",
+            name = "client_id",
+            lifetime = Lifetime.User,
+            sendInPings = listOf("glean_ping_info")
+        )
+        val clientIdValue = clientIdMetric.generateAndSet()
+
+        val firstRunDateMetric = DatetimeMetricType(
+            disabled = false,
+            category = "",
+            name = "first_run_date",
+            lifetime = Lifetime.User,
+            sendInPings = listOf("glean_ping_info"),
+            timeUnit = GleanTimeUnit.Day
+        )
+        firstRunDateMetric.set(Date(2200, 1, 1))
+
+        assertTrue(GleanInternalMetrics.clientId.testHasValue())
+        assertTrue(GleanInternalMetrics.firstRunDate.testHasValue())
+
+        // This should copy the values to their new locations
+        Glean.initialized = false
+        Glean.initialize(ApplicationProvider.getApplicationContext())
+
+        assertNotEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
+        assertNotEquals(firstRunDateMetric.testGetValue(), GleanInternalMetrics.firstRunDate.testGetValue())
+    }
 }

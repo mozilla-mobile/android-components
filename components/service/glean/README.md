@@ -11,6 +11,7 @@ A client-side telemetry SDK for collecting metrics and sending them to Mozilla's
     - [Adding new metrics](#adding-new-metrics)
     - [Providing UI to enable / disable metrics](#providing-ui-to-enable--disable-metrics)
 - [Debugging products using glean](#debugging-products-using-glean)
+- [Contact](#contact)
 - [License](#license)
 
 ## Before using the library
@@ -86,6 +87,14 @@ Glean should be initialized as soon as possible, and importantly, before any
 other libraries in the application start using Glean. Library code should never
 call `Glean.initialize`, since it should be called exactly once per application.
 
+**Note**: if the application has the concept of release channels and knows which channel it is on at
+run-time, then it can provide glean with this information by setting it as part of the `Configuration`
+object parameter of the `Glean.initialize` method. For example:
+
+```Kotlin
+Glean.initialize(applicationContext, Configuration(channel = "beta"))
+```
+
 ### Adding new metrics
 
 All metrics that your application collects must be defined in a `metrics.yaml`
@@ -126,15 +135,23 @@ for the command line switches used to pass the extra keys. These are the current
 |key|type|description|
 |---|----|-----------|
 | logPings | boolean (--ez) | If set to `true`, glean dumps pings to logcat; defaults to `false` |
-| sendPing | string (--es) | Sends the ping with the given name immediately. |
+| sendPing | string (--es) | Sends the ping with the given name immediately |
+| tagPings | string (--es) | Tags all outgoing pings as debug pings to make them available for real-time validation. The value must match the pattern `[a-zA-Z0-9-]{1,20}` |
 
-For example, to direct the glean sample application to dump pings to logcat, and send the "metrics" ping immediately, the following command can be used:
+For example, to direct the glean sample application to (1) dump pings to logcat, (2) tag the ping 
+with the `test-metrics-ping` tag, and (3) send the "metrics" ping immediately, the following command
+can be used:
 
 ```
 adb shell am start -n org.mozilla.samples.glean/mozilla.components.service.glean.debug.GleanDebugActivity \
   --ez logPings true \
-  --es sendPing metrics
+  --es sendPing metrics \
+  --es tagPings test-metrics-ping
 ```
+
+### Important GleanDebugActivity note!
+
+Options that are set using the adb flags are not immediately reset and will persist until the application is closed or manually reset.
 
 ## Contact
 

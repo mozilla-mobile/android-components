@@ -71,6 +71,12 @@ assertEquals("login_opened", first.name)
 NOTE: Using the testing API requires calling `Glean.enableTestingMode()` first,
 such as from a `@Before` method.
 
+Event timestamps use a system timer that is guaranteed to be monotonic only
+within a particular boot of the device. Therefore, if there are any unsent
+recorded events on disk when the application starts, any pings containing those
+events are sent immediately, so that glean can start over using a new timer and
+events based on different timers are never sent within the same ping.
+
 ## Counters
 
 Used to count how often something happens, say how often a certain button was pressed.
@@ -87,7 +93,7 @@ controls:
     ...
 ```
 
-Now you can use the event from the applications code:
+Now you can use the counter from the applications code:
 ```Kotlin
 import org.mozilla.yourApplication.GleanMetrics.Controls
 
@@ -107,6 +113,42 @@ assertTrue(Controls.refreshPressed.testHasValue())
 // Does the counter have the expected value?
 assertEquals(6, Controls.refreshPressed.testGetValue())
 ```
+
+## Strings
+
+Used to record a single string value, say the name of the default search engine in a browser.
+
+Say you're adding a metric to find out what the default search in a browser is. First you need to add an entry for the metric to the `metrics.yaml` file:
+
+```YAML
+search.default:
+  name:
+    type: string
+    description: >
+      The name of the default search engine.
+    ...
+```
+
+Now you can use the string from the applications code:
+```Kotlin
+import org.mozilla.yourApplication.GleanMetrics.SearchDefault
+
+// Record a value into the metric.
+SearchDefault.name.set("duck duck go")
+// If it changed later, you can record the new value:
+SearchDefault.name.set("wikipedia")
+```
+
+There are test APIs available too:
+
+```Kotlin
+import org.mozilla.yourApplication.GleanMetrics.SearchDefault
+Glean.enableTestingMode()
+
+// Was anything recorded?
+assertTrue(SearchDefault.name.testHasValue())
+// Does the string metric have the expected value?
+assertEquals("wikipedia", SearchDefault.name.testGetValue())
 
 ## Labeled metrics
 

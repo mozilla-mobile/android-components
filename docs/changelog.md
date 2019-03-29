@@ -25,6 +25,16 @@ permalink: /changelog/
 * **feature-awesomebar**
   * Added optional `icon` parameter to `SearchSuggestionProvider`
 
+* **concept-storage**
+  * ⚠️ **This is a breaking API change!** for non-component implementations of `HistoryStorage`.
+  * `HistoryStorage` got new API: `deleteVisit`.
+
+* **browser-storage-sync**, **browser-storage-memory**
+  * Implementations of `concept-storage`/`HistoryStorage` expose newly added `deleteVisit`.
+
+* **browser-toolbar**
+  * Add TalkBack support for page load status.
+
 # 0.48.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.47.0...v0.48.0)
@@ -90,6 +100,23 @@ permalink: /changelog/
   
 * **browser-storage-sync**
   * Implementations of `concept-storage`/`BookmarksStorage` expose the newly added APIs.
+
+  * **feature-qr**
+  * 🆕 New component/feature that provides functionality for scanning QR codes.
+    ```kotlin
+      val qrFeature = QrFeature(
+          context,
+          fragmentManager = supportFragmentManager,
+          onNeedToRequestPermissions = { permissions ->
+              requestPermissions(this, permissions, REQUEST_CODE_CAMERA_PERMISSIONS)
+          },
+          onScanResult = { qrScanResult ->
+              // qrScanResult is a String (e.g. a URL) returned by the QR scanner
+          }
+      )
+      // When ready to scan simply call
+      qrFeature.scan()
+    ```
 
 # 0.47.0
 

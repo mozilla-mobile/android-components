@@ -12,11 +12,14 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **feature-contextmenu**
+   * Clicking on a context menu item now emits a fact
+
 * **browser-awesomebar**
    * `DefaultSuggestionViewHolder` now centers titles if no description is provided by the suggestion.
 
 * **browser-engine**
-  * Added `automaticFontSizeAdjustment` engine setting for automatic font size adjustment, 
+  * Added `automaticFontSizeAdjustment` engine setting for automatic font size adjustment,
   in line with system accessibility settings. The default is `true`.
   ```kotlin
   GeckoEngine(runtime, DefaultSettings(automaticFontSizeAdjustment = true))
@@ -82,7 +85,7 @@ permalink: /changelog/
 * **concept-fetch**
   * ⚠️ **This is a breaking API change!**: `Headers.Common` was renamed to `Headers.Names`.
   * Added `Headers.Values`.
-  
+
 * **service-pocket**
   * Access an article's text-to-speech listen metadata via `PocketListenEndpoint.getListenArticleMetadata`.
   * ⚠️ **This is a breaking API change!**: `PocketGlobalVideoRecommendation.id` is now a Long instead of an Int
@@ -120,7 +123,7 @@ permalink: /changelog/
 
 * **browser-storage-sync**, **browser-storage-memory**
   * Implementations of `concept-storage`/`HistoryStorage` expose the newly added APIs.
-  
+
 * **browser-storage-sync**
   * Implementations of `concept-storage`/`BookmarksStorage` expose the newly added APIs.
 
@@ -210,13 +213,13 @@ permalink: /changelog/
 * **browser-menu**
   * ⚠️ **This is a breaking API change!**: Removed redundant `BrowserMenuImageText` `contentDescription`
   * Adds `textSize` parameter to `SimpleBrowserMenuItem`
-  
+
 * **concept-fetch**
   * ⚠️ **This is a breaking API change**: the [`Response`](https://mozac.org/api/mozilla.components.concept.fetch/-response/) properties `.success` and `.clientError` were renamed to `.isSuccess` and `isClientError` respectively to match Java conventions.
 
 * **feature-downloads**
   * Fixing bug #2265. In some occasions, when trying to download a file, the download failed and the download notification shows "Unsuccessful download".
-  
+
 * **feature-search**
   * Adds default search engine var to `SearchEngineManager`
   * Adds optional `SearchEngine` to `invoke()` in `SearchUseCases`
@@ -275,7 +278,7 @@ permalink: /changelog/
 
 * **browser-awesomebar**
   * [BrowserAwesomeBar](https://mozac.org/api/mozilla.components.browser.awesomebar/-browser-awesome-bar/) is now replacing suggestions "in-place" if their ids match. Additionally `BrowserAwesomeBar` now automatically scrolls to the top whenever the entered text changes.
-  
+
 * **feature-customtabs**
   * Now returns false in `onBackPressed()` if feature is not initialized
 
@@ -296,7 +299,7 @@ permalink: /changelog/
 
 * **browser-menu**
   * Added option to set background color by overriding `mozac_browser_menu_background` color resource.
-  
+
     ```xml
     <color name="mozac_browser_menu_background">DESIRED_COLOR</color>
     ```
@@ -306,7 +309,7 @@ permalink: /changelog/
         <item name="cardBackgroundColor">YOUR_COLOR</item>
       </style>
     ```
-    
+
   * Added option to style `SimpleBrowserMenuItem` and `BrowserMenuImageText` with `textColorResource`.
 
 * **browser-toolbar**
@@ -321,10 +324,10 @@ permalink: /changelog/
 
 * **service-fretboard (Kinto)**
   * ⚠️ **This is a breaking API change!**
-  * Now makes use of our concept-fetch module when communicating with the server. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when creating a `KintoExperimentSource`. 
+  * Now makes use of our concept-fetch module when communicating with the server. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when creating a `KintoExperimentSource`.
 
   ```kotlin
-    val fretboard = Fretboard(    
+    val fretboard = Fretboard(
       KintoExperimentSource(
         baseUrl,
         bucketName,
@@ -333,7 +336,7 @@ permalink: /changelog/
         GeckoViewFetchClient(context)
       ),
       experimentStorage
-  )  
+  )
   ```
 
 * **feature-session-bundling**
@@ -383,7 +386,7 @@ permalink: /changelog/
 
 * **feature-awesomebar**
   * ⚠️ **This is a breaking API change!**
-  * Now makes use of our concept-fetch module when fetching search suggestions. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when adding a search provider. 
+  * Now makes use of our concept-fetch module when fetching search suggestions. This allows applications to specify which HTTP client library to use e.g. apps already using GeckoView can now specify that the `GeckoViewFetchClient` should be used. As a consequence, the fetch client instance now needs to be provided when adding a search provider.
 
   ```kotlin
   AwesomeBarFeature(layout.awesomeBar, layout.toolbar, layout.engineView)
@@ -458,7 +461,7 @@ permalink: /changelog/
 
 * **engine-gecko-nightly**
   * Now also serves as an implementation of `concept-fetch` by providing the new `GeckoViewFetchClient`. This allows applications to rely on Gecko's networking capabilities when issuing HTTP requests, even outside the browser view (GeckoView).
-  
+
 * **feature-prompts**, **browser-engine-gecko***
   * Added support for [JavaScript Confirm dialogs](https://developer.mozilla.org/en-US/docs/Web/API/Window/confirm).
 

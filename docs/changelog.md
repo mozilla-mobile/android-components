@@ -36,6 +36,9 @@ permalink: /changelog/
   * Add TalkBack support for page load status.
   * Added option to add "edit actions" that will show up next to the URL in edit mode.
 
+* **browser-engine-gecko-nightly**
+  * Added new `TrackingProtectionPolicy` category for blocking cryptocurrency miners (`TrackingProtectionPolicy.CRYPTOMINING`).
+
 # 0.48.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.47.0...v0.48.0)

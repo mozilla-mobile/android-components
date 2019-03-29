@@ -58,6 +58,9 @@ permalink: /changelog/
 * **browser-engine-gecko-nightly**
   * Added new `TrackingProtectionPolicy` category for blocking cryptocurrency miners (`TrackingProtectionPolicy.CRYPTOMINING`).
 
+* **support-ktx**
+  * Added `Bitmap.arePixelsAllTheSame()`.
+
 # 0.48.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.47.0...v0.48.0)

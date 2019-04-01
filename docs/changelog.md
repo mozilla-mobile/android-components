@@ -25,6 +25,24 @@ permalink: /changelog/
 * **feature-awesomebar**
   * Added optional `icon` parameter to `SearchSuggestionProvider`
 
+* **feature-qr**
+  * 🆕 New component/feature that provides functionality for scanning QR codes.
+  
+    ```kotlin
+      val qrFeature = QrFeature(
+          context,
+          fragmentManager = supportFragmentManager,
+          onNeedToRequestPermissions = { permissions ->
+              requestPermissions(this, permissions, REQUEST_CODE_CAMERA_PERMISSIONS)
+          },
+          onScanResult = { qrScanResult ->
+              // qrScanResult is a String (e.g. a URL) returned by the QR scanner
+          }
+      )
+      // When ready to scan simply call
+      qrFeature.scan()
+    ```  
+
 * **concept-storage**
   * ⚠️ **This is a breaking API change!** for non-component implementations of `HistoryStorage`.
   * `HistoryStorage` got new API: `deleteVisit`.
@@ -35,6 +53,10 @@ permalink: /changelog/
 * **browser-toolbar**
   * Add TalkBack support for page load status.
   * Added option to add "edit actions" that will show up next to the URL in edit mode.
+  * Added option to set a listener for clicks on the site security indicator (globe / lock icon).
+
+* **browser-engine-gecko-nightly**
+  * Added new `TrackingProtectionPolicy` category for blocking cryptocurrency miners (`TrackingProtectionPolicy.CRYPTOMINING`).
 
 # 0.48.0
 
@@ -101,23 +123,6 @@ permalink: /changelog/
   
 * **browser-storage-sync**
   * Implementations of `concept-storage`/`BookmarksStorage` expose the newly added APIs.
-
-  * **feature-qr**
-  * 🆕 New component/feature that provides functionality for scanning QR codes.
-    ```kotlin
-      val qrFeature = QrFeature(
-          context,
-          fragmentManager = supportFragmentManager,
-          onNeedToRequestPermissions = { permissions ->
-              requestPermissions(this, permissions, REQUEST_CODE_CAMERA_PERMISSIONS)
-          },
-          onScanResult = { qrScanResult ->
-              // qrScanResult is a String (e.g. a URL) returned by the QR scanner
-          }
-      )
-      // When ready to scan simply call
-      qrFeature.scan()
-    ```
 
 # 0.47.0
 

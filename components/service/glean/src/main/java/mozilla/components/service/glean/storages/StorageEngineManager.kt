@@ -131,6 +131,15 @@ internal class StorageEngineManager(
         }
     }
 
+    /**
+     * Clears user lifetime metrics in all storage engines.
+     */
+    fun clearUserLifetimeMetrics() {
+        for (storageEngine in storageEngines) {
+            storageEngine.value.clearUserLifetimeMetrics()
+        }
+    }
+
     companion object {
         /**
         * Get the storage engine associated with a given metric type.

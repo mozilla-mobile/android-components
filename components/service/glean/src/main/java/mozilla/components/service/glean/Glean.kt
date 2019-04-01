@@ -347,6 +347,15 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
+     * Clear all metrics with the User Lifetime. This should be called when a
+     * user profile is reset to remove any remaining user-associated data, such
+     * as `client_id`.
+     */
+    fun clearUserLifetimeMetrics() {
+        storageEngineManager.clearUserLifetimeMetrics()
+    }
+
+    /**
      * Collect and assemble the ping and serialize the ping to be read when uploaded, but only if
      * glean is initialized, upload is enabled, and there is ping data to send.
      *

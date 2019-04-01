@@ -37,6 +37,7 @@ internal typealias MetricsCombiner<T> = (currentValue: T?, newValue: T) -> T
  * A base class for common metric storage functionality. This allows sharing the common
  * store managing and lifetime behaviours.
  */
+@Suppress("TooManyFunctions")
 internal abstract class GenericStorageEngine<MetricType> : StorageEngine {
     override lateinit var applicationContext: Context
 
@@ -288,6 +289,11 @@ internal abstract class GenericStorageEngine<MetricType> : StorageEngine {
             }
         }
         editor?.apply()
+    }
+
+    override fun clearUserLifetimeMetrics() {
+        userLifetimeStorage.edit().clear().apply()
+        dataStores[Lifetime.User.ordinal].clear()
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)

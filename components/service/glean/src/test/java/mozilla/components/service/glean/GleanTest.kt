@@ -424,4 +424,11 @@ class GleanTest {
         assertEquals("id", getLanguageFromLocale(Locale("in", "ID")))
         assertEquals("yi", getLanguageFromLocale(Locale("ji", "ID")))
     }
+
+    @Test
+    fun `test clear user lifetime metrics`() {
+        assertTrue(GleanInternalMetrics.clientId.testHasValue())
+        Glean.clearUserLifetimeMetrics()
+        assertFalse(GleanInternalMetrics.clientId.testHasValue())
+    }
 }

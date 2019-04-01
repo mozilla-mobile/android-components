@@ -37,6 +37,13 @@ internal interface StorageEngine {
     fun getIdentifiersInStores(stores: List<String>): Sequence<String> = sequence {}
 
     /**
+    * Clear all user lifetime metrics
+    */
+    fun clearUserLifetimeMetrics() {
+        // intentionally blank for stores that don't inherit from GenericStorageEngine
+    }
+
+    /**
      * Clear all stored data in the storage engine
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)

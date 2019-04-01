@@ -95,6 +95,18 @@ object parameter of the `Glean.initialize` method. For example:
 Glean.initialize(applicationContext, Configuration(channel = "beta"))
 ```
 
+### Clearing user-lifetime metrics
+
+"User-lifetime metrics" are metrics that are persistent for the lifetime of the
+user profile. Your app may need to reset these metrics when the profile is
+cleared, or, depending on policy, when telemetry is disabled.
+
+To clear user-lifetime metrics, call:
+
+```
+Glean.clearUserLifetimeMetrics()
+```
+
 ### Adding new metrics
 
 All metrics that your application collects must be defined in a `metrics.yaml`

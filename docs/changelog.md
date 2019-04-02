@@ -4,13 +4,30 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.49.0-SNAPSHOT  (In Development)
+# 0.50.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.47.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/51?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/53?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **support-ktx**
+  * Added extension property `Uri.isHttpOrHttps`.
+
+* **browser-icons**
+  * ⚠️ **This is a breaking API change**: Creating a `BrowserIcons` instance requires a `Client` object (from `concept-fetch`) now.
+
+* **feature-findinpage**
+   * Find in Page now emits facts
+
+# 0.49.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.48.0...v0.49.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/52?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.49.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.49.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.49.0/buildSrc/src/main/java/Config.kt)
 
 * **feature-contextmenu**
    * Clicking on a context menu item now emits a fact
@@ -18,7 +35,7 @@ permalink: /changelog/
 * **browser-awesomebar**
    * `DefaultSuggestionViewHolder` now centers titles if no description is provided by the suggestion.
 
-* **browser-engine**
+* **browser-engine-gecko-***
   * Added `automaticFontSizeAdjustment` engine setting for automatic font size adjustment,
   in line with system accessibility settings. The default is `true`.
   ```kotlin
@@ -30,7 +47,7 @@ permalink: /changelog/
 
 * **feature-qr**
   * 🆕 New component/feature that provides functionality for scanning QR codes.
-  
+
     ```kotlin
       val qrFeature = QrFeature(
           context,
@@ -44,11 +61,16 @@ permalink: /changelog/
       )
       // When ready to scan simply call
       qrFeature.scan()
-    ```  
+    ```
 
 * **concept-storage**
   * ⚠️ **This is a breaking API change!** for non-component implementations of `HistoryStorage`.
   * `HistoryStorage` got new API: `deleteVisit`.
+
+* **browser-search**
+  * Imported `list.json` and search plugins from Fennec from 2019-03-29.
+  * Added support for `searchDefault` and `searchOrder`.
+  * ⚠️ **This is a breaking API change**: `SearchEngineProvider.loadSearchEngines` returns a new data class `SearchEngineList` (was `List<SearchEngine>`).
 
 * **browser-storage-sync**, **browser-storage-memory**
   * Implementations of `concept-storage`/`HistoryStorage` expose newly added `deleteVisit`.
@@ -57,6 +79,7 @@ permalink: /changelog/
   * Add TalkBack support for page load status.
   * Added option to add "edit actions" that will show up next to the URL in edit mode.
   * Added option to set a listener for clicks on the site security indicator (globe / lock icon).
+  * The `toolbar` now emits a fact `COMMIT` when the user has edited the URL. [More information](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/toolbar/README.md).
 
 * **browser-engine-gecko-nightly**
   * Added new `TrackingProtectionPolicy` category for blocking cryptocurrency miners (`TrackingProtectionPolicy.CRYPTOMINING`).
@@ -65,6 +88,15 @@ permalink: /changelog/
   * Added `Intent.toSafeIntent()`.
   * Added `MotionEvent.use {}` (like `AutoCloseable.use {}`).
   * Added `Bitmap.arePixelsAllTheSame()`.
+  * Added `Context.appName` returns the name (label) of the application or the package name as a fallback.
+
+* **concept-fetch**
+  * Added support for interceptors. Interceptors are a powerful mechanism to monitor, modify, retry, redirect or record requests as well as responses going through a `Client`. See the [concept-fetch README](https://github.com/mozilla-mobile/android-components/tree/master/components/concept/fetch) for example implementations of interceptors.
+
+* 💥 **Better crash handling** (#2568, #2569, #2570, #2571)
+  * **browser-engine-gecko-nightly**: `EngineSession.Observer.onCrashStateChange()` gets invoked if the content process of a session crashed. Internally a new `GeckoSession` will be created. By default this new session will just render a white page (`about:blank`) and not recover the last state. This prevents crash loops and let's the app decide (and show UI) when to restore. Calling `EngineSession.recoverFromCrash()` will try to restore the last known state from before the crash.
+  * **browser-session**: `Session.crashed` now exposes if a `Session` has crashed.
+  * **feature-session**: New use case: `SessionUseCases.CrashRecoveryUseCase`.
 
 # 0.48.0
 

@@ -1,8 +1,8 @@
-# [Android Components](../../../README.md) > Libraries > Fetch-OkHttp
+# [Android Components](../../../README.md) > Libraries > Push-Firebase
 
-A [concept-fetch](../../concept/fetch/README.md) implementation using [OkHttp](https://github.com/square/okhttp).
+A [concept-push](../../concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/) (FCM).
 
-This implementation of `concept-fetch` uses [OkHttp](https://github.com/square/okhttp) - a third-party library from Square. It is intended for apps that already use OkHttp and want components to use the same client.
+This implementation of `concept-push` uses [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/). It can be used by Android devices that are supposed by Google Play Services.
 
 ## Usage
 
@@ -11,12 +11,21 @@ This implementation of `concept-fetch` uses [OkHttp](https://github.com/square/o
 Use Gradle to download the library from [maven.mozilla.org](https://maven.mozilla.org/) ([Setup repository](../../../README.md#maven-repository)):
 
 ```Groovy
-implementation "org.mozilla.components:lib-fetch-okhttp:{latest-version}"
+implementation "org.mozilla.components:lib-push-firebase:{latest-version}"
 ```
 
-### Performing requests
+### Adding Firebase Support
 
-See the [concept-fetch documentation](../../concept/fetch/README.md) for generic examples of using the API of components implementing `concept-fetch`.
+Extend `AbstractFirebasePushService` with your own class:
+```kotlin
+class FirebasePush : AbstractFirebasePushService()
+```
+
+Place your keys file (`google-services.json`) for FCM in the app module of the project.
+
+~Optionally, add meta tags to your `AndroidManifest.xml` to disable the push service from automatically starting.~ This is not support ed yet (see [#2603](https://github.com/mozilla-mobile/android-components/issues/2603)).
+
+See the [concept-push documentation](../../concept/push/README.md) for generic examples of using the API of components implementing `concept-push`.
 
 ## License
 

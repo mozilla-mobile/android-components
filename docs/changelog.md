@@ -21,6 +21,13 @@ permalink: /changelog/
 * **feature-findinpage**
    * Find in Page now emits facts
 
+* **concept-push**
+  * 🆕 Added a new component for supporting push notifications.
+
+* **lib-push-firebase**
+  * 🆕 Added a new component for Firebase Cloud Messaging push support.
+  * A feature module to use this component will be coming in future releases, stay tuned!
+
 # 0.49.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.48.0...v0.49.0)

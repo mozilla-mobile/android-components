@@ -49,6 +49,7 @@ abstract class EngineSession(
         fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
+        fun onCrashStateChange(crashed: Boolean) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
@@ -242,6 +243,13 @@ abstract class EngineSession(
      * Exits fullscreen mode if currently in it that state.
      */
     abstract fun exitFullScreenMode()
+
+    /**
+     * Tries to recover from a crash by restoring the last know state.
+     *
+     * Returns true if a last known state was restored, otherwise false.
+     */
+    abstract fun recoverFromCrash(): Boolean
 
     /**
      * Close the session. This may free underlying objects. Call this when you are finished using

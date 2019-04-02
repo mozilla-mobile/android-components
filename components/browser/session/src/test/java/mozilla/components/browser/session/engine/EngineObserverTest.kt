@@ -53,6 +53,7 @@ class EngineObserverTest {
             override fun clearFindMatches() {}
             override fun exitFullScreenMode() {}
             override fun saveState(): EngineSessionState = mock()
+            override fun recoverFromCrash(): Boolean { return false }
 
             override fun loadData(data: String, mimeType: String, encoding: String) {
                 notifyObservers { onLocationChange(data) }
@@ -102,6 +103,7 @@ class EngineObserverTest {
             override fun exitFullScreenMode() {}
             override fun saveState(): EngineSessionState = mock()
             override fun loadData(data: String, mimeType: String, encoding: String) {}
+            override fun recoverFromCrash(): Boolean { return false }
             override fun loadUrl(url: String) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
@@ -147,6 +149,7 @@ class EngineObserverTest {
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
             override fun exitFullScreenMode() {}
+            override fun recoverFromCrash(): Boolean { return false }
         }
         val observer = EngineObserver(session)
         engineSession.register(observer)
@@ -367,5 +370,22 @@ class EngineObserverTest {
         observer.onMediaRemoved(media3)
 
         assertEquals(emptyList<Media>(), session.media)
+    }
+
+    @Test
+    fun `onCrashStateChanged will update session and notify observer`() {
+        val session = Session("https://www.mozilla.org")
+        assertFalse(session.crashed)
+
+        val observer = EngineObserver(session)
+
+        observer.onCrashStateChange(true)
+        assertTrue(session.crashed)
+
+        observer.onCrashStateChange(false)
+        assertFalse(session.crashed)
+
+        observer.onCrashStateChange(true)
+        assertTrue(session.crashed)
     }
 }

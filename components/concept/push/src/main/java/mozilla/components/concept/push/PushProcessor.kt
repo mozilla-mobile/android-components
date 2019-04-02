@@ -30,7 +30,7 @@ interface PushProcessor {
     /**
      * A new push message has been received.
      */
-    fun onMessageReceived(message: PushMessage)
+    fun onMessageReceived(message: EncryptedPushMessage)
 
     /**
      * An error has occurred.
@@ -61,13 +61,40 @@ object PushProvider {
 /**
  * A push message holds the information needed to pass the message on to the appropriate receiver.
  */
-data class PushMessage(val data: String)
+data class EncryptedPushMessage(
+    val channelId: String,
+    val body: String,
+    val encoding: String,
+    val salt: String = "",
+    val cryptoKey: String = "" // diffie–hellman key
+) {
+    companion object {
+        /**
+         * The [salt] and [cryptoKey] are optional as part of the standard for WebPush, so we should default
+         * to empty strings.
+         *
+         * Note: We have use the invoke operator since secondary constructors don't work with nullable primitive types.
+         */
+        operator fun invoke(
+            channelId: String,
+            body: String,
+            encoding: String,
+            salt: String? = null,
+            cryptoKey: String? = null
+        ) = EncryptedPushMessage(channelId, body, encoding, salt ?: "", cryptoKey ?: "")
+    }
+}
 
 /**
- * The different kind of message types that a [PushMessage] can be.
+ * The different kind of message types that a [EncryptedPushMessage] can be:
+ *  - Application Services (e.g. FxA/Send Tab)
+ *  - WebPush messages (see: https://www.w3.org/TR/push-api/)
+ *  - Third party integrated SDKs (e.g. Leanplum)
+ *  - Uncategorized messages.
  */
 enum class PushType {
     Services,
+    WebPush,
     ThirdParty,
     Unknown
 }

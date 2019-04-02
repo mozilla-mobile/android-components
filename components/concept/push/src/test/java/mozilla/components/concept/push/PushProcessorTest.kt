@@ -32,7 +32,7 @@ class PushProcessorTest {
 
         override fun onNewToken(newToken: String) {}
 
-        override fun onMessageReceived(message: PushMessage) {}
+        override fun onMessageReceived(message: EncryptedPushMessage) {}
 
         override fun onError(error: Error) {}
     }

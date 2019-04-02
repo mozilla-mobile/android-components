@@ -15,6 +15,11 @@ import android.content.Context
 interface PushService {
 
     /**
+     * The supported push service that is implemented.
+     */
+    val type: ServiceType
+
+    /**
      * Starts the push service.
      */
     fun start()
@@ -33,4 +38,12 @@ interface PushService {
      * Checks if the messaging service is available to use.
      */
     fun isAvailable(context: Context) : Boolean
+}
+
+/**
+ * Supported push services.
+ */
+enum class ServiceType {
+    FCM,
+    ADM
 }

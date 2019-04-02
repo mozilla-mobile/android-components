@@ -32,5 +32,5 @@ interface PushService {
     /**
      * Checks if the messaging service is available to use.
      */
-    fun isAvailable(context: Context) : Boolean
+    fun isAvailable(context: Context): Boolean
 }

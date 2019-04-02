@@ -6,6 +6,8 @@
 
 package mozilla.components.concept.push
 
+import android.support.annotation.VisibleForTesting
+
 /**
  * A push notification processor that handles registration and new messages from the [PushService] provided.
  * Starting Push in the Application's onCreate is recommended.
@@ -52,6 +54,11 @@ object PushProvider {
 
     @Volatile
     private var instance: PushProcessor? = null
+
+    @VisibleForTesting
+    internal fun reset() {
+        instance = null
+    }
     val requireInstance: PushProcessor
         get() = instance ?: throw IllegalStateException(
             "You need to call start() on your Push instance from Application.onCreate()."

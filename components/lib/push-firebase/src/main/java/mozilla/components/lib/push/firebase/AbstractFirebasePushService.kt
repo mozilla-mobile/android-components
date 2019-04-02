@@ -44,11 +44,11 @@ abstract class AbstractFirebasePushService : FirebaseMessagingService(), PushSer
         }
     }
 
-    override fun stop() {
+    final override fun stop() {
         FirebaseMessaging.getInstance().isAutoInitEnabled = false
     }
 
-    override fun forceRegistrationRenewal() {
+    final override fun forceRegistrationRenewal() {
         stop()
         FirebaseInstanceId.getInstance().deleteInstanceId()
         start()

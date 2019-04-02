@@ -86,20 +86,6 @@ data class EncryptedPushMessage(
 }
 
 /**
- * The different kind of message types that a [EncryptedPushMessage] can be:
- *  - Application Services (e.g. FxA/Send Tab)
- *  - WebPush messages (see: https://www.w3.org/TR/push-api/)
- *  - Third party integrated SDKs (e.g. Leanplum)
- *  - Uncategorized messages.
- */
-enum class PushType {
-    Services,
-    WebPush,
-    ThirdParty,
-    Unknown
-}
-
-/**
  *  Various error types.
  */
 sealed class Error {

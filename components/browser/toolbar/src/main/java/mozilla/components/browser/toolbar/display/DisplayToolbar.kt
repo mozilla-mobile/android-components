@@ -15,7 +15,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityEvent
-import android.widget.ProgressBar
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.BrowserToolbar
@@ -31,6 +30,7 @@ import mozilla.components.support.ktx.android.content.res.pxToDp
 import mozilla.components.support.ktx.android.view.isVisible
 import mozilla.components.ui.icons.R.drawable.mozac_ic_globe
 import mozilla.components.ui.icons.R.drawable.mozac_ic_lock
+import mozilla.components.ui.progress.AnimatedProgressBar
 
 /**
  * Sub-component of the browser toolbar responsible for displaying the URL and related controls.
@@ -130,7 +130,7 @@ internal class DisplayToolbar(
         }
     }
 
-    private val progressView = ProgressBar(
+    private val progressView = AnimatedProgressBar(
         context, null, android.R.attr.progressBarStyleHorizontal
     ).apply {
         visibility = View.GONE

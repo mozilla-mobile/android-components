@@ -35,7 +35,7 @@ class SitePermissionsStorage(
      * Persists the [sitePermissions] provided as a parameter.
      * @param sitePermissions the [sitePermissions] to be stored.
      */
-    internal fun save(sitePermissions: SitePermissions) {
+    fun save(sitePermissions: SitePermissions) {
         database
             .sitePermissionsDao()
             .insert(

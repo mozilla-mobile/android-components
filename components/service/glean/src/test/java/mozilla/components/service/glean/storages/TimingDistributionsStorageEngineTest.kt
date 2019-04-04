@@ -61,7 +61,7 @@ class TimingDistributionsStorageEngineTest {
                 clearStore = true
             )
             assertEquals(1, snapshot!!.size)
-            assertEquals(1L, snapshot["telemetry.test_timing_distribution"]?.values!!["0"])
+            assertEquals(1L, snapshot["telemetry.test_timing_distribution"]?.values!![0])
         }
     }
 
@@ -86,6 +86,14 @@ class TimingDistributionsStorageEngineTest {
             "store1#telemetry.invalid_int" to -1,
             "store1#telemetry.invalid_list" to listOf("1", "2", "3"),
             "store1#telemetry.invalid_int_list" to "[1,2,3]",
+            "store1#telemetry.invalid_td_name" to "{\"category\":\"telemetry\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_bucketCount" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":\"not an int!\",\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_range" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_range2" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[\"not\",\"numeric\"],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_histogramType" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":-1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_values" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{\"0\": \"nope\"},\"sum\":0,\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_sum" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":\"nope\",\"timeUnit\":2}",
+            "store1#telemetry.invalid_td_timeUnit" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":-1}",
             "store1#telemetry.test_timing_distribution" to td.toJsonObject().toString()
         )
 
@@ -213,7 +221,7 @@ class TimingDistributionsStorageEngineTest {
         val snapshot = metric.testGetValue()
         assertEquals("Accumulating overflow values should increment last bucket",
             1L,
-            snapshot.values["${TimingDistributionData.DEFAULT_BUCKET_COUNT - 1}"])
+            snapshot.values[TimingDistributionData.DEFAULT_BUCKET_COUNT - 1])
     }
 
     @Test
@@ -245,7 +253,7 @@ class TimingDistributionsStorageEngineTest {
         // Make sure that the sample in the correct (first) bucket
         val snapshot = metric.testGetValue()
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values["0"])
+            1L, snapshot.values[0])
 
         // verify buckets lists worked
         assertNotNull("Buckets must not be null", snapshot.buckets)
@@ -285,15 +293,15 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("Accumulating updates the count", 5, snapshot.count)
 
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values["0"])
+            1L, snapshot.values[0])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values["9"])
+            1L, snapshot.values[9])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values["33"])
+            1L, snapshot.values[33])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values["57"])
+            1L, snapshot.values[57])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values["80"])
+            1L, snapshot.values[80])
     }
 
     @Test
@@ -320,18 +328,18 @@ class TimingDistributionsStorageEngineTest {
             "test_timing_distribution", jsonTdd.getString("name"))
         val jsonRange = jsonTdd.getJSONArray("range")
         assertEquals("JSON range minimum must match Timing Distribution range minimum",
-            tdd.range[TimingDistributionData.MIN], jsonRange.getLong(TimingDistributionData.MIN))
+            tdd.rangeMin, jsonRange.getLong(0))
         assertEquals("JSON range maximum must match Timing Distribution range maximum",
-            tdd.range[TimingDistributionData.MAX], jsonRange.getLong(TimingDistributionData.MAX))
+            tdd.rangeMax, jsonRange.getLong(1))
         assertEquals("JSON histogram type must match Timing Distribution histogram type",
             tdd.histogramType.ordinal, jsonTdd.getInt("histogramType"))
         val jsonValue = jsonTdd.getJSONObject("values")
         assertEquals("JSON values must match Timing Distribution values",
-            tdd.values["0"], jsonValue.getLong("0"))
+            tdd.values[0], jsonValue.getLong("0"))
         assertEquals("JSON values must match Timing Distribution values",
-            tdd.values["1"], jsonValue.getLong("1"))
+            tdd.values[1], jsonValue.getLong("1"))
         assertEquals("JSON values must match Timing Distribution values",
-            tdd.values["2"], jsonValue.getLong("2"))
+            tdd.values[2], jsonValue.getLong("2"))
         assertEquals("JSON sum must match Timing Distribution sum",
             tdd.sum, jsonTdd.getLong("sum"))
         assertEquals("JSON time unit must match Timing Distribution time unit",

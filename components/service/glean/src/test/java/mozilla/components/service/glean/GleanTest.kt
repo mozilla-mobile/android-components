@@ -125,6 +125,10 @@ class GleanTest {
     @Test
     fun `test sending of background pings`() {
         val server = MockWebServer()
+
+        // It's important to note here that we expect to receive two pings back, the baseline and
+        // the events ping so we need to enqueue a response back for EACH of them.
+        server.enqueue(MockResponse().setBody("OK"))
         server.enqueue(MockResponse().setBody("OK"))
 
         val click = EventMetricType<NoExtraKeys>(
@@ -263,8 +267,6 @@ class GleanTest {
             Glean.handleBackgroundEvent()
         }
 
-        Glean.pingStorageEngine.testWait()
-
         // We should only have a baseline ping and no events or metrics pings since nothing was
         // recorded
         val files = Glean.pingStorageEngine.storageDirectory.listFiles()
@@ -319,7 +321,7 @@ class GleanTest {
         // and first_run_date to the new location in glean_client_info.  We
         // need to clear those out again so we can test what happens when they
         // are missing.
-        val storageManager = StorageEngineManager(
+        StorageEngineManager(
             applicationContext = ApplicationProvider.getApplicationContext()
         ).clearAllStores()
 

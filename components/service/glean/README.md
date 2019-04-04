@@ -73,8 +73,12 @@ class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize the Glean library. Ideally, this is the first thing that
-        // must be done right after enabling logging.
+        // Call setUploadEnabled first, since Glean.initialize
+        // might send pings if there are any metrics queued up
+        // from a previous run.
+        Glean.setUploadEnabled(Settings.isTelemetryEnabled)
+
+        // Initialize the Glean library.
         Glean.initialize(applicationContext)
     }
 }
@@ -116,29 +120,39 @@ please refer to [Unit testing glean metrics](docs/metrics/testing-metrics.md).
 
 ### Providing UI to enable / disable metrics
 
-Every application must provide a way to disable and re-enable data collection and upload. This is
-controlled with the `glean.setUploadEnabled()` method. The application should
-provide some form of user interface to call this method.
+Every application must provide a way to disable and re-enable data collection
+and upload. This is controlled with the `glean.setUploadEnabled()` method. The
+application should provide some form of user interface to call this method.
+Additionally, it is good practice to call this method immediately before calling
+`Glean.initialize()` to ensure that glean doesn't send any pings at start up
+when telemetry is disabled.
 
 ## Debugging products using glean
 Glean exports the [`GleanDebugActivity`](src/main/java/mozilla/components/service/glean/debug/GleanDebugActivity.kt)
 that can be used to toggle debugging features on or off. Users can invoke this special activity, at
 run-time, using the following [`adb`](https://developer.android.com/studio/command-line/adb) command:
 
-`adb shell am start -n [package.name]/mozilla.components.service.glean.debug.GleanDebugActivity [extra keys]`
+`adb shell am start -n [applicationId]/mozilla.components.service.glean.debug.GleanDebugActivity [extra keys]`
 
-Where the `[package.name]` is the product's package name as exported in the manifest file (e.g.
-`org.mozilla.samples.glean` for the glean sample application) and `[extra keys]` is a list of
-extra keys to be passed to the debug activity. See the [documentation](https://developer.android.com/studio/command-line/adb#IntentSpec)
-for the command line switches used to pass the extra keys. These are the currently supported keys:
+In the above:
 
-|key|type|description|
-|---|----|-----------|
-| logPings | boolean (--ez) | If set to `true`, glean dumps pings to logcat; defaults to `false` |
-| sendPing | string (--es) | Sends the ping with the given name immediately |
-| tagPings | string (--es) | Tags all outgoing pings as debug pings to make them available for real-time validation. The value must match the pattern `[a-zA-Z0-9-]{1,20}` |
+- `[applicationId]` is the product's application id as defined in the manifest
+  file and/or build script. For the glean sample application, this is
+  `org.mozilla.samples.glean` for a release build and
+  `org.mozilla.samples.glean.debug` for a debug build.
 
-For example, to direct the glean sample application to (1) dump pings to logcat, (2) tag the ping 
+- `[extra keys]` is a list of extra keys to be passed to the debug activity. See the
+  [documentation](https://developer.android.com/studio/command-line/adb#IntentSpec)
+  for the command line switches used to pass the extra keys. These are the
+  currently supported keys:
+
+    |key|type|description|
+    |---|----|-----------|
+    | logPings | boolean (--ez) | If set to `true`, glean dumps pings to logcat; defaults to `false` |
+    | sendPing | string (--es) | Sends the ping with the given name immediately |
+    | tagPings | string (--es) | Tags all outgoing pings as debug pings to make them available for real-time validation. The value must match the pattern `[a-zA-Z0-9-]{1,20}` |
+
+For example, to direct a release build of the glean sample application to (1) dump pings to logcat, (2) tag the ping 
 with the `test-metrics-ping` tag, and (3) send the "metrics" ping immediately, the following command
 can be used:
 

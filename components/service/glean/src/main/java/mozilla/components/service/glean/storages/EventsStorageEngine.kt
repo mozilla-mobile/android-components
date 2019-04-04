@@ -20,7 +20,6 @@ import mozilla.components.service.glean.error.ErrorRecording.recordError
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.metrics.EventMetricType
 import mozilla.components.service.glean.metrics.Lifetime
-import mozilla.components.service.glean.scheduler.PingUploadWorker
 import mozilla.components.service.glean.utils.ensureDirectoryExists
 import mozilla.components.support.base.log.logger.Logger
 import org.json.JSONArray
@@ -102,11 +101,12 @@ internal object EventsStorageEngine : StorageEngine {
      *
      * @param context The application context
      */
-    internal fun onReadyToSendPings(context: Context) {
+    internal fun onReadyToSendPings(@Suppress("UNUSED_PARAMETER") context: Context) {
         // We want this to run off of the main thread, because it might perform I/O.
         // However, we don't use the built-in KotlinDispatchers.IO since we need
         // to make sure this work is done before any other glean API calls, and this
         // will force them to be queued after this work.
+        @Suppress("EXPERIMENTAL_API_USAGE")
         Dispatchers.API.launch {
             // Load events from disk
             storageDirectory.listFiles()?.forEach { file ->
@@ -127,11 +127,8 @@ internal object EventsStorageEngine : StorageEngine {
             // However, there are various challenges in detecting when the device has
             // been booted, so for now we just pay the penalty of a few more
             // unnecessary pings.
-            if (eventStores.size != 0) {
-                eventStores.keys.forEach { storeName ->
-                    Glean.assembleAndSerializePing(storeName)
-                }
-                PingUploadWorker.enqueueWorker()
+            if (eventStores.isNotEmpty()) {
+                Glean.sendPings(eventStores.keys.toList())
             }
         }
     }
@@ -185,16 +182,18 @@ internal object EventsStorageEngine : StorageEngine {
 
         // Record a copy of the event in all the needed stores.
         synchronized(this) {
+            val eventStoresToUpload: MutableList<String> = mutableListOf()
             for (storeName in metricData.getStorageNames()) {
                 val storeData = eventStores.getOrPut(storeName) { mutableListOf() }
                 storeData.add(event.copy())
                 writeEventToDisk(storeName, jsonEvent)
-                if (storeData.size == Glean.configuration.maxEvents &&
-                    Glean.assembleAndSerializePing(storeName)) {
-                    // Queue background worker to upload the newly created ping
-                    PingUploadWorker.enqueueWorker()
+                if (storeData.size == Glean.configuration.maxEvents) {
+                    // The ping contains enough events to send now, add it to the list of pings to
+                    // send
+                    eventStoresToUpload.add(storeName)
                 }
             }
+            Glean.sendPings(eventStoresToUpload)
         }
     }
 

@@ -6,8 +6,6 @@
 
 package mozilla.components.concept.push
 
-import android.content.Context
-
 /**
  * Implemented by push services like Firebase Cloud Messaging and Amazon Device Messaging SDKs to allow
  * the [PushProcessor] to manage their lifecycle.
@@ -23,14 +21,4 @@ interface PushService {
      * Stops the push service.
      */
     fun stop()
-
-    /**
-     * Forces the push service to renew it's registration. This may lead to a new registration token being received.
-     */
-    fun forceRegistrationRenewal()
-
-    /**
-     * Checks if the messaging service is available to use.
-     */
-    fun isAvailable(context: Context): Boolean
 }

@@ -98,4 +98,5 @@ data class EncryptedPushMessage(
 sealed class Error {
     data class RegistrationError(val desc: String) : Error()
     data class NetworkError(val desc: String) : Error()
+    data class ServiceUnavailable(val desc: String) : Error()
 }

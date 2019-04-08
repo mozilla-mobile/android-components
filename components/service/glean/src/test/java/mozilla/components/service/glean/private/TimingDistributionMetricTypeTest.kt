@@ -6,6 +6,7 @@ package mozilla.components.service.glean.private
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
+import mozilla.components.service.glean.Timespan
 import mozilla.components.service.glean.resetGlean
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -53,9 +54,12 @@ class TimingDistributionMetricTypeTest {
         )
 
         // Accumulate a few values
-        metric.accumulate(1L)
-        metric.accumulate(2L)
-        metric.accumulate(3L)
+        for (i in 1L..3L) {
+            Timespan.getElapsedNanos = { 0 }
+            val timespan = metric.start()
+            Timespan.getElapsedNanos = { i * 1000000 } // ms to ns
+            timespan.stop()
+        }
 
         // Check that data was properly recorded.
         assertTrue(metric.testHasValue())
@@ -83,10 +87,14 @@ class TimingDistributionMetricTypeTest {
             timeUnit = TimeUnit.Millisecond
         )
 
-        // Attempt to store the string list using set
-        metric.accumulate(1L)
+        // Attempt to store the timespan using set
+        Timespan.getElapsedNanos = { 0 }
+        val timespan = metric.start()
+        Timespan.getElapsedNanos = { 1 }
+        timespan.stop()
+
         // Check that nothing was recorded.
-        assertFalse("StringLists without a lifetime should not record data",
+        assertFalse("TimingDistributions without a lifetime should not record data.",
             metric.testHasValue())
     }
 
@@ -117,9 +125,12 @@ class TimingDistributionMetricTypeTest {
         )
 
         // Accumulate a few values
-        metric.accumulate(1L)
-        metric.accumulate(2L)
-        metric.accumulate(3L)
+        for (i in 1L..3L) {
+            Timespan.getElapsedNanos = { 0 }
+            val timespan = metric.start()
+            Timespan.getElapsedNanos = { i * 1000000 } // ms to ns
+            timespan.stop()
+        }
 
         // Check that data was properly recorded in the second ping.
         assertTrue(metric.testHasValue("store2"))

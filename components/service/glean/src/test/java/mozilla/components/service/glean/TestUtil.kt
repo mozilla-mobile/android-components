@@ -7,6 +7,7 @@ package mozilla.components.service.glean
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -119,6 +120,8 @@ internal fun resetGlean(
     clearStores: Boolean = true
 ) {
     Glean.enableTestingMode()
+
+    Timespan.getElapsedNanos = { SystemClock.elapsedRealtimeNanos() }
 
     // We're using the WorkManager in a bunch of places, and glean will crash
     // in tests without this line. Let's simply put it here.

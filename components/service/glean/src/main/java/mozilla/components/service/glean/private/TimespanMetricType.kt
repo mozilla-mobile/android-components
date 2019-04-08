@@ -5,6 +5,10 @@
 package mozilla.components.service.glean.private
 
 import android.support.annotation.VisibleForTesting
+import mozilla.components.service.glean.Dispatchers
+import mozilla.components.service.glean.Timespan
+import mozilla.components.service.glean.error.ErrorRecording
+import mozilla.components.service.glean.error.ErrorRecording.recordError
 import mozilla.components.service.glean.storages.TimespansStorageEngine
 import mozilla.components.support.base.log.logger.Logger
 
@@ -30,39 +34,33 @@ data class TimespanMetricType(
     private val logger = Logger("glean/TimespanMetricType")
 
     /**
-     * Start tracking time for the provided metric. This records an error if it’s
-     * already tracking time (i.e. start was already called with no corresponding
-     * [stopAndSum]): in that case the original start time will be preserved.
+     * Start tracking time for the provided metric, and return a [Timespan] object.
+     *
+     * @return Call [Timespan.stop()] on the returned object to stop tracking time.
      */
-    fun start() {
-        if (!shouldRecord(logger)) {
-            return
-        }
-
-        TimespansStorageEngine.start(this)
-    }
-
-    /**
-     * Stop tracking time for the provided metric. Add the elapsed time to the time currently
-     * stored in the metric. This will record an error if no [start] was called.
-     */
-    fun stopAndSum() {
-        if (!shouldRecord(logger)) {
-            return
-        }
-
-        TimespansStorageEngine.stopAndSum(this, timeUnit)
-    }
-
-    /**
-     * Abort a previous [start] call. No error is recorded if no [start] was called.
-     */
-    fun cancel() {
-        if (!shouldRecord(logger)) {
-            return
-        }
-
-        TimespansStorageEngine.cancel(this)
+    fun start(): Timespan {
+        return Timespan(
+            { timespan ->
+                if (shouldRecord(logger)) {
+                    @Suppress("EXPERIMENTAL_API_USAGE")
+                    Dispatchers.API.launch {
+                        TimespansStorageEngine.stopAndSum(
+                            this@TimespanMetricType,
+                            timeUnit,
+                            timespan
+                        )
+                    }
+                }
+            },
+            {
+                recordError(
+                    this@TimespanMetricType,
+                    ErrorRecording.ErrorType.InvalidValue,
+                    "Timespan stopped twice",
+                    logger
+                )
+            }
+        )
     }
 
     /**

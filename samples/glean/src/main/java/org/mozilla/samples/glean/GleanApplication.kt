@@ -10,7 +10,6 @@ import mozilla.components.service.experiments.Experiments
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import org.mozilla.samples.glean.GleanMetrics.Basic
-import org.mozilla.samples.glean.GleanMetrics.Test
 
 class GleanApplication : Application() {
 
@@ -26,8 +25,6 @@ class GleanApplication : Application() {
         // Initialize the Experiments library right afterwards. Experiments can
         // not be activated before this, so it's important to do this early.
         Experiments.initialize(applicationContext)
-
-        Test.testTimespan.start()
 
         // Set a sample value for a metric.
         Basic.os.set("Android")

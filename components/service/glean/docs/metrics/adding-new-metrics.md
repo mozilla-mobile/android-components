@@ -329,18 +329,16 @@ rendering:
     ...
 ```
 
-Now you can use the timespan from the application's code:
+Now you can use the timespan from the application's code. The timespan metric's
+`start` method, returns a `Timespan` object. Call `stop()` on this object when
+you are done timing.
 
 ```Kotlin
 import org.mozilla.yourApplication.GleanMetrics.Rendering
 
-Rendering.imageDecodeTime.start() // start the timer
-try {
-   // ... decode an image ...
-} catch (e: Exception) {
-   Rendering.imageDecodeTime.cancel() // cancel the timer -- nothing is recorded
-}
-Rendering.imageDecodeTime.stopAndSum() // stop the timer
+val timer = Rendering.imageDecodeTime.start() // start the timer
+// ... decode an image ...
+timer.stop() // stop the timer
 ```
 
 The time reported in the telemetry ping will be the sum of all of these
@@ -389,14 +387,14 @@ pages:
 
 
 Now that the timing distribution is defined in `metrics.yaml` you can use the metric to record data
-in the application code:
+in the application code.  The timing distribution metric's `start` method returns a `Timespan` object.  Call `stop` on this object to stop timing and record a sample to the metric.
 
 ```Kotlin
 import org.mozilla.yourApplication.GleanMetrics.Pages
 
-// ...
-pages.pageLoad.accumulate(1L) // Accumulates a sample of 1 millisecond
-pages.pageLoad.accumulate(10L) // Accumulates a sample of 10 milliseconds
+var timer = pages.pageLoad.start()
+// load a page...
+timer.stop()
 ```
 
 There are test APIs available too.  For convenience, properties `sum` and `count` are exposed to 

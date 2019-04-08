@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.private.TimingDistributionMetricType
+import mozilla.components.service.glean.Timespan
 import mozilla.components.service.glean.error.ErrorRecording
 import mozilla.components.service.glean.resetGlean
 import org.junit.Assert.assertFalse
@@ -144,7 +145,7 @@ class TimingDistributionsStorageEngineTest {
             runBlocking {
                 storageEngine.accumulate(
                     metricData = metric,
-                    sample = 1L,
+                    sample = 1000000L,
                     timeUnit = metric.timeUnit
                 )
             }
@@ -188,7 +189,10 @@ class TimingDistributionsStorageEngineTest {
         )
 
         // Attempt to accumulate a negative sample
-        metric.accumulate(-1L)
+        Timespan.getElapsedNanos = { 0 }
+        val timespan = metric.start()
+        Timespan.getElapsedNanos = { -1 }
+        timespan.stop()
         // Check that nothing was recorded.
         assertFalse("Timing distributions must not accumulate negative values",
             metric.testHasValue())
@@ -212,7 +216,11 @@ class TimingDistributionsStorageEngineTest {
         )
 
         // Attempt to accumulate an overflow sample
-        metric.accumulate(TimingDistributionData.DEFAULT_RANGE_MAX + 100)
+        Timespan.getElapsedNanos = { 0 }
+        val timespan = metric.start()
+        Timespan.getElapsedNanos = { (TimingDistributionData.DEFAULT_RANGE_MAX + 100) * 1000000 }
+        timespan.stop()
+
         // Check that timing distribution was recorded.
         assertTrue("Accumulating overflow values records data",
             metric.testHasValue())
@@ -248,7 +256,11 @@ class TimingDistributionsStorageEngineTest {
         )
 
         // Accumulate a sample to force the lazy loading of `buckets` to occur
-        metric.accumulate(1L)
+        Timespan.getElapsedNanos = { 0 }
+        val timespan = metric.start()
+        Timespan.getElapsedNanos = { 1 }
+        timespan.stop()
+
         // Check that timing distribution was recorded.
         assertTrue("Accumulating values records data", metric.testHasValue())
 
@@ -279,11 +291,13 @@ class TimingDistributionsStorageEngineTest {
         // to validate the linear bucket search algorithm
 
         // Attempt to accumulate a sample to force metric to be stored
-        metric.accumulate(1L)
-        metric.accumulate(10L)
-        metric.accumulate(100L)
-        metric.accumulate(1000L)
-        metric.accumulate(10000L)
+        for (i in listOf(1L, 10L, 100L, 1000L, 10000L)) {
+            Timespan.getElapsedNanos = { 0 }
+            val timespan = metric.start()
+            Timespan.getElapsedNanos = { i * 1000000 } // Convert ms to ns
+            timespan.stop()
+        }
+
         // Check that timing distribution was recorded.
         assertTrue("Accumulating values records data", metric.testHasValue())
 

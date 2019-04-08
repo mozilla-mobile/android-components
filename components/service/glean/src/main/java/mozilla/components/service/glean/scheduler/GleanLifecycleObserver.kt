@@ -9,12 +9,15 @@ import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.GleanMetrics.GleanBaseline
+import mozilla.components.service.glean.Timespan
 
 /**
  * Connects process lifecycle events from Android to Glean's handleEvent
  * functionality (where the actual work of sending pings is done).
  */
 internal class GleanLifecycleObserver : LifecycleObserver {
+    var backgroundTimer: Timespan? = null
+
     /**
      * Calls the "background" event when entering the background.
      */
@@ -22,7 +25,7 @@ internal class GleanLifecycleObserver : LifecycleObserver {
     fun onEnterBackground() {
         // We're going to background, so store how much time we spent
         // on foreground.
-        GleanBaseline.duration.stopAndSum()
+        backgroundTimer?.stop()
         Glean.handleBackgroundEvent()
     }
 
@@ -39,6 +42,6 @@ internal class GleanLifecycleObserver : LifecycleObserver {
         // Note that this is sending the length of the last foreground session
         // because it belongs to the baseline ping and that ping is sent every
         // time the app goes to background.
-        GleanBaseline.duration.start()
+        backgroundTimer = GleanBaseline.duration.start()
     }
 }

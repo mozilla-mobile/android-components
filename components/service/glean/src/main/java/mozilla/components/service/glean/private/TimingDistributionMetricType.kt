@@ -6,6 +6,9 @@ package mozilla.components.service.glean.private
 
 import android.support.annotation.VisibleForTesting
 import mozilla.components.service.glean.Dispatchers
+import mozilla.components.service.glean.Timespan
+import mozilla.components.service.glean.error.ErrorRecording
+import mozilla.components.service.glean.error.ErrorRecording.recordError
 import mozilla.components.service.glean.storages.TimingDistributionData
 import mozilla.components.service.glean.storages.TimingDistributionsStorageEngine
 import mozilla.components.support.base.log.logger.Logger
@@ -33,24 +36,34 @@ data class TimingDistributionMetricType(
     private val logger = Logger("glean/TimingDistributionMetricType")
 
     /**
-     * Accumulates a sample value to the timing distribution.
+     * Start tracking time for a sample timespan, and return a [Timespan] object.
      *
-     * @param sample This is the sample to accumulate
+     * @return Call [Timespan.stop()] on the returned object to stop tracking time.
      */
-    fun accumulate(sample: Long) {
-        if (!shouldRecord(logger)) {
-            return
-        }
-
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.launch {
-            // Delegate storing the string to the storage engine.
-            TimingDistributionsStorageEngine.accumulate(
-                metricData = this@TimingDistributionMetricType,
-                sample = sample,
-                timeUnit = timeUnit
-            )
-        }
+    fun start(): Timespan {
+        return Timespan(
+            { sample ->
+                if (shouldRecord(logger)) {
+                    @Suppress("EXPERIMENTAL_API_USAGE")
+                    Dispatchers.API.launch {
+                        // Delegate storing the string to the storage engine.
+                        TimingDistributionsStorageEngine.accumulate(
+                            metricData = this@TimingDistributionMetricType,
+                            sample = sample,
+                            timeUnit = timeUnit
+                        )
+                    }
+                }
+            },
+            {
+                recordError(
+                    this@TimingDistributionMetricType,
+                    ErrorRecording.ErrorType.InvalidValue,
+                    "Timespan stopped twice",
+                    logger
+                )
+            }
+        )
     }
 
     /**

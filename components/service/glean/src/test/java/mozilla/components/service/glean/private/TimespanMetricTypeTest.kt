@@ -33,8 +33,7 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start()
-        metric.stopAndSum()
+        metric.start().stop()
 
         // Check that data was properly recorded.
         assertTrue(metric.testHasValue())
@@ -55,10 +54,6 @@ class TimespanMetricTypeTest {
 
         // Record a timespan.
         metric.start()
-        metric.stopAndSum()
-
-        // Let's also call cancel() to make sure it's a no-op.
-        metric.cancel()
 
         // Check that data was not recorded.
         assertFalse("The API should not record a counter if metric is disabled",
@@ -79,8 +74,6 @@ class TimespanMetricTypeTest {
 
         // Record a timespan.
         metric.start()
-        metric.cancel()
-        metric.stopAndSum()
 
         // Check that data was not recorded.
         assertFalse("The API should not record a counter if metric is cancelled",
@@ -113,8 +106,7 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start()
-        metric.stopAndSum()
+        metric.start().stop()
 
         // Check that data was properly recorded in the second ping.
         assertTrue(metric.testHasValue("store2"))
@@ -122,7 +114,7 @@ class TimespanMetricTypeTest {
     }
 
     @Test
-    fun `Records an error if started twice`() {
+    fun `Records an error if stopped twice`() {
         // Define a timespan metric, which will be stored in "store1" and "store2"
         val metric = TimespanMetricType(
             disabled = false,
@@ -134,12 +126,14 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start()
-        metric.start()
-        metric.stopAndSum()
+        val timespan = metric.start()
+        timespan.stop()
+        timespan.stop()
 
         // Check that data was properly recorded in the second ping.
         assertTrue(metric.testHasValue("store2"))
+
+        // Check that an error was reported
         assertTrue(metric.testGetValue("store2") >= 0)
         assertEquals(1, testGetNumRecordedErrors(metric, ErrorType.InvalidValue))
     }

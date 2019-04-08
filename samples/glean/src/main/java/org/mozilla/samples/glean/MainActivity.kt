@@ -16,6 +16,8 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val timer = Test.testTimespan.start()
+
         setContentView(R.layout.activity_main)
 
         // Generate an event when user clicks on the button.
@@ -49,7 +51,7 @@ open class MainActivity : AppCompatActivity() {
             Glean.handleBackgroundEvent()
         }
 
-        Test.testTimespan.stopAndSum()
+        timer.stop()
 
         // Update some metrics from a third-party library
         SamplesGleanLibrary.recordMetric()

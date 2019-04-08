@@ -24,6 +24,9 @@ permalink: /changelog/
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).
 
+* **service-firefox-accounts**
+   *  The service no longer accepts a `successPath` option. Instead the service uses the OAuth `redirectUri`.
+
 # 0.49.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.48.0...v0.49.0)

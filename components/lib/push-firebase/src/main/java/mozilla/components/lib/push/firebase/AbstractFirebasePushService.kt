@@ -9,18 +9,20 @@ package mozilla.components.lib.push.firebase
 import android.content.Context
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import com.google.firebase.iid.FirebaseInstanceId
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import mozilla.components.concept.push.EncryptedPushMessage
+import mozilla.components.concept.push.Error
 import mozilla.components.concept.push.PushProvider
 import mozilla.components.concept.push.PushService
 
 abstract class AbstractFirebasePushService : FirebaseMessagingService(), PushService {
 
     init {
-        start() // Allow the app to choose when to start? This is harder to allow than it looks..
+        // TODO When we can expose start/stop of the service to be controlled by the application, we can remove this.
+        // See: https://github.com/mozilla-mobile/android-components/issues/2603
+        start()
     }
 
     final override fun start() {
@@ -33,7 +35,7 @@ abstract class AbstractFirebasePushService : FirebaseMessagingService(), PushSer
 
     override fun onMessageReceived(remoteMessage: RemoteMessage?) {
         remoteMessage?.let {
-            val message = EncryptedPushMessage.invoke(
+            val message = EncryptedPushMessage(
                 it.data.getValue("chid"),
                 it.data.getValue("body"),
                 it.data.getValue("con"),
@@ -48,14 +50,20 @@ abstract class AbstractFirebasePushService : FirebaseMessagingService(), PushSer
         FirebaseMessaging.getInstance().isAutoInitEnabled = false
     }
 
-    final override fun forceRegistrationRenewal() {
-        stop()
-        FirebaseInstanceId.getInstance().deleteInstanceId()
-        start()
-    }
+    companion object {
 
-    final override fun isAvailable(context: Context): Boolean {
-        val result = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)
-        return result == ConnectionResult.SUCCESS
+        /**
+         * A helper method that allows you to check if the device is supported by Google Play Services in order to
+         * receive push notifications from Firebase Cloud Messaging.
+         */
+        fun isAvailable(context: Context): Boolean {
+            val result = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)
+            if (result != ConnectionResult.SUCCESS) {
+                PushProvider.requireInstance.onError(Error.ServiceUnavailable(
+                    "This device does not support GCM! isGooglePlayServicesAvailable returned: $result")
+                )
+            }
+            return result == ConnectionResult.SUCCESS
+        }
     }
 }

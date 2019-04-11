@@ -22,7 +22,6 @@ import mozilla.components.support.base.log.logger.Logger
  * The |StorageEngineManager.collect| method knows how to pull these special values back out of the
  * individual storage engines and rearrange them correctly in the ping.
  */
-
 data class LabeledMetricType<T>(
     override val disabled: Boolean,
     override val category: String,

@@ -606,6 +606,102 @@ class DisplayToolbarTest {
     }
 
     @Test
+    fun `titleView does not display when there is no title text`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(context, toolbar)
+
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST)
+
+        displayToolbar.measure(widthSpec, heightSpec)
+        displayToolbar.layout(0, 0, 1024, 200)
+
+        val urlView = displayToolbar.urlView
+        val titleView = displayToolbar.titleView
+
+        val urlViewRect = Rect(urlView.left, urlView.top, urlView.right, urlView.bottom)
+        val titleViewRect = Rect(titleView.left, titleView.top, titleView.right, titleView.bottom)
+
+        assertTrue(urlViewRect.width() > 0)
+        assertTrue(urlViewRect.height() > 0)
+
+        assertTrue(titleViewRect.width() == 0)
+        assertTrue(titleViewRect.height() == 0)
+        assertEquals(titleView.visibility, View.GONE)
+    }
+
+    @Test
+    fun `titleView is properly laid out when there is title text`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(context, toolbar)
+
+        displayToolbar.updateTitle("Mozilla")
+        assertEquals(displayToolbar.titleView.visibility, View.VISIBLE)
+
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST)
+
+        displayToolbar.measure(widthSpec, heightSpec)
+        displayToolbar.layout(0, 0, 1024, 200)
+
+        val urlView = displayToolbar.urlView
+        val titleView = displayToolbar.titleView
+
+        val urlViewRect = Rect(urlView.left, urlView.top, urlView.right, urlView.bottom)
+        val titleViewRect = Rect(titleView.left, titleView.top, titleView.right, titleView.bottom)
+
+        assertTrue(urlViewRect.width() > 0)
+        assertTrue(urlViewRect.height() > 0)
+
+        assertTrue(titleViewRect.width() > 0)
+        assertTrue(titleViewRect.height() > 0)
+
+        val totalTextHeights = urlViewRect.height() + titleViewRect.height()
+        val totalAvailablePadding = 200 - totalTextHeights
+        val padding = totalAvailablePadding / DisplayToolbar.MEASURED_HEIGHT_DENOMINATOR
+
+        assertTrue(titleViewRect.left == urlViewRect.left)
+        assertTrue(titleViewRect.top == padding)
+        assertTrue(titleViewRect.right == urlViewRect.right)
+        assertTrue(titleViewRect.bottom == padding + titleViewRect.height())
+    }
+
+    @Test
+    fun `urlView is properly laid out when a title is shown`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(context, toolbar)
+
+        displayToolbar.updateTitle("Mozilla")
+
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST)
+
+        displayToolbar.measure(widthSpec, heightSpec)
+        displayToolbar.layout(0, 0, 1024, 200)
+
+        val urlView = displayToolbar.urlView
+        val titleView = displayToolbar.titleView
+
+        val titleViewRect = Rect(titleView.left, titleView.top, titleView.right, titleView.bottom)
+        val urlViewRect = Rect(urlView.left, urlView.top, urlView.right, urlView.bottom)
+
+        val totalTextHeights = urlViewRect.height() + titleViewRect.height()
+        val totalAvailablePadding = 200 - totalTextHeights
+        val padding = totalAvailablePadding / DisplayToolbar.MEASURED_HEIGHT_DENOMINATOR
+
+        assertTrue(urlViewRect.width() > 0)
+        assertTrue(urlViewRect.height() > 0)
+
+        assertTrue(titleViewRect.width() > 0)
+        assertTrue(titleViewRect.height() > 0)
+
+        assertTrue(urlViewRect.left == titleViewRect.left)
+        assertTrue(urlViewRect.top == padding + titleViewRect.height())
+        assertTrue(urlViewRect.right == titleView.right)
+        assertTrue(urlViewRect.bottom == padding + titleViewRect.height() + urlViewRect.height())
+    }
+
+    @Test
     fun `toolbar only switches to editing mode if onUrlClicked returns true`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(context, toolbar)
@@ -628,6 +724,44 @@ class DisplayToolbarTest {
     }
 
     @Test
+    fun `urlView delegates long click when set`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(context, toolbar)
+
+        var longUrlClicked = false
+
+        displayToolbar.setOnUrlLongClickListener {
+            longUrlClicked = true
+            false
+        }
+
+        assertFalse(longUrlClicked)
+        displayToolbar.urlView.performLongClick()
+        assertTrue(longUrlClicked)
+    }
+
+    @Test
+    fun `urlView longClickListener can be unset`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(context, toolbar)
+
+        var longClicked = false
+        displayToolbar.setOnUrlLongClickListener {
+            longClicked = true
+            true
+        }
+
+        displayToolbar.urlView.performLongClick()
+        assertTrue(longClicked)
+        longClicked = false
+
+        displayToolbar.setOnUrlLongClickListener(null)
+        displayToolbar.urlView.performLongClick()
+
+        assertFalse(longClicked)
+    }
+
+    @Test
     fun `iconView changes image resource when site security changes`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
@@ -646,7 +780,7 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `iconView changes image color filter on update`() {
+    fun `securityIconColor is set when securityIconColor changes`() {
         val toolbar = mock(BrowserToolbar::class.java)
         val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
 
@@ -654,6 +788,18 @@ class DisplayToolbarTest {
 
         assertEquals(R.color.photonBlue40, displayToolbar.securityIconColor.first)
         assertEquals(R.color.photonBlue40, displayToolbar.securityIconColor.second)
+    }
+
+    @Test
+    fun `setSiteSecurity is called when securityIconColor changes`() {
+        val toolbar = BrowserToolbar(context)
+        toolbar.displayToolbar
+
+        assertNull(toolbar.displayToolbar.siteSecurityIconView.colorFilter)
+
+        toolbar.siteSecurityColor = Pair(R.color.photonBlue40, R.color.photonBlue40)
+
+        assertNotNull(toolbar.displayToolbar.siteSecurityIconView.colorFilter)
     }
 
     @Test

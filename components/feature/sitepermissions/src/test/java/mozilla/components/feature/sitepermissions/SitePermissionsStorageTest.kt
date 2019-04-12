@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.sitepermissions
 
+import android.arch.paging.DataSource
 import android.arch.persistence.db.SupportSQLiteOpenHelper
 import android.arch.persistence.room.DatabaseConfiguration
 import android.arch.persistence.room.InvalidationTracker
@@ -96,6 +97,28 @@ class SitePermissionsStorageTest {
         verify(mockDAO).deleteSitePermissions(any())
     }
 
+    @Test
+    fun `remove all SitePermissions`() {
+        storage.removeAll()
+
+        verify(mockDAO).deleteAllSitePermissions()
+    }
+
+    @Test
+    fun `get all SitePermissions paged`() {
+        val mockDataSource: DataSource<Int, SitePermissionsEntity> = mock()
+
+        doReturn(object : DataSource.Factory<Int, SitePermissionsEntity>() {
+            override fun create(): DataSource<Int, SitePermissionsEntity> {
+                return mockDataSource
+            }
+        }).`when`(mockDAO).getSitePermissionsPaged()
+
+        storage.getSitePermissionsPaged()
+
+        verify(mockDAO).getSitePermissionsPaged()
+    }
+
     private fun createNewSitePermission(): SitePermissions {
         return SitePermissions(
             origin = "mozilla.dev",
@@ -103,8 +126,7 @@ class SitePermissionsStorageTest {
             location = BLOCKED,
             notification = NO_DECISION,
             microphone = NO_DECISION,
-            cameraBack = NO_DECISION,
-            cameraFront = NO_DECISION,
+            camera = NO_DECISION,
             bluetooth = ALLOWED,
             savedAt = 0
         )
@@ -118,8 +140,7 @@ class SitePermissionsStorageTest {
                 location = BLOCKED,
                 notification = NO_DECISION,
                 microphone = ALLOWED,
-                cameraBack = BLOCKED,
-                cameraFront = NO_DECISION,
+                camera = BLOCKED,
                 bluetooth = ALLOWED,
                 savedAt = 0
             ),
@@ -129,8 +150,7 @@ class SitePermissionsStorageTest {
                 location = BLOCKED,
                 notification = NO_DECISION,
                 microphone = ALLOWED,
-                cameraBack = BLOCKED,
-                cameraFront = NO_DECISION,
+                camera = BLOCKED,
                 bluetooth = ALLOWED,
                 savedAt = 0
             )

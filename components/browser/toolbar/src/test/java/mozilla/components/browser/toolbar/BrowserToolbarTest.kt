@@ -504,6 +504,27 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `onUrlLongClick is forwarded to the display toolbar`() {
+        val toolbar = BrowserToolbar(context)
+
+        var hasBeenLongClicked = false
+
+        toolbar.setOnUrlLongClickListener {
+            hasBeenLongClicked = true
+            true
+        }
+
+        toolbar.displayToolbar.urlView.performLongClick()
+        assertTrue(hasBeenLongClicked)
+
+        hasBeenLongClicked = false
+        toolbar.setOnUrlLongClickListener(null)
+        toolbar.displayToolbar.urlView.performLongClick()
+
+        assertFalse(hasBeenLongClicked)
+    }
+
+    @Test
     fun `layout of children will factor in padding`() {
         val toolbar = BrowserToolbar(context)
         toolbar.setPadding(50, 20, 60, 15)
@@ -719,6 +740,45 @@ class BrowserToolbarTest {
 
         assertEquals(12f, toolbar.displayToolbar.urlView.textSize)
         assertEquals(12f, toolbar.editToolbar.urlView.textSize)
+    }
+
+    @Test
+    fun `titleTextSize changes display titleView`() {
+        val toolbar = BrowserToolbar(context)
+
+        assertTrue(toolbar.displayToolbar.titleView.textSize != 12f)
+
+        toolbar.titleTextSize = 12f
+
+        assertEquals(12f, toolbar.displayToolbar.titleView.textSize)
+    }
+
+    @Test
+    fun `titleTextColor changes display titleView`() {
+        val toolbar = BrowserToolbar(context)
+
+        toolbar.titleColor = R.color.photonBlue40
+
+        assertEquals(R.color.photonBlue40, toolbar.displayToolbar.titleView.currentTextColor)
+    }
+
+    @Test
+    fun `titleView visibility is based on being set`() {
+        val toolbar = BrowserToolbar(context)
+
+        assertEquals(toolbar.displayToolbar.titleView.visibility, View.GONE)
+        toolbar.title = "Mozilla"
+        assertEquals(toolbar.displayToolbar.titleView.visibility, View.VISIBLE)
+        toolbar.title = ""
+        assertEquals(toolbar.displayToolbar.titleView.visibility, View.GONE)
+    }
+
+    @Test
+    fun `titleView text is set properly`() {
+        val toolbar = BrowserToolbar(context)
+
+        toolbar.title = "Mozilla"
+        assertEquals(toolbar.displayToolbar.titleView.text, "Mozilla")
     }
 
     @Test

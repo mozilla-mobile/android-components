@@ -15,13 +15,14 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.GleanMetrics.GleanInternalMetrics
 import mozilla.components.service.glean.config.Configuration
-import mozilla.components.service.glean.metrics.DatetimeMetricType
-import mozilla.components.service.glean.metrics.EventMetricType
-import mozilla.components.service.glean.metrics.Lifetime
-import mozilla.components.service.glean.metrics.NoExtraKeys
-import mozilla.components.service.glean.metrics.StringMetricType
-import mozilla.components.service.glean.metrics.TimeUnit as GleanTimeUnit
-import mozilla.components.service.glean.metrics.UuidMetricType
+import mozilla.components.service.glean.firstrun.FileFirstRunDetector
+import mozilla.components.service.glean.private.DatetimeMetricType
+import mozilla.components.service.glean.private.EventMetricType
+import mozilla.components.service.glean.private.Lifetime
+import mozilla.components.service.glean.private.NoExtraKeys
+import mozilla.components.service.glean.private.StringMetricType
+import mozilla.components.service.glean.private.TimeUnit as GleanTimeUnit
+import mozilla.components.service.glean.private.UuidMetricType
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.scheduler.GleanLifecycleObserver
 import mozilla.components.service.glean.scheduler.PingUploadWorker
@@ -392,6 +393,35 @@ class GleanTest {
 
         assertNotEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
         assertNotEquals(firstRunDateMetric.testGetValue(), GleanInternalMetrics.firstRunDate.testGetValue())
+    }
+
+    @Test
+    fun `client_id and first_run_date must be generated if not available after the first start`() {
+        // 1539480 BACKWARD COMPATIBILITY HACK
+
+        // The resetGlean called right before this function will add client_id
+        // and first_run_date to the new location in glean_client_info.  We
+        // need to clear those out again so we can test what happens when they
+        // are missing.
+        StorageEngineManager(
+            applicationContext = ApplicationProvider.getApplicationContext()
+        ).clearAllStores()
+
+        assertFalse(GleanInternalMetrics.clientId.testHasValue())
+        assertFalse(GleanInternalMetrics.firstRunDate.testHasValue())
+
+        // Set this to be a non-first start with missing clientId/firstRunDate.
+        val gleanDataDir =
+            File(ApplicationProvider.getApplicationContext<Context>().applicationInfo.dataDir, Glean.GLEAN_DATA_DIR)
+        val firstRunDetector = FileFirstRunDetector(gleanDataDir)
+        firstRunDetector.createFirstRunFile()
+
+        // This should copy the values to their new locations
+        Glean.initialized = false
+        Glean.initialize(ApplicationProvider.getApplicationContext())
+
+        assertTrue(GleanInternalMetrics.clientId.testHasValue())
+        assertTrue(GleanInternalMetrics.firstRunDate.testHasValue())
     }
 
     @Test

@@ -12,6 +12,11 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-toolbar**
+  * Added `titleView` to `DisplayToolbar` which displays the title of the page. Various options are able to modified such as
+   `titleTextSize`, `titleColor`, and `displayTitle`. In custom tabs, the URL will now only display the hostname.
+  * Changed `UrlRenderConfiguration` to include a `RenderStyle` parameter where you can specify how the URL renders
+
 * **support-ktx**
   * Added extension property `Uri.isHttpOrHttps`.
 
@@ -23,6 +28,21 @@ permalink: /changelog/
 
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).
+   * Adds the ability to long click the urlView
+   
+* **service-glean**
+   * ⚠️ **This is a breaking API change**: The technically public, but not
+     intended for public use, part of the glean API has been renamed from
+     `mozilla.components.service.glean.metrics` to
+     `mozilla.components.service.glean.private`.
+   * ⚠️ **This is a breaking API change**: Labeled metrics are now their own
+     distinct metric types in the `metrics.yaml` file. For example, for a
+     labeled counter, rather than using `type: counter` and `labeled: true`, use
+     `type: labeled_counter`. See bugzilla 1540725.
+
+* **concept-engine**
+   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send 
+   language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
 
 * **service-firefox-accounts**
    *  The service no longer accepts a `successPath` option. Instead the service uses the OAuth `redirectUri`.

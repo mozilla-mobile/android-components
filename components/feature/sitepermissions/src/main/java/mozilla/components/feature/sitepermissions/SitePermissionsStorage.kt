@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.sitepermissions
 
+import android.arch.paging.DataSource
 import android.content.Context
 import android.support.annotation.VisibleForTesting
 import mozilla.components.feature.sitepermissions.SitePermissions.Status
@@ -35,7 +36,7 @@ class SitePermissionsStorage(
      * Persists the [sitePermissions] provided as a parameter.
      * @param sitePermissions the [sitePermissions] to be stored.
      */
-    internal fun save(sitePermissions: SitePermissions) {
+    fun save(sitePermissions: SitePermissions) {
         database
             .sitePermissionsDao()
             .insert(
@@ -67,6 +68,24 @@ class SitePermissionsStorage(
     }
 
     /**
+     * Returns all saved [SitePermissions] instances as a [DataSource.Factory].
+     *
+     * A consuming app can transform the data source into a `LiveData<PagedList>` of when using RxJava2 into a
+     * `Flowable<PagedList>` or `Observable<PagedList>`, that can be observed.
+     *
+     * - https://developer.android.com/topic/libraries/architecture/paging/data
+     * - https://developer.android.com/topic/libraries/architecture/paging/ui
+     */
+    fun getSitePermissionsPaged(): DataSource.Factory<Int, SitePermissions> {
+        return database
+            .sitePermissionsDao()
+            .getSitePermissionsPaged()
+            .map { entity ->
+                entity.toSitePermission()
+            }
+    }
+
+    /**
      * Finds all SitePermissions grouped by [Permission].
      * @return a map of site grouped by [Permission].
      */
@@ -78,8 +97,7 @@ class SitePermissionsStorage(
             with(permission) {
                 map.putIfAllowed(BLUETOOTH, bluetooth, permission)
                 map.putIfAllowed(MICROPHONE, microphone, permission)
-                map.putIfAllowed(CAMERA, cameraFront, permission)
-                map.putIfAllowed(CAMERA, cameraBack, permission)
+                map.putIfAllowed(CAMERA, camera, permission)
                 map.putIfAllowed(LOCAL_STORAGE, localStorage, permission)
                 map.putIfAllowed(NOTIFICATION, notification, permission)
                 map.putIfAllowed(LOCATION, location, permission)
@@ -98,6 +116,15 @@ class SitePermissionsStorage(
             .deleteSitePermissions(
                 sitePermissions.toSitePermissionsEntity()
             )
+    }
+
+    /**
+     * Deletes all sitePermissions sitePermissions.
+     */
+    fun removeAll() {
+        return database
+            .sitePermissionsDao()
+            .deleteAllSitePermissions()
     }
 
     private fun all(): List<SitePermissions> {

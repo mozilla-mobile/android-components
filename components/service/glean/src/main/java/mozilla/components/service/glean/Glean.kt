@@ -46,8 +46,19 @@ open class GleanInternalAPI internal constructor () {
 
     private val gleanLifecycleObserver by lazy { GleanLifecycleObserver() }
 
-    // `internal` so this can be modified for testing
-    internal var initialized = false
+    internal enum class GleanInitStates {
+        // This state represents glean as totally uninitialized
+        UNINITIALIZED,
+        // This state represents glean initializing, where pings can be triggered by internal code
+        // but external callers of the specific metrics API are not allowed to record
+        INITIALIZING,
+        // This state represents glean in normal run-mode state
+        INITIALIZED
+    }
+
+    // Represents glean's init state
+    internal var initState = GleanInitStates.UNINITIALIZED
+
     private var uploadEnabled = true
 
     // The application id detected by glean to be used as part of the submission
@@ -82,7 +93,7 @@ open class GleanInternalAPI internal constructor () {
         applicationContext: Context,
         configuration: Configuration = Configuration()
     ) {
-        if (isInitialized()) {
+        if (isInitializing() || isInitialized()) {
             logger.error("Glean should not be initialized multiple times")
             return
         }
@@ -97,8 +108,10 @@ open class GleanInternalAPI internal constructor () {
         // API. For this reason we're safe to set `initialized = true` right after it.
         initializeCoreMetrics(applicationContext)
 
-        // This must be set before anything that might trigger the sending of pings.
-        initialized = true
+        // This must be set before anything that might trigger the sending of pings.  We still don't
+        // want to allow recording of metrics and events yet, but we need to be able to send pings
+        // as part of initializing glean.
+        initState = GleanInitStates.INITIALIZING
 
         // Deal with any pending events so we can start recording new ones
         EventsStorageEngine.onReadyToSendPings(applicationContext)
@@ -110,6 +123,7 @@ open class GleanInternalAPI internal constructor () {
         metricsPingScheduler.startupCheck()
 
         // At this point, all metrics and events can be recorded.
+        initState = GleanInitStates.INITIALIZED
         ProcessLifecycleOwner.get().lifecycle.addObserver(gleanLifecycleObserver)
     }
 
@@ -117,7 +131,14 @@ open class GleanInternalAPI internal constructor () {
      * Returns true if the Glean library has been initialized.
      */
     fun isInitialized(): Boolean {
-        return initialized
+        return initState == GleanInitStates.INITIALIZED
+    }
+
+    /**
+     * Returns true if the Glean library is initializing
+     */
+    private fun isInitializing(): Boolean {
+        return initState == GleanInitStates.INITIALIZING
     }
 
     /**
@@ -344,7 +365,7 @@ open class GleanInternalAPI internal constructor () {
      * @return true if any pings were actually sent.
      */
     internal fun sendPings(pingNames: List<String>): Boolean {
-        if (!isInitialized()) {
+        if (!(isInitializing() || isInitialized())) {
             logger.error("Glean must be initialized before sending pings.")
             return false
         }

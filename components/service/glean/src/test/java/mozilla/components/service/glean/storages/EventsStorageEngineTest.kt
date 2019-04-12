@@ -54,7 +54,7 @@ class EventsStorageEngineTest {
     @Before
     fun setUp() {
         resetGlean()
-        assert(Glean.initialized)
+        assert(Glean.isInitialized())
         EventsStorageEngine.clearAllStores()
 
         // Initialize WorkManager using the WorkManagerTestInitHelper.

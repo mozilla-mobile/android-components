@@ -218,14 +218,14 @@ class GleanTest {
             name = "string_metric",
             sendInPings = listOf("store1")
         )
-        Glean.initialized = false
+        Glean.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
         stringMetric.set("foo")
         assertNull(
             "Metrics should not be recorded if glean is not initialized",
             StringsStorageEngine.getSnapshot(storeName = "store1", clearStore = false)
         )
 
-        Glean.initialized = true
+        Glean.initState = GleanInternalAPI.GleanInitStates.INITIALIZED
     }
 
     @Test
@@ -243,7 +243,7 @@ class GleanTest {
     fun `Don't handle events when uninitialized`() {
         val gleanSpy = spy<GleanInternalAPI>(GleanInternalAPI::class.java)
 
-        gleanSpy.initialized = false
+        gleanSpy.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
         runBlocking {
             gleanSpy.handleBackgroundEvent()
         }
@@ -349,7 +349,7 @@ class GleanTest {
         assertFalse(GleanInternalMetrics.firstRunDate.testHasValue())
 
         // This should copy the values to their new locations
-        Glean.initialized = false
+        Glean.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
         Glean.initialize(ApplicationProvider.getApplicationContext())
 
         assertEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
@@ -388,7 +388,7 @@ class GleanTest {
         assertTrue(GleanInternalMetrics.firstRunDate.testHasValue())
 
         // This should copy the values to their new locations
-        Glean.initialized = false
+        Glean.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
         Glean.initialize(ApplicationProvider.getApplicationContext())
 
         assertNotEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
@@ -417,7 +417,7 @@ class GleanTest {
         firstRunDetector.createFirstRunFile()
 
         // This should copy the values to their new locations
-        Glean.initialized = false
+        Glean.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
         Glean.initialize(ApplicationProvider.getApplicationContext())
 
         assertTrue(GleanInternalMetrics.clientId.testHasValue())

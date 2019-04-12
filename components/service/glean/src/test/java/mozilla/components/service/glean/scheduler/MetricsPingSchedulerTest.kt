@@ -8,9 +8,14 @@ import android.content.Context
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.testing.WorkManagerTestInitHelper
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import mozilla.components.service.glean.Dispatchers
 import mozilla.components.service.glean.getContextWithMockedInfo
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.private.Lifetime
+import mozilla.components.service.glean.GleanInternalAPI
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.private.StringMetricType
 import mozilla.components.service.glean.private.TimeUnit
@@ -372,99 +377,116 @@ class MetricsPingSchedulerTest {
         assertTrue(isWorkScheduled(MetricsPingWorker.TAG))
     }
 
-    // @Test
-    // fun `glean should close the measurement window for overdue pings before recording new data`() {
-    //     // This test is a bit tricky: we want to make sure that, when our metrics ping is overdue
-    //     // and collected at startup (if there's pending data), we don't mistakenly add new collected
-    //     // data to it. In order to test for this specific edge case, we resort to the following:
-    //     // record some data, then "pretend glean is disabled" to simulate a crash, start using the
-    //     // recording API off the main thread, init glean in a separate thread and trigger a metrics
-    //     // ping at startup. We expect the initially written data to be there ("expected_data!"), but
-    //     // not the "should_not_be_recorded", which will be reported in a separate ping.
+    @Test
+    fun `glean should close the measurement window for overdue pings before recording new data`() {
+        // This test is a bit tricky: we want to make sure that, when our metrics ping is overdue
+        // and collected at startup (if there's pending data), we don't mistakenly add new collected
+        // data to it. In order to test for this specific edge case, we resort to the following:
+        // record some data, then "pretend glean is disabled" to simulate a crash, start using the
+        // recording API off the main thread, init glean in a separate thread and trigger a metrics
+        // ping at startup. We expect the initially written data to be there ("expected_data!"), but
+        // not the "should_not_be_recorded", which will be reported in a separate ping.
 
-    //     // Create a string metric with a Ping lifetime.
-    //     val stringMetric = StringMetricType(
-    //         disabled = false,
-    //         category = "telemetry",
-    //         lifetime = Lifetime.Ping,
-    //         name = "string_metric",
-    //         sendInPings = listOf("default")
-    //     )
+        // Create a string metric with a Ping lifetime.
+        val stringMetric = StringMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.Ping,
+            name = "string_metric",
+            sendInPings = listOf("default")
+        )
 
-    //     // Start glean in the current thread, clean the local storage.
-    //     resetGlean()
+        // Start glean in the current thread, clean the local storage.
+        resetGlean()
 
-    //     // Record the data we expect to be in the final metrics ping.
-    //     val expectedValue = "expected_data!"
-    //     stringMetric.set(expectedValue)
-    //     assertTrue("The initial expected data must be recorded", stringMetric.testHasValue())
+        // Record the data we expect to be in the final metrics ping.
+        val expectedValue = "expected_data!"
+        stringMetric.set(expectedValue)
+        assertTrue("The initial expected data must be recorded", stringMetric.testHasValue())
 
-    //     // Pretend glean is disabled. This is used so that any API call will be discarded and
-    //     // glean will init again.
-    //     Glean.initialized = false
+        // Explicitly turn off testingMode as we need to be able to record metrics async in order
+        // to test this.  We do this here to allow for the testHasValue above used to verify the
+        // initial metric state was recorded.
+        Dispatchers.API.testingMode = false
 
-    //     // Start the web-server that will receive the metrics ping.
-    //     val server = MockWebServer()
-    //     server.enqueue(MockResponse().setBody("OK"))
+        // Pretend glean is disabled. This is used so that any API call will be discarded and
+        // glean will init again.
+        Glean.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
 
-    //     // Set the current system time to a known datetime: this should make the metrics ping
-    //     // overdue and trigger it at startup.
-    //     val fakeNow = Calendar.getInstance()
-    //     fakeNow.clear()
-    //     fakeNow.set(2015, 6, 11, 7, 0, 0)
-    //     SystemClock.setCurrentTimeMillis(fakeNow.timeInMillis)
+        // Start the web-server that will receive the metrics ping.
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setBody("OK"))
 
-    //     // Start recording to the metric asynchronously, from a separate thread. If something
-    //     // goes wrong with our init, we should see the value set in the loop below in the triggered
-    //     // "metrics" ping.
-    //     var stopWrites = false
-    //     val stringWriter = GlobalScope.async {
-    //         do {
-    //             stringMetric.set("should_not_be_recorded")
-    //         } while (!stopWrites)
-    //     }
+        // Set the current system time to a known datetime: this should make the metrics ping
+        // overdue and trigger it at startup.
+        val fakeNow = Calendar.getInstance()
+        fakeNow.clear()
+        fakeNow.set(2015, 6, 11, 7, 0, 0)
+        SystemClock.setCurrentTimeMillis(fakeNow.timeInMillis)
 
-    //     try {
-    //         // Restart glean in a separate thread to simulate a crash/restart without
-    //         // clearing the local storage.
-    //         val asyncInit = GlobalScope.async {
-    //             Glean.initialize(getContextWithMockedInfo(), Configuration(
-    //                 serverEndpoint = "http://" + server.hostName + ":" + server.port,
-    //                 logPings = true
-    //             ))
+        // Start recording to the metric asynchronously, from a separate thread. If something
+        // goes wrong with our init, we should see the value set in the loop below in the triggered
+        // "metrics" ping.
+        var stopWrites = false
+        val stringWriter = GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            do {
+                stringMetric.set("should_not_be_recorded")
+            } while (!stopWrites)
+        }
 
-    //             // Trigger worker task to upload the pings in the background.
-    //             triggerWorkManager()
-    //         }
+        try {
+            // Restart glean in a separate thread to simulate a crash/restart without
+            // clearing the local storage.
+            val asyncInit = GlobalScope.launch {
+                Glean.initialize(getContextWithMockedInfo(), Configuration(
+                    serverEndpoint = "http://" + server.hostName + ":" + server.port,
+                    logPings = true
+                ))
 
-    //         // Wait for the metrics ping to be received.
-    //         val request = server.takeRequest(20L, AndroidTimeUnit.SECONDS)
+                // We normally don't have to wait before calling `triggerWorkManager()` due to
+                // glean being in testingMode while running in tests, but in this case we are
+                // testing without testingMode == true so we need to give the background IO tasks
+                // that are collecting and writing the pings a little bit of time to work, but only
+                // allowing up to 200 * 10 (2000) ms.
+                for (i in 0..200) {
+                    if (isWorkScheduled(PingUploadWorker.PING_WORKER_TAG)) {
+                        break
+                    }
+                    Thread.sleep(10)
+                }
 
-    //         // Stop recording to the test metric and wait for the async stuff
-    //         // to complete.
-    //         runBlocking {
-    //             stopWrites = true
-    //             stringWriter.await()
-    //             asyncInit.await()
-    //         }
+                // Trigger worker task to upload the pings in the background.
+                triggerWorkManager()
+            }
 
-    //         // Parse the received ping payload to a JSON object.
-    //         val metricsJsonData = request.body.readUtf8()
-    //         val metricsJson = JSONObject(metricsJsonData)
+            // Wait for the metrics ping to be received.
+            val request = server.takeRequest(20L, AndroidTimeUnit.SECONDS)
 
-    //         // Validate the received data.
-    //         checkPingSchema(metricsJson)
-    //         assertEquals("The received ping must be a 'metrics' ping",
-    //             "metrics", metricsJson.getJSONObject("ping_info")["ping_type"])
-    //         assertEquals(
-    //             "The reported metric must contain the expected value",
-    //             expectedValue,
-    //             metricsJson.getJSONObject("metrics")
-    //                 .getJSONObject("string")
-    //                 .getString("telemetry.string_metric")
-    //         )
-    //     } finally {
-    //         server.shutdown()
-    //     }
-    // }
+            // Stop recording to the test metric and wait for the async stuff
+            // to complete.
+            runBlocking {
+                stopWrites = true
+                stringWriter.join()
+                asyncInit.join()
+            }
+
+            // Parse the received ping payload to a JSON object.
+            val metricsJsonData = request.body.readUtf8()
+            val metricsJson = JSONObject(metricsJsonData)
+
+            // Validate the received data.
+            checkPingSchema(metricsJson)
+            assertEquals("The received ping must be a 'metrics' ping",
+                "metrics", metricsJson.getJSONObject("ping_info")["ping_type"])
+            assertEquals(
+                "The reported metric must contain the expected value",
+                expectedValue,
+                metricsJson.getJSONObject("metrics")
+                    .getJSONObject("string")
+                    .getString("telemetry.string_metric")
+            )
+        } finally {
+            server.shutdown()
+        }
+    }
 }

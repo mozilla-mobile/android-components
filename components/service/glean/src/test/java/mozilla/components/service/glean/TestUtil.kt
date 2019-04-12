@@ -137,7 +137,7 @@ internal fun resetGlean(
     val firstRun = FileFirstRunDetector(File(context.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR))
     firstRun.reset()
     // Init glean.
-    Glean.initialized = false
+    Glean.initState = GleanInternalAPI.GleanInitStates.UNINITIALIZED
     Glean.setUploadEnabled(true)
     Glean.initialize(context, config)
 }

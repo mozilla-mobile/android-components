@@ -15,6 +15,7 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
 import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
@@ -660,6 +661,8 @@ class DisplayToolbarTest {
         val totalAvailablePadding = 200 - totalTextHeights
         val padding = totalAvailablePadding / DisplayToolbar.MEASURED_HEIGHT_DENOMINATOR
 
+        // 132 = 200 * (2 / 3), since we want the title view and url to be centered as a singular unit.
+        assertTrue(totalTextHeights == 132)
         assertTrue(titleViewRect.left == urlViewRect.left)
         assertTrue(titleViewRect.top == padding)
         assertTrue(titleViewRect.right == urlViewRect.right)
@@ -803,15 +806,16 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `clicking menu button emits fact`() {
+    fun `clicking menu button emits facts with additional extras from builder set`() {
         CollectionProcessor.withFactCollection { facts ->
             val toolbar = mock(BrowserToolbar::class.java)
             val displayToolbar = DisplayToolbar(context, toolbar)
             val menuView = extractMenuView(displayToolbar)
 
-            val menuBuilder = mock(BrowserMenuBuilder::class.java)
-            val menu = mock(BrowserMenu::class.java)
-            doReturn(menu).`when`(menuBuilder).build(context)
+            val menuBuilder = BrowserMenuBuilder(listOf(SimpleBrowserMenuItem("Mozilla")), mapOf(
+                "customTab" to true,
+                "test" to "23"
+            ))
             displayToolbar.menuBuilder = menuBuilder
 
             assertEquals(0, facts.size)
@@ -821,11 +825,20 @@ class DisplayToolbarTest {
             assertEquals(1, facts.size)
 
             val fact = facts[0]
+
             assertEquals(Component.BROWSER_TOOLBAR, fact.component)
             assertEquals(Action.CLICK, fact.action)
             assertEquals("menu", fact.item)
             assertNull(fact.value)
-            assertNull(fact.metadata)
+
+            assertNotNull(fact.metadata)
+
+            val metadata = fact.metadata!!
+            assertEquals(2, metadata.size)
+            assertTrue(metadata.containsKey("customTab"))
+            assertTrue(metadata.containsKey("test"))
+            assertEquals(true, metadata["customTab"])
+            assertEquals("23", metadata["test"])
         }
     }
 

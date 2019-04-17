@@ -4,13 +4,24 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.50.0-SNAPSHOT  (In Development)
+# 0.51.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/53?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.50.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/54?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **feature-customtabs**
+  * Added fact emitting.
+
+# 0.50.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...v0.50.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/53?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.50.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.50.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.50.0r/buildSrc/src/main/java/Config.kt)
 
 * **browser-toolbar**
   * Added `titleView` to `DisplayToolbar` which displays the title of the page. Various options are able to modified such as
@@ -22,6 +33,9 @@ permalink: /changelog/
 
 * **browser-icons**
   * ⚠️ **This is a breaking API change**: Creating a `BrowserIcons` instance requires a `Client` object (from `concept-fetch`) now.
+
+* **browser-engine-gecko-nightly**:
+  * Added new content blocking category for [fingerprinting](https://en.wikipedia.org/wiki/Device_fingerprint): `TrackingProtectionPolicy.FINGERPRINTING`.
 
 * **feature-findinpage**
    * Find in Page now emits facts
@@ -45,7 +59,16 @@ permalink: /changelog/
    language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
 
 * **service-firefox-accounts**
-   *  The service no longer accepts a `successPath` option. Instead the service uses the OAuth `redirectUri`.
+   * The service no longer accepts a `successPath` option. Instead the service uses the OAuth `redirectUri`.
+
+* **support-base**
+  * Added optional callback to `Consumable` to get invoked once value gets consumed:
+
+  ```kotlin
+  val consumable = Consumable.from(42) {
+    // Value got consumed.
+  }
+  ```
 
 # 0.49.0
 

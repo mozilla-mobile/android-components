@@ -62,6 +62,11 @@ open class GleanInternalAPI internal constructor () {
 
     companion object {
         internal const val BASELINE_STORE_NAME = "baseline"
+        internal val BUILTIN_PINGNAMES = listOf(
+            BASELINE_STORE_NAME,
+            MetricsPingScheduler.STORE_NAME,
+            "events"
+        )
     }
 
     /**
@@ -331,19 +336,52 @@ open class GleanInternalAPI internal constructor () {
      */
     fun handleBackgroundEvent() {
         // Schedule the baseline and event pings
-        sendPings(listOf(BASELINE_STORE_NAME, "events"))
+        sendPingsInternal(listOf(BASELINE_STORE_NAME, "events"))
     }
 
     /**
      * Send a list of pings by name.
      *
-     * Both the ping collection and ping uploading happens asyncronously.
+     * Only custom pings (pings not managed by Glean itself) will be sent by
+     * this function. If the name of a Glean-managed ping is passed in, an
+     * error is logged to logcat.
+     *
+     * While the collection of metrics into pings happens synchronously, the
+     * ping queuing and ping uploading happens asyncronously.
+     * There are no guarantees that this will happen immediately.
+     *
      * If the ping currently contains no content, it will not be sent.
      *
      * @param pingNames List of pings to send.
-     * @return true if any pings were actually sent.
+     * @return true if any pings had content and were queued for uploading
      */
-    internal fun sendPings(pingNames: List<String>): Boolean {
+    public fun sendPings(pingNames: List<String>): Boolean {
+        val pingsToSend = pingNames.filter { pingName ->
+            if (BUILTIN_PINGNAMES.contains(pingName)) {
+                logger.error("Attempted to send built-in ping $pingName")
+                false
+            } else {
+                true
+            }
+        }
+
+        return sendPingsInternal(pingsToSend)
+    }
+
+    /**
+     * Send a list of pings by name.
+     *
+     * While the collection of metrics into pings happens synchronously, the
+     * ping queuing and ping uploading happens asyncronously.
+     * There are no guarantees that this will happen immediately.
+     *
+     *
+     * If the ping currently contains no content, it will not be sent.
+     *
+     * @param pingNames List of pings to send.
+     * @return true if any pings had content and were queued for uploading
+     */
+    internal fun sendPingsInternal(pingNames: List<String>): Boolean {
         if (!isInitialized()) {
             logger.error("Glean must be initialized before sending pings.")
             return false
@@ -358,6 +396,12 @@ open class GleanInternalAPI internal constructor () {
         for (pingName in pingNames) {
             assembleAndSerializePing(pingName)?.let {
                 pingSerializationTasks.add(it)
+            } ?: run {
+                if (!BUILTIN_PINGNAMES.contains(pingName)) {
+                    logger.debug(
+                        "No content for custom ping {pingName}, therefore no ping queued."
+                    )
+                }
             }
         }
 

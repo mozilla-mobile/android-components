@@ -4,19 +4,38 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.50.0-SNAPSHOT  (In Development)
+# 0.51.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/53?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.50.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/54?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **feature-customtabs**
+  * Added fact emitting.
+
+# 0.50.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...v0.50.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/53?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.50.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.50.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.50.0r/buildSrc/src/main/java/Config.kt)
+
+* **browser-toolbar**
+  * Added `titleView` to `DisplayToolbar` which displays the title of the page. Various options are able to modified such as
+   `titleTextSize`, `titleColor`, and `displayTitle`. In custom tabs, the URL will now only display the hostname.
+  * Changed `UrlRenderConfiguration` to include a `RenderStyle` parameter where you can specify how the URL renders
 
 * **support-ktx**
   * Added extension property `Uri.isHttpOrHttps`.
 
 * **browser-icons**
   * ⚠️ **This is a breaking API change**: Creating a `BrowserIcons` instance requires a `Client` object (from `concept-fetch`) now.
+
+* **browser-engine-gecko-nightly**:
+  * Added new content blocking category for [fingerprinting](https://en.wikipedia.org/wiki/Device_fingerprint): `TrackingProtectionPolicy.FINGERPRINTING`.
 
 * **feature-findinpage**
    * Find in Page now emits facts
@@ -30,6 +49,26 @@ permalink: /changelog/
      intended for public use, part of the glean API has been renamed from
      `mozilla.components.service.glean.metrics` to
      `mozilla.components.service.glean.private`.
+   * ⚠️ **This is a breaking API change**: Labeled metrics are now their own
+     distinct metric types in the `metrics.yaml` file. For example, for a
+     labeled counter, rather than using `type: counter` and `labeled: true`, use
+     `type: labeled_counter`. See bugzilla 1540725.
+
+* **concept-engine**
+   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send 
+   language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
+
+* **service-firefox-accounts**
+   * The service no longer accepts a `successPath` option. Instead the service uses the OAuth `redirectUri`.
+
+* **support-base**
+  * Added optional callback to `Consumable` to get invoked once value gets consumed:
+
+  ```kotlin
+  val consumable = Consumable.from(42) {
+    // Value got consumed.
+  }
+  ```
 
 # 0.49.0
 

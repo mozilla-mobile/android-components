@@ -43,7 +43,10 @@ class CustomTabsToolbarFeature(
         if (initialized) {
             return
         }
-        initialized = sessionManager.runWithSession(sessionId) { initialize(it) }
+        initialized = sessionManager.runWithSession(sessionId) {
+            it.register(sessionObserver)
+            initialize(it)
+        }
     }
 
     @VisibleForTesting
@@ -65,6 +68,10 @@ class CustomTabsToolbarFeature(
             if (config.showShareMenuItem) addShareButton(session)
             // Add menu items
             if (config.menuItems.isNotEmpty()) addMenuItems(config.menuItems)
+
+            // Explicitly set the title regardless of the customTabConfig settings
+            toolbar.titleTextSize = TITLE_TEXT_SIZE
+
             return true
         }
         return false
@@ -75,6 +82,7 @@ class CustomTabsToolbarFeature(
         toolbarColor?.let { color ->
             toolbar.setBackgroundColor(color)
             toolbar.textColor = readableColor
+            toolbar.titleColor = readableColor
             toolbar.siteSecurityColor = Pair(readableColor, readableColor)
             toolbar.menuViewColor = readableColor
         }
@@ -92,7 +100,10 @@ class CustomTabsToolbarFeature(
         }.also {
             val button = Toolbar.ActionButton(
                 it, context.getString(R.string.mozac_feature_customtabs_exit_button)
-            ) { closeListener.invoke() }
+            ) {
+                emitCloseFact()
+                closeListener.invoke()
+            }
             toolbar.addNavigationAction(button)
         }
     }
@@ -103,7 +114,10 @@ class CustomTabsToolbarFeature(
             val button = Toolbar.ActionButton(
                 BitmapDrawable(context.resources, config.icon),
                 config.description
-            ) { config.pendingIntent.send() }
+            ) {
+                emitActionButtonFact()
+                config.pendingIntent.send()
+            }
 
             toolbar.addBrowserAction(button)
         }
@@ -129,12 +143,27 @@ class CustomTabsToolbarFeature(
             SimpleBrowserMenuItem(it.name) { it.pendingIntent.send() }
         }.also { items ->
             val combinedItems = menuBuilder?.let { builder -> builder.items + items } ?: items
-
-            toolbar.setMenuBuilder(BrowserMenuBuilder(combinedItems))
+            val combinedExtras = menuBuilder?.let {
+                    builder -> builder.extras + Pair("customTab", true)
+            }
+            toolbar.setMenuBuilder(BrowserMenuBuilder(combinedItems, combinedExtras ?: emptyMap()))
         }
     }
 
-    override fun stop() {}
+    private val sessionObserver = object : Session.Observer {
+        override fun onTitleChanged(session: Session, title: String) {
+            // Only shrink the urlTextSize if a title is displayed
+            toolbar.textSize = URL_TEXT_SIZE
+            toolbar.title = title
+        }
+    }
+
+    override fun stop() {
+        sessionManager.runWithSession(sessionId) {
+            it.unregister(sessionObserver)
+            true
+        }
+    }
 
     /**
      * When the back button is pressed if not initialized returns false,
@@ -154,6 +183,8 @@ class CustomTabsToolbarFeature(
     }
 
     companion object {
+        const val TITLE_TEXT_SIZE = 16f
+        const val URL_TEXT_SIZE = 12f
         @Suppress("MagicNumber")
         internal fun getReadableTextColor(backgroundColor: Int): Int {
             val greyValue = greyscaleFromRGB(backgroundColor)

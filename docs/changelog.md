@@ -16,6 +16,21 @@ permalink: /changelog/
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.
 
+* **service-glean**
+   * ⚠️ **This is a breaking API change**: Timespan and timing distribution
+     metrics now have a thread-safe API. See `adding-new-metrics.md` for more
+     information.
+   * `Glean.sendPings` has been added for sending custom pings.
+
+* **concept-engine**
+  * Add boolean `allowAutoplayMedia` setting.
+
+* **browser-engine-gecko-nightly**
+  * Implement `allowAutoplayMedia` in terms of `autoplayDefault`.
+
+* **browser-icons**
+  * Added an in-memory caching mechanism reducing disk/network loads.
+
 # 0.50.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...v0.50.0)
@@ -40,6 +55,9 @@ permalink: /changelog/
 
 * **feature-findinpage**
    * Find in Page now emits facts
+
+* **feature-awesomebar**
+   * Added `BookmarksStorageSuggestionProvider`
 
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).

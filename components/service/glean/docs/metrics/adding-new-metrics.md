@@ -316,31 +316,41 @@ of 500 nanoseconds will be truncated to 0 microseconds.
 
 ### Usage
 
-Say you're adding a new timespan for the time spent decoding images. First you need
+Say you're adding a new timespan for the time spent logging into the app. First you need
 to add an entry for the counter to the `metrics.yaml` file:
 
 ```YAML
-rendering:
-  image_decode_time:
+auth:
+  login_time:
     type: timespan
     description: >
-      Measures the time spent decoding images.
-    time_unit: microseconds
+      Measures the time spent logging in.
+    time_unit: milliseconds
     ...
 ```
 
-Now you can use the timespan from the application's code:
+Now you can use the timespan from the application's code. Each time interval
+that the timespan metric records must be associated with an object provided by
+the user. This is so that intervals can be measured concurrently. In our example
+using login time, this might be an object representing the login UI page.
 
 ```Kotlin
-import org.mozilla.yourApplication.GleanMetrics.Rendering
+import org.mozilla.yourApplication.GleanMetrics.Auth
 
-Rendering.imageDecodeTime.start() // start the timer
-try {
-   // ... decode an image ...
-} catch (e: Exception) {
-   Rendering.imageDecodeTime.cancel() // cancel the timer -- nothing is recorded
+fun onShowLogin(e: Event) {
+    Auth.loginTime.start(e.target)
+    // ...
 }
-Rendering.imageDecodeTime.stopAndSum() // stop the timer
+
+fun onLogin(e: Event) {
+    Auth.loginTime.stop(e.target)
+    // ...
+}
+
+fun onLoginCancel(e: Event) {
+    Auth.loginTime.cancel(e.tart)
+    // ...
+}
 ```
 
 The time reported in the telemetry ping will be the sum of all of these
@@ -349,13 +359,13 @@ timespans recorded during the lifetime of the ping.
 There are test APIs available too:
 
 ```Kotlin
-import org.mozilla.yourApplication.GleanMetrics.Rendering
+import org.mozilla.yourApplication.GleanMetrics.Auth
 Glean.enableTestingMode()
 
 // Was anything recorded?
-assertTrue(Rendering.imageDecodeTime.testHasValue())
+assertTrue(Auth.loginTime.testHasValue())
 // Does the timer have the expected value
-assertTrue(Rendering.imageDecodeTime.testGetValue() > 0)
+assertTrue(Auth.loginTime.testGetValue() > 0)
 ```
 
 ## Timing Distributions
@@ -388,15 +398,22 @@ pages:
 ```
 
 
-Now that the timing distribution is defined in `metrics.yaml` you can use the metric to record data
-in the application code:
+Now you can use the timing distribution from the application's code. Each time interval that
+the timing distribution metric records must be associated with an object provided by the user.
+This is so that intervals can be measured concurrently.  For example, to measure page
+load time on a number of tabs that are loading at the same time, each time interval
+should be associated with an object that uniquely represents each tab.
 
 ```Kotlin
 import org.mozilla.yourApplication.GleanMetrics.Pages
 
-// ...
-pages.pageLoad.accumulate(1L) // Accumulates a sample of 1 millisecond
-pages.pageLoad.accumulate(10L) // Accumulates a sample of 10 milliseconds
+fun onPageStart(e: Event) {
+    Pages.pageLoad.start(e.target)
+}
+
+fun onPageLoaded(e: Event) {
+    Pages.pageLoad.stopAndAccumulate(e.target)
+}
 ```
 
 There are test APIs available too.  For convenience, properties `sum` and `count` are exposed to 

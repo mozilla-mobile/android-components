@@ -34,7 +34,8 @@ data class EventMetricType<ExtraKeysEnum : Enum<ExtraKeysEnum>>(
     override val category: String,
     override val lifetime: Lifetime,
     override val name: String,
-    override val sendInPings: List<String>
+    override val sendInPings: List<String>,
+    val allowedExtraKeys: List<String> = listOf()
 ) : CommonMetricData {
 
     override val defaultStorageDestinations: List<String> = listOf("events")
@@ -48,6 +49,7 @@ data class EventMetricType<ExtraKeysEnum : Enum<ExtraKeysEnum>>(
      *              identifiers. This is used for events where additional richer context is needed.
      *              The maximum length for values is defined by [MAX_LENGTH_EXTRA_KEY_VALUE]
      */
+    @Suppress("NestedBlockDepth")
     fun record(extra: Map<ExtraKeysEnum, String>? = null) {
         if (!shouldRecord(logger)) {
             return
@@ -58,19 +60,21 @@ data class EventMetricType<ExtraKeysEnum : Enum<ExtraKeysEnum>>(
         val monotonicElapsed = SystemClock.elapsedRealtime()
 
         // Convert the extra key enums to strings before passing to the storage engine
-        val extraStrings = extra?.let {
+        val extraStrings = extra?.let { extra ->
             // There are two extra "keys" in play here:
             //   1. The Kotlin enumeration names, in CamelCase
             //   2. The keys sent in the ping, in snake_case
-            // Here we need to get (2) to send in the ping.  We need to use reflection to get
-            // around limitations in Java generics (since the actual enums for the event are in
-            // a template parameter).
-            if (it.size > 0) {
-                val cls = it.keys.first().javaClass
-                val method = cls.getDeclaredMethod("getValue")
-                it.mapKeys { entry ->
-                    method.invoke(entry.key).toString()
+            // Here we need to get (2) to send in the ping.
+            if (extra.size > 0) {
+                val result = mutableMapOf<String, String>()
+                for ((k, v) in extra) {
+                    allowedExtraKeys.getOrNull(k.ordinal)?.let { stringKey ->
+                        result[stringKey] = v
+                    } ?: run {
+                        logger.debug("No string value for enum ${k.ordinal}")
+                    }
                 }
+                result
             } else {
                 null
             }

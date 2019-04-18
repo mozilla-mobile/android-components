@@ -7,6 +7,8 @@ package mozilla.components.service.glean.private
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import mozilla.components.service.glean.resetGlean
+import mozilla.components.service.glean.timing.TimingManager
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
@@ -24,6 +26,11 @@ class TimingDistributionMetricTypeTest {
     @Before
     fun setUp() {
         resetGlean()
+    }
+
+    @After
+    fun reset() {
+        TimingManager.testResetTimeSource()
     }
 
     @Test
@@ -53,9 +60,12 @@ class TimingDistributionMetricTypeTest {
         )
 
         // Accumulate a few values
-        metric.accumulate(1L)
-        metric.accumulate(2L)
-        metric.accumulate(3L)
+        for (i in 1L..3L) {
+            TimingManager.getElapsedNanos = { 0 }
+            metric.start(this)
+            TimingManager.getElapsedNanos = { i * 1000000 } // ms to ns
+            metric.stopAndAccumulate(this)
+        }
 
         // Check that data was properly recorded.
         assertTrue(metric.testHasValue())
@@ -83,10 +93,14 @@ class TimingDistributionMetricTypeTest {
             timeUnit = TimeUnit.Millisecond
         )
 
-        // Attempt to store the string list using set
-        metric.accumulate(1L)
+        // Attempt to store the timespan using set
+        TimingManager.getElapsedNanos = { 0 }
+        metric.start(this)
+        TimingManager.getElapsedNanos = { 1 }
+        metric.stopAndAccumulate(this)
+
         // Check that nothing was recorded.
-        assertFalse("StringLists without a lifetime should not record data",
+        assertFalse("TimingDistributions without a lifetime should not record data.",
             metric.testHasValue())
     }
 
@@ -117,9 +131,12 @@ class TimingDistributionMetricTypeTest {
         )
 
         // Accumulate a few values
-        metric.accumulate(1L)
-        metric.accumulate(2L)
-        metric.accumulate(3L)
+        for (i in 1L..3L) {
+            TimingManager.getElapsedNanos = { 0 }
+            metric.start(this)
+            TimingManager.getElapsedNanos = { i * 1000000 } // ms to ns
+            metric.stopAndAccumulate(this)
+        }
 
         // Check that data was properly recorded in the second ping.
         assertTrue(metric.testHasValue("store2"))

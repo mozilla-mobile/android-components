@@ -22,6 +22,15 @@ permalink: /changelog/
      information.
    * `Glean.sendPings` has been added for sending custom pings.
 
+* **concept-engine**
+  * Add boolean `allowAutoplayMedia` setting.
+
+* **browser-engine-gecko-nightly**
+  * Implement `allowAutoplayMedia` in terms of `autoplayDefault`.
+
+* **browser-icons**
+  * Added an in-memory caching mechanism reducing disk/network loads.
+
 # 0.50.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...v0.50.0)

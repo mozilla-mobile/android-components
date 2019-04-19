@@ -241,7 +241,10 @@ tasks:
                       $mergeDeep:
                         - {$eval: 'default_task_definition'}
                         - {$eval: 'nightly_or_release_definition'}
-                        - payload:
+                        - scopes:
+                            # XXX Replace with your own hook, if you perform staging releases
+                            - assume:hook-id:project-mobile/android-components-snapshot-release
+                          payload:
                             command:
                               - >-
                                 git fetch ${repository} ${head_branch}

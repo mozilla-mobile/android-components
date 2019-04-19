@@ -32,7 +32,8 @@ open class ExperimentsInternalAPI internal constructor() {
     internal var activeExperiment: ActiveExperiment? = null
 
     private lateinit var storage: FlatFileExperimentStorage
-    private lateinit var updater: ExperimentsUpdater
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal lateinit var updater: ExperimentsUpdater
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var isInitialized = false
@@ -136,7 +137,6 @@ open class ExperimentsInternalAPI internal constructor() {
      * Requests new experiments from the server and
      * saves them to local storage
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     @Synchronized
     internal fun onExperimentsUpdated(serverState: ExperimentsSnapshot) {
         assert(experimentsLoaded) { "Experiments should have been loaded." }

@@ -243,7 +243,8 @@ tasks:
                         - {$eval: 'nightly_or_release_definition'}
                         - scopes:
                             # XXX Replace with your own hook, if you perform staging releases
-                            - assume:hook-id:project-mobile/android-components-snapshot-release
+                            # - assume:hook-id:project-mobile/android-components-snapshot-release
+                            - assume:hook-id:project-mobile/jlorenzo-staging-snapshot-android-components
                           payload:
                             command:
                               - >-

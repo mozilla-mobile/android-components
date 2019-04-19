@@ -102,7 +102,7 @@ tasks:
             # won't be able to know if the task was valid or not. This is why we keep uploading
             # the docker image on Docker hub. The fact that the image is still built on Taskcluster
             # is just a way of testing the Dockerfile.
-            image: mozillamobile/android-components-decision@sha256:7c4a815163ea22aa0df701d463a5764fb0122659b74d52868e662be28bdcb390
+            image: mozillamobile/android-components-decision@sha256:886736ff79d54f9c5d24d5283511bfbc8abcc3da49c6c206f13348104c7a8bf9
             command:
               - /bin/bash
               - --login

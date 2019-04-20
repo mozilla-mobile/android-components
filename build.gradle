@@ -209,7 +209,6 @@ task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
     })
 }
 
-
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

@@ -265,21 +265,23 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
         }
     }
 
+    private fun pasteAsPlainText(clipData: ClipData) {
+        var paste = ""
+        for (i in 0 until clipData.itemCount) {
+            val text = clipData.getItemAt(i).coerceToText(context)
+            paste += if (text is Spanned) text.toString() else text
+        }
+        val data = text.substring(0, selectionStart) + paste + text.substring(selectionEnd, text.length)
+        setText(data)
+    }
+
     override fun onTextContextMenuItem(id: Int): Boolean {
         if (id == android.R.id.paste) {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 super.onTextContextMenuItem(android.R.id.pasteAsPlainText)
-            }else {
+            } else {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                var paste = ""
-                clipboard.primaryClip?.let {clipData ->
-                    for (i in 0 until clipData.itemCount) {
-                        val text = clipData.getItemAt(i).coerceToText(context)
-                        paste += if (text is Spanned) text.toString() else text
-                    }
-                }
-                val data = text.substring(0,selectionStart) + paste + text.substring(selectionEnd,text.length)
-                setText(data)
+                clipboard.primaryClip?.let { pasteAsPlainText(it) }
                 true
             }
         }

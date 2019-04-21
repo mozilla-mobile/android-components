@@ -30,6 +30,9 @@ permalink: /changelog/
 
 * **browser-icons**
   * Added an in-memory caching mechanism reducing disk/network loads.
+  
+* **feature-qr**
+  * Bugfix to allow non-default view IDs after permission grants
 
 # 0.50.0
 

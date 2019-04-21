@@ -22,6 +22,8 @@ typealias OnNeedToRequestPermissions = (permissions: Array<String>) -> Unit
  * @property context a reference to the context.
  * @property fragmentManager a reference to a [FragmentManager], used to start
  * the [QrFragment].
+ * @property containerViewId optional id of the container this fragment is to
+ * be placed in, defaults to [android.R.id.content]
  * @property onScanResult a callback invoked with the result of the QR scan.
  * The callback will always be invoked on the main thread.
  * @property onNeedToRequestPermissions a callback invoked when permissions
@@ -32,10 +34,10 @@ typealias OnNeedToRequestPermissions = (permissions: Array<String>) -> Unit
 class QrFeature(
     private val context: Context,
     private val fragmentManager: FragmentManager,
+    private val containerViewId: Int = android.R.id.content,
     private val onScanResult: OnScanResult = { },
     private val onNeedToRequestPermissions: OnNeedToRequestPermissions = { }
 ) : LifecycleAwareFeature, BackHandler {
-    private var containerViewId: Int = 0
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val scanCompleteListener: QrFragment.OnScanCompleteListener = object : QrFragment.OnScanCompleteListener {
@@ -63,15 +65,10 @@ class QrFeature(
     /**
      * Starts the QR scanner fragment and listens for scan results.
      *
-     * @param containerViewId optional id of the container this fragment is to
-     * be placed in, defaults to [android.R.id.content].
-     *
      * @return true if the scanner was started or false if permissions still
      * need to be requested.
      */
-    fun scan(containerViewId: Int = android.R.id.content): Boolean {
-        this.containerViewId = containerViewId
-
+    fun scan(): Boolean {
         return if (context.isPermissionGranted(CAMERA)) {
             fragmentManager.beginTransaction()
                 .add(containerViewId, QrFragment.newInstance(scanCompleteListener), QR_FRAGMENT_TAG)
@@ -90,7 +87,7 @@ class QrFeature(
     @Suppress("UNUSED_PARAMETER")
     fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
         if (context.isPermissionGranted(CAMERA)) {
-            this.scan(containerViewId)
+            this.scan()
         }
     }
 

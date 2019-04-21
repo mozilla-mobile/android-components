@@ -7,20 +7,22 @@ package mozilla.components.feature.qr
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentTransaction
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.feature.qr.QrFeature.Companion.QR_FRAGMENT_TAG
-import mozilla.components.support.test.any
-import org.junit.Assert.assertTrue
-import mozilla.components.support.test.robolectric.grantPermission
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.grantPermission
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
@@ -56,12 +58,31 @@ class QrFeatureTest {
 
         val feature = QrFeature(context,
             fragmentManager = fragmentManager,
+            containerViewId = 123,
             onNeedToRequestPermissions = { },
             onScanResult = { }
         )
 
-        assertTrue(feature.scan(123))
+        assertTrue(feature.scan())
         verify(fragmentManager).beginTransaction()
+    }
+
+    @Test
+    fun `scan with custom container uses container after requesting permissions`() {
+        val fragmentManager = mockFragmentManager()
+        val fragmentTransaction: FragmentTransaction = mock()
+        doReturn(fragmentTransaction).`when`(fragmentManager).beginTransaction()
+        doReturn(fragmentTransaction).`when`(fragmentTransaction).add(anyInt(), any<Fragment>(), anyString())
+        doReturn(0).`when`(fragmentTransaction).commit()
+
+        val feature = QrFeature(context,
+                fragmentManager = fragmentManager,
+                containerViewId = 123
+        )
+        grantPermission(Manifest.permission.CAMERA)
+        feature.onPermissionsResult(emptyArray(), IntArray(1) { PackageManager.PERMISSION_GRANTED })
+        verify(fragmentManager).beginTransaction()
+        verify(fragmentTransaction).add(eq(123), any(), eq(QR_FRAGMENT_TAG))
     }
 
     @Test

@@ -4,6 +4,8 @@
 
 package mozilla.components.ui.autocomplete
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
 import android.graphics.Rect
@@ -261,6 +263,27 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
         } catch (ignored: NullPointerException) {
             // See bug 782096 for details
         }
+    }
+
+    override fun onTextContextMenuItem(id: Int): Boolean {
+        if (id == android.R.id.paste) {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                super.onTextContextMenuItem(android.R.id.pasteAsPlainText)
+            }else {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                var paste = ""
+                clipboard.primaryClip?.let {clipData ->
+                    for (i in 0 until clipData.itemCount) {
+                        val text = clipData.getItemAt(i).coerceToText(context)
+                        paste += if (text is Spanned) text.toString() else text
+                    }
+                }
+                val data = text.substring(0,selectionStart) + paste + text.substring(selectionEnd,text.length)
+                setText(data)
+                true
+            }
+        }
+        return super.onTextContextMenuItem(id)
     }
 
     override fun setText(text: CharSequence?, type: TextView.BufferType) {

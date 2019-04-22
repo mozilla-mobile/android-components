@@ -12,6 +12,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-errorpages**
+  * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
+
+* **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
+  * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
+
 * **feature-customtabs**
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.
@@ -20,7 +26,21 @@ permalink: /changelog/
    * ⚠️ **This is a breaking API change**: Timespan and timing distribution
      metrics now have a thread-safe API. See `adding-new-metrics.md` for more
      information.
-     
+   * `Glean.sendPings` has been added for sending custom pings.
+
+* **concept-engine**
+  * Add boolean `allowAutoplayMedia` setting.
+
+* **browser-engine-gecko-nightly**
+  * Implement `allowAutoplayMedia` in terms of `autoplayDefault`.
+
+* **browser-icons**
+  * Added an in-memory caching mechanism reducing disk/network loads.
+
+* **browser-tabstray**
+  * Add `TabThumbnailView` to Tabs Tray show the top of the thumbnail and fill up the width of the tile.
+  * Added swipe gesture support with a `TabTouchCallback` for the TabsTray.
+
 # 0.50.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.49.0...v0.50.0)
@@ -46,10 +66,13 @@ permalink: /changelog/
 * **feature-findinpage**
    * Find in Page now emits facts
 
+* **feature-awesomebar**
+   * Added `BookmarksStorageSuggestionProvider`
+
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).
    * Adds the ability to long click the urlView
-   
+
 * **service-glean**
    * ⚠️ **This is a breaking API change**: The technically public, but not
      intended for public use, part of the glean API has been renamed from
@@ -61,7 +84,7 @@ permalink: /changelog/
      `type: labeled_counter`. See bugzilla 1540725.
 
 * **concept-engine**
-   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send 
+   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send
    language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
 
 * **service-firefox-accounts**

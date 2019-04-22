@@ -12,6 +12,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-errorpages**
+  * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
+
+* **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
+  * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
+
 * **feature-customtabs**
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.
@@ -30,6 +36,9 @@ permalink: /changelog/
 
 * **browser-icons**
   * Added an in-memory caching mechanism reducing disk/network loads.
+
+* **browser-tabstray**
+  * Add `TabThumbnailView` to Tabs Tray show the top of the thumbnail and fill up the width of the tile.
 
 # 0.50.0
 
@@ -62,7 +71,7 @@ permalink: /changelog/
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).
    * Adds the ability to long click the urlView
-   
+
 * **service-glean**
    * ⚠️ **This is a breaking API change**: The technically public, but not
      intended for public use, part of the glean API has been renamed from
@@ -74,7 +83,7 @@ permalink: /changelog/
      `type: labeled_counter`. See bugzilla 1540725.
 
 * **concept-engine**
-   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send 
+   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send
    language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
 
 * **service-firefox-accounts**

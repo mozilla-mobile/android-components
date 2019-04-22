@@ -12,6 +12,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-errorpages**
+  * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
+
+* **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
+  * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
+
 * **feature-customtabs**
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.

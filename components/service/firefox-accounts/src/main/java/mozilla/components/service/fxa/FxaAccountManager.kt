@@ -27,6 +27,7 @@ import java.util.concurrent.Executors
 
 enum class AccountState {
     Start,
+    HasEcosystemAccount,
     NotAuthenticated,
     AuthenticatedNoProfile,
     AuthenticatedWithProfile
@@ -46,6 +47,19 @@ internal sealed class Event {
 
     object AccountNotFound : Event()
     object AccountRestored : Event()
+
+    data class EcosystemAccountFound(val ecosystemAccount: EcosystemAccount) : Event() {
+        override fun toString(): String {
+            // data classes define their own toString, so we override it here as well as in the base
+            // class to avoid exposing 'code' and 'state' in logs.
+            return this.javaClass.simpleName
+        }
+    }
+    object MigrateEcosystemAccount : Event()
+    object MigratedEcosystemAccount : Event()
+    object FailedToMigrateEcosystemAccount : Event()
+    object IgnoreEcosystemAccount : Event()
+    object IgnoredEcosystemAccount : Event()
 
     object Authenticate : Event()
     data class Authenticated(val code: String, val state: String) : Event() {
@@ -144,10 +158,21 @@ open class FxaAccountManager(
                 }
                 AccountState.NotAuthenticated -> {
                     when (event) {
+                        is Event.EcosystemAccountFound -> AccountState.HasEcosystemAccount
                         Event.Authenticate -> AccountState.NotAuthenticated
                         Event.FailedToAuthenticate -> AccountState.NotAuthenticated
                         is Event.Pair -> AccountState.NotAuthenticated
                         is Event.Authenticated -> AccountState.AuthenticatedNoProfile
+                        else -> null
+                    }
+                }
+                AccountState.HasEcosystemAccount -> {
+                    when (event) {
+                        Event.MigrateEcosystemAccount -> AccountState.HasEcosystemAccount
+                        Event.MigratedEcosystemAccount -> AccountState.AuthenticatedNoProfile
+                        Event.FailedToMigrateEcosystemAccount -> AccountState.NotAuthenticated
+                        Event.IgnoreEcosystemAccount -> AccountState.HasEcosystemAccount
+                        Event.IgnoredEcosystemAccount -> AccountState.NotAuthenticated
                         else -> null
                     }
                 }
@@ -185,6 +210,11 @@ open class FxaAccountManager(
     @Volatile private var profile: Profile? = null
     @Volatile private var state = AccountState.Start
     private val eventQueue = ConcurrentLinkedQueue<Event>()
+
+
+    // configurable?
+    private val accountsEcosystem = AccountsEcosystem(context, listOf(""))
+    private lateinit var ecosystemAccount: EcosystemAccount
 
     /**
      * Call this after registering your observers, and before interacting with this class.
@@ -337,7 +367,13 @@ open class FxaAccountManager(
                         null
                     }
                     Event.AccountNotFound -> {
-                        account = createAccount(config)
+                        // check if there's an ecosystem account!
+                        val ecosystemAccount = accountsEcosystem.queryAccount()
+                        if (ecosystemAccount != null) {
+                            return Event.EcosystemAccountFound(ecosystemAccount)
+                        } else {
+                            account = createAccount(config)
+                        }
 
                         null
                     }
@@ -360,6 +396,28 @@ open class FxaAccountManager(
                         }
                         oauthObservers.notifyObservers { onBeginOAuthFlow(url) }
                         null
+                    }
+                    else -> null
+                }
+            }
+            AccountState.HasEcosystemAccount -> {
+                when (via) {
+                    is Event.EcosystemAccountFound -> {
+                        ecosystemAccount = via.ecosystemAccount
+                        null
+                    }
+                    Event.MigrateEcosystemAccount -> {
+                        // TODO
+                        // create an account, make sure state listeners are setup
+                        // redo state transitions so that account creation and state setup happens
+                        // once and before regular flow or ecosystem flow
+                        // transition it via ecosystemAccount
+                        // handle errors...
+                        null
+                    }
+                    Event.IgnoreEcosystemAccount -> {
+                        // TODO flag ecosystem account as "ignored"?
+                        return Event.IgnoredEcosystemAccount
                     }
                     else -> null
                 }

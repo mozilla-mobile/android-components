@@ -21,6 +21,7 @@ permalink: /changelog/
 * **feature-customtabs**
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.
+  * Added ability to decide where menu items requested by the launching app should be inserted into the combined menu by setting `menuItemIndex`
 
 * **service-glean**
    * ⚠️ **This is a breaking API change**: Timespan and timing distribution
@@ -36,6 +37,10 @@ permalink: /changelog/
 
 * **browser-icons**
   * Added an in-memory caching mechanism reducing disk/network loads.
+
+* **browser-tabstray**
+  * Add `TabThumbnailView` to Tabs Tray show the top of the thumbnail and fill up the width of the tile.
+  * Added swipe gesture support with a `TabTouchCallback` for the TabsTray.
 
 # 0.50.0
 
@@ -68,7 +73,7 @@ permalink: /changelog/
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).
    * Adds the ability to long click the urlView
-   
+
 * **service-glean**
    * ⚠️ **This is a breaking API change**: The technically public, but not
      intended for public use, part of the glean API has been renamed from
@@ -80,7 +85,7 @@ permalink: /changelog/
      `type: labeled_counter`. See bugzilla 1540725.
 
 * **concept-engine**
-   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send 
+   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send
    language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
 
 * **service-firefox-accounts**

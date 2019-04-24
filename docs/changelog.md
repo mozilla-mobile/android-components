@@ -21,6 +21,7 @@ permalink: /changelog/
 * **feature-customtabs**
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.
+  * Added ability to decide where menu items requested by the launching app should be inserted into the combined menu by setting `menuItemIndex`
 
 * **service-glean**
    * ⚠️ **This is a breaking API change**: Timespan and timing distribution
@@ -41,6 +42,14 @@ permalink: /changelog/
 * **browser-tabstray**
   * Add `TabThumbnailView` to Tabs Tray show the top of the thumbnail and fill up the width of the tile.
   * Added swipe gesture support with a `TabTouchCallback` for the TabsTray.
+
+* **concept-storage**, **browser-storage-memory**, **browser-storage-sync**
+  * ⚠️ **This is a breaking API change**
+  * Added new method `getVisitsPaginated`; use it to paginate history.
+  * Added `excludeTypes` param to `getDetailedVisits`; use it to query only subsets of history.
+
+* **browser-storage-sync**
+  * `PlacesBookmarksStorage` now supports synchronization!
 
 # 0.50.0
 

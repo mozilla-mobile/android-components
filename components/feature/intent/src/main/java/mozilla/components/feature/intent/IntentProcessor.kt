@@ -51,7 +51,7 @@ class IntentProcessor(
                     val displayMetrics = context.resources.displayMetrics
                     this.customTabConfig = CustomTabConfig.createFromIntent(safeIntent, displayMetrics)
                 }
-                sessionManager.add(session)
+                sessionManager.add(session, selected = true)
                 sessionUseCases.loadUrl.invoke(url, session)
                 intent.putExtra(ACTIVE_SESSION_ID, session.id)
                 true

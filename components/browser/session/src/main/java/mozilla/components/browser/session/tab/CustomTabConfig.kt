@@ -97,18 +97,22 @@ class CustomTabConfig internal constructor(
                 null
             }
 
-            val closeButtonIcon = run {
-                val icon = intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON) as? Bitmap
-                val density = displayMetrics?.density ?: 1f
-                if (icon != null &&
-                    icon.width / density <= MAX_CLOSE_BUTTON_SIZE_DP &&
-                    icon.height / density <= MAX_CLOSE_BUTTON_SIZE_DP
-                ) {
+            val closeButtonIcon = if (intent.hasExtra(EXTRA_CLOSE_BUTTON_ICON)) {
+                val bitmap = intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON) as? Bitmap
+                bitmap?.let { icon ->
+                    val density = displayMetrics?.density ?: 1f
+                    if (icon.width / density <= MAX_CLOSE_BUTTON_SIZE_DP &&
+                        icon.height / density <= MAX_CLOSE_BUTTON_SIZE_DP
+                    ) {
+                        icon
+                    } else {
+                        null
+                    }
+                }?.also {
                     options.add(CLOSE_BUTTON_OPTION)
-                    icon
-                } else {
-                    null
                 }
+            } else {
+                null
             }
 
             val disableUrlbarHiding = !intent.getBooleanExtra(EXTRA_ENABLE_URLBAR_HIDING, true)

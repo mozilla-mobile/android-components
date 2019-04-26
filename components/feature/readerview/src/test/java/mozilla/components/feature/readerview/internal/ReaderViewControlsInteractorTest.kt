@@ -43,9 +43,9 @@ class ReaderViewControlsInteractorTest {
         val config: ReaderViewFeature.Config = mock()
         val interactor = ReaderViewControlsInteractor(mock(), config)
 
-        interactor.onFontChanged(ReaderViewFeature.Config.FontType.SANS_SERIF)
+        interactor.onFontChanged(ReaderViewFeature.Config.FontType.SANSSERIF)
 
-        verify(config).fontType = ReaderViewFeature.Config.FontType.SANS_SERIF
+        verify(config).fontType = ReaderViewFeature.Config.FontType.SANSSERIF
 
         interactor.onColorSchemeChanged(ReaderViewFeature.Config.ColorScheme.SEPIA)
 

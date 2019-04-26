@@ -54,7 +54,7 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     override fun setFont(font: FontType) {
         val selected = when (font) {
             FontType.SERIF -> R.id.mozac_feature_readerview_font_serif
-            FontType.SANS_SERIF -> R.id.mozac_feature_readerview_font_sans_serif
+            FontType.SANSSERIF -> R.id.mozac_feature_readerview_font_sans_serif
         }
         fontGroup.check(selected)
     }
@@ -123,7 +123,7 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     private fun bindViews() {
         fontGroup = applyCheckedListener(R.id.mozac_feature_readerview_font_group) { checkedId ->
             val fontType = when (checkedId) {
-                R.id.mozac_feature_readerview_font_sans_serif -> FontType.SANS_SERIF
+                R.id.mozac_feature_readerview_font_sans_serif -> FontType.SANSSERIF
                 R.id.mozac_feature_readerview_font_serif -> FontType.SERIF
                 else -> FontType.SERIF
             }

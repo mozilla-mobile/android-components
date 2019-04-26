@@ -52,7 +52,7 @@ class ReaderViewControlsBarTest {
 
         assertFalse(sansSerifButton.isChecked)
 
-        bar.setFont(ReaderViewFeature.Config.FontType.SANS_SERIF)
+        bar.setFont(ReaderViewFeature.Config.FontType.SANSSERIF)
 
         assertTrue(sansSerifButton.isChecked)
     }
@@ -161,7 +161,7 @@ class ReaderViewControlsBarTest {
 
         bar.findViewById<AppCompatRadioButton>(R.id.mozac_feature_readerview_font_sans_serif).performClick()
 
-        verify(listener).onFontChanged(ReaderViewFeature.Config.FontType.SANS_SERIF)
+        verify(listener).onFontChanged(ReaderViewFeature.Config.FontType.SANSSERIF)
     }
 
     @Test

@@ -46,6 +46,7 @@ RUN apt-get update -qq \
                           curl \
                           python \
                           python-pip \
+                          python3 \
                           locales \
                           unzip \
 			  mercurial \
@@ -53,8 +54,6 @@ RUN apt-get update -qq \
 
 RUN pip install --upgrade pip
 RUN pip install 'taskcluster>=4,<5'
-RUN pip install arrow
-RUN pip install pyyaml
 
 RUN locale-gen en_US.UTF-8
 
@@ -91,11 +90,6 @@ RUN ./gradlew clean \
     && ./gradlew dependencies \
     && ./gradlew androidDependencies \
     && ./gradlew --stop \
-    && ./gradlew --no-daemon assemble \
-    && ./gradlew --no-daemon -Pcoverage test \
-    && ./gradlew --no-daemon detekt \
-    && ./gradlew --no-daemon ktlint \
-    && ./gradlew --no-daemon docs \
     && ./gradlew clean
 
 

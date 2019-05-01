@@ -26,10 +26,13 @@ class ClipDataTest {
     fun pasteAsPlainText() {
         val view = EditText(context)
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val spannableString = SpannableString("This is some bold text.")
-        spannableString.setSpan(StyleSpan(Typeface.BOLD), 0, spannableString.length, 0)
+        val spannableString = SpannableString("This is some bold text.").apply {
+            setSpan(StyleSpan(Typeface.BOLD), 0, length, 0)
+        }
+
         clipboard.primaryClip = ClipData.newPlainText("bold text", spannableString)
         clipboard.primaryClip?.pasteAsPlainText(view)
-        assertTrue(view.text.getSpans(0, view.length(), StyleSpan::class.java).isEmpty())
+        val spans = view.text.getSpans(0, view.length(), StyleSpan::class.java)
+        assertTrue(spans.isEmpty())
     }
 }

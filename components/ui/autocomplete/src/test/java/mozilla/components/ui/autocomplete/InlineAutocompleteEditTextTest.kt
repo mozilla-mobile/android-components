@@ -4,9 +4,14 @@
 
 package mozilla.components.ui.autocomplete
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Typeface
+import android.text.SpannableString
 import android.text.Spanned
 import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+import android.text.style.StyleSpan
 import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.ViewParent
@@ -333,5 +338,19 @@ class InlineAutocompleteEditTextTest {
         // Verify that we finished composing
         assertEquals(-1, BaseInputConnection.getComposingSpanStart(et.text))
         assertEquals(-1, BaseInputConnection.getComposingSpanEnd(et.text))
+    }
+
+    @Test
+    fun onTextContextMenuItem() {
+        val et = spy(InlineAutocompleteEditText(context, attributes))
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val spannableString = SpannableString("This is some bold text.").apply {
+            setSpan(StyleSpan(Typeface.BOLD), 0, length, 0)
+        }
+
+        clipboard.primaryClip = ClipData.newPlainText("bold text", spannableString)
+        et.onTextContextMenuItem(android.R.id.paste)
+        val spans = et.text.getSpans(0, et.length(), StyleSpan::class.java)
+        assertTrue(spans.isEmpty())
     }
 }

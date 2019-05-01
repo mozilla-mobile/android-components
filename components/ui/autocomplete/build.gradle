@@ -24,6 +24,8 @@ android {
 }
 
 dependencies {
+    implementation project(':support-ktx')
+
     implementation Dependencies.kotlin_stdlib
 
     implementation Dependencies.support_appcompat

@@ -4,7 +4,6 @@
 
 package mozilla.components.ui.autocomplete
 
-import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
@@ -33,6 +32,7 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputConnectionWrapper
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import mozilla.components.support.ktx.android.content.pasteAsPlainText
 
 typealias OnCommitListener = () -> Unit
 typealias OnFilterListener = (String) -> Unit
@@ -265,23 +265,13 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
         }
     }
 
-    private fun pasteAsPlainText(clipData: ClipData) {
-        var paste = ""
-        for (i in 0 until clipData.itemCount) {
-            val text = clipData.getItemAt(i).coerceToText(context)
-            paste += if (text is Spanned) text.toString() else text
-        }
-        val data = text.substring(0, selectionStart) + paste + text.substring(selectionEnd, text.length)
-        setText(data)
-    }
-
     override fun onTextContextMenuItem(id: Int): Boolean {
         if (id == android.R.id.paste) {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 super.onTextContextMenuItem(android.R.id.pasteAsPlainText)
             } else {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.primaryClip?.let { pasteAsPlainText(it) }
+                clipboard.primaryClip?.pasteAsPlainText(this)
                 true
             }
         }

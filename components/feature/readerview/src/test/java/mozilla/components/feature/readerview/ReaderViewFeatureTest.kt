@@ -6,22 +6,31 @@ package mozilla.components.feature.readerview
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.webextension.MessageHandler
+import mozilla.components.concept.engine.webextension.Port
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.feature.readerview.view.ReaderViewControlsView
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -36,7 +45,7 @@ class ReaderViewFeatureTest {
 
     @Before
     fun setup() {
-        ReaderViewFeature.installed = false
+        ReaderViewFeature.installedWebExt = null
     }
 
     @Test
@@ -45,19 +54,32 @@ class ReaderViewFeatureTest {
         val sessionManager = mock(SessionManager::class.java)
 
         val readerViewFeature = ReaderViewFeature(context, engine, sessionManager, mock())
-        assertFalse(ReaderViewFeature.installed)
+        assertNull(ReaderViewFeature.installedWebExt)
         readerViewFeature.start()
 
         val onSuccess = argumentCaptor<((WebExtension) -> Unit)>()
-        val onError = argumentCaptor<((WebExtension, Throwable) -> Unit)>()
-        verify(engine, times(1)).installWebExtension(eq(ReaderViewFeature.readerViewWebExt), onSuccess.capture(), onError.capture())
-        onSuccess.value.invoke(ReaderViewFeature.readerViewWebExt)
-        assertTrue(ReaderViewFeature.installed)
+        val onError = argumentCaptor<((String, Throwable) -> Unit)>()
+        verify(engine, times(1)).installWebExtension(
+                eq(ReaderViewFeature.READER_VIEW_EXTENSION_ID),
+                eq(ReaderViewFeature.READER_VIEW_EXTENSION_URL),
+                eq(true),
+                onSuccess.capture(),
+                onError.capture()
+        )
+
+        onSuccess.value.invoke(mock(WebExtension::class.java))
+        assertNotNull(ReaderViewFeature.installedWebExt)
 
         readerViewFeature.start()
-        verify(engine, times(1)).installWebExtension(eq(ReaderViewFeature.readerViewWebExt), onSuccess.capture(), onError.capture())
+        verify(engine, times(1)).installWebExtension(
+                eq(ReaderViewFeature.READER_VIEW_EXTENSION_ID),
+                eq(ReaderViewFeature.READER_VIEW_EXTENSION_URL),
+                eq(true),
+                onSuccess.capture(),
+                onError.capture()
+        )
 
-        onError.value.invoke(ReaderViewFeature.readerViewWebExt, RuntimeException())
+        onError.value.invoke(ReaderViewFeature.READER_VIEW_EXTENSION_ID, RuntimeException())
     }
 
     @Test
@@ -70,6 +92,39 @@ class ReaderViewFeatureTest {
         readerViewFeature.start()
 
         verify(readerViewFeature).observeSelected()
+    }
+
+    @Test
+    fun `start registers content message handler for selected session`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val view: ReaderViewControlsView = mock()
+        val session: Session = mock()
+        val engineSession: EngineSession = mock()
+        val ext: WebExtension = mock()
+        val messageHandler = argumentCaptor<MessageHandler>()
+
+        ReaderViewFeature.installedWebExt = ext
+
+        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+        `when`(sessionManager.selectedSession).thenReturn(session)
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, view))
+
+        readerViewFeature.start()
+        verify(ext).registerContentMessageHandler(eq(engineSession), eq(ReaderViewFeature.READER_VIEW_EXTENSION_ID), messageHandler.capture())
+
+        val port: Port = mock()
+        `when`(port.engineSession).thenReturn(engineSession)
+
+        messageHandler.value.onPortConnected(port)
+        assertTrue(ReaderViewFeature.ports.containsValue(port))
+
+        val message = JSONObject().put("readerable", true)
+        messageHandler.value.onPortMessage(message, port)
+        verify(session).readerable = true
+
+        messageHandler.value.onPortDisconnected(port)
+        assertFalse(ReaderViewFeature.ports.containsValue(port))
     }
 
     @Test
@@ -105,5 +160,128 @@ class ReaderViewFeatureTest {
         feature.hideControls()
 
         verify(view).hideControls()
+    }
+
+    @Test
+    fun `check readerable on start`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val view: ReaderViewControlsView = mock()
+
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, view))
+        readerViewFeature.start()
+
+        verify(readerViewFeature).checkReaderable()
+    }
+
+    @Test
+    fun `check readerable when session is selected`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val view: ReaderViewControlsView = mock()
+
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, view))
+        readerViewFeature.onSessionSelected(mock())
+
+        verify(readerViewFeature).checkReaderable()
+    }
+
+    @Test
+    fun `check readerable when url changed`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val view: ReaderViewControlsView = mock()
+
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, view))
+        readerViewFeature.onUrlChanged(mock(), "")
+
+        verify(readerViewFeature).checkReaderable()
+    }
+
+    @Test
+    fun `show reader view sends message to web extension`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val ext: WebExtension = mock()
+        val session: Session = mock()
+        val engineSession: EngineSession = mock()
+        val port: Port = mock()
+        val message = argumentCaptor<JSONObject>()
+
+        `when`(sessionManager.selectedSession).thenReturn(session)
+        `when`(sessionManager.getEngineSession(session)).thenReturn(engineSession)
+        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, mock()))
+        ReaderViewFeature.installedWebExt = ext
+        ReaderViewFeature.ports[engineSession] = port
+
+        readerViewFeature.showReaderView()
+        verify(port, never()).postMessage(eq(message))
+
+        readerViewFeature.observeSelected()
+        readerViewFeature.showReaderView()
+        verify(port, times(1)).postMessage(message.capture())
+        assertEquals(ReaderViewFeature.ACTION_SHOW, message.value[ReaderViewFeature.ACTION_MESSAGE_KEY])
+    }
+
+    @Test
+    fun `hide reader view sends message to web extension`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val ext: WebExtension = mock()
+        val session: Session = mock()
+        val engineSession: EngineSession = mock()
+        val port: Port = mock()
+        val message = argumentCaptor<JSONObject>()
+
+        `when`(sessionManager.selectedSession).thenReturn(session)
+        `when`(sessionManager.getEngineSession(session)).thenReturn(engineSession)
+        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, mock()))
+        ReaderViewFeature.installedWebExt = ext
+        ReaderViewFeature.ports[engineSession] = port
+
+        readerViewFeature.hideReaderView()
+        verify(port, never()).postMessage(eq(message))
+
+        readerViewFeature.observeSelected()
+        readerViewFeature.hideReaderView()
+        verify(port, times(1)).postMessage(message.capture())
+        assertEquals(ReaderViewFeature.ACTION_HIDE, message.value[ReaderViewFeature.ACTION_MESSAGE_KEY])
+    }
+
+    @Test
+    fun `readerable check sends message to web extension`() {
+        val engine = mock(Engine::class.java)
+        val sessionManager: SessionManager = mock()
+        val ext: WebExtension = mock()
+        val session: Session = mock()
+        val engineSession: EngineSession = mock()
+        val port: Port = mock()
+        val message = argumentCaptor<JSONObject>()
+
+        `when`(sessionManager.selectedSession).thenReturn(session)
+        `when`(sessionManager.getEngineSession(session)).thenReturn(engineSession)
+        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+        val readerViewFeature = spy(ReaderViewFeature(context, engine, sessionManager, mock()))
+        ReaderViewFeature.installedWebExt = ext
+        ReaderViewFeature.ports[engineSession] = port
+
+        readerViewFeature.checkReaderable()
+        verify(port, never()).postMessage(eq(message))
+
+        readerViewFeature.observeSelected()
+        readerViewFeature.checkReaderable()
+        verify(port, times(1)).postMessage(message.capture())
+        assertEquals(ReaderViewFeature.ACTION_CHECK_READERABLE, message.value[ReaderViewFeature.ACTION_MESSAGE_KEY])
+    }
+
+    @Test
+    fun `readerable state update invokes lambda`() {
+        var readerViewAvailableChangeReceived = false
+        val onReaderViewAvailableChange: OnReaderViewAvailableChange = { readerViewAvailableChangeReceived = true }
+        val readerViewFeature = spy(ReaderViewFeature(context, mock(), mock(), mock(), onReaderViewAvailableChange))
+        readerViewFeature.onReaderableStateUpdated(mock(), true)
+        assertTrue(readerViewAvailableChangeReceived)
     }
 }

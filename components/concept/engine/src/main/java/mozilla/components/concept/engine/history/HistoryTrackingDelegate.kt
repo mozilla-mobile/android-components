@@ -4,6 +4,8 @@
 
 package mozilla.components.concept.engine.history
 
+import mozilla.components.concept.storage.VisitType
+
 /**
  * An interface used for providing history information to an engine (e.g. for link highlighting),
  * and receiving history updates from the engine (visits to URLs, title changes).
@@ -15,7 +17,7 @@ interface HistoryTrackingDelegate {
     /**
      * A URI visit happened that an engine considers worthy of being recorded in browser's history.
      */
-    suspend fun onVisited(uri: String, isReload: Boolean = false)
+    suspend fun onVisited(uri: String, type: VisitType)
 
     /**
      * Title changed for a given URI.
@@ -31,4 +33,10 @@ interface HistoryTrackingDelegate {
      * An engine needs to know a list of all visited URIs.
      */
     suspend fun getVisited(): List<String>
+
+    /**
+     * Allows an engine to check if this URI is going to be accepted by the delegate.
+     * This helps avoid unnecessary coroutine overhead for URIs which won't be accepted.
+     */
+    fun shouldStoreUri(uri: String): Boolean
 }

@@ -5,20 +5,25 @@
 package mozilla.components.service.fxa
 
 import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
+import mozilla.components.concept.sync.AccessTokenInfo
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
+import mozilla.components.concept.sync.StatePersistenceCallback
 import mozilla.components.support.test.any
+import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
-import org.junit.Test
-
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyString
@@ -27,9 +32,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 // Same as the actual account manager, except we get to control how FirefoxAccountShaped instances
 // are created. This is necessary because due to some build issues (native dependencies not available
@@ -53,6 +56,9 @@ class TestableFxaAccountManager(
 
 @RunWith(RobolectricTestRunner::class)
 class FxaAccountManagerTest {
+    private val context: Context
+        get() = ApplicationProvider.getApplicationContext()
+
     @Test
     fun `state transitions`() {
         // State 'Start'.
@@ -111,13 +117,184 @@ class FxaAccountManagerTest {
     }
 
     @Test
+    fun `restored account state persistence`() = runBlocking {
+        val accountStorage: AccountStorage = mock()
+        val profile = Profile("testUid", "test@example.com", null, "Test Profile")
+        val account = object : OAuthAccount {
+            var persistenceCallback: StatePersistenceCallback? = null
+
+            override fun beginOAuthFlow(scopes: Array<String>, wantsKeys: Boolean): Deferred<String> {
+                fail()
+                return CompletableDeferred()
+            }
+
+            override fun beginPairingFlow(pairingUrl: String, scopes: Array<String>): Deferred<String> {
+                fail()
+                return CompletableDeferred()
+            }
+
+            override fun getProfile(ignoreCache: Boolean): Deferred<Profile> {
+                return CompletableDeferred(profile)
+            }
+
+            override fun getProfile(): Deferred<Profile> {
+                return CompletableDeferred(profile)
+            }
+
+            override fun completeOAuthFlow(code: String, state: String): Deferred<Unit> {
+                fail()
+                return CompletableDeferred()
+            }
+
+            override fun getAccessToken(singleScope: String): Deferred<AccessTokenInfo> {
+                fail()
+                return CompletableDeferred()
+            }
+
+            override fun getTokenServerEndpointURL(): String {
+                fail()
+                return ""
+            }
+
+            override fun registerPersistenceCallback(callback: StatePersistenceCallback) {
+                persistenceCallback = callback
+            }
+
+            override fun toJSONString(): String {
+                fail()
+                return ""
+            }
+
+            override fun close() {
+                fail()
+            }
+        }
+
+        val manager = TestableFxaAccountManager(
+            context, Config.release("dummyId", "http://auth-url/redirect"), arrayOf("profile"), accountStorage
+        ) {
+            account
+        }
+
+        // We have an account at the start.
+        `when`(accountStorage.read()).thenReturn(account)
+
+        assertNull(account.persistenceCallback)
+        manager.initAsync().await()
+
+        // Assert that persistence callback is set.
+        assertNotNull(account.persistenceCallback)
+
+        // Assert that persistence callback is interacting with the storage layer.
+        account.persistenceCallback!!.persist("test")
+        verify(accountStorage).write("test")
+    }
+
+    @Test
+    fun `newly authenticated account state persistence`() = runBlocking {
+        val accountStorage: AccountStorage = mock()
+        val profile = Profile(uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
+        val account = StatePersistenceTestableAccount(profile)
+        val accountObserver: AccountObserver = mock()
+        // We are not using the "prepareHappy..." helper method here, because our account isn't a mock,
+        // but an actual implementation of the interface.
+        val manager = TestableFxaAccountManager(
+                context,
+                Config.release("dummyId", "bad://url"),
+                arrayOf("profile", "test-scope"),
+                accountStorage
+        ) {
+            account
+        }
+
+        // There's no account at the start.
+        `when`(accountStorage.read()).thenReturn(null)
+
+        manager.register(accountObserver)
+
+        // Kick it off, we'll get into a "NotAuthenticated" state.
+        runBlocking {
+            manager.initAsync().await()
+        }
+
+        assertNull(account.persistenceCallback)
+
+        // Perform authentication.
+        runBlocking {
+            assertEquals("auth://url", manager.beginAuthenticationAsync().await())
+        }
+        runBlocking {
+            manager.finishAuthenticationAsync("dummyCode", "dummyState").await()
+        }
+
+        // Assert that persistence callback is set.
+        assertNotNull(account.persistenceCallback)
+
+        // Assert that persistence callback is interacting with the storage layer.
+        account.persistenceCallback!!.persist("test")
+        verify(accountStorage).write("test")
+    }
+
+    class StatePersistenceTestableAccount(private val profile: Profile) : OAuthAccount {
+        var persistenceCallback: StatePersistenceCallback? = null
+
+        override fun beginOAuthFlow(scopes: Array<String>, wantsKeys: Boolean): Deferred<String> {
+            return CompletableDeferred("auth://url")
+        }
+
+        override fun beginPairingFlow(pairingUrl: String, scopes: Array<String>): Deferred<String> {
+            return CompletableDeferred("auth://url")
+        }
+
+        override fun getProfile(ignoreCache: Boolean): Deferred<Profile> {
+            return CompletableDeferred(profile)
+        }
+
+        override fun getProfile(): Deferred<Profile> {
+            return CompletableDeferred(profile)
+        }
+
+        override fun completeOAuthFlow(code: String, state: String): Deferred<Unit> {
+            // This ceremony is necessary because CompletableDeferred<Unit>() is created in an _active_ state,
+            // and threads will deadlock since it'll never be resolved while state machine is waiting for it.
+            // So we manually complete it here!
+            val unitDeferred = CompletableDeferred<Unit>()
+            unitDeferred.complete(Unit)
+            return unitDeferred
+        }
+
+        override fun getAccessToken(singleScope: String): Deferred<AccessTokenInfo> {
+            fail()
+            return CompletableDeferred()
+        }
+
+        override fun getTokenServerEndpointURL(): String {
+            fail()
+            return ""
+        }
+
+        override fun registerPersistenceCallback(callback: StatePersistenceCallback) {
+            persistenceCallback = callback
+        }
+
+        override fun toJSONString(): String {
+            fail()
+            return ""
+        }
+
+        override fun close() {
+            fail()
+        }
+    }
+
+    @Test
     fun `error reading persisted account`() {
         val accountStorage = mock<AccountStorage>()
         val readException = FxaException("pretend we failed to parse the account")
         `when`(accountStorage.read()).thenThrow(readException)
 
         val manager = TestableFxaAccountManager(
-            RuntimeEnvironment.application,
+            context,
             Config.release("dummyId", "bad://url"),
             arrayOf("profile"),
             accountStorage
@@ -162,7 +339,7 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(null)
 
         val manager = TestableFxaAccountManager(
-                RuntimeEnvironment.application,
+                context,
                 Config.release("dummyId", "bad://url"),
                 arrayOf("profile"),
                 accountStorage
@@ -197,7 +374,7 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(mockAccount)
 
         val manager = TestableFxaAccountManager(
-                RuntimeEnvironment.application,
+                context,
                 Config.release("dummyId", "bad://url"),
                 arrayOf("profile"),
                 accountStorage
@@ -268,8 +445,6 @@ class FxaAccountManagerTest {
         }
 
         verify(accountStorage, times(1)).read()
-        // Confirm account is persisted after authentication.
-        verify(accountStorage, times(1)).write(mockAccount)
         verify(accountStorage, never()).clear()
 
         verify(accountObserver, never()).onError(any())
@@ -305,8 +480,6 @@ class FxaAccountManagerTest {
         }
 
         verify(accountStorage, times(1)).read()
-        // Confirm account is persisted after authentication.
-        verify(accountStorage, times(1)).write(mockAccount)
         verify(accountStorage, never()).clear()
 
         verify(accountObserver, never()).onError(any())
@@ -337,7 +510,7 @@ class FxaAccountManagerTest {
                 manager.beginAuthenticationAsync().await()
                 fail()
             } catch (e: FxaNetworkException) {
-                assertEquals(fxaException, e)
+                assertEquals(fxaException.message, e.message)
             }
         }
         // Confirm that account state observable doesn't receive authentication errors.
@@ -360,8 +533,6 @@ class FxaAccountManagerTest {
         }
 
         verify(accountStorage, times(1)).read()
-        // Confirm account is persisted after authentication.
-        verify(accountStorage, times(1)).write(mockAccount)
         verify(accountStorage, never()).clear()
 
         verify(accountObserver, never()).onError(any())
@@ -392,7 +563,7 @@ class FxaAccountManagerTest {
                 manager.beginAuthenticationAsync(pairingUrl = "auth://pairing").await()
                 fail()
             } catch (e: FxaNetworkException) {
-                assertEquals(fxaException, e)
+                assertEquals(fxaException.message, e.message)
             }
         }
         // Confirm that account state observable doesn't receive authentication errors.
@@ -415,8 +586,6 @@ class FxaAccountManagerTest {
         }
 
         verify(accountStorage, times(1)).read()
-        // Confirm account is persisted after authentication.
-        verify(accountStorage, times(1)).write(mockAccount)
         verify(accountStorage, never()).clear()
 
         verify(accountObserver, never()).onError(any())
@@ -449,7 +618,7 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(null)
 
         val manager = TestableFxaAccountManager(
-                RuntimeEnvironment.application,
+                context,
                 Config.release("dummyId", "bad://url"),
                 arrayOf("profile", "test-scope"),
                 accountStorage
@@ -481,11 +650,12 @@ class FxaAccountManagerTest {
         }
 
         verify(accountStorage, times(1)).read()
-        // Confirm account is persisted after authentication.
-        verify(accountStorage, times(1)).write(mockAccount)
         verify(accountStorage, never()).clear()
 
-        verify(accountObserver, times(1)).onError(fxaException)
+        val captor = argumentCaptor<FxaException>()
+        verify(accountObserver, times(1)).onError(captor.capture())
+        assertEquals(fxaException.message, captor.value.message)
+
         verify(accountObserver, times(1)).onAuthenticated(mockAccount)
         verify(accountObserver, never()).onProfileUpdated(any())
         verify(accountObserver, never()).onLoggedOut()
@@ -531,7 +701,7 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(null)
 
         val manager = TestableFxaAccountManager(
-                RuntimeEnvironment.application,
+                context,
                 Config.release("dummyId", "bad://url"),
                 arrayOf("profile", "test-scope"),
                 accountStorage
@@ -573,7 +743,7 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(null)
 
         val manager = TestableFxaAccountManager(
-                RuntimeEnvironment.application,
+                context,
                 Config.release("dummyId", "bad://url"),
                 arrayOf("profile", "test-scope"),
                 accountStorage

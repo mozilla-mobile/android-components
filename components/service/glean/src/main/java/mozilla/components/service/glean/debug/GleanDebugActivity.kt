@@ -10,8 +10,8 @@ import mozilla.components.service.glean.Glean
 import mozilla.components.support.base.log.logger.Logger
 
 /**
- * Debugging activity exported by glean to allow easier debugging.
- * For example, invoking debug mode in the glean sample application
+ * Debugging activity exported by Glean to allow easier debugging.
+ * For example, invoking debug mode in the Glean sample application
  * can be done via adb using the following command:
  *
  * adb shell am start -n org.mozilla.samples.glean/mozilla.components.service.glean.debug.GleanDebugActivity
@@ -66,7 +66,7 @@ class GleanDebugActivity : Activity() {
             Glean.configuration = debugConfig
 
             intent.getStringExtra(SEND_PING_EXTRA_KEY)?.let {
-                Glean.sendPingsInternal(listOf(it))
+                Glean.sendPingsByName(listOf(it))
             }
         }
 

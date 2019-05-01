@@ -4,8 +4,8 @@
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.3.21"
-    const val coroutines = "1.1.1"
+    const val kotlin = "1.3.30"
+    const val coroutines = "1.2.0"
 
     const val androidx_test = "1.1.0"
     const val androidx_runner = "1.1.0"
@@ -34,7 +34,7 @@ object Versions {
     const val paging = "1.0.1"
     const val zxing = "3.3.0"
 
-    const val mozilla_appservices = "0.25.2"
+    const val mozilla_appservices = "0.27.0"
     const val servo = "0.0.1.20181017.aa95911"
 }
 

@@ -104,7 +104,7 @@ internal object EventsStorageEngine : StorageEngine {
     internal fun onReadyToSendPings(@Suppress("UNUSED_PARAMETER") context: Context) {
         // We want this to run off of the main thread, because it might perform I/O.
         // However, we don't use the built-in KotlinDispatchers.IO since we need
-        // to make sure this work is done before any other glean API calls, and this
+        // to make sure this work is done before any other Glean API calls, and this
         // will force them to be queued after this work.
         @Suppress("EXPERIMENTAL_API_USAGE")
         Dispatchers.API.launch {
@@ -128,7 +128,7 @@ internal object EventsStorageEngine : StorageEngine {
             // been booted, so for now we just pay the penalty of a few more
             // unnecessary pings.
             if (eventStores.isNotEmpty()) {
-                Glean.sendPingsInternal(eventStores.keys.toList())
+                Glean.sendPingsByName(eventStores.keys.toList())
             }
         }
     }
@@ -193,7 +193,7 @@ internal object EventsStorageEngine : StorageEngine {
                     eventStoresToUpload.add(storeName)
                 }
             }
-            Glean.sendPingsInternal(eventStoresToUpload)
+            Glean.sendPingsByName(eventStoresToUpload)
         }
     }
 

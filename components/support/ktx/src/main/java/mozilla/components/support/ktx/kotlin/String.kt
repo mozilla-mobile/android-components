@@ -5,28 +5,15 @@
 package mozilla.components.support.ktx.kotlin
 
 import android.net.Uri
-import android.text.TextUtils
+import mozilla.components.support.utils.URLStringUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * Normalizes a URL String.
- */
-fun String.toNormalizedUrl(): String {
-    val trimmedInput = this.trim()
-    var uri = Uri.parse(trimmedInput)
-    if (TextUtils.isEmpty(uri.scheme)) {
-        uri = Uri.parse("http://$trimmedInput")
-    }
-    return uri.toString()
-}
-
-/**
  * A collection of regular expressions used in the `is*` methods below.
  */
 private val re = object {
-    val urlish = "^\\s*\\w+(://|:|\\.)\\w+\\S*\\s*$".toRegex()
     val phoneish = "^\\s*tel:\\S?\\d+\\S*\\s*$".toRegex(RegexOption.IGNORE_CASE)
     val emailish = "^\\s*mailto:\\w+\\S*\\s*$".toRegex(RegexOption.IGNORE_CASE)
     val geoish = "^\\s*geo:\\S*\\d+\\S*\\s*$".toRegex(RegexOption.IGNORE_CASE)
@@ -35,7 +22,9 @@ private val re = object {
 /**
  * Checks if this String is a URL.
  */
-fun String.isUrl() = re.urlish.matches(this)
+fun String.isUrl() = URLStringUtils.isURLLike(this)
+
+fun String.toNormalizedUrl() = URLStringUtils.toNormalizedURL(this)
 
 fun String.isPhone() = re.phoneish.matches(this)
 

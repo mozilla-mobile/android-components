@@ -48,6 +48,7 @@ import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
+import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.utils.DownloadUtils
 import java.util.Date
 
@@ -129,8 +130,20 @@ class SystemEngineView @JvmOverloads constructor(
         override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
             // TODO private browsing not supported for SystemEngine
             // https://github.com/mozilla-mobile/android-components/issues/649
+            // Check if the delegate wants this type of url.
+            val delegate = session?.settings?.historyTrackingDelegate ?: return
+
+            if (!delegate.shouldStoreUri(url)) {
+                return
+            }
+
+            val visitType = when (isReload) {
+                true -> VisitType.RELOAD
+                false -> VisitType.LINK
+            }
+
             runBlocking {
-                session?.settings?.historyTrackingDelegate?.onVisited(url, isReload)
+                session?.settings?.historyTrackingDelegate?.onVisited(url, visitType)
             }
         }
 

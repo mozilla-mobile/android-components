@@ -91,7 +91,7 @@ tasks:
             - statuses  # Automatically added by taskcluster-github. It must be explicit because of Chain of Trust
           payload:
             maxRunTime: 600   # Decision should remain fast enough to schedule a handful of tasks
-            image: mozillamobile/android-components:1.16
+            image: mozillamobile/android-components:1.17
             command:
               - /bin/bash
               - --login
@@ -202,7 +202,7 @@ tasks:
                         path: /build/android-components/parameters.yml
                         expires: ${expires_in}
               in:
-                - $if: 'tasks_for == "github-release"'
+                - $if: 'tasks_for == "github-release" && event["action"] == "published"'
                   then:
                     $let:
                       tag: ${event.release.tag_name}

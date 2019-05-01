@@ -8,8 +8,8 @@ import android.net.Uri
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -18,14 +18,6 @@ import java.util.Calendar.MILLISECOND
 
 @RunWith(RobolectricTestRunner::class)
 class StringTest {
-
-    @Test
-    fun toNormalizedUrl() {
-        val expectedUrl = "http://mozilla.org"
-        assertEquals(expectedUrl, "http://mozilla.org".toNormalizedUrl())
-        assertEquals(expectedUrl, "  http://mozilla.org  ".toNormalizedUrl())
-        assertEquals(expectedUrl, "mozilla.org".toNormalizedUrl())
-    }
 
     @Test
     fun isUrl() {
@@ -50,6 +42,14 @@ class StringTest {
         val extraText = "Check out @asa’s Tweet: https://twitter.com/asa/status/123456789?s=09"
         val url = extraText.split(" ").find { it.isUrl() }
         assertNotEquals("Tweet:", url)
+    }
+
+    @Test
+    fun toNormalizedUrl() {
+        val expectedUrl = "http://mozilla.org"
+        assertEquals(expectedUrl, "http://mozilla.org".toNormalizedUrl())
+        assertEquals(expectedUrl, "  http://mozilla.org  ".toNormalizedUrl())
+        assertEquals(expectedUrl, "mozilla.org".toNormalizedUrl())
     }
 
     @Test

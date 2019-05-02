@@ -39,12 +39,17 @@ internal class PingMaker(
      * @param pingName The name of the ping
      * @return sequence number
      */
+    @Synchronized
     private fun getPingSeq(pingName: String): Int {
+        // This is synchronized to avoid returning the same seq number twice.
+
         sharedPreferences?.let {
             val key = "${pingName}_seq"
             val currentValue = it.getInt(key, 0)
             val editor = it.edit()
             editor.putInt(key, currentValue + 1)
+            // This writes to disk asynchronously, but updates the in-memory
+            // cache of the value immediately, so we don't need to await on it.
             editor.apply()
             return currentValue
         }

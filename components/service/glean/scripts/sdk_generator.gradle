@@ -20,7 +20,7 @@ import groovy.json.JsonOutput
 // so that it will be shared between all libraries that use Glean.  This is
 // important because it is approximately 300MB in installed size.
 
-String GLEAN_PARSER_VERSION = "0.24.0"
+String GLEAN_PARSER_VERSION = "0.24.1"
 // The version of Miniconda is explicitly specified.
 // Miniconda3-4.5.12 is known to not work on Windows.
 String MINICONDA_VERSION = "4.5.11"
@@ -130,13 +130,14 @@ clean {
 ext.gleanGenerateMetricsAPI = {
     variant ->
 
-    def sourceOutputDir =  "$buildDir/telemetry/src/${variant.name}/kotlin"
+    def sourceOutputDir =  "$buildDir/generated/source/glean/${variant.dirName}/kotlin"
     // Get the name of the package as if it were to be used in the R or BuildConfig
     // files. This is required since applications can define different application ids
     // depending on the variant type: the generated API definitions don't need to be
     // different due to that.
-    Task buildConfig = variant.generateBuildConfig
-    def originalPackageName = buildConfig.getBuildConfigPackageName()
+    TaskProvider buildConfigProvider = variant.getGenerateBuildConfigProvider()
+    def originalPackageName = buildConfigProvider.get().getBuildConfigPackageName()
+
     def fullNamespace = "${originalPackageName}.GleanMetrics"
     def generateKotlinAPI = task("generateMetricsSourceFor${variant.name.capitalize()}", type: Exec) {
         description = "Generate the Kotlin code for the Metrics API"

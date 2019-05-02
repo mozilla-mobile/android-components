@@ -7,7 +7,7 @@ package mozilla.components.service.experiments
 import android.content.Context
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.service.glean.Glean
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.glean.GleanInternalAPI
 import java.io.File
 
@@ -38,6 +38,8 @@ open class ExperimentsInternalAPI internal constructor() {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var isInitialized = false
 
+    internal lateinit var configuration: Configuration
+
     /**
      * Initialize the experiments library.
      *
@@ -60,6 +62,8 @@ open class ExperimentsInternalAPI internal constructor() {
             logger.error("Glean library must be initialized first")
             return
         }
+
+        this.configuration = configuration
 
         experimentsResult = ExperimentsSnapshot(listOf(), null)
         experimentsLoaded = false

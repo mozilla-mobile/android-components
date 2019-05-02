@@ -71,10 +71,17 @@ excellent place to perform this operation is within the `onCreate` method of the
 Android's `Application` class.
 
 ```Kotlin
+import org.mozilla.yourApplication.GleanMetrics.Pings
+
 class SampleApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // If you have custom pings in your application, you must register them
+        // using the following command. This command should be omitted for
+        // applications not using custom pings.
+        Glean.registerPings(Pings)
 
         // Call setUploadEnabled first, since Glean.initialize
         // might send pings if there are any metrics queued up

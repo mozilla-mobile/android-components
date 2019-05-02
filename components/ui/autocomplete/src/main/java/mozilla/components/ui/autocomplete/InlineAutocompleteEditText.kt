@@ -10,8 +10,6 @@ import android.graphics.Rect
 import android.os.Build
 import android.provider.Settings.Secure.DEFAULT_INPUT_METHOD
 import android.provider.Settings.Secure.getString
-import android.support.annotation.VisibleForTesting
-import android.support.v7.widget.AppCompatEditText
 import android.text.Editable
 import android.text.NoCopySpan
 import android.text.Selection
@@ -31,6 +29,8 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputConnectionWrapper
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import androidx.annotation.VisibleForTesting
+import androidx.appcompat.widget.AppCompatEditText
 
 typealias OnCommitListener = () -> Unit
 typealias OnFilterListener = (String) -> Unit
@@ -269,6 +269,15 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
 
         // Any autocomplete text would have been overwritten, so reset our autocomplete states.
         resetAutocompleteState()
+    }
+
+    fun setText(text: CharSequence?, shouldAutoComplete: Boolean = true) {
+        val previousEnabledState = isEnabled
+
+        // Disable the edit text if necessary in order to stop auto completion
+        isEnabled = shouldAutoComplete
+        setText(text, TextView.BufferType.EDITABLE)
+        isEnabled = previousEnabledState
     }
 
     override fun getText(): Editable {

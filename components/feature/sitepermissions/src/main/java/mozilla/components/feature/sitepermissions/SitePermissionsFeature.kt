@@ -11,6 +11,7 @@ import android.content.pm.PackageManager
 import android.support.annotation.DrawableRes
 import android.support.annotation.StringRes
 import android.support.annotation.VisibleForTesting
+import android.support.v4.app.FragmentManager
 import android.support.v4.content.ContextCompat
 import android.view.View
 import kotlinx.coroutines.CoroutineScope
@@ -64,6 +65,9 @@ class SitePermissionsFeature(
     private val sessionManager: SessionManager,
     private val storage: SitePermissionsStorage = SitePermissionsStorage(anchorView.context),
     var sitePermissionsRules: SitePermissionsRules? = null,
+    private val fragmentManager: FragmentManager,
+    var promptsStyling: PromptsStyling? = null,
+    var customTabSessionId: String? = null,
     private val onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature {
 
@@ -71,7 +75,7 @@ class SitePermissionsFeature(
     internal val ioCoroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
 
     override fun start() {
-        observer.observeSelected()
+        observer.observeIdOrSelected(customTabSessionId)
     }
 
     override fun stop() {
@@ -110,7 +114,7 @@ class SitePermissionsFeature(
      * @param shouldStore indicates weather the permission should be stored.
      * If it's true none prompt will show otherwise the prompt will be shown.
      */
-    private fun onContentPermissionGranted(
+    internal fun onContentPermissionGranted(
         session: Session,
         grantedPermissions: List<Permission>,
         shouldStore: Boolean
@@ -152,7 +156,7 @@ class SitePermissionsFeature(
      * @param session the session which requested the permissions.
      * @param shouldStore indicates weather the permission should be stored.
      */
-    private fun onContentPermissionDeny(session: Session, shouldStore: Boolean) {
+    internal fun onContentPermissionDeny(session: Session, shouldStore: Boolean) {
         session.contentPermissionRequest.consume { request ->
             request.reject()
 
@@ -322,7 +326,7 @@ class SitePermissionsFeature(
             createVideoAndAudioPrompt(host, allowButton, denyButton)
         }
 
-        prompt.createDoorhanger(context).show(anchorView)
+       // prompt.createDoorhanger(context).show(anchorView)
 
         return prompt
     }
@@ -440,6 +444,15 @@ class SitePermissionsFeature(
             controlGroups += ControlGroup(controls = listOf(checkBox))
         }
 
+        val dialog = SitePermissionsDialogFragment.newInstance(
+            "sessionID",
+            title,
+            iconId,
+            this,
+            shouldIncludeDoNotAskAgainCheckBox
+        )
+        dialog.show(fragmentManager,"tag")
+
         return DoorhangerPrompt(
             title = title,
             icon = drawable,
@@ -494,6 +507,11 @@ class SitePermissionsFeature(
             return feature.onAppPermissionRequested(permissionRequest)
         }
     }
+
+    data class PromptsStyling(
+        val gravity: Int,
+        val shouldWithMatchParent: Boolean = false
+    )
 }
 
 internal fun SitePermissions?.isGranted(permissionRequest: PermissionRequest): Boolean {

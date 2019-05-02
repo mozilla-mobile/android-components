@@ -4,11 +4,11 @@
 
 package mozilla.components.service.glean
 
-import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import mozilla.components.service.glean.GleanMetrics.GleanBaseline
@@ -52,7 +52,7 @@ open class GleanInternalAPI internal constructor () {
     internal var initialized = false
     private var uploadEnabled = true
 
-    // The application id detected by glean to be used as part of the submission
+    // The application id detected by Glean to be used as part of the submission
     // endpoint.
     internal lateinit var applicationId: String
 
@@ -63,10 +63,10 @@ open class GleanInternalAPI internal constructor () {
     internal lateinit var pingStorageEngine: PingStorageEngine
 
     /**
-     * Initialize glean.
+     * Initialize Glean.
      *
      * This should only be initialized once by the application, and not by
-     * libraries using glean. A message is logged to error and no changes are made
+     * libraries using Glean. A message is logged to error and no changes are made
      * to the state if initialize is called a more than once.
      *
      * A LifecycleObserver will be added to send pings when the application goes
@@ -85,6 +85,8 @@ open class GleanInternalAPI internal constructor () {
             return
         }
 
+        registerPings(Pings)
+
         storageEngineManager = StorageEngineManager(applicationContext = applicationContext)
         pingMaker = PingMaker(storageEngineManager, applicationContext)
         this.configuration = configuration
@@ -101,7 +103,7 @@ open class GleanInternalAPI internal constructor () {
         // Deal with any pending events so we can start recording new ones
         EventsStorageEngine.onReadyToSendPings(applicationContext)
 
-        // Set up information and scheduling for glean owned pings. Ideally, the "metrics"
+        // Set up information and scheduling for Glean owned pings. Ideally, the "metrics"
         // ping startup check should be performed before any other ping, since it relies
         // on being dispatched to the API context before any other metric.
         metricsPingScheduler = MetricsPingScheduler(applicationContext)
@@ -119,7 +121,19 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
-     * Enable or disable glean collection and upload.
+     * Register the pings generated from `pings.yaml` with Glean.
+     *
+     * @param pings The `Pings` object generated for your library or application
+     * by Glean.
+     */
+    fun registerPings(pings: Any) {
+        // Instantiating the Pings object to send this function is enough to
+        // call the constructor and have it registered in [PingType.pingRegistry].
+        logger.info("Registering pings for ${pings.javaClass.canonicalName}")
+    }
+
+    /**
+     * Enable or disable Glean collection and upload.
      *
      * Metric collection is enabled by default.
      *
@@ -134,7 +148,7 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
-     * Get whether or not glean is allowed to record and upload data.
+     * Get whether or not Glean is allowed to record and upload data.
      */
     fun getUploadEnabled(): Boolean {
         return uploadEnabled
@@ -401,7 +415,7 @@ open class GleanInternalAPI internal constructor () {
 
     /**
      * Collect and assemble the ping and serialize the ping to be read when uploaded, but only if
-     * glean is initialized, upload is enabled, and there is ping data to send.
+     * Glean is initialized, upload is enabled, and there is ping data to send.
      *
      * @param ping This is the object describing the ping
      */
@@ -417,7 +431,7 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
-     * Should be called from all users of the glean testing API.
+     * Should be called from all users of the Glean testing API.
      *
      * This makes all asynchronous work synchronous so we can test the results of the
      * API synchronously.

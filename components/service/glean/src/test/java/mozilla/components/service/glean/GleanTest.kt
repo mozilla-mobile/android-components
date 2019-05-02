@@ -4,10 +4,10 @@
 
 package mozilla.components.service.glean
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleOwner
-import android.arch.lifecycle.LifecycleRegistry
 import android.content.Context
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -86,7 +86,7 @@ class GleanTest {
         assertEquals(false, Glean.getUploadEnabled())
         stringMetric.set("foo")
         assertNull(
-                "Metrics should not be recorded if glean is disabled",
+                "Metrics should not be recorded if Glean is disabled",
                 StringsStorageEngine.getSnapshot(storeName = "store1", clearStore = false)
         )
     }
@@ -222,7 +222,7 @@ class GleanTest {
         Glean.initialized = false
         stringMetric.set("foo")
         assertNull(
-            "Metrics should not be recorded if glean is not initialized",
+            "Metrics should not be recorded if Glean is not initialized",
             StringsStorageEngine.getSnapshot(storeName = "store1", clearStore = false)
         )
 

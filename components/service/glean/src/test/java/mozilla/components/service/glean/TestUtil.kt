@@ -11,7 +11,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
-import junit.framework.Assert.assertTrue
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Headers
 import mozilla.components.concept.fetch.MutableHeaders
@@ -20,6 +21,7 @@ import mozilla.components.concept.fetch.Response
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.firstrun.FileFirstRunDetector
 import mozilla.components.service.glean.ping.PingMaker
+import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.scheduler.PingUploadWorker
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
@@ -31,7 +33,7 @@ import java.io.File
 import java.util.concurrent.ExecutionException
 
 /**
- * Checks ping content against the glean ping schema.
+ * Checks ping content against the Glean ping schema.
  *
  * This uses the Python utility, glean_parser, to perform the actual checking.
  * This is installed in its own Miniconda environment as part of the build
@@ -74,7 +76,7 @@ internal fun checkPingSchema(content: JSONObject) {
 }
 
 /**
- * Checks ping content against the glean ping schema.
+ * Checks ping content against the Glean ping schema.
  *
  * This uses the Python utility, glean_parser, to perform the actual checking.
  * This is installed in its own Miniconda environment as part of the build
@@ -91,26 +93,26 @@ internal fun checkPingSchema(content: String): JSONObject {
 }
 
 /**
- * Collects a specified ping type and checks it against the glean ping schema.
+ * Collects a specified ping type and checks it against the Glean ping schema.
  *
- * @param storeName The name of the ping to check
+ * @param ping The ping to check
  * @return the ping contents, in a JSONObject
  * @throws AssertionError If the JSON content is not valid
  */
-internal fun collectAndCheckPingSchema(storeName: String): JSONObject {
+internal fun collectAndCheckPingSchema(ping: PingType): JSONObject {
     val appContext = ApplicationProvider.getApplicationContext<Context>()
     val jsonString = PingMaker(
         StorageEngineManager(applicationContext = appContext),
         appContext
-    ).collect(storeName)!!
+    ).collect(ping)!!
     return checkPingSchema(jsonString)
 }
 
 /**
- * Resets the glean state and trigger init again.
+ * Resets the Glean state and trigger init again.
  *
- * @param context the application context to init glean with
- * @param config the [Configuration] to init glean with
+ * @param context the application context to init Glean with
+ * @param config the [Configuration] to init Glean with
  * @param clearStores if true, clear the contents of all stores
  */
 internal fun resetGlean(
@@ -120,7 +122,7 @@ internal fun resetGlean(
 ) {
     Glean.enableTestingMode()
 
-    // We're using the WorkManager in a bunch of places, and glean will crash
+    // We're using the WorkManager in a bunch of places, and Glean will crash
     // in tests without this line. Let's simply put it here.
     WorkManagerTestInitHelper.initializeTestWorkManager(context)
 
@@ -136,7 +138,7 @@ internal fun resetGlean(
     // Clear the "first run" flag.
     val firstRun = FileFirstRunDetector(File(context.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR))
     firstRun.reset()
-    // Init glean.
+    // Init Glean.
     Glean.initialized = false
     Glean.setUploadEnabled(true)
     Glean.initialize(context, config)
@@ -146,7 +148,7 @@ internal fun resetGlean(
  * Get a context that contains [PackageInfo.versionName] mocked to
  * "glean.version.name".
  *
- * @return an application [Context] that can be used to init glean
+ * @return an application [Context] that can be used to init Glean
  */
 internal fun getContextWithMockedInfo(): Context {
     val context = Mockito.spy<Context>(ApplicationProvider.getApplicationContext<Context>())
@@ -185,6 +187,24 @@ internal fun isWorkScheduled(tag: String): Boolean {
 }
 
 /**
+ * Wait for a specifically tagged [WorkManager]'s Worker to be enqueued.
+ *
+ * @param workTag the tag of the expected Worker
+ * @param timeoutMillis how log before stopping the wait. This defaults to 5000ms (5 seconds).
+ */
+internal fun waitForEnqueuedWorker(workTag: String, timeoutMillis: Long = 5000) = runBlocking {
+    runBlocking {
+        withTimeout(timeoutMillis) {
+            do {
+                if (isWorkScheduled(workTag)) {
+                    return@withTimeout
+                }
+            } while (true)
+        }
+    }
+}
+
+/**
  * Helper function to simulate WorkManager being triggered since there appears to be a bug in
  * the current WorkManager test utilites that prevent it from being triggered by a test.  Once this
  * is fixed, the contents of this can be amended to trigger WorkManager directly.
@@ -196,7 +216,7 @@ internal fun triggerWorkManager() {
 
     // Since WorkManager does not properly run in tests, simulate the work being done
     // We also assertTrue here to ensure that uploadPings() was successful
-    assertTrue("Upload Pings must return true", PingUploadWorker.uploadPings())
+    Assert.assertTrue("Upload Pings must return true", PingUploadWorker.uploadPings())
 }
 
 /**

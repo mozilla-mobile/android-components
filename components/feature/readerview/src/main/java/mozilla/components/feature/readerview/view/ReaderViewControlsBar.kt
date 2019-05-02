@@ -7,15 +7,16 @@
 package mozilla.components.feature.readerview.view
 
 import android.content.Context
-import android.support.annotation.IdRes
-import android.support.constraint.ConstraintLayout
-import android.support.v7.widget.AppCompatButton
+import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.View
 import android.widget.RadioGroup
+import androidx.annotation.IdRes
+import androidx.appcompat.widget.AppCompatButton
+import androidx.constraintlayout.widget.ConstraintLayout
 import mozilla.components.feature.readerview.R
-import mozilla.components.feature.readerview.ReaderViewFeature.Config.ColorScheme
-import mozilla.components.feature.readerview.ReaderViewFeature.Config.FontType
+import mozilla.components.feature.readerview.ReaderViewFeature.ColorScheme
+import mozilla.components.feature.readerview.ReaderViewFeature.FontType
 
 const val MAX_TEXT_SIZE = 9
 const val MIN_TEXT_SIZE = 1
@@ -53,7 +54,7 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     override fun setFont(font: FontType) {
         val selected = when (font) {
             FontType.SERIF -> R.id.mozac_feature_readerview_font_serif
-            FontType.SANS_SERIF -> R.id.mozac_feature_readerview_font_sans_serif
+            FontType.SANSSERIF -> R.id.mozac_feature_readerview_font_sans_serif
         }
         fontGroup.check(selected)
     }
@@ -98,7 +99,7 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     }
 
     /**
-     * Requests visibility and focus of the UI controls.
+     * Updates visibility to [View.VISIBLE] and requests focus for the UI controls.
      */
     override fun showControls() {
         visibility = View.VISIBLE
@@ -106,16 +107,24 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     }
 
     /**
-     * Requests invisibility of the UI controls.
+     * Updates visibility to [View.GONE] of the UI controls.
      */
     override fun hideControls() {
         visibility = View.GONE
     }
 
+    override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
+        if (!gainFocus) {
+            hideControls()
+        }
+        super.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
+    }
+
+    @Suppress("ComplexMethod")
     private fun bindViews() {
         fontGroup = applyCheckedListener(R.id.mozac_feature_readerview_font_group) { checkedId ->
             val fontType = when (checkedId) {
-                R.id.mozac_feature_readerview_font_sans_serif -> FontType.SANS_SERIF
+                R.id.mozac_feature_readerview_font_sans_serif -> FontType.SANSSERIF
                 R.id.mozac_feature_readerview_font_serif -> FontType.SERIF
                 else -> FontType.SERIF
             }
@@ -131,10 +140,10 @@ class ReaderViewControlsBar @JvmOverloads constructor(
             listener?.onColorSchemeChanged(colorSchemeChoice)
         }
         fontIncrementButton = applyClickListener(R.id.mozac_feature_readerview_font_size_increase) {
-            listener?.onFontSizeIncreased()
+            listener?.onFontSizeIncreased()?.let { setFontSize(it) }
         }
         fontDecrementButton = applyClickListener(R.id.mozac_feature_readerview_font_size_decrease) {
-            listener?.onFontSizeDecreased()
+            listener?.onFontSizeDecreased()?.let { setFontSize(it) }
         }
     }
 

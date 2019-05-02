@@ -1,8 +1,8 @@
 package mozilla.components.browser.errorpages
 
 import android.content.Context
-import android.support.annotation.RawRes
-import android.support.annotation.StringRes
+import androidx.annotation.RawRes
+import androidx.annotation.StringRes
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,6 +28,7 @@ object ErrorPages {
             .bufferedReader()
             .use { it.readText() }
             .replace("%pageTitle%", context.getString(R.string.mozac_browser_errorpages_page_title))
+            .replace("%backButton%", context.getString(R.string.mozac_browser_errorpages_page_go_back))
             .replace("%button%", context.getString(R.string.mozac_browser_errorpages_page_refresh))
             .replace("%messageShort%", context.getString(errorType.titleRes))
             .replace("%messageLong%", context.getString(errorType.messageRes, uri))

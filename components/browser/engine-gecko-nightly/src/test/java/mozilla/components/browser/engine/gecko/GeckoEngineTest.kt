@@ -11,7 +11,6 @@ import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.UnsupportedSettingException
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
-import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
@@ -71,6 +70,7 @@ class GeckoEngineTest {
         `when`(runtimeSettings.automaticFontSizeAdjustment).thenReturn(true)
         `when`(runtimeSettings.contentBlocking).thenReturn(contentBlockingSettings)
         `when`(runtimeSettings.preferredColorScheme).thenReturn(GeckoRuntimeSettings.COLOR_SCHEME_SYSTEM)
+        `when`(runtimeSettings.autoplayDefault).thenReturn(GeckoRuntimeSettings.AUTOPLAY_DEFAULT_ALLOWED)
         `when`(runtime.settings).thenReturn(runtimeSettings)
         val engine = GeckoEngine(context, runtime = runtime, defaultSettings = defaultSettings)
 
@@ -97,6 +97,10 @@ class GeckoEngineTest {
         assertEquals(PreferredColorScheme.System, engine.settings.preferredColorScheme)
         engine.settings.preferredColorScheme = PreferredColorScheme.Dark
         verify(runtimeSettings).preferredColorScheme = PreferredColorScheme.Dark.toGeckoValue()
+
+        assertTrue(engine.settings.allowAutoplayMedia)
+        engine.settings.allowAutoplayMedia = false
+        verify(runtimeSettings).autoplayDefault = GeckoRuntimeSettings.AUTOPLAY_DEFAULT_BLOCKED
 
         // Specifying no ua-string default should result in GeckoView's default.
         assertEquals(GeckoSession.getDefaultUserAgent(), engine.settings.userAgentString)
@@ -137,6 +141,7 @@ class GeckoEngineTest {
         `when`(runtimeSettings.javaScriptEnabled).thenReturn(true)
         `when`(runtime.settings).thenReturn(runtimeSettings)
         `when`(runtimeSettings.contentBlocking).thenReturn(contentBlockingSettings)
+        `when`(runtimeSettings.autoplayDefault).thenReturn(GeckoRuntimeSettings.AUTOPLAY_DEFAULT_BLOCKED)
 
         val engine = GeckoEngine(context,
             DefaultSettings(
@@ -147,13 +152,16 @@ class GeckoEngineTest {
                 remoteDebuggingEnabled = true,
                 testingModeEnabled = true,
                 userAgentString = "test-ua",
-                preferredColorScheme = PreferredColorScheme.Light
+                preferredColorScheme = PreferredColorScheme.Light,
+                allowAutoplayMedia = false
             ), runtime)
 
         verify(runtimeSettings).javaScriptEnabled = false
         verify(runtimeSettings).webFontsEnabled = false
         verify(runtimeSettings).automaticFontSizeAdjustment = false
         verify(runtimeSettings).remoteDebuggingEnabled = true
+        verify(runtimeSettings).autoplayDefault = GeckoRuntimeSettings.AUTOPLAY_DEFAULT_BLOCKED
+
         assertEquals(TrackingProtectionPolicy.select(
             TrackingProtectionPolicy.AD,
             TrackingProtectionPolicy.SOCIAL,
@@ -166,6 +174,7 @@ class GeckoEngineTest {
         assertTrue(engine.settings.testingModeEnabled)
         assertEquals("test-ua", engine.settings.userAgentString)
         assertEquals(PreferredColorScheme.Light, engine.settings.preferredColorScheme)
+        assertFalse(engine.settings.allowAutoplayMedia)
     }
 
     @Test
@@ -189,7 +198,8 @@ class GeckoEngineTest {
 
         `when`(runtime.registerWebExtension(any())).thenReturn(result)
         engine.installWebExtension(
-                WebExtension("test-webext", "resource://android/assets/extensions/test"),
+                "test-webext",
+                "resource://android/assets/extensions/test",
                 onSuccess = { onSuccessCalled = true },
                 onError = { _, _ -> onErrorCalled = true }
         )
@@ -199,6 +209,34 @@ class GeckoEngineTest {
         verify(runtime).registerWebExtension(extCaptor.capture())
         assertEquals("test-webext", extCaptor.value.id)
         assertEquals("resource://android/assets/extensions/test", extCaptor.value.location)
+        assertEquals(GeckoWebExtension.Flags.ALLOW_CONTENT_MESSAGING, extCaptor.value.flags)
+        assertTrue(onSuccessCalled)
+        assertFalse(onErrorCalled)
+    }
+
+    @Test
+    fun `install web extension successfully but do not allow content messaging`() {
+        val runtime = mock(GeckoRuntime::class.java)
+        val engine = GeckoEngine(context, runtime = runtime)
+        var onSuccessCalled = false
+        var onErrorCalled = false
+        var result = GeckoResult<Void>()
+
+        `when`(runtime.registerWebExtension(any())).thenReturn(result)
+        engine.installWebExtension(
+                "test-webext",
+                "resource://android/assets/extensions/test",
+                allowContentMessaging = false,
+                onSuccess = { onSuccessCalled = true },
+                onError = { _, _ -> onErrorCalled = true }
+        )
+        result.complete(null)
+
+        val extCaptor = argumentCaptor<GeckoWebExtension>()
+        verify(runtime).registerWebExtension(extCaptor.capture())
+        assertEquals("test-webext", extCaptor.value.id)
+        assertEquals("resource://android/assets/extensions/test", extCaptor.value.location)
+        assertEquals(GeckoWebExtension.Flags.NONE, extCaptor.value.flags)
         assertTrue(onSuccessCalled)
         assertFalse(onErrorCalled)
     }
@@ -213,7 +251,7 @@ class GeckoEngineTest {
 
         var throwable: Throwable? = null
         `when`(runtime.registerWebExtension(any())).thenReturn(result)
-        engine.installWebExtension(WebExtension("test-webext-error", "resource://android/assets/extensions/error")) { _, e ->
+        engine.installWebExtension("test-webext-error", "resource://android/assets/extensions/error") { _, e ->
             onErrorCalled = true
             throwable = e
         }

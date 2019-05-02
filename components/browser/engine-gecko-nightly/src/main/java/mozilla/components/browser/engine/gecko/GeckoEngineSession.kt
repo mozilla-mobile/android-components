@@ -21,6 +21,7 @@ import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
+import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
@@ -302,7 +303,19 @@ class GeckoEngineSession(
                     is InterceptionResponse.Url -> loadUrl(url)
                 }
             }
-            return GeckoResult.fromValue(if (response != null) AllowOrDeny.DENY else AllowOrDeny.ALLOW)
+
+            return if (response != null) {
+                GeckoResult.fromValue(AllowOrDeny.DENY)
+            } else {
+                notifyObservers {
+                    // Unlike the name LoadRequest.isRedirect may imply this flag is not about http redirects. The flag
+                    // is "true if and only if the request was triggered by user interaction."
+                    // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1545170
+                    onLoadRequest(triggeredByUserInteraction = request.isRedirect)
+                }
+
+                GeckoResult.fromValue(AllowOrDeny.ALLOW)
+            }
         }
 
         override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) {
@@ -381,27 +394,47 @@ class GeckoEngineSession(
 
     @Suppress("ComplexMethod")
     internal fun createHistoryDelegate() = object : GeckoSession.HistoryDelegate {
+        @SuppressWarnings("ReturnCount")
         override fun onVisited(
             session: GeckoSession,
             url: String,
             lastVisitedURL: String?,
             flags: Int
         ): GeckoResult<Boolean>? {
+            // Don't track:
+            // - private visits
+            // - error pages
+            // - non-top level visits (i.e. iframes).
             if (privateMode ||
                 (flags and GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL) == 0 ||
                 (flags and GeckoSession.HistoryDelegate.VISIT_UNRECOVERABLE_ERROR) != 0) {
-
-                // Don't track visits in private mode, redirects, or error
-                // pages, even if they're top-level visits.
                 return GeckoResult.fromValue(false)
+            }
+
+            val isReload = lastVisitedURL?.let { it == url } ?: false
+
+            val visitType = if (isReload) {
+                VisitType.RELOAD
+            } else {
+                if (flags and GeckoSession.HistoryDelegate.VISIT_REDIRECT_SOURCE_PERMANENT != 0) {
+                    VisitType.REDIRECT_PERMANENT
+                } else if (flags and GeckoSession.HistoryDelegate.VISIT_REDIRECT_SOURCE != 0) {
+                    VisitType.REDIRECT_TEMPORARY
+                } else {
+                    VisitType.LINK
+                }
             }
 
             val delegate = settings.historyTrackingDelegate ?: return GeckoResult.fromValue(false)
 
-            val isReload = lastVisitedURL?.let { it == url } ?: false
+            // Check if the delegate wants this type of url.
+            if (!delegate.shouldStoreUri(url)) {
+                return GeckoResult.fromValue(false)
+            }
+
             val result = GeckoResult<Boolean>()
             launch {
-                delegate.onVisited(url, isReload)
+                delegate.onVisited(url, visitType)
                 result.complete(true)
             }
             return result
@@ -600,7 +633,7 @@ class GeckoEngineSession(
          * Provides an ErrorType corresponding to the error code provided.
          */
         @Suppress("ComplexMethod")
-        internal fun geckoErrorToErrorType(@WebRequestError.Error errorCode: Int) =
+        internal fun geckoErrorToErrorType(errorCode: Int) =
             when (errorCode) {
                 WebRequestError.ERROR_UNKNOWN -> ErrorType.UNKNOWN
                 WebRequestError.ERROR_SECURITY_SSL -> ErrorType.ERROR_SECURITY_SSL

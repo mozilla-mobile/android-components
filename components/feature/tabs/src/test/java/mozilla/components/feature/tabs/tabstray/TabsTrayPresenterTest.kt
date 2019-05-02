@@ -4,7 +4,7 @@
 
 package mozilla.components.feature.tabs.tabstray
 
-import android.arch.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleOwner
 import android.view.View
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
@@ -232,9 +232,9 @@ class TabsTrayPresenterTest {
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
         val presenter = TabsTrayPresenter(tabsTray, sessionManager, mock())
 
+        presenter.start()
         presenter.calculateDiffAndUpdateTabsTray()
 
-        verify(tabsTray).displaySessions(anyList(), anyInt())
         verify(tabsTray).updateSessions(anyList(), anyInt())
     }
 
@@ -248,6 +248,7 @@ class TabsTrayPresenterTest {
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
         val presenter = TabsTrayPresenter(tabsTray, sessionManager, mock(), { it.private })
 
+        presenter.start()
         presenter.calculateDiffAndUpdateTabsTray()
 
         assertTrue(tabsTray.displaySessionsList?.size == 1)

@@ -4,11 +4,11 @@
 
 package mozilla.components.service.glean
 
-import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import mozilla.components.service.glean.GleanMetrics.GleanBaseline
@@ -18,7 +18,9 @@ import java.util.UUID
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.firstrun.FileFirstRunDetector
 import mozilla.components.service.glean.GleanMetrics.GleanInternalMetrics
+import mozilla.components.service.glean.GleanMetrics.Pings
 import mozilla.components.service.glean.ping.PingMaker
+import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.scheduler.GleanLifecycleObserver
 import mozilla.components.service.glean.scheduler.MetricsPingScheduler
 import mozilla.components.service.glean.scheduler.PingUploadWorker
@@ -50,7 +52,7 @@ open class GleanInternalAPI internal constructor () {
     internal var initialized = false
     private var uploadEnabled = true
 
-    // The application id detected by glean to be used as part of the submission
+    // The application id detected by Glean to be used as part of the submission
     // endpoint.
     internal lateinit var applicationId: String
 
@@ -60,20 +62,11 @@ open class GleanInternalAPI internal constructor () {
 
     internal lateinit var pingStorageEngine: PingStorageEngine
 
-    companion object {
-        internal const val BASELINE_STORE_NAME = "baseline"
-        internal val BUILTIN_PINGNAMES = listOf(
-            BASELINE_STORE_NAME,
-            MetricsPingScheduler.STORE_NAME,
-            "events"
-        )
-    }
-
     /**
-     * Initialize glean.
+     * Initialize Glean.
      *
      * This should only be initialized once by the application, and not by
-     * libraries using glean. A message is logged to error and no changes are made
+     * libraries using Glean. A message is logged to error and no changes are made
      * to the state if initialize is called a more than once.
      *
      * A LifecycleObserver will be added to send pings when the application goes
@@ -92,6 +85,11 @@ open class GleanInternalAPI internal constructor () {
             return
         }
 
+        // Explicitly instantiate the Pings object so the built-in pings will be
+        // added to the ping registry.  This allows the GleanDebugActivity to look
+        // up pings by name.
+        @Suppress("UNUSED_VARIABLE") var pings = Pings
+
         storageEngineManager = StorageEngineManager(applicationContext = applicationContext)
         pingMaker = PingMaker(storageEngineManager, applicationContext)
         this.configuration = configuration
@@ -108,7 +106,7 @@ open class GleanInternalAPI internal constructor () {
         // Deal with any pending events so we can start recording new ones
         EventsStorageEngine.onReadyToSendPings(applicationContext)
 
-        // Set up information and scheduling for glean owned pings. Ideally, the "metrics"
+        // Set up information and scheduling for Glean owned pings. Ideally, the "metrics"
         // ping startup check should be performed before any other ping, since it relies
         // on being dispatched to the API context before any other metric.
         metricsPingScheduler = MetricsPingScheduler(applicationContext)
@@ -126,7 +124,7 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
-     * Enable or disable glean collection and upload.
+     * Enable or disable Glean collection and upload.
      *
      * Metric collection is enabled by default.
      *
@@ -141,7 +139,7 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
-     * Get whether or not glean is allowed to record and upload data.
+     * Get whether or not Glean is allowed to record and upload data.
      */
     fun getUploadEnabled(): Boolean {
         return uploadEnabled
@@ -336,111 +334,95 @@ open class GleanInternalAPI internal constructor () {
      */
     fun handleBackgroundEvent() {
         // Schedule the baseline and event pings
-        sendPingsInternal(listOf(BASELINE_STORE_NAME, "events"))
+        sendPings(listOf(Pings.baseline, Pings.events))
     }
 
     /**
-     * Send a list of pings by name.
+     * Send a list of pings.
      *
-     * Only custom pings (pings not managed by Glean itself) will be sent by
-     * this function. If the name of a Glean-managed ping is passed in, an
-     * error is logged to logcat.
-     *
-     * While the collection of metrics into pings happens synchronously, the
-     * ping queuing and ping uploading happens asyncronously.
-     * There are no guarantees that this will happen immediately.
+     * The ping content is assembled as soon as possible, but upload is not
+     * guaranteed to happen immediately, as that depends on the upload
+     * policies.
      *
      * If the ping currently contains no content, it will not be sent.
      *
-     * @param pingNames List of pings to send.
-     * @return true if any pings had content and were queued for uploading
+     * @param pings List of pings to send.
+     * @return The async Job performing the work of assembling the ping
      */
-    public fun sendPings(pingNames: List<String>): Boolean {
-        val pingsToSend = pingNames.filter { pingName ->
-            if (BUILTIN_PINGNAMES.contains(pingName)) {
-                logger.error("Attempted to send built-in ping $pingName")
-                false
-            } else {
-                true
-            }
-        }
-
-        return sendPingsInternal(pingsToSend)
-    }
-
-    /**
-     * Send a list of pings by name.
-     *
-     * While the collection of metrics into pings happens synchronously, the
-     * ping queuing and ping uploading happens asyncronously.
-     * There are no guarantees that this will happen immediately.
-     *
-     *
-     * If the ping currently contains no content, it will not be sent.
-     *
-     * @param pingNames List of pings to send.
-     * @return true if any pings had content and were queued for uploading
-     */
-    internal fun sendPingsInternal(pingNames: List<String>): Boolean {
+    internal fun sendPings(pings: List<PingType>) = Dispatchers.API.launch {
         if (!isInitialized()) {
             logger.error("Glean must be initialized before sending pings.")
-            return false
+            return@launch
         }
 
         if (!uploadEnabled) {
             logger.error("Glean must be enabled before sending pings.")
-            return false
+            return@launch
         }
 
-        val pingSerializationTasks: MutableList<Job> = mutableListOf()
-        for (pingName in pingNames) {
-            assembleAndSerializePing(pingName)?.let {
+        val pingSerializationTasks = mutableListOf<Job>()
+        for (ping in pings) {
+            assembleAndSerializePing(ping)?.let {
                 pingSerializationTasks.add(it)
-            } ?: run {
-                if (!BUILTIN_PINGNAMES.contains(pingName)) {
-                    logger.debug(
-                        "No content for custom ping {pingName}, therefore no ping queued."
-                    )
-                }
-            }
+            } ?: logger.debug("No content for ping '$ping.name', therefore no ping queued.")
         }
 
-        // If there are any pings to serialize, await the IO in a background thread before we
-        // enqueue the PingUploadWorker
+        // If any ping is being serialized to disk, wait for the to finish before spinning up
+        // the WorkManager upload job.
         if (pingSerializationTasks.any()) {
-            // Await the serialization tasks in a background thread as they run blocking and we
-            // don't necessarily want to block any calling thread.  Once the serialization tasks
-            // have all completed, we can then safely enqueue the PingUploadWorker
-            Dispatchers.API.launch {
-                pingSerializationTasks.joinAll()
-                PingUploadWorker.enqueueWorker()
+            // Await the serialization tasks. Once the serialization tasks have all completed,
+            // we can then safely enqueue the PingUploadWorker.
+            pingSerializationTasks.joinAll()
+            PingUploadWorker.enqueueWorker()
+        }
+    }
+
+    /**
+     * Send a list of pings by name.
+     *
+     * Each ping will be looked up in the known instances of [PingType]. If the
+     * ping isn't known, an error is logged and the ping isn't queued for uploading.
+     *
+     * The ping content is assembled as soon as possible, but upload is not
+     * guaranteed to happen immediately, as that depends on the upload
+     * policies.
+     *
+     * If the ping currently contains no content, it will not be sent.
+     *
+     * @param pingNames List of ping names to send.
+     * @return The async Job performing the work of assembling the ping
+     */
+    internal fun sendPingsByName(pingNames: List<String>): Job? {
+        val pings = pingNames.mapNotNull { pingName ->
+            PingType.pingRegistry.get(pingName)?.let {
+                it
+            } ?: run {
+                logger.error("Attempted to send unknown ping '$pingName'")
+                null
             }
         }
-
-        // Return whether or not we uploaded any pings.  Even though the tasks have joined, the
-        // list will not be empty if there were any serialization/uploads done.
-        return pingSerializationTasks.any()
+        return sendPings(pings)
     }
 
     /**
      * Collect and assemble the ping and serialize the ping to be read when uploaded, but only if
-     * glean is initialized, upload is enabled, and there is ping data to send.
+     * Glean is initialized, upload is enabled, and there is ping data to send.
      *
-     * @param pingName This is the ping store/name for which to build and schedule the ping
+     * @param ping This is the object describing the ping
      */
-    internal fun assembleAndSerializePing(pingName: String): Job? {
+    internal fun assembleAndSerializePing(ping: PingType): Job? {
         // Since the pingMaker.collect() function returns null if there is nothing to send we can
         // use this to avoid sending an empty ping
-        return pingMaker.collect(pingName)?.let { pingContent ->
+        return pingMaker.collect(ping)?.let { pingContent ->
             // Store the serialized ping to file for PingUploadWorker to read and upload when the
             // schedule is triggered
             val pingId = UUID.randomUUID()
-            pingStorageEngine.store(pingId, makePath(pingName, pingId), pingContent)
+            pingStorageEngine.store(pingId, makePath(ping.name, pingId), pingContent)
         }
     }
 
     /**
-     * Should be called from all users of the glean testing API.
+     * Should be called from all users of the Glean testing API.
      *
      * This makes all asynchronous work synchronous so we can test the results of the
      * API synchronously.
@@ -448,7 +430,7 @@ open class GleanInternalAPI internal constructor () {
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun enableTestingMode() {
         @Suppress("EXPERIMENTAL_API_USAGE")
-        Dispatchers.API.enableTestingMode()
+        Dispatchers.API.setTestingMode(enabled = true)
     }
 }
 

@@ -7,7 +7,7 @@ package mozilla.components.service.experiments
 import android.content.Context
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.service.glean.Glean
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.glean.GleanInternalAPI
 import java.io.File
 
@@ -32,10 +32,13 @@ open class ExperimentsInternalAPI internal constructor() {
     internal var activeExperiment: ActiveExperiment? = null
 
     private lateinit var storage: FlatFileExperimentStorage
-    private lateinit var updater: ExperimentsUpdater
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal lateinit var updater: ExperimentsUpdater
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var isInitialized = false
+
+    internal lateinit var configuration: Configuration
 
     /**
      * Initialize the experiments library.
@@ -59,6 +62,8 @@ open class ExperimentsInternalAPI internal constructor() {
             logger.error("Glean library must be initialized first")
             return
         }
+
+        this.configuration = configuration
 
         experimentsResult = ExperimentsSnapshot(listOf(), null)
         experimentsLoaded = false
@@ -136,7 +141,6 @@ open class ExperimentsInternalAPI internal constructor() {
      * Requests new experiments from the server and
      * saves them to local storage
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     @Synchronized
     internal fun onExperimentsUpdated(serverState: ExperimentsSnapshot) {
         assert(experimentsLoaded) { "Experiments should have been loaded." }

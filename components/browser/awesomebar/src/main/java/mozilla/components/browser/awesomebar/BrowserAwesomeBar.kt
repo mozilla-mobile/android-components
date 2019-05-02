@@ -5,12 +5,12 @@
 package mozilla.components.browser.awesomebar
 
 import android.content.Context
-import android.support.annotation.MainThread
-import android.support.annotation.VisibleForTesting
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
 import android.util.LruCache
+import androidx.annotation.MainThread
+import androidx.annotation.VisibleForTesting
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -68,7 +68,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     var transformer: SuggestionTransformer? = null
 
     init {
-        layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
+        layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
         adapter = suggestionsAdapter
 
         val attr = context.obtainStyledAttributes(attrs, R.styleable.BrowserAwesomeBar, defStyleAttr, 0)
@@ -87,7 +87,6 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
         this.providers.addAll(providers)
         this.resizeUniqueSuggestionIdCache(this.providers.size)
-        scrollToPosition(0)
     }
 
     @Synchronized
@@ -115,22 +114,12 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     @Synchronized
     override fun onInputStarted() {
-        // Make sure we're always displaying first suggestions at the top of the screen after input
-        // changes. Without this manual scroll, we might end with UI "scrolled" to a middle of the
-        // suggestions list.
-        scrollToPosition(0)
-
         providers.forEach { provider -> provider.onInputStarted() }
     }
 
     @Synchronized
     override fun onInputChanged(text: String) {
         job?.cancel()
-
-        // Make sure we're always displaying first suggestions at the top of the screen after input
-        // changes. Without this manual scroll, we might end with UI "scrolled" to a middle of the
-        // suggestions list.
-        scrollToPosition(0)
 
         suggestionsAdapter.optionallyClearSuggestions()
 

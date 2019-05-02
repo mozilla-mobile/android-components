@@ -8,8 +8,8 @@ import android.net.Uri
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -20,14 +20,6 @@ import java.util.Calendar.MILLISECOND
 class StringTest {
 
     @Test
-    fun toNormalizedUrl() {
-        val expectedUrl = "http://mozilla.org"
-        assertEquals(expectedUrl, "http://mozilla.org".toNormalizedUrl())
-        assertEquals(expectedUrl, "  http://mozilla.org  ".toNormalizedUrl())
-        assertEquals(expectedUrl, "mozilla.org".toNormalizedUrl())
-    }
-
-    @Test
     fun isUrl() {
         assertTrue("mozilla.org".isUrl())
         assertTrue(" mozilla.org ".isUrl())
@@ -36,16 +28,28 @@ class StringTest {
         assertTrue("file://somefile.txt".isUrl())
         assertTrue("http://mozilla".isUrl())
         assertTrue("http://192.168.255.255".isUrl())
+        assertTrue("about:crashcontent".isUrl())
+        assertTrue(" about:crashcontent ".isUrl())
+        assertTrue("sample:about ".isUrl())
 
         assertFalse("mozilla".isUrl())
         assertFalse("mozilla android".isUrl())
         assertFalse(" mozilla android ".isUrl())
         assertFalse("Tweet:".isUrl())
         assertFalse("inurl:mozilla.org advanced search".isUrl())
+        assertFalse("what is about:crashes".isUrl())
 
         val extraText = "Check out @asa’s Tweet: https://twitter.com/asa/status/123456789?s=09"
         val url = extraText.split(" ").find { it.isUrl() }
         assertNotEquals("Tweet:", url)
+    }
+
+    @Test
+    fun toNormalizedUrl() {
+        val expectedUrl = "http://mozilla.org"
+        assertEquals(expectedUrl, "http://mozilla.org".toNormalizedUrl())
+        assertEquals(expectedUrl, "  http://mozilla.org  ".toNormalizedUrl())
+        assertEquals(expectedUrl, "mozilla.org".toNormalizedUrl())
     }
 
     @Test

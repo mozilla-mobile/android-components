@@ -9,6 +9,7 @@ import android.util.AttributeSet
 import mozilla.components.browser.engine.gecko.integration.LocaleSettingUpdater
 import mozilla.components.browser.engine.gecko.mediaquery.from
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
+import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
@@ -21,9 +22,9 @@ import mozilla.components.concept.engine.webextension.WebExtension
 import org.json.JSONObject
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
+import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
-import org.mozilla.geckoview.WebExtension as GeckoWebExtension
 
 /**
  * Gecko-based implementation of Engine interface.
@@ -85,18 +86,21 @@ class GeckoEngine(
      * See [Engine.installWebExtension].
      */
     override fun installWebExtension(
-        ext: WebExtension,
+        id: String,
+        url: String,
+        allowContentMessaging: Boolean,
         onSuccess: ((WebExtension) -> Unit),
-        onError: ((WebExtension, Throwable) -> Unit)
+        onError: ((String, Throwable) -> Unit)
     ) {
-        val result = runtime.registerWebExtension(GeckoWebExtension(ext.url, ext.id))
-        result.then({
-            onSuccess(ext)
-            GeckoResult<Void>()
-        }, {
-            throwable -> onError(ext, throwable)
-            GeckoResult<Void>()
-        })
+        GeckoWebExtension(id, url, allowContentMessaging).also { ext ->
+            runtime.registerWebExtension(ext.nativeExtension).then({
+                onSuccess(ext)
+                GeckoResult<Void>()
+            }, {
+                throwable -> onError(id, throwable)
+                GeckoResult<Void>()
+            })
+        }
     }
 
     override fun name(): String = "Gecko"
@@ -152,6 +156,16 @@ class GeckoEngine(
         override var preferredColorScheme: PreferredColorScheme
             get() = PreferredColorScheme.from(runtime.settings.preferredColorScheme)
             set(value) { runtime.settings.preferredColorScheme = value.toGeckoValue() }
+
+        override var allowAutoplayMedia: Boolean
+            get() = runtime.settings.autoplayDefault == GeckoRuntimeSettings.AUTOPLAY_DEFAULT_ALLOWED
+            set(value) {
+                runtime.settings.autoplayDefault = if (value) {
+                    GeckoRuntimeSettings.AUTOPLAY_DEFAULT_ALLOWED
+                } else {
+                    GeckoRuntimeSettings.AUTOPLAY_DEFAULT_BLOCKED
+                }
+            }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -163,6 +177,7 @@ class GeckoEngine(
             this.testingModeEnabled = it.testingModeEnabled
             this.userAgentString = it.userAgentString
             this.preferredColorScheme = it.preferredColorScheme
+            this.allowAutoplayMedia = it.allowAutoplayMedia
         }
     }
 }

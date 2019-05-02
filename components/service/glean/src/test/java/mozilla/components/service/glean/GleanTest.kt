@@ -4,10 +4,10 @@
 
 package mozilla.components.service.glean
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleOwner
-import android.arch.lifecycle.LifecycleRegistry
 import android.content.Context
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,11 +16,11 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.GleanMetrics.GleanInternalMetrics
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.firstrun.FileFirstRunDetector
-import mozilla.components.service.glean.private.CounterMetricType
 import mozilla.components.service.glean.private.DatetimeMetricType
 import mozilla.components.service.glean.private.EventMetricType
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.NoExtraKeys
+import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.private.StringMetricType
 import mozilla.components.service.glean.private.TimeUnit as GleanTimeUnit
 import mozilla.components.service.glean.private.UuidMetricType
@@ -86,7 +86,7 @@ class GleanTest {
         assertEquals(false, Glean.getUploadEnabled())
         stringMetric.set("foo")
         assertNull(
-                "Metrics should not be recorded if glean is disabled",
+                "Metrics should not be recorded if Glean is disabled",
                 StringsStorageEngine.getSnapshot(storeName = "store1", clearStore = false)
         )
     }
@@ -222,7 +222,7 @@ class GleanTest {
         Glean.initialized = false
         stringMetric.set("foo")
         assertNull(
-            "Metrics should not be recorded if glean is not initialized",
+            "Metrics should not be recorded if Glean is not initialized",
             StringsStorageEngine.getSnapshot(storeName = "store1", clearStore = false)
         )
 
@@ -459,17 +459,29 @@ class GleanTest {
     }
 
     @Test
-    fun `test sending of custom pings`() {
-        val server = MockWebServer()
+    fun `ping collection must happen after currently scheduled metrics recordings`() {
+        // Given the following block of code:
+        //
+        // Metric.A.set("SomeTestValue")
+        // Glean.sendPings(listOf("custom-ping-1"))
+        //
+        // This test ensures that "custom-ping-1" contains "metric.a" with a value of "SomeTestValue"
+        // when the ping is collected.
 
+        val server = MockWebServer()
         server.enqueue(MockResponse().setBody("OK"))
 
-        val counter = CounterMetricType(
+        val pingName = "custom_ping_1"
+        val ping = PingType(
+            name = pingName,
+            includeClientId = true
+        )
+        val stringMetric = StringMetricType(
             disabled = false,
-            category = "test",
+            category = "telemetry",
             lifetime = Lifetime.Ping,
-            name = "counter",
-            sendInPings = listOf("custom")
+            name = "string_metric",
+            sendInPings = listOf(pingName)
         )
 
         resetGlean(getContextWithMockedInfo(), Glean.configuration.copy(
@@ -477,59 +489,36 @@ class GleanTest {
             logPings = true
         ))
 
-        counter.add()
-        assertTrue(counter.testHasValue())
+        // This test relies on testing mode to be disabled, since we need to prove the
+        // real-world async behaviour of this. We don't need to care about clearing it,
+        // the test-unit hooks will call `resetGlean` anyway.
+        Dispatchers.API.setTestingMode(false)
 
-        Glean.sendPings(listOf("custom"))
-        // Trigger worker task to upload the pings in the background
+        // This is the important part of the test. Even though both the metrics API and
+        // sendPings are async and off the main thread, "SomeTestValue" should be recorded,
+        // the order of the calls must be preserved.
+        val testValue = "SomeTestValue"
+        stringMetric.set(testValue)
+        ping.send()
+
+        // Trigger worker task to upload the pings in the background. We need
+        // to wait for the work to be enqueued first, since this test runs
+        // asynchronously.
+        waitForEnqueuedWorker(PingUploadWorker.PING_WORKER_TAG)
         triggerWorkManager()
 
+        // Validate the received data.
         val request = server.takeRequest(20L, TimeUnit.SECONDS)
         val docType = request.path.split("/")[3]
+        assertEquals(pingName, docType)
 
-        assertEquals("custom", docType)
-    }
+        val pingJson = JSONObject(request.body.readUtf8())
+        assertEquals(pingName, pingJson.getJSONObject("ping_info")["ping_type"])
+        checkPingSchema(pingJson)
 
-    @Test
-    fun `don't send built-in pings through sendPings`() {
-        val server = MockWebServer()
-
-        server.enqueue(MockResponse().setBody("OK"))
-
-        val customCounter = CounterMetricType(
-            disabled = false,
-            category = "test",
-            lifetime = Lifetime.Ping,
-            name = "counter",
-            sendInPings = listOf("custom")
-        )
-        val defaultCounter = CounterMetricType(
-            disabled = false,
-            category = "test",
-            lifetime = Lifetime.Ping,
-            name = "counter",
-            sendInPings = listOf("default")
-        )
-
-        resetGlean(getContextWithMockedInfo(), Glean.configuration.copy(
-            serverEndpoint = "http://" + server.hostName + ":" + server.port,
-            logPings = true
-        ))
-
-        customCounter.add()
-        assertTrue(customCounter.testHasValue())
-        defaultCounter.add()
-        assertTrue(defaultCounter.testHasValue())
-
-        Glean.sendPings(listOf("metrics", "custom"))
-        // Trigger worker task to upload the pings in the background
-        triggerWorkManager()
-
-        // Only the "custom" ping should have been sent through the public sendPings API
-
-        val request = server.takeRequest(20L, TimeUnit.SECONDS)
-        val docType = request.path.split("/")[3]
-
-        assertEquals("custom", docType)
+        val pingMetricsObject = pingJson.getJSONObject("metrics")!!
+        val pingStringMetrics = pingMetricsObject.getJSONObject("string")!!
+        assertEquals(1, pingStringMetrics.length())
+        assertEquals(testValue, pingStringMetrics.get("telemetry.string_metric"))
     }
 }

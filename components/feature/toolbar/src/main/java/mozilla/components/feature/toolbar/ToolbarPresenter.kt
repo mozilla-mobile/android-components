@@ -4,7 +4,7 @@
 
 package mozilla.components.feature.toolbar
 
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
@@ -65,13 +65,14 @@ class ToolbarPresenter(
             ?: sessionManager.selectedSession
 
         renderer.post(session?.url ?: "")
+
+        toolbar.setSearchTerms(session?.searchTerms ?: "")
         toolbar.displayProgress(session?.progress ?: 0)
         updateToolbarSecurity(session?.securityInfo ?: Session.SecurityInfo())
     }
 
     override fun onUrlChanged(session: Session, url: String) {
         renderer.post(url)
-        toolbar.setSearchTerms(session.searchTerms)
     }
 
     override fun onProgress(session: Session, progress: Int) {

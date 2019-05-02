@@ -40,6 +40,10 @@ repositories {
 
 Snapshots are build daily from the `master` branch and published on [snapshots.maven.mozilla.org](https://snapshots.maven.mozilla.org).
 
+# API Reference
+
+The API reference docs are available at [mozac.org/api/](https://mozac.org/api/).
+
 # Components
 
 * 🔴 **In Development** - Not ready to be used in shipping products.
@@ -219,6 +223,8 @@ _Sample apps using various components._
 * [**Crash**](samples/crash) - An app showing the integration of the `lib-crash` component.
 
 * [**Firefox Accounts (FxA)**](samples/firefox-accounts) - A simple app demoing Firefox Accounts integration.
+
+* [**Firefox Sync**](samples/sync) - A simple app demoing general Firefox Sync integration, with bookmarks and history.
 
 * [**Firefox Sync - Logins**](samples/sync-logins) - A simple app demoing Firefox Sync (Logins) integration.
 

@@ -155,7 +155,6 @@ class SessionTest {
         val session = Session("https://www.mozilla.org")
         session.register(observer)
 
-        session.searchTerms = ""
         session.searchTerms = "mozilla android"
 
         assertEquals("mozilla android", session.searchTerms)
@@ -610,6 +609,7 @@ class SessionTest {
         defaultObserver.onMediaAdded(session, emptyList(), mock())
         defaultObserver.onMediaRemoved(session, emptyList(), mock())
         defaultObserver.onIconChanged(session, mock())
+        defaultObserver.onReaderableStateUpdated(session, true)
     }
 
     @Test
@@ -932,5 +932,47 @@ class SessionTest {
         session.icon = bitmapMock
 
         assertEquals(bitmapMock, notifiedIcon)
+    }
+
+    @Test
+    fun `observer is notified when readerable state updated`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+        assertFalse(session.readerable)
+
+        session.readerable = true
+
+        verify(observer).onReaderableStateUpdated(
+                eq(session),
+                eq(true))
+
+        // We want to notify observers every time readerability is determined,
+        // not only when the state changed.
+        session.readerable = true
+
+        verify(observer, times(2)).onReaderableStateUpdated(
+                eq(session),
+                eq(true))
+
+        assertTrue(session.readerable)
+    }
+
+    @Test
+    fun `observer is notified when reader mode state changes`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+        assertFalse(session.readerMode)
+
+        session.readerMode = true
+
+        verify(observer).onReaderModeChanged(
+                eq(session),
+                eq(true))
+
+        assertTrue(session.readerMode)
     }
 }

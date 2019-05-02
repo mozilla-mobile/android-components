@@ -4,23 +4,150 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.51.0-SNAPSHOT  (In Development)
+# 0.52.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.50.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/54?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.51.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/55?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* ℹ️ **Migrated all components to [AndroidX](https://developer.android.com/jetpack/androidx).**
+
+* **feature-readerview**
+  * 🆕 New component/feature that provides reader mode functionality. To see a complete and working example of how to integrate this new component, check out the `ReaderViewIntegration` class in our [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
+  ```kotlin
+      val readerViewFeature = ReaderViewFeature(context, engine, sessionManager, controlsView) { available ->
+          // This lambda is invoked to indicate whether or not reader view is available
+          // for the page loaded by the selected session (for the current tab)
+      }
+
+      // To activate reader view
+      readerViewFeature.showReaderView()
+
+      // To deactivate reader view
+      readerViewFeature.hideReaderView()
+
+      // To show the appearance (font, color scheme) controls
+      readerViewFeature.showControls()
+
+      // To hide the appearance (font, color scheme) controls
+      readerViewFeature.hideControls()
+  ```
+
+* **feature-readerview**
+ * Fix disappearing title in Custom Tab toolbar.
+
+* **feature-sitepermissions**
+  * Do not save new site permissions in private sessions.
+
+# 0.51.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.50.0...v0.51.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/54?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.51.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.51.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.51.0/buildSrc/src/main/java/Config.kt)
+
+* **browser-awesomebar**
+  * Fixed an issue where new suggestions would leave you scrolled to the middle of the list
+
+* **browser-errorpages**
+  * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
+
+* **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
+  * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
+
 * **feature-customtabs**
   * Added fact emitting.
   * Bugfix to call with app-contributed pending intents from menu items and action buttons.
+  * Added ability to decide where menu items requested by the launching app should be inserted into the combined menu by setting `menuItemIndex`
 
 * **service-glean**
    * ⚠️ **This is a breaking API change**: Timespan and timing distribution
      metrics now have a thread-safe API. See `adding-new-metrics.md` for more
      information.
-   * `Glean.sendPings` has been added for sending custom pings.
+   * A method for sending metrics on custom pings has been added. See
+     `docs/pings/custom.md` for more information.
+
+* **concept-engine**
+  * Add boolean `allowAutoplayMedia` setting.
+  * ⚠️ **This is a breaking API change:**
+  * Added new method to `HistoryTrackingDelegate` interface: `shouldStoreUri(uri: String): Boolean`.
+  * `VisitType` is now part of `HistoryTrackingDelegate`'s `onVisited` method signature
+
+* **feature-session**
+  * `HistoryDelegate` now implements a blacklist of URI schemas.
+
+* **browser-engine-gecko-nightly**
+  * Implement `allowAutoplayMedia` in terms of `autoplayDefault`.
+  * ⚠️ **This is a breaking API change**
+  * Added API for bidirectional messaging between Android and installed web extensions:
+    ```kotlin
+       engine.installWebExtension(EXTENSION_ID, EXTENSION_URL,
+            onSuccess = { installedExt -> it }
+        )
+
+      val messageHandler = object : MessageHandler {
+          override fun onPortConnected(port: Port) {
+            // Called when a port was connected as a result of a
+            // browser.runtime.connectNative call in JavaScript.
+            // The port can be used to send messages to the web extension:
+            port.postMessage(jsonObject)
+          }
+
+          override fun onPortDisconnected(port: Port) {
+            // Called when the port was disconnected or the corresponding session closed.
+          }
+
+          override fun onPortMessage(message: Any, port: Port) {
+            // Called when a messsage was received on the provided port as a
+            // result of a call to port.postMessage in JavaScript.
+          }
+
+          override fun onMessage(message: Any, source: EngineSession?): Any {
+            // Called when a message was recieved as a result of a
+            // browser.runtime.sendNativeMessage call in JavaScript.
+          }
+      }
+
+      // To listen to message events from content scripts call:
+      installedExt.registerContentMessageHandler(session, EXTENSION_ID, messageHandler)
+
+      // To listen to message events from background scripts call:
+      installedExt.registerBackgroundMessageHandler(EXTENSION_ID, messageHandler)
+    ```
+
+* **browser-icons**
+  * Added an in-memory caching mechanism reducing disk/network loads.
+
+* **browser-tabstray**
+  * Add `TabThumbnailView` to Tabs Tray show the top of the thumbnail and fill up the width of the tile.
+  * Added swipe gesture support with a `TabTouchCallback` for the TabsTray.
+
+* **concept-storage**, **browser-storage-memory**, **browser-storage-sync**
+  * ⚠️ **This is a breaking API change**
+  * Added new method `getVisitsPaginated`; use it to paginate history.
+  * Added `excludeTypes` param to `getDetailedVisits`; use it to query only subsets of history.
+  * Added new `getBookmarksWithUrl` method for checking if a site is already bookmarked
+  * Added new `getBookmark` method for obtaining the details of a single bookmark by GUID
+
+* **browser-storage-sync**
+  * `PlacesBookmarksStorage` now supports synchronization!
+
+* **support-utils**
+  * Add `URLStringUtils` to unify parsing of strings that may be URLs.
+
+* **support-ktx**
+    - Add `URLStringUtils` `isURLLike()` and `toNormalizedURL()`.
+    - Update the implementation for `String.isUrl()` and `String.toNormalizedUrl()` to the new one above.
+
+* **concept-sync**
+  * ⚠️ **This is a breaking API change**
+  * `OAuthAccount` now has a new method `registerPersistenceCallback`.
+
+* **service-fxa**
+  * `FxaAccountManager` is now using a state persistence callback to keep FxA account state up-to-date as it changes.
 
 # 0.50.0
 
@@ -47,10 +174,13 @@ permalink: /changelog/
 * **feature-findinpage**
    * Find in Page now emits facts
 
+* **feature-awesomebar**
+   * Added `BookmarksStorageSuggestionProvider`
+
 * **browser-toolbar**
    * Adds `browserToolbarProgressBarGravity` attr with options `top` and `bottom` (default).
    * Adds the ability to long click the urlView
-   
+
 * **service-glean**
    * ⚠️ **This is a breaking API change**: The technically public, but not
      intended for public use, part of the glean API has been renamed from
@@ -62,7 +192,7 @@ permalink: /changelog/
      `type: labeled_counter`. See bugzilla 1540725.
 
 * **concept-engine**
-   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send 
+   * Adds `automaticLanguageAdjustment` setting, which should hint to implementations to send
    language specific headers to websites. Implementation in `browser-engine-gecko-nightly`.
 
 * **service-firefox-accounts**

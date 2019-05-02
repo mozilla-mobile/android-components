@@ -1,4 +1,4 @@
-componentsVersion: 0.51.0
+componentsVersion: 0.52.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -152,6 +152,10 @@ projects:
     path: components/browser/session
     description: 'An abstract layer hiding the actual browser engine implementation.'
     publish: true
+  browser-state:
+    path: components/browser/state
+    description: 'Component responsible for maintaining the centralized state of a browser engine.'
+    publish: false
   browser-storage-memory:
     path: components/browser/storage-memory
     description: 'A memory-backed implementation of core data storage.'
@@ -300,9 +304,9 @@ projects:
     path: samples/glean/samples-glean-library
     description: 'A third-party library used by samples-glean to demonstrate multi-library support for Glean.'
     publish: false
-  samples-sync-history:
-    path: samples/sync-history
-    description: 'A simple app demoing Firefox Sync (History) integration.'
+  samples-sync:
+    path: samples/sync
+    description: 'A simple app demoing Firefox Sync (History, Bookmarks, etc) integration.'
     publish: false
   samples-sync-logins:
     path: samples/sync-logins
@@ -316,3 +320,4 @@ projects:
     path: samples/dataprotect
     description: 'An app demoing how to use the Dataprotect component to load and store encrypted data in SharedPreferences.'
     publish: false
+

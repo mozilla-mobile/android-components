@@ -5,10 +5,28 @@
 /* Avoid adding ID selector rules in this style sheet, since they could
  * inadvertently match elements in the article content. */
 
+const supportedProtocols = ["http:", "https:"];
+
+// Prevent false positives for these sites. This list is taken from Fennec:
+// https://dxr.mozilla.org/mozilla-central/rev/7d47e7fa2489550ffa83aae67715c5497048923f/toolkit/components/reader/Readerable.js#45
+const blockedHosts = ["amazon.com", "github.com", "mail.google.com", "pinterest.com", "reddit.com", "twitter.com", "youtube.com"];
+
 class ReaderView {
 
   static isReaderable() {
-    return isProbablyReaderable(document);
+    if (!supportedProtocols.includes(location.protocol)) {
+      return false;
+    }
+
+    if (blockedHosts.some(blockedHost => location.hostname.endsWith(blockedHost))) {
+      return false;
+    }
+
+    if (location.pathname == "/") {
+      return false;
+    }
+
+    return isProbablyReaderable(document, ReaderView._isNodeVisible);
   }
 
   static get MIN_FONT_SIZE() {
@@ -17,6 +35,10 @@ class ReaderView {
 
   static get MAX_FONT_SIZE() {
     return 9;
+  }
+
+  static _isNodeVisible(node) {
+    return node.clientHeight > 0 && node.clientWidth > 0;
   }
 
   constructor(document) {
@@ -45,6 +67,7 @@ class ReaderView {
 
   hide() {
     document.body.outerHTML = this.originalBody;
+    location.reload(false)
   }
 
   /**
@@ -66,7 +89,7 @@ class ReaderView {
    */
   setFontSize(fontSize) {
     let size = (10 + 2 * fontSize) + "px";
-    let readerView = document.getElementById("readerview");
+    let readerView = document.getElementById("mozac-readerview-container");
     readerView.style.setProperty("font-size", size);
     this.fontSize = fontSize;
   }
@@ -77,10 +100,6 @@ class ReaderView {
    * @param fontType the font type to use.
    */
   setFontType(fontType) {
-    if (this.fontType === fontType) {
-      return;
-    }
-
     let bodyClasses = document.body.classList;
 
     if (this.fontType) {
@@ -103,10 +122,6 @@ class ReaderView {
       return;
     }
 
-    if (this.colorScheme === colorScheme) {
-      return;
-    }
-
     let bodyClasses = document.body.classList;
 
     if (this.colorScheme) {
@@ -119,21 +134,21 @@ class ReaderView {
 
   createHtml(article) {
     return `
-      <body>
-        <div id="readerview" class="container" dir=${article.dir}>
-          <div class="header reader-header">
-            <a class="domain reader-domain">${article.url}</a>
+      <body class="mozac-readerview-body">
+        <div id="mozac-readerview-container" class="container" dir=${article.dir}>
+          <div class="header">
+            <a class="domain">${article.url}</a>
             <div class="domain-border"></div>
-            <h1 class="reader-title">${article.title}</h1>
-            <div class="credits reader-credits">${article.byline}</div>
-            <div class="meta-data">
-              <div class="reader-estimated-time">${article.readingTime}</div>
+            <h1>${article.title}</h1>
+            <div class="credits">${article.byline}</div>
+            <div>
+              <div>${article.readingTime}</div>
             </div>
           </div>
           <hr>
 
           <div class="content">
-            <div class="moz-reader-content">${article.content}</div>
+            <div class="mozac-readerview-content">${article.content}</div>
           </div>
         </div>
       </body>
@@ -261,12 +276,32 @@ class ReaderView {
    }
 }
 
-// TODO remove hostname check (for testing purposes only)
-// e.g. https://blog.mozilla.org/firefox/reader-view
-if (ReaderView.isReaderable() && location.hostname.endsWith("blog.mozilla.org")) {
-  // TODO send message to app to inform that readerview is available
-  // For now we show reader view for every page on blog.mozilla.org
-  let readerView = new ReaderView(document);
-  // TODO Parameters need to be passed down in message to display readerview
-  readerView.show({fontSize: 3, fontType: "serif", colorScheme: "light"});
-}
+let readerView = new ReaderView(document);
+
+let port = browser.runtime.connectNative("mozacReaderview");
+port.onMessage.addListener((message) => {
+    switch (message.action) {
+      case 'show':
+        readerView.show(message.value);
+        break;
+      case 'hide':
+        readerView.hide();
+        break;
+      case 'setColorScheme':
+        readerView.setColorScheme(message.value.toLowerCase());
+        break;
+      case 'changeFontSize':
+        readerView.changeFontSize(message.value);
+        break;
+      case 'setFontType':
+        readerView.setFontType(message.value.toLowerCase());
+        break;
+      case 'checkReaderable':
+        port.postMessage({readerable: ReaderView.isReaderable()});
+        break;
+      default:
+        console.error(`Received invalid action ${message.action}`);
+    }
+});
+
+window.addEventListener("unload", (event) => { port.disconnect() }, false);

@@ -11,15 +11,20 @@ import mozilla.appservices.places.BookmarkItem
 import mozilla.appservices.places.BookmarkSeparator
 import mozilla.appservices.places.BookmarkTreeNode
 import mozilla.appservices.places.BookmarkUpdateInfo
+import mozilla.appservices.places.PlacesApi
+import mozilla.appservices.places.PlacesException
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
+import mozilla.components.concept.sync.AuthInfo
+import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncableStore
 
 /**
  * Implementation of the [BookmarksStorage] which is backed by a Rust Places lib via [PlacesApi].
  */
+@Suppress("TooManyFunctions")
 open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), BookmarksStorage, SyncableStore {
 
     /**
@@ -34,6 +39,30 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
             reader.getBookmarksTree(guid, recursive)?.let {
                 asBookmarkNode(it)
             }
+        }
+    }
+
+    /**
+     * Obtains the details of a bookmark without children, if one exists with that guid. Otherwise, null.
+     *
+     * @param guid The bookmark guid to obtain.
+     * @return The bookmark node or null if it does not exist.
+     */
+    override suspend fun getBookmark(guid: String): BookmarkNode? {
+        return withContext(scope.coroutineContext) {
+            asBookmarkNode(reader.getBookmark(guid))
+        }
+    }
+
+    /**
+     * Produces a list of all bookmarks with the given URL.
+     *
+     * @param url The URL string.
+     * @return The list of bookmarks that match the URL
+     */
+    override suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode> {
+        return withContext(scope.coroutineContext) {
+            reader.getBookmarksWithURL(url).mapNotNull(::asBookmarkNode)
         }
     }
 
@@ -137,6 +166,23 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
                     BookmarkNode(BookmarkNodeType.SEPARATOR, it.guid, it.parentGUID, it.position, null, null, null)
                 }
             }
+        }
+    }
+
+    /**
+     * Runs syncBookmarks() method on the places Connection
+     *
+     * @param authInfo The authentication information to sync with.
+     * @return Sync status of OK or Error
+     */
+    override suspend fun sync(authInfo: AuthInfo): SyncStatus {
+        return try {
+            withContext(scope.coroutineContext) {
+                places.syncBookmarks(authInfo.into())
+                SyncStatus.Ok
+            }
+        } catch (e: PlacesException) {
+            SyncStatus.Error(e)
         }
     }
 }

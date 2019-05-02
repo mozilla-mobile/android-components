@@ -72,6 +72,8 @@ class Session(
         fun onMediaAdded(session: Session, media: List<Media>, added: Media) = Unit
         fun onCrashStateChanged(session: Session, crashed: Boolean) = Unit
         fun onIconChanged(session: Session, icon: Bitmap?) = Unit
+        fun onReaderableStateUpdated(session: Session, readerable: Boolean) = Unit
+        fun onReaderModeChanged(session: Session, enabled: Boolean) = Unit
     }
 
     /**
@@ -186,10 +188,12 @@ class Session(
     }
 
     /**
-     * The currently / last used search terms.
+     * The currently / last used search terms (or an empty string).
      */
     var searchTerms: String by Delegates.observable("") {
-        _, _, new -> notifyObservers { if (!new.isEmpty()) onSearch(this@Session, new) }
+        _, _, new -> notifyObservers {
+            onSearch(this@Session, new)
+        }
     }
 
     /**
@@ -367,6 +371,20 @@ class Session(
      */
     var crashed: Boolean by Delegates.observable(false) { _, old, new ->
         notifyObservers(old, new) { onCrashStateChanged(this@Session, new) }
+    }
+
+    /**
+     * Readerable state, whether or not the current page can be shown in a reader view.
+     */
+    var readerable: Boolean by Delegates.observable(false) { _, _, new ->
+        notifyObservers { onReaderableStateUpdated(this@Session, new) }
+    }
+
+    /**
+     * Reader mode state, whether or not reader view is enabled, otherwise false.
+     */
+    var readerMode: Boolean by Delegates.observable(false) { _, old, new ->
+        notifyObservers(old, new) { onReaderModeChanged(this@Session, new) }
     }
 
     /**

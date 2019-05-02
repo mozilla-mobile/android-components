@@ -5,10 +5,9 @@
 package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
-import android.support.annotation.CallSuper
+import androidx.annotation.CallSuper
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.permission.PermissionRequest
-
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
@@ -50,6 +49,14 @@ abstract class EngineSession(
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
         fun onCrashStateChange(crashed: Boolean) = Unit
+
+        /**
+         * The engine received a request to load a request.
+         *
+         * @param triggeredByUserInteraction True if and only if the request was triggered by user interaction (e.g.
+         * clicking on a link on a website).
+         */
+        fun onLoadRequest(triggeredByUserInteraction: Boolean) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(

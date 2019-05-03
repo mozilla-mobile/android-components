@@ -26,6 +26,8 @@ data class StringListMetricType(
     override val sendInPings: List<String>
 ) : CommonMetricData {
 
+    override val defaultStorageDestinations: List<String> = listOf("metrics")
+
     private val logger = Logger("glean/StringListMetricType")
 
     /**
@@ -82,7 +84,7 @@ data class StringListMetricType(
      * @return true if metric value exists, otherwise false
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun testHasValue(pingName: String = sendInPings.first()): Boolean {
+    fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
         @Suppress("EXPERIMENTAL_API_USAGE")
         Dispatchers.API.assertInTestingMode()
 
@@ -100,7 +102,7 @@ data class StringListMetricType(
      * @throws [NullPointerException] if no value is stored
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun testGetValue(pingName: String = sendInPings.first()): List<String> {
+    fun testGetValue(pingName: String = getStorageNames().first()): List<String> {
         @Suppress("EXPERIMENTAL_API_USAGE")
         Dispatchers.API.assertInTestingMode()
 

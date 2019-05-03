@@ -268,7 +268,7 @@ internal abstract class GenericStorageEngine<MetricType> : StorageEngine {
             Lifetime.Ping -> pingLifetimeStorage.edit()
             else -> null
         }
-        metricData.sendInPings.forEach { store ->
+        metricData.getStorageNames().forEach { store ->
             val storeData = dataStores[metricData.lifetime.ordinal].getOrPut(store) { mutableMapOf() }
             // We support empty categories for enabling the internal use of metrics
             // when assembling pings in [PingMaker].

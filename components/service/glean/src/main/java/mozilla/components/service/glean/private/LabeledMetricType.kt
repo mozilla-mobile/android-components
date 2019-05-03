@@ -32,6 +32,9 @@ data class LabeledMetricType<T>(
     val labels: Set<String>? = null
 ) : CommonMetricData {
 
+    override val defaultStorageDestinations: List<String> = (
+        subMetric as CommonMetricData).defaultStorageDestinations
+
     private val logger = Logger("glean/LabeledMetricType")
 
     companion object {

@@ -2,7 +2,7 @@
 
 # ExperimentsDebugActivity
 
-`class ExperimentsDebugActivity : `[`Activity`](https://developer.android.com/reference/android/app/Activity.html) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/service/experiments/src/main/java/mozilla/components/service/experiments/debug/ExperimentsDebugActivity.kt#L17)
+`class ExperimentsDebugActivity : `[`Activity`](https://developer.android.com/reference/android/app/Activity.html) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/service/experiments/src/main/java/mozilla/components/service/experiments/debug/ExperimentsDebugActivity.kt#L19)
 
 ### Constructors
 
@@ -20,6 +20,7 @@
 
 | Name | Summary |
 |---|---|
+| [SET_KINTO_INSTANCE_EXTRA_KEY](-s-e-t_-k-i-n-t-o_-i-n-s-t-a-n-c-e_-e-x-t-r-a_-k-e-y.md) | `const val SET_KINTO_INSTANCE_EXTRA_KEY: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [UPDATE_EXPERIMENTS_EXTRA_KEY](-u-p-d-a-t-e_-e-x-p-e-r-i-m-e-n-t-s_-e-x-t-r-a_-k-e-y.md) | `const val UPDATE_EXPERIMENTS_EXTRA_KEY: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 
 ### Extension Properties

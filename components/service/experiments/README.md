@@ -2,6 +2,11 @@
 
 An Android SDK for running experiments on user segments in multiple branches.
 
+Contents:
+- [Usage](#usage)
+- [Testing experiments](#testing-experiments)
+- [Experiments format for Kinto](#experiments-format-for-kinto)
+
 ## Usage
 
 ### Setting up the dependency
@@ -51,6 +56,21 @@ Experiments.withExperiment("button-color-experiment") {
 }
 ```
 
+## Testing experiments
+
+### Testing on the dev server
+
+For any technical tests, we do have a Kinto dev server available, which can be freely configured & gets reset daily.
+The admin interface is [here](https://kinto.dev.mozaws.net/v1/admin/). For setting up a testing setup we can:
+- [Create a collection in the main bucket](https://kinto.dev.mozaws.net/v1/admin/#/buckets/main/collections/create).
+  - The *collection id* should be `mobile-experiments`.
+  - The *JSON schema* should have [this content](https://gist.github.com/georgf/cbf4c145ca0e202ad0d25a5a83e06f38/#file-json-schema-json).
+  - The *UI schema* should have [this content](https://gist.github.com/georgf/cbf4c145ca0e202ad0d25a5a83e06f38/#file-ui-schema-json).
+  - The *Records list columns* should contain `id` and `description`.
+  - Click *Create collection*
+- In the [`mobile-experiments` record list](https://kinto.dev.mozaws.net/v1/admin/#/buckets/main/collections/mobile-experiments/records), create new entries for experiments as needed.
+- In the mobile application, use the debug commands below to switch to the `dev` endpoint.
+
 ### ExperimentsDebugActivity usage
 Experiments exports the [`ExperimentsDebugActivity`](src/main/java/mozilla/components/service/experiments/debug/ExperimentsDebugActivity.kt)
 that can be used to trigger functionality or toggle debug features on or off. Users can invoke this special activity, at
@@ -72,16 +92,26 @@ In the above:
 
     |key|type|description|
     |---|----|-----------|
-    | updateExperiments | boolean (--ez) | forces the experiments updater to run and fetch experiments immediately |
-    | setKintoInstance | string (--es) | sets the Kinto instance to the specified instance ("dev", "staging", "prod" only) |
+    | updateExperiments | boolean (--ez) | Forces the experiments updater to run and fetch experiments immediately. You must pass `true` or `false` following this switch but either will update experiments if this is present |
+    | setKintoInstance | string (--es) | Sets the Kinto instance to the specified instance ("dev", "staging", "prod" only) |
+    | overrideExperiment | string (--es) | Used to pass in the experiment to override and must be followed by the `branch` command below. |
+    | branch | string (--es) | Used to set the branch for overriding the experiment and is meant to be used with the `overrideExperiment` command above. |
+    | clearAllOverrides | boolean (--ez) | Clears any overrides that have been set.  You must pass `true` or `false` following this switch but either will clear the overrides if this is present. Should **not** be used in combination with the `overrideExperiment` command |
 
-For example, to direct a release build of the Glean sample application to (1) update experiments immediately and 
-(2) change the Kinto instance to the staging instance, the following command can be used:
+#### Examples
+ 
+To direct a release build of the Glean sample application to (1) update experiments immediately and (2) change the Kinto instance to the staging instance, the following command can be used:
 
 ```
 adb shell am start -n org.mozilla.samples.glean.debug/mozilla.components.service.experiments.debug.ExperimentsDebugActivity \
   --ez updateExperiments true \
   --es setKintoInstance staging
+```
+
+To direct a release build of the Glean sample application to override the experiment and branch, the following command can be used:
+
+```
+adb shell am start -n org.mozilla.samples.glean.debug/mozilla.components.service.experiments.debug.ExperimentsDebugActivity --es overrideExperiment testExperiment --es branch testBranch
 ```
 
 ## Experiments format for Kinto

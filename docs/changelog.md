@@ -12,6 +12,50 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* ℹ️ **Migrated all components to [AndroidX](https://developer.android.com/jetpack/androidx).**
+
+* ℹ️ **Upgraded Gradle to 5.3.1**
+  * ⚠️ This requires using the 1.3.30 Kotlin gradle plugin or higher.
+
+* **feature-readerview**
+  * 🆕 New component/feature that provides reader mode functionality. To see a complete and working example of how to integrate this new component, check out the `ReaderViewIntegration` class in our [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
+  ```kotlin
+      val readerViewFeature = ReaderViewFeature(context, engine, sessionManager, controlsView) { available ->
+          // This lambda is invoked to indicate whether or not reader view is available
+          // for the page loaded by the selected session (for the current tab)
+      }
+
+      // To activate reader view
+      readerViewFeature.showReaderView()
+
+      // To deactivate reader view
+      readerViewFeature.hideReaderView()
+
+      // To show the appearance (font, color scheme) controls
+      readerViewFeature.showControls()
+
+      // To hide the appearance (font, color scheme) controls
+      readerViewFeature.hideControls()
+  ```
+
+* **feature-readerview**
+ * Fix disappearing title in Custom Tab toolbar.
+
+* **feature-sitepermissions**
+  * Do not save new site permissions in private sessions.
+
+* **service-glean**
+   * ⚠️ **This is a breaking API change**: Custom pings must be explicitly
+     registered with Glean at startup time. See
+     `components/service/glean/docs/pings/custom.md` for more information.
+
+* **ui-autocomplete**
+  * Added an optional `shouldAutoComplete` boolean to `setText` which is currently used by `updateUrl` in `EditToolbar`.
+
+* **browser-toolbar**
+  * Modified `EditToolbar`'s `updateUrl` function to take a `shouldAutoComplete` boolean. By default a call to this function does **not** autocomplete. Generally you want to disable autocomplete when calling `updateUrl` if the text is a search term.
+  See `editMode` in `BrowserToolbar` and `setText` in `InlineAutocompleteEditText` for more information.
+
 # 0.51.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.50.0...v0.51.0)
@@ -22,7 +66,7 @@ permalink: /changelog/
 
 * **browser-awesomebar**
   * Fixed an issue where new suggestions would leave you scrolled to the middle of the list
-  
+
 * **browser-errorpages**
   * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
 
@@ -43,6 +87,12 @@ permalink: /changelog/
 
 * **concept-engine**
   * Add boolean `allowAutoplayMedia` setting.
+  * ⚠️ **This is a breaking API change:**
+  * Added new method to `HistoryTrackingDelegate` interface: `shouldStoreUri(uri: String): Boolean`.
+  * `VisitType` is now part of `HistoryTrackingDelegate`'s `onVisited` method signature
+
+* **feature-session**
+  * `HistoryDelegate` now implements a blacklist of URI schemas.
 
 * **browser-engine-gecko-nightly**
   * Implement `allowAutoplayMedia` in terms of `autoplayDefault`.

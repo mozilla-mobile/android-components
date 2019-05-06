@@ -4,11 +4,11 @@
 
 package mozilla.components.service.glean
 
-import android.arch.lifecycle.ProcessLifecycleOwner
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import mozilla.components.service.glean.GleanMetrics.GleanBaseline
@@ -85,10 +85,7 @@ open class GleanInternalAPI internal constructor () {
             return
         }
 
-        // Explicitly instantiate the Pings object so the built-in pings will be
-        // added to the ping registry.  This allows the GleanDebugActivity to look
-        // up pings by name.
-        @Suppress("UNUSED_VARIABLE") var pings = Pings
+        registerPings(Pings)
 
         storageEngineManager = StorageEngineManager(applicationContext = applicationContext)
         pingMaker = PingMaker(storageEngineManager, applicationContext)
@@ -121,6 +118,18 @@ open class GleanInternalAPI internal constructor () {
      */
     fun isInitialized(): Boolean {
         return initialized
+    }
+
+    /**
+     * Register the pings generated from `pings.yaml` with Glean.
+     *
+     * @param pings The `Pings` object generated for your library or application
+     * by Glean.
+     */
+    fun registerPings(pings: Any) {
+        // Instantiating the Pings object to send this function is enough to
+        // call the constructor and have it registered in [PingType.pingRegistry].
+        logger.info("Registering pings for ${pings.javaClass.canonicalName}")
     }
 
     /**

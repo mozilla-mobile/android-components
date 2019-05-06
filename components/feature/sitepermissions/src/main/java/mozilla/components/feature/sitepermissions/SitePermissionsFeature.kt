@@ -8,11 +8,11 @@ import android.Manifest.permission.RECORD_AUDIO
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.support.annotation.DrawableRes
-import android.support.annotation.StringRes
-import android.support.annotation.VisibleForTesting
-import android.support.v4.content.ContextCompat
 import android.view.View
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,7 +68,11 @@ class SitePermissionsFeature(
 ) : LifecycleAwareFeature {
 
     private val observer = SitePermissionsRequestObserver(sessionManager, feature = this)
-    internal val ioCoroutineScope by lazy { CoroutineScope(Dispatchers.IO) }
+    internal val ioCoroutineScope by lazy { coroutineScopeInitializer() }
+
+    internal var coroutineScopeInitializer = {
+        CoroutineScope(Dispatchers.IO)
+    }
 
     override fun start() {
         observer.observeSelected()
@@ -119,30 +123,35 @@ class SitePermissionsFeature(
             request.grant()
 
             if (shouldStore) {
-                ioCoroutineScope.launch {
-                    storeSitePermissions(request, grantedPermissions, ALLOWED)
-                }
+                storeSitePermissions(session, request, grantedPermissions, ALLOWED)
             }
             true
         }
     }
 
     @Synchronized internal fun storeSitePermissions(
+        session: Session,
         request: PermissionRequest,
         permissions: List<Permission> = request.permissions,
         status: SitePermissions.Status
     ) {
-        var sitePermissions = storage.findSitePermissionsBy(request.host)
+        if (session.private) {
+            return
+        }
 
-        if (sitePermissions == null) {
-            sitePermissions = request.toSitePermissions(
-                status = status,
-                permissions = permissions
-            )
-            storage.save(sitePermissions)
-        } else {
-            sitePermissions = request.toSitePermissions(status, sitePermissions)
-            storage.update(sitePermissions)
+        ioCoroutineScope.launch {
+            var sitePermissions = storage.findSitePermissionsBy(request.host)
+
+            if (sitePermissions == null) {
+                sitePermissions = request.toSitePermissions(
+                    status = status,
+                    permissions = permissions
+                )
+                storage.save(sitePermissions)
+            } else {
+                sitePermissions = request.toSitePermissions(status, sitePermissions)
+                storage.update(sitePermissions)
+            }
         }
     }
 
@@ -157,9 +166,7 @@ class SitePermissionsFeature(
             request.reject()
 
             if (shouldStore) {
-                ioCoroutineScope.launch {
-                    storeSitePermissions(request = request, status = BLOCKED)
-                }
+                storeSitePermissions(session, request = request, status = BLOCKED)
             }
             true
         }

@@ -8,7 +8,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     tools:background="#ffffffff"
-    tools:parentTag="android.support.constraint.ConstraintLayout">
+    tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
 
     <RadioGroup
         android:id="@+id/mozac_feature_readerview_font_group"
@@ -23,7 +23,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <android.support.v7.widget.AppCompatRadioButton
+        <androidx.appcompat.widget.AppCompatRadioButton
             android:id="@+id/mozac_feature_readerview_font_sans_serif"
             style="@style/RadioButtonSelectedTextStyle"
             android:text="@string/mozac_feature_readerview_sans_serif"
@@ -37,7 +37,7 @@
             android:layout_marginEnd="8dp"
             android:layout_weight="1" />
 
-        <android.support.v7.widget.AppCompatRadioButton
+        <androidx.appcompat.widget.AppCompatRadioButton
             android:id="@+id/mozac_feature_readerview_font_serif"
             style="@style/RadioButtonSelectedTextStyle"
             android:text="@string/mozac_feature_readerview_serif_desc"
@@ -52,32 +52,36 @@
             android:layout_weight="1" />
     </RadioGroup>
 
-    <android.support.v7.widget.AppCompatButton
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/mozac_feature_readerview_font_size_decrease"
         android:text="@string/mozac_feature_readerview_negative_sign"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
         android:contentDescription="@string/mozac_feature_readerview_font_size_decrease_desc"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:textSize="25sp"
+        android:textColor="@drawable/fontsize_controls_text_selector"
+        android:textSize="50sp"
+        android:fontFamily="sans-serif-light"
+        android:gravity="center"
         app:layout_constraintEnd_toStartOf="@+id/mozac_feature_readerview_font_size_increase"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/mozac_feature_readerview_font_group" />
 
-    <android.support.v7.widget.AppCompatButton
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/mozac_feature_readerview_font_size_increase"
         android:text="@string/mozac_feature_readerview_positive_sign"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:contentDescription="@string/mozac_feature_readerview_font_size_increase_desc"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:textSize="25sp"
+        android:textColor="@drawable/fontsize_controls_text_selector"
+        android:textSize="50sp"
+        android:fontFamily="sans-serif-light"
+        android:gravity="center"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/mozac_feature_readerview_font_size_decrease"
         app:layout_constraintTop_toBottomOf="@+id/mozac_feature_readerview_font_group" />
@@ -97,14 +101,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/mozac_feature_readerview_font_size_increase">
 
-        <android.support.v7.widget.AppCompatRadioButton
+        <androidx.appcompat.widget.AppCompatRadioButton
             android:id="@+id/mozac_feature_readerview_color_dark"
             style="@style/RadioButtonSelectedBorderStyle"
             android:background="@drawable/radiobutton_color_scheme_dark_selector"
             android:text="@string/mozac_feature_readerview_dark"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="@color/mozac_feature_readerview_dark_text_color"
+            android:textColor="#F9F9FB"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
@@ -112,13 +116,13 @@
             android:gravity="center"
             android:contentDescription="@string/mozac_feature_readerview_dark_color_scheme_desc" />
 
-        <android.support.v7.widget.AppCompatRadioButton
+        <androidx.appcompat.widget.AppCompatRadioButton
             android:id="@+id/mozac_feature_readerview_color_sepia"
             style="@style/RadioButtonSelectedBorderStyle"
             android:background="@drawable/radiobutton_color_scheme_sepia_selector"
             android:text="@string/mozac_feature_readerview_sephia"
-            android:textColor="@color/mozac_feature_readerview_text_color"
             android:layout_width="0dp"
+            android:textColor="#220033"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_marginStart="8dp"
@@ -126,12 +130,12 @@
             android:gravity="center"
             android:contentDescription="@string/mozac_feature_readerview_sepia_color_scheme_desc" />
 
-        <android.support.v7.widget.AppCompatRadioButton
+        <androidx.appcompat.widget.AppCompatRadioButton
             android:id="@+id/mozac_feature_readerview_color_light"
             style="@style/RadioButtonSelectedBorderStyle"
             android:background="@drawable/radiobutton_color_scheme_light_selector"
             android:text="@string/mozac_feature_readerview_light"
-            android:textColor="@color/mozac_feature_readerview_text_color"
+            android:textColor="#220033"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

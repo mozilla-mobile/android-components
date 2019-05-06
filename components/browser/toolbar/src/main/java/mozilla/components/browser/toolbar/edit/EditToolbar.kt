@@ -6,7 +6,7 @@ package mozilla.components.browser.toolbar.edit
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.support.v4.content.ContextCompat
+import androidx.core.content.ContextCompat
 import android.text.InputType
 import android.view.Gravity
 import android.view.KeyEvent
@@ -116,8 +116,8 @@ internal class EditToolbar(
      * Updates the URL. This should only be called if the toolbar is not in editing mode. Otherwise
      * this might override the URL the user is currently typing.
      */
-    fun updateUrl(url: String) {
-        urlView.setText(url)
+    fun updateUrl(url: String, shouldAutoComplete: Boolean = false) {
+        urlView.setText(url, shouldAutoComplete)
     }
 
     /**

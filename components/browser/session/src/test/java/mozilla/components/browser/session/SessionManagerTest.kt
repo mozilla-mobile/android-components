@@ -345,6 +345,36 @@ class SessionManagerTest {
     }
 
     @Test
+    fun `Restore single session snapshot without updating selection`() {
+        val session: Session
+
+        val manager = SessionManager(mock()).apply {
+            session = Session("https://getpocket.com")
+
+            add(Session("https://www.mozilla.org"))
+            add(session)
+            add(Session("https://www.firefox.com"))
+        }
+
+        val item = manager.createSessionSnapshot(session)
+
+        manager.remove(session)
+
+        val observer: SessionManager.Observer = mock()
+        manager.register(observer)
+
+        manager.restore(SessionManager.Snapshot.singleItem(item), updateSelection = false)
+
+        assertEquals(3, manager.size)
+        assertEquals("https://www.mozilla.org", manager.selectedSessionOrThrow.url)
+        assertEquals("https://www.mozilla.org", manager.sessions[0].url)
+        assertEquals("https://www.firefox.com", manager.sessions[1].url)
+        assertEquals("https://getpocket.com", manager.sessions[2].url)
+
+        verify(observer).onSessionsRestored()
+    }
+
+    @Test
     fun `restore may be used to bulk-add session from a SessionsSnapshot`() {
         val manager = SessionManager(mock())
 
@@ -1106,5 +1136,44 @@ class SessionManagerTest {
         val executed = sessionManager.runWithSession("123") { true }
 
         assertFalse(executed)
+    }
+
+    @Test
+    fun `SessionManager#runWithSessionIdOrSelected executes the block when session found`() {
+        val sessionManager = spy(SessionManager(mock()))
+
+        `when`(sessionManager.findSessionById(anyString())).thenReturn(mock())
+
+        val executed = sessionManager.runWithSessionIdOrSelected("123") { }
+
+        assertTrue(executed)
+    }
+
+    @Test
+    fun `SessionManager#runWithSessionIdOrSelected with null or empty session ID`() {
+        val sessionManager = spy(SessionManager(mock()))
+
+        var executed = sessionManager.runWithSessionIdOrSelected(null) { }
+
+        assertFalse(executed)
+
+        executed = sessionManager.runWithSessionIdOrSelected("") { }
+        assertFalse(executed)
+    }
+
+    @Test
+    fun `SessionManager#runWithSessionIdOrSelected with null session will use the selected session`() {
+        val sessionManager = spy(SessionManager(mock()))
+        val selectedSession = Session("", id = "selectedSessionId")
+        sessionManager.add(selectedSession)
+        sessionManager.select(selectedSession)
+
+        var selectedSessionId = "123"
+        val executed = sessionManager.runWithSessionIdOrSelected(null) { session ->
+            selectedSessionId = session.id
+        }
+
+        assertTrue(executed)
+        assertTrue(selectedSessionId == "selectedSessionId")
     }
 }

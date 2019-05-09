@@ -136,6 +136,9 @@ permalink: /changelog/
   accountManager.registerForDeviceEvents(deviceEventsObserver, owner = this, autoPause = true)
   ```
 
+* **browser-session**
+  * Added `SessionManager.runWithSessionIdOrSelected(sessionId: String?)` run function block on a session ID. If the session does not exist, then uses the selected session.
+
 # 0.51.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.50.0...v0.51.0)

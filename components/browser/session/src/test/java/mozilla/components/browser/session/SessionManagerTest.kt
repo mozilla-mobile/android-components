@@ -1137,4 +1137,43 @@ class SessionManagerTest {
 
         assertFalse(executed)
     }
+
+    @Test
+    fun `SessionManager#runWithSessionIdOrSelected executes the block when session found`() {
+        val sessionManager = spy(SessionManager(mock()))
+
+        `when`(sessionManager.findSessionById(anyString())).thenReturn(mock())
+
+        val executed = sessionManager.runWithSessionIdOrSelected("123") { }
+
+        assertTrue(executed)
+    }
+
+    @Test
+    fun `SessionManager#runWithSessionIdOrSelected with null or empty session ID`() {
+        val sessionManager = spy(SessionManager(mock()))
+
+        var executed = sessionManager.runWithSessionIdOrSelected(null) { }
+
+        assertFalse(executed)
+
+        executed = sessionManager.runWithSessionIdOrSelected("") { }
+        assertFalse(executed)
+    }
+
+    @Test
+    fun `SessionManager#runWithSessionIdOrSelected with null session will use the selected session`() {
+        val sessionManager = spy(SessionManager(mock()))
+        val selectedSession = Session("", id = "selectedSessionId")
+        sessionManager.add(selectedSession)
+        sessionManager.select(selectedSession)
+
+        var selectedSessionId = "123"
+        val executed = sessionManager.runWithSessionIdOrSelected(null) { session ->
+            selectedSessionId = session.id
+        }
+
+        assertTrue(executed)
+        assertTrue(selectedSessionId == "selectedSessionId")
+    }
 }

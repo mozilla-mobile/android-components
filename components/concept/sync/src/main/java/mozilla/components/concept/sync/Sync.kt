@@ -85,14 +85,15 @@ interface SyncStatusObserver {
 
     /**
      * Gets called at the end of a sync, after every configured syncable has been synchronized.
+     * @param result which describes in detail how a sync went.
      */
-    fun onIdle()
+    fun onIdle(result: SyncResult)
 
     /**
      * Gets called if sync encounters an error that's worthy of processing by status observers.
-     * @param error Optional relevant exception.
+     * @param result which describes in detail how a sync went and what went wrong.
      */
-    fun onError(error: Exception?)
+    fun onError(result: SyncResult)
 }
 
 /**

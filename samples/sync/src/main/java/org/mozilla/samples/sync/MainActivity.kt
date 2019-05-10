@@ -27,6 +27,7 @@ import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.DeviceEventsObserver
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
+import mozilla.components.concept.sync.SyncResult
 import mozilla.components.concept.sync.SyncStatusObserver
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.Config
@@ -293,7 +294,7 @@ class MainActivity :
             }
         }
 
-        override fun onIdle() {
+        override fun onIdle(result: SyncResult) {
             CoroutineScope(Dispatchers.Main).launch {
                 syncStatus?.text = getString(R.string.sync_idle)
 
@@ -319,9 +320,9 @@ class MainActivity :
             }
         }
 
-        override fun onError(error: Exception?) {
+        override fun onError(result: SyncResult) {
             CoroutineScope(Dispatchers.Main).launch {
-                syncStatus?.text = getString(R.string.sync_error, error)
+                syncStatus?.text = getString(R.string.sync_error, result)
             }
         }
     }

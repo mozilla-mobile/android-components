@@ -82,7 +82,7 @@ class StorageSync(
     private suspend fun withListeners(block: suspend () -> SyncResult): SyncResult {
         notifyObservers { onStarted() }
         val result = block()
-        notifyObservers { onIdle() }
+        notifyObservers { onIdle(result) }
         return result
     }
 }

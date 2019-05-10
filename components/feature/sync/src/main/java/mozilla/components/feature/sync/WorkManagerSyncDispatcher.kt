@@ -20,6 +20,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import mozilla.components.concept.sync.OAuthAccount
+import mozilla.components.concept.sync.SyncResult
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncStatusObserver
 import mozilla.components.service.fxa.SharedPrefAccountStorage
@@ -47,25 +48,62 @@ private enum class SyncWorkerName {
  * single LiveData instance.
  */
 object WorkersLiveDataObserver {
+    private val logger = Logger("WorkersLiveDataObserver")
     private val workersLiveData = WorkManager.getInstance().getWorkInfosByTagLiveData(
         SyncWorkerTag.Common.name
     )
 
+    // TODO volatile?
+    internal var isSyncActive = false
     private var dispatcher: SyncDispatcher? = null
+
+    private val finishedWorkers: MutableSet<String> = mutableSetOf()
 
     @UiThread
     fun init() {
-        workersLiveData.observeForever {
-            val isRunningOrNothing = it?.any { worker -> worker.state == WorkInfo.State.RUNNING }
+        workersLiveData.observeForever { workers ->
+            logger.info("Workers: $workers")
+            val isRunningOrNothing = workers.any { worker -> worker.state == WorkInfo.State.RUNNING }
             val isRunning = when (isRunningOrNothing) {
-                null -> false
                 false -> false
                 true -> true
             }
 
-            dispatcher?.workersStateChanged(isRunning)
+            // Sync stopped running. Collect SyncResult and pass it up.
+            if (isSyncActive && !isRunning) {
+                isSyncActive = false
 
-            // TODO process errors coming out of worker.outputData
+                // Obtain SyncResult from the finished WorkInfo.
+                val justFinishedWorkers = workers.filter {
+                    (it.state == WorkInfo.State.SUCCEEDED || it.state == WorkInfo.State.FAILED)
+                    && !finishedWorkers.contains(it.id.toString())
+                }
+
+                if (justFinishedWorkers.size != 1) {
+                    logger.error("Expected to see one just-finished worker, but instead got $justFinishedWorkers")
+                }
+
+                val latestWorker = justFinishedWorkers[0]
+
+                // Memorize id of this worker so that we don't process it again in the future.
+                finishedWorkers.add(latestWorker.id.toString())
+
+                logger.info("Latest data: ${latestWorker.outputData}")
+
+                // TODO perform the conversion from androidx.work.Data to SyncResult
+
+                dispatcher?.workersStopped(mapOf())
+
+            // Sync started running. Just tell the dispatcher what's up.
+            } else if (!isSyncActive && isRunning) {
+                isSyncActive = true
+                dispatcher?.workersStarted()
+            }
+
+            // Two other possible combinations of these flags are:
+            // - 1,1 = "sync was running, and it's still running"
+            // - 0,0 = "sync wasn't running, and it's not running now"
+            // In either case, we do nothing here.
         }
     }
 
@@ -81,21 +119,16 @@ class WorkManagerSyncDispatcher(
 ) : SyncDispatcher, Observable<SyncStatusObserver> by ObserverRegistry(), Closeable {
     private val logger = Logger("WMSyncDispatcher")
 
-    // TODO does this need to be volatile?
-    private var isSyncActive = false
+    override fun workersStarted() {
+        notifyObservers { onStarted() }
+    }
 
-    override fun workersStateChanged(isRunning: Boolean) {
-        if (isSyncActive && !isRunning) {
-            notifyObservers { onIdle() }
-            isSyncActive = false
-        } else if (!isSyncActive && isRunning) {
-            notifyObservers { onStarted() }
-            isSyncActive = true
-        }
+    override fun workersStopped(result: SyncResult) {
+        notifyObservers { onIdle(result) }
     }
 
     override fun isSyncActive(): Boolean {
-        return isSyncActive
+        return WorkersLiveDataObserver.isSyncActive
     }
 
     override fun syncNow(startup: Boolean) {
@@ -222,6 +255,8 @@ class WorkManagerSyncWorker(
         }
 
         val syncResult = StorageSync(syncableStores, syncScope).sync(account)
+
+        // TODO perform a conversion between SyncResult and androidx.work.Data.
 
         val resultBuilder = Data.Builder()
         syncResult.forEach {

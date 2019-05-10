@@ -6,6 +6,7 @@ package mozilla.components.feature.sync
 
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.SyncManager
+import mozilla.components.concept.sync.SyncResult
 import mozilla.components.concept.sync.SyncStatusObserver
 import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.support.base.log.logger.Logger
@@ -42,7 +43,8 @@ interface SyncDispatcher : Closeable, Observable<SyncStatusObserver> {
     fun syncNow(startup: Boolean = false)
     fun startPeriodicSync(unit: TimeUnit, period: Long)
     fun stopPeriodicSync()
-    fun workersStateChanged(isRunning: Boolean)
+    fun workersStarted()
+    fun workersStopped(result: SyncResult)
 }
 
 /**
@@ -168,12 +170,12 @@ abstract class GeneralSyncManager : SyncManager, Observable<SyncStatusObserver> 
         notifyObservers { onStarted() }
     }
 
-    override fun onIdle() {
-        notifyObservers { onIdle() }
+    override fun onIdle(result: SyncResult) {
+        notifyObservers { onIdle(result) }
     }
 
-    override fun onError(error: Exception?) {
-        notifyObservers { onError(error) }
+    override fun onError(result: SyncResult) {
+        notifyObservers { onError(result) }
     }
 
     private fun newDispatcher(

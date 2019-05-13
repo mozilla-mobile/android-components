@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **feature-customtabs**
+  * Added correct scrolling behavior to custom tabs browser toolbar.
+
 # 0.52.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.51.0...v0.52.0)

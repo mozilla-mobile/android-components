@@ -13,6 +13,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
+import com.google.android.material.appbar.AppBarLayout
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.BrowserMenuItem
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
@@ -62,6 +63,11 @@ class CustomTabsToolbarFeature(
             config.toolbarColor?.let {
                 readableColor = getReadableTextColor(it)
             }
+
+            // Allow the toolbar to scroll away
+            val params = toolbar.layoutParams as AppBarLayout.LayoutParams
+            params.scrollFlags = DEFAULT_SCROLL_FLAGS
+
             // Change the toolbar colour
             updateToolbarColor(config.toolbarColor)
             // Add navigation close action
@@ -222,6 +228,11 @@ class CustomTabsToolbarFeature(
     }
 
     companion object {
+        const val DEFAULT_SCROLL_FLAGS = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP or
+                AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+
         const val TITLE_TEXT_SIZE = 15f
         const val URL_TEXT_SIZE = 12f
         @Suppress("MagicNumber")

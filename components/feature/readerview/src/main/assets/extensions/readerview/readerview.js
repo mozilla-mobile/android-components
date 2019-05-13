@@ -41,17 +41,11 @@ class ReaderView {
     return node.clientHeight > 0 && node.clientWidth > 0;
   }
 
-  constructor(document) {
-    this.document = document;
-    this.originalBody = document.body.outerHTML;
-  }
-
   show({fontSize = 4, fontType = "sans-serif", colorScheme = "light"} = {}) {
-    var documentClone = document.cloneNode(true);
-    var result = new Readability(documentClone).parse();
+    let result = new Readability(document).parse();
     result.language = document.documentElement.lang;
 
-    var article = Object.assign(
+    let article = Object.assign(
       result,
       {url: location.hostname},
       {readingTime: this.getReadingTime(result.length, result.language)},
@@ -59,14 +53,14 @@ class ReaderView {
       {dir: this.getTextDirection(result)}
     );
 
-    document.body.outerHTML = this.createHtml(article);
+    document.documentElement.innerHTML = this.createHtml(article);
+
     this.setFontSize(fontSize);
     this.setFontType(fontType);
     this.setColorScheme(colorScheme);
   }
 
   hide() {
-    document.body.outerHTML = this.originalBody;
     location.reload(false)
   }
 
@@ -134,6 +128,11 @@ class ReaderView {
 
   createHtml(article) {
     return `
+      <head>
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+        <meta name="viewport" content="width=device-width; user-scalable=0">
+        <title>${article.title}</title>
+      </head>
       <body class="mozac-readerview-body">
         <div id="mozac-readerview-container" class="container" dir=${article.dir}>
           <div class="header">
@@ -167,6 +166,10 @@ class ReaderView {
     const charactersPerMinuteHigh = readingSpeed.cpm + readingSpeed.variance;
     const readingTimeMinsSlow = Math.ceil(length / charactersPerMinuteLow);
     const readingTimeMinsFast  = Math.ceil(length / charactersPerMinuteHigh);
+
+    // TODO remove moment.js: https://github.com/mozilla-mobile/android-components/issues/2923
+    // We only want to show minutes and not have it converted to hours.
+    moment.relativeTimeThreshold('m', Number.MAX_SAFE_INTEGER);
 
     if (readingTimeMinsSlow == readingTimeMinsFast) {
       return moment.duration(readingTimeMinsFast, 'minutes').locale(lang).humanize();
@@ -276,7 +279,7 @@ class ReaderView {
    }
 }
 
-let readerView = new ReaderView(document);
+let readerView = new ReaderView();
 
 let port = browser.runtime.connectNative("mozacReaderview");
 port.onMessage.addListener((message) => {

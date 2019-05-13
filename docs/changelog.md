@@ -14,6 +14,9 @@ permalink: /changelog/
 
 * ℹ️ **Migrated all components to [AndroidX](https://developer.android.com/jetpack/androidx).**
 
+* ℹ️ **Upgraded Gradle to 5.3.1**
+  * ⚠️ This requires using the 1.3.30 Kotlin gradle plugin or higher.
+
 * **feature-readerview**
   * 🆕 New component/feature that provides reader mode functionality. To see a complete and working example of how to integrate this new component, check out the `ReaderViewIntegration` class in our [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
   ```kotlin
@@ -39,8 +42,25 @@ permalink: /changelog/
  * Fix disappearing title in Custom Tab toolbar.
 
 * **feature-sitepermissions**
+  * ⚠️ **This is a breaking API change**: ``anchorView`` property has been removed if you want to change the position of the prompts use the ``promptsStyling`` property.
+  * Added new property ``context``. It must be provided in the constructor.
   * Do not save new site permissions in private sessions.
-  
+  * Added ``sessionId`` property for adding site permissions on custom tabs.
+  * Allow prompts styling via ``PromptsStyling``
+  ```kotlin
+    data class PromptsStyling(
+        val gravity: Int,
+        val shouldWidthMatchParent: Boolean = false,
+        @ColorRes
+        val positiveButtonBackgroundColor: Int? = null,
+        @ColorRes
+        val positiveButtonTextColor: Int? = null
+    )
+  ```
+
+* **feature-customtabs**
+  * Fix session not being removed when the close button was clicked.
+
 * **service-glean**
    * ⚠️ **This is a breaking API change**: Custom pings must be explicitly
      registered with Glean at startup time. See
@@ -48,10 +68,81 @@ permalink: /changelog/
 
 * **ui-autocomplete**
   * Added an optional `shouldAutoComplete` boolean to `setText` which is currently used by `updateUrl` in `EditToolbar`.
-  
+
 * **browser-toolbar**
   * Modified `EditToolbar`'s `updateUrl` function to take a `shouldAutoComplete` boolean. By default a call to this function does **not** autocomplete. Generally you want to disable autocomplete when calling `updateUrl` if the text is a search term.
   See `editMode` in `BrowserToolbar` and `setText` in `InlineAutocompleteEditText` for more information.
+
+* **browser-engine-system**
+  * Added support for Authentication dialogs on SystemEngineView.
+
+* **concept-engine**, **browser-engine-gecko-nightly**
+  * Added `suspendMediaWhenInactive` setting to control whether media should be suspended when the session is inactive. The default is `false`.
+  ```kotlin
+  // To provide a default when creating the engine:
+  GeckoEngine(runtime, DefaultSettings(suspendMediaWhenInactive = true))
+
+  // To change the value for a specific session:
+  engineSession.settings.suspendMediaWhenInactive = true
+  ```
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking API change**:
+  * `OAuthAccount` now has a new `deviceConstellation` method.
+  * `FxaAccountManager`'s constructor now takes a `DeviceTuple` parameter.
+  * Added integration with FxA devices and device events.
+  * First supported event type is Send Tab.
+  * It's now possible to receive and send tabs from/to devices in the `DeviceConstellation`.
+  * `samples-sync` application provides a detailed integration example of these new APIs.
+  * Brief example:
+  ```kotlin
+  val deviceConstellationObserver = object : DeviceConstellationObserver {
+    override fun onDevicesUpdate(constellation: ConstellationState) {
+        // Process the following:
+        // constellation.currentDevice
+        // constellation.otherDevices
+    }
+  }
+  val deviceEventsObserver = object : DeviceEventsObserver {
+    override fun onEvents(events: List<DeviceEvent>) {
+        events.filter { it is DeviceEvent.TabReceived }.forEach {
+            val tabReceivedEvent = it as DeviceEvent.TabReceived
+            // process received tab(s).
+        }
+    }
+  }
+  val accountObserver = object : AccountObserver {
+    // ... other methods ...
+    override fun onAuthenticated(account: OAuthAccount) {
+        account.deviceConstellation().registerDeviceObserver(
+            observer = deviceConstellationObserver,
+            owner = this@MainActivity,
+            autoPause = true
+        )
+    }
+  }
+  val accountManager = FxaAccountManager(
+    this,
+    Config.release(CLIENT_ID, REDIRECT_URL),
+    arrayOf("profile", "https://identity.mozilla.com/apps/oldsync"),
+    DeviceTuple(
+        name = "Doc Example App",
+        type = DeviceType.MOBILE,
+        capabilities = listOf(DeviceCapability.SEND_TAB)
+    ),
+    syncManager
+  )
+  accountManager.register(accountObserver, owner = this, autoPause = true)
+  accountManager.registerForDeviceEvents(deviceEventsObserver, owner = this, autoPause = true)
+  ```
+  
+* **feature-prompts**
+  * ⚠️ **This is a breaking API change**:
+  * `PromptFeature` constructor adds an optional `sessionId`. This should use the custom tab session id if available. 
+
+
+* **browser-session**
+  * Added `SessionManager.runWithSessionIdOrSelected(sessionId: String?)` run function block on a session ID. If the session does not exist, then uses the selected session.
 
 # 0.51.0
 
@@ -66,7 +157,7 @@ permalink: /changelog/
 
 * **browser-errorpages**
   * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
-  
+
 * **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
   * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
 

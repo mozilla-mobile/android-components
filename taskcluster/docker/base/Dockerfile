@@ -66,12 +66,13 @@ RUN locale-gen en_US.UTF-8
 RUN mkdir -p /build/android-sdk
 WORKDIR /build
 
+ENV ANDROID_SDK_ROOT /build/android-sdk
 ENV ANDROID_HOME /build/android-sdk
-ENV ANDROID_SDK_HOME /build/android-sdk
-ENV PATH ${PATH}:${ANDROID_SDK_HOME}/tools:${ANDROID_SDK_HOME}/tools/bin:${ANDROID_SDK_HOME}/platform-tools:/opt/tools:${ANDROID_SDK_HOME}/build-tools/${ANDROID_BUILD_TOOLS}
+ENV ANDROID_SDK_HOME /builds/worker
+ENV PATH ${PATH}:${ANDROID_SDK_ROOT}/tools:${ANDROID_SDK_ROOT}/tools/bin:${ANDROID_SDK_ROOT}/platform-tools:/opt/tools:${ANDROID_SDK_ROOT}/build-tools/${ANDROID_BUILD_TOOLS}
 
 RUN curl -L https://dl.google.com/android/repository/sdk-tools-linux-${ANDROID_SDK_VERSION}.zip > sdk.zip \
-    && unzip sdk.zip -d ${ANDROID_SDK_HOME} \
+    && unzip sdk.zip -d ${ANDROID_SDK_ROOT} \
     && rm sdk.zip \
     && mkdir -p /build/android-sdk/.android/ \
     && touch /build/android-sdk/.android/repositories.cfg \

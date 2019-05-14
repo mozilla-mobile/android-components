@@ -12,7 +12,6 @@ object KotlinCompiler {
     // Maybe this is easier in Gradle 5+.
     @JvmStatic
     val projectsWithWarningsAsErrorsDisabled = setOf(
-        "browser-domains",
         "browser-engine-gecko",
         "browser-engine-servo",
         "browser-errorpages",

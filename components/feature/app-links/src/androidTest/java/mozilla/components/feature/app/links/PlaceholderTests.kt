@@ -6,5 +6,4 @@
 
 package mozilla.components.feature.app.links
 
-class PlaceholderTests {
-}
+class PlaceholderTests

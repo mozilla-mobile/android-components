@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.icons.loader
 
+import android.content.Context
 import android.graphics.Bitmap
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
@@ -18,7 +19,7 @@ class MemoryIconLoader(
         fun getBitmap(request: IconRequest, resource: IconRequest.Resource): Bitmap?
     }
 
-    override fun load(request: IconRequest, resource: IconRequest.Resource): IconLoader.Result {
+    override fun load(context: Context, request: IconRequest, resource: IconRequest.Resource): IconLoader.Result {
         return cache.getBitmap(request, resource)?.let { bitmap ->
             IconLoader.Result.BitmapResult(bitmap, Icon.Source.MEMORY)
         } ?: IconLoader.Result.NoResult

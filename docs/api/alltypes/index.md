@@ -43,7 +43,7 @@
 | [mozilla.components.support.base.feature.BackHandler](../mozilla.components.support.base.feature/-back-handler/index.md) | Generic interface for fragments, features and other components that want to handle 'back' button presses. |
 | [mozilla.components.feature.sync.BackgroundSyncManager](../mozilla.components.feature.sync/-background-sync-manager/index.md) | A SyncManager implementation which uses WorkManager APIs to schedule sync tasks. |
 | [mozilla.components.support.ktx.android.util.Base64](../mozilla.components.support.ktx.android.util/-base64/index.md) |  |
-| [mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider](../mozilla.components.browser.domains.autocomplete/-base-domain-autocomplete-provider/index.md) | Provides common autocomplete functionality powered by domain lists. |
+| [mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider](../mozilla.components.browser.domains.autocomplete/-base-domain-autocomplete-provider/index.md) | Provides common autocomplete functionality powered by domain lists. **(Deprecated. Use `ShippedDomainsProvider` or `CustomDomainsProvider` instead)** |
 | [android.graphics.Bitmap](../mozilla.components.support.ktx.android.graphics/android.graphics.-bitmap/index.md) (extensions in package mozilla.components.support.ktx.android.graphics) |  |
 | [mozilla.components.concept.storage.BookmarkInfo](../mozilla.components.concept.storage/-bookmark-info/index.md) | Class for making alterations to any bookmark node |
 | [mozilla.components.concept.storage.BookmarkNode](../mozilla.components.concept.storage/-bookmark-node/index.md) | Class for holding metadata about any bookmark node |

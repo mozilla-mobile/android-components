@@ -6,28 +6,30 @@ package mozilla.components.browser.domains
 
 import android.content.Context
 import kotlinx.coroutines.runBlocking
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class CustomDomainsTest {
+
+    private val context by applicationContext()
+
     @Before
     fun setUp() {
-        RuntimeEnvironment.application
-                .getSharedPreferences("custom_autocomplete", Context.MODE_PRIVATE)
-                .edit()
-                .clear()
-                .apply()
+        context.getSharedPreferences("custom_autocomplete", Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
     }
 
     @Test
     fun customListIsEmptyByDefault() {
         val domains = runBlocking {
-            CustomDomains.load(RuntimeEnvironment.application)
+            CustomDomains.load(context)
         }
 
         assertEquals(0, domains.size)
@@ -35,38 +37,38 @@ class CustomDomainsTest {
 
     @Test
     fun saveAndRemoveDomains() {
-        CustomDomains.save(RuntimeEnvironment.application, listOf(
-                "mozilla.org",
-                "example.org",
-                "example.com"
+        CustomDomains.save(context, listOf(
+            "mozilla.org",
+            "example.org",
+            "example.com"
         ))
 
-        var domains = CustomDomains.load(RuntimeEnvironment.application)
+        var domains = CustomDomains.load(context)
         assertEquals(3, domains.size)
 
-        CustomDomains.remove(RuntimeEnvironment.application, listOf("example.org", "example.com"))
-        domains = CustomDomains.load(RuntimeEnvironment.application)
+        CustomDomains.remove(context, listOf("example.org", "example.com"))
+        domains = CustomDomains.load(context)
         assertEquals(1, domains.size)
         assertEquals("mozilla.org", domains.elementAt(0))
     }
 
     @Test
     fun addAndLoadDomains() {
-        CustomDomains.add(RuntimeEnvironment.application, "mozilla.org")
-        val domains = CustomDomains.load(RuntimeEnvironment.application)
+        CustomDomains.add(context, "mozilla.org")
+        val domains = CustomDomains.load(context)
         assertEquals(1, domains.size)
         assertEquals("mozilla.org", domains.elementAt(0))
     }
 
     @Test
     fun saveAndLoadDomains() {
-        CustomDomains.save(RuntimeEnvironment.application, listOf(
-                "mozilla.org",
-                "example.org",
-                "example.com"
+        CustomDomains.save(context, listOf(
+            "mozilla.org",
+            "example.org",
+            "example.com"
         ))
 
-        val domains = CustomDomains.load(RuntimeEnvironment.application)
+        val domains = CustomDomains.load(context)
 
         assertEquals(3, domains.size)
         assertEquals("mozilla.org", domains.elementAt(0))

@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.icons.processor
 
+import android.content.Context
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
 
@@ -17,7 +18,7 @@ class MemoryIconProcessor(
         fun put(request: IconRequest, resource: IconRequest.Resource, icon: Icon)
     }
 
-    override fun process(request: IconRequest, resource: IconRequest.Resource?, icon: Icon): Icon {
+    override fun process(context: Context, request: IconRequest, resource: IconRequest.Resource?, icon: Icon): Icon {
         if (resource != null && icon.shouldCacheInMemory) {
             cache.put(request, resource, icon)
         }
@@ -32,4 +33,5 @@ private val Icon.shouldCacheInMemory: Boolean
         Icon.Source.DOWNLOAD -> true
         Icon.Source.INLINE -> true
         Icon.Source.MEMORY -> false
+        Icon.Source.DISK -> true
     }

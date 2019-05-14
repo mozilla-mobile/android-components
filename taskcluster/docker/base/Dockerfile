@@ -9,6 +9,7 @@ MAINTAINER Sebastian Kaspari "skaspari@mozilla.com"
 # Add worker user
 RUN mkdir /builds && \
     useradd -d /builds/worker -s /bin/bash -m worker && \
+    chown worker:worker /builds/worker && \
     mkdir /builds/worker/artifacts && \
     chown worker:worker /builds/worker/artifacts
 
@@ -102,3 +103,7 @@ ENV SHELL=/bin/bash \
 VOLUME /builds/worker/checkouts
 VOLUME /builds/worker/.cache
 WORKDIR /builds/worker/checkout
+
+# HACK
+RUN chown -R worker:worker /build/android-sdk/.android
+RUN chown -R worker:worker /builds/worker/.android

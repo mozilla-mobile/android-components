@@ -5,6 +5,7 @@
     package="mozilla.components.service.glean" >
     <application>
         <activity android:name=".debug.GleanDebugActivity"
-            android:exported="true" />
+            android:exported="true"
+            android:launchMode="singleTask" />
     </application>
 </manifest>

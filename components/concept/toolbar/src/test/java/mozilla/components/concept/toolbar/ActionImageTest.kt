@@ -11,16 +11,18 @@ import android.view.View
 import android.view.ViewGroup
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class ActionImageTest {
+
+    private val context by applicationContext()
 
     @Test
     fun `setting minimumWidth`() {
@@ -29,7 +31,7 @@ class ActionImageTest {
         val emptyImage = Toolbar.ActionImage(mock())
 
         val viewGroup: ViewGroup = mock()
-        `when`(viewGroup.context).thenReturn(RuntimeEnvironment.application)
+        `when`(viewGroup.context).thenReturn(context)
         `when`(drawable.intrinsicWidth).thenReturn(5)
 
         val emptyImageView = emptyImage.createView(viewGroup)
@@ -44,7 +46,7 @@ class ActionImageTest {
         val image = Toolbar.ActionImage(mock())
         var imageAccessible = Toolbar.ActionImage(mock(), "image")
         val viewGroup: ViewGroup = mock()
-        `when`(viewGroup.context).thenReturn(RuntimeEnvironment.application)
+        `when`(viewGroup.context).thenReturn(context)
 
         val imageView = image.createView(viewGroup)
         assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, imageView.importantForAccessibility)
@@ -67,7 +69,7 @@ class ActionImageTest {
     fun `padding is set`() {
         var image = Toolbar.ActionImage(mock())
         val viewGroup: ViewGroup = mock()
-        `when`(viewGroup.context).thenReturn(RuntimeEnvironment.application)
+        `when`(viewGroup.context).thenReturn(context)
         var view = image.createView(viewGroup)
 
         assertEquals(view.paddingLeft, 0)

@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -15,16 +16,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 class ActionToggleButtonTest {
+
+    private val context by applicationContext()
+
     @Test
     fun `clicking view will toggle state`() {
         val button =
             Toolbar.ActionToggleButton(mock(), mock(), UUID.randomUUID().toString(), UUID.randomUUID().toString()) {}
-        val view = button.createView(FrameLayout(RuntimeEnvironment.application))
+        val view = button.createView(FrameLayout(context))
 
         assertFalse(button.isSelected())
 
@@ -46,7 +49,7 @@ class ActionToggleButtonTest {
                 listenerInvoked = true
             }
 
-        val view = button.createView(FrameLayout(RuntimeEnvironment.application))
+        val view = button.createView(FrameLayout(context))
 
         assertFalse(listenerInvoked)
 
@@ -159,7 +162,7 @@ class ActionToggleButtonTest {
         button.toggle(notifyListener = false)
         assertFalse(button.isSelected())
 
-        val view = button.createView(FrameLayout(RuntimeEnvironment.application))
+        val view = button.createView(FrameLayout(context))
         view.performClick()
         assertTrue(button.isSelected())
     }
@@ -167,7 +170,7 @@ class ActionToggleButtonTest {
     @Test
     fun `Toolbar ActionToggleButton must set padding`() {
         var button = Toolbar.ActionToggleButton(mock(), mock(), "imageResource", "") {}
-        val linearLayout = LinearLayout(RuntimeEnvironment.application)
+        val linearLayout = LinearLayout(context)
         var view = button.createView(linearLayout)
         val padding = Padding(16, 20, 24, 28)
 

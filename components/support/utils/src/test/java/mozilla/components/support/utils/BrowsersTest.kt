@@ -23,6 +23,7 @@ import org.robolectric.Shadows.shadowOf
 
 @RunWith(RobolectricTestRunner::class)
 class BrowsersTest {
+
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
 
@@ -248,6 +249,62 @@ class BrowsersTest {
         assertFalse(browsers.hasThirdPartyDefaultBrowser)
     }
 
+    @Test
+    fun `forUrl() with empty package manager`() {
+        val browsers = Browsers.forUrl(context, "http://www.mozilla.org")
+
+        assertNull(browsers.defaultBrowser)
+        assertNull(browsers.firefoxBrandedBrowser)
+        assertFalse(browsers.hasFirefoxBrandedBrowserInstalled)
+        assertTrue(browsers.installedBrowsers.isEmpty())
+        assertFalse(browsers.hasThirdPartyDefaultBrowser)
+        assertFalse(browsers.hasMultipleThirdPartyBrowsers)
+        assertFalse(browsers.isDefaultBrowser)
+        assertFalse(browsers.isFirefoxDefaultBrowser)
+    }
+
+    @Test
+    fun `forUrl() with firefox as default browser`() {
+        pretendBrowsersAreInstalled(
+            defaultBrowser = Browsers.KnownBrowser.FIREFOX.packageName
+        )
+
+        val browsers = Browsers.forUrl(context, "http://www.mozilla.org")
+
+        assertNotNull(browsers.defaultBrowser)
+        assertEquals(Browsers.KnownBrowser.FIREFOX.packageName, browsers.defaultBrowser!!.packageName)
+
+        assertNotNull(browsers.firefoxBrandedBrowser)
+        assertEquals(Browsers.KnownBrowser.FIREFOX.packageName, browsers.firefoxBrandedBrowser!!.packageName)
+
+        assertTrue(browsers.hasFirefoxBrandedBrowserInstalled)
+
+        assertEquals(1, browsers.installedBrowsers.size)
+
+        assertFalse(browsers.hasThirdPartyDefaultBrowser)
+        assertFalse(browsers.hasMultipleThirdPartyBrowsers)
+        assertFalse(browsers.isDefaultBrowser)
+        assertTrue(browsers.isFirefoxDefaultBrowser)
+    }
+
+    @Test
+    fun `forUrl() with wrong non-uri`() {
+        pretendBrowsersAreInstalled(
+            defaultBrowser = Browsers.KnownBrowser.FIREFOX.packageName
+        )
+
+        val browsers = Browsers.forUrl(context, "not-a-uri")
+
+        assertNull(browsers.defaultBrowser)
+        assertNull(browsers.firefoxBrandedBrowser)
+        assertFalse(browsers.hasFirefoxBrandedBrowserInstalled)
+        assertTrue(browsers.installedBrowsers.isEmpty())
+        assertFalse(browsers.hasThirdPartyDefaultBrowser)
+        assertFalse(browsers.hasMultipleThirdPartyBrowsers)
+        assertFalse(browsers.isDefaultBrowser)
+        assertFalse(browsers.isFirefoxDefaultBrowser)
+    }
+
     private fun pretendBrowsersAreInstalled(
         browsers: List<String> = listOf(),
         defaultBrowser: String? = null,
@@ -266,7 +323,7 @@ class BrowsersTest {
             val packageInfo = PackageInfo()
             packageInfo.packageName = packageName
 
-            shadow.addPackage(packageInfo)
+            shadow.installPackage(packageInfo)
 
             val activityInfo = ActivityInfo()
             activityInfo.exported = browsersExported

@@ -5,6 +5,7 @@
 package mozilla.components.ui.progress
 
 import android.view.View
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,14 +13,15 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class AnimatedProgressBarTest {
 
+    private val context by applicationContext()
+
     @Test
     fun setProgress() {
-        val progressBar = AnimatedProgressBar(RuntimeEnvironment.application)
+        val progressBar = AnimatedProgressBar(context)
 
         progressBar.progress = -1
         assertEquals(0, progressBar.progress)
@@ -36,7 +38,7 @@ class AnimatedProgressBarTest {
 
     @Test
     fun setVisibility() {
-        val progressBar = spy(AnimatedProgressBar(RuntimeEnvironment.application))
+        val progressBar = spy(AnimatedProgressBar(context))
 
         progressBar.visibility = View.GONE
         verify(progressBar, never()).animateClosing()

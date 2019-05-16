@@ -4,18 +4,47 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.52.0-SNAPSHOT  (In Development)
+# 0.53.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.51.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/55?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.52.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/56?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **browser-engine-system**
+  * ⚠️ **This is a breaking behavior change**: built-in `WebView`'s on-screen zoom controls are hidden by default.
+
+* **browser-icons**
+  * Added disk cache for icons.
+
+* **feature-session**:
+  * Added `EngineViewBottomBehavior`: A `CoordinatorLayout.Behavior` implementation to be used with [EngineView] when placing a toolbar at the bottom of the screen. This implementation will update the vertical clipping of the `EngineView` so that bottom-aligned web content will be drawn above the browser toolbar.
+
+* **feature-prompts** and **browser-engine-gecko-nightly**
+  * Now input type file are working.
+
+* **browser-session**
+  * Fixed a bug where the title and icon of a `Session` was cleared too early.
+
+* **browser-contextmenu**
+  * Added ability to provide a custom `SnackbarDelegate` to show a customized `Snackbar`.
+
+# 0.52.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.51.0...v0.52.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/55?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.52.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.52.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.52.0/buildSrc/src/main/java/Config.kt)
 
 * ℹ️ **Migrated all components to [AndroidX](https://developer.android.com/jetpack/androidx).**
 
 * ℹ️ **Upgraded Gradle to 5.3.1**
   * ⚠️ This requires using the 1.3.30 Kotlin gradle plugin or higher.
+  
+* **feature-tab-collections**
+  * 🆕 New component: Feature implementation for saving, restoring and organizing collections of tabs.
 
 * **feature-readerview**
   * 🆕 New component/feature that provides reader mode functionality. To see a complete and working example of how to integrate this new component, check out the `ReaderViewIntegration` class in our [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
@@ -39,9 +68,10 @@ permalink: /changelog/
   ```
 
 * **feature-readerview**
- * Fix disappearing title in Custom Tab toolbar.
+  * Fix disappearing title in Custom Tab toolbar.
 
 * **feature-sitepermissions**
+  * Added ability to configure default (checked/unchecked) state for "Remember decision" checkbox. Provide `dialogConfig` into `SitePermissionsFeature` for this. Checkbox is checked by default.
   * ⚠️ **This is a breaking API change**: ``anchorView`` property has been removed if you want to change the position of the prompts use the ``promptsStyling`` property.
   * Added new property ``context``. It must be provided in the constructor.
   * Do not save new site permissions in private sessions.
@@ -160,6 +190,7 @@ permalink: /changelog/
 
 * **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
   * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
+  * Added setting of desktop view port when requesting desktop site
 
 * **feature-customtabs**
   * Added fact emitting.

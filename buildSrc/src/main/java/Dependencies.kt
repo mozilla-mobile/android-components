@@ -22,6 +22,7 @@ object Versions {
     const val okhttp = "3.13.1"
     const val zxing = "3.3.0"
     const val jna = "5.2.0"
+    const val disklrucache = "2.0.2"
 
     const val mozilla_appservices = "0.27.1"
     const val servo = "0.0.1.20181017.aa95911"
@@ -43,6 +44,7 @@ object Versions {
         const val paging = "2.0.0"
         const val lifecycle = "2.0.0"
         const val work = "2.0.0"
+        const val arch_core_testing = "2.0.0"
     }
 }
 
@@ -62,6 +64,7 @@ object Dependencies {
 
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.AndroidX.annotation}"
     const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.AndroidX.appcompat}"
+    const val androidx_arch_core_testing = "androidx.arch.core:core-testing:${Versions.AndroidX.arch_core_testing}"
     const val androidx_browser = "androidx.browser:browser:${Versions.AndroidX.browser}"
     const val androidx_cardview = "androidx.cardview:cardview:${Versions.AndroidX.cardview}"
     const val androidx_constraintlayout = "androidx.constraintlayout:constraintlayout:${Versions.AndroidX.constraintlayout}"
@@ -106,4 +109,5 @@ object Dependencies {
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
     const val thirdparty_zxing = "com.google.zxing:core:${Versions.zxing}"
     const val thirdparty_jna = "net.java.dev.jna:jna:${Versions.jna}@jar"
+    const val thirdparty_disklrucache = "com.jakewharton:disklrucache:${Versions.disklrucache}"
 }

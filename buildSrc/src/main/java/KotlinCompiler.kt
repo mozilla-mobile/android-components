@@ -37,7 +37,6 @@ object KotlinCompiler {
         "service-fretboard",
         "service-glean",
         "support-test",
-        "tooling-lint",
         "ui-tabcounter"
     )
 }

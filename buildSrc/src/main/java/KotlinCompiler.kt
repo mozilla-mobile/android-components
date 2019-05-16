@@ -14,7 +14,6 @@ object KotlinCompiler {
     val projectsWithWarningsAsErrorsDisabled = setOf(
         "browser-engine-gecko",
         "browser-engine-servo",
-        "browser-menu",
         "browser-search",
         "browser-storage-sync",
         "feature-accounts",

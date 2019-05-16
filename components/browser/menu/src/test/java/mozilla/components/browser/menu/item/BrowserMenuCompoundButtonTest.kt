@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.widget.CheckBox
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.R
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,10 +13,11 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class BrowserMenuCompoundButtonTest {
+
+    private val context by applicationContext()
 
     @Test
     fun `simple menu items are always visible by default`() {
@@ -32,9 +34,8 @@ class BrowserMenuCompoundButtonTest {
             // do nothing
         }
 
-        val view = LayoutInflater.from(
-            RuntimeEnvironment.application
-        ).inflate(item.getLayoutResource(), null)
+        val view = LayoutInflater.from(context)
+            .inflate(item.getLayoutResource(), null)
 
         assertNotNull(view)
     }
@@ -48,7 +49,7 @@ class BrowserMenuCompoundButtonTest {
         }
 
         val menu = mock(BrowserMenu::class.java)
-        val view = CheckBox(RuntimeEnvironment.application)
+        val view = CheckBox(context)
 
         item.bind(menu, view)
 
@@ -64,7 +65,7 @@ class BrowserMenuCompoundButtonTest {
         val item = SimpleTestBrowserCompoundButton("Hello", initialState) {}
 
         val menu = mock(BrowserMenu::class.java)
-        val view = spy(CheckBox(RuntimeEnvironment.application))
+        val view = spy(CheckBox(context))
         item.bind(menu, view)
 
         verify(view).isChecked = true

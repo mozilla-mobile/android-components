@@ -4,13 +4,12 @@
 
 package mozilla.components.browser.menu.item
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
-import androidx.test.core.app.ApplicationProvider
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.R
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -19,11 +18,11 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class SimpleBrowserMenuItemTest {
-    private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    private val context by applicationContext()
 
     @Test
     fun `simple menu items are always visible by default`() {
@@ -40,9 +39,8 @@ class SimpleBrowserMenuItemTest {
             // do nothing
         }
 
-        val view = LayoutInflater.from(
-            RuntimeEnvironment.application
-        ).inflate(item.getLayoutResource(), null)
+        val view = LayoutInflater.from(context)
+            .inflate(item.getLayoutResource(), null)
 
         assertNotNull(view)
     }
@@ -56,7 +54,7 @@ class SimpleBrowserMenuItemTest {
         }
 
         val menu = mock(BrowserMenu::class.java)
-        val view = TextView(RuntimeEnvironment.application)
+        val view = TextView(context)
 
         item.bind(menu, view)
 

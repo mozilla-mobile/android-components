@@ -41,7 +41,6 @@ object KotlinCompiler {
         "service-glean",
         "support-test",
         "support-utils",
-        "tooling-lint",
-        "ui-autocomplete"
+        "tooling-lint"
     )
 }

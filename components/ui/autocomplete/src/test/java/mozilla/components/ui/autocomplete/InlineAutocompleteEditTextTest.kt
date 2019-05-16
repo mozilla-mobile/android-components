@@ -4,8 +4,6 @@
 
 package mozilla.components.ui.autocomplete
 
-import android.content.Context
-import android.text.Spanned
 import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
 import android.util.AttributeSet
 import android.view.KeyEvent
@@ -13,26 +11,26 @@ import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
+import mozilla.components.support.test.robolectric.applicationContext
+import mozilla.components.ui.autocomplete.InlineAutocompleteEditText.AutocompleteResult
+import mozilla.components.ui.autocomplete.InlineAutocompleteEditText.Companion.AUTOCOMPLETE_SPAN
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-
-import mozilla.components.ui.autocomplete.InlineAutocompleteEditText.Companion.AUTOCOMPLETE_SPAN
-import mozilla.components.ui.autocomplete.InlineAutocompleteEditText.AutocompleteResult
-import org.junit.Assert.assertNull
 
 @RunWith(RobolectricTestRunner::class)
 class InlineAutocompleteEditTextTest {
-    private val context: Context = RuntimeEnvironment.application
-    private val attributes: AttributeSet = mock(AttributeSet::class.java)
+
+    private val context by applicationContext()
+    private val attributes = mock(AttributeSet::class.java)
 
     @Test
     fun autoCompleteResult() {
@@ -157,7 +155,7 @@ class InlineAutocompleteEditTextTest {
 
         assertEquals(4, et.text.getSpanStart(AUTOCOMPLETE_SPAN))
         assertEquals(14, et.text.getSpanEnd(AUTOCOMPLETE_SPAN))
-        assertEquals(Spanned.SPAN_EXCLUSIVE_EXCLUSIVE, et.text.getSpanFlags(AUTOCOMPLETE_SPAN))
+        assertEquals(SPAN_EXCLUSIVE_EXCLUSIVE, et.text.getSpanFlags(AUTOCOMPLETE_SPAN))
     }
 
     @Test
@@ -211,7 +209,7 @@ class InlineAutocompleteEditTextTest {
     @Test
     fun onCommitListenerInvocation() {
         val et = InlineAutocompleteEditText(context, attributes)
-        var invoked: Boolean = false
+        var invoked = false
         et.setOnCommitListener { invoked = true }
         et.onAttachedToWindow()
 

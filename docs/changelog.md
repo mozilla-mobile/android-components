@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-engine-system**
+  * ⚠️ **This is a breaking behavior change**: built-in `WebView`'s on-screen zoom controls are hidden by default.
+
 * **browser-icons**
   * Added disk cache for icons.
 
@@ -23,6 +26,9 @@ permalink: /changelog/
 
 * **browser-session**
   * Fixed a bug where the title and icon of a `Session` was cleared too early.
+
+* **browser-contextmenu**
+  * Added ability to provide a custom `SnackbarDelegate` to show a customized `Snackbar`.
 
 # 0.52.0
 

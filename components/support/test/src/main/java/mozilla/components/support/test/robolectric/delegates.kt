@@ -5,13 +5,20 @@ import androidx.test.core.app.ApplicationProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
-internal class ApplicationContextProvider<T : Context> : ReadOnlyProperty<Any?, T> {
+interface DelegatedReadOnlyProperty<T> : ReadOnlyProperty<Any?, T> {
+
+    fun get(): T
+}
+
+internal class ApplicationContextProvider<T : Context> : DelegatedReadOnlyProperty<T> {
 
     override operator fun getValue(thisRef: Any?, property: KProperty<*>): T =
-        ApplicationProvider.getApplicationContext()
+        get()
+
+    override fun get(): T = ApplicationProvider.getApplicationContext()
 }
 
 /**
  * Delegate for providing application context
  */
-fun applicationContext(): ReadOnlyProperty<Any?, Context> = ApplicationContextProvider()
+fun applicationContext(): DelegatedReadOnlyProperty<Context> = ApplicationContextProvider()

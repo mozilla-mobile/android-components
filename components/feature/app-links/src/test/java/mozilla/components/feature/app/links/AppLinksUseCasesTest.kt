@@ -12,6 +12,8 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,7 +57,8 @@ class AppLinksUseCasesTest {
         val context = createContext()
         val subject = AppLinksUseCases(context, emptySet())
 
-        assertFalse(subject.isAppLink.invoke(appUrl))
+        val redirect = subject.appLinkRedirect.invoke(appUrl)
+        assertFalse(redirect.isRedirect())
     }
 
     @Test
@@ -63,7 +66,8 @@ class AppLinksUseCasesTest {
         val context = createContext(appPackage)
         val subject = AppLinksUseCases(context, emptySet())
 
-        assertTrue(subject.isAppLink.invoke(appUrl))
+        val redirect = subject.appLinkRedirect.invoke(appUrl)
+        assertTrue(redirect.isRedirect())
     }
 
     @Test
@@ -71,7 +75,8 @@ class AppLinksUseCasesTest {
         val context = createContext(browserPackage)
         val subject = AppLinksUseCases(context, setOf(browserPackage))
 
-        assertFalse(subject.isAppLink.invoke(appUrl))
+        val redirect = subject.appLinkRedirect.invoke(appUrl)
+        assertFalse(redirect.isRedirect())
     }
 
     @Test
@@ -79,7 +84,8 @@ class AppLinksUseCasesTest {
         val context = createContext(appPackage, browserPackage)
         val subject = AppLinksUseCases(context, setOf(browserPackage))
 
-        assertTrue(subject.isAppLink.invoke(appUrl))
+        val redirect = subject.appLinkRedirect.invoke(appUrl)
+        assertTrue(redirect.isRedirect())
     }
 
     @Test
@@ -88,5 +94,46 @@ class AppLinksUseCasesTest {
         val subject = AppLinksUseCases(context)
 
         assertEquals(subject.browserPackageNames, setOf(browserPackage))
+    }
+
+    @Test
+    fun `A intent scheme uri with an installed app`() {
+        val context = createContext(appPackage, browserPackage)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
+
+        val uri = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end"
+
+        val redirect = subject.appLinkRedirect.invoke(uri)
+        assertTrue(redirect.hasExternalApp())
+        assertNotNull(redirect.appIntent)
+
+        assertEquals("zxing://scan/", redirect.appIntent!!.dataString)
+    }
+
+    @Test
+    fun `A intent scheme uri without an installed app`() {
+        val context = createContext(browserPackage)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
+
+        val uri = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end"
+
+        val redirect = subject.appLinkRedirect.invoke(uri)
+        assertFalse(redirect.hasExternalApp())
+        assertFalse(redirect.hasFallback())
+        assertNull(redirect.webUrl)
+    }
+
+    @Test
+    fun `A intent scheme uri with a fallback, but without an installed app`() {
+        val context = createContext(browserPackage)
+        val subject = AppLinksUseCases(context, setOf(browserPackage))
+
+        val uri = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;S.browser_fallback_url=http%3A%2F%2Fzxing.org;end"
+
+        val redirect = subject.appLinkRedirect.invoke(uri)
+        assertFalse(redirect.hasExternalApp())
+        assertTrue(redirect.hasFallback())
+
+        assertEquals("http://zxing.org", redirect.webUrl)
     }
 }

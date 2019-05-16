@@ -4,7 +4,6 @@
 
 package mozilla.components.browser.toolbar.display
 
-import android.content.Context
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
@@ -12,7 +11,6 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.test.core.app.ApplicationProvider
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
@@ -24,6 +22,7 @@ import mozilla.components.support.base.facts.Action
 import mozilla.components.support.base.facts.processor.CollectionProcessor
 import mozilla.components.support.ktx.android.view.forEach
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.applicationContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -38,13 +37,12 @@ import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 
 @RunWith(RobolectricTestRunner::class)
 class DisplayToolbarTest {
-    private val context: Context
-        get() = ApplicationProvider.getApplicationContext()
+
+    private val context by applicationContext()
 
     @Test
     fun `clicking on the URL switches the toolbar to editing mode`() {
@@ -767,7 +765,7 @@ class DisplayToolbarTest {
     @Test
     fun `iconView changes image resource when site security changes`() {
         val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val displayToolbar = DisplayToolbar(context, toolbar)
         var shadowDrawable = shadowOf(displayToolbar.siteSecurityIconView.drawable)
         assertEquals(R.drawable.mozac_ic_globe, shadowDrawable.createdFromResId)
 
@@ -785,7 +783,7 @@ class DisplayToolbarTest {
     @Test
     fun `securityIconColor is set when securityIconColor changes`() {
         val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val displayToolbar = DisplayToolbar(context, toolbar)
 
         displayToolbar.securityIconColor = Pair(R.color.photonBlue40, R.color.photonBlue40)
 

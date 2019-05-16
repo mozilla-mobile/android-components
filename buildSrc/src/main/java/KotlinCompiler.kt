@@ -18,7 +18,6 @@ object KotlinCompiler {
         "browser-menu",
         "browser-search",
         "browser-storage-sync",
-        "browser-toolbar",
         "feature-accounts",
         "feature-awesomebar",
         "feature-contextmenu",

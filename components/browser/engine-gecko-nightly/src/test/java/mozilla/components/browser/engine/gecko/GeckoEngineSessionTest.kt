@@ -863,8 +863,14 @@ class GeckoEngineSessionTest {
         assertEquals(TrackingProtectionPolicy.TEST, ContentBlocking.AT_TEST)
         assertEquals(TrackingProtectionPolicy.CRYPTOMINING, ContentBlocking.AT_CRYPTOMINING)
         assertEquals(TrackingProtectionPolicy.FINGERPRINTING, ContentBlocking.AT_FINGERPRINTING)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_ALL, ContentBlocking.SB_ALL)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL, ContentBlocking.SB_HARMFUL)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_MALWARE, ContentBlocking.SB_MALWARE)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_PHISHING, ContentBlocking.SB_PHISHING)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED, ContentBlocking.SB_UNWANTED)
 
-        assertEquals(TrackingProtectionPolicy.all().categories, ContentBlocking.AT_STRICT)
+        assertEquals(TrackingProtectionPolicy.all().categories, ContentBlocking.CB_STRICT)
+        assertEquals(TrackingProtectionPolicy.recommended().categories, ContentBlocking.CB_DEFAULT)
     }
 
     @Test
@@ -908,6 +914,40 @@ class GeckoEngineSessionTest {
                 defaultSettings = DefaultSettings(userAgentString = "test-ua"))
 
         verify(geckoSession.settings).userAgentOverride = "test-ua"
+    }
+
+    @Test
+    fun settingSuspendMediaWhenInactive() {
+        val runtime = mock(GeckoRuntime::class.java)
+        `when`(runtime.settings).thenReturn(mock(GeckoRuntimeSettings::class.java))
+
+        var engineSession = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
+        verify(geckoSession.settings, never()).suspendMediaWhenInactive = anyBoolean()
+
+        assertFalse(engineSession.settings.suspendMediaWhenInactive)
+        verify(geckoSession.settings).suspendMediaWhenInactive
+
+        engineSession.settings.suspendMediaWhenInactive = true
+        verify(geckoSession.settings).suspendMediaWhenInactive = true
+    }
+
+    @Test
+    fun settingSuspendMediaWhenInactiveDefault() {
+        val runtime = mock(GeckoRuntime::class.java)
+        `when`(runtime.settings).thenReturn(mock(GeckoRuntimeSettings::class.java))
+
+        GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
+        verify(geckoSession.settings, never()).suspendMediaWhenInactive = anyBoolean()
+
+        GeckoEngineSession(runtime,
+            geckoSessionProvider = geckoSessionProvider,
+            defaultSettings = DefaultSettings())
+        verify(geckoSession.settings).suspendMediaWhenInactive = false
+
+        GeckoEngineSession(runtime,
+            geckoSessionProvider = geckoSessionProvider,
+            defaultSettings = DefaultSettings(suspendMediaWhenInactive = true))
+        verify(geckoSession.settings).suspendMediaWhenInactive = true
     }
 
     @Test
@@ -1320,27 +1360,29 @@ class GeckoEngineSessionTest {
         val runtime = mock(GeckoRuntime::class.java)
         val engineSession = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
 
-        var desktopModeEnabled = false
+        var desktopModeToggled = false
         engineSession.register(object : EngineSession.Observer {
             override fun onDesktopModeChange(enabled: Boolean) {
-                desktopModeEnabled = true
+                desktopModeToggled = true
             }
         })
         engineSession.toggleDesktopMode(true)
-        assertTrue(desktopModeEnabled)
+        assertTrue(desktopModeToggled)
 
-        desktopModeEnabled = false
+        desktopModeToggled = false
         `when`(geckoSession.settings.userAgentMode)
-            .thenReturn(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+                .thenReturn(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+        `when`(geckoSession.settings.viewportMode)
+                .thenReturn(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
 
         engineSession.toggleDesktopMode(true)
-        assertFalse(desktopModeEnabled)
+        assertFalse(desktopModeToggled)
 
         engineSession.toggleDesktopMode(true)
-        assertFalse(desktopModeEnabled)
+        assertFalse(desktopModeToggled)
 
         engineSession.toggleDesktopMode(false)
-        assertTrue(desktopModeEnabled)
+        assertTrue(desktopModeToggled)
     }
 
     @Test

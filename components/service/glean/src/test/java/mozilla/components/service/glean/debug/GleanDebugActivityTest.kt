@@ -22,8 +22,7 @@ import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.triggerWorkManager
 import mozilla.components.service.glean.TestPingTagClient
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
+import mozilla.components.service.glean.getMockWebServer
 import org.robolectric.Shadows.shadowOf
 import java.util.concurrent.TimeUnit
 
@@ -95,6 +94,8 @@ class GleanDebugActivityTest {
         // Build the intent that will call our debug activity, with no extra.
         val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
             GleanDebugActivity::class.java)
+        // Add at least an option, otherwise the activity will be removed.
+        intent.putExtra(GleanDebugActivity.LOG_PINGS_EXTRA_KEY, true)
         // Start the activity through our intent.
         val activity = Robolectric.buildActivity(GleanDebugActivity::class.java, intent)
         activity.create().start().resume()
@@ -106,8 +107,7 @@ class GleanDebugActivityTest {
 
     @Test
     fun `pings are sent using sendPing`() {
-        val server = MockWebServer()
-        server.enqueue(MockResponse().setBody("OK"))
+        val server = getMockWebServer()
 
         resetGlean(config = Glean.configuration.copy(
             serverEndpoint = "http://" + server.hostName + ":" + server.port
@@ -152,8 +152,7 @@ class GleanDebugActivityTest {
 
     @Test
     fun `tagPings filters ID's that don't match the pattern`() {
-        val server = MockWebServer()
-        server.enqueue(MockResponse().setBody("OK"))
+        val server = getMockWebServer()
 
         resetGlean(config = Glean.configuration.copy(
             serverEndpoint = "http://" + server.hostName + ":" + server.port

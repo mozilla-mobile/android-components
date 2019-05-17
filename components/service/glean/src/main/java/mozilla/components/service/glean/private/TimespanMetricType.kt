@@ -4,7 +4,7 @@
 
 package mozilla.components.service.glean.private
 
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.glean.Dispatchers
 import mozilla.components.service.glean.storages.TimespansStorageEngine
 import mozilla.components.service.glean.timing.TimingManager
@@ -26,8 +26,6 @@ data class TimespanMetricType(
     override val sendInPings: List<String>,
     val timeUnit: TimeUnit
 ) : CommonMetricData {
-
-    override val defaultStorageDestinations: List<String> = listOf("metrics")
 
     private val logger = Logger("glean/TimespanMetricType")
 
@@ -95,7 +93,7 @@ data class TimespanMetricType(
      * @return true if metric value exists, otherwise false
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun testHasValue(pingName: String = getStorageNames().first()): Boolean {
+    fun testHasValue(pingName: String = sendInPings.first()): Boolean {
         return TimespansStorageEngine.getSnapshot(pingName, false)?.get(identifier) != null
     }
 
@@ -109,7 +107,7 @@ data class TimespanMetricType(
      * @throws [NullPointerException] if no value is stored
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun testGetValue(pingName: String = getStorageNames().first()): Long {
+    fun testGetValue(pingName: String = sendInPings.first()): Long {
         return TimespansStorageEngine.getSnapshot(pingName, false)!![identifier]!!
     }
 }

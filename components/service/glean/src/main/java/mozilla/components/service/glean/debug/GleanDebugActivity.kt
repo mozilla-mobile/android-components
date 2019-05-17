@@ -41,8 +41,33 @@ class GleanDebugActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (!Glean.isInitialized()) {
+            logger.error(
+                "Glean is not initialized. " +
+                "It may be disabled by the application."
+            )
+            finish()
+            return
+        }
+
+        if (intent.extras == null) {
+            logger.error("No debugging option was provided, doing nothing.")
+            finish()
+            return
+        }
+
+        // Make sure that at least one of the supported commands was used.
+        val supportedCommands =
+            listOf(SEND_PING_EXTRA_KEY, LOG_PINGS_EXTRA_KEY, TAG_DEBUG_VIEW_EXTRA_KEY)
+
         // Enable debugging options and start the application.
         intent.extras?.let {
+            it.keySet().forEach { cmd ->
+                if (!supportedCommands.contains(cmd)) {
+                    logger.error("Unknown command '$cmd'.")
+                }
+            }
+
             // Check for ping debug view tag to apply to the X-Debug-ID header when uploading the
             // ping to the endpoint
             var pingTag: String? = intent.getStringExtra(TAG_DEBUG_VIEW_EXTRA_KEY)

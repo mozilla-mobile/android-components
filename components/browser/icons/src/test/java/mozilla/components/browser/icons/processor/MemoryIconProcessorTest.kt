@@ -19,7 +19,7 @@ class MemoryIconProcessorTest {
         val cache: MemoryIconProcessor.ProcessorMemoryCache = mock()
 
         val processor = MemoryIconProcessor(cache)
-        processor.process(request = mock(), resource = mock(), icon = icon)
+        processor.process(context = mock(), request = mock(), resource = mock(), icon = icon)
 
         verify(cache, never()).put(any(), any(), any())
     }
@@ -30,9 +30,20 @@ class MemoryIconProcessorTest {
         val cache: MemoryIconProcessor.ProcessorMemoryCache = mock()
 
         val processor = MemoryIconProcessor(cache)
-        processor.process(request = mock(), resource = mock(), icon = icon)
+        processor.process(context = mock(), request = mock(), resource = mock(), icon = icon)
 
         verify(cache, never()).put(any(), any(), any())
+    }
+
+    @Test
+    fun `Icon loaded from disk cache are saved in cache`() {
+        val icon = Icon(mock(), source = Icon.Source.DISK)
+        val cache: MemoryIconProcessor.ProcessorMemoryCache = mock()
+
+        val processor = MemoryIconProcessor(cache)
+        processor.process(context = mock(), request = mock(), resource = mock(), icon = icon)
+
+        verify(cache).put(any(), any(), any())
     }
 
     @Test
@@ -43,7 +54,7 @@ class MemoryIconProcessorTest {
         val processor = MemoryIconProcessor(cache)
         val request: IconRequest = mock()
         val resource: IconRequest.Resource = mock()
-        processor.process(request, resource, icon)
+        processor.process(mock(), request, resource, icon)
 
         verify(cache).put(request, resource, icon)
     }
@@ -57,7 +68,7 @@ class MemoryIconProcessorTest {
         val processor = MemoryIconProcessor(cache)
         val request: IconRequest = mock()
         val resource: IconRequest.Resource = mock()
-        processor.process(request, resource, icon)
+        processor.process(mock(), request, resource, icon)
 
         verify(cache).put(request, resource, icon)
     }
@@ -68,7 +79,7 @@ class MemoryIconProcessorTest {
         val cache: MemoryIconProcessor.ProcessorMemoryCache = mock()
 
         val processor = MemoryIconProcessor(cache)
-        processor.process(request = mock(), resource = null, icon = icon)
+        processor.process(context = mock(), request = mock(), resource = null, icon = icon)
 
         verify(cache, never()).put(any(), any(), any())
     }

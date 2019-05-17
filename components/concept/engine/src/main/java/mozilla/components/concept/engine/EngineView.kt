@@ -4,15 +4,15 @@
 
 package mozilla.components.concept.engine
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.OnLifecycleEvent
 import android.graphics.Bitmap
 import android.view.View
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.OnLifecycleEvent
 
 /**
  * View component that renders web content.
  */
+@Suppress("TooManyFunctions")
 interface EngineView {
 
     /**
@@ -72,12 +72,20 @@ interface EngineView {
      * @param onFinish A callback to inform that process of capturing a thumbnail has finished.
      */
     fun captureThumbnail(onFinish: (Bitmap?) -> Unit)
+
+    /**
+     * Updates the amount of vertical space that is clipped or visibly obscured in the bottom portion of the view.
+     * Tells the [EngineView] where to put bottom fixed elements so they are fully visible.
+     *
+     * @param clippingHeight The height of the bottom clipped space in screen pixels.
+     */
+    fun setVerticalClipping(clippingHeight: Int)
 }
 
 /**
  * [LifecycleObserver] which dispatches lifecycle events to an [EngineView].
  */
-class LifecycleObserver(val engineView: EngineView) : LifecycleObserver {
+class LifecycleObserver(val engineView: EngineView) : androidx.lifecycle.LifecycleObserver {
 
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     fun onPause() {

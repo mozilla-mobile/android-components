@@ -7,7 +7,7 @@ package mozilla.components.service.glean.storages
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.glean.private.CommonMetricData
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.support.base.log.logger.Logger
@@ -268,7 +268,7 @@ internal abstract class GenericStorageEngine<MetricType> : StorageEngine {
             Lifetime.Ping -> pingLifetimeStorage.edit()
             else -> null
         }
-        metricData.getStorageNames().forEach { store ->
+        metricData.sendInPings.forEach { store ->
             val storeData = dataStores[metricData.lifetime.ordinal].getOrPut(store) { mutableMapOf() }
             // We support empty categories for enabling the internal use of metrics
             // when assembling pings in [PingMaker].

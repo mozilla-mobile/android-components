@@ -7,7 +7,7 @@ package mozilla.components.service.experiments
 import android.content.Context
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.service.glean.Glean
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.glean.GleanInternalAPI
 import java.io.File
 
@@ -38,6 +38,8 @@ open class ExperimentsInternalAPI internal constructor() {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var isInitialized = false
 
+    internal lateinit var configuration: Configuration
+
     /**
      * Initialize the experiments library.
      *
@@ -60,6 +62,8 @@ open class ExperimentsInternalAPI internal constructor() {
             logger.error("Glean library must be initialized first")
             return
         }
+
+        this.configuration = configuration
 
         experimentsResult = ExperimentsSnapshot(listOf(), null)
         experimentsLoaded = false
@@ -219,8 +223,8 @@ open class ExperimentsInternalAPI internal constructor() {
      * @param context context
      * @param experimentId the id of the experiment
      * @param active overridden value for the experiment, true to activate it, false to deactivate
+     * @param branchName overridden branch name for the experiment
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun setOverride(
         context: Context,
         experimentId: String,
@@ -288,7 +292,6 @@ open class ExperimentsInternalAPI internal constructor() {
      * @exception IllegalArgumentException when called from the main thread
      * @param context context
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun clearAllOverridesNow(context: Context) {
         evaluator.clearAllOverridesNow(context)
     }

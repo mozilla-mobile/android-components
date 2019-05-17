@@ -33,6 +33,7 @@ import org.robolectric.RuntimeEnvironment
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText.Companion.AUTOCOMPLETE_SPAN
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText.AutocompleteResult
 import org.junit.Assert.assertNull
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class InlineAutocompleteEditTextTest {
@@ -341,6 +342,22 @@ class InlineAutocompleteEditTextTest {
     }
 
     @Test
+    @Config(sdk = [21])
+    fun onLollipop_onTextContextMenuItem() {
+        val et = spy(InlineAutocompleteEditText(context, attributes))
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val spannableString = SpannableString("This is some bold text.").apply {
+            setSpan(StyleSpan(Typeface.BOLD), 0, length, 0)
+        }
+
+        clipboard.primaryClip = ClipData.newPlainText("bold text", spannableString)
+        et.onTextContextMenuItem(android.R.id.paste)
+        val spans = et.text.getSpans(0, et.length(), StyleSpan::class.java)
+        assertTrue(spans.isEmpty())
+        assertEquals("This is some bold text.", et.text.toString())
+    }
+
+    @Test
     fun onTextContextMenuItem() {
         val et = spy(InlineAutocompleteEditText(context, attributes))
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -352,5 +369,6 @@ class InlineAutocompleteEditTextTest {
         et.onTextContextMenuItem(android.R.id.paste)
         val spans = et.text.getSpans(0, et.length(), StyleSpan::class.java)
         assertTrue(spans.isEmpty())
+        assertEquals("This is some bold text.", et.text.toString())
     }
 }

@@ -266,16 +266,17 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
     }
 
     override fun onTextContextMenuItem(id: Int): Boolean {
-        if (id == android.R.id.paste) {
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        return if (id == android.R.id.paste) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 super.onTextContextMenuItem(android.R.id.pasteAsPlainText)
             } else {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.primaryClip?.pasteAsPlainText(this)
                 true
             }
+        } else {
+            return super.onTextContextMenuItem(id)
         }
-        return super.onTextContextMenuItem(id)
     }
 
     override fun setText(text: CharSequence?, type: TextView.BufferType) {

@@ -5,16 +5,19 @@
 package mozilla.components.support.ktx.android.content
 
 import android.content.ClipData
-import android.text.Spanned
 import android.widget.EditText
 
 fun ClipData.pasteAsPlainText(editText: EditText) {
     var paste = ""
     for (i in 0 until itemCount) {
-        val text = getItemAt(i).coerceToText(editText.context)
-        paste += if (text is Spanned) text.toString() else text
+        paste += getItemAt(i).coerceToText(editText.context)
     }
-    val data = editText.text.substring(0, editText.selectionStart) + paste +
-            editText.text.substring(editText.selectionEnd, editText.text.length)
-    editText.setText(data)
+    editText.apply {
+        val data = buildString {
+            append(text.substring(0, selectionStart))
+            append(paste)
+            append(text.substring(selectionEnd, text.length))
+        }
+        setText(data)
+    }
 }

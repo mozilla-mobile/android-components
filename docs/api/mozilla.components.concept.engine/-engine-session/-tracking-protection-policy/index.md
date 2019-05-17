@@ -2,7 +2,7 @@
 
 # TrackingProtectionPolicy
 
-`open class TrackingProtectionPolicy` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineSession.kt#L84)
+`open class TrackingProtectionPolicy` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineSession.kt#L83)
 
 Represents a tracking protection policy, which is a combination of
 tracker categories that should be blocked. Unless otherwise specified,
@@ -14,8 +14,8 @@ a [TrackingProtectionPolicy](./index.md) is applicable to all session types (see
 | Name | Summary |
 |---|---|
 | [categories](categories.md) | `val categories: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
-| [useForPrivateSessions](use-for-private-sessions.md) | `var useForPrivateSessions: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
-| [useForRegularSessions](use-for-regular-sessions.md) | `var useForRegularSessions: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+| [useForPrivateSessions](use-for-private-sessions.md) | `val useForPrivateSessions: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+| [useForRegularSessions](use-for-regular-sessions.md) | `val useForRegularSessions: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 
 ### Functions
 

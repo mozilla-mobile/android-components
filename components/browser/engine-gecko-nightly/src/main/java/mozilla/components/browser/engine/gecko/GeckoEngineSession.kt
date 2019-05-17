@@ -40,7 +40,7 @@ import kotlin.coroutines.CoroutineContext
 /**
  * Gecko-based EngineSession implementation.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class GeckoEngineSession(
     private val runtime: GeckoRuntime,
     private val privateMode: Boolean = false,
@@ -69,6 +69,9 @@ class GeckoEngineSession(
         override var userAgentString: String?
             get() = geckoSession.settings.userAgentOverride
             set(value) { geckoSession.settings.userAgentOverride = value }
+        override var suspendMediaWhenInactive: Boolean
+            get() = geckoSession.settings.suspendMediaWhenInactive
+            set(value) { geckoSession.settings.suspendMediaWhenInactive = value }
     }
 
     private var initialLoad = true
@@ -173,14 +176,23 @@ class GeckoEngineSession(
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
         val currentMode = geckoSession.settings.userAgentMode
+        val currentViewPortMode = geckoSession.settings.viewportMode
+
         val newMode = if (enable) {
             GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
         } else {
             GeckoSessionSettings.USER_AGENT_MODE_MOBILE
         }
 
-        if (newMode != currentMode) {
+        val newViewportMode = if (enable) {
+            GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+        } else {
+            GeckoSessionSettings.VIEWPORT_MODE_MOBILE
+        }
+
+        if (newMode != currentMode || newViewportMode != currentViewPortMode) {
             geckoSession.settings.userAgentMode = newMode
+            geckoSession.settings.viewportMode = newViewportMode
             notifyObservers { onDesktopModeChange(enable) }
         }
 
@@ -604,12 +616,9 @@ class GeckoEngineSession(
         defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }
-        defaultSettings?.testingModeEnabled?.let {
-            geckoSession.settings.fullAccessibilityTree = it
-        }
-        defaultSettings?.userAgentString?.let {
-            geckoSession.settings.userAgentOverride = it
-        }
+        defaultSettings?.testingModeEnabled?.let { geckoSession.settings.fullAccessibilityTree = it }
+        defaultSettings?.userAgentString?.let { geckoSession.settings.userAgentOverride = it }
+        defaultSettings?.suspendMediaWhenInactive?.let { geckoSession.settings.suspendMediaWhenInactive = it }
 
         geckoSession.open(runtime)
 

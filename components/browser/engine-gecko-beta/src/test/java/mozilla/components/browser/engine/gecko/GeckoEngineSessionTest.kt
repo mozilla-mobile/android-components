@@ -879,7 +879,8 @@ class GeckoEngineSessionTest {
         assertEquals(
             TrackingProtectionPolicy.all().categories and
             TrackingProtectionPolicy.CRYPTOMINING.inv() and
-            TrackingProtectionPolicy.FINGERPRINTING.inv(),
+            TrackingProtectionPolicy.FINGERPRINTING.inv() and
+            TrackingProtectionPolicy.SAFE_BROWSING_ALL.inv(),
             ContentBlocking.AT_ALL)
     }
 
@@ -1336,27 +1337,29 @@ class GeckoEngineSessionTest {
         val runtime = mock(GeckoRuntime::class.java)
         val engineSession = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
 
-        var desktopModeEnabled = false
+        var desktopModeToggled = false
         engineSession.register(object : EngineSession.Observer {
             override fun onDesktopModeChange(enabled: Boolean) {
-                desktopModeEnabled = true
+                desktopModeToggled = true
             }
         })
         engineSession.toggleDesktopMode(true)
-        assertTrue(desktopModeEnabled)
+        assertTrue(desktopModeToggled)
 
-        desktopModeEnabled = false
+        desktopModeToggled = false
         `when`(geckoSession.settings.userAgentMode)
-            .thenReturn(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+                .thenReturn(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+        `when`(geckoSession.settings.viewportMode)
+                .thenReturn(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
 
         engineSession.toggleDesktopMode(true)
-        assertFalse(desktopModeEnabled)
+        assertFalse(desktopModeToggled)
 
         engineSession.toggleDesktopMode(true)
-        assertFalse(desktopModeEnabled)
+        assertFalse(desktopModeToggled)
 
         engineSession.toggleDesktopMode(false)
-        assertTrue(desktopModeEnabled)
+        assertTrue(desktopModeToggled)
     }
 
     @Test

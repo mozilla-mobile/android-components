@@ -9,7 +9,31 @@ const supportedProtocols = ["http:", "https:"];
 
 // Prevent false positives for these sites. This list is taken from Fennec:
 // https://dxr.mozilla.org/mozilla-central/rev/7d47e7fa2489550ffa83aae67715c5497048923f/toolkit/components/reader/Readerable.js#45
-const blockedHosts = ["amazon.com", "github.com", "mail.google.com", "pinterest.com", "reddit.com", "twitter.com", "youtube.com"];
+const blockedHosts = [
+  "amazon.com",
+  "github.com",
+  "mail.google.com",
+  "pinterest.com",
+  "reddit.com",
+  "twitter.com",
+  "youtube.com"
+];
+
+// Class names to preserve in the readerized output. We preserve these class
+// names so that rules in readerview.css can match them. This list is taken from Fennec:
+// https://dxr.mozilla.org/mozilla-central/rev/7d47e7fa2489550ffa83aae67715c5497048923f/toolkit/components/reader/ReaderMode.jsm#21
+const preservedClasses = [
+  "caption",
+  "emoji",
+  "hidden",
+  "invisble",
+  "sr-only",
+  "visually-hidden",
+  "visuallyhidden",
+  "wp-caption",
+  "wp-caption-text",
+  "wp-smiley"
+];
 
 class ReaderView {
 
@@ -26,7 +50,7 @@ class ReaderView {
       return false;
     }
 
-    return isProbablyReaderable(document);
+    return isProbablyReaderable(document, ReaderView._isNodeVisible);
   }
 
   static get MIN_FONT_SIZE() {
@@ -37,17 +61,15 @@ class ReaderView {
     return 9;
   }
 
-  constructor(document) {
-    this.document = document;
-    this.originalBody = document.body.outerHTML;
+  static _isNodeVisible(node) {
+    return node.clientHeight > 0 && node.clientWidth > 0;
   }
 
   show({fontSize = 4, fontType = "sans-serif", colorScheme = "light"} = {}) {
-    var documentClone = document.cloneNode(true);
-    var result = new Readability(documentClone).parse();
+    let result = new Readability(document, {classesToPreserve: preservedClasses}).parse();
     result.language = document.documentElement.lang;
 
-    var article = Object.assign(
+    let article = Object.assign(
       result,
       {url: location.hostname},
       {readingTime: this.getReadingTime(result.length, result.language)},
@@ -55,14 +77,15 @@ class ReaderView {
       {dir: this.getTextDirection(result)}
     );
 
-    document.body.outerHTML = this.createHtml(article);
+    document.documentElement.innerHTML = this.createHtml(article);
+
     this.setFontSize(fontSize);
     this.setFontType(fontType);
     this.setColorScheme(colorScheme);
   }
 
   hide() {
-    document.body.outerHTML = this.originalBody;
+    location.reload(false)
   }
 
   /**
@@ -95,10 +118,6 @@ class ReaderView {
    * @param fontType the font type to use.
    */
   setFontType(fontType) {
-    if (this.fontType === fontType) {
-      return;
-    }
-
     let bodyClasses = document.body.classList;
 
     if (this.fontType) {
@@ -121,10 +140,6 @@ class ReaderView {
       return;
     }
 
-    if (this.colorScheme === colorScheme) {
-      return;
-    }
-
     let bodyClasses = document.body.classList;
 
     if (this.colorScheme) {
@@ -137,6 +152,11 @@ class ReaderView {
 
   createHtml(article) {
     return `
+      <head>
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+        <meta name="viewport" content="width=device-width; user-scalable=0">
+        <title>${article.title}</title>
+      </head>
       <body class="mozac-readerview-body">
         <div id="mozac-readerview-container" class="container" dir=${article.dir}>
           <div class="header">
@@ -170,6 +190,10 @@ class ReaderView {
     const charactersPerMinuteHigh = readingSpeed.cpm + readingSpeed.variance;
     const readingTimeMinsSlow = Math.ceil(length / charactersPerMinuteLow);
     const readingTimeMinsFast  = Math.ceil(length / charactersPerMinuteHigh);
+
+    // TODO remove moment.js: https://github.com/mozilla-mobile/android-components/issues/2923
+    // We only want to show minutes and not have it converted to hours.
+    moment.relativeTimeThreshold('m', Number.MAX_SAFE_INTEGER);
 
     if (readingTimeMinsSlow == readingTimeMinsFast) {
       return moment.duration(readingTimeMinsFast, 'minutes').locale(lang).humanize();
@@ -279,15 +303,25 @@ class ReaderView {
    }
 }
 
-let port = browser.runtime.connectNative("mozacReaderview");
+let readerView = new ReaderView();
 
+let port = browser.runtime.connectNative("mozacReaderview");
 port.onMessage.addListener((message) => {
     switch (message.action) {
       case 'show':
-        readerView.show({fontSize: 3, fontType: "serif", colorScheme: "light"});
+        readerView.show(message.value);
         break;
       case 'hide':
         readerView.hide();
+        break;
+      case 'setColorScheme':
+        readerView.setColorScheme(message.value.toLowerCase());
+        break;
+      case 'changeFontSize':
+        readerView.changeFontSize(message.value);
+        break;
+      case 'setFontType':
+        readerView.setFontType(message.value.toLowerCase());
         break;
       case 'checkReaderable':
         port.postMessage({readerable: ReaderView.isReaderable()});
@@ -297,12 +331,4 @@ port.onMessage.addListener((message) => {
     }
 });
 
-// TODO remove hostname check (for testing purposes only)
-// e.g. https://blog.mozilla.org/firefox/reader-view
-if (ReaderView.isReaderable() && location.hostname.endsWith("blog.mozilla.org")) {
-  // TODO send message to app to inform that readerview is available
-  // For now we show reader view for every page on blog.mozilla.org
-  let readerView = new ReaderView(document);
-  // TODO Parameters need to be passed down in message to display readerview
-  readerView.show({fontSize: 3, fontType: "serif", colorScheme: "light"});
-}
+window.addEventListener("unload", (event) => { port.disconnect() }, false);

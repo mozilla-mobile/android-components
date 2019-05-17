@@ -6,14 +6,13 @@ package mozilla.components.browser.engine.gecko
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.support.annotation.VisibleForTesting
-import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.widget.FrameLayout
+import androidx.annotation.VisibleForTesting
+import androidx.core.view.ViewCompat
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.permission.PermissionRequest
-
 import org.mozilla.geckoview.GeckoResult
 
 /**
@@ -36,7 +35,8 @@ class GeckoEngineView @JvmOverloads constructor(
     }.apply {
         // Explicitly mark this view as important for autofill. The default "auto" doesn't seem to trigger any
         // autofill behavior for us here.
-        ViewCompat.setImportantForAutofill(this, 0x1 /* View.IMPORTANT_FOR_AUTOFILL_YES */)
+        @Suppress("WrongConstant")
+        ViewCompat.setImportantForAutofill(this, ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_YES)
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -92,6 +92,10 @@ class GeckoEngineView @JvmOverloads constructor(
     }
 
     override fun canScrollVerticallyDown() = true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569
+
+    override fun setVerticalClipping(clippingHeight: Int) {
+        currentGeckoView.setVerticalClipping(clippingHeight)
+    }
 
     override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) {
         val geckoResult = currentGeckoView.capturePixels()

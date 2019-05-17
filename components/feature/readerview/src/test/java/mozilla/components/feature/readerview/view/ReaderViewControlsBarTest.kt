@@ -7,9 +7,9 @@
 package mozilla.components.feature.readerview.view
 
 import android.content.Context
-import android.support.v7.widget.AppCompatButton
-import android.support.v7.widget.AppCompatRadioButton
 import android.view.View
+import androidx.appcompat.widget.AppCompatButton
+import androidx.appcompat.widget.AppCompatRadioButton
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.feature.readerview.R
 import mozilla.components.feature.readerview.ReaderViewFeature
@@ -46,13 +46,13 @@ class ReaderViewControlsBarTest {
 
         assertFalse(serifButton.isChecked)
 
-        bar.setFont(ReaderViewFeature.Config.FontType.SERIF)
+        bar.setFont(ReaderViewFeature.FontType.SERIF)
 
         assertTrue(serifButton.isChecked)
 
         assertFalse(sansSerifButton.isChecked)
 
-        bar.setFont(ReaderViewFeature.Config.FontType.SANS_SERIF)
+        bar.setFont(ReaderViewFeature.FontType.SANSSERIF)
 
         assertTrue(sansSerifButton.isChecked)
     }
@@ -97,19 +97,19 @@ class ReaderViewControlsBarTest {
         val colorOptionSepia = bar.findViewById<AppCompatRadioButton>(R.id.mozac_feature_readerview_color_sepia)
         val colorOptionLight = bar.findViewById<AppCompatRadioButton>(R.id.mozac_feature_readerview_color_light)
 
-        bar.setColorScheme(ReaderViewFeature.Config.ColorScheme.DARK)
+        bar.setColorScheme(ReaderViewFeature.ColorScheme.DARK)
 
         assertTrue(colorOptionDark.isChecked)
         assertFalse(colorOptionSepia.isChecked)
         assertFalse(colorOptionLight.isChecked)
 
-        bar.setColorScheme(ReaderViewFeature.Config.ColorScheme.SEPIA)
+        bar.setColorScheme(ReaderViewFeature.ColorScheme.SEPIA)
 
         assertFalse(colorOptionDark.isChecked)
         assertTrue(colorOptionSepia.isChecked)
         assertFalse(colorOptionLight.isChecked)
 
-        bar.setColorScheme(ReaderViewFeature.Config.ColorScheme.LIGHT)
+        bar.setColorScheme(ReaderViewFeature.ColorScheme.LIGHT)
 
         assertFalse(colorOptionDark.isChecked)
         assertFalse(colorOptionSepia.isChecked)
@@ -161,7 +161,7 @@ class ReaderViewControlsBarTest {
 
         bar.findViewById<AppCompatRadioButton>(R.id.mozac_feature_readerview_font_sans_serif).performClick()
 
-        verify(listener).onFontChanged(ReaderViewFeature.Config.FontType.SANS_SERIF)
+        verify(listener).onFontChanged(ReaderViewFeature.FontType.SANSSERIF)
     }
 
     @Test
@@ -189,6 +189,6 @@ class ReaderViewControlsBarTest {
 
         bar.findViewById<AppCompatRadioButton>(R.id.mozac_feature_readerview_color_sepia).performClick()
 
-        verify(listener).onColorSchemeChanged(ReaderViewFeature.Config.ColorScheme.SEPIA)
+        verify(listener).onColorSchemeChanged(ReaderViewFeature.ColorScheme.SEPIA)
     }
 }

@@ -37,10 +37,12 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':concept-engine')
     implementation project(':concept-fetch')
+    implementation project(':browser-session')
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines
-    implementation Dependencies.support_annotations
+    implementation Dependencies.androidx_annotation
+    implementation Dependencies.thirdparty_disklrucache
 
     testImplementation project(':support-test')
     testImplementation project(':lib-fetch-httpurlconnection')

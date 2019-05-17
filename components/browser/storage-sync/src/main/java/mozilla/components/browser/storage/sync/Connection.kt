@@ -4,7 +4,7 @@
 
 package mozilla.components.browser.storage.sync
 
-import android.support.annotation.GuardedBy
+import androidx.annotation.GuardedBy
 import mozilla.appservices.places.PlacesApi
 import mozilla.appservices.places.PlacesReaderConnection
 import mozilla.appservices.places.PlacesWriterConnection
@@ -78,5 +78,6 @@ internal object RustPlacesConnection : Connection {
     override fun close() = synchronized(this) {
         check(api != null) { "must call init first" }
         api!!.close()
+        api = null
     }
 }

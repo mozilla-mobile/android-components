@@ -4,16 +4,180 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.52.0-SNAPSHOT  (In Development)
+# 0.53.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.51.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/55?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.52.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/56?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **concept-engine**, **browser-engine-gecko-nightly** and **browser-engine-gecko-beta**:
+  * Added new policies for Safe Browsing: `TrackingProtectionPolicy.SAFE_BROWSING_MALWARE`,`TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED`,`TrackingProtectionPolicy.SAFE_BROWSING_PHISHING`, `TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL` and `TrackingProtectionPolicy.SAFE_BROWSING_ALL`.
+  * Added a new policy category : `trackingProtectionPolicy.recommended()` contains all the recommended policies categories. It blocks ads, analytics, social, test trackers, plus all the safe browsing policies.
+
+* **browser-engine-system**
+  * ⚠️ **This is a breaking behavior change**: built-in `WebView`'s on-screen zoom controls are hidden by default.
+
+* **browser-icons**
+  * Added disk cache for icons.
+
+* **feature-session**:
+  * Added `EngineViewBottomBehavior`: A `CoordinatorLayout.Behavior` implementation to be used with [EngineView] when placing a toolbar at the bottom of the screen. This implementation will update the vertical clipping of the `EngineView` so that bottom-aligned web content will be drawn above the browser toolbar.
+  * New use case `SettingsUseCases.UpdateTrackingProtectionUseCase`: Updates Tracking Protection for the engine and all open sessions.
+
+* **feature-prompts** and **browser-engine-gecko-nightly**
+  * Now input type file are working.
+
+* **browser-session**
+  * Fixed a bug where the title and icon of a `Session` was cleared too early.
+
+* **browser-contextmenu**
+  * Added ability to provide a custom `SnackbarDelegate` to show a customized `Snackbar`.
+
+# 0.52.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.51.0...v0.52.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/55?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.52.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.52.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.52.0/buildSrc/src/main/java/Config.kt)
+
+* ℹ️ **Migrated all components to [AndroidX](https://developer.android.com/jetpack/androidx).**
+
+* ℹ️ **Upgraded Gradle to 5.3.1**
+  * ⚠️ This requires using the 1.3.30 Kotlin gradle plugin or higher.
+  
+* **feature-tab-collections**
+  * 🆕 New component: Feature implementation for saving, restoring and organizing collections of tabs.
+
+* **feature-readerview**
+  * 🆕 New component/feature that provides reader mode functionality. To see a complete and working example of how to integrate this new component, check out the `ReaderViewIntegration` class in our [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
+  ```kotlin
+      val readerViewFeature = ReaderViewFeature(context, engine, sessionManager, controlsView) { available ->
+          // This lambda is invoked to indicate whether or not reader view is available
+          // for the page loaded by the selected session (for the current tab)
+      }
+
+      // To activate reader view
+      readerViewFeature.showReaderView()
+
+      // To deactivate reader view
+      readerViewFeature.hideReaderView()
+
+      // To show the appearance (font, color scheme) controls
+      readerViewFeature.showControls()
+
+      // To hide the appearance (font, color scheme) controls
+      readerViewFeature.hideControls()
+  ```
+
+* **feature-readerview**
+  * Fix disappearing title in Custom Tab toolbar.
+
 * **feature-sitepermissions**
+  * Added ability to configure default (checked/unchecked) state for "Remember decision" checkbox. Provide `dialogConfig` into `SitePermissionsFeature` for this. Checkbox is checked by default.
+  * ⚠️ **This is a breaking API change**: ``anchorView`` property has been removed if you want to change the position of the prompts use the ``promptsStyling`` property.
+  * Added new property ``context``. It must be provided in the constructor.
   * Do not save new site permissions in private sessions.
+  * Added ``sessionId`` property for adding site permissions on custom tabs.
+  * Allow prompts styling via ``PromptsStyling``
+  ```kotlin
+    data class PromptsStyling(
+        val gravity: Int,
+        val shouldWidthMatchParent: Boolean = false,
+        @ColorRes
+        val positiveButtonBackgroundColor: Int? = null,
+        @ColorRes
+        val positiveButtonTextColor: Int? = null
+    )
+  ```
+
+* **feature-customtabs**
+  * Fix session not being removed when the close button was clicked.
+
+* **service-glean**
+   * ⚠️ **This is a breaking API change**: Custom pings must be explicitly
+     registered with Glean at startup time. See
+     `components/service/glean/docs/pings/custom.md` for more information.
+
+* **ui-autocomplete**
+  * Added an optional `shouldAutoComplete` boolean to `setText` which is currently used by `updateUrl` in `EditToolbar`.
+
+* **browser-toolbar**
+  * Modified `EditToolbar`'s `updateUrl` function to take a `shouldAutoComplete` boolean. By default a call to this function does **not** autocomplete. Generally you want to disable autocomplete when calling `updateUrl` if the text is a search term.
+  See `editMode` in `BrowserToolbar` and `setText` in `InlineAutocompleteEditText` for more information.
+
+* **browser-engine-system**
+  * Added support for Authentication dialogs on SystemEngineView.
+
+* **concept-engine**, **browser-engine-gecko-nightly**
+  * Added `suspendMediaWhenInactive` setting to control whether media should be suspended when the session is inactive. The default is `false`.
+  ```kotlin
+  // To provide a default when creating the engine:
+  GeckoEngine(runtime, DefaultSettings(suspendMediaWhenInactive = true))
+
+  // To change the value for a specific session:
+  engineSession.settings.suspendMediaWhenInactive = true
+  ```
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking API change**:
+  * `OAuthAccount` now has a new `deviceConstellation` method.
+  * `FxaAccountManager`'s constructor now takes a `DeviceTuple` parameter.
+  * Added integration with FxA devices and device events.
+  * First supported event type is Send Tab.
+  * It's now possible to receive and send tabs from/to devices in the `DeviceConstellation`.
+  * `samples-sync` application provides a detailed integration example of these new APIs.
+  * Brief example:
+  ```kotlin
+  val deviceConstellationObserver = object : DeviceConstellationObserver {
+    override fun onDevicesUpdate(constellation: ConstellationState) {
+        // Process the following:
+        // constellation.currentDevice
+        // constellation.otherDevices
+    }
+  }
+  val deviceEventsObserver = object : DeviceEventsObserver {
+    override fun onEvents(events: List<DeviceEvent>) {
+        events.filter { it is DeviceEvent.TabReceived }.forEach {
+            val tabReceivedEvent = it as DeviceEvent.TabReceived
+            // process received tab(s).
+        }
+    }
+  }
+  val accountObserver = object : AccountObserver {
+    // ... other methods ...
+    override fun onAuthenticated(account: OAuthAccount) {
+        account.deviceConstellation().registerDeviceObserver(
+            observer = deviceConstellationObserver,
+            owner = this@MainActivity,
+            autoPause = true
+        )
+    }
+  }
+  val accountManager = FxaAccountManager(
+    this,
+    Config.release(CLIENT_ID, REDIRECT_URL),
+    arrayOf("profile", "https://identity.mozilla.com/apps/oldsync"),
+    DeviceTuple(
+        name = "Doc Example App",
+        type = DeviceType.MOBILE,
+        capabilities = listOf(DeviceCapability.SEND_TAB)
+    ),
+    syncManager
+  )
+  accountManager.register(accountObserver, owner = this, autoPause = true)
+  accountManager.registerForDeviceEvents(deviceEventsObserver, owner = this, autoPause = true)
+  ```
+  
+* **feature-prompts**
+  * ⚠️ **This is a breaking API change**:
+  * `PromptFeature` constructor adds an optional `sessionId`. This should use the custom tab session id if available. 
+
+
+* **browser-session**
+  * Added `SessionManager.runWithSessionIdOrSelected(sessionId: String?)` run function block on a session ID. If the session does not exist, then uses the selected session.
 
 # 0.51.0
 
@@ -25,12 +189,13 @@ permalink: /changelog/
 
 * **browser-awesomebar**
   * Fixed an issue where new suggestions would leave you scrolled to the middle of the list
-  
+
 * **browser-errorpages**
   * Added `%backButton%` replacement for buttons that need the text "Go Back" instead of "Try Again"
 
 * **browser-session**, **browser-engine-gecko-nightly**, **browser-engine-system**
   * Fixed an issue causing `Session.searchTerms` getting cleared to early. Now the search terms will stay assigned to the `Session` until a new request, triggered by a user interaction like clicking a link, started loading (ignoring redirects).
+  * Added setting of desktop view port when requesting desktop site
 
 * **feature-customtabs**
   * Added fact emitting.

@@ -29,7 +29,7 @@ class MemoryIconLoaderTest {
             url = "https://www.mozilla.org/favicon.ico",
             type = IconRequest.Resource.Type.FAVICON)
 
-        val result = loader.load(request, resource)
+        val result = loader.load(mock(), request, resource)
 
         assertTrue(result is IconLoader.Result.BitmapResult)
 
@@ -53,7 +53,7 @@ class MemoryIconLoaderTest {
             url = "https://www.mozilla.org/favicon.ico",
             type = IconRequest.Resource.Type.FAVICON)
 
-        val result = loader.load(request, resource)
+        val result = loader.load(mock(), request, resource)
 
         assertTrue(result is IconLoader.Result.NoResult)
     }

@@ -6,9 +6,9 @@ package mozilla.components.browser.engine.gecko
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 
@@ -20,7 +20,6 @@ class GeckoEngineView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView {
-
     internal var currentGeckoView = object : NestedGeckoView(context) {
         override fun onDetachedFromWindow() {
             // We are releasing the session before GeckoView gets detached from the window. Otherwise
@@ -32,6 +31,7 @@ class GeckoEngineView @JvmOverloads constructor(
     }.apply {
         // Explicitly mark this view as important for autofill. The default "auto" doesn't seem to trigger any
         // autofill behavior for us here.
+        @Suppress("WrongConstant")
         ViewCompat.setImportantForAutofill(this, 0x1 /* View.IMPORTANT_FOR_AUTOFILL_YES */)
     }
 
@@ -61,4 +61,8 @@ class GeckoEngineView @JvmOverloads constructor(
     override fun canScrollVerticallyDown() = true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569
 
     override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
+
+    override fun setVerticalClipping(clippingHeight: Int) {
+        // no-op: requires GeckoView 68.0
+    }
 }

@@ -1,4 +1,4 @@
-componentsVersion: 0.52.0
+componentsVersion: 0.53.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -75,6 +75,10 @@ projects:
   feature-tabs:
     path: components/feature/tabs
     description: 'Feature implementation connecting a tabs tray implementation with the session and toolbar modules.'
+    publish: true
+  feature-tab-collections:
+    path: components/feature/tab-collections
+    description: 'Feature implementation for saving, restoring and organizing collections of tabs.'
     publish: true
   feature-toolbar:
     path: components/feature/toolbar

@@ -46,6 +46,7 @@ class ClipDataTest {
         val spannableString = SpannableString("bold text").apply {
             setSpan(StyleSpan(Typeface.BOLD), 0, length, 0)
         }
+
         clipboard.primaryClip = ClipData.newPlainText("bold text", spannableString)
         view.setText(text)
         view.setSelection(5, text.length)

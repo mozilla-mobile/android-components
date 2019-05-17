@@ -275,7 +275,7 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
                 true
             }
         } else {
-            return super.onTextContextMenuItem(id)
+            super.onTextContextMenuItem(id)
         }
     }
 

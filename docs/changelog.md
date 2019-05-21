@@ -4,13 +4,25 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.53.0-SNAPSHOT  (In Development)
+# 0.54.0-SNAPSHOT  (In Development)
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.52.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/56?closed=1)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/57?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+# 0.53.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.52.0...v0.53.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/56?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.53.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.53.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.53.0/buildSrc/src/main/java/Config.kt)
+
+* **concept-engine**, **browser-engine-gecko-nightly** and **browser-engine-gecko-beta**:
+  * Added new policies for Safe Browsing: `TrackingProtectionPolicy.SAFE_BROWSING_MALWARE`,`TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED`,`TrackingProtectionPolicy.SAFE_BROWSING_PHISHING`, `TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL` and `TrackingProtectionPolicy.SAFE_BROWSING_ALL`.
+  * Added a new policy category : `trackingProtectionPolicy.recommended()` contains all the recommended policies categories. It blocks ads, analytics, social, test trackers, plus all the safe browsing policies.
 
 * **browser-engine-system**
   * ⚠️ **This is a breaking behavior change**: built-in `WebView`'s on-screen zoom controls are hidden by default.
@@ -20,6 +32,7 @@ permalink: /changelog/
 
 * **feature-session**:
   * Added `EngineViewBottomBehavior`: A `CoordinatorLayout.Behavior` implementation to be used with [EngineView] when placing a toolbar at the bottom of the screen. This implementation will update the vertical clipping of the `EngineView` so that bottom-aligned web content will be drawn above the browser toolbar.
+  * New use case `SettingsUseCases.UpdateTrackingProtectionUseCase`: Updates Tracking Protection for the engine and all open sessions.
 
 * **feature-prompts** and **browser-engine-gecko-nightly**
   * Now input type file are working.

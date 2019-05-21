@@ -13,10 +13,10 @@ import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
 import mozilla.components.browser.engine.system.SystemEngine
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.menu.BrowserMenuBuilder
-import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.BrowserMenuCheckbox
 import mozilla.components.browser.menu.item.BrowserMenuDivider
 import mozilla.components.browser.menu.item.BrowserMenuImageText
+import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
@@ -27,8 +27,8 @@ import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.intent.IntentProcessor
 import mozilla.components.feature.search.SearchUseCases
-import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.HistoryDelegate
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import org.mozilla.samples.browser.integration.FindInPageIntegration
@@ -133,14 +133,18 @@ open class DefaultComponents(private val applicationContext: Context) {
         val forward = BrowserMenuItemToolbar.Button(
                 mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
                 iconTintColorResource = R.color.photonBlue90,
-                contentDescription = "Forward") {
+                contentDescription = "Forward",
+                isEnabled = { sessionManager.selectedSession?.canGoForward == true }
+        ) {
             sessionUseCases.goForward.invoke()
         }
 
         val refresh = BrowserMenuItemToolbar.Button(
                 mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
                 iconTintColorResource = R.color.photonBlue90,
-                contentDescription = "Refresh") {
+                contentDescription = "Refresh",
+                isEnabled = { sessionManager.selectedSession?.loading != true }
+        ) {
             sessionUseCases.reload.invoke()
         }
 

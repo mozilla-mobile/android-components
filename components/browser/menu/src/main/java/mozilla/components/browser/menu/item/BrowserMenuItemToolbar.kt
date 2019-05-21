@@ -4,10 +4,12 @@
 
 package mozilla.components.browser.menu.item
 
-import androidx.core.content.ContextCompat
 import android.util.TypedValue
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.annotation.ColorRes
+import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuItem
@@ -29,28 +31,11 @@ class BrowserMenuItemToolbar(
         layout.removeAllViews()
 
         for (item in items) {
-            val button = AppCompatImageButton(view.context)
-            if (item is TwoStateButton && !item.isInPrimaryState.invoke()) {
-                button.setImageResource(item.secondaryImageResource)
-                button.contentDescription = item.secondaryContentDescription
-                if (item.secondaryImageTintResource != 0) {
-                    button.imageTintList = ContextCompat.getColorStateList(
-                        view.context,
-                        item.secondaryImageTintResource
-                    )
-                }
-                button.isEnabled = !item.disableInSecondaryState
-            } else {
-                button.setImageResource(item.imageResource)
-                button.contentDescription = item.contentDescription
-                if (item.iconTintColorResource != 0) {
-                    button.imageTintList =
-                        ContextCompat.getColorStateList(view.context, item.iconTintColorResource)
-                }
-            }
+            val button = AppCompatImageButton(layout.context)
+            item.bind(button)
 
             val outValue = TypedValue()
-            view.context.theme.resolveAttribute(
+            layout.context.theme.resolveAttribute(
                 android.R.attr.selectableItemBackgroundBorderless,
                 outValue,
                 true
@@ -69,20 +54,42 @@ class BrowserMenuItemToolbar(
         }
     }
 
+    override fun invalidate(view: View) {
+        val layout = view as LinearLayout
+        items.withIndex().forEach {
+            val (index, item) = it
+            item.invalidate(layout.getChildAt(index) as AppCompatImageButton)
+        }
+    }
+
     /**
      * A button to be shown in a toolbar inside the browser menu.
      *
      * @param imageResource ID of a drawable resource to be shown as icon.
      * @param contentDescription The button's content description, used for accessibility support.
      * @param iconTintColorResource Optional ID of color resource to tint the icon.
+     * @param isEnabled Lambda to return true/false to indicate if this button should be enabled or disabled.
      * @param listener Callback to be invoked when the button is pressed.
      */
     open class Button(
-        val imageResource: Int,
+        @DrawableRes val imageResource: Int,
         val contentDescription: String,
-        val iconTintColorResource: Int = 0,
+        @ColorRes val iconTintColorResource: Int = NO_ID,
+        val isEnabled: () -> Boolean = { true },
         val listener: () -> Unit
-    )
+    ) {
+
+        internal open fun bind(view: ImageView) {
+            view.setImageResource(imageResource)
+            view.contentDescription = contentDescription
+            view.setTintResource(iconTintColorResource)
+            view.isEnabled = isEnabled()
+        }
+
+        internal open fun invalidate(view: ImageView) {
+            view.isEnabled = isEnabled()
+        }
+    }
 
     /**
      * A button that either shows an primary state or an secondary state based on the provided
@@ -99,12 +106,12 @@ class BrowserMenuItemToolbar(
      * @param listener Callback to be invoked when the button is pressed.
      */
     open class TwoStateButton(
-        val primaryImageResource: Int,
+        @DrawableRes val primaryImageResource: Int,
         val primaryContentDescription: String,
-        val primaryImageTintResource: Int = 0,
-        val secondaryImageResource: Int = primaryImageResource,
+        @ColorRes val primaryImageTintResource: Int = NO_ID,
+        @DrawableRes val secondaryImageResource: Int = primaryImageResource,
         val secondaryContentDescription: String = primaryContentDescription,
-        val secondaryImageTintResource: Int = primaryImageTintResource,
+        @ColorRes val secondaryImageTintResource: Int = primaryImageTintResource,
         val isInPrimaryState: () -> Boolean = { true },
         val disableInSecondaryState: Boolean = false,
         listener: () -> Unit
@@ -112,8 +119,30 @@ class BrowserMenuItemToolbar(
         primaryImageResource,
         primaryContentDescription,
         primaryImageTintResource,
+        isInPrimaryState,
         listener = listener
-    )
+    ) {
+
+        private var wasInPrimaryState = false
+
+        override fun bind(view: ImageView) {
+            if (isInPrimaryState()) {
+                super.bind(view)
+            } else {
+                view.setImageResource(secondaryImageResource)
+                view.contentDescription = secondaryContentDescription
+                view.setTintResource(secondaryImageTintResource)
+                view.isEnabled = !disableInSecondaryState
+            }
+            wasInPrimaryState = isInPrimaryState()
+        }
+
+        override fun invalidate(view: ImageView) {
+            if (isInPrimaryState() != wasInPrimaryState) {
+                bind(view)
+            }
+        }
+    }
 
     companion object {
         private const val ICON_HEIGHT_DP = 24

@@ -21,6 +21,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    variantFilter { variant ->
+        if (variant.buildType.name == "release") {
+            // This is a sample app that we are not releasing. Save some time and do not build
+            // release versions.
+            setIgnore(true)
+        }
+    }
 }
 
 dependencies {

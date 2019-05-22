@@ -33,6 +33,14 @@ android {
             include 'x86', 'arm64-v8a', 'armeabi-v7a'
         }
     }
+
+    variantFilter { variant ->
+        if (variant.buildType.name == "release") {
+            // This is a sample app that we are not releasing. Save some time and do not build
+            // release versions.
+            setIgnore(true)
+        }
+    }
 }
 
 dependencies {

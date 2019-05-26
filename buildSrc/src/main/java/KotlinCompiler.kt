@@ -34,7 +34,6 @@ object KotlinCompiler {
         "samples-toolbar",
         "service-experiments",
         "service-firefox-accounts",
-        "service-fretboard",
         "service-glean",
         "support-test",
         "tooling-lint",

@@ -32,7 +32,6 @@ object KotlinCompiler {
         "lib-fetch-okhttp",
         "lib-jexl",
         "samples-toolbar",
-        "service-experiments",
         "service-firefox-accounts",
         "service-fretboard",
         "service-glean",

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:Suppress("DEPRECATION")
+
 package mozilla.components.ui.doorhanger
 
 import android.annotation.SuppressLint
@@ -28,6 +30,7 @@ import mozilla.components.support.ktx.android.view.forEach
  * @param buttons A list of buttons to be displayed in the prompt.
  * @param onDismiss that is called when the doorhanger is dismissed.
  */
+@Deprecated("The ui-doorhanger component is getting removed.")
 class DoorhangerPrompt(
     private val title: String,
     private val icon: Drawable? = null,

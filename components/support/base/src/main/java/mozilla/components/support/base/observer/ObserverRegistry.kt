@@ -5,9 +5,14 @@
 package mozilla.components.support.base.observer
 
 import android.view.View
-import androidx.lifecycle.GenericLifecycleObserver
-import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.Lifecycle.Event.ON_DESTROY
+import androidx.lifecycle.Lifecycle.Event.ON_PAUSE
+import androidx.lifecycle.Lifecycle.Event.ON_RESUME
+import androidx.lifecycle.Lifecycle.State.DESTROYED
+import androidx.lifecycle.Lifecycle.State.RESUMED
+import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -16,11 +21,17 @@ import java.util.WeakHashMap
  * and can automatically unregister observers if a LifecycleOwner is provided.
  */
 class ObserverRegistry<T> : Observable<T> {
-    private val observers = mutableListOf<T>()
+    private val observers = mutableSetOf<T>()
     private val lifecycleObservers = WeakHashMap<T, LifecycleBoundObserver<T>>()
     private val viewObservers = WeakHashMap<T, ViewBoundObserver<T>>()
     private val pausedObservers = Collections.newSetFromMap(WeakHashMap<T, Boolean>())
 
+    /**
+     * Registers an observer to get notified about changes. Does nothing if [observer] is already registered.
+     * This method is thread-safe.
+     *
+     * @param observer the observer to register.
+     */
     override fun register(observer: T) {
         synchronized(observers) {
             observers.add(observer)
@@ -28,17 +39,18 @@ class ObserverRegistry<T> : Observable<T> {
     }
 
     override fun register(observer: T, owner: LifecycleOwner, autoPause: Boolean) {
-        if (owner.lifecycle.currentState == Lifecycle.State.DESTROYED) {
+        // Don't register if the owner is already destroyed
+        if (owner.lifecycle.currentState == DESTROYED) {
             return
         }
 
         register(observer)
 
-        val lifecycleObserver = LifecycleBoundObserver(
-                owner,
-                registry = this,
-                observer = observer,
-                autoPause = autoPause)
+        val lifecycleObserver = if (autoPause) {
+            AutoPauseLifecycleBoundObserver(owner, registry = this, observer = observer)
+        } else {
+            LifecycleBoundObserver(owner, registry = this, observer = observer)
+        }
 
         lifecycleObservers[observer] = lifecycleObserver
 
@@ -60,6 +72,12 @@ class ObserverRegistry<T> : Observable<T> {
         }
     }
 
+    /**
+     * Unregisters an observer. Does nothing if [observer] is not registered.
+     * This method is thread-safe.
+     *
+     * @param observer the observer to unregister.
+     */
     override fun unregister(observer: T) {
         synchronized(observers) {
             observers.remove(observer)
@@ -115,31 +133,39 @@ class ObserverRegistry<T> : Observable<T> {
     }
 
     /**
-     * GenericLifecycleObserver implementation to bind an observer to a Lifecycle.
+     * LifecycleObserver implementation to bind an observer to a Lifecycle.
      */
-    private class LifecycleBoundObserver<T>(
+    private open class LifecycleBoundObserver<T>(
         private val owner: LifecycleOwner,
-        private val registry: ObserverRegistry<T>,
-        private val observer: T,
-        private val autoPause: Boolean
-    ) : GenericLifecycleObserver {
-        override fun onStateChanged(source: LifecycleOwner?, event: Lifecycle.Event?) {
-            if (autoPause) {
-                if (event == Lifecycle.Event.ON_PAUSE) {
-                    registry.pauseObserver(observer)
-                } else if (event == Lifecycle.Event.ON_RESUME) {
-                    registry.resumeObserver(observer)
-                }
-            }
+        protected val registry: ObserverRegistry<T>,
+        protected val observer: T
+    ) : LifecycleObserver {
+        @OnLifecycleEvent(ON_DESTROY)
+        fun onDestroy() = registry.unregister(observer)
 
-            if (owner.lifecycle.currentState == Lifecycle.State.DESTROYED) {
-                registry.unregister(observer)
+        fun remove() = owner.lifecycle.removeObserver(this)
+    }
+
+    /**
+     * LifecycleObserver implementation to bind an observer to a Lifecycle and pause observing
+     * automatically for the pause and resume events.
+     */
+    private class AutoPauseLifecycleBoundObserver<T>(
+        owner: LifecycleOwner,
+        registry: ObserverRegistry<T>,
+        observer: T
+    ) : LifecycleBoundObserver<T>(owner, registry, observer) {
+        init {
+            if (!owner.lifecycle.currentState.isAtLeast(RESUMED)) {
+                registry.pauseObserver(observer)
             }
         }
 
-        fun remove() {
-            owner.lifecycle.removeObserver(this)
-        }
+        @OnLifecycleEvent(ON_PAUSE)
+        fun onPause() = registry.pauseObserver(observer)
+
+        @OnLifecycleEvent(ON_RESUME)
+        fun onResume() = registry.resumeObserver(observer)
     }
 
     /**

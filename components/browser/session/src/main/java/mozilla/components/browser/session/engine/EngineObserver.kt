@@ -10,6 +10,7 @@ import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.Session
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -151,6 +152,10 @@ internal class EngineObserver(
             it.remove(media)
         }
         media.unregisterObservers()
+    }
+
+    override fun onWebAppManifestLoaded(manifest: WebAppManifest) {
+        session.webAppManifest = manifest
     }
 
     override fun onCrashStateChange(crashed: Boolean) {

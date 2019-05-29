@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.browser.session.manifest
+package mozilla.components.concept.engine.manifest
 
+import mozilla.components.support.ktx.android.org.json.asSequence
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -81,19 +82,19 @@ private fun parseColor(color: String?): Int? {
 
 private fun parseIcons(json: JSONObject): List<WebAppManifest.Icon> {
     val array = json.optJSONArray("icons") ?: return emptyList()
-    val icons = mutableListOf<WebAppManifest.Icon>()
 
-    for (i in 0 until array.length()) {
-        val obj = array.getJSONObject(i)
-        icons.add(WebAppManifest.Icon(
-            src = obj.getString("src"),
-            sizes = parseIconSizes(obj),
-            type = obj.optString("type", null),
-            purpose = parsePurpose(obj)
-        ))
-    }
-
-    return icons
+    return array
+        .asSequence()
+        .map { it as JSONObject }
+        .map { obj ->
+            WebAppManifest.Icon(
+                src = obj.getString("src"),
+                sizes = parseIconSizes(obj),
+                type = obj.optString("type", null),
+                purpose = parsePurpose(obj)
+            )
+        }
+        .toList()
 }
 
 private fun parseIconSizes(json: JSONObject): List<WebAppManifest.Icon.Size> {

@@ -10,13 +10,11 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.permission.PermissionRequest
-
 import mozilla.components.concept.engine.prompt.PromptRequest
-
 import mozilla.components.concept.engine.window.WindowRequest
-
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.mock
 import org.junit.Assert
@@ -272,6 +270,19 @@ class EngineObserverTest {
         val emptyBitmap = spy(Bitmap::class.java)
         observer.onThumbnailChange(emptyBitmap)
         assertEquals(emptyBitmap, session.thumbnail)
+    }
+
+    @Test
+    fun engineObserverNotifiesWebAppManifest() {
+        val session = Session("https://www.mozilla.org")
+        val observer = EngineObserver(session)
+        val manifest = WebAppManifest(
+            name = "Minimal",
+            startUrl = "/"
+        )
+
+        observer.onWebAppManifestLoaded(manifest)
+        assertEquals(manifest, session.webAppManifest)
     }
 
     @Test

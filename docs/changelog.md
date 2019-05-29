@@ -43,6 +43,9 @@ permalink: /changelog/
 
 * **feature-tab-collections**
   * Added option to remove all collections and their tabs: `TabCollectionStorage.removeAllCollections()`.
+  
+* **feature-media**
+  * Added `RecordingDevicesNotificationFeature` to show an ongoing notification while recording devices (camera, microphone) are used by web content.
 
 # 0.54.0
 

@@ -109,6 +109,16 @@ object parameter of the `Glean.initialize` method. For example:
 Glean.initialize(applicationContext, Configuration(channel = "beta"))
 ```
 
+### Enabling and disabling metrics
+
+`Glean.setUploadEnabled()` should be called in response to the user enabling or
+disabling telemetry.  This method should also be called at least once prior
+to calling `Glean.initialize()`.
+
+When going from enabled to disabled, all pending events, metrics and pings are
+cleared, except for `first_run_date`. When re-enabling, core Glean metrics will
+be recomputed at that time.
+
 ### Adding new metrics
 
 All metrics that your application collects must be defined in a `metrics.yaml`
@@ -191,6 +201,8 @@ adb shell am start -n org.mozilla.samples.glean/mozilla.components.service.glean
 ## Data documentation
 
 Further documentation for pings that Glean can send out of the box is available [here](docs/pings/pings.md).
+
+There is also documentation about [internal behavior of parts of Glean](docs/internal.md).
 
 ## Contact
 

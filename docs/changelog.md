@@ -24,6 +24,26 @@ permalink: /changelog/
   * `OAuthAccount` and `DeviceConstellation` methods that returned `Deferred<T>` (for some T) now return `Deferred<T?>`, where `null` means failure.
   * `FirefoxAccount`, `FirefoxDeviceConstellation` and `FirefoxDeviceManager` now handle all expected `FxAException`.
 
+* **engine-gecko-nightly**, **engine-gecko-beta**, **concept-engine**
+  * Added engine API to clear browsing data.
+
+  ```kotlin
+  // Clear all browsing data
+  engine.clearData(BrowsingData.all())
+
+  // Clear all caches
+  engine.clearData(BrowsingData.allCaches())
+
+  // Clear cookies only for the provided host
+  engine.clearData(BrowsingData.select(BrowsingData.COOKIES), host = "mozilla.org")
+  ```
+
+* **service-glean**
+  * Disabling telemetry through `setUploadEnabled` now clears all metrics (except first_run_date) immediately.
+
+* **feature-tab-collections**
+  * Added option to remove all collections and their tabs: `TabCollectionStorage.removeAllCollections()`.
+
 # 0.54.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.53.0...v0.54.0)
@@ -71,6 +91,23 @@ permalink: /changelog/
 
 * **browser-engine-gecko-nightly**, **concept-engine**:
   * Added `EngineSession.Observer.onRecordingStateChanged()` to get list of recording devices currently used by web content.
+
+* **support-base**
+  * Added helper for providing unique stable `Int` notification ids based on a `String` tag to avoid id conflicts between components and app code.
+
+  ```kotlin
+  // Get a unique id for the provided tag
+  val id = NotificationIds.getIdForTag(context, "mozac.my.feature")
+
+  // Extension methods for showing and cancelling notifications
+  NotificationManagerCompat
+      .from(context)
+      .notify(context, "mozac.my.feature", notification)
+
+  NotificationManagerCompat
+      .from(context)
+      .cancel(context, "mozac.my.feature")
+  ```
 
 # 0.53.0
 

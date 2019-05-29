@@ -45,7 +45,13 @@ class GeckoEngineView @JvmOverloads constructor(
             if (crashed) {
                 // When crashing the previous GeckoSession is no longer usable. Internally GeckoEngineSession will
                 // create a new instance. This means we will need to tell GeckoView about this new GeckoSession:
-                currentSession?.let { currentGeckoView.setSession(it.geckoSession) }
+                currentSession?.let {
+                    currentGeckoView.setSession(it.geckoSession)
+                    // Load the session again
+                    it.currentUrl?.let { url ->
+                        it.loadUrl(url)
+                    }
+                }
             }
         }
         override fun onAppPermissionRequest(permissionRequest: PermissionRequest) = Unit

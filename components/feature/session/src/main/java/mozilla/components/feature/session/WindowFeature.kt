@@ -13,37 +13,29 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
  * Feature implementation for handling window requests.
+ *
+ * @param engine [Engine] used to create new [Session] instances.
+ * @param sessionManager Session Manager informed of window changes.
+ * @param sessionId ID of specific session to observe.
  */
-class WindowFeature(private val engine: Engine, private val sessionManager: SessionManager) : LifecycleAwareFeature {
+class WindowFeature(
+    private val engine: Engine,
+    private val sessionManager: SessionManager,
+    sessionId: String? = null
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature {
 
-    internal val windowObserver = object : SelectionAwareSessionObserver(sessionManager) {
-        override fun onOpenWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
-            val newSession = Session(windowRequest.url, session.private)
-            val newEngineSession = engine.createSession(session.private)
-            windowRequest.prepare(newEngineSession)
+    override fun onOpenWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
+        val newSession = Session(windowRequest.url, session.private)
+        val newEngineSession = engine.createSession(session.private)
+        windowRequest.prepare(newEngineSession)
 
-            sessionManager.add(newSession, true, newEngineSession, parent = session)
-            windowRequest.start()
-            return true
-        }
-
-        override fun onCloseWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
-            sessionManager.remove(session)
-            return true
-        }
+        sessionManager.add(newSession, true, newEngineSession, parent = session)
+        windowRequest.start()
+        return true
     }
 
-    /**
-     * Starts the feature and a observer to listen for window requests.
-     */
-    override fun start() {
-        windowObserver.observeSelected()
-    }
-
-    /**
-     * Stops the feature and the window request observer.
-     */
-    override fun stop() {
-        windowObserver.stop()
+    override fun onCloseWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
+        sessionManager.remove(session)
+        return true
     }
 }

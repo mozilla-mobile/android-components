@@ -16,6 +16,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
@@ -67,12 +68,14 @@ class ThumbnailsFeatureTest {
 
     @Test
     fun `when a page is loaded and the os is in low memory condition none thumbnail should be captured`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        feature = spy(ThumbnailsFeature(context, mockEngineView, mockSessionManager))
         feature.start()
 
         val session = getSelectedSession()
         session.thumbnail = mock(Bitmap::class.java)
 
-        feature.testLowMemory = true
+        `when`(feature.isLowOnMemory()).thenReturn(true)
 
         session.notifyObservers {
             onLoadingStateChanged(session, false)

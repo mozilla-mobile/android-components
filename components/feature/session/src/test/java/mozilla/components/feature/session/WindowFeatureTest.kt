@@ -8,13 +8,13 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.support.test.any
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import mozilla.components.support.test.any
 
 class WindowFeatureTest {
 
@@ -31,7 +31,7 @@ class WindowFeatureTest {
     fun `start registers window observer`() {
         val feature = WindowFeature(engine, sessionManager)
         feature.start()
-        verify(sessionManager).register(feature.windowObserver)
+        verify(sessionManager).register(feature)
     }
 
     @Test
@@ -41,7 +41,7 @@ class WindowFeatureTest {
         `when`(request.url).thenReturn("about:blank")
 
         val feature = WindowFeature(engine, sessionManager)
-        feature.windowObserver.onOpenWindowRequested(session, request)
+        feature.onOpenWindowRequested(session, request)
 
         verify(request).prepare(any())
         verify(sessionManager).add(any(), eq(true), any(), eq(session))
@@ -53,7 +53,7 @@ class WindowFeatureTest {
         val session = Session("https://www.mozilla.org")
 
         val feature = WindowFeature(engine, sessionManager)
-        feature.windowObserver.onCloseWindowRequested(session, mock(WindowRequest::class.java))
+        feature.onCloseWindowRequested(session, mock(WindowRequest::class.java))
         verify(sessionManager).remove(session)
     }
 
@@ -61,6 +61,6 @@ class WindowFeatureTest {
     fun `stop unregisters window observer`() {
         val feature = WindowFeature(engine, sessionManager)
         feature.stop()
-        verify(sessionManager).unregister(feature.windowObserver)
+        verify(sessionManager).unregister(feature)
     }
 }

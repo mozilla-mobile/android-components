@@ -25,9 +25,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.robolectric.RobolectricTestRunner
@@ -294,6 +296,45 @@ class ContextMenuFeatureTest {
             Assert.assertEquals("item", fact.item)
             Assert.assertEquals("test-id", fact.metadata?.get("item"))
         }
+    }
+
+    @Test
+    fun `when valid sessionId is provided, observe it's session`() {
+        val sessionManager: SessionManager = mock()
+        val fragmentManager = mockFragmentManager()
+        val (engineView, view) = mockEngineView()
+
+        val feature = spy(ContextMenuFeature(
+            fragmentManager,
+            sessionManager,
+            ContextMenuCandidate.defaultCandidates(context, mock(), mock()),
+            engineView,
+            "123"))
+        val session: Session = mock()
+
+        `when`(sessionManager.findSessionById(anyString())).thenReturn(session)
+        feature.start()
+
+        verify(feature).observeIdOrSelected("123")
+        verify(feature).observeFixed(session)
+    }
+
+    @Test
+    fun `when sessionId is NOT provided, observe selected session`() {
+        val sessionManager: SessionManager = mock()
+        val fragmentManager = mockFragmentManager()
+        val (engineView, view) = mockEngineView()
+
+        val feature = spy(ContextMenuFeature(
+            fragmentManager,
+            sessionManager,
+            ContextMenuCandidate.defaultCandidates(context, mock(), mock()),
+            engineView))
+
+        feature.start()
+
+        verify(feature).observeIdOrSelected(null)
+        verify(feature).observeSelected()
     }
 
     private fun mockFragmentManager(): FragmentManager {

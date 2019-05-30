@@ -29,13 +29,9 @@ class HistoryDelegate(private val historyStorage: HistoryStorage) : HistoryTrack
         }
     }
 
-    override suspend fun getVisited(uris: List<String>): List<Boolean> {
-        return historyStorage.getVisited(uris)
-    }
+    override suspend fun getVisited(uris: List<String>) = historyStorage.getVisited(uris)
 
-    override suspend fun getVisited(): List<String> {
-        return historyStorage.getVisited()
-    }
+    override suspend fun getVisited() = historyStorage.getVisited()
 
     /**
      * Filter out unwanted URIs, such as "chrome:", "about:", etc.

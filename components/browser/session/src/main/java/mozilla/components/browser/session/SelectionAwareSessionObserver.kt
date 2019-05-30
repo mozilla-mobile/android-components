@@ -15,12 +15,28 @@ import androidx.annotation.CallSuper
  *
  * @property activeSession the currently observed session
  * @property sessionManager the application's session manager
+ * @property sessionId if provided, automatically observes a session in [start]
  */
 abstract class SelectionAwareSessionObserver(
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val sessionId: String?
 ) : SessionManager.Observer, Session.Observer {
 
+    /**
+     * Start automatically if the sessionId parameter is set.
+     */
+    private var startAutomatically = true
+
     protected open var activeSession: Session? = null
+
+    /**
+     * If no sessionId is provided, don't start automatically.
+     */
+    constructor(
+        sessionManager: SessionManager
+    ) : this(sessionManager, null) {
+        startAutomatically = false
+    }
 
     /**
      * Starts observing changes to the specified session.
@@ -53,6 +69,13 @@ abstract class SelectionAwareSessionObserver(
     fun observeIdOrSelected(sessionId: String?) {
         val session = sessionId?.let { sessionManager.findSessionById(sessionId) }
         session?.let { observeFixed(it) } ?: observeSelected()
+    }
+
+    /**
+     * Start the observer.
+     */
+    open fun start() {
+        if (startAutomatically) observeIdOrSelected(sessionId)
     }
 
     /**

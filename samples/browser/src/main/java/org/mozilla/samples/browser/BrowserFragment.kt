@@ -62,7 +62,7 @@ class BrowserFragment : Fragment(), BackHandler {
         sessionFeature.set(
             feature = SessionFeature(
                 components.sessionManager,
-                components.sessionUseCases,
+                components.sessionUseCases.goBack,
                 layout.engineView,
                 sessionId),
             owner = this,
@@ -86,7 +86,7 @@ class BrowserFragment : Fragment(), BackHandler {
             owner = this,
             view = layout)
 
-        val menuUpdater = object : SelectionAwareSessionObserver(components.sessionManager) {
+        val menuUpdater = object : SelectionAwareSessionObserver(components.sessionManager, sessionId) {
             override fun onLoadingStateChanged(session: Session, loading: Boolean) {
                 layout.toolbar.invalidateActions()
             }
@@ -95,7 +95,7 @@ class BrowserFragment : Fragment(), BackHandler {
                 layout.toolbar.invalidateActions()
             }
         }
-        menuUpdater.observeIdOrSelected(sessionId)
+        menuUpdater.start()
 
         ToolbarAutocompleteFeature(layout.toolbar).apply {
             addHistoryStorageProvider(components.historyStorage)

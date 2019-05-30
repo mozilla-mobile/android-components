@@ -21,52 +21,34 @@ import mozilla.components.support.ktx.android.content.isOSOnLowMemory
  * If the OS is under low memory conditions, the screenshot will be not taken.
  * Ideally, this should be used in conjunction with [SessionManager.onLowMemory] to allow
  * free up some [Session.thumbnail] from memory.
+ *
+ * @param context Reference to application context.
+ * @param engineView Reference to the [EngineView] used to take screenshots.
+ * @param sessionManager Session Manager for observing when the active session finishes loading.
+ * @param sessionId ID of specific session to observe.
  */
 class ThumbnailsFeature(
     private val context: Context,
     private val engineView: EngineView,
-    sessionManager: SessionManager
-) : LifecycleAwareFeature {
-
-    private val observer = ThumbnailsFeatureRequestObserver(sessionManager)
-
-    /**
-     * Starts observing the selected session to listen for when a session finish loading.
-     */
-    override fun start() {
-        observer.observeSelected()
-    }
-
-    /**
-     * Stops observing the selected session.
-     */
-    override fun stop() {
-        observer.stop()
-    }
-
-    internal inner class ThumbnailsFeatureRequestObserver(
-        sessionManager: SessionManager
-    ) : SelectionAwareSessionObserver(sessionManager) {
-
-        override fun onLoadingStateChanged(session: Session, loading: Boolean) {
-            if (!loading) {
-                requestScreenshot(session)
-            }
+    sessionManager: SessionManager,
+    sessionId: String? = null
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature {
+    override fun onLoadingStateChanged(session: Session, loading: Boolean) {
+        if (!loading) {
+            requestScreenshot(session)
         }
     }
 
     private fun requestScreenshot(session: Session) {
-        if (!isLowOnMemory()) {
+        if (isLowOnMemory()) {
+            session.thumbnail = null
+        } else {
             engineView.captureThumbnail {
                 session.thumbnail = it
             }
-        } else {
-            session.thumbnail = null
         }
     }
 
     @VisibleForTesting
-    internal var testLowMemory = false
-
-    private fun isLowOnMemory() = testLowMemory || context.isOSOnLowMemory()
+    internal fun isLowOnMemory() = context.isOSOnLowMemory()
 }

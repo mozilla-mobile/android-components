@@ -15,26 +15,22 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 /**
  * Feature implementation to add pull to refresh functionality to browsers.
  *
+ * @param sessionManager Session Manager for observing the selected session.
+ * @param reloadUrlUseCase Use Case to reload the current page.
  * @param swipeRefreshLayout Reference to SwipeRefreshLayout that has an [EngineView] as its child.
+ * @param sessionId ID of specific session to observe.
  */
 class SwipeRefreshFeature(
     sessionManager: SessionManager,
     private val reloadUrlUseCase: SessionUseCases.ReloadUrlUseCase,
     private val swipeRefreshLayout: SwipeRefreshLayout,
-    private val sessionId: String? = null
-) : SelectionAwareSessionObserver(sessionManager), LifecycleAwareFeature,
+    sessionId: String? = null
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature,
     SwipeRefreshLayout.OnChildScrollUpCallback, SwipeRefreshLayout.OnRefreshListener {
 
     init {
         swipeRefreshLayout.setOnRefreshListener(this)
         swipeRefreshLayout.setOnChildScrollUpCallback(this)
-    }
-
-    /**
-     * Start feature: Starts adding pull to refresh behavior for the active session.
-     */
-    override fun start() {
-        observeIdOrSelected(sessionId)
     }
 
     /**

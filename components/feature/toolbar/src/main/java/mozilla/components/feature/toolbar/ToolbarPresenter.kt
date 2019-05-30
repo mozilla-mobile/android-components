@@ -8,6 +8,7 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.findSessionByIdOrSelected
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.internal.URLRenderer
 
@@ -21,7 +22,7 @@ class ToolbarPresenter(
     private val sessionManager: SessionManager,
     private val sessionId: String? = null,
     urlRenderConfiguration: ToolbarFeature.UrlRenderConfiguration? = null
-) : SelectionAwareSessionObserver(sessionManager) {
+) : SelectionAwareSessionObserver(sessionManager, sessionId) {
 
     @VisibleForTesting
     internal var renderer = URLRenderer(toolbar, urlRenderConfiguration)
@@ -29,8 +30,8 @@ class ToolbarPresenter(
     /**
      * Start presenter: Display data in toolbar.
      */
-    fun start() {
-        observeIdOrSelected(sessionId)
+    override fun start() {
+        super.start()
         initializeView()
 
         renderer.start()
@@ -61,8 +62,7 @@ class ToolbarPresenter(
     }
 
     internal fun initializeView() {
-        val session = sessionId?.let { sessionManager.findSessionById(sessionId) }
-            ?: sessionManager.selectedSession
+        val session = sessionManager.findSessionByIdOrSelected(sessionId)
 
         renderer.post(session?.url ?: "")
 

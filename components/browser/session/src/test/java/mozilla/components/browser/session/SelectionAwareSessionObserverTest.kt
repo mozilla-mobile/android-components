@@ -111,6 +111,12 @@ class SelectionAwareSessionObserverTest {
     }
 
     @Test
+    fun `start has no effect if single-argument constructor is used`() {
+        observer.start()
+        assertNull(observer.activeSession)
+    }
+
+    @Test
     fun `observer not notified after stop was called`() {
         sessionManager.add(session1, selected = true)
         sessionManager.add(session2)
@@ -157,7 +163,45 @@ class SelectionAwareSessionObserverTest {
         observer.onAllSessionsRemoved()
     }
 
+    @Test
+    fun `automatically observe specific session`() {
+        sessionManager.add(session1)
+        sessionManager.add(session2)
+        val observer = MockAutoStartObserver(sessionManager, session1.id)
+        observer.start()
+        assertEquals(session1, observer.activeSession)
+
+        session1.url = "changed"
+        assertEquals("changed", observer.observedUrl)
+    }
+
+    @Test
+    fun `automatically observe selected session`() {
+        sessionManager.add(session1, selected = true)
+        val observer = MockAutoStartObserver(sessionManager, null)
+        observer.start()
+        assertEquals(session1, observer.activeSession)
+
+        session1.url = "changed"
+        assertEquals("changed", observer.observedUrl)
+    }
+
     class MockObserver(sessionManager: SessionManager) : SelectionAwareSessionObserver(sessionManager) {
+        public override var activeSession: Session?
+            get() = super.activeSession
+            set(value) { super.activeSession = value }
+
+        var observedUrl: String = ""
+
+        override fun onUrlChanged(session: Session, url: String) {
+            observedUrl = url
+        }
+    }
+
+    class MockAutoStartObserver(
+        sessionManager: SessionManager,
+        sessionId: String?
+    ) : SelectionAwareSessionObserver(sessionManager, sessionId) {
         public override var activeSession: Session?
             get() = super.activeSession
             set(value) { super.activeSession = value }

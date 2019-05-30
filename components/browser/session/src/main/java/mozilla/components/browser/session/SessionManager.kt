@@ -207,6 +207,15 @@ class SessionManager(
 }
 
 /**
+ * Tries to find a session with the provided session ID or the selected session.
+ */
+fun SessionManager.findSessionByIdOrSelected(sessionId: String?) = if (sessionId != null) {
+    findSessionById(sessionId)
+} else {
+    selectedSession
+}
+
+/**
  * Tries to find a session with the provided session ID and runs the block if found.
  *
  * @return True if the session was found and run successfully.
@@ -232,13 +241,7 @@ fun SessionManager.runWithSessionIdOrSelected(
     sessionId: String?,
     block: SessionManager.(Session) -> Unit
 ): Boolean {
-    sessionId?.let {
-        findSessionById(sessionId)?.let { session ->
-            block(session)
-            return true
-        }
-    }
-    selectedSession?.let {
+    findSessionByIdOrSelected(sessionId)?.let {
         block(it)
         return true
     }

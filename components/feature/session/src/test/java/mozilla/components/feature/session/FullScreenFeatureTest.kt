@@ -23,11 +23,11 @@ class FullScreenFeatureTest {
 
     private val sessionManager: SessionManager = mock()
     private val selectedSession: Session = mock()
-    private val useCases = spy(SessionUseCases(sessionManager))
+    private val useCase = spy(SessionUseCases(sessionManager).exitFullscreen)
 
     @Test
     fun `start without a sessionId`() {
-        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCases) {})
+        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCase) {})
 
         fullscreenFeature.start()
 
@@ -38,7 +38,7 @@ class FullScreenFeatureTest {
 
     @Test
     fun `start with a sessionId`() {
-        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCases, "abc") {})
+        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCase, "abc") {})
         `when`(sessionManager.findSessionById(anyString())).thenReturn(selectedSession)
 
         fullscreenFeature.start()
@@ -51,7 +51,7 @@ class FullScreenFeatureTest {
     @Test
     fun `invoke listener when fullscreen observer invoked`() {
         var fullscreenChanged = false
-        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCases) { b -> fullscreenChanged = b })
+        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCase) { b -> fullscreenChanged = b })
 
         fullscreenFeature.onFullScreenChanged(mock(), true)
 
@@ -60,14 +60,14 @@ class FullScreenFeatureTest {
 
     @Test
     fun `onBackPressed returns false with no activeSession`() {
-        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCases) {})
+        val fullscreenFeature = spy(FullScreenFeature(sessionManager, useCase) {})
 
         assertFalse(fullscreenFeature.onBackPressed())
     }
 
     @Test
     fun `onBackPressed returns false with activeSession but not in fullscreen mode`() {
-        val fullscreenFeature = spy(FullScreenFeatureTest(sessionManager, useCases) {})
+        val fullscreenFeature = spy(FullScreenFeatureTest(sessionManager, useCase) {})
         val activeSession: Session = mock()
 
         `when`(fullscreenFeature.activeSession).thenReturn(activeSession)
@@ -80,23 +80,36 @@ class FullScreenFeatureTest {
     fun `onBackPressed returns true with activeSession and fullscreen mode`() {
         val activeSession: Session = mock()
         val engineSession: EngineSession = mock()
-        val fullscreenFeature = spy(FullScreenFeatureTest(sessionManager, useCases) {})
+
+        val useCases = spy(SessionUseCases(sessionManager))
+        val exitFullscreenUseCase = spy(useCases.exitFullscreen)
+        `when`(useCases.exitFullscreen).thenReturn(exitFullscreenUseCase)
+
+        val fullscreenFeature = spy(FullScreenFeatureTestOldConstructor(sessionManager, useCases) {})
 
         `when`(sessionManager.getOrCreateEngineSession(activeSession)).thenReturn(engineSession)
         `when`(fullscreenFeature.activeSession).thenReturn(activeSession)
         `when`(activeSession.fullScreenMode).thenReturn(true)
-        `when`(useCases.exitFullscreen).thenReturn(mock())
 
         assertTrue(fullscreenFeature.onBackPressed())
-        verify(useCases.exitFullscreen).invoke(activeSession)
+        verify(exitFullscreenUseCase).invoke(activeSession)
     }
 
     private class FullScreenFeatureTest(
         sessionManager: SessionManager,
-        sessionUseCases: SessionUseCases,
+        exitFullscreenUseCase: SessionUseCases.ExitFullScreenUseCase,
         sessionId: String? = null,
         fullScreenChanged: (Boolean) -> Unit
-    ) : FullScreenFeature(sessionManager, sessionUseCases, sessionId, fullScreenChanged) {
+    ) : FullScreenFeature(sessionManager, exitFullscreenUseCase, sessionId, fullScreenChanged) {
+        public override var activeSession: Session? = null
+    }
+
+    private class FullScreenFeatureTestOldConstructor(
+        sessionManager: SessionManager,
+        useCases: SessionUseCases,
+        sessionId: String? = null,
+        fullScreenChanged: (Boolean) -> Unit
+    ) : FullScreenFeature(sessionManager, useCases, sessionId, fullScreenChanged) {
         public override var activeSession: Session? = null
     }
 }

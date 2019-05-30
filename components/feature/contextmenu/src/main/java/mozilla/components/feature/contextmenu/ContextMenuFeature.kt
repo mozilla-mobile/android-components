@@ -32,16 +32,15 @@ internal const val FRAGMENT_TAG = "mozac_feature_contextmenu_dialog"
  * menu. If a context menu item was selected by the user the feature will invoke the [ContextMenuCandidate.action]
  * method of the related candidate.
  * @property engineView The [EngineView]] this feature component should show context menus for.
+ * @property sessionId ID of specific session to observe.
  */
 class ContextMenuFeature(
     private val fragmentManager: FragmentManager,
     private val sessionManager: SessionManager,
     private val candidates: List<ContextMenuCandidate>,
     private val engineView: EngineView,
-    private val sessionId: String? = null
-) : LifecycleAwareFeature {
-    private val observer = ContextMenuObserver(sessionManager, feature = this)
-
+    sessionId: String? = null
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature {
     /**
      * Start observing the selected session and when needed show a context menu.
      */
@@ -53,14 +52,7 @@ class ContextMenuFeature(
             reattachFragment(fragment as ContextMenuFragment)
         }
 
-        observer.start(sessionId)
-    }
-
-    /**
-     * Stop observing the selected session and do not show any context menus anymore.
-     */
-    override fun stop() {
-        observer.stop()
+        super.start()
     }
 
     /**
@@ -83,7 +75,11 @@ class ContextMenuFeature(
         fragment.feature = this
     }
 
-    internal fun onLongPress(session: Session, hitResult: HitResult) {
+    /**
+     * Observes [Session.Observer.onLongPress] of the selected session and is notified
+     * whenever a context menu needs to be shown.
+     */
+    override fun onLongPress(session: Session, hitResult: HitResult): Boolean {
         val (ids, labels) = candidates
             .filter { candidate -> candidate.showFor(session, hitResult) }
             .fold(Pair(mutableListOf<String>(), mutableListOf<String>())) { items, candidate ->
@@ -95,15 +91,15 @@ class ContextMenuFeature(
         // We have no context menu items to show for this HitResult. Let's consume it to remove it from the Session.
         if (ids.isEmpty()) {
             session.hitResult.consume { true }
-            return
+        } else {
+            // We know that we are going to show a context menu. Now is the time to perform the haptic feedback.
+            engineView.asView().performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+
+            val fragment = ContextMenuFragment.create(session, hitResult.src, ids, labels)
+            fragment.feature = this
+            fragment.show(fragmentManager, FRAGMENT_TAG)
         }
-
-        // We know that we are going to show a context menu. Now is the time to perform the haptic feedback.
-        engineView.asView().performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-
-        val fragment = ContextMenuFragment.create(session, hitResult.src, ids, labels)
-        fragment.feature = this
-        fragment.show(fragmentManager, FRAGMENT_TAG)
+        return false
     }
 
     internal fun onMenuItemSelected(sessionId: String, itemId: String) {
@@ -120,23 +116,5 @@ class ContextMenuFeature(
     internal fun onMenuCancelled(sessionId: String) {
         val session = sessionManager.findSessionById(sessionId) ?: return
         session.hitResult.consume { true }
-    }
-}
-
-/**
- * Observes [Session.Observer.onLongPress] of the selected session and notifies the feature whenever a context menu
- * needs to be shown.
- */
-internal class ContextMenuObserver(
-    sessionManager: SessionManager,
-    private val feature: ContextMenuFeature
-) : SelectionAwareSessionObserver(sessionManager) {
-    override fun onLongPress(session: Session, hitResult: HitResult): Boolean {
-        feature.onLongPress(session, hitResult)
-        return false
-    }
-
-    fun start(sessionId: String?) {
-        observeIdOrSelected(sessionId)
     }
 }

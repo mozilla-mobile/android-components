@@ -66,6 +66,7 @@ typealias OnNeedToRequestPermissions = (permissions: Array<String>) -> Unit
  * is specified.
  * @property sessionManager The [SessionManager] instance in order to subscribe
  * to the selected [Session].
+ * @property sessionId ID of specific session to observe.
  * @property fragmentManager The [FragmentManager] to be used when displaying
  * a dialog (fragment).
  * @property onNeedToRequestPermissions a callback invoked when permissions
@@ -81,7 +82,7 @@ class PromptFeature(
     private var sessionId: String? = null,
     private val fragmentManager: FragmentManager,
     private val onNeedToRequestPermissions: OnNeedToRequestPermissions
-) : LifecycleAwareFeature {
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature {
 
     init {
         if (activity == null && fragment == null) {
@@ -92,8 +93,6 @@ class PromptFeature(
         }
     }
 
-    private val observer = PromptRequestObserver(sessionManager, feature = this)
-
     private val context get() = activity ?: requireNotNull(fragment).requireContext()
 
     /**
@@ -101,7 +100,7 @@ class PromptFeature(
      * and displays a dialog when needed.
      */
     override fun start() {
-        observer.observeIdOrSelected(sessionId)
+        super.start()
 
         fragmentManager.findFragmentByTag(FRAGMENT_TAG)?.let { fragment ->
             // There's still a [PromptDialogFragment] visible from the last time. Re-attach this feature so that the
@@ -109,13 +108,6 @@ class PromptFeature(
             // the app was in the background and on resume the activity and fragments get recreated.
             reattachFragment(fragment as PromptDialogFragment)
         }
-    }
-
-    /**
-     * Stops observing the selected session for incoming prompt requests.
-     */
-    override fun stop() {
-        observer.stop()
     }
 
     /**
@@ -234,17 +226,14 @@ class PromptFeature(
      * @param session The session which requested the dialog.
      * @param promptRequest The session the request the dialog.
      */
-    @VisibleForTesting(otherwise = PRIVATE)
-    internal fun onPromptRequested(session: Session, promptRequest: PromptRequest) {
+    override fun onPromptRequested(session: Session, promptRequest: PromptRequest): Boolean {
 
         // Requests that are handle with intents
         when (promptRequest) {
-            is File -> {
-                handleFilePickerRequest(promptRequest)
-                return
-            }
+            is File -> handleFilePickerRequest(promptRequest)
+            else -> handleDialogsRequest(promptRequest, session)
         }
-        handleDialogsRequest(promptRequest, session)
+        return false
     }
 
     /**
@@ -498,21 +487,6 @@ class PromptFeature(
 
         dialog.feature = this
         dialog.show(fragmentManager, FRAGMENT_TAG)
-    }
-
-    /**
-     * Observes [Session.Observer.onPromptRequested] of the selected session
-     * and notifies the feature whenever a prompt needs to be shown.
-     */
-    internal class PromptRequestObserver(
-        sessionManager: SessionManager,
-        private val feature: PromptFeature
-    ) : SelectionAwareSessionObserver(sessionManager) {
-
-        override fun onPromptRequested(session: Session, promptRequest: PromptRequest): Boolean {
-            feature.onPromptRequested(session, promptRequest)
-            return false
-        }
     }
 
     companion object {

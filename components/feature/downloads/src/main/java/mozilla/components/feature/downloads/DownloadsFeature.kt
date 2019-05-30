@@ -35,6 +35,7 @@ typealias OnNeedToRequestPermissions = (permissions: Array<String>) -> Unit
  * @property downloadManager a reference to the [DownloadManager] which is
  * responsible for performing the downloads.
  * @property sessionManager a reference to the application's [SessionManager].
+ * @property sessionId ID of specific session to observe.
  * @property fragmentManager a reference to a [FragmentManager]. If a fragment
  * manager is provided, a dialog will be shown before every download.
  * @property dialog a reference to a [DownloadDialogFragment]. If not provided, an
@@ -46,18 +47,18 @@ class DownloadsFeature(
     var onDownloadCompleted: OnDownloadCompleted = { _, _ -> },
     private val downloadManager: DownloadManager = DownloadManager(applicationContext, onDownloadCompleted),
     sessionManager: SessionManager,
-    private val sessionId: String? = null,
+    sessionId: String? = null,
     private val fragmentManager: FragmentManager? = null,
     @VisibleForTesting(otherwise = PRIVATE)
     internal var dialog: DownloadDialogFragment = SimpleDownloadDialogFragment.newInstance()
-) : SelectionAwareSessionObserver(sessionManager), LifecycleAwareFeature {
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature {
 
     /**
      * Starts observing downloads on the selected session and sends them to the [DownloadManager]
      * to be processed.
      */
     override fun start() {
-        observeIdOrSelected(sessionId)
+        super.start()
 
         findPreviousDialogFragment()?.let {
             reAttachOnStartDownloadListener(it)

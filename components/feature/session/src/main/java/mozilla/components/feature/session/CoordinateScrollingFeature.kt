@@ -26,16 +26,9 @@ class CoordinateScrollingFeature(
     sessionManager: SessionManager,
     private val engineView: EngineView,
     private val view: View,
-    private val scrollFlags: Int = DEFAULT_SCROLL_FLAGS
-) : SelectionAwareSessionObserver(sessionManager), LifecycleAwareFeature {
-
-    /**
-     * Start feature: Starts adding scrolling behavior for the indicated view.
-     */
-    override fun start() {
-        observeSelected()
-    }
-
+    private val scrollFlags: Int = DEFAULT_SCROLL_FLAGS,
+    sessionId: String? = null
+) : SelectionAwareSessionObserver(sessionManager, sessionId), LifecycleAwareFeature {
     override fun onLoadingStateChanged(session: Session, loading: Boolean) {
 
         val params = view.layoutParams as AppBarLayout.LayoutParams

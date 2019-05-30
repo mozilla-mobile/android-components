@@ -6,17 +6,17 @@ package mozilla.components.browser.session.engine
 
 import android.graphics.Bitmap
 import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.engine.request.isSet
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.permission.PermissionRequest
-
 import mozilla.components.concept.engine.prompt.PromptRequest
-
 import mozilla.components.concept.engine.window.WindowRequest
-
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.mock
 import org.junit.Assert
@@ -275,6 +275,19 @@ class EngineObserverTest {
     }
 
     @Test
+    fun engineObserverNotifiesWebAppManifest() {
+        val session = Session("https://www.mozilla.org")
+        val observer = EngineObserver(session)
+        val manifest = WebAppManifest(
+            name = "Minimal",
+            startUrl = "/"
+        )
+
+        observer.onWebAppManifestLoaded(manifest)
+        assertEquals(manifest, session.webAppManifest)
+    }
+
+    @Test
     fun engineSessionObserverWithContentPermissionRequests() {
         val permissionRequest = mock(PermissionRequest::class.java)
         val session = Session("")
@@ -434,19 +447,30 @@ class EngineObserverTest {
         session.searchTerms = "Mozilla Foundation"
 
         val observer = EngineObserver(session)
-        observer.onLoadRequest(triggeredByUserInteraction = true)
+        observer.onLoadRequest(triggeredByRedirect = true, triggeredByWebContent = true)
 
         assertEquals("", session.searchTerms)
+        val triggeredByRedirect = session.loadRequestTriggers.isSet(LoadRequestOption.REDIRECT)
+        val triggeredByWebContent = session.loadRequestTriggers.isSet(LoadRequestOption.WEB_CONTENT)
+
+        assertTrue(triggeredByRedirect)
+        assertTrue(triggeredByWebContent)
     }
 
     @Test
-    fun `onLoadRequest does not clear search terms for requests not triggered by user interaction`() {
+    fun `onLoadRequest does not clear search terms for requests not triggered by user interacting with web content`() {
         val session = Session("https://www.mozilla.org")
         session.searchTerms = "Mozilla Foundation"
 
         val observer = EngineObserver(session)
-        observer.onLoadRequest(triggeredByUserInteraction = false)
+        observer.onLoadRequest(triggeredByRedirect = true, triggeredByWebContent = false)
 
         assertEquals("Mozilla Foundation", session.searchTerms)
+
+        val triggeredByRedirect = session.loadRequestTriggers.isSet(LoadRequestOption.REDIRECT)
+        val triggeredByWebContent = session.loadRequestTriggers.isSet(LoadRequestOption.WEB_CONTENT)
+
+        assertTrue(triggeredByRedirect)
+        assertFalse(triggeredByWebContent)
     }
 }

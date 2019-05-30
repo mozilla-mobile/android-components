@@ -47,6 +47,11 @@ object Versions {
         const val work = "2.0.0"
         const val arch_core_testing = "2.0.0"
     }
+
+    object Firebase {
+        const val core = "16.0.1"
+        const val messaging = "17.3.4"
+    }
 }
 
 // Synchronized dependencies used by (some) modules
@@ -102,6 +107,7 @@ object Dependencies {
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
     const val mozilla_places_forUnitTests = "org.mozilla.appservices:places-forUnitTests:${Versions.mozilla_appservices}"
+    const val mozilla_push = "org.mozilla.appservices:push:${Versions.mozilla_appservices}"
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
     const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
     const val mozilla_servo_x86 = "org.mozilla.servoview:servoview-x86:${Versions.servo}"
@@ -112,4 +118,7 @@ object Dependencies {
     const val thirdparty_zxing = "com.google.zxing:core:${Versions.zxing}"
     const val thirdparty_jna = "net.java.dev.jna:jna:${Versions.jna}@jar"
     const val thirdparty_disklrucache = "com.jakewharton:disklrucache:${Versions.disklrucache}"
+
+    const val firebase_core = "com.google.firebase:firebase-core:${Versions.Firebase.core}"
+    const val firebase_messaging = "com.google.firebase:firebase-messaging:${Versions.Firebase.messaging}"
 }

@@ -6,6 +6,7 @@ package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -50,16 +51,18 @@ abstract class EngineSession(
         fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
+        fun onWebAppManifestLoaded(manifest: WebAppManifest) = Unit
         fun onCrashStateChange(crashed: Boolean) = Unit
         fun onRecordingStateChanged(devices: List<RecordingDevice>) = Unit
 
         /**
          * The engine received a request to load a request.
          *
-         * @param triggeredByUserInteraction True if and only if the request was triggered by user interaction (e.g.
-         * clicking on a link on a website).
+         * @param triggeredByRedirect True if and only if the request was triggered by an HTTP redirect.
+         * @param triggeredByWebContent True if and only if the request was triggered from within
+         * web content (as opposed to via the browser chrome).
          */
-        fun onLoadRequest(triggeredByUserInteraction: Boolean) = Unit
+        fun onLoadRequest(triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(

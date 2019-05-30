@@ -8,8 +8,11 @@ import android.graphics.Bitmap
 import android.os.Environment
 import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.engine.request.plus
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -45,10 +48,20 @@ internal class EngineObserver(
         }
     }
 
-    override fun onLoadRequest(triggeredByUserInteraction: Boolean) {
-        if (triggeredByUserInteraction) {
+    override fun onLoadRequest(triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
+        if (triggeredByWebContent) {
             session.searchTerms = ""
         }
+        var triggers = LoadRequestOption.NONE.toMask()
+        if (triggeredByRedirect) {
+            triggers += LoadRequestOption.REDIRECT
+        }
+
+        if (triggeredByWebContent) {
+            triggers += LoadRequestOption.WEB_CONTENT
+        }
+
+        session.loadRequestTriggers = triggers
     }
 
     override fun onTitleChange(title: String) {
@@ -156,6 +169,10 @@ internal class EngineObserver(
             it.remove(media)
         }
         media.unregisterObservers()
+    }
+
+    override fun onWebAppManifestLoaded(manifest: WebAppManifest) {
+        session.webAppManifest = manifest
     }
 
     override fun onCrashStateChange(crashed: Boolean) {

@@ -226,7 +226,7 @@ class SystemEngineView @JvmOverloads constructor(
             }
 
             if (request.isForMainFrame) {
-                session?.let { it.notifyObservers { onLoadRequest(request.hasGesture()) } }
+                session?.let { it.notifyObservers { onLoadRequest(request.hasGesture(), true) } }
             }
 
             return super.shouldInterceptRequest(view, request)
@@ -639,6 +639,8 @@ class SystemEngineView @JvmOverloads constructor(
     override fun setVerticalClipping(clippingHeight: Int) {
         // no-op
     }
+
+    override fun canScrollVerticallyUp() = session?.webView?.canScrollVertically(-1) ?: false
 
     override fun canScrollVerticallyDown() = session?.webView?.canScrollVertically(1) ?: false
 

@@ -18,6 +18,7 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.manifest.WebAppManifestParser
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.storage.VisitType
@@ -26,6 +27,7 @@ import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
 import mozilla.components.support.utils.DownloadUtils
+import org.json.JSONObject
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
@@ -55,6 +57,7 @@ class GeckoEngineSession(
 
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
+    internal var scrollY: Int = 0
     internal var job: Job = Job()
     private var lastSessionState: GeckoSession.SessionState? = null
     private var stateBeforeCrash: GeckoSession.SessionState? = null
@@ -75,6 +78,8 @@ class GeckoEngineSession(
 
     private var initialLoad = true
 
+    private var requestFromWebContent = false
+
     override val coroutineContext: CoroutineContext
         get() = context + job
 
@@ -86,6 +91,7 @@ class GeckoEngineSession(
      * See [EngineSession.loadUrl]
      */
     override fun loadUrl(url: String) {
+        requestFromWebContent = false
         geckoSession.loadUri(url)
     }
 
@@ -93,6 +99,7 @@ class GeckoEngineSession(
      * See [EngineSession.loadData]
      */
     override fun loadData(data: String, mimeType: String, encoding: String) {
+        requestFromWebContent = false
         when (encoding) {
             "base64" -> geckoSession.loadData(data.toByteArray(), mimeType)
             else -> geckoSession.loadString(data, mimeType)
@@ -313,9 +320,12 @@ class GeckoEngineSession(
             } else {
                 notifyObservers {
                     // Unlike the name LoadRequest.isRedirect may imply this flag is not about http redirects. The flag
-                    // is "true if and only if the request was triggered by user interaction."
+                    // is "True if and only if the request was triggered by an HTTP redirect."
                     // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1545170
-                    onLoadRequest(triggeredByUserInteraction = request.isRedirect)
+                    onLoadRequest(
+                        triggeredByRedirect = request.isRedirect,
+                        triggeredByWebContent = requestFromWebContent
+                    )
                 }
 
                 GeckoResult.fromValue(AllowOrDeny.ALLOW)
@@ -383,6 +393,10 @@ class GeckoEngineSession(
         }
 
         override fun onPageStop(session: GeckoSession, success: Boolean) {
+            // by the time we reach here, any new request will come from web content.
+            // If it comes from the chrome, loadUrl(url) or loadData(string) will set it to
+            // false.
+            requestFromWebContent = true
             notifyObservers {
                 onProgress(PROGRESS_STOP)
                 onLoadingStateChange(false)
@@ -514,6 +528,13 @@ class GeckoEngineSession(
         }
 
         override fun onFocusRequest(session: GeckoSession) = Unit
+
+        override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
+            val parsed = WebAppManifestParser().parse(manifest)
+            if (parsed is WebAppManifestParser.Result.Success) {
+                notifyObservers { onWebAppManifestLoaded(parsed.manifest) }
+            }
+        }
     }
 
     private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {
@@ -557,6 +578,12 @@ class GeckoEngineSession(
                     permissions?.toList() ?: emptyList(),
                     callback)
             notifyObservers { onAppPermissionRequest(request) }
+        }
+    }
+
+    private fun createScrollDelegate() = object : GeckoSession.ScrollDelegate {
+        override fun onScrollChanged(session: GeckoSession, scrollX: Int, scrollY: Int) {
+            this@GeckoEngineSession.scrollY = scrollY
         }
     }
 
@@ -616,6 +643,7 @@ class GeckoEngineSession(
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
         geckoSession.historyDelegate = createHistoryDelegate()
         geckoSession.mediaDelegate = GeckoMediaDelegate(this)
+        geckoSession.scrollDelegate = createScrollDelegate()
     }
 
     companion object {

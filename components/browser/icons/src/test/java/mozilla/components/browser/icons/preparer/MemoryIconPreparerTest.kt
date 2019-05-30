@@ -26,7 +26,7 @@ class MemoryIconPreparerTest {
 
         val initialRequest = IconRequest(url = "example.org")
 
-        val request = preparer.prepare(initialRequest)
+        val request = preparer.prepare(mock(), initialRequest)
 
         assertEquals(2, request.resources.size)
         assertEquals(
@@ -54,7 +54,7 @@ class MemoryIconPreparerTest {
             IconRequest.Resource("https://getpocket.com", type = IconRequest.Resource.Type.FAVICON)
         ))
 
-        val request = preparer.prepare(initialRequest)
+        val request = preparer.prepare(mock(), initialRequest)
 
         assertEquals(
             listOf(

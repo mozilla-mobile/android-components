@@ -60,7 +60,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onMediaAdded(mediaAdded) }
         session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onCrashStateChange(true) }
-        session.notifyInternalObservers { onLoadRequest(true) }
+        session.notifyInternalObservers { onLoadRequest(true, true) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onLocationChange("https://www.firefox.com")
@@ -84,7 +84,7 @@ class EngineSessionTest {
         verify(observer).onMediaAdded(mediaAdded)
         verify(observer).onMediaRemoved(mediaRemoved)
         verify(observer).onCrashStateChange(true)
-        verify(observer).onLoadRequest(true)
+        verify(observer).onLoadRequest(true, true)
         verifyNoMoreInteractions(observer)
     }
 
@@ -118,7 +118,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
         session.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
         session.notifyInternalObservers { onCrashStateChange(false) }
-        session.notifyInternalObservers { onLoadRequest(true) }
+        session.notifyInternalObservers { onLoadRequest(true, true) }
         session.unregister(observer)
 
         val mediaAdded: Media = mock()
@@ -144,7 +144,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onMediaAdded(mediaAdded) }
         session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onCrashStateChange(true) }
-        session.notifyInternalObservers { onLoadRequest(false) }
+        session.notifyInternalObservers { onLoadRequest(false, true) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -164,7 +164,7 @@ class EngineSessionTest {
         verify(observer).onOpenWindowRequest(windowRequest)
         verify(observer).onCloseWindowRequest(windowRequest)
         verify(observer).onCrashStateChange(false)
-        verify(observer).onLoadRequest(true)
+        verify(observer).onLoadRequest(true, true)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -185,7 +185,7 @@ class EngineSessionTest {
         verify(observer, never()).onMediaAdded(mediaAdded)
         verify(observer, never()).onMediaRemoved(mediaRemoved)
         verify(observer, never()).onCrashStateChange(true)
-        verify(observer, never()).onLoadRequest(false)
+        verify(observer, never()).onLoadRequest(false, true)
         verifyNoMoreInteractions(observer)
     }
 
@@ -532,6 +532,7 @@ class EngineSessionTest {
 
     @Test
     fun `tracking protection policies have correct categories`() {
+        assertEquals(TrackingProtectionPolicy.RECOMMENDED, TrackingProtectionPolicy.recommended().categories)
         assertEquals(TrackingProtectionPolicy.ALL, TrackingProtectionPolicy.all().categories)
         assertEquals(TrackingProtectionPolicy.NONE, TrackingProtectionPolicy.none().categories)
         assertTrue(TrackingProtectionPolicy.all().contains(
@@ -545,12 +546,20 @@ class EngineSessionTest {
         assertTrue(TrackingProtectionPolicy.all().contains(
             TrackingProtectionPolicy.select(TrackingProtectionPolicy.SOCIAL).categories))
 
+        assertTrue(TrackingProtectionPolicy.all().contains(
+            TrackingProtectionPolicy.select(TrackingProtectionPolicy.SAFE_BROWSING_ALL).categories))
+
         val policy = TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.ANALYTICS)
         assertTrue(policy.contains(TrackingProtectionPolicy.AD))
         assertTrue(policy.contains(TrackingProtectionPolicy.ANALYTICS))
         assertFalse(policy.contains(TrackingProtectionPolicy.SOCIAL))
         assertFalse(policy.contains(TrackingProtectionPolicy.CONTENT))
         assertFalse(policy.contains(TrackingProtectionPolicy.TEST))
+        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_ALL))
+        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL))
+        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_MALWARE))
+        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_PHISHING))
+        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED))
     }
 
     @Test
@@ -638,8 +647,6 @@ open class DummyEngineSession : EngineSession() {
     override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
 
     override fun disableTrackingProtection() {}
-
-    override fun clearData() {}
 
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
 

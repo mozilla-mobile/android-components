@@ -19,17 +19,19 @@ import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Response
 import mozilla.components.service.glean.config.Configuration
-import mozilla.components.service.glean.firstrun.FileFirstRunDetector
 import mozilla.components.service.glean.ping.PingMaker
 import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.scheduler.PingUploadWorker
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import org.json.JSONObject
 import org.junit.Assert
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
-import java.io.File
 import java.util.concurrent.ExecutionException
 
 /**
@@ -135,9 +137,6 @@ internal fun resetGlean(
         ExperimentsStorageEngine.clearAllStores()
     }
 
-    // Clear the "first run" flag.
-    val firstRun = FileFirstRunDetector(File(context.applicationInfo.dataDir, Glean.GLEAN_DATA_DIR))
-    firstRun.reset()
     // Init Glean.
     Glean.initialized = false
     Glean.setUploadEnabled(true)
@@ -242,4 +241,18 @@ internal class TestPingTagClient(
             request.headers ?: responseHeaders,
             responseBody)
     }
+}
+
+/**
+ * Create a mock webserver that accepts all requests.
+ * @return a [MockWebServer] instance
+ */
+internal fun getMockWebServer(): MockWebServer {
+    val server = MockWebServer()
+    server.setDispatcher(object : Dispatcher() {
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            return MockResponse().setBody("OK")
+        }
+    })
+    return server
 }

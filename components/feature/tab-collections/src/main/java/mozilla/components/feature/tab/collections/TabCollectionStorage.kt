@@ -5,6 +5,8 @@
 package mozilla.components.feature.tab.collections
 
 import android.content.Context
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Transformations
 import androidx.paging.DataSource
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
@@ -14,6 +16,7 @@ import mozilla.components.feature.tab.collections.adapter.TabCollectionAdapter
 import mozilla.components.feature.tab.collections.db.TabCollectionDatabase
 import mozilla.components.feature.tab.collections.db.TabCollectionEntity
 import mozilla.components.feature.tab.collections.db.TabEntity
+import mozilla.components.support.ktx.java.io.truncateDirectory
 import java.util.UUID
 
 /**
@@ -103,6 +106,20 @@ class TabCollectionStorage(
         .map { entity -> TabCollectionAdapter(entity) }
 
     /**
+     * Returns the last [TabCollection] instances (up to [limit]) as a [LiveData] list.
+     *
+     * @param limit (Optional) Maximum number of [TabCollection] instances that should be returned.
+     */
+    fun getCollections(limit: Int = 20): LiveData<List<TabCollection>> {
+        limit.hashCode()
+        return Transformations.map(
+            database.value.tabCollectionDao().getTabCollections(limit)
+        ) { list ->
+            list.map { entity -> TabCollectionAdapter(entity) }
+        }
+    }
+
+    /**
      * Renames a collection.
      */
     fun renameCollection(collection: TabCollection, title: String) {
@@ -127,5 +144,22 @@ class TabCollectionStorage(
         collectionWithTabs.tabs.forEach { tab ->
             tab.getStateFile(context).delete()
         }
+    }
+
+    /**
+     * Removes all collections and all tabs.
+     */
+    fun removeAllCollections() {
+        database.value.clearAllTables()
+
+        TabEntity.getStateDirectory(context)
+            .truncateDirectory()
+    }
+
+    /**
+     * Returns the number of tab collections.
+     */
+    fun getTabCollectionsCount(): Int {
+        return database.value.tabCollectionDao().countTabCollections()
     }
 }

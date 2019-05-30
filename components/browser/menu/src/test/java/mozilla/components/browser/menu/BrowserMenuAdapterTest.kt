@@ -5,20 +5,23 @@
 package mozilla.components.browser.menu
 
 import android.view.View
+import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class BrowserMenuAdapterTest {
+
     @Test
     fun `items that return false from the visible lambda will be filtered out`() {
         val items = listOf(
@@ -28,7 +31,7 @@ class BrowserMenuAdapterTest {
             createMenuItem(4) { false },
             createMenuItem(5) { true })
 
-        val adapter = BrowserMenuAdapter(RuntimeEnvironment.application, items)
+        val adapter = BrowserMenuAdapter(testContext, items)
 
         assertEquals(3, adapter.visibleItems.size)
 
@@ -47,7 +50,7 @@ class BrowserMenuAdapterTest {
                 createMenuItem(23),
                 createMenuItem(42))
 
-        val adapter = BrowserMenuAdapter(RuntimeEnvironment.application, items)
+        val adapter = BrowserMenuAdapter(testContext, items)
 
         assertEquals(2, adapter.itemCount)
 
@@ -62,7 +65,7 @@ class BrowserMenuAdapterTest {
 
         val menu = mock(BrowserMenu::class.java)
 
-        val adapter = BrowserMenuAdapter(RuntimeEnvironment.application, listOf(item1, item2))
+        val adapter = BrowserMenuAdapter(testContext, listOf(item1, item2))
         adapter.menu = menu
 
         val view = mock(View::class.java)
@@ -80,6 +83,28 @@ class BrowserMenuAdapterTest {
 
         verify(item1, never()).bind(menu, view)
         verify(item2).bind(menu, view)
+    }
+
+    @Test
+    fun `invalidate will be forwarded to item implementation`() {
+        val item1 = spy(createMenuItem())
+        val item2 = spy(createMenuItem())
+
+        val menu = mock(BrowserMenu::class.java)
+
+        val adapter = BrowserMenuAdapter(testContext, listOf(item1, item2))
+        adapter.menu = menu
+        val recyclerView = mock(RecyclerView::class.java)
+
+        val view = mock(View::class.java)
+        val holder = BrowserMenuItemViewHolder(view)
+        `when`(recyclerView.findViewHolderForAdapterPosition(0)).thenReturn(holder)
+        `when`(recyclerView.findViewHolderForAdapterPosition(1)).thenReturn(null)
+
+        adapter.invalidate(recyclerView)
+
+        verify(item1).invalidate(view)
+        verify(item2, never()).invalidate(view)
     }
 
     private fun List<BrowserMenuItem>.assertTrueForOne(predicate: (BrowserMenuItem) -> Boolean) {
@@ -109,6 +134,8 @@ class BrowserMenuAdapterTest {
             override fun getLayoutResource() = layout
 
             override fun bind(menu: BrowserMenu, view: View) {}
+
+            override fun invalidate(view: View) {}
         }
     }
 }

@@ -4,51 +4,57 @@
 
 package mozilla.components.browser.awesomebar
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.awesomebar.transform.SuggestionTransformer
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.utils.setupTestCoroutinesDispatcher
+import mozilla.utils.unsetTestCoroutinesDispatcher
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.never
-import org.mockito.Mockito.verifyNoMoreInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
-import java.lang.IllegalStateException
 import java.util.UUID
 
+@ExperimentalCoroutinesApi
 @RunWith(RobolectricTestRunner::class)
 class BrowserAwesomeBarTest {
-    private val testMainScope = CoroutineScope(newSingleThreadContext("Test"))
 
-    private val context: Context
-        get() = ApplicationProvider.getApplicationContext()
+    @Before
+    fun setUp() {
+        setupTestCoroutinesDispatcher()
+    }
+
+    @After
+    fun tearDown() {
+        unsetTestCoroutinesDispatcher()
+    }
 
     @Test
     fun `BrowserAwesomeBar forwards input to providers`() {
-        runBlocking(testMainScope.coroutineContext) {
+        runBlocking {
             val provider1 = mockProvider()
             val provider2 = mockProvider()
             val provider3 = mockProvider()
 
-            val awesomeBar = BrowserAwesomeBar(context)
-            awesomeBar.scope = testMainScope
+            val awesomeBar = BrowserAwesomeBar(testContext)
             awesomeBar.addProviders(provider1, provider2)
             awesomeBar.addProviders(provider3)
 
             awesomeBar.onInputChanged("Hello World!")
-
-            awesomeBar.job!!.join()
+            awesomeBar.awaitForAllJobsToFinish()
 
             verify(provider1).onInputChanged("Hello World!")
             verify(provider2).onInputChanged("Hello World!")
@@ -59,14 +65,18 @@ class BrowserAwesomeBarTest {
     @Test
     fun `BrowserAwesomeBar forwards onInputStarted to providers`() {
         val provider1: AwesomeBar.SuggestionProvider = mock()
+        `when`(provider1.id).thenReturn("1")
         val provider2: AwesomeBar.SuggestionProvider = mock()
+        `when`(provider2.id).thenReturn("2")
         val provider3: AwesomeBar.SuggestionProvider = mock()
+        `when`(provider3.id).thenReturn("3")
 
-        val awesomeBar = BrowserAwesomeBar(context)
+        val awesomeBar = BrowserAwesomeBar(testContext)
         awesomeBar.addProviders(provider1, provider2)
         awesomeBar.addProviders(provider3)
 
         awesomeBar.onInputStarted()
+        awesomeBar.awaitForAllJobsToFinish()
 
         verify(provider1).onInputStarted()
         verify(provider2).onInputStarted()
@@ -76,10 +86,13 @@ class BrowserAwesomeBarTest {
     @Test
     fun `BrowserAwesomeBar forwards onInputCancelled to providers`() {
         val provider1: AwesomeBar.SuggestionProvider = mock()
+        `when`(provider1.id).thenReturn("1")
         val provider2: AwesomeBar.SuggestionProvider = mock()
+        `when`(provider2.id).thenReturn("2")
         val provider3: AwesomeBar.SuggestionProvider = mock()
+        `when`(provider3.id).thenReturn("3")
 
-        val awesomeBar = BrowserAwesomeBar(context)
+        val awesomeBar = BrowserAwesomeBar(testContext)
         awesomeBar.addProviders(provider1, provider2)
         awesomeBar.addProviders(provider3)
 
@@ -88,15 +101,11 @@ class BrowserAwesomeBarTest {
         verify(provider1).onInputCancelled()
         verify(provider2).onInputCancelled()
         verify(provider3).onInputCancelled()
-
-        verifyNoMoreInteractions(provider1)
-        verifyNoMoreInteractions(provider2)
-        verifyNoMoreInteractions(provider3)
     }
 
     @Test
     fun `onInputCancelled stops jobs`() {
-        runBlocking(testMainScope.coroutineContext) {
+        runBlocking {
             var providerTriggered = false
             var providerCancelled = false
 
@@ -117,19 +126,14 @@ class BrowserAwesomeBarTest {
                 }
             }
 
-            val awesomeBar = BrowserAwesomeBar(context)
-            awesomeBar.scope = testMainScope
+            val awesomeBar = BrowserAwesomeBar(testContext)
             awesomeBar.addProviders(blockingProvider)
 
             awesomeBar.onInputChanged("Hello!")
-
-            // Give the jobs some time to start
-            delay(50)
+            awaitFor { providerTriggered }
 
             awesomeBar.onInputCancelled()
-
-            // Wait for all jobs to have received the stop signal
-            awesomeBar.job!!.join()
+            awesomeBar.awaitForAllJobsToFinish()
 
             assertTrue(providerTriggered)
             assertTrue(providerCancelled)
@@ -138,12 +142,12 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `removeProvider removes the provider`() {
-        runBlocking(testMainScope.coroutineContext) {
+        runBlocking {
             val provider1 = mockProvider()
             val provider2 = mockProvider()
             val provider3 = mockProvider()
 
-            val awesomeBar = BrowserAwesomeBar(context)
+            val awesomeBar = BrowserAwesomeBar(testContext)
             val adapter: SuggestionsAdapter = mock()
             awesomeBar.suggestionsAdapter = adapter
 
@@ -156,6 +160,7 @@ class BrowserAwesomeBarTest {
             assertEquals((PROVIDER_MAX_SUGGESTIONS * 2) * 2, awesomeBar.uniqueSuggestionIds.maxSize())
 
             awesomeBar.onInputStarted()
+            awesomeBar.awaitForAllJobsToFinish()
 
             // Confirm that only provider2's suggestions were removed
             verify(adapter, never()).removeSuggestions(provider1)
@@ -170,11 +175,11 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `removeAllProviders removes all providers`() {
-        runBlocking(testMainScope.coroutineContext) {
+        runBlocking {
             val provider1 = mockProvider()
             val provider2 = mockProvider()
 
-            val awesomeBar = BrowserAwesomeBar(context)
+            val awesomeBar = BrowserAwesomeBar(testContext)
             assertEquals(PROVIDER_MAX_SUGGESTIONS * INITIAL_NUMBER_OF_PROVIDERS, awesomeBar.uniqueSuggestionIds.maxSize())
             awesomeBar.addProviders(provider1, provider2)
             assertEquals((PROVIDER_MAX_SUGGESTIONS * 2) * 2, awesomeBar.uniqueSuggestionIds.maxSize())
@@ -193,7 +198,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `BrowserAwesomeBar stops jobs when getting detached`() {
-        runBlocking(testMainScope.coroutineContext) {
+        runBlocking {
             var providerTriggered = false
             var providerCancelled = false
 
@@ -214,19 +219,14 @@ class BrowserAwesomeBarTest {
                 }
             }
 
-            val awesomeBar = BrowserAwesomeBar(context)
-            awesomeBar.scope = testMainScope
+            val awesomeBar = BrowserAwesomeBar(testContext)
             awesomeBar.addProviders(blockingProvider)
 
             awesomeBar.onInputChanged("Hello!")
-
-            // Give the jobs some time to start
-            delay(50)
+            awaitFor { providerTriggered }
 
             shadowOf(awesomeBar).callOnDetachedFromWindow()
-
-            // Wait for all jobs to have received the stop signal
-            awesomeBar.job!!.join()
+            awesomeBar.awaitForAllJobsToFinish()
 
             assertTrue(providerTriggered)
             assertTrue(providerCancelled)
@@ -235,7 +235,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `BrowserAwesomeBar cancels previous jobs if onInputStarted gets called again`() {
-        runBlocking(testMainScope.coroutineContext) {
+        runBlocking {
             var firstProviderCallCancelled = false
             var timesProviderCalled = 0
 
@@ -269,18 +269,15 @@ class BrowserAwesomeBarTest {
                 }
             }
 
-            val awesomeBar = BrowserAwesomeBar(context)
-            awesomeBar.scope = testMainScope
+            val awesomeBar = BrowserAwesomeBar(testContext)
             awesomeBar.addProviders(provider)
 
             awesomeBar.onInputChanged("Hello!")
-
-            // Give the jobs some time to start
-            delay(50)
+            awaitFor { timesProviderCalled > 0 }
 
             awesomeBar.onInputChanged("World!")
-
-            awesomeBar.job!!.join()
+            awaitFor { firstProviderCallCancelled }
+            awesomeBar.awaitForAllJobsToFinish()
 
             assertTrue(firstProviderCallCancelled)
             assertEquals(2, timesProviderCalled)
@@ -289,11 +286,10 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `BrowserAwesomeBar will use optional transformer before passing suggestions to adapter`() {
-        runBlocking(testMainScope.coroutineContext) {
-            val awesomeBar = BrowserAwesomeBar(context)
-            awesomeBar.scope = testMainScope
+        runBlocking {
+            val awesomeBar = BrowserAwesomeBar(testContext)
 
-            val inputSuggestions = listOf(AwesomeBar.Suggestion(mock(), title = "Tetst"))
+            val inputSuggestions = listOf(AwesomeBar.Suggestion(mock(), title = "Test"))
             val provider = object : AwesomeBar.SuggestionProvider {
                 override val id: String = UUID.randomUUID().toString()
 
@@ -323,12 +319,7 @@ class BrowserAwesomeBarTest {
             awesomeBar.transformer = transformer
 
             awesomeBar.onInputChanged("Hello!")
-
-            // Give the jobs some time to start
-            delay(50)
-
-            awesomeBar.job!!.start()
-            awesomeBar.job!!.join()
+            awesomeBar.awaitForAllJobsToFinish()
 
             verify(transformer).transform(provider, inputSuggestions)
             verify(adapter).addSuggestions(provider, transformedSuggestions)
@@ -339,7 +330,7 @@ class BrowserAwesomeBarTest {
     fun `onStopListener is accessible internally`() {
         var stopped = false
 
-        val awesomeBar = BrowserAwesomeBar(context)
+        val awesomeBar = BrowserAwesomeBar(testContext)
         awesomeBar.setOnStopListener {
             stopped = true
         }
@@ -351,7 +342,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `throw exception if provider returns duplicate IDs`() {
-        val awesomeBar = BrowserAwesomeBar(context)
+        val awesomeBar = BrowserAwesomeBar(testContext)
 
         val suggestions = listOf(
             AwesomeBar.Suggestion(id = "dupe", score = 0, provider = BrokenProvider()),
@@ -368,7 +359,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `get unique suggestion id`() {
-        val awesomeBar = BrowserAwesomeBar(context)
+        val awesomeBar = BrowserAwesomeBar(testContext)
 
         val suggestion1 = AwesomeBar.Suggestion(id = "http://mozilla.org/1", score = 0, provider = mock())
         assertEquals(1, awesomeBar.getUniqueSuggestionId(suggestion1))
@@ -384,7 +375,7 @@ class BrowserAwesomeBarTest {
 
     @Test
     fun `unique suggestion id cache has sufficient space`() {
-        val awesomeBar = BrowserAwesomeBar(context)
+        val awesomeBar = BrowserAwesomeBar(testContext)
         val provider = mockProvider()
 
         awesomeBar.addProviders(provider)
@@ -396,6 +387,37 @@ class BrowserAwesomeBarTest {
         awesomeBar.getUniqueSuggestionId(AwesomeBar.Suggestion(id = "21", score = 0, provider = provider))
 
         assertEquals(1, awesomeBar.getUniqueSuggestionId(AwesomeBar.Suggestion(id = "1", score = 0, provider = provider)))
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun `exception thrown when duplicate provider added`() {
+        val awesomeBar = BrowserAwesomeBar(testContext)
+        val provider1 = mockProvider()
+        `when`(provider1.id).thenReturn("1")
+
+        val provider2 = mockProvider()
+        `when`(provider2.id).thenReturn("2")
+
+        val provider3 = mockProvider()
+        `when`(provider3.id).thenReturn("1")
+
+        awesomeBar.addProviders(provider1, provider2, provider3)
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun `exception thrown when provider added that already exists`() {
+        val awesomeBar = BrowserAwesomeBar(testContext)
+        val provider1 = mockProvider()
+        `when`(provider1.id).thenReturn("1")
+
+        val provider2 = mockProvider()
+        `when`(provider2.id).thenReturn("2")
+
+        val provider3 = mockProvider()
+        `when`(provider3.id).thenReturn("1")
+
+        awesomeBar.addProviders(provider1)
+        awesomeBar.addProviders(provider2, provider3)
     }
 
     private fun mockProvider(): AwesomeBar.SuggestionProvider = spy(object : AwesomeBar.SuggestionProvider {
@@ -414,3 +436,34 @@ class BrowserAwesomeBarTest {
         }
     }
 }
+
+/**
+ * Block current thread while root job in [BrowserAwesomeBar] is not completed
+ *
+ * TODO Remove this workaround when `BrowserAwesomeBar` will allow inject custom `jobDispatcher`
+ */
+private fun BrowserAwesomeBar.awaitForAllJobsToFinish() {
+    job?.let { job ->
+        runBlocking { job.join() }
+    }
+}
+
+/**
+ * Block current thread for some amount of time (but not more than [timeoutMs]) for [predicate] to become true.
+ *
+ * @param timeoutMs max time to wait and then just continue executing
+ * @param predicate waiting for this to be true
+ *
+ * TODO Remove this workaround when `BrowserAwesomeBar` will allow inject custom `jobDispatcher`
+ */
+private fun awaitFor(timeoutMs: Long = DEFAULT_AWAIT_TIMEOUT, predicate: () -> Boolean) {
+    var executionTime = 0L
+
+    while (!predicate() && executionTime < timeoutMs) {
+        runBlocking { delay(DEFAULT_AWAIT_DELAY) }
+        executionTime += DEFAULT_AWAIT_DELAY
+    }
+}
+
+private const val DEFAULT_AWAIT_TIMEOUT = 1000L
+private const val DEFAULT_AWAIT_DELAY = 10L

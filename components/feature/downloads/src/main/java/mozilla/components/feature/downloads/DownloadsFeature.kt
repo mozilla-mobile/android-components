@@ -8,6 +8,8 @@ import android.Manifest.permission.INTERNET
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.fragment.app.FragmentManager
 import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.SelectionAwareSessionObserver
@@ -43,10 +45,11 @@ class DownloadsFeature(
     var onNeedToRequestPermissions: OnNeedToRequestPermissions = { },
     var onDownloadCompleted: OnDownloadCompleted = { _, _ -> },
     private val downloadManager: DownloadManager = DownloadManager(applicationContext, onDownloadCompleted),
-    private val sessionManager: SessionManager,
+    sessionManager: SessionManager,
     private val sessionId: String? = null,
     private val fragmentManager: FragmentManager? = null,
-    private var dialog: DownloadDialogFragment = SimpleDownloadDialogFragment.newInstance()
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal var dialog: DownloadDialogFragment = SimpleDownloadDialogFragment.newInstance()
 ) : SelectionAwareSessionObserver(sessionManager), LifecycleAwareFeature {
 
     /**
@@ -125,10 +128,11 @@ class DownloadsFeature(
     private fun reAttachOnStartDownloadListener(previousDialog: DownloadDialogFragment?) {
         previousDialog?.apply {
             this@DownloadsFeature.dialog = this
-            val selectedSession = sessionManager.selectedSession
-            selectedSession?.download?.consume {
-                onDownload(selectedSession, it)
-                false
+            activeSession?.let { session ->
+                session.download.consume {
+                    onDownload(session, it)
+                    false
+                }
             }
         }
     }

@@ -15,12 +15,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.transform.SuggestionTransformer
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.support.ktx.android.content.res.pxToDp
+import java.lang.IllegalStateException
 import java.util.concurrent.Executors
 
 private const val PROVIDER_QUERY_THREADS = 3
@@ -68,7 +69,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     var transformer: SuggestionTransformer? = null
 
     init {
-        layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
+        layoutManager = LinearLayoutManager(context, VERTICAL, false)
         adapter = suggestionsAdapter
 
         val attr = context.obtainStyledAttributes(attrs, R.styleable.BrowserAwesomeBar, defStyleAttr, 0)
@@ -85,7 +86,16 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     @Synchronized
     override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
-        this.providers.addAll(providers)
+        providers.forEach { provider ->
+            val existingProvider = this.providers.find { it.id == provider.id }
+            existingProvider?.let {
+                throw IllegalStateException("Failed to add provider " +
+                        "${provider.id} of type ${provider::class.java.name}. " +
+                        "Provider with the same ID already exists: ${it::class.java.name}")
+            }
+            this.providers.add(provider)
+        }
+
         this.resizeUniqueSuggestionIdCache(this.providers.size)
     }
 
@@ -114,19 +124,23 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     @Synchronized
     override fun onInputStarted() {
-        providers.forEach { provider -> provider.onInputStarted() }
+        queryProvidersForSuggestions { onInputStarted() }
     }
 
     @Synchronized
     override fun onInputChanged(text: String) {
-        job?.cancel()
+        queryProvidersForSuggestions { onInputChanged(text) }
+    }
 
-        suggestionsAdapter.optionallyClearSuggestions()
+    private fun queryProvidersForSuggestions(
+        block: suspend AwesomeBar.SuggestionProvider.() -> List<AwesomeBar.Suggestion>
+    ) {
+        job?.cancel()
 
         job = scope.launch {
             providers.forEach { provider ->
                 launch {
-                    val suggestions = async(jobDispatcher) { provider.onInputChanged(text) }.await()
+                    val suggestions = withContext(jobDispatcher) { provider.block() }
                     val processedSuggestions = processProviderSuggestions(suggestions)
                     suggestionsAdapter.addSuggestions(
                         provider,
@@ -135,6 +149,8 @@ class BrowserAwesomeBar @JvmOverloads constructor(
                 }
             }
         }
+
+        suggestionsAdapter.optionallyClearSuggestions()
     }
 
     internal fun processProviderSuggestions(suggestions: List<AwesomeBar.Suggestion>): List<AwesomeBar.Suggestion> {

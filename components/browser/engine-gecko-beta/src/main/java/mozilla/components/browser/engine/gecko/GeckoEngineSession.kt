@@ -5,13 +5,12 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
-import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import mozilla.components.browser.engine.gecko.media.GeckoMediaDelegate
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
 import mozilla.components.browser.errorpages.ErrorType
@@ -28,7 +27,6 @@ import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
 import mozilla.components.support.utils.DownloadUtils
-import mozilla.components.support.utils.ThreadUtils
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
@@ -37,12 +35,12 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.WebRequestError
-import java.lang.IllegalStateException
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Gecko-based EngineSession implementation.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class GeckoEngineSession(
     private val runtime: GeckoRuntime,
     private val privateMode: Boolean = false,
@@ -59,6 +57,8 @@ class GeckoEngineSession(
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
     internal var job: Job = Job()
+    private var lastSessionState: GeckoSession.SessionState? = null
+    private var stateBeforeCrash: GeckoSession.SessionState? = null
 
     /**
      * See [EngineSession.settings]
@@ -69,6 +69,9 @@ class GeckoEngineSession(
         override var userAgentString: String?
             get() = geckoSession.settings.userAgentOverride
             set(value) { geckoSession.settings.userAgentOverride = value }
+        override var suspendMediaWhenInactive: Boolean
+            get() = geckoSession.settings.suspendMediaWhenInactive
+            set(value) { geckoSession.settings.suspendMediaWhenInactive = value }
     }
 
     private var initialLoad = true
@@ -127,28 +130,9 @@ class GeckoEngineSession(
 
     /**
      * See [EngineSession.saveState]
-     *
-     * See https://bugzilla.mozilla.org/show_bug.cgi?id=1441810 for
-     * discussion on sync vs. async, where a decision was made that
-     * callers should provide synchronous wrappers, if needed. In case we're
-     * asking for the state when persisting, a separate (independent) thread
-     * is used so we're not blocking anything else. In case of calling this
-     * method from onPause or similar, we also want a synchronous response.
      */
-    override fun saveState(): EngineSessionState = runBlocking {
-        val state = CompletableDeferred<GeckoEngineSessionState>()
-
-        ThreadUtils.postToBackgroundThread {
-            geckoSession.saveState().then({ sessionState ->
-                state.complete(GeckoEngineSessionState(sessionState))
-                GeckoResult<Void>()
-            }, { throwable ->
-                state.completeExceptionally(throwable)
-                GeckoResult<Void>()
-            })
-        }
-
-        state.await()
+    override fun saveState(): EngineSessionState {
+        return GeckoEngineSessionState(lastSessionState)
     }
 
     /**
@@ -192,27 +176,29 @@ class GeckoEngineSession(
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
         val currentMode = geckoSession.settings.userAgentMode
+        val currentViewPortMode = geckoSession.settings.viewportMode
+
         val newMode = if (enable) {
             GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
         } else {
             GeckoSessionSettings.USER_AGENT_MODE_MOBILE
         }
 
-        if (newMode != currentMode) {
+        val newViewportMode = if (enable) {
+            GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+        } else {
+            GeckoSessionSettings.VIEWPORT_MODE_MOBILE
+        }
+
+        if (newMode != currentMode || newViewportMode != currentViewPortMode) {
             geckoSession.settings.userAgentMode = newMode
+            geckoSession.settings.viewportMode = newViewportMode
             notifyObservers { onDesktopModeChange(enable) }
         }
 
         if (reload) {
             geckoSession.reload()
         }
-    }
-
-    /**
-     * See [EngineSession.clearData]
-     */
-    override fun clearData() {
-        // API not available yet.
     }
 
     /**
@@ -259,17 +245,28 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.recoverFromCrash]
+     */
+    @Synchronized
+    override fun recoverFromCrash(): Boolean {
+        val state = stateBeforeCrash
+
+        return if (state != null) {
+            geckoSession.restoreState(state)
+            stateBeforeCrash = null
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
      * See [EngineSession.close].
      */
     override fun close() {
         super.close()
         job.cancel()
         geckoSession.close()
-    }
-
-    override fun recoverFromCrash(): Boolean {
-        // No-op: Functionality requires GeckoView 68.0
-        return false
     }
 
     /**
@@ -311,7 +308,19 @@ class GeckoEngineSession(
                     is InterceptionResponse.Url -> loadUrl(url)
                 }
             }
-            return GeckoResult.fromValue(if (response != null) AllowOrDeny.DENY else AllowOrDeny.ALLOW)
+
+            return if (response != null) {
+                GeckoResult.fromValue(AllowOrDeny.DENY)
+            } else {
+                notifyObservers {
+                    // Unlike the name LoadRequest.isRedirect may imply this flag is not about http redirects. The flag
+                    // is "true if and only if the request was triggered by user interaction."
+                    // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1545170
+                    onLoadRequest(triggeredByRedirect = request.isRedirect, triggeredByWebContent = true)
+                }
+
+                GeckoResult.fromValue(AllowOrDeny.ALLOW)
+            }
         }
 
         override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) {
@@ -375,12 +384,14 @@ class GeckoEngineSession(
         }
 
         override fun onPageStop(session: GeckoSession, success: Boolean) {
-            if (success) {
-                notifyObservers {
-                    onProgress(PROGRESS_STOP)
-                    onLoadingStateChange(false)
-                }
+            notifyObservers {
+                onProgress(PROGRESS_STOP)
+                onLoadingStateChange(false)
             }
+        }
+
+        override fun onSessionStateChange(session: GeckoSession, sessionState: GeckoSession.SessionState) {
+            lastSessionState = sessionState
         }
     }
 
@@ -468,8 +479,12 @@ class GeckoEngineSession(
         }
 
         override fun onCrash(session: GeckoSession) {
+            stateBeforeCrash = lastSessionState
+
             geckoSession.close()
             createGeckoSession()
+
+            notifyObservers { onCrashStateChange(crashed = true) }
         }
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
@@ -592,12 +607,9 @@ class GeckoEngineSession(
         defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }
-        defaultSettings?.testingModeEnabled?.let {
-            geckoSession.settings.fullAccessibilityTree = it
-        }
-        defaultSettings?.userAgentString?.let {
-            geckoSession.settings.userAgentOverride = it
-        }
+        defaultSettings?.testingModeEnabled?.let { geckoSession.settings.fullAccessibilityTree = it }
+        defaultSettings?.userAgentString?.let { geckoSession.settings.userAgentOverride = it }
+        defaultSettings?.suspendMediaWhenInactive?.let { geckoSession.settings.suspendMediaWhenInactive = it }
 
         geckoSession.open(runtime)
 
@@ -608,6 +620,7 @@ class GeckoEngineSession(
         geckoSession.permissionDelegate = createPermissionDelegate()
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
         geckoSession.historyDelegate = createHistoryDelegate()
+        geckoSession.mediaDelegate = GeckoMediaDelegate(this)
     }
 
     companion object {
@@ -620,7 +633,7 @@ class GeckoEngineSession(
          * Provides an ErrorType corresponding to the error code provided.
          */
         @Suppress("ComplexMethod")
-        internal fun geckoErrorToErrorType(@WebRequestError.Error errorCode: Int) =
+        internal fun geckoErrorToErrorType(errorCode: Int) =
             when (errorCode) {
                 WebRequestError.ERROR_UNKNOWN -> ErrorType.UNKNOWN
                 WebRequestError.ERROR_SECURITY_SSL -> ErrorType.ERROR_SECURITY_SSL

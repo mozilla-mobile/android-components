@@ -14,8 +14,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.GleanMetrics.GleanInternalMetrics
+import mozilla.components.service.glean.GleanMetrics.Pings
 import mozilla.components.service.glean.config.Configuration
-import mozilla.components.service.glean.firstrun.FileFirstRunDetector
 import mozilla.components.service.glean.private.DatetimeMetricType
 import mozilla.components.service.glean.private.EventMetricType
 import mozilla.components.service.glean.private.Lifetime
@@ -30,10 +30,7 @@ import mozilla.components.service.glean.scheduler.PingUploadWorker
 import mozilla.components.service.glean.storages.StorageEngineManager
 import mozilla.components.service.glean.utils.getLanguageFromLocale
 import mozilla.components.service.glean.utils.getLocaleTag
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -44,12 +41,15 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyBoolean
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.robolectric.RobolectricTestRunner
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
+import java.lang.AssertionError
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
@@ -66,11 +66,6 @@ class GleanTest {
             ApplicationProvider.getApplicationContext())
 
         resetGlean()
-    }
-
-    @After
-    fun resetGlobalState() {
-        Glean.setUploadEnabled(true)
     }
 
     @Test
@@ -126,12 +121,7 @@ class GleanTest {
 
     @Test
     fun `test sending of background pings`() {
-        val server = MockWebServer()
-
-        // It's important to note here that we expect to receive two pings back, the baseline and
-        // the events ping so we need to enqueue a response back for EACH of them.
-        server.enqueue(MockResponse().setBody("OK"))
-        server.enqueue(MockResponse().setBody("OK"))
+        val server = getMockWebServer()
 
         val click = EventMetricType<NoExtraKeys>(
             disabled = false,
@@ -411,12 +401,6 @@ class GleanTest {
         assertFalse(GleanInternalMetrics.clientId.testHasValue())
         assertFalse(GleanInternalMetrics.firstRunDate.testHasValue())
 
-        // Set this to be a non-first start with missing clientId/firstRunDate.
-        val gleanDataDir =
-            File(ApplicationProvider.getApplicationContext<Context>().applicationInfo.dataDir, Glean.GLEAN_DATA_DIR)
-        val firstRunDetector = FileFirstRunDetector(gleanDataDir)
-        firstRunDetector.createFirstRunFile()
-
         // This should copy the values to their new locations
         Glean.initialized = false
         Glean.initialize(ApplicationProvider.getApplicationContext())
@@ -468,8 +452,7 @@ class GleanTest {
         // This test ensures that "custom-ping-1" contains "metric.a" with a value of "SomeTestValue"
         // when the ping is collected.
 
-        val server = MockWebServer()
-        server.enqueue(MockResponse().setBody("OK"))
+        val server = getMockWebServer()
 
         val pingName = "custom_ping_1"
         val ping = PingType(
@@ -520,5 +503,126 @@ class GleanTest {
         val pingStringMetrics = pingMetricsObject.getJSONObject("string")!!
         assertEquals(1, pingStringMetrics.length())
         assertEquals(testValue, pingStringMetrics.get("telemetry.string_metric"))
+    }
+
+    @Test
+    fun `Basic metrics should be cleared when disabling uploading`() {
+        val stringMetric = StringMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.Ping,
+            name = "string_metric",
+            sendInPings = listOf("default")
+        )
+
+        stringMetric.set("TEST VALUE")
+        assertTrue(stringMetric.testHasValue())
+
+        Glean.setUploadEnabled(false)
+        assertFalse(stringMetric.testHasValue())
+        stringMetric.set("TEST VALUE")
+        assertFalse(stringMetric.testHasValue())
+
+        Glean.setUploadEnabled(true)
+        assertFalse(stringMetric.testHasValue())
+        stringMetric.set("TEST VALUE")
+        assertTrue(stringMetric.testHasValue())
+    }
+
+    @Test
+    fun `Core metrics should be cleared and restored when disabling and enabling uploading`() {
+        assertTrue(GleanInternalMetrics.os.testHasValue())
+
+        // Call this a couple of times to make sure it moves to a non-zero value
+        Glean.pingMaker.getPingSeq("custom")
+        assertTrue(Glean.pingMaker.getPingSeq("custom") > 0)
+
+        Glean.setUploadEnabled(false)
+        assertFalse(GleanInternalMetrics.os.testHasValue())
+        assertEquals(0, Glean.pingMaker.getPingSeq("custom"))
+
+        Glean.setUploadEnabled(true)
+        assertTrue(GleanInternalMetrics.os.testHasValue())
+    }
+
+    @Test
+    fun `firstRunDate is managed correctly when disabling and enabling metrics`() {
+        val originalFirstRunDate = GleanInternalMetrics.firstRunDate.testGetValue()
+
+        Glean.setUploadEnabled(false)
+        assertEquals(originalFirstRunDate, GleanInternalMetrics.firstRunDate.testGetValue())
+
+        Glean.setUploadEnabled(true)
+        assertEquals(originalFirstRunDate, GleanInternalMetrics.firstRunDate.testGetValue())
+    }
+
+    @Test
+    fun `disabling upload clears pending pings`() {
+        val stringMetric = StringMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.Ping,
+            name = "string_metric",
+            sendInPings = listOf("default")
+        )
+
+        stringMetric.set("TEST VALUE")
+
+        Pings.baseline.send()
+        assertEquals(1, Glean.pingStorageEngine.testGetNumPendingPings())
+
+        Glean.setUploadEnabled(false)
+        assertEquals(0, Glean.pingStorageEngine.testGetNumPendingPings())
+
+        Glean.setUploadEnabled(true)
+        assertEquals(0, Glean.pingStorageEngine.testGetNumPendingPings())
+    }
+
+    fun `clientId is managed correctly when disabling and enabling metrics`() {
+        val originalClientId = GleanInternalMetrics.clientId.testGetValue()
+        assertNotEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
+
+        Glean.setUploadEnabled(false)
+        assertEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
+
+        Glean.setUploadEnabled(true)
+        assertNotEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
+        assertNotEquals(originalClientId, GleanInternalMetrics.clientId.testGetValue())
+    }
+
+    @Test
+    fun `clientId is set to known id when setting disabled from a cold start`() {
+        // Recreate "cold start" values
+        Glean.initialized = false
+        Glean.uploadEnabled = true
+
+        Glean.setUploadEnabled(false)
+        Glean.initialize(ApplicationProvider.getApplicationContext())
+
+        assertEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
+    }
+
+    @Test
+    fun `clientId is set to random id when setting enabled from a cold start`() {
+        // Recreate "cold start" values
+        Glean.initialized = false
+        Glean.uploadEnabled = true
+
+        Glean.setUploadEnabled(true)
+        Glean.initialize(ApplicationProvider.getApplicationContext())
+
+        assertNotEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
+    }
+
+    @Test
+    fun `calling setUploadEnabled is a no-op`() {
+        val gleanMock = mock(GleanInternalAPI::class.java)
+        val context: Context = ApplicationProvider.getApplicationContext()
+
+        gleanMock.initialize(context)
+        gleanMock.setUploadEnabled(true)
+
+        `when`(gleanMock.onChangeUploadEnabled(anyBoolean())).thenThrow(AssertionError::class.java)
+        gleanMock.setUploadEnabled(true)
     }
 }

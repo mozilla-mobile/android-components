@@ -6,11 +6,10 @@ package mozilla.components.feature.tab.collections
 
 import android.content.Context
 import android.util.AttributeSet
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.paging.PagedList
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.DefaultSettings
@@ -19,24 +18,33 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
 import mozilla.components.feature.tab.collections.db.TabCollectionDatabase
+import mozilla.components.feature.tab.collections.db.TabEntity
+import mozilla.components.support.android.test.awaitValue
+import mozilla.components.support.ktx.java.io.truncateDirectory
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class TabCollectionStorageTest {
+    private lateinit var context: Context
     private lateinit var sessionManager: SessionManager
     private lateinit var storage: TabCollectionStorage
     private lateinit var executor: ExecutorService
+
+    @get:Rule
+    var instantTaskExecutorRule = InstantTaskExecutorRule()
 
     @Before
     fun setUp() {
         executor = Executors.newSingleThreadExecutor()
 
-        val context: Context = ApplicationProvider.getApplicationContext()
+        context = ApplicationProvider.getApplicationContext()
         val database = Room.inMemoryDatabaseBuilder(context, TabCollectionDatabase::class.java).build()
 
         val engine = FakeEngine()
@@ -48,6 +56,8 @@ class TabCollectionStorageTest {
 
     @After
     fun tearDown() {
+        TabEntity.getStateDirectory(context).truncateDirectory()
+
         executor.shutdown()
     }
 
@@ -158,10 +168,127 @@ class TabCollectionStorageTest {
         }
     }
 
-    private fun getAllCollections(): List<TabCollection> {
-        // Not sure exactly why; but without delaying here `getAllCollections` may not see the latest state.
-        runBlocking { delay(500) }
+    @Test
+    @Suppress("ComplexMethod")
+    fun testGettingCollectionsWithLimit() {
+        storage.createCollection(
+            "Articles", listOf(
+                Session("https://www.mozilla.org").apply { title = "Mozilla" }
+            )
+        )
+        storage.createCollection(
+            "Recipes", listOf(
+                Session("https://www.firefox.com").apply { title = "Firefox" }
+            )
+        )
+        storage.createCollection(
+            "Books", listOf(
+                Session("https://www.youtube.com").apply { title = "YouTube" },
+                Session("https://www.amazon.com").apply { title = "Amazon" }
+            )
+        )
+        storage.createCollection(
+            "News", listOf(
+                Session("https://www.google.com").apply { title = "Google" },
+                Session("https://www.facebook.com").apply { title = "Facebook" }
+            )
+        )
+        storage.createCollection(
+            "Blogs", listOf(
+                Session("https://www.wikipedia.org").apply { title = "Wikipedia" }
+            )
+        )
 
+        val collections = storage.getCollections(limit = 4)
+            .awaitValue()
+
+        assertNotNull(collections!!)
+        assertEquals(4, collections.size)
+
+        with(collections[0]) {
+            assertEquals("Blogs", title)
+            assertEquals(1, tabs.size)
+            assertEquals("https://www.wikipedia.org", tabs[0].url)
+            assertEquals("Wikipedia", tabs[0].title)
+        }
+
+        with(collections[1]) {
+            assertEquals("News", title)
+            assertEquals(2, tabs.size)
+            assertEquals("https://www.google.com", tabs[0].url)
+            assertEquals("Google", tabs[0].title)
+            assertEquals("https://www.facebook.com", tabs[1].url)
+            assertEquals("Facebook", tabs[1].title)
+        }
+
+        with(collections[2]) {
+            assertEquals("Books", title)
+            assertEquals(2, tabs.size)
+            assertEquals("https://www.youtube.com", tabs[0].url)
+            assertEquals("YouTube", tabs[0].title)
+            assertEquals("https://www.amazon.com", tabs[1].url)
+            assertEquals("Amazon", tabs[1].title)
+        }
+
+        with(collections[3]) {
+            assertEquals("Recipes", title)
+            assertEquals(1, tabs.size)
+
+            assertEquals("https://www.firefox.com", tabs[0].url)
+            assertEquals("Firefox", tabs[0].title)
+        }
+    }
+
+    @Test
+    fun testGettingTabCollectionCount() {
+        assertEquals(0, storage.getTabCollectionsCount())
+
+        storage.createCollection(
+            "Articles", listOf(
+                Session("https://www.mozilla.org").apply { title = "Mozilla" }
+            )
+        )
+        storage.createCollection(
+            "Recipes", listOf(
+                Session("https://www.firefox.com").apply { title = "Firefox" }
+            )
+        )
+
+        assertEquals(2, storage.getTabCollectionsCount())
+
+        val collections = storage.getCollections(limit = 2)
+            .awaitValue()
+        assertNotNull(collections!!)
+        assertEquals(2, collections.size)
+
+        storage.removeCollection(collections[0])
+
+        assertEquals(1, storage.getTabCollectionsCount())
+    }
+
+    @Test
+    fun testRemovingAllCollections() {
+        storage.createCollection(
+            "Articles", listOf(
+                Session("https://www.mozilla.org").apply { title = "Mozilla" }
+            )
+        )
+        storage.createCollection(
+            "Recipes", listOf(
+                Session("https://www.firefox.com").apply { title = "Firefox" }
+            )
+        )
+
+        assertEquals(2, storage.getTabCollectionsCount())
+        assertEquals(2, TabEntity.getStateDirectory(context).listFiles().size)
+
+        storage.removeAllCollections()
+
+        assertEquals(0, storage.getTabCollectionsCount())
+        assertEquals(0, TabEntity.getStateDirectory(context).listFiles().size)
+    }
+
+    private fun getAllCollections(): List<TabCollection> {
         val dataSource = storage.getCollectionsPaged()
             .create()
 

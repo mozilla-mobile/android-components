@@ -17,15 +17,16 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.DefaultSettings
+import mozilla.components.concept.engine.Engine.BrowsingData
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.test.mock
-import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -36,9 +37,11 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
 import java.lang.reflect.Modifier
@@ -352,10 +355,11 @@ class SystemEngineSessionTest {
         verify(webViewSettings).savePassword = false
         verify(webViewSettings).saveFormData = false
         verify(webViewSettings).builtInZoomControls = true
+        verify(webViewSettings).displayZoomControls = false
     }
 
     @Test
-    fun defaultSettings() {
+    fun withProvidedDefaultSettings() {
         val defaultSettings = DefaultSettings(
                 javascriptEnabled = false,
                 domStorageEnabled = false,
@@ -364,24 +368,25 @@ class SystemEngineSessionTest {
                 userAgentString = "userAgent",
                 mediaPlaybackRequiresUserGesture = false,
                 javaScriptCanOpenWindowsAutomatically = true,
-                displayZoomControls = false,
+                displayZoomControls = true,
                 loadWithOverviewMode = true,
                 supportMultipleWindows = true)
         val engineSession = spy(SystemEngineSession(getApplicationContext(), defaultSettings))
+
         val webView = mock(WebView::class.java)
         `when`(webView.context).thenReturn(getApplicationContext())
-        engineSession.webView = webView
 
         val webViewSettings = mock(WebSettings::class.java)
         `when`(webView.settings).thenReturn(webViewSettings)
 
-        engineSession.initSettings()
+        engineSession.webView = webView
+
         verify(webViewSettings).domStorageEnabled = false
         verify(webViewSettings).javaScriptEnabled = false
         verify(webViewSettings).userAgentString = "userAgent"
         verify(webViewSettings).mediaPlaybackRequiresUserGesture = false
         verify(webViewSettings).javaScriptCanOpenWindowsAutomatically = true
-        verify(webViewSettings).displayZoomControls = false
+        verify(webViewSettings).displayZoomControls = true
         verify(webViewSettings).loadWithOverviewMode = true
         verify(webViewSettings).setSupportMultipleWindows(true)
         verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.all())
@@ -458,7 +463,7 @@ class SystemEngineSessionTest {
 
         engineSession.webView.webViewClient.shouldInterceptRequest(engineSession.webView, request)
 
-        verify(observer).onLoadRequest(true)
+        verify(observer).onLoadRequest(true, true)
 
         val redirect: WebResourceRequest = mock()
         doReturn(true).`when`(redirect).isForMainFrame
@@ -467,7 +472,7 @@ class SystemEngineSessionTest {
 
         engineSession.webView.webViewClient.shouldInterceptRequest(engineSession.webView, redirect)
 
-        verify(observer).onLoadRequest(false)
+        verify(observer).onLoadRequest(false, true)
     }
 
     @Test
@@ -497,7 +502,7 @@ class SystemEngineSessionTest {
             engineSession.webView,
             request)
 
-        verify(observer, never()).onLoadRequest(anyBoolean())
+        verify(observer, never()).onLoadRequest(anyBoolean(), anyBoolean())
     }
 
     @Test
@@ -580,47 +585,47 @@ class SystemEngineSessionTest {
 
     @Test
     fun webViewErrorMappingToErrorType() {
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_UNKNOWN_HOST,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_HOST_LOOKUP)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_CONNECTION_REFUSED,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_CONNECT)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_CONNECTION_REFUSED,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_IO)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_NET_TIMEOUT,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_TIMEOUT)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_REDIRECT_LOOP,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_REDIRECT_LOOP)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_UNKNOWN_PROTOCOL,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_UNSUPPORTED_SCHEME)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_SECURITY_SSL,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_FAILED_SSL_HANDSHAKE)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_MALFORMED_URI,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_BAD_URL)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.UNKNOWN,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_TOO_MANY_REQUESTS)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.ERROR_FILE_NOT_FOUND,
             SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_FILE_NOT_FOUND)
         )
-        Assert.assertEquals(
+        assertEquals(
             ErrorType.UNKNOWN,
             SystemEngineSession.webViewErrorToErrorType(-500)
         )
@@ -721,6 +726,7 @@ class SystemEngineSessionTest {
         `when`(webView.context).thenReturn(context)
         engineSession.webView = webView
 
+        // clear all data by default
         engineSession.clearData()
         verify(webView).clearFormData()
         verify(webView).clearHistory()
@@ -729,6 +735,105 @@ class SystemEngineSessionTest {
         verify(webView).clearCache(true)
         verify(webStorage).deleteAllData()
         verify(webViewDatabase).clearHttpAuthUsernamePassword()
+
+        // clear storages
+        engineSession.clearData(BrowsingData.select(BrowsingData.DOM_STORAGES))
+        verify(webStorage, times(2)).deleteAllData()
+        verify(webView, times(1)).clearCache(true)
+        verify(webView, times(1)).clearFormData()
+        verify(webView, times(1)).clearMatches()
+        verify(webView, times(1)).clearHistory()
+        verify(webView, times(1)).clearSslPreferences()
+        verify(webViewDatabase, times(1)).clearHttpAuthUsernamePassword()
+
+        // clear auth info
+        engineSession.clearData(BrowsingData.select(BrowsingData.AUTH_SESSIONS))
+        verify(webViewDatabase, times(2)).clearHttpAuthUsernamePassword()
+        verify(webStorage, times(2)).deleteAllData()
+        verify(webView, times(1)).clearCache(true)
+        verify(webView, times(1)).clearFormData()
+        verify(webView, times(1)).clearMatches()
+        verify(webView, times(1)).clearHistory()
+        verify(webView, times(1)).clearSslPreferences()
+
+        // clear cookies
+        engineSession.clearData(BrowsingData.select(BrowsingData.COOKIES))
+        verify(webViewDatabase, times(2)).clearHttpAuthUsernamePassword()
+        verify(webStorage, times(2)).deleteAllData()
+        verify(webView, times(1)).clearCache(true)
+        verify(webView, times(1)).clearFormData()
+        verify(webView, times(1)).clearMatches()
+        verify(webView, times(1)).clearHistory()
+        verify(webView, times(1)).clearSslPreferences()
+
+        // clear image cache
+        engineSession.clearData(BrowsingData.select(BrowsingData.IMAGE_CACHE))
+        verify(webView, times(2)).clearCache(true)
+        verify(webViewDatabase, times(2)).clearHttpAuthUsernamePassword()
+        verify(webStorage, times(2)).deleteAllData()
+        verify(webView, times(1)).clearFormData()
+        verify(webView, times(1)).clearMatches()
+        verify(webView, times(1)).clearHistory()
+        verify(webView, times(1)).clearSslPreferences()
+
+        // clear network cache
+        engineSession.clearData(BrowsingData.select(BrowsingData.NETWORK_CACHE))
+        verify(webView, times(3)).clearCache(true)
+        verify(webViewDatabase, times(2)).clearHttpAuthUsernamePassword()
+        verify(webStorage, times(2)).deleteAllData()
+        verify(webView, times(1)).clearFormData()
+        verify(webView, times(1)).clearMatches()
+        verify(webView, times(1)).clearHistory()
+        verify(webView, times(1)).clearSslPreferences()
+
+        // clear all caches
+        engineSession.clearData(BrowsingData.allCaches())
+        verify(webView, times(4)).clearCache(true)
+        verify(webViewDatabase, times(2)).clearHttpAuthUsernamePassword()
+        verify(webStorage, times(2)).deleteAllData()
+        verify(webView, times(1)).clearFormData()
+        verify(webView, times(1)).clearMatches()
+        verify(webView, times(1)).clearHistory()
+        verify(webView, times(1)).clearSslPreferences()
+    }
+
+    @Test
+    fun clearDataInvokesSuccessCallback() {
+        val engineSession = spy(SystemEngineSession(getApplicationContext()))
+        val webView = mock(WebView::class.java)
+        val webStorage: WebStorage = mock()
+        val webViewDatabase: WebViewDatabase = mock()
+        val context: Context = getApplicationContext()
+        var onSuccessCalled = false
+
+        doReturn(webStorage).`when`(engineSession).webStorage()
+        doReturn(webViewDatabase).`when`(engineSession).webViewDatabase(context)
+        `when`(webView.context).thenReturn(context)
+        engineSession.webView = webView
+
+        engineSession.clearData(onSuccess = { onSuccessCalled = true })
+        assertTrue(onSuccessCalled)
+    }
+
+    @Test
+    fun clearDataInvokesErrorCallback() {
+        val engineSession = spy(SystemEngineSession(getApplicationContext()))
+        val webView = mock(WebView::class.java)
+        val webViewDatabase: WebViewDatabase = mock()
+        val context: Context = getApplicationContext()
+        var onErrorCalled = false
+
+        val exception = RuntimeException()
+        doThrow(exception).`when`(engineSession).webStorage()
+        doReturn(webViewDatabase).`when`(engineSession).webViewDatabase(context)
+        `when`(webView.context).thenReturn(context)
+        engineSession.webView = webView
+
+        engineSession.clearData(onError = {
+            onErrorCalled = true
+            assertSame(it, exception)
+        })
+        assertTrue(onErrorCalled)
     }
 
     @Test

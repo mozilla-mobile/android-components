@@ -26,13 +26,19 @@ class ClipboardSuggestionProvider(
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icon: Bitmap? = null,
     private val title: String? = null,
-    private val icons: BrowserIcons? = null
+    private val icons: BrowserIcons? = null,
+    private val requireEmptyText: Boolean = true
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
 
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-    override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+    override fun onInputStarted(): List<AwesomeBar.Suggestion> = createClipboardSuggestion()
+
+    override suspend fun onInputChanged(text: String) =
+            if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) createClipboardSuggestion() else emptyList()
+
+    private fun createClipboardSuggestion(): List<AwesomeBar.Suggestion> {
         val url = getTextFromClipboard(clipboardManager)?.let {
             findUrl(it)
         } ?: return emptyList()

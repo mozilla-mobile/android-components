@@ -30,7 +30,6 @@ import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.SyncStatusObserver
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.Config
-import mozilla.components.service.fxa.FxaException
 import mozilla.components.feature.sync.BackgroundSyncManager
 import mozilla.components.feature.sync.GlobalSyncableStoreProvider
 import mozilla.components.service.fxa.manager.DeviceTuple
@@ -93,11 +92,10 @@ class MainActivity :
 
         findViewById<View>(R.id.buttonSignIn).setOnClickListener {
             launch {
-                val authUrl = try {
-                    accountManager.beginAuthenticationAsync().await()
-                } catch (error: FxaException) {
+                val authUrl = accountManager.beginAuthenticationAsync().await()
+                if (authUrl == null) {
                     val txtView: TextView = findViewById(R.id.fxaStatusView)
-                    txtView.text = getString(R.string.account_error, error.toString())
+                    txtView.text = getString(R.string.account_error, null)
                     return@launch
                 }
                 openWebView(authUrl)
@@ -246,6 +244,15 @@ class MainActivity :
                 findViewById<View>(R.id.buttonSync).visibility = View.INVISIBLE
                 findViewById<View>(R.id.refreshDevice).visibility = View.INVISIBLE
                 findViewById<View>(R.id.sendTab).visibility = View.INVISIBLE
+            }
+        }
+
+        override fun onAuthenticationProblems() {
+            launch {
+                val txtView: TextView = findViewById(R.id.fxaStatusView)
+                txtView.text = getString(R.string.need_reauth)
+
+                findViewById<View>(R.id.buttonSignIn).visibility = View.VISIBLE
             }
         }
 

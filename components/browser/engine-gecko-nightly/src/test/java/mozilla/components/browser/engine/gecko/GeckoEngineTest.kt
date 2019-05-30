@@ -8,21 +8,27 @@ import android.app.Activity
 import android.content.Context
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.concept.engine.DefaultSettings
+import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.UnsupportedSettingException
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyBoolean
+import org.mockito.ArgumentMatchers.anyFloat
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
@@ -30,6 +36,7 @@ import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
+import org.mozilla.geckoview.StorageController
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import java.io.IOException
@@ -68,6 +75,8 @@ class GeckoEngineTest {
         `when`(runtimeSettings.javaScriptEnabled).thenReturn(true)
         `when`(runtimeSettings.webFontsEnabled).thenReturn(true)
         `when`(runtimeSettings.automaticFontSizeAdjustment).thenReturn(true)
+        `when`(runtimeSettings.fontInflationEnabled).thenReturn(true)
+        `when`(runtimeSettings.fontSizeFactor).thenReturn(1.0F)
         `when`(runtimeSettings.contentBlocking).thenReturn(contentBlockingSettings)
         `when`(runtimeSettings.preferredColorScheme).thenReturn(GeckoRuntimeSettings.COLOR_SCHEME_SYSTEM)
         `when`(runtimeSettings.autoplayDefault).thenReturn(GeckoRuntimeSettings.AUTOPLAY_DEFAULT_ALLOWED)
@@ -85,6 +94,18 @@ class GeckoEngineTest {
         assertTrue(engine.settings.automaticFontSizeAdjustment)
         engine.settings.automaticFontSizeAdjustment = false
         verify(runtimeSettings).automaticFontSizeAdjustment = false
+
+        assertTrue(engine.settings.fontInflationEnabled!!)
+        engine.settings.fontInflationEnabled = null
+        verify(runtimeSettings, never()).fontInflationEnabled = anyBoolean()
+        engine.settings.fontInflationEnabled = false
+        verify(runtimeSettings).fontInflationEnabled = false
+
+        assertEquals(1.0F, engine.settings.fontSizeFactor)
+        engine.settings.fontSizeFactor = null
+        verify(runtimeSettings, never()).fontSizeFactor = anyFloat()
+        engine.settings.fontSizeFactor = 2.0F
+        verify(runtimeSettings).fontSizeFactor = 2.0F
 
         assertFalse(engine.settings.remoteDebuggingEnabled)
         engine.settings.remoteDebuggingEnabled = true
@@ -121,7 +142,11 @@ class GeckoEngineTest {
                 TrackingProtectionPolicy.CONTENT,
                 TrackingProtectionPolicy.TEST,
                 TrackingProtectionPolicy.CRYPTOMINING,
-                TrackingProtectionPolicy.FINGERPRINTING
+                TrackingProtectionPolicy.FINGERPRINTING,
+                TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL,
+                TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED,
+                TrackingProtectionPolicy.SAFE_BROWSING_MALWARE,
+                TrackingProtectionPolicy.SAFE_BROWSING_PHISHING
         ).categories, contentBlockingSettings.categories)
         assertEquals(defaultSettings.trackingProtectionPolicy, TrackingProtectionPolicy.all())
 
@@ -146,6 +171,7 @@ class GeckoEngineTest {
         `when`(runtime.settings).thenReturn(runtimeSettings)
         `when`(runtimeSettings.contentBlocking).thenReturn(contentBlockingSettings)
         `when`(runtimeSettings.autoplayDefault).thenReturn(GeckoRuntimeSettings.AUTOPLAY_DEFAULT_BLOCKED)
+        `when`(runtimeSettings.fontInflationEnabled).thenReturn(true)
 
         val engine = GeckoEngine(context,
             DefaultSettings(
@@ -153,6 +179,8 @@ class GeckoEngineTest {
                 javascriptEnabled = false,
                 webFontsEnabled = false,
                 automaticFontSizeAdjustment = false,
+                fontInflationEnabled = false,
+                fontSizeFactor = 2.0F,
                 remoteDebuggingEnabled = true,
                 testingModeEnabled = true,
                 userAgentString = "test-ua",
@@ -164,6 +192,8 @@ class GeckoEngineTest {
         verify(runtimeSettings).javaScriptEnabled = false
         verify(runtimeSettings).webFontsEnabled = false
         verify(runtimeSettings).automaticFontSizeAdjustment = false
+        verify(runtimeSettings).fontInflationEnabled = false
+        verify(runtimeSettings).fontSizeFactor = 2.0F
         verify(runtimeSettings).remoteDebuggingEnabled = true
         verify(runtimeSettings).autoplayDefault = GeckoRuntimeSettings.AUTOPLAY_DEFAULT_BLOCKED
 
@@ -174,7 +204,11 @@ class GeckoEngineTest {
             TrackingProtectionPolicy.CONTENT,
             TrackingProtectionPolicy.TEST,
             TrackingProtectionPolicy.CRYPTOMINING,
-            TrackingProtectionPolicy.FINGERPRINTING
+            TrackingProtectionPolicy.FINGERPRINTING,
+            TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL,
+            TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED,
+            TrackingProtectionPolicy.SAFE_BROWSING_MALWARE,
+            TrackingProtectionPolicy.SAFE_BROWSING_PHISHING
         ).categories, contentBlockingSettings.categories)
         assertTrue(engine.settings.testingModeEnabled)
         assertEquals("test-ua", engine.settings.userAgentString)
@@ -279,5 +313,91 @@ class GeckoEngineTest {
         assertNotNull(captor.value)
 
         captor.value.onShutdown()
+    }
+
+    @Test
+    fun `clear browsing data for all hosts`() {
+        val runtime: GeckoRuntime = mock()
+        val storageController: StorageController = mock()
+
+        var onSuccessCalled = false
+
+        var result = GeckoResult<Void>()
+        `when`(runtime.storageController).thenReturn(storageController)
+        `when`(storageController.clearData(eq(Engine.BrowsingData.all().types.toLong()))).thenReturn(result)
+        result.complete(null)
+
+        val engine = GeckoEngine(context, runtime = runtime)
+        engine.clearData(data = Engine.BrowsingData.all(), onSuccess = { onSuccessCalled = true })
+        assertTrue(onSuccessCalled)
+    }
+
+    @Test
+    fun `error handler invoked when clearing browsing data for all hosts fails`() {
+        val runtime: GeckoRuntime = mock()
+        val storageController: StorageController = mock()
+
+        var throwable: Throwable? = null
+        var onErrorCalled = false
+
+        val exception = IOException()
+        var result = GeckoResult<Void>()
+        `when`(runtime.storageController).thenReturn(storageController)
+        `when`(storageController.clearData(eq(Engine.BrowsingData.all().types.toLong()))).thenReturn(result)
+        result.completeExceptionally(exception)
+
+        val engine = GeckoEngine(context, runtime = runtime)
+        engine.clearData(data = Engine.BrowsingData.all(), onError = {
+            onErrorCalled = true
+            throwable = it
+        })
+        assertTrue(onErrorCalled)
+        assertSame(exception, throwable)
+    }
+
+    @Test
+    fun `clear browsing data for specified host`() {
+        val runtime: GeckoRuntime = mock()
+        val storageController: StorageController = mock()
+
+        var onSuccessCalled = false
+
+        var result = GeckoResult<Void>()
+        `when`(runtime.storageController).thenReturn(storageController)
+        `when`(storageController.clearDataFromHost(
+                eq("mozilla.org"),
+                eq(Engine.BrowsingData.all().types.toLong()))
+        ).thenReturn(result)
+        result.complete(null)
+
+        val engine = GeckoEngine(context, runtime = runtime)
+        engine.clearData(data = Engine.BrowsingData.all(), host = "mozilla.org", onSuccess = { onSuccessCalled = true })
+        assertTrue(onSuccessCalled)
+    }
+
+    @Test
+    fun `error handler invoked when clearing browsing data for specified hosts fails`() {
+        val runtime: GeckoRuntime = mock()
+        val storageController: StorageController = mock()
+
+        var throwable: Throwable? = null
+        var onErrorCalled = false
+
+        val exception = IOException()
+        var result = GeckoResult<Void>()
+        `when`(runtime.storageController).thenReturn(storageController)
+        `when`(storageController.clearDataFromHost(
+                eq("mozilla.org"),
+                eq(Engine.BrowsingData.all().types.toLong()))
+        ).thenReturn(result)
+        result.completeExceptionally(exception)
+
+        val engine = GeckoEngine(context, runtime = runtime)
+        engine.clearData(data = Engine.BrowsingData.all(), host = "mozilla.org", onError = {
+            onErrorCalled = true
+            throwable = it
+        })
+        assertTrue(onErrorCalled)
+        assertSame(exception, throwable)
     }
 }

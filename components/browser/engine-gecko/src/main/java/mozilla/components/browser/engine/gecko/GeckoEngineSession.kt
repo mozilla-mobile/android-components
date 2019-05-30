@@ -30,6 +30,7 @@ import mozilla.components.support.ktx.kotlin.isPhone
 import mozilla.components.support.utils.DownloadUtils
 import mozilla.components.support.utils.ThreadUtils
 import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
@@ -41,7 +42,7 @@ import java.lang.IllegalStateException
 /**
  * Gecko-based EngineSession implementation.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class GeckoEngineSession(
     private val runtime: GeckoRuntime,
     private val privateMode: Boolean = false,
@@ -54,6 +55,7 @@ class GeckoEngineSession(
     },
     private val context: CoroutineContext = Dispatchers.IO
 ) : CoroutineScope, EngineSession() {
+
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
     internal var job: Job = Job()
@@ -190,27 +192,29 @@ class GeckoEngineSession(
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
         val currentMode = geckoSession.settings.userAgentMode
+        val currentViewPortMode = geckoSession.settings.viewportMode
+
         val newMode = if (enable) {
             GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
         } else {
             GeckoSessionSettings.USER_AGENT_MODE_MOBILE
         }
 
-        if (newMode != currentMode) {
+        val newViewportMode = if (enable) {
+            GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
+        } else {
+            GeckoSessionSettings.VIEWPORT_MODE_MOBILE
+        }
+
+        if (newMode != currentMode || newViewportMode != currentViewPortMode) {
             geckoSession.settings.userAgentMode = newMode
+            geckoSession.settings.viewportMode = newViewportMode
             notifyObservers { onDesktopModeChange(enable) }
         }
 
         if (reload) {
             geckoSession.reload()
         }
-    }
-
-    /**
-     * See [EngineSession.clearData]
-     */
-    override fun clearData() {
-        // API not available yet.
     }
 
     /**
@@ -354,7 +358,7 @@ class GeckoEngineSession(
             securityInfo: GeckoSession.ProgressDelegate.SecurityInformation
         ) {
             // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
-            if (initialLoad && securityInfo?.origin?.startsWith(MOZ_NULL_PRINCIPAL) == true) {
+            if (initialLoad && securityInfo.origin?.startsWith(MOZ_NULL_PRINCIPAL) == true) {
                 return
             }
 
@@ -373,11 +377,9 @@ class GeckoEngineSession(
         }
 
         override fun onPageStop(session: GeckoSession, success: Boolean) {
-            if (success) {
-                notifyObservers {
-                    onProgress(PROGRESS_STOP)
-                    onLoadingStateChange(false)
-                }
+            notifyObservers {
+                onProgress(PROGRESS_STOP)
+                onLoadingStateChange(false)
             }
         }
     }
@@ -504,9 +506,10 @@ class GeckoEngineSession(
         override fun onFocusRequest(session: GeckoSession) = Unit
     }
 
-    private fun createTrackingProtectionDelegate() = GeckoSession.TrackingProtectionDelegate {
-        session, uri, _ ->
-            session?.let { uri?.let { notifyObservers { onTrackerBlocked(it) } } }
+    private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {
+        override fun onContentBlocked(session: GeckoSession, event: ContentBlocking.BlockEvent) {
+            notifyObservers { onTrackerBlocked(event.uri) }
+        }
     }
 
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
@@ -528,7 +531,7 @@ class GeckoEngineSession(
             callback: GeckoSession.PermissionDelegate.MediaCallback
         ) {
             val request = GeckoPermissionRequest.Media(
-                    uri ?: "",
+                    uri,
                     video?.toList() ?: emptyList(),
                     audio?.toList() ?: emptyList(),
                     callback)
@@ -601,7 +604,7 @@ class GeckoEngineSession(
         geckoSession.navigationDelegate = createNavigationDelegate()
         geckoSession.progressDelegate = createProgressDelegate()
         geckoSession.contentDelegate = createContentDelegate()
-        geckoSession.trackingProtectionDelegate = createTrackingProtectionDelegate()
+        geckoSession.contentBlockingDelegate = createContentBlockingDelegate()
         geckoSession.permissionDelegate = createPermissionDelegate()
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
         geckoSession.historyDelegate = createHistoryDelegate()
@@ -610,7 +613,6 @@ class GeckoEngineSession(
     companion object {
         internal const val PROGRESS_START = 25
         internal const val PROGRESS_STOP = 100
-        internal const val GECKO_STATE_KEY = "GECKO_STATE"
         internal const val MOZ_NULL_PRINCIPAL = "moz-nullprincipal:"
         internal const val ABOUT_BLANK = "about:blank"
 

@@ -10,6 +10,7 @@ object Versions {
     const val junit = "4.12"
     const val robolectric = "4.1"
     const val mockito = "2.24.5"
+    const val maven_ant_tasks = "2.1.3"
 
     const val mockwebserver = "3.10.0"
 
@@ -22,8 +23,9 @@ object Versions {
     const val okhttp = "3.13.1"
     const val zxing = "3.3.0"
     const val jna = "5.2.0"
+    const val disklrucache = "2.0.2"
 
-    const val mozilla_appservices = "0.27.1"
+    const val mozilla_appservices = "0.29.0"
     const val servo = "0.0.1.20181017.aa95911"
 
     const val material = "1.0.0"
@@ -43,6 +45,12 @@ object Versions {
         const val paging = "2.0.0"
         const val lifecycle = "2.0.0"
         const val work = "2.0.0"
+        const val arch_core_testing = "2.0.0"
+    }
+
+    object Firebase {
+        const val core = "16.0.1"
+        const val messaging = "17.3.4"
     }
 }
 
@@ -59,9 +67,11 @@ object Dependencies {
     const val testing_mockito = "org.mockito:mockito-core:${Versions.mockito}"
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.mockwebserver}"
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
+    const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"
 
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.AndroidX.annotation}"
     const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.AndroidX.appcompat}"
+    const val androidx_arch_core_testing = "androidx.arch.core:core-testing:${Versions.AndroidX.arch_core_testing}"
     const val androidx_browser = "androidx.browser:browser:${Versions.AndroidX.browser}"
     const val androidx_cardview = "androidx.cardview:cardview:${Versions.AndroidX.cardview}"
     const val androidx_constraintlayout = "androidx.constraintlayout:constraintlayout:${Versions.AndroidX.constraintlayout}"
@@ -97,6 +107,7 @@ object Dependencies {
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
     const val mozilla_places_forUnitTests = "org.mozilla.appservices:places-forUnitTests:${Versions.mozilla_appservices}"
+    const val mozilla_push = "org.mozilla.appservices:push:${Versions.mozilla_appservices}"
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
     const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
     const val mozilla_servo_x86 = "org.mozilla.servoview:servoview-x86:${Versions.servo}"
@@ -106,4 +117,8 @@ object Dependencies {
     const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
     const val thirdparty_zxing = "com.google.zxing:core:${Versions.zxing}"
     const val thirdparty_jna = "net.java.dev.jna:jna:${Versions.jna}@jar"
+    const val thirdparty_disklrucache = "com.jakewharton:disklrucache:${Versions.disklrucache}"
+
+    const val firebase_core = "com.google.firebase:firebase-core:${Versions.Firebase.core}"
+    const val firebase_messaging = "com.google.firebase:firebase-messaging:${Versions.Firebase.messaging}"
 }

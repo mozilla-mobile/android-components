@@ -103,6 +103,29 @@ class GeckoEngine(
         }
     }
 
+    /**
+     * See [Engine.clearData].
+     */
+    override fun clearData(
+        data: Engine.BrowsingData,
+        host: String?,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit
+    ) {
+        val flags = data.types.toLong()
+        if (host != null) {
+            runtime.storageController.clearDataFromHost(host, flags)
+        } else {
+            runtime.storageController.clearData(flags)
+        }.then({
+            onSuccess()
+            GeckoResult<Void>()
+        }, {
+            throwable -> onError(throwable)
+            GeckoResult<Void>()
+        })
+    }
+
     override fun name(): String = "Gecko"
 
     /**
@@ -170,6 +193,33 @@ class GeckoEngine(
         override var suspendMediaWhenInactive: Boolean
             get() = defaultSettings?.suspendMediaWhenInactive ?: false
             set(value) { defaultSettings?.suspendMediaWhenInactive = value }
+
+        override var fontInflationEnabled: Boolean?
+            get() = runtime.settings.fontInflationEnabled
+            set(value) {
+                // automaticFontSizeAdjustment is set to true by default, which
+                // will cause an exception if fontInflationEnabled is set
+                // (to either true or false). We therefore need to be able to
+                // set our built-in default value to null so that the exception
+                // is only thrown if an app is configured incorrectly but not
+                // if it uses default values.
+                value?.let {
+                    runtime.settings.fontInflationEnabled = it
+                }
+            }
+
+        override var fontSizeFactor: Float?
+            get() = runtime.settings.fontSizeFactor
+            set(value) {
+                // automaticFontSizeAdjustment is set to true by default, which
+                // will cause an exception if fontSizeFactor is set as well.
+                // We therefore need to be able to set our built-in default value
+                // to null so that the exception is only thrown if an app is
+                // configured incorrectly but not if it uses default values.
+                value?.let {
+                    runtime.settings.fontSizeFactor = it
+                }
+            }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -183,6 +233,8 @@ class GeckoEngine(
             this.preferredColorScheme = it.preferredColorScheme
             this.allowAutoplayMedia = it.allowAutoplayMedia
             this.suspendMediaWhenInactive = it.suspendMediaWhenInactive
+            this.fontInflationEnabled = it.fontInflationEnabled
+            this.fontSizeFactor = it.fontSizeFactor
         }
     }
 }

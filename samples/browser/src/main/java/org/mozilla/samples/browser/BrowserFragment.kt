@@ -11,6 +11,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import kotlinx.android.synthetic.main.fragment_browser.view.*
+import mozilla.components.browser.session.SelectionAwareSessionObserver
+import mozilla.components.browser.session.Session
+import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.awesomebar.AwesomeBarFeature
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
@@ -20,6 +23,7 @@ import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
+import mozilla.components.feature.session.SwipeRefreshFeature
 import mozilla.components.feature.session.ThumbnailsFeature
 import mozilla.components.feature.session.WindowFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
@@ -44,6 +48,8 @@ class BrowserFragment : Fragment(), BackHandler {
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val thumbnailsFeature = ViewBoundFeatureWrapper<ThumbnailsFeature>()
     private val readerViewFeature = ViewBoundFeatureWrapper<ReaderViewIntegration>()
+    private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
+    private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
 
     @Suppress("LongMethod")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -71,6 +77,25 @@ class BrowserFragment : Fragment(), BackHandler {
                 sessionId),
             owner = this,
             view = layout)
+
+        swipeRefreshFeature.set(
+            feature = SwipeRefreshFeature(
+                components.sessionManager,
+                components.sessionUseCases.reload,
+                layout.swipeToRefresh),
+            owner = this,
+            view = layout)
+
+        val menuUpdater = object : SelectionAwareSessionObserver(components.sessionManager) {
+            override fun onLoadingStateChanged(session: Session, loading: Boolean) {
+                layout.toolbar.invalidateActions()
+            }
+
+            override fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) {
+                layout.toolbar.invalidateActions()
+            }
+        }
+        menuUpdater.observeIdOrSelected(sessionId)
 
         ToolbarAutocompleteFeature(layout.toolbar).apply {
             addHistoryStorageProvider(components.historyStorage)
@@ -181,6 +206,17 @@ class BrowserFragment : Fragment(), BackHandler {
             view = layout
         )
 
+        appLinksFeature.set(
+            feature = AppLinksFeature(
+                context = requireContext(),
+                sessionManager = components.sessionManager,
+                sessionId = sessionId,
+                fragmentManager = requireFragmentManager()
+            ),
+            owner = this,
+            view = layout
+        )
+
         return layout
     }
 
@@ -232,6 +268,6 @@ class BrowserFragment : Fragment(), BackHandler {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        promptFeature.withFeature { onActivityResult(requestCode, resultCode, data) }
+        promptFeature.withFeature { it.onActivityResult(requestCode, resultCode, data) }
     }
 }

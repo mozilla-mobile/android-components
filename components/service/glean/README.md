@@ -109,6 +109,16 @@ object parameter of the `Glean.initialize` method. For example:
 Glean.initialize(applicationContext, Configuration(channel = "beta"))
 ```
 
+### Enabling and disabling metrics
+
+`Glean.setUploadEnabled()` should be called in response to the user enabling or
+disabling telemetry.  This method should also be called at least once prior
+to calling `Glean.initialize()`.
+
+When going from enabled to disabled, all pending events, metrics and pings are
+cleared, except for `first_run_date`. When re-enabling, core Glean metrics will
+be recomputed at that time.
+
 ### Adding new metrics
 
 All metrics that your application collects must be defined in a `metrics.yaml`
@@ -180,13 +190,19 @@ adb shell am start -n org.mozilla.samples.glean/mozilla.components.service.glean
   --es tagPings test-metrics-ping
 ```
 
-### Important GleanDebugActivity note!
+### Important GleanDebugActivity notes!
 
-Options that are set using the adb flags are not immediately reset and will persist until the application is closed or manually reset.
+- Options that are set using the adb flags are not immediately reset and will persist until the application is closed or manually reset.
+
+- There are a couple different ways in which to send pings through the GleanDebugActivity.
+    1. You can use the `GleanDebugActivity` in order to tag pings and trigger them manually using the UI.  This should always produce a ping with all required fields.
+    2. You can use the `GleanDebugActivity` to tag _and_ send pings.  This has the side effect of potentially sending a ping which does not include all fields because `sendPings` triggers pings to be sent before certain application behaviors can occur which would record that information.  For example, `duration` is not calculated or included in a baseline ping sent with `sendPing` because it forces the ping to be sent before the `duration` metric has been recorded.
 
 ## Data documentation
 
 Further documentation for pings that Glean can send out of the box is available [here](docs/pings/pings.md).
+
+There is also documentation about [internal behavior of parts of Glean](docs/internal.md).
 
 ## Contact
 

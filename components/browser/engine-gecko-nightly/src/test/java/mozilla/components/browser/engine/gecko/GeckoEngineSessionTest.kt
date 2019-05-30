@@ -16,6 +16,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.UnsupportedSettingException
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.storage.VisitType
@@ -25,6 +26,7 @@ import mozilla.components.support.test.expectException
 import mozilla.components.support.test.mock
 import mozilla.components.support.utils.ThreadUtils
 import mozilla.components.test.ReflectionUtils
+import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -157,6 +159,16 @@ class GeckoEngineSessionTest {
         assertEquals(GeckoEngineSession.PROGRESS_STOP, observedProgress)
         assertEquals(false, observedLoadingState)
 
+        // Stop will update the loading state and progress observers even when
+        // we haven't completed been successful.
+        progressDelegate.value.onPageStart(mock(), "http://mozilla.org")
+        assertEquals(GeckoEngineSession.PROGRESS_START, observedProgress)
+        assertEquals(true, observedLoadingState)
+
+        progressDelegate.value.onPageStop(mock(), false)
+        assertEquals(GeckoEngineSession.PROGRESS_STOP, observedProgress)
+        assertEquals(false, observedLoadingState)
+
         val securityInfo = mock(GeckoSession.ProgressDelegate.SecurityInformation::class.java)
         progressDelegate.value.onSecurityChange(mock(), securityInfo)
         assertTrue(observedSecurityChange)
@@ -220,6 +232,29 @@ class GeckoEngineSessionTest {
             contentType = "image/png",
             userAgent = null,
             cookie = null)
+    }
+
+    @Test
+    fun contentDelegateNotifiesObserverAboutWebAppManifest() {
+        val engineSession = GeckoEngineSession(mock(GeckoRuntime::class.java),
+            geckoSessionProvider = geckoSessionProvider)
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        val json = JSONObject().apply {
+            put("name", "Minimal")
+            put("start_url", "/")
+        }
+        val manifest = WebAppManifest(
+            name = "Minimal",
+            startUrl = "/"
+        )
+
+        captureDelegates()
+        contentDelegate.value.onWebAppManifest(mock(), json)
+
+        verify(observer).onWebAppManifestLoaded(manifest)
     }
 
     @Test
@@ -863,8 +898,14 @@ class GeckoEngineSessionTest {
         assertEquals(TrackingProtectionPolicy.TEST, ContentBlocking.AT_TEST)
         assertEquals(TrackingProtectionPolicy.CRYPTOMINING, ContentBlocking.AT_CRYPTOMINING)
         assertEquals(TrackingProtectionPolicy.FINGERPRINTING, ContentBlocking.AT_FINGERPRINTING)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_ALL, ContentBlocking.SB_ALL)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL, ContentBlocking.SB_HARMFUL)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_MALWARE, ContentBlocking.SB_MALWARE)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_PHISHING, ContentBlocking.SB_PHISHING)
+        assertEquals(TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED, ContentBlocking.SB_UNWANTED)
 
-        assertEquals(TrackingProtectionPolicy.all().categories, ContentBlocking.AT_STRICT)
+        assertEquals(TrackingProtectionPolicy.all().categories, ContentBlocking.CB_STRICT)
+        assertEquals(TrackingProtectionPolicy.recommended().categories, ContentBlocking.CB_DEFAULT)
     }
 
     @Test
@@ -1354,27 +1395,29 @@ class GeckoEngineSessionTest {
         val runtime = mock(GeckoRuntime::class.java)
         val engineSession = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
 
-        var desktopModeEnabled = false
+        var desktopModeToggled = false
         engineSession.register(object : EngineSession.Observer {
             override fun onDesktopModeChange(enabled: Boolean) {
-                desktopModeEnabled = true
+                desktopModeToggled = true
             }
         })
         engineSession.toggleDesktopMode(true)
-        assertTrue(desktopModeEnabled)
+        assertTrue(desktopModeToggled)
 
-        desktopModeEnabled = false
+        desktopModeToggled = false
         `when`(geckoSession.settings.userAgentMode)
-            .thenReturn(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+                .thenReturn(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP)
+        `when`(geckoSession.settings.viewportMode)
+                .thenReturn(GeckoSessionSettings.VIEWPORT_MODE_DESKTOP)
 
         engineSession.toggleDesktopMode(true)
-        assertFalse(desktopModeEnabled)
+        assertFalse(desktopModeToggled)
 
         engineSession.toggleDesktopMode(true)
-        assertFalse(desktopModeEnabled)
+        assertFalse(desktopModeToggled)
 
         engineSession.toggleDesktopMode(false)
-        assertTrue(desktopModeEnabled)
+        assertTrue(desktopModeToggled)
     }
 
     @Test
@@ -1658,24 +1701,24 @@ class GeckoEngineSessionTest {
 
         captureDelegates()
 
-        var triggeredByUser: Boolean? = null
+        var observedTriggeredByRedirect: Boolean? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onLoadRequest(triggeredByUserInteraction: Boolean) {
-                triggeredByUser = triggeredByUserInteraction
+            override fun onLoadRequest(triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
+                observedTriggeredByRedirect = triggeredByRedirect
             }
         })
 
         navigationDelegate.value.onLoadRequest(
-            mock(), mockLoadRequest("sample:about", triggeredByUserInteraction = true))
+            mock(), mockLoadRequest("sample:about", triggeredByRedirect = true))
 
-        assertNotNull(triggeredByUser)
-        assertTrue(triggeredByUser!!)
+        assertNotNull(observedTriggeredByRedirect)
+        assertTrue(observedTriggeredByRedirect!!)
 
         navigationDelegate.value.onLoadRequest(
-            mock(), mockLoadRequest("sample:about", triggeredByUserInteraction = false))
+            mock(), mockLoadRequest("sample:about", triggeredByRedirect = false))
 
-        assertFalse(triggeredByUser!!)
+        assertFalse(observedTriggeredByRedirect!!)
     }
 
     @Test
@@ -1695,9 +1738,9 @@ class GeckoEngineSessionTest {
         engineSession.register(observer)
 
         navigationDelegate.value.onLoadRequest(
-            mock(), mockLoadRequest("sample:about", triggeredByUserInteraction = true))
+            mock(), mockLoadRequest("sample:about", triggeredByRedirect = true))
 
-        verify(observer, never()).onLoadRequest(anyBoolean())
+        verify(observer, never()).onLoadRequest(anyBoolean(), anyBoolean())
     }
 
     private fun mockGeckoSession(): GeckoSession {
@@ -1710,10 +1753,10 @@ class GeckoEngineSessionTest {
     private fun mockLoadRequest(
         uri: String,
         target: Int = 0,
-        triggeredByUserInteraction: Boolean = false
+        triggeredByRedirect: Boolean = false
     ): GeckoSession.NavigationDelegate.LoadRequest {
         var flags = 0
-        if (triggeredByUserInteraction) {
+        if (triggeredByRedirect) {
             flags = flags or 0x800000
         }
 

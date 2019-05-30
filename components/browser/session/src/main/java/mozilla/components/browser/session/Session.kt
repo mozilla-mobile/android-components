@@ -6,10 +6,13 @@ package mozilla.components.browser.session
 
 import android.graphics.Bitmap
 import mozilla.components.browser.session.engine.EngineSessionHolder
-import mozilla.components.browser.session.manifest.WebAppManifest
+import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.engine.request.isSet
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
@@ -51,6 +54,7 @@ class Session(
         fun onProgress(session: Session, progress: Int) = Unit
         fun onLoadingStateChanged(session: Session, loading: Boolean) = Unit
         fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) = Unit
+        fun onLoadRequest(session: Session, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) = Unit
         fun onSearch(session: Session, searchTerms: String) = Unit
         fun onSecurityChanged(session: Session, securityInfo: SecurityInfo) = Unit
         fun onCustomTabConfigChanged(session: Session, customTabConfig: CustomTabConfig?) = Unit
@@ -74,6 +78,7 @@ class Session(
         fun onIconChanged(session: Session, icon: Bitmap?) = Unit
         fun onReaderableStateUpdated(session: Session, readerable: Boolean) = Unit
         fun onReaderModeChanged(session: Session, enabled: Boolean) = Unit
+        fun onRecordingDevicesChanged(session: Session, devices: List<RecordingDevice>) = Unit
     }
 
     /**
@@ -193,6 +198,19 @@ class Session(
     var searchTerms: String by Delegates.observable("") {
         _, _, new -> notifyObservers {
             onSearch(this@Session, new)
+        }
+    }
+
+    /**
+     * Set when a load request is received, indicating if the user was involved in the interaction.
+     */
+    var loadRequestTriggers: Int by Delegates.observable(0) {
+        _, _, new -> notifyObservers {
+            onLoadRequest(
+                this@Session,
+                new.isSet(LoadRequestOption.REDIRECT),
+                new.isSet(LoadRequestOption.WEB_CONTENT)
+            )
         }
     }
 
@@ -385,6 +403,13 @@ class Session(
      */
     var readerMode: Boolean by Delegates.observable(false) { _, old, new ->
         notifyObservers(old, new) { onReaderModeChanged(this@Session, new) }
+    }
+
+    /**
+     * List of recording devices (e.g. camera or microphone) currently in use by web content.
+     */
+    var recordingDevices: List<RecordingDevice> by Delegates.observable(emptyList()) { _, old, new ->
+        notifyObservers(old, new) { onRecordingDevicesChanged(this@Session, new) }
     }
 
     /**

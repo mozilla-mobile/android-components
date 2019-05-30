@@ -25,6 +25,7 @@ class BrowserMenu internal constructor(
     private val adapter: BrowserMenuAdapter
 ) {
     private var currentPopup: PopupWindow? = null
+    private var menuList: RecyclerView? = null
 
     @SuppressLint("InflateParams")
     fun show(anchor: View, orientation: Orientation = Orientation.DOWN): PopupWindow {
@@ -32,9 +33,10 @@ class BrowserMenu internal constructor(
 
         adapter.menu = this
 
-        val menuList: RecyclerView = view.findViewById(R.id.mozac_browser_menu_recyclerView)
-        menuList.layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false)
-        menuList.adapter = adapter
+        menuList = view.findViewById<RecyclerView>(R.id.mozac_browser_menu_recyclerView).apply {
+            layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false)
+            adapter = this@BrowserMenu.adapter
+        }
 
         return PopupWindow(
                 view,
@@ -62,22 +64,26 @@ class BrowserMenu internal constructor(
         currentPopup?.dismiss()
     }
 
+    fun invalidate() {
+        menuList?.let { adapter.invalidate(it) }
+    }
+
     companion object {
         private const val MENU_ELEVATION_DP = 8
 
         /**
          * Determines the orientation to be used for a menu based on the positioning of the [parent] in the layout.
          */
-        fun determineMenuOrientation(parent: View): BrowserMenu.Orientation {
+        fun determineMenuOrientation(parent: View): Orientation {
             val params = parent.layoutParams
             return if (params is CoordinatorLayout.LayoutParams) {
                 if ((params.gravity and Gravity.BOTTOM) == Gravity.BOTTOM) {
-                    BrowserMenu.Orientation.UP
+                    Orientation.UP
                 } else {
-                    BrowserMenu.Orientation.DOWN
+                    Orientation.DOWN
                 }
             } else {
-                BrowserMenu.Orientation.DOWN
+                Orientation.DOWN
             }
         }
     }

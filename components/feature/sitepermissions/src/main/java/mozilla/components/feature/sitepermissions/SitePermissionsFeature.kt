@@ -55,6 +55,7 @@ internal const val FRAGMENT_TAG = "mozac_feature_sitepermissions_prompt_dialog"
  * @property sitePermissionsRules indicates how permissions should behave per permission category.
  * @property fragmentManager a reference to a [FragmentManager], used to show permissions prompts.
  * @property promptsStyling optional styling for prompts.
+ * @property dialogConfig optional customization for dialog initial state. See [DialogConfig].
  * @property onNeedToRequestPermissions a callback invoked when permissions
  * need to be requested. Once the request is completed, [onPermissionsResult] needs to be invoked.
  **/
@@ -68,6 +69,7 @@ class SitePermissionsFeature(
     var sitePermissionsRules: SitePermissionsRules? = null,
     private val fragmentManager: FragmentManager,
     var promptsStyling: PromptsStyling? = null,
+    private val dialogConfig: DialogConfig? = null,
     private val onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature {
 
@@ -344,7 +346,9 @@ class SitePermissionsFeature(
                 host,
                 R.string.mozac_feature_sitepermissions_camera_and_microphone,
                 R.drawable.mozac_ic_microphone,
-                showDoNotAskAgainCheckBox = true
+                showDoNotAskAgainCheckBox = true,
+                shouldSelectRememberChoice = dialogConfig?.shouldPreselectDoNotAskAgain
+                    ?: DialogConfig.DEFAULT_PRESELECT_DO_NOT_ASK_AGAIN
             )
         }
     }
@@ -362,7 +366,9 @@ class SitePermissionsFeature(
                     host,
                     R.string.mozac_feature_sitepermissions_location_title,
                     R.drawable.mozac_ic_location,
-                    showDoNotAskAgainCheckBox = true
+                    showDoNotAskAgainCheckBox = true,
+                    shouldSelectRememberChoice = dialogConfig?.shouldPreselectDoNotAskAgain
+                        ?: DialogConfig.DEFAULT_PRESELECT_DO_NOT_ASK_AGAIN
                 )
             }
             is ContentNotification -> {
@@ -373,6 +379,7 @@ class SitePermissionsFeature(
                     R.string.mozac_feature_sitepermissions_notification_title,
                     R.drawable.mozac_ic_notification,
                     showDoNotAskAgainCheckBox = false,
+                    shouldSelectRememberChoice = false,
                     isNotificationRequest = true
                 )
             }
@@ -383,7 +390,9 @@ class SitePermissionsFeature(
                     host,
                     R.string.mozac_feature_sitepermissions_microfone_title,
                     R.drawable.mozac_ic_microphone,
-                    showDoNotAskAgainCheckBox = true
+                    showDoNotAskAgainCheckBox = true,
+                    shouldSelectRememberChoice = dialogConfig?.shouldPreselectDoNotAskAgain
+                        ?: DialogConfig.DEFAULT_PRESELECT_DO_NOT_ASK_AGAIN
                 )
             }
             is ContentVideoCamera, is ContentVideoCapture -> {
@@ -393,7 +402,9 @@ class SitePermissionsFeature(
                     host,
                     R.string.mozac_feature_sitepermissions_camera_title,
                     R.drawable.mozac_ic_video,
-                    showDoNotAskAgainCheckBox = true
+                    showDoNotAskAgainCheckBox = true,
+                    shouldSelectRememberChoice = dialogConfig?.shouldPreselectDoNotAskAgain
+                        ?: DialogConfig.DEFAULT_PRESELECT_DO_NOT_ASK_AGAIN
                 )
             }
             else ->
@@ -409,7 +420,8 @@ class SitePermissionsFeature(
         host: String,
         @StringRes titleId: Int,
         @DrawableRes iconId: Int,
-        showDoNotAskAgainCheckBox: Boolean = false,
+        showDoNotAskAgainCheckBox: Boolean,
+        shouldSelectRememberChoice: Boolean,
         isNotificationRequest: Boolean = false
     ): SitePermissionsDialogFragment {
         val title = context.getString(titleId, host)
@@ -420,7 +432,8 @@ class SitePermissionsFeature(
             iconId,
             this,
             showDoNotAskAgainCheckBox,
-            isNotificationRequest = isNotificationRequest
+            isNotificationRequest = isNotificationRequest,
+            shouldSelectDoNotAskAgainCheckBox = shouldSelectRememberChoice
         )
     }
 
@@ -454,7 +467,12 @@ class SitePermissionsFeature(
 
         override fun onContentPermissionRequested(session: Session, permissionRequest: PermissionRequest): Boolean {
             runBlocking {
-                feature.onContentPermissionRequested(session, permissionRequest)
+                if (permissionRequest.permissions.all { it.isSupported() }) {
+                    feature.onContentPermissionRequested(session, permissionRequest)
+                } else {
+                    session.contentPermissionRequest.consume { true }
+                    permissionRequest.reject()
+                }
             }
             return false
         }
@@ -472,6 +490,20 @@ class SitePermissionsFeature(
         @ColorRes
         val positiveButtonTextColor: Int? = null
     )
+
+    /**
+     * Customization options for feature request dialog
+     */
+    data class DialogConfig(
+        /** Use **true** to pre-select "Do not ask again" checkbox. */
+        val shouldPreselectDoNotAskAgain: Boolean = false
+    ) {
+
+        companion object {
+            /** Default values for [DialogConfig.shouldPreselectDoNotAskAgain] */
+            internal const val DEFAULT_PRESELECT_DO_NOT_ASK_AGAIN = false
+        }
+    }
 
     /**
      * Re-attaches a fragment that is still visible but not linked to this feature anymore.
@@ -522,5 +554,15 @@ private fun isPermissionGranted(
         }
         else ->
             throw InvalidParameterException("$permission is not a valid permission.")
+    }
+}
+
+private fun Permission.isSupported(): Boolean {
+    return when (this) {
+        is ContentGeoLocation,
+        is ContentNotification,
+        is ContentAudioCapture, is ContentAudioMicrophone,
+        is ContentVideoCamera, is ContentVideoCapture -> true
+        else -> false
     }
 }

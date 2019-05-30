@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:Suppress("DEPRECATION")
+
 package mozilla.components.ui.progress
 
 import android.view.View
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,14 +15,13 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class AnimatedProgressBarTest {
 
     @Test
     fun setProgress() {
-        val progressBar = AnimatedProgressBar(RuntimeEnvironment.application)
+        val progressBar = AnimatedProgressBar(testContext)
 
         progressBar.progress = -1
         assertEquals(0, progressBar.progress)
@@ -36,7 +38,7 @@ class AnimatedProgressBarTest {
 
     @Test
     fun setVisibility() {
-        val progressBar = spy(AnimatedProgressBar(RuntimeEnvironment.application))
+        val progressBar = spy(AnimatedProgressBar(testContext))
 
         progressBar.visibility = View.GONE
         verify(progressBar, never()).animateClosing()

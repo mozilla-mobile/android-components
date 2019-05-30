@@ -4,17 +4,130 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.54.0-SNAPSHOT  (In Development)
+# 0.55.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.52.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/57?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.54.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/58?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-search**
+  * `SearchEngineManager.load()` is deprecated. Use `SearchEngineManager.loadAsync()` instead.
+
 * **browser-menu**
-  * Added `BrowserMenuHighlightableItem`. Its `highlight` property allows you to set the background and an image that appears on the right.
+  * Fixed a bug where overscroll effects would appear on the overflow menu.
+
+* **browser-session**
+  * Added handler for `onWebAppManifestLoaded` to update `session.webAppManifest`.
+  * Moved `WebAppManifest` to concept-engine.
+
+* **concept-engine**
+  * Added `onWebAppManifestLoaded` to `EngineSession`, called when the engine finds a web app manifest.
+  * Added `WebAppManifest` from browser-session.
+
+* **concept-sync**, **service-accounts**
+  * ⚠️ **This is a breaking behavior change**: API changes to facilitate error handling; new method on AccountObserver interface.
+  * Added `onAuthenticationProblems` observer method, used for indicating that account needs to re-authenticate (e.g. after a password change).
+  * `FxaAccountManager` gained a new method, `accountNeedsReauth`, that could be used for the same purpose.
+  * `DeviceConstellation` methods that returned `Deferred<Unit>` now return `Deferred<Boolean>`, with a success flag.
+  * `OAuthAccount` methods that returned `Deferred` values now have an `Async` suffix in their names.
+  * `OAuthAccount` and `DeviceConstellation` methods that returned `Deferred<T>` (for some T) now return `Deferred<T?>`, where `null` means failure.
+  * `FirefoxAccount`, `FirefoxDeviceConstellation` and `FirefoxDeviceManager` now handle all expected `FxAException`.
+
+* **engine-gecko-nightly**, **engine-system**, **concept-engine**:
+  * Added `EngineView.canScrollVerticallyUp()` for pull to refresh.
+
+* **engine-gecko-nightly**, **engine-gecko-beta**, **concept-engine**
+  * Added engine API to clear browsing data.
+
+  ```kotlin
+  // Clear all browsing data
+  engine.clearData(BrowsingData.all())
+
+  // Clear all caches
+  engine.clearData(BrowsingData.allCaches())
+
+  // Clear cookies only for the provided host
+  engine.clearData(BrowsingData.select(BrowsingData.COOKIES), host = "mozilla.org")
+  ```
+
+* **service-glean**
+  * Disabling telemetry through `setUploadEnabled` now clears all metrics (except first_run_date) immediately.
+
+* **feature-session**
+  * Added `SwipeRefreshFeature` which adds pull to refresh to browsers.
+
+* **feature-tab-collections**
+  * Added option to remove all collections and their tabs: `TabCollectionStorage.removeAllCollections()`.
   
+* **feature-media**
+  * Added `RecordingDevicesNotificationFeature` to show an ongoing notification while recording devices (camera, microphone) are used by web content.
+
+* **concept-push**
+  * 🆕 Added a new component for supporting push notifications.
+
+* **lib-push-firebase**
+  * 🆕 Added a new component for Firebase Cloud Messaging push support.
+  ```kotlin
+  class FirebasePush : AbstractFirebasePushService()
+  ```
+  * In your Manifest you need to make the service visible:
+  ```xml
+  <service android:name=".FirebasePush">
+    <intent-filter>
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
+    </intent-filter>
+  </service>
+  ```
+
+* **feature-push**
+  * 🆕 Added a new component for Autopush messaging support.
+  ```kotlin
+  class Application {
+    override fun onCreate() {
+      PushProcessor.install(services.push)
+    }
+  }
+
+  class Services {
+    val push by lazy {
+      val config = PushConfig(
+        senderId = "my-app",
+        serverHost = "push.services.mozilla.com",
+        serviceType = ServiceType.FCM,
+        protocol = Protocol.HTTPS
+      )
+
+      // You need to use a supported push service (Firebase is one of them).
+      val pushService = FirebasePush()
+
+      AutoPushFeature(context, pushService, config).also { it.initialize() }
+    }
+  }
+
+  class MyActivity {
+    override fun onCreate() {
+      services.push.registerForSubscriptions(object : PushSubscriptionObserver {
+        override fun onSubscriptionAvailable(subscription: AutoPushSubscription) { }
+      })
+
+      services.push.registerForPushMessages(PushType.Services, object: Bus.Observer<PushType, String> {
+        override fun onEvent(type: PushType, message: String) { }
+      })
+    }
+  }
+  ```
+  * Checkout the component documentation for more details.
+
+# 0.54.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.53.0...v0.54.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/57?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.54.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.54.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.54.0/buildSrc/src/main/java/Config.kt)
+
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * **Merge day!**
     * `browser-engine-gecko-release`: GeckoView 67.0
@@ -22,6 +135,12 @@ permalink: /changelog/
     * `browser-engine-gecko-nightly`: GeckoView 69.0
 
 * ⚠️ **Deprecated components**: `feature-session-bundling`, `ui-doorhanger`, `ui-progress` (See blog posting).
+
+* **service-pocket**
+  * Added `PocketEndpointRaw` and `PocketJSONParser` for low-level access.
+
+* **browser-menu**
+  * Added `BrowserMenuHighlightableItem`. Its `highlight` property allows you to set the background and an image that appears on the right.
 
 * **feature-findinpage**
   * Find in Page Bar now displays 0/0 for no matches found with new attr findInPageNoMatchesTextColor
@@ -45,6 +164,30 @@ permalink: /changelog/
   * Fixed an issue where `SuggestionProvider.onInputChanged()` was called before `SuggestionProvider.onInputStarted()`.
   * Added ability for `SuggestionProvider` to return an initial list of suggestions from `onInputStarted()`.
   * Modified `ClipboardSuggestionProvider` to already return a suggestions from `onInputStarted()` if the clipboard contains a URL.
+
+* **feature-app-links**
+  *  🆕 New component: to detect and open links in other non-browser apps.
+  * Use cases to parse intent:// URLs, query the package manager for activities and generate Play store URLs.
+
+* **browser-engine-gecko-nightly**, **concept-engine**:
+  * Added `EngineSession.Observer.onRecordingStateChanged()` to get list of recording devices currently used by web content.
+
+* **support-base**
+  * Added helper for providing unique stable `Int` notification ids based on a `String` tag to avoid id conflicts between components and app code.
+
+  ```kotlin
+  // Get a unique id for the provided tag
+  val id = NotificationIds.getIdForTag(context, "mozac.my.feature")
+
+  // Extension methods for showing and cancelling notifications
+  NotificationManagerCompat
+      .from(context)
+      .notify(context, "mozac.my.feature", notification)
+
+  NotificationManagerCompat
+      .from(context)
+      .cancel(context, "mozac.my.feature")
+  ```
 
 # 0.53.0
 
@@ -216,7 +359,6 @@ permalink: /changelog/
 * **feature-prompts**
   * ⚠️ **This is a breaking API change**:
   * `PromptFeature` constructor adds an optional `sessionId`. This should use the custom tab session id if available.
-
 
 * **browser-session**
   * Added `SessionManager.runWithSessionIdOrSelected(sessionId: String?)` run function block on a session ID. If the session does not exist, then uses the selected session.
@@ -3044,4 +3186,3 @@ _Due to a packaging bug this release is not usable. Please use 0.5.1 instead._
   * Kotlin Standard library 1.2.30
 
 * First release with synchronized version numbers.
-

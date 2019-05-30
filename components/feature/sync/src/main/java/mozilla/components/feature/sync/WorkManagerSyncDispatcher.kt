@@ -19,10 +19,12 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import mozilla.components.concept.sync.AuthException
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncStatusObserver
 import mozilla.components.service.fxa.SharedPrefAccountStorage
+import mozilla.components.service.fxa.manager.authErrorRegistry
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -232,7 +234,17 @@ class WorkManagerSyncWorker(
                     resultBuilder.putBoolean(it.key, true)
                 }
                 is SyncStatus.Error -> {
-                    logger.error("Failed to synchronize store ${it.key}", status.exception)
+                    val exception = status.exception
+                    when (exception) {
+                        // Notify auth error observers that we saw an auth-related error while syncing.
+                        is AuthException -> {
+                            authErrorRegistry.notifyObservers {
+                                onAuthErrorAsync(exception)
+                            }
+                        }
+                    }
+
+                    logger.error("Failed to synchronize store ${it.key}", exception)
                     resultBuilder.putBoolean(it.key, false)
                 }
             }

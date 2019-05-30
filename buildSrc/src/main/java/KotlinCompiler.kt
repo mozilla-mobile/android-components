@@ -13,31 +13,17 @@ object KotlinCompiler {
     @JvmStatic
     val projectsWithWarningsAsErrorsDisabled = setOf(
         "browser-domains",
-        "browser-engine-gecko",
         "browser-engine-servo",
-        "browser-search",
         "browser-storage-sync",
         "feature-accounts",
-        "feature-awesomebar",
         "feature-contextmenu",
-        "feature-customtabs",
         "feature-downloads",
-        "feature-intent",
         "feature-prompts",
         "feature-search",
-        "feature-session",
         "feature-sitepermissions",
         "feature-tabs",
-        "feature-toolbar",
-        "lib-fetch-okhttp",
-        "lib-jexl",
-        "samples-toolbar",
-        "service-experiments",
-        "service-firefox-accounts",
-        "service-fretboard",
         "service-glean",
         "support-test",
-        "tooling-lint",
         "ui-tabcounter"
     )
 }

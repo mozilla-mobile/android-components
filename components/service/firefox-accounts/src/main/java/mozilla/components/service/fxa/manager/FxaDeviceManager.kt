@@ -58,10 +58,13 @@ internal open class PollingDeviceManager(
         getRefreshManager().stopRefresh()
     }
 
-    fun pollAsync(): Deferred<Unit> {
+    fun pollAsync(): Deferred<Boolean> {
         return scope.async {
             logger.debug("poll")
-            processEvents(constellation.pollForEventsAsync().await())
+            constellation.pollForEventsAsync().await()?.let {
+                processEvents(it)
+                true
+            } ?: false
         }
     }
 
@@ -74,10 +77,13 @@ internal open class PollingDeviceManager(
         notifyObservers { onEvents(events) }
     }
 
-    fun refreshDevicesAsync(): Deferred<Unit> = synchronized(this) {
+    fun refreshDevicesAsync(): Deferred<Boolean> = synchronized(this) {
         return scope.async {
             logger.info("Refreshing device list...")
-            val allDevices = constellation.fetchAllDevicesAsync().await()
+
+            // Attempt to fetch devices, or bail out on failure.
+            val allDevices = constellation.fetchAllDevicesAsync().await() ?: return@async false
+
             // Find the current device.
             val currentDevice = allDevices.find { it.isCurrentDevice }
             // Filter out the current devices.
@@ -101,6 +107,7 @@ internal open class PollingDeviceManager(
             }
 
             logger.info("Refreshed device list; saw ${allDevices.size} device(s).")
+            true
         }
     }
 
@@ -156,12 +163,15 @@ internal class WorkManagerDeviceRefreshWorker(
 
     @Suppress("ReturnCount", "ComplexMethod")
     override suspend fun doWork(): Result {
-        logger.debug("Polling for new events via ${DeviceManagerProvider.deviceManager}")
+        logger.info("Polling for new events via ${DeviceManagerProvider.deviceManager}")
 
-        DeviceManagerProvider.deviceManager?.let { deviceManager ->
+        val result = DeviceManagerProvider.deviceManager?.let { deviceManager ->
+            // TODO we may have failed to ensure device capabilities earlier (due to intermittent issues on startup).
             deviceManager.refreshDevicesAsync().await()
             deviceManager.pollAsync().await()
-        }
+        } ?: false
+
+        logger.info("Polling result: $result")
 
         return Result.success()
     }

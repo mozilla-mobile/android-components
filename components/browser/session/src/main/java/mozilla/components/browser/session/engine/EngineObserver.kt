@@ -8,9 +8,13 @@ import android.graphics.Bitmap
 import android.os.Environment
 import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.engine.request.plus
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
@@ -33,16 +37,31 @@ internal class EngineObserver(
 
         session.url = url
 
+        // Meh, GeckoView doesn't notify us about recording devices no longer used when navigating away. As a
+        // workaround we clear them here. But that's not perfect...
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1554778
+        session.recordingDevices = listOf()
+
         session.contentPermissionRequest.consume {
             it.reject()
             true
         }
     }
 
-    override fun onLoadRequest(triggeredByUserInteraction: Boolean) {
-        if (triggeredByUserInteraction) {
+    override fun onLoadRequest(triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
+        if (triggeredByWebContent) {
             session.searchTerms = ""
         }
+        var triggers = LoadRequestOption.NONE.toMask()
+        if (triggeredByRedirect) {
+            triggers += LoadRequestOption.REDIRECT
+        }
+
+        if (triggeredByWebContent) {
+            triggers += LoadRequestOption.WEB_CONTENT
+        }
+
+        session.loadRequestTriggers = triggers
     }
 
     override fun onTitleChange(title: String) {
@@ -152,7 +171,15 @@ internal class EngineObserver(
         media.unregisterObservers()
     }
 
+    override fun onWebAppManifestLoaded(manifest: WebAppManifest) {
+        session.webAppManifest = manifest
+    }
+
     override fun onCrashStateChange(crashed: Boolean) {
         session.crashed = crashed
+    }
+
+    override fun onRecordingStateChanged(devices: List<RecordingDevice>) {
+        session.recordingDevices = devices
     }
 }

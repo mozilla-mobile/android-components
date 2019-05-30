@@ -10,10 +10,13 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session.Source
-import mozilla.components.browser.session.manifest.WebAppManifest
+import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.engine.request.isSet
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
@@ -37,7 +40,6 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
-import java.lang.IllegalArgumentException
 
 class SessionTest {
     @Test
@@ -159,6 +161,20 @@ class SessionTest {
 
         assertEquals("mozilla android", session.searchTerms)
         verify(observer, times(1)).onSearch(eq(session), eq("mozilla android"))
+        verifyNoMoreInteractions(observer)
+    }
+
+    @Test
+    fun `observer is notified when load request is triggered`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        session.loadRequestTriggers = LoadRequestOption.REDIRECT.toMask()
+
+        assertTrue(session.loadRequestTriggers.isSet(LoadRequestOption.REDIRECT))
+        verify(observer, times(1)).onLoadRequest(eq(session), eq(true), eq(false))
         verifyNoMoreInteractions(observer)
     }
 
@@ -610,6 +626,7 @@ class SessionTest {
         defaultObserver.onMediaRemoved(session, emptyList(), mock())
         defaultObserver.onIconChanged(session, mock())
         defaultObserver.onReaderableStateUpdated(session, true)
+        defaultObserver.onRecordingDevicesChanged(session, emptyList())
     }
 
     @Test
@@ -974,5 +991,26 @@ class SessionTest {
                 eq(true))
 
         assertTrue(session.readerMode)
+    }
+
+    @Test
+    fun `observer is notified when recording devices change`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        assertTrue(session.recordingDevices.isEmpty())
+
+        val twoDevices = listOf(
+            RecordingDevice(RecordingDevice.Type.MICROPHONE, RecordingDevice.Status.RECORDING),
+            RecordingDevice(RecordingDevice.Type.CAMERA, RecordingDevice.Status.INACTIVE)
+        )
+        session.recordingDevices = twoDevices
+        verify(observer).onRecordingDevicesChanged(session, twoDevices)
+
+        val oneDevice = listOf(RecordingDevice(RecordingDevice.Type.MICROPHONE, RecordingDevice.Status.RECORDING))
+        session.recordingDevices = oneDevice
+        verify(observer).onRecordingDevicesChanged(session, oneDevice)
     }
 }

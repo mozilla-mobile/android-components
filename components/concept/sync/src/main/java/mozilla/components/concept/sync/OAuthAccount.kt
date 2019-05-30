@@ -10,34 +10,44 @@ import kotlinx.coroutines.Deferred
  * An auth-related exception type, for use with [AuthException].
  */
 enum class AuthExceptionType(val msg: String) {
-    KEY_INFO("Missing key info")
+    KEY_INFO("Missing key info"),
+    NO_TOKEN("Missing access token"),
+    UNAUTHORIZED("Unauthorized")
 }
 
 /**
  * An exception which may happen while obtaining auth information using [OAuthAccount].
  */
-class AuthException(type: AuthExceptionType) : java.lang.Exception(type.msg)
+class AuthException(type: AuthExceptionType, cause: Exception? = null) : Throwable(type.msg, cause)
 
 /**
  * Facilitates testing consumers of FirefoxAccount.
  */
 @SuppressWarnings("TooManyFunctions")
 interface OAuthAccount : AutoCloseable {
-    fun beginOAuthFlow(scopes: Array<String>, wantsKeys: Boolean): Deferred<String>
-    fun beginPairingFlow(pairingUrl: String, scopes: Array<String>): Deferred<String>
-    fun getProfile(ignoreCache: Boolean): Deferred<Profile>
-    fun getProfile(): Deferred<Profile>
-    fun completeOAuthFlow(code: String, state: String): Deferred<Unit>
-    fun getAccessToken(singleScope: String): Deferred<AccessTokenInfo>
+    fun beginOAuthFlowAsync(scopes: Array<String>, wantsKeys: Boolean): Deferred<String?>
+    fun beginPairingFlowAsync(pairingUrl: String, scopes: Array<String>): Deferred<String?>
+    fun getProfileAsync(ignoreCache: Boolean): Deferred<Profile?>
+    fun getProfileAsync(): Deferred<Profile?>
+    fun completeOAuthFlowAsync(code: String, state: String): Deferred<Boolean>
+    fun getAccessTokenAsync(singleScope: String): Deferred<AccessTokenInfo?>
     fun getTokenServerEndpointURL(): String
     fun registerPersistenceCallback(callback: StatePersistenceCallback)
     fun deviceConstellation(): DeviceConstellation
     fun toJSONString(): String
 
+    /**
+     * Returns an [AuthInfo] instance which may be used for data synchronization.
+     *
+     * @return An [AuthInfo] which is guaranteed to have a sync key.
+     * @throws AuthException if account needs to restart the OAuth flow.
+     */
     suspend fun authInfo(singleScope: String): AuthInfo {
         val tokenServerURL = this.getTokenServerEndpointURL()
-        val tokenInfo = this.getAccessToken(singleScope).await()
-        val keyInfo = tokenInfo.key ?: throw AuthException(AuthExceptionType.KEY_INFO)
+        val tokenInfo = this.getAccessTokenAsync(singleScope).await()
+                ?: throw AuthException(AuthExceptionType.NO_TOKEN)
+        val keyInfo = tokenInfo.key
+                ?: throw AuthException(AuthExceptionType.KEY_INFO)
 
         return AuthInfo(
                 kid = keyInfo.kid,
@@ -88,6 +98,11 @@ interface AccountObserver {
      * @param profile A fresh version of account's [Profile].
      */
     fun onProfileUpdated(profile: Profile)
+
+    /**
+     * Account needs to be re-authenticated (e.g. due to a password change).
+     */
+    fun onAuthenticationProblems()
 
     /**
      * Account manager encountered an error. Inspect [error] for details.

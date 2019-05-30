@@ -1,4 +1,4 @@
-componentsVersion: 0.54.0
+componentsVersion: 0.55.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -39,6 +39,10 @@ projects:
   feature-accounts:
     path: components/feature/accounts
     description: 'Component for tying an account manager with the tabs feature to facilitate auth flows.'
+    publish: true
+  feature-app-links:
+    path: components/feature/app-links
+    description: 'Component opening URLs in other non-browser apps.'
     publish: true
   feature-contextmenu:
     path: components/feature/contextmenu
@@ -95,6 +99,10 @@ projects:
   feature-prompts:
     path: components/feature/prompts
     description: 'Feature that will subscribe to the selected session and will handle all the common prompt dialogs from web content.'
+    publish: true
+  feature-push:
+    path: components/feature/push
+    description: 'Feature that implements push notifications with a supported push service.'
     publish: true
   feature-pwa:
     path: components/feature/pwa
@@ -284,6 +292,10 @@ projects:
     path: components/lib/publicsuffixlist
     description: 'A library for reading and using the public suffix list.'
     publish: true
+  lib-push-firebase:
+    path: components/lib/push-firebase
+    description: 'An implementation of concept-push for the Firebase Message Service.'
+    publish: true
   tooling-lint:
     path: components/tooling/lint
     description: 'Custom Lint checks for using and writing components.'
@@ -328,4 +340,3 @@ projects:
     path: samples/dataprotect
     description: 'An app demoing how to use the Dataprotect component to load and store encrypted data in SharedPreferences.'
     publish: false
-

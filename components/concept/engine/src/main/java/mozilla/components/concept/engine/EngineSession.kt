@@ -6,12 +6,15 @@ package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import java.lang.UnsupportedOperationException
 
 /**
  * Class representing a single engine session.
@@ -48,15 +51,18 @@ abstract class EngineSession(
         fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
+        fun onWebAppManifestLoaded(manifest: WebAppManifest) = Unit
         fun onCrashStateChange(crashed: Boolean) = Unit
+        fun onRecordingStateChanged(devices: List<RecordingDevice>) = Unit
 
         /**
          * The engine received a request to load a request.
          *
-         * @param triggeredByUserInteraction True if and only if the request was triggered by user interaction (e.g.
-         * clicking on a link on a website).
+         * @param triggeredByRedirect True if and only if the request was triggered by an HTTP redirect.
+         * @param triggeredByWebContent True if and only if the request was triggered from within
+         * web content (as opposed to via the browser chrome).
          */
-        fun onLoadRequest(triggeredByUserInteraction: Boolean) = Unit
+        fun onLoadRequest(triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
@@ -148,12 +154,14 @@ abstract class EngineSession(
              * This is the strictest setting and may cause issues on some web sites.
              */
             fun all() = TrackingProtectionPolicyForSessionTypes(ALL)
+
             /**
              * Recommended policy.
              * Combining the [AD], [ANALYTICS], [SOCIAL], [TEST] categories plus [SAFE_BROWSING_ALL].
              * This is the recommended setting.
              */
             fun recommended() = TrackingProtectionPolicyForSessionTypes(RECOMMENDED)
+
             fun select(vararg categories: Int) = TrackingProtectionPolicyForSessionTypes(categories.sum())
         }
 
@@ -276,9 +284,21 @@ abstract class EngineSession(
     abstract fun toggleDesktopMode(enable: Boolean, reload: Boolean = false)
 
     /**
-     * Clears all user data sources available.
+     * Clears browsing data stored by the engine.
+     *
+     * @param data the type of data that should be cleared.
+     * @param host (optional) name of the host for which data should be cleared. If
+     * omitted data will be cleared for all hosts.
+     * @param onSuccess (optional) callback invoked if the data was cleared successfully.
+     * @param onError (optional) callback invoked if clearing the data caused an exception.
      */
-    abstract fun clearData()
+    open fun clearData(
+        data: Engine.BrowsingData = Engine.BrowsingData.all(),
+        host: String? = null,
+        onSuccess: (() -> Unit) = { },
+        onError: ((Throwable) -> Unit) = { }
+    ): Unit = onError(UnsupportedOperationException("Clearing browsing data is not supported by this engine. " +
+            "Check both the engine and engine session implementation."))
 
     /**
      * Finds and highlights all occurrences of the provided String and highlights them asynchronously.

@@ -53,6 +53,12 @@ permalink: /changelog/
 * **engine-system**:
   * Added `EngineView.canScrollVerticallyUp()` for pull to refresh.
 
+* **support-test**
+  * Added Kotlin-friendly `fail()` that returns `Nothing`. Usage:
+  ```kotlin
+  fun returnsSomething(): MyObject = fail("Optional message")
+  ```
+
 * **service-glean**
   * Disabling telemetry through `setUploadEnabled` now clears all metrics (except first_run_date) immediately.
 

@@ -16,9 +16,9 @@ import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.test.any
+import mozilla.components.support.test.fail
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
@@ -38,54 +38,31 @@ class ToolbarAutocompleteFeatureTest {
 
         var autocompleteFilter: (suspend (String, AutocompleteDelegate) -> Unit)? = null
 
-        override fun setSearchTerms(searchTerms: String) {
-            fail()
-        }
-
-        override fun displayProgress(progress: Int) {
-            fail()
-        }
-
-        override fun onBackPressed(): Boolean {
-            fail()
-            return false
-        }
-
-        override fun setOnUrlCommitListener(listener: (String) -> Boolean) {
-            fail()
-        }
-
         override fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit) {
             autocompleteFilter = filter
         }
 
-        override fun addBrowserAction(action: Toolbar.Action) {
-            fail()
-        }
+        override fun setSearchTerms(searchTerms: String) = fail()
 
-        override fun addPageAction(action: Toolbar.Action) {
-            fail()
-        }
+        override fun displayProgress(progress: Int) = fail()
 
-        override fun addNavigationAction(action: Toolbar.Action) {
-            fail()
-        }
+        override fun onBackPressed() = fail()
 
-        override fun setOnEditListener(listener: Toolbar.OnEditListener) {
-            fail()
-        }
+        override fun setOnUrlCommitListener(listener: (String) -> Boolean) = fail()
 
-        override fun displayMode() {
-            fail()
-        }
+        override fun addBrowserAction(action: Toolbar.Action) = fail()
 
-        override fun editMode() {
-            fail()
-        }
+        override fun addPageAction(action: Toolbar.Action) = fail()
 
-        override fun addEditAction(action: Toolbar.Action) {
-            fail()
-        }
+        override fun addNavigationAction(action: Toolbar.Action) = fail()
+
+        override fun setOnEditListener(listener: Toolbar.OnEditListener) = fail()
+
+        override fun displayMode() = fail()
+
+        override fun editMode() = fail()
+
+        override fun addEditAction(action: Toolbar.Action) = fail()
     }
 
     @Test

@@ -64,7 +64,7 @@ private const val AUTOCOMPLETE_QUERY_THREADS = 3
  *  +----------------+ +----------------+
  * ```
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class BrowserToolbar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,

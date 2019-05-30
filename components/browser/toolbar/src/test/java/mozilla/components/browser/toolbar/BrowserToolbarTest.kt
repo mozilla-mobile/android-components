@@ -946,4 +946,53 @@ class BrowserToolbarTest {
             EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
         assertEquals(false, toolbar.private)
     }
+
+    @Test
+    fun `toolbar is not in URL edit mode by default`() {
+        // Given
+        val toolbar = BrowserToolbar(testContext)
+
+        // When
+        // Then
+        assertFalse("Toolbar is not in URL edit mode",
+            toolbar.isInUrlEditMode)
+    }
+
+    @Test
+    fun `toolbar is in URL edit mode when changed`() {
+        // Given
+        val toolbar = BrowserToolbar(testContext)
+
+        // When
+        toolbar.editMode()
+
+        // Then
+        assertTrue(toolbar.isInUrlEditMode)
+    }
+
+    @Test
+    fun `toolbar is in URL edit mode when switched to displayMode`() {
+        // Given
+        val toolbar = BrowserToolbar(testContext)
+
+        // When
+        toolbar.editMode()
+        toolbar.displayMode()
+
+        // Then
+        assertFalse(toolbar.isInUrlEditMode)
+    }
+
+    @Test
+    fun `toolbar is in URL edit mode when back pressed`() {
+        // Given
+        val toolbar = BrowserToolbar(testContext)
+
+        // When
+        toolbar.editMode()
+        toolbar.onBackPressed()
+
+        // Then
+        assertFalse(toolbar.isInUrlEditMode)
+    }
 }

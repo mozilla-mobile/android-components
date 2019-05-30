@@ -29,6 +29,8 @@ class ToolbarInteractorTest {
             listener("https://mozilla.org")
         }
 
+        override val isInUrlEditMode: Boolean get() = fail()
+
         override fun setSearchTerms(searchTerms: String) = fail()
 
         override fun displayProgress(progress: Int) = fail()

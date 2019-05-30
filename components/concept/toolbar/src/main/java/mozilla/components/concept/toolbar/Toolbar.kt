@@ -45,6 +45,14 @@ interface Toolbar {
     var siteSecure: SiteSecurity
 
     /**
+     * Returns **true** if toolbar is currently in URL editing mode, **false** otherwise.
+     *
+     * @see editMode
+     * @see displayMode
+     */
+    val isInUrlEditMode: Boolean
+
+    /**
      * Displays the currently used search terms as part of this Toolbar.
      *
      * @param searchTerms the search terms used by the current session

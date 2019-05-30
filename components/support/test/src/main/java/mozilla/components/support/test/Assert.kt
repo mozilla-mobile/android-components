@@ -15,7 +15,9 @@ package mozilla.components.support.test
  */
 @JvmOverloads
 fun fail(message: String? = null): Nothing {
-    message ?: throw AssertionError()
-
-    throw AssertionError(message)
+    throw if (message != null) {
+        AssertionError(message)
+    } else {
+        AssertionError()
+    }
 }

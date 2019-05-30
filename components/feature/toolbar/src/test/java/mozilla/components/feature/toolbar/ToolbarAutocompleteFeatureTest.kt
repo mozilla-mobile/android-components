@@ -36,6 +36,8 @@ class ToolbarAutocompleteFeatureTest {
         override var siteSecure: Toolbar.SiteSecurity = Toolbar.SiteSecurity.INSECURE
         override var private: Boolean = false
 
+        override val isInUrlEditMode: Boolean get() = fail()
+
         var autocompleteFilter: (suspend (String, AutocompleteDelegate) -> Unit)? = null
 
         override fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit) {

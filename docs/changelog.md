@@ -26,6 +26,9 @@ permalink: /changelog/
   * Added `onWebAppManifestLoaded` to `EngineSession`, called when the engine finds a web app manifest.
   * Added `WebAppManifest` from browser-session.
 
+* **concept-toolbar**
+  * Added `isInEditMode()` to `Toolbar` and `BrowserToolbar`.
+
 * **concept-sync**, **service-accounts**
   * ⚠️ **This is a breaking behavior change**: API changes to facilitate error handling; new method on AccountObserver interface.
   * Added `onAuthenticationProblems` observer method, used for indicating that account needs to re-authenticate (e.g. after a password change).

@@ -254,6 +254,9 @@ class BrowserToolbar @JvmOverloads constructor(
             editToolbar.urlView.typeface = value
         }
 
+    override val isInUrlEditMode: Boolean
+        get() = state == State.EDIT
+
     /**
      * Sets a listener to be invoked when focus of the URL input view (in edit mode) changed.
      */

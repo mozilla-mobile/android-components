@@ -18,7 +18,6 @@ object KotlinCompiler {
         "feature-accounts",
         "feature-prompts",
         "feature-search",
-        "feature-sitepermissions",
         "service-glean",
         "support-test",
         "ui-tabcounter"

@@ -15,12 +15,10 @@ object KotlinCompiler {
         "browser-domains",
         "browser-engine-servo",
         "feature-accounts",
-        "feature-contextmenu",
         "feature-downloads",
         "feature-prompts",
         "feature-search",
         "feature-sitepermissions",
-        "feature-tabs",
         "service-glean",
         "support-test",
         "ui-tabcounter"

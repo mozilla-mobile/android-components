@@ -7,7 +7,6 @@ package mozilla.components.browser.awesomebar
 import android.content.Context
 import android.util.AttributeSet
 import android.util.LruCache
-import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +20,7 @@ import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.transform.SuggestionTransformer
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.support.ktx.android.content.res.pxToDp
+import java.lang.IllegalStateException
 import java.util.concurrent.Executors
 
 private const val PROVIDER_QUERY_THREADS = 3
@@ -85,7 +85,16 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     @Synchronized
     override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
-        this.providers.addAll(providers)
+        providers.forEach { provider ->
+            val existingProvider = this.providers.find { it.id == provider.id }
+            existingProvider?.let {
+                throw IllegalStateException("Failed to add provider " +
+                        "${provider.id} of type ${provider::class.java.name}. " +
+                        "Provider with the same ID already exists: ${it::class.java.name}")
+            }
+            this.providers.add(provider)
+        }
+
         this.resizeUniqueSuggestionIdCache(this.providers.size)
     }
 
@@ -175,15 +184,14 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     /**
      * Returns a unique suggestion ID to make sure ID's can't collide
-     * across providers. This method is not thread-safe and must be
-     * invoked on the main thread.
+     * across providers.
      *
      * @param suggestion the suggestion for which a unique ID should be
      * generated.
      *
      * @return the unique ID.
      */
-    @MainThread
+    @Synchronized
     fun getUniqueSuggestionId(suggestion: AwesomeBar.Suggestion): Long {
         val key = suggestion.provider.id + "/" + suggestion.id
         return uniqueSuggestionIds[key] ?: run {

@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.engine.system
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
@@ -12,6 +13,7 @@ import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
 import android.os.Message
+import android.view.PixelCopy
 import android.view.View
 import android.webkit.HttpAuthHandler
 import android.webkit.JsPromptResult
@@ -46,6 +48,7 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.shadow.PixelCopyShadow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -64,6 +67,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
@@ -1393,23 +1397,25 @@ class SystemEngineViewTest {
     }
 
     @Test
-    @Suppress("Deprecation")
-    // TODO remove suppression when fixed: https://github.com/mozilla-mobile/android-components/issues/888
-    fun captureThumbnail() {
-        val engineView = SystemEngineView(getApplicationContext())
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun captureThumbnailOnPreO() {
+        val activity = Robolectric.setupActivity(Activity::class.java)
+        val engineView = SystemEngineView(activity)
+        val webView = mock<WebView>()
+
+        `when`(webView.width).thenReturn(100)
+        `when`(webView.height).thenReturn(200)
 
         engineView.session = mock()
 
-        `when`(engineView.session!!.webView).thenReturn(mock())
-
-        `when`(engineView.session!!.webView.drawingCache)
-            .thenReturn(Bitmap.createBitmap(10, 10, Bitmap.Config.RGB_565))
+        `when`(engineView.session!!.webView).thenReturn(webView)
 
         var thumbnail: Bitmap? = null
 
         engineView.captureThumbnail {
             thumbnail = it
         }
+        verify(webView).draw(any())
         assertNotNull(thumbnail)
 
         engineView.session = null
@@ -1418,6 +1424,39 @@ class SystemEngineViewTest {
         }
 
         assertNull(thumbnail)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.O], shadows = [PixelCopyShadow::class])
+    fun captureThumbnailOnPostO() {
+        val activity = Robolectric.setupActivity(Activity::class.java)
+        val engineView = SystemEngineView(activity)
+        val webView = mock<WebView>()
+        `when`(webView.width).thenReturn(100)
+        `when`(webView.height).thenReturn(200)
+
+        var thumbnail: Bitmap? = null
+
+        engineView.session = null
+        engineView.captureThumbnail {
+            thumbnail = it
+        }
+        assertNull(thumbnail)
+
+        engineView.session = mock()
+        `when`(engineView.session!!.webView).thenReturn(webView)
+
+        PixelCopyShadow.copyResult = PixelCopy.ERROR_UNKNOWN
+        engineView.captureThumbnail {
+            thumbnail = it
+        }
+        assertNull(thumbnail)
+
+        PixelCopyShadow.copyResult = PixelCopy.SUCCESS
+        engineView.captureThumbnail {
+            thumbnail = it
+        }
+        assertNotNull(thumbnail)
     }
 
     @Test

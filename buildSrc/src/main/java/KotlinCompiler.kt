@@ -14,7 +14,6 @@ object KotlinCompiler {
     val projectsWithWarningsAsErrorsDisabled = setOf(
         "browser-domains",
         "browser-engine-servo",
-        "browser-storage-sync",
         "feature-accounts",
         "feature-contextmenu",
         "feature-downloads",

@@ -14,6 +14,7 @@ import mozilla.components.browser.session.engine.request.LoadRequestOption
 import mozilla.components.browser.session.engine.request.isSet
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.Size
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -235,7 +236,7 @@ class SessionTest {
             icons = listOf(
                 WebAppManifest.Icon(
                     src = "images/touch/homescreen192.png",
-                    sizes = listOf(WebAppManifest.Icon.Size(192, 192)),
+                    sizes = listOf(Size(192, 192)),
                     type = "image/png"
                 )
             )

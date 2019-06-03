@@ -13,6 +13,7 @@ import kotlinx.coroutines.plus
 import mozilla.appservices.logins.DatabaseLoginsStorage
 import mozilla.appservices.logins.LoginsStorage
 import mozilla.appservices.logins.MemoryLoginsStorage
+import mozilla.appservices.sync15.SyncTelemetryPing
 import mozilla.components.concept.sync.AuthInfo
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncableStore
@@ -27,6 +28,11 @@ typealias SyncUnlockInfo = mozilla.appservices.logins.SyncUnlockInfo
  * Raw password data that is stored by the storage implementation.
  */
 typealias ServerPassword = mozilla.appservices.logins.ServerPassword
+
+/**
+ * The telemetry ping from a successful sync
+ */
+typealias SyncTelemetryPing = mozilla.appservices.sync15.SyncTelemetryPing
 
 /**
  * The base class of all errors emitted by logins storage.
@@ -138,7 +144,7 @@ interface AsyncLoginsStorage : AutoCloseable {
      * @rejectsWith [LoginsStorageException] if the storage is locked, and on unexpected
      *              errors (IO failure, rust panics, etc)
      */
-    fun sync(syncInfo: SyncUnlockInfo): Deferred<Unit>
+    fun sync(syncInfo: SyncUnlockInfo): Deferred<SyncTelemetryPing?>
 
     /**
      * Delete all login records. These deletions will be synced to the server on the next call to sync.
@@ -302,7 +308,7 @@ open class AsyncLoginsStorageAdapter<T : LoginsStorage>(private val wrapped: T) 
         return wrapped.isLocked()
     }
 
-    override fun sync(syncInfo: SyncUnlockInfo): Deferred<Unit> {
+    override fun sync(syncInfo: SyncUnlockInfo): Deferred<SyncTelemetryPing?> {
         return scope.async {
             wrapped.sync(syncInfo)
         }

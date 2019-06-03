@@ -35,8 +35,10 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import java.security.InvalidParameterException
 import java.util.Date
+import android.webkit.MimeTypeMap
+import mozilla.components.browser.session.runWithSessionIdOrSelected
 
-@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+@VisibleForTesting(otherwise = PRIVATE)
 internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
 
 typealias OnNeedToRequestPermissions = (permissions: Array<String>) -> Unit
@@ -127,16 +129,18 @@ class PromptFeature(
      */
     fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         if (requestCode == FILE_PICKER_ACTIVITY_REQUEST_CODE) {
-            sessionManager.selectedSession?.promptRequest?.consume {
+            sessionManager.runWithSessionIdOrSelected(sessionId) { session ->
+                session.promptRequest.consume {
 
-                val request = it as File
+                    val request = it as File
 
-                if (resultCode != RESULT_OK || intent == null) {
-                    request.onDismiss()
-                } else {
-                    handleFilePickerIntentResult(intent, request)
+                    if (resultCode != RESULT_OK || intent == null) {
+                        request.onDismiss()
+                    } else {
+                        handleFilePickerIntentResult(intent, request)
+                    }
+                    true
                 }
-                true
             }
         }
     }
@@ -167,9 +171,9 @@ class PromptFeature(
      */
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun onPermissionsGranted() {
-        sessionManager.selectedSession?.apply {
-            promptRequest.consume { promptRequest ->
-                onPromptRequested(this, promptRequest)
+        sessionManager.runWithSessionIdOrSelected(sessionId) { session ->
+            session.promptRequest.consume { promptRequest ->
+                onPromptRequested(session, promptRequest)
                 false
             }
         }
@@ -181,8 +185,8 @@ class PromptFeature(
      */
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun onPermissionsDenied() {
-        sessionManager.selectedSession?.apply {
-            promptRequest.consume { request ->
+        sessionManager.runWithSessionIdOrSelected(sessionId) { session ->
+            session.promptRequest.consume { request ->
                 if (request is File) {
                     request.onDismiss()
                 }
@@ -331,7 +335,7 @@ class PromptFeature(
         val session = sessionManager.findSessionById(sessionId) ?: return
         session.promptRequest.consume {
             when (it) {
-                is PromptRequest.TimeSelection -> it.onClear()
+                is TimeSelection -> it.onClear()
             }
             true
         }
@@ -373,16 +377,27 @@ class PromptFeature(
         }
     }
 
-    internal fun buildFileChooserIntent(allowMultipleSelection: Boolean, mimeTypes: Array<out String>): Intent {
+    internal fun buildFileChooserIntent(allowMultipleSelection: Boolean, types: Array<out String>): Intent {
         return with(Intent(Intent.ACTION_GET_CONTENT)) {
             type = "*/*"
             addCategory(Intent.CATEGORY_OPENABLE)
             putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-            if (mimeTypes.isNotEmpty()) {
-                putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+            if (types.isNotEmpty()) {
+                putExtra(Intent.EXTRA_MIME_TYPES, convertFileExtensionsToMimeTypesIfNeeded(types))
             }
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultipleSelection)
         }
+    }
+
+    private fun convertFileExtensionsToMimeTypesIfNeeded(types: Array<out String>): Array<out String> {
+        val mimeTypeMap = MimeTypeMap.getSingleton()
+        return types.map { type ->
+            if (type.contains("/")) {
+                type
+            } else {
+                mimeTypeMap.getMimeTypeFromExtension(type) ?: "*/*"
+            }
+        }.toTypedArray()
     }
 
     @Suppress("ComplexMethod")
@@ -435,13 +450,13 @@ class PromptFeature(
                 }
             }
 
-            is PromptRequest.TextPrompt -> {
+            is TextPrompt -> {
                 with(promptRequest) {
                     TextPromptDialogFragment.newInstance(session.id, title, inputLabel, inputValue, hasShownManyDialogs)
                 }
             }
 
-            is PromptRequest.Authentication -> {
+            is Authentication -> {
                 with(promptRequest) {
                     AuthenticationDialogFragment.newInstance(
                         session.id,
@@ -454,7 +469,7 @@ class PromptFeature(
                 }
             }
 
-            is PromptRequest.Color -> {
+            is Color -> {
                 with(promptRequest) {
                     ColorPickerDialogFragment.newInstance(session.id, defaultColor)
                 }

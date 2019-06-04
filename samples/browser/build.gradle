@@ -130,6 +130,7 @@ dependencies {
 
     implementation project(':lib-fetch-httpurlconnection')
 
+    implementation project(':feature-accounts')
     implementation project(':feature-awesomebar')
     implementation project(':feature-app-links')
     implementation project(':feature-contextmenu')

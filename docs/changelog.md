@@ -4,13 +4,21 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 0.55.0-SNAPSHOT  (In Development)
+# 0.56.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.54.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/58?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.55.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/59?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+# 0.55.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.54.0...v0.55.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/58?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.55.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.55.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.55.0/buildSrc/src/main/java/Config.kt)
 
 * **browser-search**
   * `SearchEngineManager.load()` is deprecated. Use `SearchEngineManager.loadAsync()` instead.
@@ -62,6 +70,7 @@ permalink: /changelog/
 
 * **service-glean**
   * Disabling telemetry through `setUploadEnabled` now clears all metrics (except first_run_date) immediately.
+  * The string length limit for `StringMetricType` was raised from 50 to 100 characters.
 
 * **feature-session**
   * Added `SwipeRefreshFeature` which adds pull to refresh to browsers.

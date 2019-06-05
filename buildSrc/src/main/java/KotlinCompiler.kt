@@ -14,8 +14,6 @@ object KotlinCompiler {
     val projectsWithWarningsAsErrorsDisabled = setOf(
         "browser-domains",
         "feature-prompts",
-        "service-glean",
-        "support-test",
-        "ui-tabcounter"
+        "service-glean"
     )
 }

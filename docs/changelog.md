@@ -17,6 +17,16 @@ permalink: /changelog/
     to ensure that their view constraints will not be broken. We do this manually because autoResizeText
     does not work with views that have a non-fixed height.
 
+* **samples-firefox-accounts**
+  * Switch FxA sample to production servers, fix pairing.
+
+* **browser-domains**
+  * New domain autocomplete providers `ShippedDomainsProvider` and `CustomDomainsProvider` that
+    should be used instead of deprecated `DomainAutoCompleteProvider`.
+    
+* **service-glean**
+  * The length limit on labels in labeled metrics has been increased from 30 to 61 characters.  See [1556684](https://bugzilla.mozilla.org/show_bug.cgi?id=1556684).
+
 # 0.55.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.54.0...v0.55.0)
@@ -30,6 +40,7 @@ permalink: /changelog/
 
 * **browser-menu**
   * Fixed a bug where overscroll effects would appear on the overflow menu.
+  * Added enter and exit animations.
 
 * **browser-session**
   * Added handler for `onWebAppManifestLoaded` to update `session.webAppManifest`.

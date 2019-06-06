@@ -219,7 +219,14 @@ class BrowserToolbar @JvmOverloads constructor(
         get() = displayToolbar.titleView.textSize
         set(value) {
             val newSize = minOf(value, MAX_TITLE_SIZE)
-            displayToolbar.titleView.textSize = newSize
+            // We only want the text size to scale smaller (with sp) if it's below the max size
+            val unitType = if (newSize == MAX_TITLE_SIZE) {
+                TypedValue.COMPLEX_UNIT_DIP
+            } else {
+                TypedValue.COMPLEX_UNIT_SP
+            }
+
+            displayToolbar.titleView.setTextSize(unitType, newSize)
             textSize = MAX_TEXT_SIZE_WITH_TITLE
         }
 
@@ -230,8 +237,15 @@ class BrowserToolbar @JvmOverloads constructor(
         get() = displayToolbar.urlView.textSize
         set(value) {
             val newSize = minOf(value, MAX_TEXT_SIZE)
-            displayToolbar.urlView.textSize = newSize
-            editToolbar.urlView.textSize = newSize
+            // We only want the text size to scale smaller (with sp) if it's below the max size
+            val unitType = if (newSize == MAX_TEXT_SIZE || newSize == MAX_TEXT_SIZE_WITH_TITLE) {
+                TypedValue.COMPLEX_UNIT_DIP
+            } else {
+                TypedValue.COMPLEX_UNIT_SP
+            }
+
+            displayToolbar.urlView.setTextSize(unitType, newSize)
+            editToolbar.urlView.setTextSize(unitType, newSize)
         }
 
     /**
@@ -682,9 +696,9 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     companion object {
-        internal const val MAX_TITLE_SIZE = 10f
-        internal const val MAX_TEXT_SIZE_WITH_TITLE = 8f
-        internal const val MAX_TEXT_SIZE = 20f
+        internal const val MAX_TITLE_SIZE = 14f
+        internal const val MAX_TEXT_SIZE_WITH_TITLE = 13f
+        internal const val MAX_TEXT_SIZE = 30f
         private const val DEFAULT_TOOLBAR_HEIGHT_DP = 56
         internal const val ACTION_PADDING_DP = 16
         internal val DEFAULT_PADDING =

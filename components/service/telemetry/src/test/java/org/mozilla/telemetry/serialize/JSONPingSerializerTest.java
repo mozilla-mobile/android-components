@@ -6,7 +6,6 @@ package org.mozilla.telemetry.serialize;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
@@ -17,19 +16,18 @@ import org.mozilla.telemetry.ping.TelemetryEventPingBuilder;
 import org.mozilla.telemetry.ping.TelemetryMobileEventPingBuilder;
 import org.mozilla.telemetry.ping.TelemetryPing;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
+import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class JSONPingSerializerTest {
+
     @Test
     public void testSerializingEventPing() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryMobileEventPingBuilder builder = new TelemetryMobileEventPingBuilder(configuration);
         final TelemetryPing ping = builder.build();
 
@@ -69,8 +67,8 @@ public class JSONPingSerializerTest {
     @Test
     @Deprecated // If you change this test, change the one above it.
     public void testSerializingEventPingLegacyPingType() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
-        final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
+        @SuppressWarnings("deprecation") final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
         final TelemetryPing ping = builder.build();
 
         final TelemetryPingSerializer serializer = new JSONPingSerializer();
@@ -108,7 +106,7 @@ public class JSONPingSerializerTest {
 
     @Test
     public void testSerializingEventPingWithEvents() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryMobileEventPingBuilder builder = new TelemetryMobileEventPingBuilder(configuration);
 
         final EventsMeasurement measurement = builder.getEventsMeasurement();
@@ -146,8 +144,8 @@ public class JSONPingSerializerTest {
     @Test
     @Deprecated // If you change this test, change the one above it.
     public void testSerializingEventPingWithEventsLegacyPingType() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
-        final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
+        @SuppressWarnings("deprecation") final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
 
         final EventsMeasurement measurement = builder.getEventsMeasurement();
         measurement.add(TelemetryEvent.create("action", "open", "app"));
@@ -183,7 +181,7 @@ public class JSONPingSerializerTest {
 
     @Test
     public void testSerializingCorePing() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryCorePingBuilder builder = new TelemetryCorePingBuilder(configuration);
         final TelemetryPing ping = builder.build();
 

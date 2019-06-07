@@ -8,17 +8,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 @RunWith(RobolectricTestRunner.class)
 public class FirstRunProfileDateMeasurementTest {
+
     @Test
     public void testDefaultValue() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final FirstRunProfileDateMeasurement measurement = new FirstRunProfileDateMeasurement(configuration);
 
         final Object value = measurement.flush();
@@ -32,7 +33,7 @@ public class FirstRunProfileDateMeasurementTest {
 
     @Test
     public void testCalculation() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final FirstRunProfileDateMeasurement measurement = spy(new FirstRunProfileDateMeasurement(configuration));
 
         // April 6, 2017
@@ -49,7 +50,7 @@ public class FirstRunProfileDateMeasurementTest {
 
     @Test
     public void testFallback() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final FirstRunProfileDateMeasurement measurement = spy(new FirstRunProfileDateMeasurement(configuration));
 
         // Remove stored first run date

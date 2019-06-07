@@ -37,6 +37,7 @@ dependencies {
 
     testImplementation project(':lib-fetch-httpurlconnection')
     testImplementation project(':lib-fetch-okhttp')
+    testImplementation project(':support-test')
 }
 
 apply from: '../../../publish.gradle'

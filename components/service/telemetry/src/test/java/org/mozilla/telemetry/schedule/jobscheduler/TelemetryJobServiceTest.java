@@ -6,8 +6,6 @@ package org.mozilla.telemetry.schedule.jobscheduler;
 
 import android.app.job.JobParameters;
 import android.os.AsyncTask;
-
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.Telemetry;
@@ -23,24 +21,18 @@ import org.mozilla.telemetry.storage.FileTelemetryStorage;
 import org.mozilla.telemetry.storage.TelemetryStorage;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryJobServiceTest {
+
     @Test
     public void testDailyLimitIsEnforced() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setMaximumNumberOfPingUploadsPerDay(2);
 
         final TelemetryPingSerializer serializer = new JSONPingSerializer();

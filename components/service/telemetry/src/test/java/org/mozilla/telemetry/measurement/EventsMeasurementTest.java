@@ -11,19 +11,16 @@ import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.mozilla.telemetry.event.TelemetryEvent;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class EventsMeasurementTest {
+
     @Test
     public void testStoringEventsAndFlushing() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final EventsMeasurement measurement = new EventsMeasurement(configuration);
 
         final String category = "category828";
@@ -51,7 +48,7 @@ public class EventsMeasurementTest {
 
     @Test
     public void testFlushingEmptyMeasurement() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final EventsMeasurement measurement = new EventsMeasurement(configuration);
 
         final Object value = measurement.flush();
@@ -65,8 +62,8 @@ public class EventsMeasurementTest {
     }
 
     @Test
-    public void testLocalFileIsDeletedAfterFlushing() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+    public void testLocalFileIsDeletedAfterFlushing() {
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final EventsMeasurement measurement = new EventsMeasurement(configuration);
 
         assertFalse(measurement.getEventFile().exists());
@@ -83,7 +80,7 @@ public class EventsMeasurementTest {
 
     @Test
     public void testToJSONCreatesArray() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final EventsMeasurement measurement = new EventsMeasurement(configuration);
 
         measurement.add(TelemetryEvent.create("action", "type_url", "search_bar"));
@@ -113,7 +110,7 @@ public class EventsMeasurementTest {
 
     @Test
     public void testToJSONWithComplexEvent() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final EventsMeasurement measurement = new EventsMeasurement(configuration);
 
         measurement

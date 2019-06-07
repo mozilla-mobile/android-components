@@ -5,15 +5,14 @@
 package org.mozilla.telemetry.measurement;
 
 import android.text.TextUtils;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.UUID;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
@@ -22,7 +21,7 @@ public class ClientIdMeasurementTest {
 
     @Test
     public void testClientIdIsAUUID() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final ClientIdMeasurement measurement = new ClientIdMeasurement(configuration);
 
@@ -40,7 +39,7 @@ public class ClientIdMeasurementTest {
 
     @Test
     public void testReturnsAlwaysTheSameClientId() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final ClientIdMeasurement measurement = new ClientIdMeasurement(configuration);
         final String clientId1 = (String) measurement.flush();
@@ -51,7 +50,7 @@ public class ClientIdMeasurementTest {
 
     @Test
     public void testMultipleMeasurementsReturnSameClientId() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final String clientId1 = (String) new ClientIdMeasurement(configuration).flush();
         final String clientId2 = (String) new ClientIdMeasurement(configuration).flush();

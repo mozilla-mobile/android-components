@@ -12,20 +12,14 @@ import org.mozilla.telemetry.ping.TelemetryPing;
 import org.mozilla.telemetry.serialize.JSONPingSerializer;
 import org.mozilla.telemetry.serialize.TelemetryPingSerializer;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.io.File;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class FileTelemetryStorageTest {
@@ -34,8 +28,9 @@ public class FileTelemetryStorageTest {
     private static final String TEST_SERIALIZED_PING = "Hello Test";
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testStoringAndReading() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final String documentId = UUID.randomUUID().toString();
 
@@ -50,13 +45,10 @@ public class FileTelemetryStorageTest {
         final FileTelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
         storage.store(ping);
 
-        TelemetryStorage.TelemetryStorageCallback callback = spy(new TelemetryStorage.TelemetryStorageCallback() {
-            @Override
-            public boolean onTelemetryPingLoaded(String path, String serializedPing) {
-                assertEquals(TEST_UPLOAD_PATH, path);
-                assertEquals(TEST_SERIALIZED_PING, serializedPing);
-                return true;
-            }
+        TelemetryStorage.TelemetryStorageCallback callback = spy((path, serializedPing) -> {
+            assertEquals(TEST_UPLOAD_PATH, path);
+            assertEquals(TEST_SERIALIZED_PING, serializedPing);
+            return true;
         });
 
         final boolean processed = storage.process(TEST_PING_TYPE, callback);
@@ -67,8 +59,9 @@ public class FileTelemetryStorageTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testReturningFalseInCallbackReturnsFalseFromProcess() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final String documentId = UUID.randomUUID().toString();
 
@@ -83,13 +76,10 @@ public class FileTelemetryStorageTest {
         final FileTelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
         storage.store(ping);
 
-        TelemetryStorage.TelemetryStorageCallback callback = spy(new TelemetryStorage.TelemetryStorageCallback() {
-            @Override
-            public boolean onTelemetryPingLoaded(String path, String serializedPing) {
-                assertEquals(TEST_UPLOAD_PATH, path);
-                assertEquals(TEST_SERIALIZED_PING, serializedPing);
-                return false;
-            }
+        TelemetryStorage.TelemetryStorageCallback callback = spy((path, serializedPing) -> {
+            assertEquals(TEST_UPLOAD_PATH, path);
+            assertEquals(TEST_SERIALIZED_PING, serializedPing);
+            return false;
         });
 
         final boolean processed = storage.process(TEST_PING_TYPE, callback);
@@ -100,8 +90,9 @@ public class FileTelemetryStorageTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testPingIsRemovedAfterProcessing() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final String documentId = UUID.randomUUID().toString();
 
@@ -116,13 +107,10 @@ public class FileTelemetryStorageTest {
         final FileTelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
         storage.store(ping);
 
-        TelemetryStorage.TelemetryStorageCallback callback = spy(new TelemetryStorage.TelemetryStorageCallback() {
-            @Override
-            public boolean onTelemetryPingLoaded(String path, String serializedPing) {
-                assertEquals(TEST_UPLOAD_PATH, path);
-                assertEquals(TEST_SERIALIZED_PING, serializedPing);
-                return true;
-            }
+        TelemetryStorage.TelemetryStorageCallback callback = spy((path, serializedPing) -> {
+            assertEquals(TEST_UPLOAD_PATH, path);
+            assertEquals(TEST_SERIALIZED_PING, serializedPing);
+            return true;
         });
 
         final boolean processed = storage.process(TEST_PING_TYPE, callback);
@@ -131,12 +119,7 @@ public class FileTelemetryStorageTest {
 
         verify(callback).onTelemetryPingLoaded(TEST_UPLOAD_PATH, TEST_SERIALIZED_PING);
 
-        TelemetryStorage.TelemetryStorageCallback callback2 = spy(new TelemetryStorage.TelemetryStorageCallback() {
-            @Override
-            public boolean onTelemetryPingLoaded(String path, String serializedPing) {
-                return true;
-            }
-        });
+        TelemetryStorage.TelemetryStorageCallback callback2 = spy((path, serializedPing) -> true);
 
         final boolean processed2 = storage.process(TEST_PING_TYPE, callback2);
 
@@ -146,8 +129,9 @@ public class FileTelemetryStorageTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testPingIsNotRemovedAfterUnsuccessfulProcessing() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final String documentId = UUID.randomUUID().toString();
 
@@ -162,13 +146,10 @@ public class FileTelemetryStorageTest {
         final FileTelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
         storage.store(ping);
 
-        TelemetryStorage.TelemetryStorageCallback callback = spy(new TelemetryStorage.TelemetryStorageCallback() {
-            @Override
-            public boolean onTelemetryPingLoaded(String path, String serializedPing) {
-                assertEquals(TEST_UPLOAD_PATH, path);
-                assertEquals(TEST_SERIALIZED_PING, serializedPing);
-                return false;
-            }
+        TelemetryStorage.TelemetryStorageCallback callback = spy((path, serializedPing) -> {
+            assertEquals(TEST_UPLOAD_PATH, path);
+            assertEquals(TEST_SERIALIZED_PING, serializedPing);
+            return false;
         });
 
         final boolean processed = storage.process(TEST_PING_TYPE, callback);
@@ -177,12 +158,7 @@ public class FileTelemetryStorageTest {
 
         verify(callback).onTelemetryPingLoaded(TEST_UPLOAD_PATH, TEST_SERIALIZED_PING);
 
-        TelemetryStorage.TelemetryStorageCallback callback2 = spy(new TelemetryStorage.TelemetryStorageCallback() {
-            @Override
-            public boolean onTelemetryPingLoaded(String path, String serializedPing) {
-                return true;
-            }
-        });
+        TelemetryStorage.TelemetryStorageCallback callback2 = spy((path, serializedPing) -> true);
 
         final boolean processed2 = storage.process(TEST_PING_TYPE, callback2);
 
@@ -193,7 +169,7 @@ public class FileTelemetryStorageTest {
 
     @Test
     public void testPingsAreRemovedIfLimitsIsReached() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setMaximumNumberOfPingsPerType(2);
 
         final TelemetryPingSerializer serializer = new JSONPingSerializer();
@@ -214,7 +190,7 @@ public class FileTelemetryStorageTest {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void testOldestFilesAreRemovedFirst() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setMaximumNumberOfPingsPerType(2);
 
         final TelemetryPingSerializer serializer = new JSONPingSerializer();

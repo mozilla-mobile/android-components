@@ -8,20 +8,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 @RunWith(RobolectricTestRunner.class)
 public class SessionDurationMeasurementTest {
+
     @Test
     public void testDefaultIsZero() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SessionDurationMeasurement measurement = new SessionDurationMeasurement(configuration);
 
         final Object value = measurement.flush();
@@ -36,7 +34,7 @@ public class SessionDurationMeasurementTest {
 
     @Test
     public void testRecordingSessionStartAndEnd() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final SessionDurationMeasurement measurement = spy(new SessionDurationMeasurement(configuration));
         doReturn(1337000000L).doReturn(5337000000L).when(measurement).getSystemTimeNano();
@@ -59,7 +57,7 @@ public class SessionDurationMeasurementTest {
 
     @Test
     public void testMultipleSessionsAreSummedUp() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final SessionDurationMeasurement measurement = spy(new SessionDurationMeasurement(configuration));
         doReturn(1337000000L) // Session start
@@ -85,7 +83,7 @@ public class SessionDurationMeasurementTest {
 
     @Test(expected = IllegalStateException.class)
     public void testStartingAlreadyStartedSessionThrowsException() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SessionDurationMeasurement measurement = new SessionDurationMeasurement(configuration);
 
         measurement.recordSessionStart();
@@ -94,7 +92,7 @@ public class SessionDurationMeasurementTest {
 
     @Test
     public void testStoppingAlreadyStoppedSessionReturnsFalse() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SessionDurationMeasurement measurement = new SessionDurationMeasurement(configuration);
 
         measurement.recordSessionStart();
@@ -105,7 +103,7 @@ public class SessionDurationMeasurementTest {
 
     @Test
     public void testStoppingNeverStartedSessionReturnsFalse() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SessionDurationMeasurement measurement = new SessionDurationMeasurement(configuration);
 
         assertFalse(measurement.recordSessionEnd());

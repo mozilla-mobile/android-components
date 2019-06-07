@@ -8,15 +8,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class SessionCountMeasurementTest {
+
     @Test
     public void testByDefaultSessionCountStaysAtZero() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SessionCountMeasurement measurement = new SessionCountMeasurement(configuration);
 
         {
@@ -39,7 +40,7 @@ public class SessionCountMeasurementTest {
 
     @Test
     public void testCountingSession() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SessionCountMeasurement measurement = new SessionCountMeasurement(configuration);
 
         assertEquals(0, (long) measurement.flush());

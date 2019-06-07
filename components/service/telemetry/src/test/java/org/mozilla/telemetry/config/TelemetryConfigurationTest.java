@@ -7,23 +7,24 @@ package org.mozilla.telemetry.config;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.io.File;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryConfigurationTest {
+
     @Test
     public void testBuilderSanity() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setAppName("AwesomeApp")
                 .setAppVersion("42.0")
                 .setBuildId("20170330")
                 .setCollectionEnabled(false)
                 .setConnectTimeout(5000)
-                .setDataDirectory(new File(RuntimeEnvironment.application.getCacheDir(), "telemetry-test"))
+                .setDataDirectory(new File(getTestContext().getCacheDir(), "telemetry-test"))
                 .setInitialBackoffForUpload(120000)
                 .setMinimumEventsForUpload(12)
                 .setPreferencesImportantForTelemetry("cat", "dog", "duck")
@@ -33,13 +34,13 @@ public class TelemetryConfigurationTest {
                 .setUpdateChannel("release")
                 .setUploadEnabled(false);
 
-        assertEquals(RuntimeEnvironment.application, configuration.getContext());
+        assertEquals(getTestContext(), configuration.getContext());
         assertEquals("AwesomeApp", configuration.getAppName());
         assertEquals("42.0", configuration.getAppVersion());
         assertEquals("20170330", configuration.getBuildId());
         assertFalse(configuration.isCollectionEnabled());
         assertEquals(5000, configuration.getConnectTimeout());
-        assertEquals(new File(RuntimeEnvironment.application.getCacheDir(), "telemetry-test").getAbsolutePath(),
+        assertEquals(new File(getTestContext().getCacheDir(), "telemetry-test").getAbsolutePath(),
                 configuration.getDataDirectory().getAbsolutePath());
         assertEquals(120000, configuration.getInitialBackoffForUpload());
         assertEquals(12, configuration.getMinimumEventsForUpload());

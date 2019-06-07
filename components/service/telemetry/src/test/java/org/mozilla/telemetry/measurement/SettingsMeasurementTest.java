@@ -6,32 +6,27 @@ package org.mozilla.telemetry.measurement;
 
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.util.ArraySet;
-
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class SettingsMeasurementTest {
+
     @Test
     public void testDefaultBehavior() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SettingsMeasurement measurement = new SettingsMeasurement(configuration);
 
         final Object value = measurement.flush();
@@ -49,7 +44,7 @@ public class SettingsMeasurementTest {
         final String keyPreferenceExisting = "pref_existing_" + UUID.randomUUID();
         final String keyPreferenceNeverWritten = "pref_never_written_" + UUID.randomUUID();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         configuration.setPreferencesImportantForTelemetry(
                 keyPreferenceExisting,
                 keyPreferenceNeverWritten
@@ -59,7 +54,7 @@ public class SettingsMeasurementTest {
 
         final String preferenceValue = "value_" + UUID.randomUUID();
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(RuntimeEnvironment.application);
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getTestContext());
         preferences.edit()
                 .putString(keyPreferenceExisting, preferenceValue)
                 .apply();
@@ -86,7 +81,7 @@ public class SettingsMeasurementTest {
         final String keyFloatPreference = "floatPref";
         final String keyStringSetPreference = "stringSetPref";
 
-        PreferenceManager.getDefaultSharedPreferences(RuntimeEnvironment.application)
+        PreferenceManager.getDefaultSharedPreferences(getTestContext())
                 .edit()
                 .putBoolean(keyBooleanPreference, true)
                 .putLong(keyLongPreference, 1337)
@@ -96,7 +91,7 @@ public class SettingsMeasurementTest {
                 .putStringSet(keyStringSetPreference, new HashSet<>(Arrays.asList("chicken", "waffles")))
                 .apply();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setPreferencesImportantForTelemetry(
                         keyBooleanPreference,
                         keyLongPreference,
@@ -142,7 +137,7 @@ public class SettingsMeasurementTest {
         doReturn(true).when(settingsProvider).containsKey(anyString());
         doReturn("value").when(settingsProvider).getValue(anyString());
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setSettingsProvider(settingsProvider)
                 .setPreferencesImportantForTelemetry("a", "b", "c");
 
@@ -186,7 +181,7 @@ public class SettingsMeasurementTest {
             public void release() {}
         };
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setSettingsProvider(settingsProvider)
                 .setPreferencesImportantForTelemetry("1", "2", "3", "4");
 

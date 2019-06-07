@@ -5,26 +5,23 @@
 package org.mozilla.telemetry.ping;
 
 import android.text.TextUtils;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
+import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryCorePingBuilderTest {
+
     @Test
     public void testBuildingEmptyPing() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryCorePingBuilder builder = new TelemetryCorePingBuilder(configuration);
 
         final TelemetryPing ping = builder.build();

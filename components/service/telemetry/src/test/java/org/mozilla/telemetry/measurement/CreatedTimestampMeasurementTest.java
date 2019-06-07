@@ -13,8 +13,9 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricTestRunner.class)
 public class CreatedTimestampMeasurementTest {
+
     @Test
-    public void testFormat() throws Exception {
+    public void testFormat() {
         final CreatedTimestampMeasurement measurement = new CreatedTimestampMeasurement();
 
         final Object value = measurement.flush();

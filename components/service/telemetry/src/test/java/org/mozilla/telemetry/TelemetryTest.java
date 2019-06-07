@@ -27,7 +27,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.mozilla.telemetry.event.TelemetryEvent;
-import org.mozilla.telemetry.measurement.DefaultSearchMeasurement;
 import org.mozilla.telemetry.measurement.ExperimentsMapMeasurement;
 import org.mozilla.telemetry.measurement.SearchesMeasurement;
 import org.mozilla.telemetry.measurement.SessionDurationMeasurement;
@@ -45,11 +44,11 @@ import org.mozilla.telemetry.storage.FileTelemetryStorage;
 import org.mozilla.telemetry.storage.TelemetryStorage;
 import org.robolectric.ParameterizedRobolectricTestRunner;
 import org.robolectric.Robolectric;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.util.*;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -58,6 +57,7 @@ import static org.mockito.Mockito.*;
 @RunWith(ParameterizedRobolectricTestRunner.class)
 @Config(minSdk = Build.VERSION_CODES.M)
 public class TelemetryTest {
+
     private static final String TEST_USER_AGENT = "Test/42.0.23";
     private static final String TEST_SETTING_1 = "test-setting-1";
     private static final String TEST_SETTING_2 = "test-setting-2";
@@ -72,7 +72,7 @@ public class TelemetryTest {
 
     private final Client httpClient;
 
-    public TelemetryTest(Client client, String name) {
+    public TelemetryTest(Client client, @SuppressWarnings("unused") String name) {
         this.httpClient = client;
     }
 
@@ -81,7 +81,7 @@ public class TelemetryTest {
         final MockWebServer server = new MockWebServer();
         server.enqueue(new MockResponse().setBody("OK"));
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setAppName("TelemetryTest")
                 .setAppVersion("10.0.1")
                 .setUpdateChannel("test")
@@ -158,13 +158,13 @@ public class TelemetryTest {
         final MockWebServer server = new MockWebServer();
         server.enqueue(new MockResponse().setBody("OK"));
 
-        PreferenceManager.getDefaultSharedPreferences(RuntimeEnvironment.application)
+        PreferenceManager.getDefaultSharedPreferences(getTestContext())
                 .edit()
                 .putBoolean(TEST_SETTING_1, true)
                 .putString(TEST_SETTING_2, "mozilla")
                 .apply();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setServerEndpoint("http://" + server.getHostName() + ":" + server.getPort())
                 .setUserAgent(TEST_USER_AGENT)
                 .setAppName("TelemetryTest")
@@ -249,17 +249,18 @@ public class TelemetryTest {
 
     @Test
     @Deprecated // If you change this test, change the one above it.
+    @SuppressWarnings("deprecation")
     public void testEventPingIntegrationLegacyPingType() throws Exception {
         final MockWebServer server = new MockWebServer();
         server.enqueue(new MockResponse().setBody("OK"));
 
-        PreferenceManager.getDefaultSharedPreferences(RuntimeEnvironment.application)
+        PreferenceManager.getDefaultSharedPreferences(getTestContext())
                 .edit()
                 .putBoolean(TEST_SETTING_1, true)
                 .putString(TEST_SETTING_2, "mozilla")
                 .apply();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setServerEndpoint("http://" + server.getHostName() + ":" + server.getPort())
                 .setUserAgent(TEST_USER_AGENT)
                 .setAppName("TelemetryTest")
@@ -347,7 +348,7 @@ public class TelemetryTest {
         final MockWebServer server = new MockWebServer();
         server.enqueue(new MockResponse().setBody("OK"));
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setServerEndpoint("http://" + server.getHostName() + ":" + server.getPort());
 
         final TelemetryPingSerializer serializer = new JSONPingSerializer();
@@ -360,12 +361,7 @@ public class TelemetryTest {
                 .addPingBuilder(new TelemetryCorePingBuilder(configuration));
         TelemetryHolder.set(telemetry);
 
-        telemetry.setDefaultSearchProvider(new DefaultSearchMeasurement.DefaultSearchEngineProvider() {
-            @Override
-            public String getDefaultSearchEngineIdentifier() {
-                return "test-default-search";
-            }
-        });
+        telemetry.setDefaultSearchProvider(() -> "test-default-search");
 
         telemetry.recordSearch(SearchesMeasurement.LOCATION_ACTIONBAR, "google");
         telemetry.recordSearch(SearchesMeasurement.LOCATION_ACTIONBAR, "yahoo");
@@ -410,7 +406,7 @@ public class TelemetryTest {
         final MockWebServer server = new MockWebServer();
         server.enqueue(new MockResponse().setBody("OK"));
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setAppName("TelemetryTest")
                 .setAppVersion("13.1.3")
                 .setUpdateChannel("test")
@@ -487,7 +483,7 @@ public class TelemetryTest {
         final MockWebServer server = new MockWebServer();
         server.enqueue(new MockResponse().setBody("OK"));
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application)
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext())
                 .setAppName("TelemetryTest")
                 .setAppVersion("13.1.3")
                 .setUpdateChannel("test")
@@ -580,7 +576,7 @@ public class TelemetryTest {
 
     @Test
     public void testPingIsQueuedIfEventLimitIsReached() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         // This test assumes the maximum number of events is 500
         assertEquals(500, configuration.getMaximumNumberOfEventsPerPing());
@@ -614,8 +610,9 @@ public class TelemetryTest {
 
     @Test
     @Deprecated // If you change this test, change the one above it.
+    @SuppressWarnings("deprecation")
     public void testPingIsQueuedIfEventLimitIsReachedLegacyPingType() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         // This test assumes the maximum number of events is 500
         assertEquals(500, configuration.getMaximumNumberOfEventsPerPing());
@@ -649,7 +646,7 @@ public class TelemetryTest {
 
     @Test
     public void testClientIdIsReturned() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final TelemetryStorage storage = mock(TelemetryStorage.class);
         final TelemetryClient client = mock(TelemetryClient.class);
@@ -669,8 +666,8 @@ public class TelemetryTest {
         assertEquals(clientId, telemetry.getClientId());
 
         // Creating a new telemetry object will still return the same client id
-        final Telemetry otherTelemetry = new Telemetry(
-                new TelemetryConfiguration(RuntimeEnvironment.application),
+        @SuppressWarnings("unused") final Telemetry otherTelemetry = new Telemetry(
+                new TelemetryConfiguration(getTestContext()),
                 mock(TelemetryStorage.class),
                 mock(TelemetryClient.class),
                 mock(TelemetryScheduler.class));
@@ -679,14 +676,16 @@ public class TelemetryTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testExperimentsAreForwardedToFocusEventPingMeasurement() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryStorage storage = mock(TelemetryStorage.class);
         final TelemetryClient client = mock(TelemetryClient.class);
         final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
 
         final ExperimentsMapMeasurement measurement = mock(ExperimentsMapMeasurement.class);
         final TelemetryEventPingBuilder builder = spy(new TelemetryEventPingBuilder(configuration));
+        //noinspection ResultOfMethodCallIgnored
         doReturn(measurement).when(builder).getExperimentsMapMeasurement();
 
         final Telemetry telemetry = new Telemetry(configuration, storage, client, scheduler)
@@ -703,13 +702,14 @@ public class TelemetryTest {
 
     @Test
     public void testExperimentsAreForwardedToMobileEventPingMeasurement() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryStorage storage = mock(TelemetryStorage.class);
         final TelemetryClient client = mock(TelemetryClient.class);
         final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
 
         final ExperimentsMapMeasurement measurement = mock(ExperimentsMapMeasurement.class);
         final TelemetryMobileEventPingBuilder builder = spy(new TelemetryMobileEventPingBuilder(configuration));
+        //noinspection ResultOfMethodCallIgnored
         doReturn(measurement).when(builder).getExperimentsMapMeasurement();
 
         final Telemetry telemetry = new Telemetry(configuration, storage, client, scheduler)
@@ -733,19 +733,14 @@ public class TelemetryTest {
     @Test
     public void testFailedSessionEndInvokesCallback() {
         Telemetry telemetry = createFailOnSessionEndTelemetry();
-        Function0<Unit> onFailure = spy(new Function0<Unit>() {
-            @Override
-            public Unit invoke() {
-                return null;
-            }
-        });
+        Function0<Unit> onFailure = spy(() -> null);
 
         telemetry.recordSessionEnd(onFailure);
         verify(onFailure, times(1)).invoke();
     }
 
     private Telemetry createFailOnSessionEndTelemetry() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryStorage storage = mock(TelemetryStorage.class);
         final TelemetryClient client = mock(TelemetryClient.class);
         final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
@@ -768,7 +763,7 @@ public class TelemetryTest {
     }
 
     private void assertJobIsScheduled() {
-        final Context context = RuntimeEnvironment.application;
+        final Context context = getTestContext();
         final JobScheduler scheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
 
         final List<JobInfo> jobs = scheduler.getAllPendingJobs();

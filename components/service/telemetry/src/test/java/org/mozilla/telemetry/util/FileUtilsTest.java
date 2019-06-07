@@ -7,19 +7,20 @@ package org.mozilla.telemetry.util;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.io.File;
 import java.util.UUID;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 @RunWith(RobolectricTestRunner.class)
 public class FileUtilsTest {
+
     @Test
     public void testAssertDirectory() {
-        final File folder = new File(RuntimeEnvironment.application.getCacheDir(), UUID.randomUUID().toString());
+        final File folder = new File(getTestContext().getCacheDir(), UUID.randomUUID().toString());
         FileUtils.assertDirectory(folder);
     }
 

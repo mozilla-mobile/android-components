@@ -9,20 +9,22 @@ import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.mozilla.telemetry.ping.TelemetryPingBuilder;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
 @RunWith(RobolectricTestRunner.class)
 public class SequenceMeasurementTest {
+
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testSequenceStartsAtOne() {
         final TelemetryPingBuilder builder = mock(TelemetryPingBuilder.class);
         doReturn("test").when(builder).getType();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final SequenceMeasurement measurement = new SequenceMeasurement(configuration, builder);
 
@@ -35,11 +37,12 @@ public class SequenceMeasurementTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testSequenceNumberIsIncremented() {
         final TelemetryPingBuilder builder = mock(TelemetryPingBuilder.class);
         doReturn("test").when(builder).getType();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final SequenceMeasurement measurement = new SequenceMeasurement(configuration, builder);
 
@@ -72,11 +75,12 @@ public class SequenceMeasurementTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testSamePingTypeSharesSequence() {
         final TelemetryPingBuilder builder = mock(TelemetryPingBuilder.class);
         doReturn("test").when(builder).getType();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final SequenceMeasurement measurement1 = new SequenceMeasurement(configuration, builder);
         final SequenceMeasurement measurement2 = new SequenceMeasurement(configuration, builder);
@@ -116,6 +120,7 @@ public class SequenceMeasurementTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testDifferentPingsHaveTheirOwnSequence() {
         final TelemetryPingBuilder testBuilder1 = mock(TelemetryPingBuilder.class);
         doReturn("test1").when(testBuilder1).getType();
@@ -123,7 +128,7 @@ public class SequenceMeasurementTest {
         final TelemetryPingBuilder testBuilder2 = mock(TelemetryPingBuilder.class);
         doReturn("test2").when(testBuilder2).getType();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
 
         final SequenceMeasurement measurement1 = new SequenceMeasurement(configuration, testBuilder1);
         final SequenceMeasurement measurement2 = new SequenceMeasurement(configuration, testBuilder2);

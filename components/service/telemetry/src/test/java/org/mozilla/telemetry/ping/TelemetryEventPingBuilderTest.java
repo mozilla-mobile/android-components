@@ -9,20 +9,21 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryEventPingBuilderTest {
+
     @Test
     public void testBuildingEmptyPing() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
-        final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
+        @SuppressWarnings("deprecation") final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
 
         final TelemetryPing ping = builder.build();
 
@@ -51,8 +52,8 @@ public class TelemetryEventPingBuilderTest {
 
     @Test
     public void testPingWithExperiments() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
-        final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
+        @SuppressWarnings("deprecation") final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
 
         final Map<String, Boolean> experiments = new HashMap<>();
         experiments.put("use-gecko", true);
@@ -73,8 +74,8 @@ public class TelemetryEventPingBuilderTest {
 
     @Test
     public void testSequenceNumber() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
-        final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
+        @SuppressWarnings("deprecation") final TelemetryEventPingBuilder builder = new TelemetryEventPingBuilder(configuration);
 
         {
             final TelemetryPing ping1 = builder.build();

@@ -5,7 +5,6 @@
 package org.mozilla.telemetry.event;
 
 import android.text.TextUtils;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.Telemetry;
@@ -19,15 +18,14 @@ import org.mozilla.telemetry.ping.TelemetryMobileEventPingBuilder;
 import org.mozilla.telemetry.schedule.TelemetryScheduler;
 import org.mozilla.telemetry.storage.TelemetryStorage;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryEventTest {
+
     @Test
     public void testEventCreation() {
         TelemetryEvent event = TelemetryEvent.create("action", "type_url", "search_bar");
@@ -43,6 +41,7 @@ public class TelemetryEventTest {
     }
 
     @Test
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void testQueuing() throws Exception {
         final EventsMeasurement measurement = mock(EventsMeasurement.class);
 
@@ -50,7 +49,7 @@ public class TelemetryEventTest {
         doReturn(TelemetryMobileEventPingBuilder.TYPE).when(builder).getType();
         doReturn(measurement).when(builder).getEventsMeasurement();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryStorage storage = mock(TelemetryStorage.class);
         final TelemetryClient client = mock(TelemetryClient.class);
         final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);
@@ -71,6 +70,7 @@ public class TelemetryEventTest {
     }
 
     @Test
+    @SuppressWarnings({"ResultOfMethodCallIgnored", "deprecation"})
     @Deprecated // If you change this test, change the one above it too.
     public void testQueuingLegacyPingType() throws Exception {
         final EventsMeasurement measurement = mock(EventsMeasurement.class);
@@ -79,7 +79,7 @@ public class TelemetryEventTest {
         doReturn(TelemetryEventPingBuilder.TYPE).when(builder).getType();
         doReturn(measurement).when(builder).getEventsMeasurement();
 
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryStorage storage = mock(TelemetryStorage.class);
         final TelemetryClient client = mock(TelemetryClient.class);
         final TelemetryScheduler scheduler = mock(TelemetryScheduler.class);

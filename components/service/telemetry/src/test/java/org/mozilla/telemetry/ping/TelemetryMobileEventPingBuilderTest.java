@@ -9,21 +9,20 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
+import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class TelemetryMobileEventPingBuilderTest {
+
     @Test
     public void testBuildingEmptyPing() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryMobileEventPingBuilder builder = new TelemetryMobileEventPingBuilder(configuration);
 
         final TelemetryPing ping = builder.build();
@@ -53,7 +52,7 @@ public class TelemetryMobileEventPingBuilderTest {
 
     @Test
     public void testPingWithExperiments() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryMobileEventPingBuilder builder = new TelemetryMobileEventPingBuilder(configuration);
 
         final Map<String, Boolean> experiments = new HashMap<>();
@@ -75,7 +74,7 @@ public class TelemetryMobileEventPingBuilderTest {
 
     @Test
     public void testSequenceNumber() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final TelemetryMobileEventPingBuilder builder = new TelemetryMobileEventPingBuilder(configuration);
 
         {

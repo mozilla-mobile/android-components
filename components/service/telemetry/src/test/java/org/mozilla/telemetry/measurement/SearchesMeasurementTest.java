@@ -9,15 +9,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import static mozilla.components.support.test.robolectric.ExtensionsKt.getTestContext;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class SearchesMeasurementTest {
+
     @Test
     public void testDefault() {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SearchesMeasurement measurement = new SearchesMeasurement(configuration);
 
         final Object value = measurement.flush();
@@ -30,7 +31,7 @@ public class SearchesMeasurementTest {
 
     @Test
     public void testRecording() throws Exception {
-        final TelemetryConfiguration configuration = new TelemetryConfiguration(RuntimeEnvironment.application);
+        final TelemetryConfiguration configuration = new TelemetryConfiguration(getTestContext());
         final SearchesMeasurement measurement = new SearchesMeasurement(configuration);
 
         { // Record a bunch of things

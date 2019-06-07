@@ -5,21 +5,18 @@
 package org.mozilla.telemetry.measurement;
 
 import android.text.TextUtils;
-
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mozilla.telemetry.measurement.DefaultSearchMeasurement.DefaultSearchEngineProvider;
 import org.robolectric.RobolectricTestRunner;
 
-import org.mozilla.telemetry.measurement.DefaultSearchMeasurement.DefaultSearchEngineProvider;
-
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 public class DefaultSearchMeasurementTest {
+
     @Test
     public void testDefault() {
         final DefaultSearchMeasurement measurement = new DefaultSearchMeasurement();

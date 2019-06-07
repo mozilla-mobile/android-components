@@ -117,6 +117,7 @@ class GeckoEngineSession(
      * See [EngineSession.reload]
      */
     override fun reload() {
+        requestFromWebContent = false
         geckoSession.reload()
     }
 
@@ -124,6 +125,7 @@ class GeckoEngineSession(
      * See [EngineSession.goBack]
      */
     override fun goBack() {
+        requestFromWebContent = false
         geckoSession.goBack()
     }
 
@@ -131,6 +133,7 @@ class GeckoEngineSession(
      * See [EngineSession.goForward]
      */
     override fun goForward() {
+        requestFromWebContent = false
         geckoSession.goForward()
     }
 
@@ -203,7 +206,7 @@ class GeckoEngineSession(
         }
 
         if (reload) {
-            geckoSession.reload()
+            this.reload()
         }
     }
 
@@ -323,6 +326,7 @@ class GeckoEngineSession(
                     // is "True if and only if the request was triggered by an HTTP redirect."
                     // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1545170
                     onLoadRequest(
+                        url = request.uri,
                         triggeredByRedirect = request.isRedirect,
                         triggeredByWebContent = requestFromWebContent
                     )

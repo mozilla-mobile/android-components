@@ -16,10 +16,12 @@ import com.google.zxing.MultiFormatReader
 import com.google.zxing.NotFoundException
 import mozilla.components.support.base.android.view.AutoFitTextureView
 import mozilla.components.support.test.any
+import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -128,6 +130,21 @@ class QrFragmentTest {
     }
 
     @Test
+    fun `async scanning decodes original unmodified image`() {
+        val listener = mock(QrFragment.OnScanCompleteListener::class.java)
+        val reader = mock(MultiFormatReader::class.java)
+        val task = QrFragment.AsyncScanningTask(listener, reader)
+        val imageCaptor = argumentCaptor<BinaryBitmap>()
+
+        val bitmap = mock(BinaryBitmap::class.java)
+
+        QrFragment.qrState = QrFragment.STATE_DECODE_PROGRESS
+        task.processImage(bitmap)
+        verify(reader).decodeWithState(imageCaptor.capture())
+        assertSame(bitmap, imageCaptor.value)
+    }
+
+    @Test
     fun `camera is closed on disconnect and error`() {
         val qrFragment = spy(QrFragment.newInstance(mock(QrFragment.OnScanCompleteListener::class.java)))
 
@@ -158,6 +175,27 @@ class QrFragmentTest {
             qrFragment.createCameraPreviewSession()
         } catch (e: CameraAccessException) {
             fail("CameraAccessException should have been caught and logged, not re-thrown.")
+        }
+    }
+
+    @Test
+    fun `catches and handles IllegalStateException when creating preview session`() {
+        val qrFragment = spy(QrFragment.newInstance(mock(QrFragment.OnScanCompleteListener::class.java)))
+
+        var camera: CameraDevice = mock()
+        `when`(camera.createCaptureRequest(anyInt())).thenThrow(IllegalStateException("CameraDevice was already closed"))
+        qrFragment.cameraDevice = camera
+
+        val textureView: AutoFitTextureView = mock()
+        `when`(textureView.surfaceTexture).thenReturn(mock())
+        qrFragment.textureView = textureView
+
+        qrFragment.previewSize = mock()
+
+        try {
+            qrFragment.createCameraPreviewSession()
+        } catch (e: IllegalStateException) {
+            fail("IllegalStateException should have been caught and logged, not re-thrown.")
         }
     }
 

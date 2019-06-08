@@ -10,10 +10,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session.Source
+import mozilla.components.browser.session.engine.request.LoadRequestMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestOption
-import mozilla.components.browser.session.engine.request.isSet
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.Size
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -171,10 +172,13 @@ class SessionTest {
         val session = Session("https://www.mozilla.org")
         session.register(observer)
 
-        session.loadRequestTriggers = LoadRequestOption.REDIRECT.toMask()
+        session.loadRequestMetadata = LoadRequestMetadata(
+            "https://www.mozilla.org",
+            arrayOf(LoadRequestOption.REDIRECT)
+        )
 
-        assertTrue(session.loadRequestTriggers.isSet(LoadRequestOption.REDIRECT))
-        verify(observer, times(1)).onLoadRequest(eq(session), eq(true), eq(false))
+        assertTrue(session.loadRequestMetadata.isSet(LoadRequestOption.REDIRECT))
+        verify(observer, times(1)).onLoadRequest(eq(session), eq("https://www.mozilla.org"), eq(true), eq(false))
         verifyNoMoreInteractions(observer)
     }
 
@@ -235,7 +239,7 @@ class SessionTest {
             icons = listOf(
                 WebAppManifest.Icon(
                     src = "images/touch/homescreen192.png",
-                    sizes = listOf(WebAppManifest.Icon.Size(192, 192)),
+                    sizes = listOf(Size(192, 192)),
                     type = "image/png"
                 )
             )

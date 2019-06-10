@@ -34,7 +34,7 @@ class BrowserIconsTest {
     @Before
     @After
     fun cleanUp() {
-        sharedDiskCache.clear(context)
+        sharedDiskCache.clear(context.cacheDir)
         sharedMemoryCache.clear()
     }
 

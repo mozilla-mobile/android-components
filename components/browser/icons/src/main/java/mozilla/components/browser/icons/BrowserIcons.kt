@@ -36,7 +36,7 @@ import mozilla.components.browser.session.utils.AllSessionsObserver
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.content.res.pxToDp
+import mozilla.components.support.ktx.android.util.pxToDp
 import java.util.concurrent.Executors
 
 private const val MAXIMUM_SIZE_DP = 64
@@ -57,7 +57,7 @@ internal val sharedDiskCache = DiskCache()
 class BrowserIcons(
     private val context: Context,
     private val httpClient: Client,
-    private val generator: IconGenerator = DefaultIconGenerator(context),
+    private val generator: IconGenerator = DefaultIconGenerator(context.resources.displayMetrics),
     private val preparers: List<IconPreprarer> = listOf(
         MemoryIconPreparer(sharedMemoryCache),
         DiskIconPreparer(sharedDiskCache)
@@ -79,7 +79,7 @@ class BrowserIcons(
     jobDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(THREADS).asCoroutineDispatcher()
 ) {
     private val logger = Logger("BrowserIcons")
-    private val maximumSize = context.resources.pxToDp(MAXIMUM_SIZE_DP)
+    private val maximumSize = context.resources.displayMetrics.pxToDp(MAXIMUM_SIZE_DP)
     private val scope = CoroutineScope(jobDispatcher)
 
     /**
@@ -92,7 +92,7 @@ class BrowserIcons(
     }
 
     private fun loadIconInternal(initialRequest: IconRequest): Icon {
-        val targetSize = context.resources.pxToDp(initialRequest.size.value)
+        val targetSize = context.resources.displayMetrics.pxToDp(initialRequest.size.value)
 
         // (1) First prepare the request.
         val request = prepare(context, preparers, initialRequest)

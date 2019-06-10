@@ -13,7 +13,7 @@ import android.view.inputmethod.InputMethodManager
 import androidx.core.content.getSystemService
 import androidx.core.view.ViewCompat
 import mozilla.components.support.base.android.Padding
-import mozilla.components.support.ktx.android.content.res.pxToDp
+import mozilla.components.support.ktx.android.util.pxToDp
 import java.lang.ref.WeakReference
 
 /**
@@ -86,7 +86,7 @@ fun View.getRectWithViewLocation(): Rect {
  * Set a padding using [Padding] object.
  */
 fun View.setPadding(padding: Padding) {
-    with(resources) {
+    with(resources.displayMetrics) {
         setPadding(
             pxToDp(padding.left),
             pxToDp(padding.top),

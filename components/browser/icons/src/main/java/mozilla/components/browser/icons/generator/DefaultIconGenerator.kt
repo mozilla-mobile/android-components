@@ -11,10 +11,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
+import android.util.DisplayMetrics
 import android.util.TypedValue
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
-import mozilla.components.support.ktx.android.content.res.pxToDp
+import mozilla.components.support.ktx.android.util.pxToDp
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 
 /**
@@ -22,16 +23,17 @@ import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
  * representing the URL.
  */
 class DefaultIconGenerator(
-    context: Context,
+    displayMetrics: DisplayMetrics,
     cornerRadius: Int = DEFAULT_CORNER_RADIUS,
     private val textColor: Int = Color.WHITE,
     private val backgroundColors: IntArray = DEFAULT_COLORS
 ) : IconGenerator {
-    private val cornerRadius: Float = context.resources.pxToDp(cornerRadius).toFloat()
+    private val cornerRadius: Float = displayMetrics.pxToDp(cornerRadius).toFloat()
 
     @Suppress("MagicNumber")
     override fun generate(context: Context, request: IconRequest): Icon {
-        val size = context.resources.pxToDp(request.size.value)
+        val displayMetrics = context.resources.displayMetrics
+        val size = displayMetrics.pxToDp(request.size.value)
 
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -53,7 +55,7 @@ class DefaultIconGenerator(
         val textSize = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             size.toFloat() / 8.0f,
-            context.resources.displayMetrics
+            displayMetrics
         )
 
         paint.textAlign = Paint.Align.CENTER

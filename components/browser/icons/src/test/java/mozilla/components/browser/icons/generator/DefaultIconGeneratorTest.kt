@@ -22,7 +22,7 @@ class DefaultIconGeneratorTest {
 
     @Test
     fun getRepresentativeCharacter() = runBlocking {
-        val generator = DefaultIconGenerator(testContext)
+        val generator = DefaultIconGenerator(context.resources.displayMetrics)
 
         assertEquals("M", generator.getRepresentativeCharacter("https://mozilla.org"))
         assertEquals("W", generator.getRepresentativeCharacter("http://wikipedia.org"))
@@ -72,7 +72,7 @@ class DefaultIconGeneratorTest {
 
     @Test
     fun pickColor() {
-        val generator = DefaultIconGenerator(testContext)
+        val generator = DefaultIconGenerator(context.resources.displayMetrics)
 
         val color = generator.pickColor("http://m.facebook.com")
 
@@ -93,7 +93,7 @@ class DefaultIconGeneratorTest {
 
     @Test
     fun generate() = runBlocking {
-        val generator = DefaultIconGenerator(testContext)
+        val generator = DefaultIconGenerator(context.resources.displayMetrics)
 
         val icon = generator.generate(testContext, IconRequest(
             url = "https://m.facebook.com"))

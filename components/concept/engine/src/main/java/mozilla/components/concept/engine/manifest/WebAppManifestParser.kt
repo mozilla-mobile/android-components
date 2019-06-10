@@ -99,23 +99,12 @@ private fun parseIcons(json: JSONObject): List<WebAppManifest.Icon> {
         .toList()
 }
 
-private fun parseIconSizes(json: JSONObject): List<WebAppManifest.Icon.Size> {
+private fun parseIconSizes(json: JSONObject): List<Size> {
     val sizes = json.optString("sizes") ?: return emptyList()
 
     return sizes
         .split(whitespace)
-        .map { it.split("x") }
-        .filter { it.size == 2 }
-        .mapNotNull {
-            try {
-                WebAppManifest.Icon.Size(
-                    Integer.parseInt(it[0]),
-                    Integer.parseInt(it[1])
-                )
-            } catch (e: java.lang.NumberFormatException) {
-                null
-            }
-        }
+        .mapNotNull { Size.parse(it) }
 }
 
 private fun parsePurposes(json: JSONObject): Set<WebAppManifest.Icon.Purpose> {
@@ -144,17 +133,14 @@ private fun parseTextDirection(json: JSONObject): WebAppManifest.TextDirection {
     }
 }
 
-@Suppress("ComplexMethod") // It's not really that complex..
-private fun parseOrientation(json: JSONObject): WebAppManifest.Orientation {
-    return when (json.optString("orientation")) {
-        "any" -> WebAppManifest.Orientation.ANY
-        "natural" -> WebAppManifest.Orientation.NATURAL
-        "landscape" -> WebAppManifest.Orientation.LANDSCAPE
-        "portrait" -> WebAppManifest.Orientation.PORTRAIT
-        "portrait-primary" -> WebAppManifest.Orientation.PORTRAIT_PRIMARY
-        "portrait-secondary" -> WebAppManifest.Orientation.PORTRAIT_SECONDARY
-        "landscape-primary" -> WebAppManifest.Orientation.LANDSCAPE_PRIMARY
-        "landscape-secondary" -> WebAppManifest.Orientation.LANDSCAPE_SECONDARY
-        else -> WebAppManifest.Orientation.ANY
-    }
+private fun parseOrientation(json: JSONObject) = when (json.optString("orientation")) {
+    "any" -> WebAppManifest.Orientation.ANY
+    "natural" -> WebAppManifest.Orientation.NATURAL
+    "landscape" -> WebAppManifest.Orientation.LANDSCAPE
+    "portrait" -> WebAppManifest.Orientation.PORTRAIT
+    "portrait-primary" -> WebAppManifest.Orientation.PORTRAIT_PRIMARY
+    "portrait-secondary" -> WebAppManifest.Orientation.PORTRAIT_SECONDARY
+    "landscape-primary" -> WebAppManifest.Orientation.LANDSCAPE_PRIMARY
+    "landscape-secondary" -> WebAppManifest.Orientation.LANDSCAPE_SECONDARY
+    else -> WebAppManifest.Orientation.ANY
 }

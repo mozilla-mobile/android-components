@@ -4,11 +4,10 @@
 
 package mozilla.components.browser.awesomebar
 
-import android.content.Context
 import android.content.res.Resources
 import android.view.View
 import android.widget.LinearLayout
-import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.awesomebar.layout.DefaultSuggestionViewHolder
 import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.layout.SuggestionViewHolder
@@ -16,20 +15,19 @@ import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SuggestionsAdapterTest {
-    private val context: Context
-        get() = ApplicationProvider.getApplicationContext()
 
     @Test
     fun `addSuggestions() should add suggestions of provider`() {
@@ -42,6 +40,34 @@ class SuggestionsAdapterTest {
 
         adapter.addSuggestions(mockProvider(), suggestions)
 
+        assertEquals(3, adapter.itemCount)
+        assertEquals(suggestions, adapter.suggestions)
+    }
+
+    @Test
+    fun `addSuggestions() always clears previous suggestions of provider`() {
+        val adapter = SuggestionsAdapter(mock())
+
+        val provider = mockProvider()
+        `when`(provider.shouldClearSuggestions).thenReturn(true)
+
+        assertEquals(0, adapter.itemCount)
+
+        val suggestions = listOf<AwesomeBar.Suggestion>(mock(), mock(), mock())
+        adapter.addSuggestions(provider, suggestions)
+        assertEquals(3, adapter.itemCount)
+        assertEquals(suggestions, adapter.suggestions)
+
+        adapter.addSuggestions(provider, suggestions)
+        assertEquals(3, adapter.itemCount)
+        assertEquals(suggestions, adapter.suggestions)
+
+        // shouldClearSuggestions is used to indicate whether or not
+        // suggestions should be cleared right away on input changes.
+        // When we're adding newly computed suggestions, we should
+        // always clear old ones to prevent duplicates.
+        `when`(provider.shouldClearSuggestions).thenReturn(false)
+        adapter.addSuggestions(provider, suggestions)
         assertEquals(3, adapter.itemCount)
         assertEquals(suggestions, adapter.suggestions)
     }
@@ -147,9 +173,9 @@ class SuggestionsAdapterTest {
 
     @Test
     fun `onCreateViewHolder() will create view holder matching layout id`() {
-        val adapter = SuggestionsAdapter(BrowserAwesomeBar(context))
+        val adapter = SuggestionsAdapter(BrowserAwesomeBar(testContext))
 
-        val parent = LinearLayout(context)
+        val parent = LinearLayout(testContext)
 
         assertTrue(adapter.createViewHolder(parent, DefaultSuggestionViewHolder.Default.LAYOUT_ID).actual
             is DefaultSuggestionViewHolder.Default)
@@ -162,7 +188,7 @@ class SuggestionsAdapterTest {
     fun `onCreateViewHolder() will throw for unknown id`() {
         val adapter = SuggestionsAdapter(mock())
 
-        val parent = LinearLayout(context)
+        val parent = LinearLayout(testContext)
 
         adapter.onCreateViewHolder(parent, 0)
     }
@@ -205,7 +231,7 @@ class SuggestionsAdapterTest {
     fun `Adapter will wrap ViewHolder from SuggestionLayout`() {
         val suggestion: AwesomeBar.Suggestion = mock()
 
-        val holder = spy(object : SuggestionViewHolder(View(context)) {
+        val holder = spy(object : SuggestionViewHolder(View(testContext)) {
             override fun bind(suggestion: AwesomeBar.Suggestion, selectionListener: () -> Unit) = Unit
         })
 
@@ -217,7 +243,7 @@ class SuggestionsAdapterTest {
         adapter.layout = layout
 
         val viewHolder = adapter.createViewHolder(
-            LinearLayout(context),
+            LinearLayout(testContext),
             R.layout.mozac_browser_awesomebar_item_generic)
 
         verify(layout).createViewHolder(any(), any(), eq(R.layout.mozac_browser_awesomebar_item_generic))

@@ -85,6 +85,57 @@ data class TimespanMetricType(
     }
 
     /**
+     * Add an explicit timespan, in nanoseconds, to the already recorded
+     * timespans.
+     *
+     * This API should only be used if your library or application requires recording
+     * times in a way that can not make use of [start]/[stopAndSum]/[cancel].
+     *
+     * @param elapsedNanos The elapsed time to record, in nanoseconds.
+     */
+    fun sumRawNanos(elapsedNanos: Long) {
+        if (!shouldRecord(logger)) {
+            return
+        }
+
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        Dispatchers.API.launch {
+            TimespansStorageEngine.sum(
+                this@TimespanMetricType,
+                timeUnit,
+                elapsedNanos
+            )
+        }
+    }
+
+    /**
+     * Explicitly set the timespan value, in nanoseconds.
+     *
+     * This API should only be used if your library or application requires recording
+     * times in a way that can not make use of [start]/[stopAndSum]/[cancel].
+     *
+     * Care should be taken using this if the ping lifetime might contain more than one
+     * timespan measurement.  To be safe, [setRawNanos] should generally be followed by
+     * sending a custom ping containing the timespan.
+     *
+     * @param elapsedNanos The elapsed time to record, in nanoseconds.
+     */
+    fun setRawNanos(elapsedNanos: Long) {
+        if (!shouldRecord(logger)) {
+            return
+        }
+
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        Dispatchers.API.launch {
+            TimespansStorageEngine.set(
+                this@TimespanMetricType,
+                timeUnit,
+                elapsedNanos
+            )
+        }
+    }
+
+    /**
      * Tests whether a value is stored for the metric for testing purposes only
      *
      * @param pingName represents the name of the ping to retrieve the metric for.  Defaults

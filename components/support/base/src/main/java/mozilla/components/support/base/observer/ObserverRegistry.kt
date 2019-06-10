@@ -5,6 +5,7 @@
 package mozilla.components.support.base.observer
 
 import android.view.View
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.Lifecycle.Event.ON_DESTROY
 import androidx.lifecycle.Lifecycle.Event.ON_PAUSE
 import androidx.lifecycle.Lifecycle.Event.ON_RESUME
@@ -19,7 +20,10 @@ import java.util.WeakHashMap
 /**
  * A helper for classes that want to get observed. This class keeps track of registered observers
  * and can automatically unregister observers if a LifecycleOwner is provided.
+ *
+ * ObserverRegistry is thread-safe.
  */
+@Suppress("TooManyFunctions")
 class ObserverRegistry<T> : Observable<T> {
     private val observers = mutableSetOf<T>()
     private val lifecycleObservers = WeakHashMap<T, LifecycleBoundObserver<T>>()
@@ -32,12 +36,12 @@ class ObserverRegistry<T> : Observable<T> {
      *
      * @param observer the observer to register.
      */
+    @Synchronized
     override fun register(observer: T) {
-        synchronized(observers) {
-            observers.add(observer)
-        }
+        observers.add(observer)
     }
 
+    @Synchronized
     override fun register(observer: T, owner: LifecycleOwner, autoPause: Boolean) {
         // Don't register if the owner is already destroyed
         if (owner.lifecycle.currentState == DESTROYED) {
@@ -57,6 +61,7 @@ class ObserverRegistry<T> : Observable<T> {
         owner.lifecycle.addObserver(lifecycleObserver)
     }
 
+    @Synchronized
     override fun register(observer: T, view: View) {
         val viewObserver = ViewBoundObserver(
                 view,
@@ -74,74 +79,85 @@ class ObserverRegistry<T> : Observable<T> {
 
     /**
      * Unregisters an observer. Does nothing if [observer] is not registered.
-     * This method is thread-safe.
      *
      * @param observer the observer to unregister.
      */
+    @Synchronized
     override fun unregister(observer: T) {
-        synchronized(observers) {
-            observers.remove(observer)
-            pausedObservers.remove(observer)
-        }
+        // Remove observer
+        observers.remove(observer)
+        pausedObservers.remove(observer)
 
-        // Unregister observers
+        // Unregister lifecycle/view observers
         lifecycleObservers[observer]?.remove()
         viewObservers[observer]?.remove()
-        // Remove observers from map
+
+        // Remove lifecycle/view observers from map
         lifecycleObservers.remove(observer)
         viewObservers.remove(observer)
     }
 
+    @Synchronized
     override fun unregisterObservers() {
-        synchronized(observers) {
-            observers.forEach {
-                lifecycleObservers[it]?.remove()
-            }
-            observers.clear()
-            pausedObservers.clear()
-            lifecycleObservers.clear()
-            viewObservers.clear()
+        // Remove all registered observers
+        observers.toList().forEach { observer ->
+            unregister(observer)
         }
+
+        // There can still be view observers for views that are not attached yet and therefore the observers were not
+        // registered yet. Let's remove them too.
+        viewObservers.keys.toList().forEach { observer ->
+            unregister(observer)
+        }
+
+        // If any of our sets and maps is not empty now then this would be a serious bug.
+        checkInternalCollectionsAreEmpty()
     }
 
+    @Synchronized
     override fun pauseObserver(observer: T) {
-        synchronized(observers) {
-            pausedObservers.add(observer)
-        }
+        pausedObservers.add(observer)
     }
 
+    @Synchronized
     override fun resumeObserver(observer: T) {
-        synchronized(observers) {
-            pausedObservers.remove(observer)
-        }
+        pausedObservers.remove(observer)
     }
 
+    @Synchronized
     override fun notifyObservers(block: T.() -> Unit) {
-        synchronized(observers) {
-            observers.forEach {
-                if (!pausedObservers.contains(it)) {
-                    it.block()
-                }
+        observers.forEach {
+            if (!pausedObservers.contains(it)) {
+                it.block()
             }
         }
     }
 
+    @Synchronized
     override fun <V> wrapConsumers(block: T.(V) -> Boolean): List<(V) -> Boolean> {
         val consumers: MutableList<(V) -> Boolean> = mutableListOf()
 
-        synchronized(observers) {
-            observers.forEach { observer ->
-                consumers.add { value -> observer.block(value) }
-            }
+        observers.forEach { observer ->
+            consumers.add { value -> observer.block(value) }
         }
 
         return consumers
     }
 
+    @Synchronized
     override fun isObserved(): Boolean {
-        synchronized(observers) {
-            return !observers.isEmpty()
-        }
+        // The registry is getting observed if there are registered observer or if there are registered view observers
+        // that will register an observer as soon as their views are attached.
+        return observers.isNotEmpty() || viewObservers.isNotEmpty()
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun checkInternalCollectionsAreEmpty(): Boolean {
+        check(observers.isEmpty())
+        check(pausedObservers.isEmpty())
+        check(lifecycleObservers.isEmpty())
+        check(viewObservers.isEmpty())
+        return true
     }
 
     /**

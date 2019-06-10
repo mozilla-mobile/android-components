@@ -12,20 +12,32 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
-* **browser-toolbar**
-  * Updated `titleTextSize` and `textSize` to have maximum values which cannot be sized past in order
-    to ensure that their view constraints will not be broken. We do this manually because autoResizeText
-    does not work with views that have a non-fixed height.
-
 * **samples-firefox-accounts**
   * Switch FxA sample to production servers, fix pairing.
 
 * **browser-domains**
   * New domain autocomplete providers `ShippedDomainsProvider` and `CustomDomainsProvider` that
     should be used instead of deprecated `DomainAutoCompleteProvider`.
-    
+
 * **service-glean**
   * The length limit on labels in labeled metrics has been increased from 30 to 61 characters.  See [1556684](https://bugzilla.mozilla.org/show_bug.cgi?id=1556684).
+  * Timespan metrics have a new API for setting the timespan directly: `sumRawNanos` and `setRawNanos`.
+
+* **support-base**
+  * Fixed multiple potential leaks in `ObserverRegistry` (used internally by many classes in other components like `SessionManager`, `EngineSession` and others).
+
+* **browser-icons**
+  * Fixed possible `NullPointerException` when disk cache is written to concurrently.
+
+* **lib-crash**
+  * Crash reports sent to Sentry now contain optional environment information, if a parameter is passed.
+
+* **browser-session**
+  * ⚠️ **This is a breaking change**: Added `url` parameter to `Session.Observer.onLoadRequest()`.
+
+* **support-ktx**
+  * Removed `Drawable.toBitmap()` in favour of the Android Core KTX version.
+  * Removed `Context.systemService()` in favour of the Android Core KTX version.
 
 * **browser-session**
   * Added `Session.hasParentSession` to indicate whether a `Session` was opened from a parent `Session` such as opening a new tab from a link context menu ("Open in new tab").

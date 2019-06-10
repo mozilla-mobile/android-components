@@ -15,7 +15,7 @@
     <item android:state_checked="true">
         <shape>
             <gradient android:angle="270" />
-            <stroke android:width="2dp" android:color="@color/mozac_feature_readerview_selected"/>
+            <stroke android:width="2dp" android:color="?readerViewTextColorSelected"/>
             <corners android:radius="4dp" />
             <solid android:color="@color/mozac_feature_readerview_light_background"/>
         </shape>

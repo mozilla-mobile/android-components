@@ -6,12 +6,6 @@
   -->
 
 <resources>
-    <declare-styleable name="ReaderViewControlsBar">
-        <attr name="readerViewControlsBackgroundColor" format="reference|color" />
-        <attr name="readerViewControlsSelectedColor" format="reference|color" />
-        <attr name="readerViewControlsTextColor" format="reference|color" />
-    </declare-styleable>
-
     <style name="RadioButtonSelectedTextStyle" parent="@android:style/Widget.CompoundButton">
         <item name="android:textColor">@drawable/radiobutton_selected_text_selector</item>
         <item name="android:button">@null</item>

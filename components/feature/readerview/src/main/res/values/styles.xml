@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<resources>
+    <declare-styleable name="ReaderViewControlsBar" parent="">
+        <attr name="readerViewTextColorSelected">@color/mozac_feature_readerview_selected</attr>
+        <attr name="readerViewTextColor">@color/mozac_feature_readerview_text_color</attr>
+        <attr name="readerViewTextColorDisabled">@color/mozac_feature_readerview_text_color_disabled</attr>
+        <attr name="readerViewDarkBackground">@color/mozac_feature_readerview_dark_background</attr>
+        <attr name="readerViewLightBackground">@color/mozac_feature_readerview_light_background</attr>
+        <attr name="readerViewSepiaBackground">@color/mozac_feature_readerview_sepia_background</attr>
+    </declare-styleable>
+</resources>

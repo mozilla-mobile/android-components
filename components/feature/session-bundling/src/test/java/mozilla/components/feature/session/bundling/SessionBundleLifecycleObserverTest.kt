@@ -17,12 +17,13 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SessionBundleLifecycleObserverTest {
+
     @Test
     fun `New bundle is started and sessions are removed from SessionManager`() {
         runBlocking {

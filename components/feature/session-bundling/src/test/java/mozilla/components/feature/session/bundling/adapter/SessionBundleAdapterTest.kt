@@ -4,25 +4,22 @@
 
 package mozilla.components.feature.session.bundling.adapter
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.ext.writeSnapshot
 import mozilla.components.feature.session.bundling.db.BundleEntity
 import mozilla.components.feature.session.bundling.db.UrlList
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SessionBundleAdapterTest {
-    private val context: Context
-        get() = ApplicationProvider.getApplicationContext()
 
     @Test
     fun `restoreSnapshot restores snapshot from state`() {
@@ -33,9 +30,9 @@ class SessionBundleAdapterTest {
             selectedSessionIndex = 0)
 
         bundle.updateFrom(snapshot)
-        bundle.stateFile(context, mock()).writeSnapshot(snapshot)
+        bundle.stateFile(testContext, mock()).writeSnapshot(snapshot)
 
-        val restoredSnapshot = SessionBundleAdapter(context, mock(), bundle).restoreSnapshot()
+        val restoredSnapshot = SessionBundleAdapter(testContext, mock(), bundle).restoreSnapshot()
 
         assertNotNull(restoredSnapshot!!)
 
@@ -47,7 +44,7 @@ class SessionBundleAdapterTest {
     @Test
     fun `Accessing id through adapter`() {
         val bundle = BundleEntity(42, 0, UrlList(listOf()))
-        val adapter = SessionBundleAdapter(context, mock(), bundle)
+        val adapter = SessionBundleAdapter(testContext, mock(), bundle)
 
         assertEquals(42L, adapter.id)
     }
@@ -59,7 +56,7 @@ class SessionBundleAdapterTest {
             "https://www.firefox.com"
         )))
 
-        val adapter = SessionBundleAdapter(context, mock(), bundle)
+        val adapter = SessionBundleAdapter(testContext, mock(), bundle)
 
         assertEquals(2, adapter.urls.size)
         assertEquals("https://www.mozilla.org", adapter.urls[0])
@@ -70,7 +67,7 @@ class SessionBundleAdapterTest {
     fun `Accessing last save date through adapter`() {
         val bundle = BundleEntity(42, 1548165508982, UrlList(listOf()))
 
-        val adapter = SessionBundleAdapter(context, mock(), bundle)
+        val adapter = SessionBundleAdapter(testContext, mock(), bundle)
 
         assertEquals(1548165508982, adapter.lastSavedAt)
     }

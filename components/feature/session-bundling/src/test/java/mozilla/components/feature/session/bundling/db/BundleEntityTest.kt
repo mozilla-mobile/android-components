@@ -4,16 +4,17 @@
 
 package mozilla.components.feature.session.bundling.db
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class BundleEntityTest {
+
     @Test
     fun `updateFrom updates state and time`() {
         val bundle = BundleEntity(0, 0, UrlList(listOf()))

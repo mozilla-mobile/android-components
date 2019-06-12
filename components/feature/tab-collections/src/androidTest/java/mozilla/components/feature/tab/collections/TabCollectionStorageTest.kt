@@ -17,6 +17,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.feature.tab.collections.db.TabCollectionDatabase
 import mozilla.components.feature.tab.collections.db.TabEntity
 import mozilla.components.support.android.test.awaitValue
@@ -302,6 +303,9 @@ class TabCollectionStorageTest {
 }
 
 class FakeEngine : Engine {
+    override val version: EngineVersion
+        get() = throw NotImplementedError("Not needed for test")
+
     override fun createView(context: Context, attrs: AttributeSet?): EngineView =
         throw UnsupportedOperationException()
 

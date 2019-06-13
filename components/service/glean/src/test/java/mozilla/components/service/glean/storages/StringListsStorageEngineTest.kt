@@ -6,13 +6,15 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.error.ErrorRecording.testGetNumRecordedErrors
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.StringListMetricType
 import mozilla.components.service.glean.resetGlean
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert
@@ -22,7 +24,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
-import org.mockito.Mockito
 
 @RunWith(AndroidJUnit4::class)
 class StringListsStorageEngineTest {
@@ -218,17 +219,17 @@ class StringListsStorageEngineTest {
         val storageEngine = StringListsStorageEngineImplementation()
 
         // Create a fake application context that will be used to load our data.
-        val context = Mockito.mock(Context::class.java)
-        val sharedPreferences = Mockito.mock(SharedPreferences::class.java)
-        Mockito.`when`(sharedPreferences.all).thenAnswer { persistedSample }
-        Mockito.`when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             ArgumentMatchers.eq(storageEngine::class.java.canonicalName),
             ArgumentMatchers.eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        Mockito.`when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             ArgumentMatchers.eq("${storageEngine::class.java.canonicalName}.PingLifetime"),
             ArgumentMatchers.eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${storageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -244,7 +245,7 @@ class StringListsStorageEngineTest {
     fun `string list serializer should correctly serialize lists`() {
         run {
             val storageEngine = StringListsStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val storeNames = listOf("store1", "store2")
 
@@ -276,7 +277,7 @@ class StringListsStorageEngineTest {
         // to the cache
         run {
             val storageEngine = StringListsStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             // Get snapshot from store1
             val json = storageEngine.getSnapshotAsJSON("store1", true)

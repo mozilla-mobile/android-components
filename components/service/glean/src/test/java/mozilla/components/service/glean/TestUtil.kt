@@ -7,7 +7,6 @@ package mozilla.components.service.glean
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import androidx.test.core.app.ApplicationProvider
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
@@ -24,15 +23,19 @@ import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.scheduler.PingUploadWorker
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.json.JSONObject
-import org.junit.Assert
-import org.mockito.ArgumentMatchers
-import org.mockito.Mockito
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.spy
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 
@@ -61,7 +64,7 @@ internal fun checkPingSchema(content: JSONObject) {
             "glean_parser",
             "check",
             "-s",
-            "${BuildConfig.GLEAN_PING_SCHEMA_URL}"
+            BuildConfig.GLEAN_PING_SCHEMA_URL
         )
     ).redirectOutput(ProcessBuilder.Redirect.INHERIT)
         .redirectError(ProcessBuilder.Redirect.INHERIT)
@@ -104,7 +107,7 @@ internal fun checkPingSchema(content: String): JSONObject {
  * @throws AssertionError If the JSON content is not valid
  */
 internal fun collectAndCheckPingSchema(ping: PingType): JSONObject {
-    val appContext = ApplicationProvider.getApplicationContext<Context>()
+    val appContext = testContext
     val jsonString = PingMaker(
         StorageEngineManager(applicationContext = appContext),
         appContext
@@ -152,12 +155,14 @@ internal fun resetGlean(
  * @return an application [Context] that can be used to init Glean
  */
 internal fun getContextWithMockedInfo(): Context {
-    val context = Mockito.spy<Context>(ApplicationProvider.getApplicationContext<Context>())
-    val packageInfo = Mockito.mock(PackageInfo::class.java)
-    packageInfo.versionName = "glean.version.name"
-    val packageManager = Mockito.mock(PackageManager::class.java)
-    Mockito.`when`(packageManager.getPackageInfo(ArgumentMatchers.anyString(), ArgumentMatchers.anyInt())).thenReturn(packageInfo)
-    Mockito.`when`(context.packageManager).thenReturn(packageManager)
+    val context = spy(testContext)
+    val packageInfo = mock<PackageInfo>().apply {
+        versionName = "glean.version.name"
+    }
+    val packageManager = mock<PackageManager>()
+    whenever(packageManager.getPackageInfo(anyString(), anyInt()))
+        .thenReturn(packageInfo)
+    whenever(context.packageManager).thenReturn(packageManager)
     return context
 }
 
@@ -200,14 +205,12 @@ internal fun getWorkerStatus(tag: String): WorkerStatus {
  * @param timeoutMillis how log before stopping the wait. This defaults to 5000ms (5 seconds).
  */
 internal fun waitForEnqueuedWorker(workTag: String, timeoutMillis: Long = 5000) = runBlocking {
-    runBlocking {
-        withTimeout(timeoutMillis) {
-            do {
-                if (getWorkerStatus(workTag).isEnqueued) {
-                    return@withTimeout
-                }
-            } while (true)
-        }
+    withTimeout(timeoutMillis) {
+        do {
+            if (getWorkerStatus(workTag).isEnqueued) {
+                return@withTimeout
+            }
+        } while (true)
     }
 }
 
@@ -219,7 +222,7 @@ internal fun waitForEnqueuedWorker(workTag: String, timeoutMillis: Long = 5000) 
 internal fun triggerWorkManager() {
     // Check that the work is scheduled
     val status = getWorkerStatus(PingUploadWorker.PING_WORKER_TAG)
-    Assert.assertTrue("A scheduled PingUploadWorker must exist",
+    assertTrue("A scheduled PingUploadWorker must exist",
         status.isEnqueued)
 
     // Trigger WorkManager using TestDriver
@@ -237,10 +240,11 @@ internal class TestPingTagClient(
     private val responseBody: Response.Body = Response.Body.empty(),
     private val debugHeaderValue: String? = null
 ) : Client() {
+
     override fun fetch(request: Request): Response {
-        Assert.assertTrue("URL must be redirected for tagged pings",
+        assertTrue("URL must be redirected for tagged pings",
             request.url.startsWith(responseUrl))
-        Assert.assertEquals("Debug headers must match what the ping tag was set to",
+        assertEquals("Debug headers must match what the ping tag was set to",
             debugHeaderValue, request.headers!!["X-Debug-ID"])
 
         // Have to return a response here.
@@ -256,12 +260,10 @@ internal class TestPingTagClient(
  * Create a mock webserver that accepts all requests.
  * @return a [MockWebServer] instance
  */
-internal fun getMockWebServer(): MockWebServer {
-    val server = MockWebServer()
-    server.setDispatcher(object : Dispatcher() {
+internal fun getMockWebServer(): MockWebServer = MockWebServer().apply {
+    setDispatcher(object : Dispatcher() {
         override fun dispatch(request: RecordedRequest): MockResponse {
             return MockResponse().setBody("OK")
         }
     })
-    return server
 }

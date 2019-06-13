@@ -4,13 +4,10 @@
 
 package mozilla.components.service.glean
 
-import android.content.Context
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.work.testing.WorkManagerTestInitHelper
+import androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -30,7 +27,9 @@ import mozilla.components.service.glean.storages.StorageEngineManager
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.utils.getLanguageFromLocale
 import mozilla.components.service.glean.utils.getLocaleTag
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,8 +42,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import java.io.BufferedReader
 import java.io.File
@@ -63,7 +60,7 @@ class GleanTest {
 
     @Before
     fun setup() {
-        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+        initializeTestWorkManager(testContext)
 
         resetGlean()
     }
@@ -137,7 +134,7 @@ class GleanTest {
         ))
 
         // Fake calling the lifecycle observer.
-        val lifecycleRegistry = LifecycleRegistry(mock(LifecycleOwner::class.java))
+        val lifecycleRegistry = LifecycleRegistry(mock())
         val gleanLifecycleObserver = GleanLifecycleObserver()
         lifecycleRegistry.addObserver(gleanLifecycleObserver)
 
@@ -156,7 +153,7 @@ class GleanTest {
             for (i in 0..1) {
                 val request = server.takeRequest(20L, TimeUnit.SECONDS)
                 val docType = request.path.split("/")[3]
-                requests.set(docType, request.body.readUtf8())
+                requests[docType] = request.body.readUtf8()
             }
 
             val eventsJson = JSONObject(requests["events"])
@@ -186,7 +183,7 @@ class GleanTest {
     fun `initialize() must not crash the app if Glean's data dir is messed up`() {
         // Remove the Glean's data directory.
         val gleanDir = File(
-            ApplicationProvider.getApplicationContext<Context>().applicationInfo.dataDir,
+            testContext.applicationInfo.dataDir,
             Glean.GLEAN_DATA_DIR
         )
         assertTrue(gleanDir.deleteRecursively())
@@ -223,7 +220,7 @@ class GleanTest {
     fun `Initializing twice is a no-op`() {
         val beforeConfig = Glean.configuration
 
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        Glean.initialize(testContext)
 
         val afterConfig = Glean.configuration
 
@@ -232,7 +229,7 @@ class GleanTest {
 
     @Test
     fun `Don't handle events when uninitialized`() {
-        val gleanSpy = spy<GleanInternalAPI>(GleanInternalAPI::class.java)
+        val gleanSpy = spy(GleanInternalAPI::class.java)
 
         gleanSpy.initialized = false
         runBlocking {
@@ -314,7 +311,7 @@ class GleanTest {
         // need to clear those out again so we can test what happens when they
         // are missing.
         StorageEngineManager(
-            applicationContext = ApplicationProvider.getApplicationContext()
+            applicationContext = testContext
         ).clearAllStores()
 
         val clientIdMetric = UuidMetricType(
@@ -341,7 +338,7 @@ class GleanTest {
 
         // This should copy the values to their new locations
         Glean.initialized = false
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        Glean.initialize(testContext)
 
         assertEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
         assertTrue(GleanInternalMetrics.firstRunDate.testHasValue())
@@ -381,7 +378,7 @@ class GleanTest {
 
         // This should copy the values to their new locations
         Glean.initialized = false
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        Glean.initialize(testContext)
 
         assertNotEquals(clientIdValue, GleanInternalMetrics.clientId.testGetValue())
         assertNotEquals(firstRunDateMetric.testGetValue(), GleanInternalMetrics.firstRunDate.testGetValue())
@@ -396,7 +393,7 @@ class GleanTest {
         // need to clear those out again so we can test what happens when they
         // are missing.
         StorageEngineManager(
-            applicationContext = ApplicationProvider.getApplicationContext()
+            applicationContext = testContext
         ).clearAllStores()
 
         assertFalse(GleanInternalMetrics.clientId.testHasValue())
@@ -404,7 +401,7 @@ class GleanTest {
 
         // This should copy the values to their new locations
         Glean.initialized = false
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        Glean.initialize(testContext)
 
         assertTrue(GleanInternalMetrics.clientId.testHasValue())
         assertTrue(GleanInternalMetrics.firstRunDate.testHasValue())
@@ -598,7 +595,7 @@ class GleanTest {
         Glean.uploadEnabled = true
 
         Glean.setUploadEnabled(false)
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        Glean.initialize(testContext)
 
         assertEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
     }
@@ -610,20 +607,20 @@ class GleanTest {
         Glean.uploadEnabled = true
 
         Glean.setUploadEnabled(true)
-        Glean.initialize(ApplicationProvider.getApplicationContext())
+        Glean.initialize(testContext)
 
         assertNotEquals(GleanInternalAPI.KNOWN_CLIENT_ID, GleanInternalMetrics.clientId.testGetValue())
     }
 
     @Test
     fun `calling setUploadEnabled is a no-op`() {
-        val gleanMock = mock(GleanInternalAPI::class.java)
-        val context: Context = ApplicationProvider.getApplicationContext()
+        val gleanMock = mock<GleanInternalAPI>()
 
-        gleanMock.initialize(context)
+        gleanMock.initialize(testContext)
         gleanMock.setUploadEnabled(true)
 
-        `when`(gleanMock.onChangeUploadEnabled(anyBoolean())).thenThrow(AssertionError::class.java)
+        whenever(gleanMock.onChangeUploadEnabled(anyBoolean()))
+            .thenThrow(AssertionError::class.java)
         gleanMock.setUploadEnabled(true)
     }
 }

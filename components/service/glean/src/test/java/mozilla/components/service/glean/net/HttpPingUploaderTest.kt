@@ -16,12 +16,12 @@ import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.getMockWebServer
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.spy
 import java.io.IOException
 import java.net.CookieHandler
@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class HttpPingUploaderTest {
+
     private val testPath: String = "/some/random/path/not/important"
     private val testPing: String = "{ 'ping': 'test' }"
     private val testDefaultConfig = Configuration().copy(
@@ -42,7 +43,7 @@ class HttpPingUploaderTest {
 
     @Test
     fun `connection timeouts must be properly set`() {
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         val request = uploader.buildRequest(testPath, testPing, testDefaultConfig)
 
@@ -52,7 +53,7 @@ class HttpPingUploaderTest {
 
     @Test
     fun `user-agent must be properly set`() {
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         val request = uploader.buildRequest(testPath, testPing, testDefaultConfig)
 
@@ -61,7 +62,7 @@ class HttpPingUploaderTest {
 
     @Test
     fun `X-Client-* headers must be properly set`() {
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         val request = uploader.buildRequest(testPath, testPing, testDefaultConfig)
 
@@ -71,7 +72,7 @@ class HttpPingUploaderTest {
 
     @Test
     fun `Cookie policy must be properly set`() {
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         val request = uploader.buildRequest(testPath, testPing, testDefaultConfig)
 
@@ -81,10 +82,10 @@ class HttpPingUploaderTest {
     @Test
     fun `upload() returns true for successful submissions (200)`() {
         val mockClient: Client = mock()
-        `when`(mockClient.fetch(any())).thenReturn(Response(
-            "URL", 200, mock(), mock()))
+        whenever(mockClient.fetch(any()))
+            .thenReturn(Response("URL", 200, mock(), mock()))
 
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         val config = testDefaultConfig.copy(httpClient = lazy { mockClient })
 
@@ -94,10 +95,10 @@ class HttpPingUploaderTest {
     fun `upload() returns false for server errors (5xx)`() {
         for (responseCode in 500..527) {
             val mockClient: Client = mock()
-            `when`(mockClient.fetch(any())).thenReturn(Response(
-                "URL", responseCode, mock(), mock()))
+            whenever(mockClient.fetch(any()))
+                .thenReturn(Response("URL", responseCode, mock(), mock()))
 
-            val uploader = spy<HttpPingUploader>(HttpPingUploader())
+            val uploader = spy(HttpPingUploader())
 
             val config = testDefaultConfig.copy(httpClient = lazy { mockClient })
 
@@ -109,10 +110,10 @@ class HttpPingUploaderTest {
     fun `upload() returns true for successful submissions (2xx)`() {
         for (responseCode in 200..226) {
             val mockClient: Client = mock()
-            `when`(mockClient.fetch(any())).thenReturn(Response(
-                "URL", responseCode, mock(), mock()))
+            whenever(mockClient.fetch(any()))
+                .thenReturn(Response("URL", responseCode, mock(), mock()))
 
-            val uploader = spy<HttpPingUploader>(HttpPingUploader())
+            val uploader = spy(HttpPingUploader())
 
             val config = testDefaultConfig.copy(httpClient = lazy { mockClient })
 
@@ -124,10 +125,10 @@ class HttpPingUploaderTest {
     fun `upload() returns true for failing submissions with broken requests (4xx)`() {
         for (responseCode in 400..451) {
             val mockClient: Client = mock()
-            `when`(mockClient.fetch(any())).thenReturn(Response(
-                "URL", responseCode, mock(), mock()))
+            whenever(mockClient.fetch(any()))
+                .thenReturn(Response("URL", responseCode, mock(), mock()))
 
-            val uploader = spy<HttpPingUploader>(HttpPingUploader())
+            val uploader = spy(HttpPingUploader())
 
             val config = testDefaultConfig.copy(httpClient = lazy { mockClient })
 
@@ -219,25 +220,28 @@ class HttpPingUploaderTest {
         CookieHandler.setDefault(cookieManager)
 
         // Store a sample cookie.
-        val cookie = HttpCookie("cookie-time", "yes")
-        cookie.domain = testConfig.serverEndpoint
-        cookie.path = testPath
-        cookie.version = 0
+        val cookie = HttpCookie("cookie-time", "yes").apply {
+            domain = testConfig.serverEndpoint
+            path = testPath
+            version = 0
+        }
         cookieManager.cookieStore.add(URI(testConfig.serverEndpoint), cookie)
 
         // Store a cookie for a subdomain of the same domain's as the server endpoint,
         // to make sure we don't accidentally remove it.
-        val cookie2 = HttpCookie("cookie-time2", "yes")
-        cookie2.domain = "sub.localhost"
-        cookie2.path = testPath
-        cookie2.version = 0
+        val cookie2 = HttpCookie("cookie-time2", "yes").apply {
+            domain = "sub.localhost"
+            path = testPath
+            version = 0
+        }
         cookieManager.cookieStore.add(URI("http://sub.localhost:${server.port}/test"), cookie2)
 
         // Add another cookie for the same domain. This one should be removed as well.
-        val cookie3 = HttpCookie("cookie-time3", "yes")
-        cookie3.domain = "localhost"
-        cookie3.path = testPath
-        cookie3.version = 0
+        val cookie3 = HttpCookie("cookie-time3", "yes").apply {
+            domain = "localhost"
+            path = testPath
+            version = 0
+        }
         cookieManager.cookieStore.add(URI("http://localhost:${server.port}/test"), cookie3)
 
         // Trigger the connection.
@@ -262,11 +266,11 @@ class HttpPingUploaderTest {
     @Test
     fun `upload() should return false when upload fails`() {
         val mockClient: Client = mock()
-        `when`(mockClient.fetch(any())).thenThrow(IOException())
+        whenever(mockClient.fetch(any())).thenThrow(IOException())
 
         val config = testDefaultConfig.copy(httpClient = lazy { mockClient })
 
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         // And IOException during upload is a failed upload that we should retry. The client should
         // return false in this case.
@@ -275,7 +279,7 @@ class HttpPingUploaderTest {
 
     @Test
     fun `X-Debug-ID header is correctly added when pingTag is not null`() {
-        val uploader = spy<HttpPingUploader>(HttpPingUploader())
+        val uploader = spy(HttpPingUploader())
 
         val debugConfig = Configuration().copy(
             userAgent = "Glean/Test 25.0.2",

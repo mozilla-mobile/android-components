@@ -6,7 +6,6 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.error.ErrorRecording
@@ -15,6 +14,9 @@ import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.private.TimingDistributionMetricType
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.timing.TimingManager
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,7 +26,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
-import org.mockito.Mockito
 
 @RunWith(AndroidJUnit4::class)
 class TimingDistributionsStorageEngineTest {
@@ -93,31 +94,31 @@ class TimingDistributionsStorageEngineTest {
             "store1#telemetry.invalid_int" to -1,
             "store1#telemetry.invalid_list" to listOf("1", "2", "3"),
             "store1#telemetry.invalid_int_list" to "[1,2,3]",
-            "store1#telemetry.invalid_td_name" to "{\"category\":\"telemetry\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_bucketCount" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":\"not an int!\",\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_range" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_range2" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[\"not\",\"numeric\"],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_histogramType" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":-1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_values" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{\"0\": \"nope\"},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_sum" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":\"nope\",\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_timeUnit" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":-1}",
+            "store1#telemetry.invalid_td_name" to """{"category":"telemetry","bucketCount":100,"range":[0,60000,12],"histogramType":1,"values":{},"sum":0,"timeUnit":2}""",
+            "store1#telemetry.invalid_td_bucketCount" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":"not an int!","range":[0,60000,12],"histogramType":1,"values":{},"sum":0,"timeUnit":2}""",
+            "store1#telemetry.invalid_td_range" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":100,"range":[0,60000,12],"histogramType":1,"values":{},"sum":0,"timeUnit":2}""",
+            "store1#telemetry.invalid_td_range2" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":100,"range":["not","numeric"],"histogramType":1,"values":{},"sum":0,"timeUnit":2}""",
+            "store1#telemetry.invalid_td_histogramType" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":100,"range":[0,60000,12],"histogramType":-1,"values":{},"sum":0,"timeUnit":2}""",
+            "store1#telemetry.invalid_td_values" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":100,"range":[0,60000,12],"histogramType":1,"values":{"0": "nope"},"sum":0,"timeUnit":2}""",
+            "store1#telemetry.invalid_td_sum" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":100,"range":[0,60000,12],"histogramType":1,"values":{},"sum":"nope","timeUnit":2}""",
+            "store1#telemetry.invalid_td_timeUnit" to """{"category":"telemetry","name":"test_timing_distribution","bucketCount":100,"range":[0,60000,12],"histogramType":1,"values":{},"sum":0,"timeUnit":-1}""",
             "store1#telemetry.test_timing_distribution" to td.toJsonObject().toString()
         )
 
         val storageEngine = TimingDistributionsStorageEngineImplementation()
 
         // Create a fake application context that will be used to load our data.
-        val context = Mockito.mock(Context::class.java)
-        val sharedPreferences = Mockito.mock(SharedPreferences::class.java)
-        Mockito.`when`(sharedPreferences.all).thenAnswer { persistedSample }
-        Mockito.`when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             ArgumentMatchers.eq(storageEngine::class.java.canonicalName),
             ArgumentMatchers.eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        Mockito.`when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             ArgumentMatchers.eq("${storageEngine::class.java.canonicalName}.PingLifetime"),
             ArgumentMatchers.eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${storageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -132,7 +133,7 @@ class TimingDistributionsStorageEngineTest {
     fun `serializer should correctly serialize timing distributions`() {
         run {
             val storageEngine = TimingDistributionsStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val metric = TimingDistributionMetricType(
                 disabled = false,
@@ -168,7 +169,7 @@ class TimingDistributionsStorageEngineTest {
         // to the cache
         run {
             val storageEngine = TimingDistributionsStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val td = TimingDistributionData(category = "telemetry", name = "test_timing_distribution")
             td.accumulate(1L)

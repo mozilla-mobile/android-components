@@ -1,10 +1,8 @@
 package mozilla.components.service.glean.debug
 
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ResolveInfo
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.testing.WorkManagerTestInitHelper
 import mozilla.components.service.glean.Glean
@@ -15,6 +13,7 @@ import mozilla.components.service.glean.private.BooleanMetricType
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.triggerWorkManager
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -29,26 +28,24 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class GleanDebugActivityTest {
 
-    private val testPackageName = "mozilla.components.service.glean.test"
-
     @Before
     fun setup() {
         resetGlean()
 
-        WorkManagerTestInitHelper.initializeTestWorkManager(
-            ApplicationProvider.getApplicationContext())
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
 
         // This makes sure we have a "launch" intent in our package, otherwise
         // it will fail looking for it in `GleanDebugActivityTest`.
-        val pm = ApplicationProvider.getApplicationContext<Context>().packageManager
-        val launchIntent = Intent(Intent.ACTION_MAIN)
-        launchIntent.setPackage(testPackageName)
-        launchIntent.addCategory(Intent.CATEGORY_LAUNCHER)
-        val resolveInfo = ResolveInfo()
-        resolveInfo.activityInfo = ActivityInfo()
-        resolveInfo.activityInfo.packageName = testPackageName
-        resolveInfo.activityInfo.name = "LauncherActivity"
-        @Suppress("DEPRECATION")
+        val pm = testContext.packageManager
+        val launchIntent = Intent(Intent.ACTION_MAIN).apply {
+            setPackage(testPackageName)
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolveInfo = ResolveInfo().apply {
+            activityInfo = ActivityInfo()
+            activityInfo.packageName = testPackageName
+            activityInfo.name = "LauncherActivity"
+        }
         shadowOf(pm).addResolveInfoForIntent(launchIntent, resolveInfo)
     }
 
@@ -58,8 +55,7 @@ class GleanDebugActivityTest {
         Glean.configuration = originalConfig
 
         // Build the intent that will call our debug activity, with no extra.
-        val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
-            GleanDebugActivity::class.java)
+        val intent = Intent(testContext, GleanDebugActivity::class.java)
         assertNull(intent.extras)
 
         // Start the activity through our intent.
@@ -79,9 +75,9 @@ class GleanDebugActivityTest {
         assertFalse(originalConfig.logPings)
 
         // Set the extra values and start the intent.
-        val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
-            GleanDebugActivity::class.java)
-        intent.putExtra(GleanDebugActivity.LOG_PINGS_EXTRA_KEY, true)
+        val intent = Intent(testContext, GleanDebugActivity::class.java).apply {
+            putExtra(GleanDebugActivity.LOG_PINGS_EXTRA_KEY, true)
+        }
         val activity = Robolectric.buildActivity(GleanDebugActivity::class.java, intent)
         activity.create().start().resume()
 
@@ -92,10 +88,10 @@ class GleanDebugActivityTest {
     @Test
     fun `the main activity is correctly started`() {
         // Build the intent that will call our debug activity, with no extra.
-        val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
-            GleanDebugActivity::class.java)
-        // Add at least an option, otherwise the activity will be removed.
-        intent.putExtra(GleanDebugActivity.LOG_PINGS_EXTRA_KEY, true)
+        val intent = Intent(testContext, GleanDebugActivity::class.java).apply {
+            // Add at least an option, otherwise the activity will be removed.
+            putExtra(GleanDebugActivity.LOG_PINGS_EXTRA_KEY, true)
+        }
         // Start the activity through our intent.
         val activity = Robolectric.buildActivity(GleanDebugActivity::class.java, intent)
         activity.create().start().resume()
@@ -127,9 +123,9 @@ class GleanDebugActivityTest {
         assertTrue(booleanMetric.testHasValue())
 
         // Set the extra values and start the intent.
-        val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
-        GleanDebugActivity::class.java)
-        intent.putExtra(GleanDebugActivity.SEND_PING_EXTRA_KEY, "metrics")
+        val intent = Intent(testContext, GleanDebugActivity::class.java).apply {
+            putExtra(GleanDebugActivity.SEND_PING_EXTRA_KEY, "metrics")
+        }
         val activity = Robolectric.buildActivity(GleanDebugActivity::class.java, intent)
         activity.create().start().resume()
 
@@ -172,10 +168,10 @@ class GleanDebugActivityTest {
         assertTrue(booleanMetric.testHasValue())
 
         // Set the extra values and start the intent.
-        val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
-            GleanDebugActivity::class.java)
-        intent.putExtra(GleanDebugActivity.SEND_PING_EXTRA_KEY, "metrics")
-        intent.putExtra(GleanDebugActivity.TAG_DEBUG_VIEW_EXTRA_KEY, "inv@lid_id")
+        val intent = Intent(testContext, GleanDebugActivity::class.java).apply {
+            putExtra(GleanDebugActivity.SEND_PING_EXTRA_KEY, "metrics")
+            putExtra(GleanDebugActivity.TAG_DEBUG_VIEW_EXTRA_KEY, "inv@lid_id")
+        }
         val activity = Robolectric.buildActivity(GleanDebugActivity::class.java, intent)
         activity.create().start().resume()
 
@@ -229,10 +225,10 @@ class GleanDebugActivityTest {
         assertTrue(booleanMetric.testHasValue())
 
         // Set the extra values and start the intent.
-        val intent = Intent(ApplicationProvider.getApplicationContext<Context>(),
-            GleanDebugActivity::class.java)
-        intent.putExtra(GleanDebugActivity.SEND_PING_EXTRA_KEY, "metrics")
-        intent.putExtra(GleanDebugActivity.TAG_DEBUG_VIEW_EXTRA_KEY, pingTag)
+        val intent = Intent(testContext, GleanDebugActivity::class.java).apply {
+            putExtra(GleanDebugActivity.SEND_PING_EXTRA_KEY, "metrics")
+            putExtra(GleanDebugActivity.TAG_DEBUG_VIEW_EXTRA_KEY, pingTag)
+        }
         val activity = Robolectric.buildActivity(GleanDebugActivity::class.java, intent)
         activity.create().start().resume()
 
@@ -241,3 +237,5 @@ class GleanDebugActivityTest {
         triggerWorkManager()
     }
 }
+
+private const val testPackageName = "mozilla.components.service.glean.test"

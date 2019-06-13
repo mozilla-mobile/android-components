@@ -6,13 +6,15 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.error.ErrorRecording.testGetNumRecordedErrors
 import mozilla.components.service.glean.private.CounterMetricType
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.resetGlean
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -20,8 +22,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 
 @RunWith(AndroidJUnit4::class)
 class CountersStorageEngineTest {
@@ -44,17 +44,17 @@ class CountersStorageEngineTest {
         val storageEngine = CountersStorageEngineImplementation()
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { persistedSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             eq(storageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${storageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${storageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -68,7 +68,7 @@ class CountersStorageEngineTest {
     fun `counter serializer should correctly serialize counters`() {
         run {
             val storageEngine = CountersStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val metric = CounterMetricType(
                 disabled = false,
@@ -93,7 +93,7 @@ class CountersStorageEngineTest {
         // Re-instantiate storage engine to validate serialization from storage rather than cache
         run {
             val storageEngine = CountersStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             // Get the snapshot from "store1" and clear it.
             val snapshot = storageEngine.getSnapshotAsJSON(storeName = "store1", clearStore = true)

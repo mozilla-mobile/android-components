@@ -5,11 +5,14 @@
 package mozilla.components.service.glean.error
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.service.glean.error.ErrorRecording.ErrorType.InvalidLabel
+import mozilla.components.service.glean.error.ErrorRecording.ErrorType.InvalidValue
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.StringMetricType
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.storages.CountersStorageEngine
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.ext.combineWith
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
@@ -17,6 +20,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ErrorRecordingTest {
+
     @Before
     fun setup() {
         resetGlean()
@@ -37,28 +41,25 @@ class ErrorRecordingTest {
 
         ErrorRecording.recordError(
             stringMetric,
-            ErrorRecording.ErrorType.InvalidValue,
+            InvalidValue,
             "Invalid value",
             logger
         )
 
         ErrorRecording.recordError(
             stringMetric,
-            ErrorRecording.ErrorType.InvalidLabel,
+            InvalidLabel,
             "Invalid label",
             logger
         )
 
-        for (storeName in listOf("store1", "store2", "metrics")) {
-            for (errorType in listOf(
-                ErrorRecording.ErrorType.InvalidValue,
-                ErrorRecording.ErrorType.InvalidLabel
-            )) {
+        listOf("store1", "store2", "metrics")
+            .combineWith(listOf(InvalidValue, InvalidLabel))
+            .forEach { (storeName, errorType) ->
                 assertEquals(
                     1,
                     ErrorRecording.testGetNumRecordedErrors(stringMetric, errorType, storeName)
                 )
             }
-        }
     }
 }

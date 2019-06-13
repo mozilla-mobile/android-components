@@ -5,10 +5,12 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.UuidMetricType
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -16,8 +18,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
@@ -25,7 +25,7 @@ class UuidsStorageEngineTest {
 
     @Before
     fun setUp() {
-        UuidsStorageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        UuidsStorageEngine.applicationContext = testContext
         UuidsStorageEngine.clearAllStores()
     }
 
@@ -41,17 +41,17 @@ class UuidsStorageEngineTest {
         val storageEngine = UuidsStorageEngineImplementation()
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { persistedSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             eq(storageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${storageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${storageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -65,7 +65,7 @@ class UuidsStorageEngineTest {
     fun `UUID serializer correctly serializes UUID's`() {
         run {
             val storageEngine = UuidsStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val testUUID = "ce2adeb8-843a-4232-87a5-a099ed1e7bb3"
 
@@ -93,7 +93,7 @@ class UuidsStorageEngineTest {
         // to the cache
         run {
             val storageEngine = UuidsStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val testUUID = "ce2adeb8-843a-4232-87a5-a099ed1e7bb3"
 
@@ -204,7 +204,7 @@ class UuidsStorageEngineTest {
         val sampleUUID = "decaffde-caff-d3ca-ffd3-caffd3caffd3"
 
         val storageEngine = UuidsStorageEngineImplementation()
-        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        storageEngine.applicationContext = testContext
 
         val metric = UuidMetricType(
             disabled = false,
@@ -220,7 +220,7 @@ class UuidsStorageEngineTest {
         )
 
         // Check that the persisted shared prefs contains the expected data.
-        val storedData = ApplicationProvider.getApplicationContext<Context>()
+        val storedData = testContext
             .getSharedPreferences(storageEngine.javaClass.canonicalName, Context.MODE_PRIVATE)
             .all
 

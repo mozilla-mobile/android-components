@@ -6,7 +6,6 @@ package mozilla.components.service.glean.private
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.GleanMetrics.Pings
 import mozilla.components.service.glean.collectAndCheckPingSchema
@@ -19,6 +18,9 @@ import mozilla.components.service.glean.storages.StringListsStorageEngine
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.storages.TimespansStorageEngine
 import mozilla.components.service.glean.storages.UuidsStorageEngine
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -27,15 +29,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class LabeledMetricTypeTest {
+
     private data class GenericMetricType(
         override val disabled: Boolean,
         override val category: String,
@@ -61,7 +62,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledCounterMetric = LabeledMetricType<CounterMetricType>(
+        val labeledCounterMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -81,9 +82,9 @@ class LabeledMetricTypeTest {
         val snapshot = CountersStorageEngine.getSnapshot(storeName = "metrics", clearStore = false)
 
         assertEquals(3, snapshot!!.size)
-        assertEquals(1, snapshot.get("telemetry.labeled_counter_metric/label1"))
-        assertEquals(2, snapshot.get("telemetry.labeled_counter_metric/label2"))
-        assertEquals(3, snapshot.get("telemetry.labeled_counter_metric"))
+        assertEquals(1, snapshot["telemetry.labeled_counter_metric/label1"])
+        assertEquals(2, snapshot["telemetry.labeled_counter_metric/label2"])
+        assertEquals(3, snapshot["telemetry.labeled_counter_metric"])
 
         val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
         // Do the same checks again on the JSON structure
@@ -118,7 +119,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledCounterMetric = LabeledMetricType<CounterMetricType>(
+        val labeledCounterMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -138,10 +139,10 @@ class LabeledMetricTypeTest {
         val snapshot = CountersStorageEngine.getSnapshot(storeName = "metrics", clearStore = false)
 
         assertEquals(3, snapshot!!.size)
-        assertEquals(2, snapshot.get("telemetry.labeled_counter_metric/foo"))
-        assertEquals(1, snapshot.get("telemetry.labeled_counter_metric/bar"))
-        assertNull(snapshot.get("telemetry.labeled_counter_metric/baz"))
-        assertEquals(3, snapshot.get("telemetry.labeled_counter_metric/__other__"))
+        assertEquals(2, snapshot["telemetry.labeled_counter_metric/foo"])
+        assertEquals(1, snapshot["telemetry.labeled_counter_metric/bar"])
+        assertNull(snapshot["telemetry.labeled_counter_metric/baz"])
+        assertEquals(3, snapshot["telemetry.labeled_counter_metric/__other__"])
 
         val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
         // Do the same checks again on the JSON structure
@@ -177,7 +178,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledCounterMetric = LabeledMetricType<CounterMetricType>(
+        val labeledCounterMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -195,11 +196,11 @@ class LabeledMetricTypeTest {
         val snapshot = CountersStorageEngine.getSnapshot(storeName = "metrics", clearStore = false)
 
         assertEquals(17, snapshot!!.size)
-        assertEquals(2, snapshot.get("telemetry.labeled_counter_metric/label_0"))
+        assertEquals(2, snapshot["telemetry.labeled_counter_metric/label_0"])
         for (i in 1..15) {
-            assertEquals(1, snapshot.get("telemetry.labeled_counter_metric/label_$i"))
+            assertEquals(1, snapshot["telemetry.labeled_counter_metric/label_$i"])
         }
-        assertEquals(5, snapshot.get("telemetry.labeled_counter_metric/__other__"))
+        assertEquals(5, snapshot["telemetry.labeled_counter_metric/__other__"])
 
         val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
         // Do the same checks again on the JSON structure
@@ -237,7 +238,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledCounterMetric = LabeledMetricType<CounterMetricType>(
+        val labeledCounterMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -279,7 +280,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledCounterMetric = LabeledMetricType<CounterMetricType>(
+        val labeledCounterMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -333,7 +334,7 @@ class LabeledMetricTypeTest {
             timeUnit = TimeUnit.Nanosecond
         )
 
-        val labeledTimespanMetric = LabeledMetricType<TimespanMetricType>(
+        val labeledTimespanMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -362,7 +363,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledUuidMetric = LabeledMetricType<UuidMetricType>(
+        val labeledUuidMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -389,7 +390,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledStringListMetric = LabeledMetricType<StringListMetricType>(
+        val labeledStringListMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -414,7 +415,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledStringMetric = LabeledMetricType<StringMetricType>(
+        val labeledStringMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -441,7 +442,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledBooleanMetric = LabeledMetricType<BooleanMetricType>(
+        val labeledBooleanMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -466,7 +467,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledEventMetric = LabeledMetricType<EventMetricType<NoExtraKeys>>(
+        val labeledEventMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -487,17 +488,17 @@ class LabeledMetricTypeTest {
         )
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { persistedSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             eq(MockGenericStorageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -512,7 +513,7 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("store1")
         )
 
-        val labeledMetric = LabeledMetricType<GenericMetricType>(
+        val labeledMetric = LabeledMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.User,
@@ -537,10 +538,10 @@ class LabeledMetricTypeTest {
         val snapshot = storageEngine.getSnapshot(storeName = "store1", clearStore = false)
 
         assertEquals(17, snapshot!!.size)
-        assertEquals(2, snapshot.get("telemetry.labeled_metric/label1"))
+        assertEquals(2, snapshot["telemetry.labeled_metric/label1"])
         for (i in 2..15) {
-            assertEquals(1, snapshot.get("telemetry.labeled_metric/label$i"))
+            assertEquals(1, snapshot["telemetry.labeled_metric/label$i"])
         }
-        assertEquals(1, snapshot.get("telemetry.labeled_metric/__other__"))
+        assertEquals(1, snapshot["telemetry.labeled_metric/__other__"])
     }
 }

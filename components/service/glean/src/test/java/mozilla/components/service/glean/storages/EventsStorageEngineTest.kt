@@ -4,7 +4,6 @@
 package mozilla.components.service.glean.storages
 
 import android.os.SystemClock
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.testing.WorkManagerTestInitHelper
 import mozilla.components.service.glean.Glean
@@ -18,8 +17,8 @@ import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.NoExtraKeys
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.triggerWorkManager
+import mozilla.components.support.test.robolectric.testContext
 import org.json.JSONObject
-import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -50,6 +49,7 @@ enum class TruncatedKeys {
 
 @RunWith(AndroidJUnit4::class)
 class EventsStorageEngineTest {
+
     @Before
     fun setUp() {
         resetGlean()
@@ -57,7 +57,7 @@ class EventsStorageEngineTest {
         EventsStorageEngine.clearAllStores()
 
         // Initialize WorkManager using the WorkManagerTestInitHelper.
-        WorkManagerTestInitHelper.initializeTestWorkManager(ApplicationProvider.getApplicationContext())
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
     }
 
     @Test
@@ -281,7 +281,7 @@ class EventsStorageEngineTest {
                 click.record(extra = mapOf(TestEventNumberKeys.TestEventNumber to "$i"))
             }
 
-            Assert.assertTrue(click.testHasValue())
+            assertTrue(click.testHasValue())
 
             // Trigger worker task to upload the pings in the background
             triggerWorkManager()

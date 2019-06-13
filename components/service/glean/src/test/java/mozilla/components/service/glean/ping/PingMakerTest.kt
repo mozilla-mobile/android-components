@@ -4,13 +4,12 @@
 
 package mozilla.components.service.glean.ping
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.BuildConfig
 import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.storages.MockStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
+import mozilla.components.support.test.robolectric.testContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -20,14 +19,12 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
 import org.robolectric.annotation.Config
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
 class PingMakerTest {
-    private val mockApplicationContext = mock(Context::class.java)
 
     private val customPing = PingType(
         name = "test",
@@ -49,9 +46,9 @@ class PingMakerTest {
                 storageEngines = mapOf(
                     "engine2" to MockStorageEngine(JSONObject(mapOf("a.b" to "foo")))
                 ),
-                applicationContext = mockApplicationContext
+                applicationContext = testContext
             ),
-            mockApplicationContext
+            testContext
         )
 
         // Gather the data. We expect an empty ping with the "ping_info" information
@@ -79,9 +76,9 @@ class PingMakerTest {
                 storageEngines = mapOf(
                     "engine2" to MockStorageEngine(JSONArray(listOf("a", "b", "c")))
                 ),
-                applicationContext = mockApplicationContext
+                applicationContext = testContext
             ),
-            mockApplicationContext
+            testContext
         )
 
         // Gather the data. We expect an empty ping with the "ping_info" information
@@ -105,9 +102,9 @@ class PingMakerTest {
                 storageEngines = mapOf(
                     "engine2" to MockStorageEngine(JSONArray(listOf("a", "b", "c")))
                 ),
-                applicationContext = ApplicationProvider.getApplicationContext()
+                applicationContext = testContext
             ),
-            ApplicationProvider.getApplicationContext()
+            testContext
         )
 
         // Gather the data. We expect an empty ping with the "ping_info" information
@@ -132,9 +129,9 @@ class PingMakerTest {
                     "engine2" to MockStorageEngine(engine2Data),
                     "wontCollect" to MockStorageEngine(JSONObject(), "notThisPing")
                 ),
-                applicationContext = mockApplicationContext
+                applicationContext = testContext
             ),
-            mockApplicationContext
+            testContext
         )
 
         // Gather the data, this should have everything in the 'test' ping which is the default
@@ -160,9 +157,9 @@ class PingMakerTest {
                     "engine1" to MockStorageEngine(engine1Data),
                     "engine2" to MockStorageEngine(engine2Data)
                 ),
-                applicationContext = mockApplicationContext
+                applicationContext = testContext
             ),
-            mockApplicationContext
+            testContext
         )
 
         val noSuchPing = PingType(
@@ -179,7 +176,7 @@ class PingMakerTest {
     fun `seq number must be sequential`() {
         // NOTE: Using a "real" ApplicationContext here so that it will have
         // a working SharedPreferences implementation
-        val applicationContext = ApplicationProvider.getApplicationContext<Context>()
+        val applicationContext = testContext
         val maker = PingMaker(
             StorageEngineManager(
                 storageEngines = mapOf(

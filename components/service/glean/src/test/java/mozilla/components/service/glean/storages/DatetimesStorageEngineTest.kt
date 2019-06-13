@@ -5,20 +5,20 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.private.DatetimeMetricType
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.resetGlean
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -46,17 +46,17 @@ class DatetimesStorageEngineTest {
         val storageEngine = DatetimesStorageEngineImplementation()
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { persistedSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             eq(storageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${storageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${storageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -75,11 +75,11 @@ class DatetimesStorageEngineTest {
         val value = Calendar.getInstance()!!
         value.set(1993, 1, 23, 9, 5, 23)
         value.set(Calendar.MILLISECOND, 0)
-        value.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"))
+        value.timeZone = TimeZone.getTimeZone("America/Los_Angeles")
 
         run {
             val storageEngine = DatetimesStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val metric = DatetimeMetricType(
                 disabled = false,
@@ -104,7 +104,7 @@ class DatetimesStorageEngineTest {
         // to the cache
         run {
             val storageEngine = DatetimesStorageEngineImplementation()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             // Get the snapshot from "store1"
             val snapshot = storageEngine.getSnapshotAsJSON(storeName = "store1",

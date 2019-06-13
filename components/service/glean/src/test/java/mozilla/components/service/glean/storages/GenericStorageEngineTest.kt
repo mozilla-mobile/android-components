@@ -6,23 +6,24 @@ package mozilla.components.service.glean.storages
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.private.CommonMetricData
 import mozilla.components.service.glean.private.Lifetime
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class GenericStorageEngineTest {
+
     private data class GenericMetricType(
         override val disabled: Boolean,
         override val category: String,
@@ -37,7 +38,7 @@ class GenericStorageEngineTest {
         val dataPingLifetime = 3
 
         val storageEngine = MockGenericStorageEngine()
-        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        storageEngine.applicationContext = testContext
 
         val metric1 = GenericMetricType(
             disabled = false,
@@ -85,7 +86,7 @@ class GenericStorageEngineTest {
     @Test
     fun `metrics with empty 'category' must be properly recorded`() {
         val storageEngine = MockGenericStorageEngine()
-        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        storageEngine.applicationContext = testContext
 
         val metric = GenericMetricType(
             disabled = false,
@@ -118,10 +119,10 @@ class GenericStorageEngineTest {
         )
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { persistedSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             eq(MockGenericStorageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
@@ -157,17 +158,17 @@ class GenericStorageEngineTest {
         )
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { brokenSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { brokenSample }
+        whenever(context.getSharedPreferences(
             eq(MockGenericStorageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -204,17 +205,17 @@ class GenericStorageEngineTest {
         )
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { brokenSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { brokenSample }
+        whenever(context.getSharedPreferences(
             eq(MockGenericStorageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -231,17 +232,17 @@ class GenericStorageEngineTest {
     @Test
     fun `unpersisting metrics must not fail if SharedPreferences throws`() {
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenThrow(NullPointerException())
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenThrow(NullPointerException())
+        whenever(context.getSharedPreferences(
             eq(MockGenericStorageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -267,17 +268,17 @@ class GenericStorageEngineTest {
         )
 
         // Create a fake application context that will be used to load our data.
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
-        `when`(sharedPreferences.all).thenAnswer { persistedSample }
-        `when`(context.getSharedPreferences(
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
+        whenever(sharedPreferences.all).thenAnswer { persistedSample }
+        whenever(context.getSharedPreferences(
             eq(MockGenericStorageEngine::class.java.canonicalName),
             eq(Context.MODE_PRIVATE)
         )).thenReturn(sharedPreferences)
-        `when`(context.getSharedPreferences(
+        whenever(context.getSharedPreferences(
             eq("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime"),
             eq(Context.MODE_PRIVATE)
-        )).thenReturn(ApplicationProvider.getApplicationContext<Context>()
+        )).thenReturn(testContext
             .getSharedPreferences("${MockGenericStorageEngine::class.java.canonicalName}.PingLifetime",
                 Context.MODE_PRIVATE))
 
@@ -299,7 +300,7 @@ class GenericStorageEngineTest {
     @Test
     fun `snapshotting must only clear 'ping' lifetime`() {
         val storageEngine = MockGenericStorageEngine()
-        storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+        storageEngine.applicationContext = testContext
 
         val stores = listOf("store1", "store2")
 
@@ -370,7 +371,7 @@ class GenericStorageEngineTest {
         // for the SharedPreferences.
         run {
             val storageEngine = MockGenericStorageEngine()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val metric1 = GenericMetricType(
                 disabled = false,
@@ -410,7 +411,7 @@ class GenericStorageEngineTest {
         // Re-instantiate the engine: application lifetime probes should have been cleared.
         run {
             val storageEngine = MockGenericStorageEngine()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val snapshot = storageEngine.getSnapshot("store1", true)
             assertEquals(1, snapshot!!.size)
@@ -425,7 +426,7 @@ class GenericStorageEngineTest {
         // for the SharedPreferences.
         run {
             val storageEngine = MockGenericStorageEngine()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val metric1 = GenericMetricType(
                 disabled = false,
@@ -470,7 +471,7 @@ class GenericStorageEngineTest {
         // Re-instantiate the engine: ping lifetime metrics should be persisted.
         run {
             val storageEngine = MockGenericStorageEngine()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val snapshot = storageEngine.getSnapshot("store1", true)
             assertEquals(2, snapshot!!.size)
@@ -488,7 +489,7 @@ class GenericStorageEngineTest {
         // Now that the store was cleared, ping lifetime should have nothing persisted
         run {
             val storageEngine = MockGenericStorageEngine()
-            storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
+            storageEngine.applicationContext = testContext
 
             val snapshot = storageEngine.getSnapshot("store1", true)
             assertEquals(1, snapshot!!.size)

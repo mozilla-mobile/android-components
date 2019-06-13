@@ -1,35 +1,35 @@
 package mozilla.components.service.glean.scheduler
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.BackoffPolicy
 import androidx.work.NetworkType
 import androidx.work.WorkerParameters
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.resetGlean
-import org.junit.Assert
+import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
-import org.mockito.MockitoAnnotations
+import org.mockito.MockitoAnnotations.initMocks
 
 @RunWith(AndroidJUnit4::class)
 class PingUploadWorkerTest {
 
     @Mock
-    var workerParams: WorkerParameters? = null
+    lateinit var workerParams: WorkerParameters
 
-    private var pingUploadWorker: PingUploadWorker? = null
+    lateinit var pingUploadWorker: PingUploadWorker
 
     @Before
-    @Throws(Exception::class)
     fun setUp() {
-        val context: Context = ApplicationProvider.getApplicationContext()
-        MockitoAnnotations.initMocks(this)
-        resetGlean(context, config = Configuration().copy(logPings = true))
-        pingUploadWorker = PingUploadWorker(context, workerParams!!)
+        initMocks(this)
+
+        resetGlean(testContext, config = Configuration().copy(logPings = true))
+
+        pingUploadWorker = PingUploadWorker(testContext, workerParams)
     }
 
     @Test
@@ -40,14 +40,14 @@ class PingUploadWorkerTest {
         val workSpec = workRequest.workSpec
 
         // verify constraints
-        Assert.assertEquals(NetworkType.CONNECTED, workSpec.constraints.requiredNetworkType)
-        Assert.assertEquals(BackoffPolicy.EXPONENTIAL, workSpec.backoffPolicy)
-        Assert.assertTrue(workRequest.tags.contains(PingUploadWorker.PING_WORKER_TAG))
+        assertEquals(NetworkType.CONNECTED, workSpec.constraints.requiredNetworkType)
+        assertEquals(BackoffPolicy.EXPONENTIAL, workSpec.backoffPolicy)
+        assertTrue(workRequest.tags.contains(PingUploadWorker.PING_WORKER_TAG))
     }
 
     @Test
     fun testDoWorkSuccess() {
-        val result = pingUploadWorker!!.doWork()
-        Assert.assertTrue(result.toString().contains("Success"))
+        val result = pingUploadWorker.doWork()
+        assertTrue(result.toString().contains("Success"))
     }
 }

@@ -8,8 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.*
+import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.closeButton
+import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.messageView
+import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.restartButton
+import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.sendCheckbox
+import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.titleView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -17,8 +22,8 @@ import kotlinx.coroutines.withContext
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
-
-private const val PREFERENCE_KEY_SEND_REPORT = "sendCrashReport"
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * Activity showing the crash reporter prompt asking the user for confirmation before submitting a crash report.
@@ -27,8 +32,14 @@ class CrashReporterActivity : AppCompatActivity() {
     private val crashReporter: CrashReporter by lazy { CrashReporter.requireInstance }
     private val crash: Crash by lazy { Crash.fromIntent(intent) }
     private val sharedPreferences by lazy {
-        getSharedPreferences("mozac_lib_crash_settings", Context.MODE_PRIVATE)
+        getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
     }
+
+    /**
+     * Coroutine context for crash reporter operations. Can be used to setup dispatcher for tests.
+     */
+    @VisibleForTesting
+    internal var reporterCoroutineContext: CoroutineContext = EmptyCoroutineContext
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(crashReporter.promptConfiguration.theme)
@@ -69,8 +80,6 @@ class CrashReporterActivity : AppCompatActivity() {
     }
 
     private fun restart() {
-        println(packageName)
-
         sendCrashReportIfNeeded {
             val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
             if (launchIntent != null) {
@@ -90,7 +99,7 @@ class CrashReporterActivity : AppCompatActivity() {
             return
         }
 
-        GlobalScope.launch {
+        GlobalScope.launch(reporterCoroutineContext) {
             crashReporter.submitReport(crash)
 
             withContext(Dispatchers.Main) {
@@ -103,5 +112,14 @@ class CrashReporterActivity : AppCompatActivity() {
         sendCrashReportIfNeeded {
             finish()
         }
+    }
+
+    companion object {
+
+        @VisibleForTesting
+        internal const val SHARED_PREFERENCES_NAME = "mozac_lib_crash_settings"
+
+        @VisibleForTesting
+        internal const val PREFERENCE_KEY_SEND_REPORT = "sendCrashReport"
     }
 }

@@ -139,10 +139,6 @@ class SearchSuggestionProvider(
         ))
     }
 
-    override val shouldClearSuggestions: Boolean
-        // We do not want the suggestion of this provider to disappear and re-appear when text changes.
-        get() = false
-
     enum class Mode {
         SINGLE_SUGGESTION,
         MULTIPLE_SUGGESTIONS

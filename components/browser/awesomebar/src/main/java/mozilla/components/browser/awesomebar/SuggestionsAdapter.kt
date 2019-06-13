@@ -75,15 +75,13 @@ internal class SuggestionsAdapter(
     }
 
     /**
-     * Removes all suggestions except the ones from providers that have set shouldClearSuggestions to false.
+     * Removes all suggestions.
      */
-    fun optionallyClearSuggestions() = synchronized(suggestions) {
+    fun removeAllSuggestions() = synchronized(suggestions) {
         val updatedSuggestions = suggestions.toMutableList()
 
         suggestionMap.keys.forEach { provider ->
-            if (provider.shouldClearSuggestions) {
-                suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
-            }
+            suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
         }
 
         updateTo(updatedSuggestions)

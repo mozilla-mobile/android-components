@@ -12,6 +12,10 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-awesomebar**, **feature-awesomebar**
+  * Deprecated `shouldClearSuggestions` in `SuggestionProvider`. The AwesomeBar now always clear the previous provider suggestions.
+  * Renamed `optionallyClearSuggestions` to `removeAllSuggestions` in `SuggestionProvider`.
+
 * **browser-menu**
   * Added `endOfMenuAlwaysVisible` property/parameter to `BrowserMenuBuilder` constructor and to `BrowserMenu.show` function.
     When is set to true makes sure the bottom of the menu is always visible, this allows use cases like [#3211](https://github.com/mozilla-mobile/android-components/issues/3211).
@@ -99,7 +103,7 @@ permalink: /changelog/
 
 * **feature-app-links**
   * Add a flag to allow the app to not detect an external app if the user has told android to use the browser as default.
-  * Turn off interception of web links. 
+  * Turn off interception of web links.
 
 # 0.55.0
 

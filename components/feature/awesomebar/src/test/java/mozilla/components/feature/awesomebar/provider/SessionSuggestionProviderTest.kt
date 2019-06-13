@@ -124,10 +124,4 @@ class SessionSuggestionProviderTest {
 
         verify(useCase).invoke(session)
     }
-
-    @Test
-    fun `Provider suggestion should get cleared when text changes`() {
-        val provider = SessionSuggestionProvider(mock(), mock())
-        assertTrue(provider.shouldClearSuggestions)
-    }
 }

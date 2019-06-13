@@ -452,10 +452,10 @@ class BrowserAwesomeBarTest {
         runBlocking {
             val inOrder = inOrder(adapter, provider)
             awesomeBar.onInputChanged("Hello!")
-            verify(adapter, never()).optionallyClearSuggestions()
+            verify(adapter, never()).removeAllSuggestions()
             mainRunnable?.run()
 
-            inOrder.verify(adapter).optionallyClearSuggestions()
+            inOrder.verify(adapter).removeAllSuggestions()
             inOrder.verify(provider).onInputChanged("Hello!")
         }
     }

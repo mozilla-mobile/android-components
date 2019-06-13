@@ -37,10 +37,6 @@ class HistoryStorageSuggestionProvider(
         return suggestions.sortedByDescending { it.score }.distinctBy { it.id }.into()
     }
 
-    override val shouldClearSuggestions: Boolean
-        // We do not want the suggestion of this provider to disappear and re-appear when text changes.
-        get() = false
-
     private fun Iterable<SearchResult>.into(): List<AwesomeBar.Suggestion> {
         return this.map {
             AwesomeBar.Suggestion(

@@ -137,7 +137,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
         job?.cancel()
 
         job = scope.launch {
-            suggestionsAdapter.optionallyClearSuggestions()
+            suggestionsAdapter.removeAllSuggestions()
 
             providers.forEach { provider ->
                 launch {

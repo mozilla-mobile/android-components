@@ -76,12 +76,6 @@ class BookmarksStorageSuggestionProviderTest {
         assertEquals(20, suggestions.size)
     }
 
-    @Test
-    fun `Provider suggestion should get cleared when text changes`() {
-        val provider = BookmarksStorageSuggestionProvider(mock(), mock())
-        assertTrue(provider.shouldClearSuggestions)
-    }
-
     @SuppressWarnings
     class testableBookmarksStorage : BookmarksStorage {
         val bookmarkMap: HashMap<String, BookmarkNode> = hashMapOf()

@@ -1,19 +1,18 @@
 package mozilla.components.service.glean.private
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.error.ErrorRecording.testGetNumRecordedErrors
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.timing.TimingManager
 import org.junit.Assert.assertEquals
-import org.junit.Test
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import java.lang.NullPointerException
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class TimespanMetricTypeTest {
 
     @Before

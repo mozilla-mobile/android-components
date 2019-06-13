@@ -3,16 +3,15 @@
 
 package mozilla.components.service.glean.storages
 
-import java.util.ArrayList
-
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import java.util.ArrayList
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ExperimentsStorageEngineTest {
     @Before
     fun setUp() {

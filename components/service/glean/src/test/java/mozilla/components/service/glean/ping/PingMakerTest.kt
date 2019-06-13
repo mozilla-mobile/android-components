@@ -6,27 +6,26 @@ package mozilla.components.service.glean.ping
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.BuildConfig
 import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.storages.MockStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
 import org.json.JSONArray
 import org.json.JSONObject
-import org.junit.Test
-
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class PingMakerTest {
     private val mockApplicationContext = mock(Context::class.java)
 

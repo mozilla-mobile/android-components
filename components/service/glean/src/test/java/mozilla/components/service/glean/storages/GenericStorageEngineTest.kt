@@ -7,6 +7,7 @@ package mozilla.components.service.glean.storages
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.private.CommonMetricData
 import mozilla.components.service.glean.private.Lifetime
 import org.junit.Assert.assertEquals
@@ -19,9 +20,8 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class GenericStorageEngineTest {
     private data class GenericMetricType(
         override val disabled: Boolean,

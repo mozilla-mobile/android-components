@@ -4,6 +4,7 @@
 
 package mozilla.components.service.glean.error
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.StringMetricType
 import mozilla.components.service.glean.resetGlean
@@ -13,9 +14,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ErrorRecordingTest {
     @Before
     fun setup() {

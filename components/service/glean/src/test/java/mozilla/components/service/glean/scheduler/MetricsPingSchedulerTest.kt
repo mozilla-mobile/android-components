@@ -7,25 +7,26 @@ package mozilla.components.service.glean.scheduler
 import android.content.Context
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.testing.WorkManagerTestInitHelper
-import mozilla.components.service.glean.getContextWithMockedInfo
 import mozilla.components.service.glean.Glean
-import mozilla.components.service.glean.private.Lifetime
-import mozilla.components.service.glean.resetGlean
-import mozilla.components.service.glean.private.StringMetricType
-import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.checkPingSchema
-import mozilla.components.service.glean.triggerWorkManager
 import mozilla.components.service.glean.config.Configuration
+import mozilla.components.service.glean.getContextWithMockedInfo
 import mozilla.components.service.glean.getMockWebServer
 import mozilla.components.service.glean.getWorkerStatus
+import mozilla.components.service.glean.private.Lifetime
+import mozilla.components.service.glean.private.StringMetricType
+import mozilla.components.service.glean.private.TimeUnit
+import mozilla.components.service.glean.resetGlean
+import mozilla.components.service.glean.triggerWorkManager
 import mozilla.components.service.glean.utils.getISOTimeString
 import mozilla.components.service.glean.utils.parseISOTimeString
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,11 +38,10 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
 import java.util.Calendar
 import java.util.concurrent.TimeUnit as AndroidTimeUnit
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class MetricsPingSchedulerTest {
     private fun <T> kotlinFriendlyAny(): T {
         // This is required to work around the Kotlin/ArgumentMatchers problem with using

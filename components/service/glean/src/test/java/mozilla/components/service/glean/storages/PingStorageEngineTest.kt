@@ -4,26 +4,26 @@
 
 package mozilla.components.service.glean.storages
 
-import kotlinx.coroutines.runBlocking
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.resetGlean
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import java.io.File
-import java.io.FileReader
 import java.io.BufferedReader
+import java.io.File
 import java.io.FileOutputStream
+import java.io.FileReader
 import java.util.UUID
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class PingStorageEngineTest {
     // Filenames and paths to test with, regenerated with each test.
     private lateinit var fileName1: UUID

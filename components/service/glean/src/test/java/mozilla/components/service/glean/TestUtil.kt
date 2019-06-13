@@ -24,6 +24,7 @@ import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.scheduler.PingUploadWorker
 import mozilla.components.service.glean.storages.ExperimentsStorageEngine
 import mozilla.components.service.glean.storages.StorageEngineManager
+import mozilla.components.support.test.robolectric.testContext
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -119,7 +120,7 @@ internal fun collectAndCheckPingSchema(ping: PingType): JSONObject {
  * @param clearStores if true, clear the contents of all stores
  */
 internal fun resetGlean(
-    context: Context = ApplicationProvider.getApplicationContext(),
+    context: Context = testContext,
     config: Configuration = Configuration(),
     clearStores: Boolean = true
 ) {

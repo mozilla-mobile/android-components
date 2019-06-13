@@ -5,28 +5,28 @@ package mozilla.components.service.glean.storages
 
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.testing.WorkManagerTestInitHelper
+import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.checkPingSchema
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.error.ErrorRecording.testGetNumRecordedErrors
-import mozilla.components.service.glean.private.Lifetime
-import mozilla.components.service.glean.private.EventMetricType
 import mozilla.components.service.glean.getContextWithMockedInfo
-import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.getMockWebServer
+import mozilla.components.service.glean.private.EventMetricType
+import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.NoExtraKeys
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.triggerWorkManager
 import org.json.JSONObject
 import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertNotNull
+import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.util.concurrent.TimeUnit
 
 // Declared here, since Kotlin can not declare nested enum classes
@@ -48,7 +48,7 @@ enum class TruncatedKeys {
     TruncatedExtra
 }
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class EventsStorageEngineTest {
     @Before
     fun setUp() {
@@ -287,7 +287,7 @@ class EventsStorageEngineTest {
             triggerWorkManager()
 
             val request = server.takeRequest(20L, TimeUnit.SECONDS)
-            val applicationId = "mozilla-components-service-glean"
+            val applicationId = "mozilla-components-service-glean-test"
             assert(request.path.startsWith("/submit/$applicationId/events/${Glean.SCHEMA_VERSION}/"))
             val eventsJsonData = request.body.readUtf8()
             val eventsJson = checkPingSchema(eventsJsonData)
@@ -385,7 +385,7 @@ class EventsStorageEngineTest {
 
         val request = server.takeRequest(20L, TimeUnit.SECONDS)
         assertEquals("POST", request.method)
-        val applicationId = "mozilla-components-service-glean"
+        val applicationId = "mozilla-components-service-glean-test"
         assert(
             request.path.startsWith("/submit/$applicationId/events/${Glean.SCHEMA_VERSION}/")
         )
@@ -446,7 +446,7 @@ class EventsStorageEngineTest {
 
         val request = server.takeRequest(20L, TimeUnit.SECONDS)
         assertEquals("POST", request.method)
-        val applicationId = "mozilla-components-service-glean"
+        val applicationId = "mozilla-components-service-glean-test"
         assert(
             request.path.startsWith("/submit/$applicationId/events/${Glean.SCHEMA_VERSION}/")
         )

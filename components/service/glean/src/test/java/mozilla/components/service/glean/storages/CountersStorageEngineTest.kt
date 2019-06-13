@@ -7,23 +7,23 @@ package mozilla.components.service.glean.storages
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
-import mozilla.components.service.glean.private.Lifetime
-import mozilla.components.service.glean.private.CounterMetricType
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.error.ErrorRecording.testGetNumRecordedErrors
+import mozilla.components.service.glean.private.CounterMetricType
+import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.resetGlean
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class CountersStorageEngineTest {
 
     @Before

@@ -7,26 +7,26 @@ package mozilla.components.service.glean.storages
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import mozilla.components.service.glean.error.ErrorRecording
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.private.TimingDistributionMetricType
-import mozilla.components.service.glean.error.ErrorRecording
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.timing.TimingManager
 import org.junit.After
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class TimingDistributionsStorageEngineTest {
 
     @Before

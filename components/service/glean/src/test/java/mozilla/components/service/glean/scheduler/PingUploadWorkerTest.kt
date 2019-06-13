@@ -2,6 +2,7 @@ package mozilla.components.service.glean.scheduler
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.BackoffPolicy
 import androidx.work.NetworkType
 import androidx.work.WorkerParameters
@@ -13,9 +14,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class PingUploadWorkerTest {
 
     @Mock

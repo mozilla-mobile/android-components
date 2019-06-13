@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -29,6 +30,7 @@ import mozilla.components.service.glean.storages.StorageEngineManager
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.utils.getLanguageFromLocale
 import mozilla.components.service.glean.utils.getLocaleTag
+import mozilla.components.support.test.robolectric.testContext
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -44,7 +46,6 @@ import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
-import org.robolectric.RobolectricTestRunner
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
@@ -57,13 +58,12 @@ import mozilla.components.service.glean.private.TimeUnit as GleanTimeUnit
 
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class GleanTest {
 
     @Before
     fun setup() {
-        WorkManagerTestInitHelper.initializeTestWorkManager(
-            ApplicationProvider.getApplicationContext())
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
 
         resetGlean()
     }
@@ -90,7 +90,7 @@ class GleanTest {
     fun `test path generation`() {
         val uuid = UUID.randomUUID()
         val path = Glean.makePath("test", uuid)
-        val applicationId = "mozilla-components-service-glean"
+        val applicationId = "mozilla-components-service-glean-test"
         // Make sure that the default applicationId matches the package name.
         assertEquals(applicationId, Glean.applicationId)
         assertEquals(path, "/submit/$applicationId/test/${Glean.SCHEMA_VERSION}/$uuid")

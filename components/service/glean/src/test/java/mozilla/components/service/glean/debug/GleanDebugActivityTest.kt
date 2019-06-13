@@ -1,35 +1,35 @@
 package mozilla.components.service.glean.debug
 
 import android.content.Context
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.pm.ResolveInfo
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.testing.WorkManagerTestInitHelper
 import mozilla.components.service.glean.Glean
+import mozilla.components.service.glean.TestPingTagClient
 import mozilla.components.service.glean.config.Configuration
+import mozilla.components.service.glean.getMockWebServer
+import mozilla.components.service.glean.private.BooleanMetricType
+import mozilla.components.service.glean.private.Lifetime
+import mozilla.components.service.glean.resetGlean
+import mozilla.components.service.glean.triggerWorkManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.robolectric.Robolectric
-import android.content.pm.ActivityInfo
-import android.content.pm.ResolveInfo
-import androidx.work.testing.WorkManagerTestInitHelper
-import mozilla.components.service.glean.private.BooleanMetricType
-import mozilla.components.service.glean.private.Lifetime
-import mozilla.components.service.glean.resetGlean
-import mozilla.components.service.glean.triggerWorkManager
-import mozilla.components.service.glean.TestPingTagClient
-import mozilla.components.service.glean.getMockWebServer
 import org.robolectric.Shadows.shadowOf
 import java.util.concurrent.TimeUnit
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class GleanDebugActivityTest {
 
-    private val testPackageName = "mozilla.components.service.glean"
+    private val testPackageName = "mozilla.components.service.glean.test"
 
     @Before
     fun setup() {
@@ -144,7 +144,7 @@ class GleanDebugActivityTest {
         val request = server.takeRequest(10L, TimeUnit.SECONDS)
 
         assertTrue(
-            request.requestUrl.encodedPath().startsWith("/submit/mozilla-components-service-glean/metrics")
+            request.requestUrl.encodedPath().startsWith("/submit/mozilla-components-service-glean-test/metrics")
         )
 
         server.shutdown()
@@ -189,7 +189,7 @@ class GleanDebugActivityTest {
 
         assertTrue(
             "Request path must be correct",
-            request.requestUrl.encodedPath().startsWith("/submit/mozilla-components-service-glean/metrics")
+            request.requestUrl.encodedPath().startsWith("/submit/mozilla-components-service-glean-test/metrics")
         )
 
         assertNull(

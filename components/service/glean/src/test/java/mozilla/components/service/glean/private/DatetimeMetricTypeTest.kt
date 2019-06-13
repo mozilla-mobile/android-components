@@ -4,6 +4,7 @@
 
 package mozilla.components.service.glean.private
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import mozilla.components.service.glean.resetGlean
@@ -13,13 +14,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.util.Calendar
 import java.util.TimeZone
 
 @ObsoleteCoroutinesApi
 @ExperimentalCoroutinesApi
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class DatetimeMetricTypeTest {
 
     @Before

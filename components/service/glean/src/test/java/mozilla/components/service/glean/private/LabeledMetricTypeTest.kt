@@ -7,8 +7,11 @@ package mozilla.components.service.glean.private
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.GleanMetrics.Pings
 import mozilla.components.service.glean.collectAndCheckPingSchema
+import mozilla.components.service.glean.error.ErrorRecording
+import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.storages.BooleansStorageEngine
 import mozilla.components.service.glean.storages.CountersStorageEngine
 import mozilla.components.service.glean.storages.MockGenericStorageEngine
@@ -16,15 +19,12 @@ import mozilla.components.service.glean.storages.StringListsStorageEngine
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.storages.TimespansStorageEngine
 import mozilla.components.service.glean.storages.UuidsStorageEngine
-import mozilla.components.service.glean.error.ErrorRecording
-import mozilla.components.service.glean.resetGlean
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import java.util.UUID
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
@@ -32,9 +32,9 @@ import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
-import org.robolectric.RobolectricTestRunner
+import java.util.UUID
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class LabeledMetricTypeTest {
     private data class GenericMetricType(
         override val disabled: Boolean,

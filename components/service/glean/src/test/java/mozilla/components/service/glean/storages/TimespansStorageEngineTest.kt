@@ -6,25 +6,24 @@ package mozilla.components.service.glean.storages
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.private.TimespanMetricType
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.timing.TimingManager
 import org.junit.After
-
-import org.junit.Before
-import org.junit.Test
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.eq
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
-import org.robolectric.RobolectricTestRunner
 import java.util.concurrent.TimeUnit as AndroidTimeUnit
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class TimespansStorageEngineTest {
     @Before
     fun setUp() {

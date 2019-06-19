@@ -46,6 +46,8 @@ abstract class AbstractWebAppShellActivity : AppCompatActivity() {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun applyConfiguration(manifest: WebAppManifest) {
+        engine.speculativeConnect(manifest.startUrl)
+
         if (manifest.display == WebAppManifest.DisplayMode.FULLSCREEN) {
             enterToImmersiveMode()
         }

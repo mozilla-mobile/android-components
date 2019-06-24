@@ -13,7 +13,10 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.pwa.ext.applyOrientation
+import mozilla.components.feature.pwa.ext.asTaskDescription
 import mozilla.components.support.ktx.android.view.enterToImmersiveMode
+import mozilla.components.support.ktx.android.view.setNavigationBarTheme
+import mozilla.components.support.ktx.android.view.setStatusBarTheme
 
 /**
  * Activity for "standalone" and "fullscreen" web applications.
@@ -51,6 +54,10 @@ abstract class AbstractWebAppShellActivity : AppCompatActivity() {
         }
 
         applyOrientation(manifest)
+
+        setTaskDescription(manifest.asTaskDescription())
+        manifest.themeColor?.let { setStatusBarTheme(it) }
+        manifest.backgroundColor?.let { setNavigationBarTheme(it) }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

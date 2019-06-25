@@ -34,6 +34,7 @@ abstract class EngineSession(
         fun onLocationChange(url: String) = Unit
         fun onTitleChange(title: String) = Unit
         fun onProgress(progress: Int) = Unit
+        fun onElapsedLoadTimeMS(elapsed: Int) = Unit
         fun onLoadingStateChange(loading: Boolean) = Unit
         fun onNavigationStateChange(canGoBack: Boolean? = null, canGoForward: Boolean? = null) = Unit
         fun onSecurityChange(secure: Boolean, host: String? = null, issuer: String? = null) = Unit

@@ -151,7 +151,7 @@ class GeckoEngineSessionTest {
         assertEquals(GeckoEngineSession.PROGRESS_START, observedProgress)
         assertEquals(true, observedLoadingState)
 
-        progressDelegate.value.onPageStop(mock(), true)
+        progressDelegate.value.onPageStop(mock(), true, 0)
         assertEquals(GeckoEngineSession.PROGRESS_STOP, observedProgress)
         assertEquals(false, observedLoadingState)
 
@@ -161,7 +161,7 @@ class GeckoEngineSessionTest {
         assertEquals(GeckoEngineSession.PROGRESS_START, observedProgress)
         assertEquals(true, observedLoadingState)
 
-        progressDelegate.value.onPageStop(mock(), false)
+        progressDelegate.value.onPageStop(mock(), false, 0)
         assertEquals(GeckoEngineSession.PROGRESS_STOP, observedProgress)
         assertEquals(false, observedLoadingState)
 
@@ -1727,7 +1727,7 @@ class GeckoEngineSessionTest {
             observedUrl = null
             navigationDelegate.value.onLoadRequest(
                 mock(), mockLoadRequest(fakeUrl, triggeredByRedirect = true))
-            progressDelegate.value.onPageStop(mock(), true)
+            progressDelegate.value.onPageStop(mock(), true, 0)
             assertNotNull(observedTriggeredByWebContent)
             assertEquals(expectedTriggeredByWebContent, observedTriggeredByWebContent!!)
             assertNotNull(observedUrl)

@@ -67,6 +67,7 @@ class Session(
         fun onUrlChanged(session: Session, url: String) = Unit
         fun onTitleChanged(session: Session, title: String) = Unit
         fun onProgress(session: Session, progress: Int) = Unit
+        fun onElapsedLoadTimeMS(session: Session, progress: Int) = Unit
         fun onLoadingStateChanged(session: Session, loading: Boolean) = Unit
         fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) = Unit
         fun onLoadRequest(
@@ -195,6 +196,13 @@ class Session(
         if (notifyObservers(old, new) { onProgress(this@Session, new) }) {
             store?.syncDispatch(UpdateProgressAction(id, new))
         }
+    }
+
+    /**
+     * The elapsed time of the load.
+     */
+    var elapsedLoadTimeMS: Int by Delegates.observable(-1) {
+        _, old, new -> notifyObservers(old, new) { onElapsedLoadTimeMS(this@Session, new) }
     }
 
     /**

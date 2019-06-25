@@ -48,6 +48,10 @@ internal class EngineObserver(
         }
     }
 
+    override fun onElapsedLoadTimeMS(elapsed: Int) {
+        session.elapsedLoadTimeMS = elapsed
+    }
+
     override fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
         if (triggeredByRedirect || triggeredByWebContent) {
             session.searchTerms = ""

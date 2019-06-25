@@ -396,12 +396,13 @@ class GeckoEngineSession(
             }
         }
 
-        override fun onPageStop(session: GeckoSession, success: Boolean) {
+        override fun onPageStop(session: GeckoSession, success: Boolean, elapsed: Int) {
             // by the time we reach here, any new request will come from web content.
             // If it comes from the chrome, loadUrl(url) or loadData(string) will set it to
             // false.
             requestFromWebContent = true
             notifyObservers {
+                onElapsedLoadTimeMS(elapsed)
                 onProgress(PROGRESS_STOP)
                 onLoadingStateChange(false)
             }

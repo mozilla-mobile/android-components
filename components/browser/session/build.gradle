@@ -19,11 +19,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
-    testOptions.unitTests.includeAndroidResources = true
 }
 
 dependencies {
+    api project(':browser-state')
+
     implementation project(':concept-engine')
     implementation project(':support-utils')
     implementation project(':support-ktx')

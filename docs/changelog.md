@@ -4,26 +4,81 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 1.0.0-SNAPSHOT  (In Development)
+# 2.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.56.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/60?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v1.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/61?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **lib-state**
+  * A new component for maintaining application, screen or component state via a redux-style `Store`. This component provides the architectural foundation for the `browser-state` component (in development).
+
+* **support-ktx**
+  * Deprecated `Resource.pxToDp`.
+  * Added `Int.dpToPx` to convert from density independent pixels to an int representing screen pixels.
+  * Added `Int.dpToFloat` to convert from density independent pixels to a float representing screen pixels.
+
+* **support-ktx**
+  * Added `Context.isScreenReaderEnabled` extension to check if TalkBack service is enabled.
+
+# 1.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.56.0...v1.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/60?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v1.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v1.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v1.0.0/buildSrc/src/main/java/Config.kt)
+
+* 🛑 Removed deprecated components (See [blog posting](https://mozac.org/2019/05/23/deprecation.html)):
+  * feature-session-bundling
+  * ui-progress
+  * ui-doorhanger
+
+* **concept-engine**, **browser-engine-gecko(-beta/nightly)**, **browser-engine-system**
+  * Added `Engine.version` property (`EngineVersion`) for printing and comparing the version of the used engine.
+
 * **browser-menu**
   * Added `endOfMenuAlwaysVisible` property/parameter to `BrowserMenuBuilder` constructor and to `BrowserMenu.show` function.
     When is set to true makes sure the bottom of the menu is always visible, this allows use cases like [#3211](https://github.com/mozilla-mobile/android-components/issues/3211).
+  * Added `onDimiss` parameter to `BrowserMenu.show` function, called when the menu is dismissed.
+  * Changed `BrowserMenuHighlightableItem` constructor to allow for dynamically toggling the highlight with `invalidate()`.
+
+* **browser-toolbar**
+  * Added highlight effect to the overflow menu button when a highlighted `BrowserMenuHighlightableItem` is present.
+
+* **feature-tab-collections**
+  * Tabs can now be restored without restoring the ID of the `Session` by using the `restoreSessionId` flag. An app may
+    prefer to use new IDs if it expects sessions to get restored multiple times - otherwise breaking the promise of a
+    unique ID.
 
 * **browser-search**
   * Added `getProvidedDefaultSearchEngine` to `SearchEngineManager` to return the provided default search engine or the first
     search engine if the default is not set. This allows use cases like [#3344](https://github.com/mozilla-mobile/android-components/issues/3344).
 
-* 🛑 Removed deprecated components (See blog posting):
-  * feature-session-bundling
-  * ui-progress
-  * ui-doorhanger
+* **feature-tab-collections**
+  * Behavior change: `TabCollection` instances returned by `TabCollectionStorage` are now ordered by the last time they have been updated (instead of the time they have been created).
+
+* **lib-crash**
+  * [Restrictions to background activity starts](https://developer.android.com/preview/privacy/background-activity-starts) in Android Q+ make it impossible to launch the crash reporter prompt after certain crashes. In those situations the library will show a "crash notification" instead. Clicking on the notification will launch the crash reporter prompt allowing the user to submit a crash report.
+
+# 0.56.4
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.56.3...v0.56.4)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.56.4/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.56.4/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.56.4/buildSrc/src/main/java/Config.kt)
+
+* Imported updated translations.
+
+# 0.56.3
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.56.2...v0.56.3)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v0.56.3/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v0.56.3/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.56.3/buildSrc/src/main/java/Config.kt)
+
+* **service-firefox-accounts**
+  * Disabled periodic device event polling.
 
 # 0.56.2
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.56.1...v0.56.2)
@@ -34,10 +89,6 @@ permalink: /changelog/
 * **browser-menu**
   * Added `endOfMenuAlwaysVisible` property/parameter to `BrowserMenuBuilder` constructor and to `BrowserMenu.show` function.
     When is set to true makes sure the bottom of the menu is always visible, this allows use cases like [#3211](https://github.com/mozilla-mobile/android-components/issues/3211).
-
-* **browser-search**
-  * Added `getProvidedDefaultSearchEngine` to `SearchEngineManager` to return the provided default search engine or the first
-    search engine if the default is not set. This allows use cases like [#3344](https://github.com/mozilla-mobile/android-components/issues/3344).
 
 # 0.56.1
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v0.56.0...v0.56.1)
@@ -99,7 +150,7 @@ permalink: /changelog/
 
 * **feature-app-links**
   * Add a flag to allow the app to not detect an external app if the user has told android to use the browser as default.
-  * Turn off interception of web links. 
+  * Turn off interception of web links.
 
 # 0.55.0
 
@@ -315,7 +366,7 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/v0.53.0/buildSrc/src/main/java/Config.kt)
 
 * **concept-engine**, **browser-engine-gecko-nightly** and **browser-engine-gecko-beta**:
-  * Added new policies for Safe Browsing: `TrackingProtectionPolicy.SAFE_BROWSING_MALWARE`,`TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED`,`TrackingProtectionPolicy.SAFE_BROWSING_PHISHING`, `TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL` and `TrackingProtectionPolicy.SAFE_BROWSING_ALL`.
+  * Added new policies for Safe Browsing: `TrackingProtectionPolicy.SAFE_BROWSING_MALWARE`, `TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED`, `TrackingProtectionPolicy.SAFE_BROWSING_PHISHING`, `TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL` and `TrackingProtectionPolicy.SAFE_BROWSING_ALL`.
   * Added a new policy category : `trackingProtectionPolicy.recommended()` contains all the recommended policies categories. It blocks ads, analytics, social, test trackers, plus all the safe browsing policies.
 
 * **browser-engine-system**

@@ -6,17 +6,17 @@ internal object GeckoVersions {
     /**
      * GeckoView Nightly Version.
      */
-    const val nightly_version = "69.0.20190610093815"
+    const val nightly_version = "69.0.20190625094022"
 
     /**
      * GeckoView Beta Version.
      */
-    const val beta_version = "68.0.20190611143747"
+    const val beta_version = "68.0.20190612114833"
 
     /**
      * GeckoView Release Version.
      */
-    const val release_version = "67.0.20190521210220"
+    const val release_version = "67.0.20190613202504"
 }
 
 @Suppress("MaxLineLength")

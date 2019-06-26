@@ -280,9 +280,17 @@ projects:
     path: components/lib/publicsuffixlist
     description: 'A library for reading and using the public suffix list.'
     publish: true
+  lib-push-amazon:
+    path: components/lib/push-amazon
+    description: 'An implementation of concept-push for the Amazon Device Messaging.'
+    publish: false
   lib-push-firebase:
     path: components/lib/push-firebase
     description: 'An implementation of concept-push for the Firebase Message Service.'
+    publish: true
+  lib-state:
+    path: components/lib/state
+    description: 'A library for maintaining application state.'
     publish: true
   tooling-lint:
     path: components/tooling/lint

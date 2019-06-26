@@ -28,12 +28,11 @@ android {
 
         lintConfig file("lint.xml")
     }
-
-    testOptions.unitTests.includeAndroidResources = true
 }
 
 dependencies {
     implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
     implementation Dependencies.androidx_test_junit
     implementation Dependencies.testing_mockito

@@ -2,7 +2,7 @@
 
 # enabled
 
-`var enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/crash/src/main/java/mozilla/components/lib/crash/CrashReporter.kt#L46)
+`var enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/crash/src/main/java/mozilla/components/lib/crash/CrashReporter.kt#L47)
 
 Enable/Disable crash reporting.
 
@@ -20,6 +20,6 @@ Enable/Disable crash reporting.
 
 `promptConfiguration` - Configuration for customizing the crash reporter prompt.
 
-`nonFatalCrashIntent` - A [PendingIntent](https://developer.android.com/reference/android/app/PendingIntent.html) that will be launched if a non fatal crash (main process not affected)
+`nonFatalCrashIntent` - A [PendingIntent](#) that will be launched if a non fatal crash (main process not affected)
     happened. This gives the app the opportunity to show an in-app confirmation UI before
     sending a crash report. See component README for details.

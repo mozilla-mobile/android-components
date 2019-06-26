@@ -26,6 +26,7 @@ import mozilla.components.browser.icons.pipeline.IconResourceComparator
 import mozilla.components.browser.icons.preparer.DiskIconPreparer
 import mozilla.components.browser.icons.preparer.IconPreprarer
 import mozilla.components.browser.icons.preparer.MemoryIconPreparer
+import mozilla.components.browser.icons.preparer.TippyTopIconPreparer
 import mozilla.components.browser.icons.processor.DiskIconProcessor
 import mozilla.components.browser.icons.processor.IconProcessor
 import mozilla.components.browser.icons.processor.MemoryIconProcessor
@@ -36,7 +37,6 @@ import mozilla.components.browser.session.utils.AllSessionsObserver
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.content.res.pxToDp
 import java.util.concurrent.Executors
 
 private const val MAXIMUM_SCALE_FACTOR = 2.0f
@@ -56,8 +56,9 @@ internal val sharedDiskCache = DiskCache()
 class BrowserIcons(
     private val context: Context,
     private val httpClient: Client,
-    private val generator: IconGenerator = DefaultIconGenerator(context),
+    private val generator: IconGenerator = DefaultIconGenerator(),
     private val preparers: List<IconPreprarer> = listOf(
+        TippyTopIconPreparer(context.assets),
         MemoryIconPreparer(sharedMemoryCache),
         DiskIconPreparer(sharedDiskCache)
     ),
@@ -92,7 +93,7 @@ class BrowserIcons(
 
     private fun loadIconInternal(initialRequest: IconRequest): Icon {
         val desiredSize = DesiredSize(
-            targetSize = context.resources.pxToDp(initialRequest.size.value),
+            targetSize = context.resources.getDimensionPixelSize(initialRequest.size.dimen),
             maxSize = maximumSize,
             maxScaleFactor = MAXIMUM_SCALE_FACTOR
         )

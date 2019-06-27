@@ -10,9 +10,14 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class BrowserMenuBuilderTest {
@@ -32,6 +37,38 @@ class BrowserMenuBuilderTest {
         val recyclerAdapter = recyclerView.adapter!!
         assertNotNull(recyclerAdapter)
         assertEquals(2, recyclerAdapter.itemCount)
+    }
+
+    @Test
+    fun `menu is shown on click when attached`() {
+        var shown = false
+        val builder = spy(BrowserMenuBuilder(emptyList()))
+        val view = ImageButton(testContext)
+
+        builder.attachTo(view, onShow = { shown = true })
+
+        verify(builder, never()).build(testContext)
+        assertFalse(shown)
+
+        view.performClick()
+        verify(builder).build(testContext)
+        assertTrue(shown)
+    }
+
+    @Test
+    fun `menu is shown on long click when attached`() {
+        var shown = false
+        val builder = spy(BrowserMenuBuilder(emptyList()))
+        val view = ImageButton(testContext)
+
+        builder.attachTo(view, onShow = { shown = true })
+
+        verify(builder, never()).build(testContext)
+        assertFalse(shown)
+
+        view.performLongClick()
+        verify(builder).build(testContext)
+        assertTrue(shown)
     }
 
     private fun mockMenuItem() = object : BrowserMenuItem {

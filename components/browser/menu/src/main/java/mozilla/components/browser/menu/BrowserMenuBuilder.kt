@@ -5,6 +5,7 @@
 package mozilla.components.browser.menu
 
 import android.content.Context
+import android.view.View
 
 /**
  * Helper class for building browser menus.
@@ -22,5 +23,25 @@ class BrowserMenuBuilder(
     fun build(context: Context): BrowserMenu {
         val adapter = BrowserMenuAdapter(context, items)
         return BrowserMenu(adapter)
+    }
+
+    /**
+     * Attaches the browser menu to the given menu button so that clicking on the button opens the menu.
+     */
+    fun attachTo(
+        menuButton: View,
+        orientation: BrowserMenu.Orientation = BrowserMenu.Orientation.DOWN,
+        onShow: () -> Unit = {},
+        onDismiss: () -> Unit = {}
+    ) {
+        menuButton.setOnClickListener {
+            build(menuButton.context).show(menuButton, orientation, endOfMenuAlwaysVisible, onDismiss)
+            onShow()
+        }
+        menuButton.setOnLongClickListener {
+            build(menuButton.context).show(menuButton, orientation, endOfMenuAlwaysVisible, onDismiss)
+            onShow()
+            true
+        }
     }
 }

@@ -45,18 +45,6 @@ internal class MenuButton(
         isClickable = true
         isFocusable = true
 
-        setOnClickListener {
-            menu = menuBuilder?.build(context)
-            val endAlwaysVisible = menuBuilder?.endOfMenuAlwaysVisible ?: false
-            menu?.show(
-                anchor = this,
-                orientation = BrowserMenu.determineMenuOrientation(parent),
-                endOfMenuAlwaysVisible = endAlwaysVisible
-            ) { menu = null }
-
-            emitOpenMenuFact(menuBuilder?.extras)
-        }
-
         addView(menuIcon)
     }
 
@@ -66,6 +54,12 @@ internal class MenuButton(
             menu?.dismiss()
             if (value != null) {
                 visibility = View.VISIBLE
+                value.attachTo(
+                    this,
+                    orientation = BrowserMenu.determineMenuOrientation(parent),
+                    onShow = { emitOpenMenuFact(menuBuilder?.extras) },
+                    onDismiss = { menu = null }
+                )
             } else {
                 visibility = View.GONE
                 menu = null

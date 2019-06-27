@@ -13,7 +13,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewTreeObserver
-import android.view.WindowManager
+import android.view.WindowManager.LayoutParams.WRAP_CONTENT
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
@@ -61,11 +61,7 @@ class BrowserMenu internal constructor(
             adapter = this@BrowserMenu.adapter
         }
 
-        return PopupWindow(
-            view,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT
-        ).apply {
+        return PopupWindow(view, WRAP_CONTENT, WRAP_CONTENT).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             isFocusable = true
             elevation = view.resources.getDimension(R.dimen.mozac_browser_menu_elevation)

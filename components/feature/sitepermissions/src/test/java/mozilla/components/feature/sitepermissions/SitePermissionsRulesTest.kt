@@ -5,6 +5,7 @@
 package mozilla.components.feature.sitepermissions
 
 import android.view.View
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.permission.Permission.ContentAudioCapture
@@ -15,6 +16,7 @@ import mozilla.components.concept.engine.permission.Permission.Generic
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action.ASK_TO_ALLOW
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action.BLOCKED
+import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -23,9 +25,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SitePermissionsRulesTest {
 
     private lateinit var anchorView: View
@@ -36,7 +37,7 @@ class SitePermissionsRulesTest {
 
     @Before
     fun setup() {
-        val engine = Mockito.mock(Engine::class.java)
+        val engine = mock<Engine>()
         anchorView = View(testContext)
         mockSessionManager = Mockito.spy(SessionManager(engine))
         mockOnNeedToRequestPermissions = mock()

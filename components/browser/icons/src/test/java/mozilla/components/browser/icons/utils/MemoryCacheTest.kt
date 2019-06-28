@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.icons.utils
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.icons.loader.IconLoader
@@ -16,10 +17,10 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class MemoryCacheTest {
+
     @Test
     fun `Verify memory components interaction`() {
         val cache = MemoryCache()
@@ -36,7 +37,7 @@ class MemoryCacheTest {
         assertEquals(IconLoader.Result.NoResult, loader.load(mock(), request, resource))
 
         // First, save something in the memory cache using the processor
-        processor.process(mock(), request, resource, icon)
+        processor.process(mock(), request, resource, icon, mock())
 
         // Then load the same icon from the loader
         val result = loader.load(mock(), request, resource)

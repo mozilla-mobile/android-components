@@ -26,6 +26,7 @@ import mozilla.components.browser.icons.pipeline.IconResourceComparator
 import mozilla.components.browser.icons.preparer.DiskIconPreparer
 import mozilla.components.browser.icons.preparer.IconPreprarer
 import mozilla.components.browser.icons.preparer.MemoryIconPreparer
+import mozilla.components.browser.icons.preparer.TippyTopIconPreparer
 import mozilla.components.browser.icons.processor.DiskIconProcessor
 import mozilla.components.browser.icons.processor.IconProcessor
 import mozilla.components.browser.icons.processor.MemoryIconProcessor
@@ -36,10 +37,8 @@ import mozilla.components.browser.session.utils.AllSessionsObserver
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.content.res.pxToDp
 import java.util.concurrent.Executors
 
-private const val MAXIMUM_SIZE_DP = 64
 private const val MAXIMUM_SCALE_FACTOR = 2.0f
 
 // Number of worker threads we are using internally.
@@ -57,8 +56,9 @@ internal val sharedDiskCache = DiskCache()
 class BrowserIcons(
     private val context: Context,
     private val httpClient: Client,
-    private val generator: IconGenerator = DefaultIconGenerator(context),
+    private val generator: IconGenerator = DefaultIconGenerator(),
     private val preparers: List<IconPreprarer> = listOf(
+        TippyTopIconPreparer(context.assets),
         MemoryIconPreparer(sharedMemoryCache),
         DiskIconPreparer(sharedDiskCache)
     ),
@@ -79,7 +79,7 @@ class BrowserIcons(
     jobDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(THREADS).asCoroutineDispatcher()
 ) {
     private val logger = Logger("BrowserIcons")
-    private val maximumSize = context.resources.pxToDp(MAXIMUM_SIZE_DP)
+    private val maximumSize = context.resources.getDimensionPixelSize(R.dimen.mozac_browser_icons_maximum_size)
     private val scope = CoroutineScope(jobDispatcher)
 
     /**
@@ -92,7 +92,11 @@ class BrowserIcons(
     }
 
     private fun loadIconInternal(initialRequest: IconRequest): Icon {
-        val targetSize = context.resources.pxToDp(initialRequest.size.value)
+        val desiredSize = DesiredSize(
+            targetSize = context.resources.getDimensionPixelSize(initialRequest.size.dimen),
+            maxSize = maximumSize,
+            maxScaleFactor = MAXIMUM_SCALE_FACTOR
+        )
 
         // (1) First prepare the request.
         val request = prepare(context, preparers, initialRequest)
@@ -106,13 +110,14 @@ class BrowserIcons(
             is IconLoader.Result.BitmapResult -> Icon(result.bitmap, source = result.source)
 
             is IconLoader.Result.BytesResult ->
-                decode(result.bytes, decoders, targetSize, maximumSize)?.let { bitmap ->
+                decode(result.bytes, decoders, desiredSize)?.let { bitmap ->
                     Icon(bitmap, source = result.source)
                 } ?: return generator.generate(context, request)
         }
 
         // (3) Finally process the icon.
-        return process(context, processors, request, resource, icon)
+        return process(context, processors, request, resource, icon, desiredSize)
+            ?: generator.generate(context, request)
     }
 
     /**
@@ -135,15 +140,10 @@ class BrowserIcons(
     }
 }
 
-private fun prepare(context: Context, preparers: List<IconPreprarer>, request: IconRequest): IconRequest {
-    var preparedRequest: IconRequest = request
-
-    preparers.forEach { preparer ->
-        preparedRequest = preparer.prepare(context, preparedRequest)
+private fun prepare(context: Context, preparers: List<IconPreprarer>, request: IconRequest): IconRequest =
+    preparers.fold(request) { preparedRequest, preparer ->
+        preparer.prepare(context, preparedRequest)
     }
-
-    return preparedRequest
-}
 
 private fun load(
     context: Context,
@@ -168,15 +168,10 @@ private fun load(
 private fun decode(
     data: ByteArray,
     decoders: List<IconDecoder>,
-    targetSize: Int,
-    maximumSize: Int
+    desiredSize: DesiredSize
 ): Bitmap? {
     decoders.forEach { decoder ->
-        val bitmap = decoder.decode(
-            data,
-            targetSize = targetSize,
-            maxSize = maximumSize,
-            maxScaleFactor = MAXIMUM_SCALE_FACTOR)
+        val bitmap = decoder.decode(data, desiredSize)
 
         if (bitmap != null) {
             return bitmap
@@ -186,18 +181,16 @@ private fun decode(
     return null
 }
 
+@Suppress("LongParameterList")
 private fun process(
     context: Context,
     processors: List<IconProcessor>,
     request: IconRequest,
     resource: IconRequest.Resource?,
-    icon: Icon
-): Icon {
-    var processedIcon = icon
-
-    processors.forEach { processor ->
-        processedIcon = processor.process(context, request, resource, processedIcon)
+    icon: Icon?,
+    desiredSize: DesiredSize
+): Icon? =
+    processors.fold(icon) { processedIcon, processor ->
+        if (processedIcon == null) return null
+        processor.process(context, request, resource, processedIcon, desiredSize)
     }
-
-    return processedIcon
-}

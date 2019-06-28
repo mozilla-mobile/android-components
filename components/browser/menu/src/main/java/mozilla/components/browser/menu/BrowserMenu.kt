@@ -8,19 +8,21 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.PopupWindowCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.menu.BrowserMenu.Orientation.DOWN
 import mozilla.components.browser.menu.BrowserMenu.Orientation.UP
-import mozilla.components.support.ktx.android.content.res.pxToDp
 import mozilla.components.support.ktx.android.view.isRTL
 
 /**
@@ -32,14 +34,30 @@ class BrowserMenu internal constructor(
     private var currentPopup: PopupWindow? = null
     private var menuList: RecyclerView? = null
 
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal var scrollOnceToTheBottomWasCalled = false
+
+    /**
+     * @param anchor the view on which to pin the popup window.
+     * @param orientation the preferred orientation to show the popup window.
+     * @param endOfMenuAlwaysVisible when is set to true makes sure the bottom of the menu is always visible otherwise,
+     *  the top of the menu is always visible.
+     */
     @SuppressLint("InflateParams")
-    fun show(anchor: View, orientation: Orientation = DOWN): PopupWindow {
+    fun show(
+        anchor: View,
+        orientation: Orientation = DOWN,
+        endOfMenuAlwaysVisible: Boolean = false,
+        onDismiss: () -> Unit = {}
+    ): PopupWindow {
         val view = LayoutInflater.from(anchor.context).inflate(R.layout.mozac_browser_menu, null)
 
         adapter.menu = this
 
         menuList = view.findViewById<RecyclerView>(R.id.mozac_browser_menu_recyclerView).apply {
-            layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false)
+            layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false).also {
+                setEndOfMenuAlwaysVisibleCompact(endOfMenuAlwaysVisible, it)
+            }
             adapter = this@BrowserMenu.adapter
         }
 
@@ -50,17 +68,45 @@ class BrowserMenu internal constructor(
         ).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             isFocusable = true
-            elevation = view.resources.pxToDp(MENU_ELEVATION_DP).toFloat()
+            elevation = view.resources.getDimension(R.dimen.mozac_browser_menu_elevation)
 
             setOnDismissListener {
                 adapter.menu = null
                 currentPopup = null
+                onDismiss()
             }
 
             displayPopup(view, anchor, orientation)
         }.also {
             currentPopup = it
         }
+    }
+
+    private fun RecyclerView.setEndOfMenuAlwaysVisibleCompact(
+        endOfMenuAlwaysVisible: Boolean,
+        layoutManager: LinearLayoutManager
+    ) {
+        // In devices with Android 6 and below stackFromEnd is not working properly,
+        // as a result, we have to provided a backwards support.
+        // See: https://github.com/mozilla-mobile/android-components/issues/3211
+        if (endOfMenuAlwaysVisible && Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+            scrollOnceToTheBottom()
+        } else {
+            layoutManager.stackFromEnd = endOfMenuAlwaysVisible
+        }
+    }
+
+    private fun RecyclerView.scrollOnceToTheBottom() {
+        var listener: ViewTreeObserver.OnGlobalLayoutListener? = null
+        listener = ViewTreeObserver.OnGlobalLayoutListener {
+            adapter?.let {
+                scrollToPosition(it.itemCount - 1)
+                // Unregister the listener to only call scrollToPosition once
+                viewTreeObserver.removeOnGlobalLayoutListener(listener)
+            }
+        }
+        viewTreeObserver.addOnGlobalLayoutListener(listener)
+        scrollOnceToTheBottomWasCalled = true
     }
 
     fun dismiss() {
@@ -72,8 +118,6 @@ class BrowserMenu internal constructor(
     }
 
     companion object {
-        private const val MENU_ELEVATION_DP = 8
-
         /**
          * Determines the orientation to be used for a menu based on the positioning of the [parent] in the layout.
          */

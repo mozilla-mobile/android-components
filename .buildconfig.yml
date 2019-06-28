@@ -1,4 +1,4 @@
-componentsVersion: 1.0.0
+componentsVersion: 2.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -71,10 +71,6 @@ projects:
   feature-session:
     path: components/feature/session
     description: 'Feature implementation connecting an engine implementation with the session module.'
-    publish: true
-  feature-session-bundling:
-    path: components/feature/session-bundling
-    description: 'A session storage implementation that saves the state of sessions in grouped bundles (e.g. by time) in a database'
     publish: true
   feature-sync:
     path: components/feature/sync
@@ -171,7 +167,7 @@ projects:
   browser-state:
     path: components/browser/state
     description: 'Component responsible for maintaining the centralized state of a browser engine.'
-    publish: false
+    publish: true
   browser-storage-memory:
     path: components/browser/storage-memory
     description: 'A memory-backed implementation of core data storage.'
@@ -196,10 +192,6 @@ projects:
     path: components/ui/colors
     description: 'The standard set of Photon colors.'
     publish: true
-  ui-doorhanger:
-    path: components/ui/doorhanger
-    description: 'A generic floating heads-up popup that can be anchored to a view.'
-    publish: true
   ui-fonts:
     path: components/ui/fonts
     description: 'Convenience accessor for fonts used by Mozilla.'
@@ -207,10 +199,6 @@ projects:
   ui-icons:
     path: components/ui/icons
     description: 'A collection of often used browser icons.'
-    publish: true
-  ui-progress:
-    path: components/ui/progress
-    description: 'An animated progress bar following the Photon Design System.'
     publish: true
   ui-tabcounter:
     path: components/ui/tabcounter
@@ -292,9 +280,17 @@ projects:
     path: components/lib/publicsuffixlist
     description: 'A library for reading and using the public suffix list.'
     publish: true
+  lib-push-amazon:
+    path: components/lib/push-amazon
+    description: 'An implementation of concept-push for the Amazon Device Messaging.'
+    publish: false
   lib-push-firebase:
     path: components/lib/push-firebase
     description: 'An implementation of concept-push for the Firebase Message Service.'
+    publish: true
+  lib-state:
+    path: components/lib/state
+    description: 'A library for maintaining application state.'
     publish: true
   tooling-lint:
     path: components/tooling/lint

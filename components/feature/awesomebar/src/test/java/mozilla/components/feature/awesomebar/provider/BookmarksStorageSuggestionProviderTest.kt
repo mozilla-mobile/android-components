@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.awesomebar.provider
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
@@ -15,10 +16,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.util.UUID
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class BookmarksStorageSuggestionProviderTest {
 
     private val bookmarks = testableBookmarksStorage()
@@ -40,10 +40,16 @@ class BookmarksStorageSuggestionProviderTest {
     fun `Provider returns suggestions from configured bookmarks storage`() = runBlocking {
         val provider = BookmarksStorageSuggestionProvider(bookmarks, mock())
 
-        bookmarks.addItem("Mobile", newItem.url!!, newItem.title!!, null)
+        val id = bookmarks.addItem("Mobile", newItem.url!!, newItem.title!!, null)
 
-        val suggestions = provider.onInputChanged("moz")
+        var suggestions = provider.onInputChanged("moz")
         assertEquals(1, suggestions.size)
+        assertEquals(id, suggestions[0].id)
+
+        suggestions = provider.onInputChanged("mozi")
+        assertEquals(1, suggestions.size)
+        assertEquals(id, suggestions[0].id)
+
         assertEquals("http://www.mozilla.org", suggestions[0].description)
     }
 

@@ -59,6 +59,7 @@ object DownloadUtils {
      * which unfortunately does not implement RfC 5987.
      */
     @JvmStatic
+    @SuppressWarnings("ComplexMethod", "LongMethod", "NestedBlockDepth")
     fun guessFileName(contentDisposition: String?, url: String?, mimeType: String?): String {
         var filename: String? = null
         var extension: String? = null
@@ -150,7 +151,7 @@ object DownloadUtils {
                 val encodedFileName = m.group(ENCODED_FILE_NAME_GROUP)
                 val encoding = m.group(ENCODING_GROUP)
 
-                if (encodedFileName != null) {
+                if (encodedFileName != null && encoding != null) {
                     return decodeHeaderField(encodedFileName, encoding)
                 }
 
@@ -165,6 +166,7 @@ object DownloadUtils {
         } catch (ex: IllegalStateException) {
             // This function is defined as returning null when it can't parse the header
         } catch (ex: UnsupportedEncodingException) {
+            // Do nothing
         }
 
         return null
@@ -179,7 +181,7 @@ object DownloadUtils {
             val symbol = m.group()
 
             if (symbol.startsWith("%")) {
-                stream.write(Integer.parseInt(symbol.substring(1), 16))
+                stream.write(symbol.substring(1).toInt(radix = 16))
             } else {
                 stream.write(symbol[0].toInt())
             }

@@ -6,6 +6,7 @@ package mozilla.components.browser.icons
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.icons.generator.IconGenerator
 import mozilla.components.concept.engine.manifest.Size
@@ -24,9 +25,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class BrowserIconsTest {
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
@@ -96,7 +96,7 @@ class BrowserIconsTest {
             ).loadIcon(request).await()
 
             assertNotNull(icon)
-            assertNotNull(icon.bitmap!!)
+            assertNotNull(icon.bitmap)
 
             val serverRequest = server.takeRequest()
             assertEquals("/icon128.png", serverRequest.requestUrl.encodedPath())

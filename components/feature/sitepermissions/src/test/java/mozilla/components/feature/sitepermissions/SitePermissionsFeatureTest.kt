@@ -9,6 +9,7 @@ import android.content.pm.PackageManager.PERMISSION_DENIED
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
@@ -25,6 +26,7 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.feature.sitepermissions.SitePermissions.Status.ALLOWED
 import mozilla.components.feature.sitepermissions.SitePermissions.Status.BLOCKED
 import mozilla.components.feature.sitepermissions.SitePermissions.Status.NO_DECISION
+import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
@@ -42,11 +44,10 @@ import org.mockito.Mockito.anyString
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
 import java.security.InvalidParameterException
 import java.util.UUID
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SitePermissionsFeatureTest {
 
     private lateinit var mockSessionManager: SessionManager
@@ -57,7 +58,7 @@ class SitePermissionsFeatureTest {
 
     @Before
     fun setup() {
-        val engine = Mockito.mock(Engine::class.java)
+        val engine = mock<Engine>()
         mockSessionManager = Mockito.spy(SessionManager(engine))
         mockOnNeedToRequestPermissions = mock()
         mockStorage = mock()
@@ -645,7 +646,7 @@ class SitePermissionsFeatureTest {
 
         session.appPermissionRequest = Consumable.from(mockPermissionRequest)
 
-        sitePermissionFeature.onPermissionsResult(intArrayOf(PERMISSION_GRANTED))
+        sitePermissionFeature.onPermissionsResult(emptyArray(), intArrayOf(PERMISSION_GRANTED))
 
         verify(mockPermissionRequest).grant(emptyList())
         assertTrue(session.appPermissionRequest.isConsumed())
@@ -671,7 +672,7 @@ class SitePermissionsFeatureTest {
 
         session.appPermissionRequest = Consumable.from(mockPermissionRequest)
 
-        sitePermissionFeature.onPermissionsResult(intArrayOf(PERMISSION_GRANTED))
+        sitePermissionFeature.onPermissionsResult(emptyArray(), intArrayOf(PERMISSION_GRANTED))
 
         verify(mockPermissionRequest).grant(emptyList())
         assertTrue(session.appPermissionRequest.isConsumed())
@@ -686,7 +687,7 @@ class SitePermissionsFeatureTest {
 
         session.appPermissionRequest = Consumable.from(mockPermissionRequest)
 
-        sitePermissionFeature.onPermissionsResult(intArrayOf(PERMISSION_DENIED))
+        sitePermissionFeature.onPermissionsResult(emptyArray(), intArrayOf(PERMISSION_DENIED))
 
         verify(mockPermissionRequest).reject()
         assertTrue(session.appPermissionRequest.isConsumed())

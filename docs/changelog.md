@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-toolbar**
+  * Updated `DisplayToolbar` to better match UX specs
+
 * **browser-awesomebar**
   * Updated `DefaultSuggestionViewHolder` to have a style more consistent with Fenix mocks.
   

@@ -88,8 +88,8 @@ class DisplayToolbarTest {
 
         val iconView = extractIconView(displayToolbar)
 
-        assertEquals(56, iconView.measuredWidth)
-        assertEquals(56, iconView.measuredHeight)
+        assertEquals(40, iconView.measuredWidth)
+        assertEquals(40, iconView.measuredHeight)
     }
 
     @Test
@@ -347,8 +347,8 @@ class DisplayToolbarTest {
 
         val view = extractActionView(displayToolbar, "Back")!!
 
-        assertEquals(56, view.measuredWidth)
-        assertEquals(56, view.measuredHeight)
+        assertEquals(24, view.measuredWidth)
+        assertEquals(24, view.measuredHeight)
     }
 
     @Test
@@ -476,11 +476,11 @@ class DisplayToolbarTest {
         val forwardView = extractActionView(displayToolbar, "Forward")!!
         val backView = extractActionView(displayToolbar, "Back")!!
 
-        assertEquals(56, forwardView.measuredWidth)
-        assertEquals(56, forwardView.measuredHeight)
+        assertEquals(24, forwardView.measuredWidth)
+        assertEquals(24, forwardView.measuredHeight)
 
         assertEquals(500, backView.measuredWidth)
-        assertEquals(56, backView.measuredHeight)
+        assertEquals(24, backView.measuredHeight)
     }
 
     @Test

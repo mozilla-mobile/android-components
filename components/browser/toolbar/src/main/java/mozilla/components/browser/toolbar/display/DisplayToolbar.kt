@@ -16,7 +16,6 @@ import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.core.view.setPadding
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
@@ -75,8 +74,9 @@ internal class DisplayToolbar(
         set(value) { menuView.menuBuilder = value }
 
     internal val siteSecurityIconView = AppCompatImageView(context).apply {
-        setPadding(resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_icon_padding))
-
+        val paddingHorizontal = resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_icon_horizontal_padding)
+        val paddingVertical = resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_menu_padding)
+        setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
         setImageResource(mozac_ic_globe)
 
         // Avoiding text behind the icon being selectable. If the listener is not set
@@ -306,11 +306,18 @@ internal class DisplayToolbar(
         // The icon and menu fill the whole height and have a square shape
         val iconSize = height
         val squareSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-        siteSecurityIconView.measure(squareSpec, squareSpec)
+        val securityWidth = resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_button_width)
+        val startEndPadding = siteSecurityIconView.paddingStart + siteSecurityIconView.paddingEnd
+        val securityIconWidthSpec = MeasureSpec.makeMeasureSpec(securityWidth + startEndPadding, MeasureSpec.EXACTLY)
+        siteSecurityIconView.measure(securityIconWidthSpec, securityIconWidthSpec)
         menuView.measure(squareSpec, squareSpec)
 
         // Measure all actions and use the available height for determining the size (square shape)
-        val navigationActionsWidth = measureActions(navigationActions, size = height)
+        val navigationActionsWidth = measureActions(
+                navigationActions,
+                size = resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_button_width)
+        )
+
         val browserActionsWidth = measureActions(browserActions, size = height)
         val pageActionsWidth = measureActions(pageActions, size = height)
 
@@ -357,12 +364,11 @@ internal class DisplayToolbar(
             .asSequence()
             .mapNotNull { it.view }
             .fold(0) { usedWidth, view ->
-                val viewLeft = usedWidth
+                val viewLeft = usedWidth + resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_left_padding_navigation)
                 val viewRight = viewLeft + view.measuredWidth
-
                 view.layout(viewLeft, 0, viewRight, measuredHeight)
 
-                usedWidth + view.measuredWidth
+                viewLeft + view.measuredWidth
             }
 
         // The icon is always on the far left side of the toolbar. We cam lay it out even if it's

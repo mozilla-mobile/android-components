@@ -8,8 +8,10 @@
     <!-- DisplayToolbar -->
     <dimen name="mozac_browser_toolbar_progress_bar_height">3dp</dimen>
     <dimen name="mozac_browser_toolbar_url_fading_edge_size">24dp</dimen>
-    <dimen name="mozac_browser_toolbar_icon_padding">16dp</dimen>
+    <dimen name="mozac_browser_toolbar_icon_horizontal_padding">8dp</dimen>
     <dimen name="mozac_browser_toolbar_menu_padding">16dp</dimen>
+    <dimen name="mozac_browser_toolbar_button_width">24dp</dimen>
+    <dimen name="mozac_browser_toolbar_left_padding_navigation">16dp</dimen>
 
     <!-- EditToolbar -->
     <dimen name="mozac_browser_toolbar_url_padding">8dp</dimen>

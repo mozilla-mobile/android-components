@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.system
 import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
@@ -82,6 +83,12 @@ class SystemEngineView @JvmOverloads constructor(
         this.session = session as SystemEngineSession
         (session.webView.parent as? SystemEngineView)?.removeView(session.webView)
         addView(initWebView(session.webView))
+    }
+
+    override fun release() {
+        this.session = null
+
+        removeAllViews()
     }
 
     override fun onLongClick(view: View?): Boolean {
@@ -206,7 +213,7 @@ class SystemEngineView @JvmOverloads constructor(
                 }
 
                 if (!request.isForMainFrame &&
-                        getOrCreateUrlMatcher(view.context, it).matches(resourceUri, Uri.parse(session?.currentUrl))) {
+                        getOrCreateUrlMatcher(resources, it).matches(resourceUri, Uri.parse(session?.currentUrl))) {
                     session?.internalNotifyObservers { onTrackerBlocked(resourceUri.toString()) }
                     return WebResourceResponse(null, null, null)
                 }
@@ -764,12 +771,12 @@ class SystemEngineView @JvmOverloads constructor(
         )
 
         @Synchronized
-        internal fun getOrCreateUrlMatcher(context: Context, policy: TrackingProtectionPolicy): UrlMatcher {
+        internal fun getOrCreateUrlMatcher(resources: Resources, policy: TrackingProtectionPolicy): UrlMatcher {
             val categories = urlMatcherCategoryMap.filterValues { policy.contains(it) }.keys
 
             URL_MATCHER?.setCategoriesEnabled(categories) ?: run {
                 URL_MATCHER = UrlMatcher.createMatcher(
-                        context,
+                        resources,
                         R.raw.domain_blacklist,
                         intArrayOf(R.raw.domain_overrides),
                         R.raw.domain_whitelist,

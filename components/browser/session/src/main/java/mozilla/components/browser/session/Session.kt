@@ -13,12 +13,13 @@ import mozilla.components.browser.session.ext.toSecurityInfoState
 import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
-import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfo
 import mozilla.components.browser.state.action.ContentAction.UpdateSearchTermsAction
+import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfo
 import mozilla.components.browser.state.action.ContentAction.UpdateTitleAction
 import mozilla.components.browser.state.action.ContentAction.UpdateUrlAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -67,6 +68,7 @@ class Session(
         fun onProgress(session: Session, progress: Int) = Unit
         fun onLoadingStateChanged(session: Session, loading: Boolean) = Unit
         fun onNavigationStateChanged(session: Session, canGoBack: Boolean, canGoForward: Boolean) = Unit
+        fun onHistoryStateChanged(session: Session, historyList: List<HistoryItem>) = Unit
         fun onLoadRequest(
             session: Session,
             url: String,
@@ -216,6 +218,13 @@ class Session(
      */
     var canGoForward: Boolean by Delegates.observable(false) { _, old, new ->
         notifyObservers(old, new) { onNavigationStateChanged(this@Session, canGoBack, new) }
+    }
+
+    /**
+     * Local session history, with the current page selected.
+     */
+    var historyList: List<HistoryItem> by Delegates.observable(emptyList()) { _, old, new ->
+        notifyObservers(old, new) { onHistoryStateChanged(this@Session, new) }
     }
 
     /**

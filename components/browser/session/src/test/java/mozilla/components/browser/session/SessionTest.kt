@@ -17,6 +17,7 @@ import mozilla.components.browser.session.tab.CustomTabConfig
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.Size
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
@@ -175,6 +176,22 @@ class SessionTest {
         session.canGoForward = true
         assertEquals(true, session.canGoForward)
         verify(observer).onNavigationStateChanged(eq(session), eq(true), eq(true))
+
+        verifyNoMoreInteractions(observer)
+    }
+
+    @Test
+    fun `observer is notified when history state changes`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        val history = listOf(HistoryItem("Mozilla", "https://www.mozilla.org", false))
+
+        session.historyList = history
+        assertEquals(history, session.historyList)
+        verify(observer).onHistoryStateChanged(session, history)
 
         verifyNoMoreInteractions(observer)
     }

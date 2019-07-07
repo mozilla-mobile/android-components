@@ -6,6 +6,7 @@ package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -14,7 +15,6 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
-import java.lang.UnsupportedOperationException
 
 /**
  * Class representing a single engine session.
@@ -34,6 +34,7 @@ abstract class EngineSession(
         fun onProgress(progress: Int) = Unit
         fun onLoadingStateChange(loading: Boolean) = Unit
         fun onNavigationStateChange(canGoBack: Boolean? = null, canGoForward: Boolean? = null) = Unit
+        fun onHistoryStateChange(historyList: List<HistoryItem>) = Unit
         fun onSecurityChange(secure: Boolean, host: String? = null, issuer: String? = null) = Unit
         fun onTrackerBlockingEnabledChange(enabled: Boolean) = Unit
         fun onTrackerBlocked(url: String) = Unit

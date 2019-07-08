@@ -8,10 +8,12 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
+import mozilla.components.service.glean.collectAndCheckPingSchema
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.private.TimingDistributionMetricType
 import mozilla.components.service.glean.error.ErrorRecording
+import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.timing.TimingManager
 import org.junit.After
@@ -93,14 +95,14 @@ class TimingDistributionsStorageEngineTest {
             "store1#telemetry.invalid_int" to -1,
             "store1#telemetry.invalid_list" to listOf("1", "2", "3"),
             "store1#telemetry.invalid_int_list" to "[1,2,3]",
-            "store1#telemetry.invalid_td_name" to "{\"category\":\"telemetry\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_bucketCount" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":\"not an int!\",\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_range" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_range2" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[\"not\",\"numeric\"],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_histogramType" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":-1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_values" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{\"0\": \"nope\"},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_sum" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":\"nope\",\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_timeUnit" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":-1}",
+            "store1#telemetry.invalid_td_name" to "{\"category\":\"telemetry\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_bucket_count" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":\"not an int!\",\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_range" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_range2" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[\"not\",\"numeric\"],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_histogram_type" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":-1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_values" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{\"0\": \"nope\"},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_sum" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":\"nope\",\"time_unit\":2}",
+            "store1#telemetry.invalid_td_time_unit" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":-1}",
             "store1#telemetry.test_timing_distribution" to td.toJsonObject().toString()
         )
 
@@ -126,6 +128,29 @@ class TimingDistributionsStorageEngineTest {
         assertEquals(1, snapshot!!.size)
         assertEquals(td.toJsonObject().toString(),
             snapshot["telemetry.test_timing_distribution"]?.toJsonObject().toString())
+    }
+
+    @Test
+    fun `serializer should serialize timing distribution that matches schema`() {
+        val ping1 = PingType("store1", true)
+
+        val metric = TimingDistributionMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.User,
+            name = "test_timing_distribution",
+            sendInPings = listOf("store1"),
+            timeUnit = TimeUnit.Millisecond
+        )
+
+        runBlocking {
+            TimingManager.getElapsedNanos = { 0 }
+            val id = metric.start()
+            TimingManager.getElapsedNanos = { 1000000 }
+            metric.stopAndAccumulate(id)
+        }
+
+        collectAndCheckPingSchema(ping1)
     }
 
     @Test
@@ -345,7 +370,7 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("JSON name must match Timing Distribution name",
             "test_timing_distribution", jsonTdd.getString("name"))
         assertEquals("JSON bucket count must match Timing Distribution bucket count",
-            tdd.bucketCount, jsonTdd.getInt("bucketCount"))
+            tdd.bucketCount, jsonTdd.getInt("bucket_count"))
         assertEquals("JSON name must match Timing Distribution name",
             "test_timing_distribution", jsonTdd.getString("name"))
         val jsonRange = jsonTdd.getJSONArray("range")
@@ -354,7 +379,7 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("JSON range maximum must match Timing Distribution range maximum",
             tdd.rangeMax, jsonRange.getLong(1))
         assertEquals("JSON histogram type must match Timing Distribution histogram type",
-            tdd.histogramType.ordinal, jsonTdd.getInt("histogramType"))
+            tdd.histogramType.toString().toLowerCase(), jsonTdd.getString("histogram_type"))
         val jsonValue = jsonTdd.getJSONObject("values")
         assertEquals("JSON values must match Timing Distribution values",
             tdd.values[0], jsonValue.getLong("0"))
@@ -365,6 +390,6 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("JSON sum must match Timing Distribution sum",
             tdd.sum, jsonTdd.getLong("sum"))
         assertEquals("JSON time unit must match Timing Distribution time unit",
-            tdd.timeUnit.ordinal, jsonTdd.getInt("timeUnit"))
+            tdd.timeUnit.toString().toLowerCase(), jsonTdd.getString("time_unit"))
     }
 }

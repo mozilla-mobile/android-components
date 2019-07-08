@@ -18,7 +18,7 @@ permalink: /changelog/
 
 * **feature-pwa**
   * Added preliminary support for pinning websites to the home screen.
-  
+
 * **browser-search**
   * Loading search engines should no longer deadlock on devices with 1-2 CPUs
 
@@ -27,6 +27,9 @@ permalink: /changelog/
 
 * **browser-session**
   * ⚠️ **This is a breaking change**: Removed "default session" behavior from `SessionManager`. This feature was never used by any app except the sample browser.
+
+* **feature-downloads**
+  * Added `FetchDownloadManager`, an alternate download manager that uses a fetch `Client` instead of the native Android `DownloadManager`.
 
 # 2.0.0
 
@@ -46,6 +49,9 @@ permalink: /changelog/
 
 * **lib-state**
   * A new component for maintaining application, screen or component state via a redux-style `Store`. This component provides the architectural foundation for the `browser-state` component (in development).
+
+* **feature-downloads**
+  * `onDownloadCompleted` no longer receives the download object and ID.
 
 * **support-ktx**
   * Deprecated `Resource.pxToDp`.

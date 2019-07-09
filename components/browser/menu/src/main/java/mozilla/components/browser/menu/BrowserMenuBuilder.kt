@@ -21,6 +21,6 @@ class BrowserMenuBuilder(
 ) {
     fun build(context: Context): BrowserMenu {
         val adapter = BrowserMenuAdapter(context, items)
-        return BrowserMenu(adapter)
+        return BrowserMenu(adapter, extras)
     }
 }

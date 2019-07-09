@@ -6,6 +6,10 @@
 
 package mozilla.components.browser.menu.item
 
+import android.view.View
+import android.widget.CompoundButton
+import mozilla.components.browser.menu.BrowserMenu
+import mozilla.components.browser.menu.BrowserMenuItem
 import mozilla.components.browser.menu.R
 
 /**
@@ -16,9 +20,22 @@ import mozilla.components.browser.menu.R
  * @param listener Callback to be invoked when this menu item is checked.
  */
 class BrowserMenuSwitch(
-    label: String,
-    initialState: () -> Boolean = { false },
-    listener: (Boolean) -> Unit
-) : BrowserMenuCompoundButton(label, initialState, listener) {
+    private val label: String,
+    private val initialState: () -> Boolean = { false },
+    private val listener: (Boolean) -> Unit
+) : BrowserMenuItem {
     override fun getLayoutResource(): Int = R.layout.mozac_browser_menu_item_switch
+
+    override var visible: () -> Boolean = { true }
+
+    override fun bind(menu: BrowserMenu, view: View) {
+        (view as CompoundButton).apply {
+            text = label
+            isChecked = initialState()
+            setOnCheckedChangeListener { _, checked ->
+                listener(checked)
+                menu.dismiss()
+            }
+        }
+    }
 }

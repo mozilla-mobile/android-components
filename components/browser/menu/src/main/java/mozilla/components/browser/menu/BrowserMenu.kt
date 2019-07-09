@@ -28,7 +28,9 @@ import mozilla.components.support.ktx.android.view.onNextGlobalLayout
  * A popup menu composed of BrowserMenuItem objects.
  */
 class BrowserMenu internal constructor(
-    private val adapter: BrowserMenuAdapter
+    private val adapter: BrowserMenuAdapter,
+    private val extras: Map<String, Any>? = null,
+    private val minWidth: Int? = null
 ) {
     private var currentPopup: PopupWindow? = null
     private var menuList: RecyclerView? = null
@@ -54,6 +56,12 @@ class BrowserMenu internal constructor(
             layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false).also {
                 setEndOfMenuAlwaysVisibleCompact(endOfMenuAlwaysVisible, it)
             }
+
+            minimumWidth = when (minWidth) {
+                null -> WindowManager.LayoutParams.WRAP_CONTENT
+                else -> minWidth
+            }
+
             adapter = this@BrowserMenu.adapter
         }
 

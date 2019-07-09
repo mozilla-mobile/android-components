@@ -8,6 +8,7 @@ import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -71,6 +72,40 @@ class BrowserMenuTest {
         val recyclerAdapter = recyclerView.adapter!!
         assertNotNull(recyclerAdapter)
         assertEquals(2, recyclerAdapter.itemCount)
+    }
+
+    @Test
+    fun `recyclerView adapter has proper minimum width from extra`() {
+        val items = listOf(
+                SimpleBrowserMenuItem("Hello") {},
+                SimpleBrowserMenuItem("World") {})
+
+        val adapter = BrowserMenuAdapter(testContext, items)
+
+        val menu = BrowserMenu(adapter, minWidth = 50)
+
+        val anchor = Button(testContext)
+        val popup = menu.show(anchor)
+
+        val recyclerView: RecyclerView = popup.contentView.findViewById(R.id.mozac_browser_menu_recyclerView)
+        assertEquals(recyclerView.minimumWidth, 50)
+    }
+
+    @Test
+    fun `recyclerView adapter has no minimum width without extra`() {
+        val items = listOf(
+                SimpleBrowserMenuItem("Hello") {},
+                SimpleBrowserMenuItem("World") {})
+
+        val adapter = BrowserMenuAdapter(testContext, items)
+
+        val menu = BrowserMenu(adapter)
+
+        val anchor = Button(testContext)
+        val popup = menu.show(anchor)
+
+        val recyclerView: RecyclerView = popup.contentView.findViewById(R.id.mozac_browser_menu_recyclerView)
+        assertEquals(recyclerView.minimumWidth, LinearLayout.LayoutParams.WRAP_CONTENT)
     }
 
     @Test

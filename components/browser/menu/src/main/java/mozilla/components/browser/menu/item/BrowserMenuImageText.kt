@@ -4,16 +4,17 @@
 
 package mozilla.components.browser.menu.item
 
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuItem
 import mozilla.components.browser.menu.R
+import mozilla.components.support.ktx.android.view.putCompoundDrawablesRelativeWithIntrinsicBounds
 
 internal const val NO_ID = -1
 
@@ -21,6 +22,16 @@ internal fun ImageView.setTintResource(@ColorRes tintColorResource: Int) {
     if (tintColorResource != NO_ID) {
         imageTintList = ContextCompat.getColorStateList(context, tintColorResource)
     }
+}
+
+internal fun TextView.tintedDrawable(@DrawableRes imageResource: Int, @ColorRes tintColorResource: Int): Drawable {
+    val draw = context.getDrawable(imageResource)!!
+
+    if (tintColorResource != NO_ID) {
+        draw.setTint(ContextCompat.getColor(context, tintColorResource))
+    }
+
+    return draw
 }
 
 internal fun TextView.setColorResource(@ColorRes textColorResource: Int) {
@@ -56,8 +67,6 @@ open class BrowserMenuImageText(
     override fun bind(menu: BrowserMenu, view: View) {
         bindText(view)
 
-        bindImage(view)
-
         view.setOnClickListener {
             listener.invoke()
             menu.dismiss()
@@ -65,16 +74,13 @@ open class BrowserMenuImageText(
     }
 
     private fun bindText(view: View) {
-        val textView = view.findViewById<TextView>(R.id.text)
-        textView.text = label
-        textView.setColorResource(textColorResource)
-    }
-
-    private fun bindImage(view: View) {
-        val imageView = view.findViewById<AppCompatImageView>(R.id.image)
-        with(imageView) {
-            setImageResource(imageResource)
-            setTintResource(iconTintColorResource)
+        val textView = view.findViewById<TextView>(R.id.imageText)
+        with(textView) {
+            text = label
+            setColorResource(textColorResource)
+            putCompoundDrawablesRelativeWithIntrinsicBounds(
+                    start = tintedDrawable(imageResource, iconTintColorResource)
+            )
         }
     }
 }

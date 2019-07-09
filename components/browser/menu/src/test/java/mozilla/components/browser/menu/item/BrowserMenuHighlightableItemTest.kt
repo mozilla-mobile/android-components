@@ -22,6 +22,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(AndroidJUnit4::class)
 class BrowserMenuHighlightableItemTest {
@@ -59,14 +60,14 @@ class BrowserMenuHighlightableItemTest {
 
         val view = inflate(item)
 
-        val textView = view.findViewById<TextView>(R.id.text)
+        val textView = view.findViewById<TextView>(R.id.imageText)
         assertEquals(textView.text, "label")
 
-        val imageView = view.findViewById<AppCompatImageView>(R.id.image)
-        val highlightImageView = view.findViewById<AppCompatImageView>(R.id.highlight_image)
+        val imageShadow = shadowOf(textView.compoundDrawablesRelative[0])
+        assertNotNull(imageShadow)
+        assertEquals(android.R.drawable.ic_menu_report_image, imageShadow.createdFromResId)
 
-        assertNotNull(imageView.drawable)
-        assertNotNull(imageView.imageTintList)
+        val highlightImageView = view.findViewById<AppCompatImageView>(R.id.highlight_image)
         assertEquals(highlightImageView.visibility, View.VISIBLE)
         assertNotNull(highlightImageView.drawable)
         assertNotNull(highlightImageView.imageTintList)
@@ -83,10 +84,8 @@ class BrowserMenuHighlightableItemTest {
 
         val view = inflate(item)
 
-        val imageView = view.findViewById<AppCompatImageView>(R.id.image)
         val highlightImageView = view.findViewById<AppCompatImageView>(R.id.highlight_image)
 
-        assertNull(imageView.imageTintList)
         assertNull(highlightImageView.imageTintList)
     }
 

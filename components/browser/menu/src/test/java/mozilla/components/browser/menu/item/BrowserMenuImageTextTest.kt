@@ -10,7 +10,6 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenu
@@ -22,6 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(AndroidJUnit4::class)
 class BrowserMenuImageTextTest {
@@ -56,14 +56,13 @@ class BrowserMenuImageTextTest {
 
         val view = inflate(item)
 
-        val textView = view.findViewById<TextView>(R.id.text)
+        val textView = view.findViewById<TextView>(R.id.imageText)
         assertEquals(textView.text, "label")
 
-        val imageView = view.findViewById<AppCompatImageView>(R.id.image)
+        val imageShadow = shadowOf(textView.compoundDrawablesRelative[0])
 
-        assertNotNull(imageView.drawable)
-
-        assertNotNull(imageView.imageTintList)
+        assertNotNull(imageShadow)
+        assertEquals(android.R.drawable.ic_menu_report_image, imageShadow.createdFromResId)
     }
 
     @Test
@@ -74,10 +73,8 @@ class BrowserMenuImageTextTest {
         )
 
         val view = inflate(item)
-
-        val imageView = view.findViewById<AppCompatImageView>(R.id.image)
-
-        assertNull(imageView.imageTintList)
+        val textView = view.findViewById<TextView>(R.id.imageText)
+        assertNull(textView.compoundDrawableTintList)
     }
 
     private fun inflate(item: BrowserMenuImageText): View {

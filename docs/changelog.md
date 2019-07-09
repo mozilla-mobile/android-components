@@ -22,6 +22,11 @@ permalink: /changelog/
 * **browser-icons**
   * Added `BrowserIcons.loadIntoView` to automatically load an icon into an `ImageView`.
 
+* **browser-menu**
+  * Changed width to `wrap_content` by default and added an optional param `min_width` that can still be used to set a fixed width on the menu builder
+  * Updated several items to behave properly in a container with `wrap_content` 
+  * Removed `BrowserMenuCompoundButton` as it was now only used by `BrowserMenuSwitch`
+
 * **feature-push**
   * Updated the default autopush service endpoint to `updates.push.services.mozilla.com`.
 
@@ -60,7 +65,7 @@ permalink: /changelog/
 
 * **browser-engine-gecko-beta**
   * Like with the nightly flavor previously (0.55.0) this component now has a hard dependency on the new [universal GeckoView build](https://bugzilla.mozilla.org/show_bug.cgi?id=1508976) that is no longer architecture specific (ARM, x86, ..). With that apps no longer need to specify the GeckoView dependency themselves and synchronize the used version with Android Components. Additionally apps can now make use of [APK splits](https://developer.android.com/studio/build/configure-apk-splits) or [Android App Bundles (AAB)](https://developer.android.com/guide/app-bundle).
-
+  
 * **feature-media**
   * Added `MediaNotificationFeature` - a feature implementation to show an ongoing notification (keeping the app process alive) while web content is playing media.
 

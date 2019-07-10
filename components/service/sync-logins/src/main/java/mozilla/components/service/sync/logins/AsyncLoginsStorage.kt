@@ -17,6 +17,7 @@ import mozilla.appservices.sync15.SyncTelemetryPing
 import mozilla.components.concept.sync.AuthInfo
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncableStore
+import mozilla.components.support.base.log.logger.Logger
 
 /**
  * This type contains the set of information required to successfully
@@ -375,10 +376,15 @@ data class SyncableLoginsStore(
     val store: AsyncLoginsStorage,
     val key: () -> Deferred<String>
 ) : SyncableStore {
+    val logger = Logger("AsyncLoginsStorage")
+
     override suspend fun sync(authInfo: AuthInfo): SyncStatus {
         return try {
             withUnlocked {
-                it.sync(authInfo.into()).await()
+                // We don't return the sync ping to our callers, so for the
+                // sake of demonstration we log some info from it.
+                val ping = it.sync(authInfo.into()).await()
+                logger.debug("Logins sync completed, FxA UID is ${ping?.uid}")
                 SyncStatus.Ok
             }
         } catch (e: LoginsStorageException) {

@@ -4,16 +4,73 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 2.0.0-SNAPSHOT  (In Development)
+# 4.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v1.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/61?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v3.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/63?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **feature-media**
+  * Added `MediaNotificationFeature` - a feature implementation to show an ongoing notification (keeping the app process alive) while web content is playing media.
+
+# 3.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v2.0.0...v3.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/62?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v3.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v3.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v3.0.0/buildSrc/src/main/java/Config.kt)
+
+* **feature-prompts**
+  * Improved file picker prompt by displaying the option to use the camera to capture images,
+    microphone to record audio, or video camera to capture a video.
+
+* **feature-pwa**
+  * Added preliminary support for pinning websites to the home screen.
+
+* **browser-search**
+  * Loading search engines should no longer deadlock on devices with 1-2 CPUs
+
+* **concept-engine**, **browser-engine-gecko(-beta/nightly)**, **browser-engine-system**
+  * Added `EngineView.release()` to manually release an `EngineSession` that is currently being rendered by the `EngineView`. Usually an app does not need to call `release()` manually since `EngineView` takes care of releasing the `EngineSession` on specific lifecycle events. However sometimes the app wants to release an `EngineSession` to immediately render it on another `EngineView`; e.g. when transforming a Custom Tab into a regular browser tab.
+
+* **browser-session**
+  * ⚠️ **This is a breaking change**: Removed "default session" behavior from `SessionManager`. This feature was never used by any app except the sample browser.
+
+* **feature-downloads**
+  * Added `FetchDownloadManager`, an alternate download manager that uses a fetch `Client` instead of the native Android `DownloadManager`.
+
+* **support-ktx**
+  * Deprecated `String.toUri()` in favour of Android Core KTX.
+  * Deprecated `View.isGone` and `View.isInvisible` in favour of Android Core KTX.
+  * Added `putCompoundDrawablesRelative` and `putCompoundDrawablesRelativeWithIntrinsicBounds`, aliases of `setCompoundDrawablesRelative` that use Kotlin named and default arguments.
+
+* **feature-prompts**
+  * The color picker has been redesigned based on Firefox for Android (Fennec).
+
+# 2.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v1.0.0...v2.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/61?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v2.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v2.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v2.0.0/buildSrc/src/main/java/Config.kt)
+
+
+* **browser-toolbar**
+  * Adds `focus()` which provides a hook for calling `editMode.focus()` to focus the edit mode `urlView`
+
+* **browser-awesomebar**
+  * Updated `DefaultSuggestionViewHolder` to have a style more consistent with Fenix mocks.
+  * Fixed a bug with `InlineAutocompleteEditText` where the cursor would disappear if a user cleared an suggested URL.
+
 * **lib-state**
   * A new component for maintaining application, screen or component state via a redux-style `Store`. This component provides the architectural foundation for the `browser-state` component (in development).
+
+* **feature-downloads**
+  * `onDownloadCompleted` no longer receives the download object and ID.
 
 * **support-ktx**
   * Deprecated `Resource.pxToDp`.
@@ -22,6 +79,20 @@ permalink: /changelog/
 
 * **support-ktx**
   * Added `Context.isScreenReaderEnabled` extension to check if TalkBack service is enabled.
+
+* **browser-icons**
+  * The component now ships with the [tippy-top-sites](https://github.com/mozilla/tippy-top-sites) top 200 list for looking up icon resources.
+
+* **concept-engine**, **browser-engine-gecko(-beta/nightly)**, **feature-session**, **feature-tabs**
+  * Added to support for specifying additional flags when loading URLs. This can be done using the engine session directly, as well as via use cases:
+
+  ```kotlin
+  // Bypass cache
+  sessionManager.getEngineSession().loadUrl(url, LoadUrlFlags.select(LoadUrlFlags.BYPASS_CACHE))
+
+  // Bypass cache and proxy
+  sessionUseCases.loadUrl.invoke(url, LoadUrlFlags.select(LoadUrlFlags.BYPASS_CACHE, LoadUrlFlags.BYPASS_PROXY))
+  ```
 
 # 1.0.0
 
@@ -142,8 +213,8 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Added `url` parameter to `Session.Observer.onLoadRequest()`.
 
 * **support-ktx**
-  * Removed `Drawable.toBitmap()` in favour of the Android Core KTX version.
-  * Removed `Context.systemService()` in favour of the Android Core KTX version.
+  * ⚠️ **This is a breaking change**: Removed `Drawable.toBitmap()` in favour of the Android Core KTX version.
+  * ⚠️ **This is a breaking change**: Removed `Context.systemService()` in favour of the Android Core KTX version.
 
 * **browser-session**
   * Added `Session.hasParentSession` to indicate whether a `Session` was opened from a parent `Session` such as opening a new tab from a link context menu ("Open in new tab").

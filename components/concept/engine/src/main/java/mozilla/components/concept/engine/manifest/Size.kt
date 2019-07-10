@@ -4,6 +4,9 @@
 
 package mozilla.components.concept.engine.manifest
 
+import kotlin.math.max
+import kotlin.math.min
+
 /**
  * Represents dimensions for an image.
  * Corresponds to values of the "sizes" HTML attribute.
@@ -15,6 +18,19 @@ data class Size(
     val width: Int,
     val height: Int
 ) {
+
+    /**
+     * Gets the longest length between width and height.
+     */
+    val maxLength get() = max(width, height)
+
+    /**
+     * Gets the shortest length between width and height.
+     */
+    val minLength get() = min(width, height)
+
+    override fun toString() = if (this == ANY) "any" else "${width}x$height"
+
     companion object {
         /**
          * Represents the "any" size.
@@ -22,7 +38,7 @@ data class Size(
         val ANY = Size(Int.MAX_VALUE, Int.MAX_VALUE)
 
         /**
-         * Parse a value from an HTML sizes attribute (512x512, 16x16, etc).
+         * Parses a value from an HTML sizes attribute (512x512, 16x16, etc).
          * Returns null if the value was invalid.
          */
         fun parse(raw: String): Size? {

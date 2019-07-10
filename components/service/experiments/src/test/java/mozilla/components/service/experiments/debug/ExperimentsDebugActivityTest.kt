@@ -18,7 +18,6 @@ import mozilla.components.service.experiments.Experiments
 import mozilla.components.service.experiments.ExperimentsSnapshot
 import mozilla.components.service.experiments.ExperimentsUpdater
 import mozilla.components.service.glean.Glean
-import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -37,13 +36,13 @@ class ExperimentsDebugActivityTest {
 
     private val testPackageName = "mozilla.components.service.experiments.test"
     private val context: Context = ApplicationProvider.getApplicationContext()
+    private lateinit var configuration: Configuration
 
     @Before
     fun setup() {
         WorkManagerTestInitHelper.initializeTestWorkManager(context)
 
         Glean.initialize(context)
-        Experiments.initialize(context)
 
         // This makes sure we have a "launch" intent in our package, otherwise
         // it will fail looking for it in `GleanDebugActivityTest`.
@@ -68,7 +67,7 @@ class ExperimentsDebugActivityTest {
         activity.create().start().resume()
 
         // Check that our main activity was launched.
-        Assert.assertEquals(testPackageName,
+        assertEquals(testPackageName,
             Shadows.shadowOf(activity.get()).peekNextStartedActivityForResult().intent.`package`!!)
     }
 
@@ -105,15 +104,15 @@ class ExperimentsDebugActivityTest {
             ExperimentsDebugActivity::class.java)
         var activity = Robolectric.buildActivity(ExperimentsDebugActivity::class.java, intent)
 
-        val updater: ExperimentsUpdater = spy(ExperimentsUpdater(ApplicationProvider.getApplicationContext<Context>(), Experiments))
-        updater.initialize(Configuration())
-        Experiments.updater = updater
+        configuration = Configuration()
+
+        Experiments.initialize(context, configuration)
 
         activity.create().start().resume()
 
-        // Right now we default to the dev instance, so make sure that we are on the default if no
-        // extra is used
-        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_DEV, Experiments.updater.source.baseUrl)
+        // We default to the prod instance, so make sure that we are on the default if no extra is
+        // used.
+        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_PROD, Experiments.updater.source.baseUrl)
 
         // Destroy the activity so we can create a new one with the command added to the intent
         activity.pause().stop().destroy()
@@ -129,24 +128,24 @@ class ExperimentsDebugActivityTest {
         // Destroy the activity so we can create a new one with a new command added to the intent
         activity.pause().stop().destroy()
 
-        intent.putExtra(ExperimentsDebugActivity.SET_KINTO_INSTANCE_EXTRA_KEY, "prod")
-        activity = Robolectric.buildActivity(ExperimentsDebugActivity::class.java, intent)
-
-        activity.create().start().resume()
-
-        // Make sure we changed to the 'production' instance
-        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_PROD, Experiments.updater.source.baseUrl)
-
-        // Destroy the activity so we can create a new one with a new command added to the intent
-        activity.pause().stop().destroy()
-
         intent.putExtra(ExperimentsDebugActivity.SET_KINTO_INSTANCE_EXTRA_KEY, "dev")
         activity = Robolectric.buildActivity(ExperimentsDebugActivity::class.java, intent)
 
         activity.create().start().resume()
 
-        // Make sure we changed to the 'developer' instance
+        // Make sure we changed to the 'dev' instance
         assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_DEV, Experiments.updater.source.baseUrl)
+
+        // Destroy the activity so we can create a new one with a new command added to the intent
+        activity.pause().stop().destroy()
+
+        intent.putExtra(ExperimentsDebugActivity.SET_KINTO_INSTANCE_EXTRA_KEY, "prod")
+        activity = Robolectric.buildActivity(ExperimentsDebugActivity::class.java, intent)
+
+        activity.create().start().resume()
+
+        // Make sure we changed to the 'developer' instance
+        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_PROD, Experiments.updater.source.baseUrl)
     }
 
     @Test
@@ -162,9 +161,9 @@ class ExperimentsDebugActivityTest {
 
         activity.create().start().resume()
 
-        // Right now we default to the dev instance, so make sure that we are on the default if no
+        // Right now we default to the prod instance, so make sure that we are on the default if no
         // extra is used
-        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_DEV, Experiments.updater.source.baseUrl)
+        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_PROD, Experiments.updater.source.baseUrl)
 
         // Destroy the activity so we can create a new one with the command added to the intent
         activity.pause().stop().destroy()
@@ -174,8 +173,8 @@ class ExperimentsDebugActivityTest {
 
         activity.create().start().resume()
 
-        // Make sure we stayed on the 'developer' instance
-        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_DEV, Experiments.updater.source.baseUrl)
+        // Make sure we stayed on the 'production' instance
+        assertEquals(ExperimentsUpdater.KINTO_ENDPOINT_PROD, Experiments.updater.source.baseUrl)
     }
 
     @Test
@@ -183,12 +182,14 @@ class ExperimentsDebugActivityTest {
         // Fake some experiments to test whether the correct one is active
         val experiment1 = Experiment(
             id = "test-id1",
-            branches = listOf(Experiment.Branch(name = "test-branch", ratio = 0)),
+            branches = listOf(Experiment.Branch(name = "test-branch", ratio = 1)),
             description = "test experiment 1",
             buckets = Experiment.Buckets(start = 0, count = 0),
             match = Experiment.Matcher(
                 appId = null,
                 appDisplayVersion = null,
+                appMinVersion = null,
+                appMaxVersion = null,
                 debugTags = null,
                 deviceManufacturer = null,
                 deviceModel = null,
@@ -203,12 +204,14 @@ class ExperimentsDebugActivityTest {
         // Fake some experiments to test whether the correct one is active
         val experiment2 = Experiment(
             id = "test-id2",
-            branches = listOf(Experiment.Branch(name = "test-branch", ratio = 0)),
+            branches = listOf(Experiment.Branch(name = "test-branch", ratio = 1)),
             description = "test experiment 2",
             buckets = Experiment.Buckets(start = 0, count = 0),
             match = Experiment.Matcher(
                 appId = null,
                 appDisplayVersion = null,
+                appMinVersion = null,
+                appMaxVersion = null,
                 debugTags = null,
                 deviceManufacturer = null,
                 deviceModel = null,
@@ -220,8 +223,12 @@ class ExperimentsDebugActivityTest {
             schemaModified = null
         )
 
+        val experimentsList = listOf(experiment1, experiment2)
+
         // Set our experiments as the experiment result
-        Experiments.experimentsResult = ExperimentsSnapshot(listOf(experiment1, experiment2), null)
+        configuration = Configuration()
+        Experiments.initialize(context, configuration)
+        Experiments.onExperimentsUpdated(ExperimentsSnapshot(experimentsList, null))
 
         // Set the extra values and start the intent.
         val intent = Intent(context, ExperimentsDebugActivity::class.java)
@@ -235,15 +242,16 @@ class ExperimentsDebugActivityTest {
         assertNotNull("experiment cannot be null", ex1)
         var ex2 = Experiments.getExperiment("test-id2")
         assertNotNull("experiment cannot be null", ex2)
-        var activeExperiments = Experiments.getActiveExperiments(context)
-        assertTrue("experiment must be active", activeExperiments.contains(ex1!!))
-        assertFalse("second experiment must not be active", activeExperiments.contains(ex2!!))
-        assertTrue("experiment must have correct branch", ex1.branches.any {
+        assertTrue("experiment must be active",
+            Experiments.activeExperiment!!.experiment.id == "test-id1")
+        assertFalse("second experiment must not be active",
+            Experiments.activeExperiment!!.experiment.id == "test-id2")
+        assertTrue("experiment must have correct branch", ex1!!.branches.any {
             it.name == "test-branch"
         })
         activity.pause().stop().destroy()
 
-        // Now clear the experiment using the 'clearAllOverides' command.
+        // Now clear the experiment using the 'clearAllOverrides' command.
         intent.extras?.clear()
         intent.putExtra(ExperimentsDebugActivity.OVERRIDE_CLEAR_ALL_EXTRA_KEY, true)
         activity = Robolectric.buildActivity(ExperimentsDebugActivity::class.java, intent)
@@ -259,8 +267,9 @@ class ExperimentsDebugActivityTest {
         assertNotNull("experiment cannot be null", ex1)
         ex2 = Experiments.getExperiment("test-id2")
         assertNotNull("experiment cannot be null", ex2)
-        activeExperiments = Experiments.getActiveExperiments(context)
-        assertFalse("first experiment must not be active", activeExperiments.contains(ex1!!))
-        assertFalse("second experiment must not be active", activeExperiments.contains(ex2!!))
+        Experiments.activeExperiment?.let {
+            assertFalse("first experiment must not be active", it.experiment == ex1!!)
+            assertFalse("second experiment must not be active", it.experiment == ex2!!)
+        }
     }
 }

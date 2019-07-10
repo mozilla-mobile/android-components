@@ -12,6 +12,7 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * This class provides access to a centralized registry of all active sessions.
@@ -19,7 +20,6 @@ import kotlin.math.max
 @Suppress("TooManyFunctions", "LargeClass")
 class LegacySessionManager(
     val engine: Engine,
-    val defaultSession: (() -> Session)? = null,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
 ) : Observable<SessionManager.Observer> by delegate {
     private val values = mutableListOf<Session>()
@@ -140,7 +140,7 @@ class LegacySessionManager(
         addInternal(session, selected, engineSession, parent = parent, viaRestore = false)
     }
 
-    @Suppress("LongParameterList")
+    @Suppress("LongParameterList", "ComplexMethod")
     private fun addInternal(
         session: Session,
         selected: Boolean = false,
@@ -160,7 +160,16 @@ class LegacySessionManager(
 
             values.add(parentIndex + 1, session)
         } else {
-            values.add(session)
+            if (viaRestore) {
+                // We always restore Sessions at the beginning of the list to pretend those sessions existed before
+                // we added any other sessions (e.g. coming from an Intent)
+                values.add(0, session)
+                if (selectedIndex != NO_SELECTION) {
+                    selectedIndex++
+                }
+            } else {
+                values.add(session)
+            }
         }
 
         if (engineSession != null) {
@@ -201,7 +210,7 @@ class LegacySessionManager(
             return
         }
 
-        snapshot.sessions.forEach {
+        snapshot.sessions.asReversed().forEach {
             addInternal(
                 it.session,
                 engineSession = it.engineSession,
@@ -297,13 +306,6 @@ class LegacySessionManager(
 
         notifyObservers { onSessionRemoved(session) }
 
-        // NB: we're not explicitly calling notifyObservers here, since adding a session when none
-        // are present will notify observers with onSessionSelected.
-        if (selectedIndex == NO_SELECTION && defaultSession != null) {
-            add(defaultSession.invoke())
-            return
-        }
-
         if (selectionUpdated && selectedIndex != NO_SELECTION) {
             notifyObservers { onSessionSelected(selectedSessionOrThrow) }
         }
@@ -389,20 +391,49 @@ class LegacySessionManager(
         return findNearbySession(index) { !it.isCustomTabSession() }
     }
 
+    /**
+     * Tries to find a [Session] that is near [index] and satisfies the [predicate].
+     *
+     * Its implementation is synchronized with the behavior in `TabListReducer` of the `browser-state` component.
+     */
+    @Suppress("LongMethod") // Yes, this method is pretty long. I hope we can delete it soon.
     private fun findNearbySession(index: Int, predicate: (Session) -> Boolean): Int {
-        val maxSteps = max(values.lastIndex - index, index)
+        // Okay, this is a bit stupid and complex. This implementation intends to implement the same behavior we use in
+        // BrowserStore - which is operating on a list without custom tabs. Since LegacySessionManager uses a list with
+        // custom tabs mixed in, we need to shift the index around a bit.
 
-        if (maxSteps <= 0) {
-            return NO_SELECTION
+        // First we need to determine the number of custom tabs that are *before* the index we removed from. This is
+        // later needed to calculate the index we would have removed from in a list without custom tabs.
+        var numberOfCustomTabsBeforeRemovedIndex = 0
+        for (i in 0..min(index - 1, values.lastIndex)) {
+            if (values[i].isCustomTabSession()) {
+                numberOfCustomTabsBeforeRemovedIndex++
+            }
         }
 
-        // Try sessions oscillating near the index.
-        for (steps in 1..maxSteps) {
-            listOf(index - steps, index + steps).forEach { current ->
+        // Now calculate the index and list without custom tabs included.
+        val indexWithoutCustomTabs = index - numberOfCustomTabsBeforeRemovedIndex
+        val sessionsWithoutCustomTabs = sessions
+
+        // Code run before this one would have re-used the selected index if it is still a valid index that satisfies
+        // the predicate - however that list contained custom tabs. Now without custom tabs we may be able to re-use
+        // the exiting index. Let's check if we can:
+        if (indexWithoutCustomTabs >= 0 &&
+            indexWithoutCustomTabs <= sessionsWithoutCustomTabs.lastIndex &&
+            predicate(sessionsWithoutCustomTabs[indexWithoutCustomTabs])) {
+            return values.indexOf(sessionsWithoutCustomTabs[indexWithoutCustomTabs])
+        }
+
+        // Finally try sessions (without custom tabs) oscillating near the index.
+        val range = 1..max(sessionsWithoutCustomTabs.lastIndex - indexWithoutCustomTabs, indexWithoutCustomTabs)
+        for (steps in range) {
+            listOf(indexWithoutCustomTabs - steps, indexWithoutCustomTabs + steps).forEach { current ->
                 if (current >= 0 &&
-                    current <= values.lastIndex &&
-                    predicate(values[current])) {
-                    return current
+                    current <= sessionsWithoutCustomTabs.lastIndex &&
+                    predicate(sessionsWithoutCustomTabs[current])) {
+                    // Now that we have a match we need to re-calculate the index in the list that includes custom tabs.
+                    val session = sessionsWithoutCustomTabs[current]
+                    return values.indexOf(session)
                 }
             }
         }
@@ -424,18 +455,12 @@ class LegacySessionManager(
         // NB: This callback indicates to observers that either removeSessions or removeAll were
         // invoked, not that the manager is now empty.
         notifyObservers { onAllSessionsRemoved() }
-
-        if (defaultSession != null) {
-            add(defaultSession.invoke())
-        }
     }
 
     /**
      * Removes all sessions including CustomTab sessions.
      */
     fun removeAll() = synchronized(values) {
-        val onlyCustomTabSessionsPresent = values.isNotEmpty() && sessions.isEmpty()
-
         values.forEach { unlink(it) }
         values.clear()
 
@@ -444,11 +469,6 @@ class LegacySessionManager(
         // NB: This callback indicates to observers that either removeSessions or removeAll were
         // invoked, not that the manager is now empty.
         notifyObservers { onAllSessionsRemoved() }
-
-        // Don't create a default session if we only had CustomTab sessions to begin with.
-        if (!onlyCustomTabSessionsPresent && defaultSession != null) {
-            add(defaultSession.invoke())
-        }
     }
 
     /**

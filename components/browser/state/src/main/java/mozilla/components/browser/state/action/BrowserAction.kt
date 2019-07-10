@@ -23,18 +23,50 @@ sealed class BrowserAction : Action
 sealed class TabListAction : BrowserAction() {
     /**
      * Adds a new [TabSessionState] to the list.
+     *
+     * @property tab the [TabSessionState] to add
+     * @property select whether or not to the tab should be selected.
      */
     data class AddTabAction(val tab: TabSessionState, val select: Boolean = false) : TabListAction()
 
     /**
      * Marks the [TabSessionState] with the given [tabId] as selected tab.
+     *
+     * @property tabId the ID of the tab to select.
      */
     data class SelectTabAction(val tabId: String) : TabListAction()
 
     /**
      * Removes the [TabSessionState] with the given [tabId] from the list of sessions.
+     *
+     * @property tabId the ID of the tab to remove.
+     * @property selectParentIfExists whether or not a parent tab should be
+     * selected if one exists, defaults to true.
      */
-    data class RemoveTabAction(val tabId: String) : TabListAction()
+    data class RemoveTabAction(val tabId: String, val selectParentIfExists: Boolean = true) : TabListAction()
+
+    /**
+     * Restores state from a (partial) previous state.
+     *
+     * @property tabs the [TabSessionState]s to restore.
+     * @property selectedTabId the ID of the tab to select.
+     */
+    data class RestoreAction(val tabs: List<TabSessionState>, val selectedTabId: String? = null) : TabListAction()
+
+    /**
+     * Removes both private and normal [TabSessionState]s.
+     */
+    object RemoveAllTabsAction : TabListAction()
+
+    /**
+     * Removes all private [TabSessionState]s.
+     */
+    object RemoveAllPrivateTabsAction : TabListAction()
+
+    /**
+     * Removes all non-private [TabSessionState]s.
+     */
+    object RemoveAllNormalTabsAction : TabListAction()
 }
 
 /**
@@ -43,13 +75,22 @@ sealed class TabListAction : BrowserAction() {
 sealed class CustomTabListAction : BrowserAction() {
     /**
      * Adds a new [CustomTabSessionState] to [BrowserState.customTabs].
+     *
+     * @property tab the [CustomTabSessionState] to add.
      */
     data class AddCustomTabAction(val tab: CustomTabSessionState) : CustomTabListAction()
 
     /**
      * Removes an existing [CustomTabSessionState] to [BrowserState.customTabs].
+     *
+     * @property tabId the ID of the custom tab to remove.
      */
     data class RemoveCustomTabAction(val tabId: String) : CustomTabListAction()
+
+    /**
+     * Removes all custom tabs [TabSessionState]s.
+     */
+    object RemoveAllCustomTabsAction : CustomTabListAction()
 }
 
 /**

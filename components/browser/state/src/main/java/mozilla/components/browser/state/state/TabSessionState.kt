@@ -8,20 +8,30 @@ import java.util.UUID
 
 /**
  * Value type that represents the state of a tab (private or normal).
+ *
+ * @property id the ID of this tab and session.
+ * @property content the [ContentState] of this tab.
+ * @property parentId the parent ID of this tab or null if this tab has no
+ * parent. The parent tab is usually the tab that initiated opening this
+ * tab (e.g. the user clicked a link with target="_blank" or selected
+ * "open in new tab" or a "window.open" was triggered).
  */
 data class TabSessionState(
     override val id: String = UUID.randomUUID().toString(),
-    override val content: ContentState
+    override val content: ContentState,
+    val parentId: String? = null
 ) : SessionState
 
 internal fun createTab(
     url: String,
     private: Boolean = false,
-    id: String = UUID.randomUUID().toString()
+    id: String = UUID.randomUUID().toString(),
+    parent: TabSessionState? = null
 ): TabSessionState {
     return TabSessionState(
         id = id,
-        content = ContentState(url, private)
+        content = ContentState(url, private),
+        parentId = parent?.id
     )
 }
 

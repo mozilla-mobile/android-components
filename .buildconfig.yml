@@ -1,4 +1,4 @@
-componentsVersion: 1.0.0
+componentsVersion: 4.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -167,7 +167,7 @@ projects:
   browser-state:
     path: components/browser/state
     description: 'Component responsible for maintaining the centralized state of a browser engine.'
-    publish: false
+    publish: true
   browser-storage-memory:
     path: components/browser/storage-memory
     description: 'A memory-backed implementation of core data storage.'
@@ -255,6 +255,10 @@ projects:
   support-rustlog:
     path: components/support/rustlog
     description: 'A bridge allowing log messages from Rust code to be sent to the log system in support-base'
+    publish: true
+  support-locale:
+    path: components/support/locale
+    description: 'A component to allow apps to change the system defined language by their custom one'
     publish: true
   lib-crash:
     path: components/lib/crash

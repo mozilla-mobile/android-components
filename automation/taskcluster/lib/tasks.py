@@ -26,14 +26,29 @@ class TaskBuilder(object):
         self.beetmover_worker_type = beetmover_worker_type
         self.tasks_priority = tasks_priority
 
-    def craft_build_task(self, module_name, gradle_tasks, subtitle='', run_coverage=False, is_snapshot=False, artifact_info=None):
-        artifacts = {} if artifact_info is None else {
-            artifact_info['artifact']: {
-                'type': 'file',
-                'expires': taskcluster.stringDate(taskcluster.fromNow(DEFAULT_EXPIRES_IN)),
-                'path': artifact_info['path']
-            }
-        }
+    def craft_build_task(self, module_name, gradle_tasks, subtitle='', run_coverage=False,
+                         is_snapshot=False, component=None, artifacts=None):
+        taskcluster_artifacts = {}
+        # component is not None when this is a release build, in which case artifacts is defined too
+        if component is not None:
+            if is_snapshot:
+                # TODO: DELETE once bug 1558795 is fixed in early Q3
+                taskcluster_artifacts = {
+                    component['artifact']: {
+                        'type': 'file',
+                        'expires': taskcluster.stringDate(taskcluster.fromNow(DEFAULT_EXPIRES_IN)),
+                        'path': component['path']
+                    }
+                }
+            else:
+                # component is not None when this is a release build, in which case artifacts is defined too
+                taskcluster_artifacts = {
+                    artifact['taskcluster_path']: {
+                        'type': 'file',
+                        'expires': taskcluster.stringDate(taskcluster.fromNow(DEFAULT_EXPIRES_IN)),
+                        'path': artifact['build_fs_path'],
+                    } for artifact in artifacts
+                }
 
         scopes = [
             "secrets:get:project/mobile/android-components/public-tokens"
@@ -54,15 +69,14 @@ class TaskBuilder(object):
             description='Execute Gradle tasks for module {}'.format(module_name),
             command=command,
             scopes=scopes,
-            artifacts=artifacts
+            artifacts=taskcluster_artifacts
         )
 
-    def craft_wait_on_builds_task(self, dependencies):
-        return self._craft_build_ish_task(
-            name='Android Components - Wait on all builds to be completed',
-            description='Dummy tasks that ensures all builds are correctly done before publishing them',
+    def craft_barrier_task(self, dependencies):
+        return self._craft_dummy_task(
+            name='Android Components - Barrier task to wait on other tasks to complete',
+            description='Dummy tasks that ensures all other tasks are correctly done before publishing them',
             dependencies=dependencies,
-            command="exit 0"
         )
 
     def craft_detekt_task(self):
@@ -84,6 +98,29 @@ class TaskBuilder(object):
             name='Android Components - compare-locales',
             description='Validate strings.xml with compare-locales',
             command='pip install "compare-locales>=5.0.2,<6.0" && compare-locales --validate l10n.toml .'
+        )
+
+    def craft_sign_task(self, build_task_id, barrier_task_id, artifacts, component_name, is_staging):
+        payload = {
+            "upstreamArtifacts": [{
+                "paths": [artifact["taskcluster_path"] for artifact in artifacts],
+                "formats": ["autograph_gpg"],
+                "taskId": build_task_id,
+                "taskType": "build"
+            }]
+        }
+
+        return self._craft_default_task_definition(
+            worker_type='mobile-signing-dep-v1' if is_staging else 'mobile-signing-v1',
+            provisioner_id='scriptworker-prov-v1',
+            dependencies=[build_task_id, barrier_task_id],
+            routes=[],
+            scopes=[
+                "project:mobile:android-components:releng:signing:cert:{}-signing".format("dep" if is_staging else "release"),
+            ],
+            name='Android Components - Sign Module :{}'.format(component_name),
+            description="Sign release module {}".format(component_name),
+            payload=payload
         )
 
     def craft_ui_tests_task(self):
@@ -127,7 +164,8 @@ class TaskBuilder(object):
         )
 
     def craft_beetmover_task(
-        self, build_task_id, wait_on_builds_task_id, version, artifact, artifact_name, is_snapshot, is_staging
+        self, build_task_id, sign_task_id, build_artifacts, sign_artifacts, component_name, is_snapshot,
+            is_staging
     ):
         if is_snapshot:
             if is_staging:
@@ -144,9 +182,75 @@ class TaskBuilder(object):
                 bucket_name = 'maven-production'
                 bucket_public_url = 'https://maven.mozilla.org/'
 
-        version = version.lstrip('v')
         payload = {
-            "maxRunTime": 600,
+            "artifactMap": [{
+                "locale": "en-US",
+                "paths": {
+                    artifact['taskcluster_path']: {
+                        'checksums_path': '',  # TODO beetmover marks this as required even though it's not needed here
+                        'destinations': [artifact['maven_destination']]
+                    } for artifact in (build_artifacts)
+                },
+                "taskId": build_task_id,
+            }, {
+                "locale": "en-US",
+                "paths": {
+                    artifact['taskcluster_path']: {
+                        'checksums_path': '',  # TODO beetmover marks this as required even though it's not needed here
+                        'destinations': [artifact['maven_destination']]
+                    } for artifact in (sign_artifacts)
+                },
+                "taskId": sign_task_id,
+            }],
+            "upstreamArtifacts": [{
+                'paths': [artifact['taskcluster_path'] for artifact in build_artifacts],
+                'taskId': build_task_id,
+                'taskType': 'build',
+            }, {
+                'paths': [artifact['taskcluster_path'] for artifact in sign_artifacts],
+                'taskId': sign_task_id,
+                'taskType': 'signing',
+            }],
+            "releaseProperties": {
+                "appName": "snapshot_components" if is_snapshot else "components",
+            },
+        }
+
+        return self._craft_default_task_definition(
+            self.beetmover_worker_type,
+            'scriptworker-prov-v1',
+            dependencies=[build_task_id, sign_task_id],
+            routes=[],
+            scopes=[
+                "project:mobile:android-components:releng:beetmover:bucket:{}".format(bucket_name),
+                "project:mobile:android-components:releng:beetmover:action:push-to-maven",
+            ],
+            name="Android Components - Publish Module :{} via beetmover".format(component_name),
+            description="Publish release module {} to {}".format(component_name, bucket_public_url),
+            payload=payload
+        )
+
+    # TODO: DELETE once bug 1558795 is fixed in early Q3
+    def craft_snapshot_beetmover_task(
+        self, build_task_id, wait_on_builds_task_id, version, artifact, artifact_name,
+        is_snapshot, is_staging
+    ):
+        if is_snapshot:
+            if is_staging:
+                bucket_name = 'maven-snapshot-staging'
+                bucket_public_url = 'https://maven-snapshots.stage.mozaws.net/'
+            else:
+                bucket_name = 'maven-snapshot-production'
+                bucket_public_url = 'https://snapshots.maven.mozilla.org/'
+        else:
+            if is_staging:
+                bucket_name = 'maven-staging'
+                bucket_public_url = 'https://maven-default.stage.mozaws.net/'
+            else:
+                bucket_name = 'maven-production'
+                bucket_public_url = 'https://maven.mozilla.org/'
+
+        payload = {
             "upstreamArtifacts": [{
                 'paths': [artifact],
                 'taskId': build_task_id,
@@ -183,7 +287,7 @@ class TaskBuilder(object):
         scopes = [] if scopes is None else scopes
         routes = [] if routes is None else routes
         features = {} if features is None else features
-        env_vars = {} if env_vars is None else env_vars 
+        env_vars = {} if env_vars is None else env_vars
 
         checkout_command = (
             "git fetch {} {} --tags && "
@@ -202,7 +306,7 @@ class TaskBuilder(object):
 
         payload = {
             "features": features,
-            "env": env_vars, 
+            "env": env_vars,
             "maxRunTime": 7200,
             "image": "mozillamobile/android-components:1.19",
             "command": [
@@ -212,6 +316,33 @@ class TaskBuilder(object):
                 command
             ],
             "artifacts": artifacts,
+        }
+
+        return self._craft_default_task_definition(
+            self.build_worker_type,
+            'aws-provisioner-v1',
+            dependencies,
+            routes,
+            scopes,
+            name,
+            description,
+            payload
+        )
+
+    def _craft_dummy_task(
+        self, name, description,  dependencies=None, routes=None, scopes=None,
+    ):
+        routes = []
+        scopes = []
+        payload = {
+            "maxRunTime": 600,
+            "image": "alpine",
+            "command": [
+                "/bin/sh",
+                "--login",
+                "-cx",
+                "echo \"Dummy task\""
+            ],
         }
 
         return self._craft_default_task_definition(
@@ -281,4 +412,3 @@ def schedule_task_graph(ordered_groups_of_tasks):
                 'task': queue.task(task_id),
             }
     return full_task_graph
-

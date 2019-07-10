@@ -15,6 +15,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
@@ -54,7 +55,6 @@ internal class EditToolbar(
         inputType = InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_CLASS_TEXT
 
         setPadding(resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_padding))
-        setSelectAllOnFocus(true)
 
         setOnCommitListener {
             // We emit the fact before notifying the listener because otherwise the listener may cause a focus
@@ -86,7 +86,7 @@ internal class EditToolbar(
         }
 
     internal fun updateClearViewVisibility(text: String) {
-        clearView.visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+        clearView.isVisible = text.isNotBlank()
     }
 
     private val clearView = ImageView(context).apply {
@@ -98,7 +98,8 @@ internal class EditToolbar(
         scaleType = ImageView.ScaleType.CENTER
 
         setOnClickListener {
-            urlView.text.clear()
+            // We set text to an empty string instead of using clear to avoid #3612.
+            urlView.setText("")
         }
     }
 

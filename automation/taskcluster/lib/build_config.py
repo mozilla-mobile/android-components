@@ -18,7 +18,17 @@ def read_build_config():
     return cached_build_config
 
 
-def module_definitions():
+def components():
+    build_config = read_build_config()
+    return [{
+        'name': name,
+        'path': project['path'],
+        'shouldPublish': project['publish']
+    } for (name, project) in build_config['projects'].items()]
+
+
+# TODO: DELETE once bug 1558795 is fixed in early Q3
+def snapshot_components():
     build_config = read_build_config()
     return [{
         'name': name,

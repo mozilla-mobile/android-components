@@ -2,7 +2,7 @@
 
 # Store
 
-`open class Store<S : `[`State`](../-state.md)`, A : `[`Action`](../-action.md)`>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/state/src/main/java/mozilla/components/lib/state/Store.kt#L36)
+`open class Store<S : `[`State`](../-state.md)`, A : `[`Action`](../-action.md)`>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/state/src/main/java/mozilla/components/lib/state/Store.kt#L40)
 
 A generic store holding an immutable [State](../-state.md).
 
@@ -51,4 +51,4 @@ The [State](../-state.md) can only be modified by dispatching [Action](../-actio
 
 | Name | Summary |
 |---|---|
-| [BrowserStore](../../mozilla.components.browser.session.store/-browser-store/index.md) | `class BrowserStore : `[`Store`](./index.md)`<`[`BrowserState`](../../mozilla.components.browser.session.state/-browser-state/index.md)`, `[`BrowserAction`](../../mozilla.components.browser.session.action/-browser-action.md)`>`<br>The [BrowserStore](../../mozilla.components.browser.session.store/-browser-store/index.md) holds the [BrowserState](../../mozilla.components.browser.session.state/-browser-state/index.md) (state tree). |
+| [BrowserStore](../../mozilla.components.browser.state.store/-browser-store/index.md) | `class BrowserStore : `[`Store`](./index.md)`<`[`BrowserState`](../../mozilla.components.browser.state.state/-browser-state/index.md)`, `[`BrowserAction`](../../mozilla.components.browser.state.action/-browser-action.md)`>`<br>The [BrowserStore](../../mozilla.components.browser.state.store/-browser-store/index.md) holds the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) (state tree). |

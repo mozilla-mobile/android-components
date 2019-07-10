@@ -252,6 +252,150 @@ class ExperimentEvaluatorTest {
     }
 
     @Test
+    fun `evaluate appMinVersion`() {
+        testReset(appId = "test.appId", versionName = "1.0.0")
+
+        val experiment = createDefaultExperiment(
+            id = "testexperiment",
+            match = createDefaultMatcher(
+                localeLanguage = "eng",
+                appId = "test.appId",
+                regions = listOf("USA", "GBR"),
+                appMinVersion = "1.0.0",
+                deviceManufacturer = "unknown",
+                deviceModel = "robolectric",
+                localeCountry = "USA"
+            ),
+            buckets = Experiment.Buckets(20, 70),
+            lastModified = currentTime
+        )
+
+        val evaluator = ExperimentEvaluator()
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.0"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.0.1"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.1.18"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.1.18.43123"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.1.18.34.2345"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "0.1.18"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "0.9.9"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    @Test
+    fun `evaluate appMaxVersion`() {
+        testReset(appId = "test.appId", versionName = "2.0.0")
+
+        val experiment = createDefaultExperiment(
+            id = "testexperiment",
+            match = createDefaultMatcher(
+                localeLanguage = "eng",
+                appId = "test.appId",
+                regions = listOf("USA", "GBR"),
+                appMaxVersion = "2.0.0",
+                deviceManufacturer = "unknown",
+                deviceModel = "robolectric",
+                localeCountry = "USA"
+            ),
+            buckets = Experiment.Buckets(20, 70),
+            lastModified = currentTime
+        )
+
+        val evaluator = ExperimentEvaluator()
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.9"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.9.9999"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.1.18"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "2.0.1"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "2.0.1.2.3"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "67.1.12345678"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    @Test
+    fun `evaluate a min and max version together`() {
+        testReset(appId = "test.appId")
+
+        val experiment = createDefaultExperiment(
+            id = "testexperiment",
+            match = createDefaultMatcher(
+                localeLanguage = "eng",
+                appId = "test.appId",
+                regions = listOf("USA", "GBR"),
+                appMinVersion = "1.0.0",
+                appMaxVersion = "2.0.0",
+                deviceManufacturer = "unknown",
+                deviceModel = "robolectric",
+                localeCountry = "USA"
+            ),
+            buckets = Experiment.Buckets(20, 70),
+            lastModified = currentTime
+        )
+
+        val evaluator = ExperimentEvaluator()
+
+        packageInfo.versionName = "0.1"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "0.0.1"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "0.9.9"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "0.9.9.9.9.9"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.0.0"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.0.1"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.9.9999"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "1.9.9999.999.99"
+        assertNotNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "2.0.1"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+
+        packageInfo.versionName = "2.1.18"
+        assertNull(evaluator.evaluate(context, ExperimentDescriptor("testexperiment"), listOf(experiment), 20))
+    }
+
+    @Test
     fun `evaluate deviceModel`() {
         testReset(appId = "test.appId", versionName = "test.version")
 
@@ -454,13 +598,13 @@ class ExperimentEvaluatorTest {
             override fun getClientId(context: Context): String = "c641eacf-c30c-4171-b403-f077724e848a"
         })
 
-        assertEquals(79, evaluator1.getUserBucket(testContext))
+        assertEquals(779, evaluator1.getUserBucket(testContext))
 
         val evaluator2 = ExperimentEvaluator(object : ValuesProvider() {
             override fun getClientId(context: Context): String = "01a15650-9a5d-4383-a7ba-2f047b25c620"
         })
 
-        assertEquals(55, evaluator2.getUserBucket(testContext))
+        assertEquals(355, evaluator2.getUserBucket(testContext))
     }
 
     @Test
@@ -482,25 +626,32 @@ class ExperimentEvaluatorTest {
         }
 
         distribution
-                .groupingBy { it }
-                .eachCount()
-                .forEach {
-                    Assert.assertTrue(it.value in 0..25)
-                }
+            .groupingBy { it }
+            .eachCount()
+            .forEach {
+                Assert.assertTrue(it.value in 0..9)
+            }
 
         distribution
-                .groupingBy { it / 10 }
-                .eachCount()
-                .forEach {
-                    Assert.assertTrue(it.value in 50..150)
-                }
+            .groupingBy { it / 10 }
+            .eachCount()
+            .forEach {
+                Assert.assertTrue(it.value in 0..29)
+            }
 
         distribution
-                .groupingBy { it / 50 }
-                .eachCount()
-                .forEach {
-                    Assert.assertTrue(it.value in 350..650)
-                }
+            .groupingBy { it / 100 }
+            .eachCount()
+            .forEach {
+                Assert.assertTrue(it.value in 50..150)
+            }
+
+        distribution
+            .groupingBy { it / 500 }
+            .eachCount()
+            .forEach {
+                Assert.assertTrue(it.value in 350..650)
+            }
     }
 
     @Test

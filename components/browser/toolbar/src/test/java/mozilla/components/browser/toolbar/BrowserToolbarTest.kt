@@ -15,6 +15,8 @@ import android.view.accessibility.AccessibilityManager
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.core.view.inputmethod.EditorInfoCompat
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.BrowserToolbar.Companion.ACTION_PADDING_DP
@@ -23,8 +25,6 @@ import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
 import mozilla.components.support.base.android.Padding
-import mozilla.components.support.ktx.android.view.isGone
-import mozilla.components.support.ktx.android.view.isVisible
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -71,6 +71,19 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `calling editModeFocus() focuses the editToolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.editToolbar = spy(toolbar.editToolbar)
+
+        verify(toolbar.editToolbar, never()).focus()
+
+        toolbar.editMode()
+        toolbar.focus()
+
+        verify(toolbar.editToolbar, times(2)).focus()
+    }
+
+    @Test
     fun `calling displayMode() makes display toolbar visible`() {
         val toolbar = BrowserToolbar(testContext)
         toolbar.editMode()
@@ -113,30 +126,28 @@ class BrowserToolbarTest {
     fun `displayUrl will be forwarded to display toolbar immediately`() {
         val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
-        val ediToolbar = mock(EditToolbar::class.java)
+        val editToolbar = mock(EditToolbar::class.java)
 
         toolbar.displayToolbar = displayToolbar
-        toolbar.editToolbar = ediToolbar
+        toolbar.editToolbar = editToolbar
 
         toolbar.url = "https://www.mozilla.org"
 
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
-        verify(ediToolbar, never()).updateUrl(ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())
+        verify(editToolbar, never()).updateUrl(ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())
     }
 
     @Test
     fun `last URL will be forwarded to edit toolbar when switching mode`() {
         val toolbar = BrowserToolbar(testContext)
-
-        val ediToolbar = mock(EditToolbar::class.java)
-        toolbar.editToolbar = ediToolbar
+        toolbar.editToolbar = spy(toolbar.editToolbar)
 
         toolbar.url = "https://www.mozilla.org"
-        verify(ediToolbar, never()).updateUrl("https://www.mozilla.org", true)
+        verify(toolbar.editToolbar, never()).updateUrl("https://www.mozilla.org", true)
 
         toolbar.editMode()
 
-        verify(ediToolbar).updateUrl("https://www.mozilla.org", true)
+        verify(toolbar.editToolbar).updateUrl("https://www.mozilla.org", true)
     }
 
     @Test
@@ -291,13 +302,13 @@ class BrowserToolbarTest {
         toolbar.setOnUrlCommitListener { true }
         toolbar.editMode()
 
-        assertTrue(toolbar.displayToolbar.isGone())
-        assertTrue(toolbar.editToolbar.isVisible())
+        assertTrue(toolbar.displayToolbar.isGone)
+        assertTrue(toolbar.editToolbar.isVisible)
 
         toolbar.onUrlEntered("https://www.mozilla.org")
 
-        assertTrue(toolbar.displayToolbar.isVisible())
-        assertTrue(toolbar.editToolbar.isGone())
+        assertTrue(toolbar.displayToolbar.isVisible)
+        assertTrue(toolbar.editToolbar.isGone)
     }
 
     @Test
@@ -306,13 +317,13 @@ class BrowserToolbarTest {
         toolbar.setOnUrlCommitListener { false }
         toolbar.editMode()
 
-        assertTrue(toolbar.displayToolbar.isGone())
-        assertTrue(toolbar.editToolbar.isVisible())
+        assertTrue(toolbar.displayToolbar.isGone)
+        assertTrue(toolbar.editToolbar.isVisible)
 
         toolbar.onUrlEntered("https://www.mozilla.org")
 
-        assertTrue(toolbar.displayToolbar.isGone())
-        assertTrue(toolbar.editToolbar.isVisible())
+        assertTrue(toolbar.displayToolbar.isGone)
+        assertTrue(toolbar.editToolbar.isVisible)
     }
 
     @Test
@@ -417,22 +428,21 @@ class BrowserToolbarTest {
     fun `URL update does not override search terms in edit mode`() {
         val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
-        val editToolbar = mock(EditToolbar::class.java)
 
         toolbar.displayToolbar = displayToolbar
-        toolbar.editToolbar = editToolbar
+        toolbar.editToolbar = spy(toolbar.editToolbar)
 
         toolbar.setSearchTerms("mozilla android")
         toolbar.url = "https://www.mozilla.com"
         toolbar.editMode()
         verify(displayToolbar).updateUrl("https://www.mozilla.com")
-        verify(editToolbar).updateUrl("mozilla android", false)
+        verify(toolbar.editToolbar).updateUrl("mozilla android", false)
 
         toolbar.setSearchTerms("")
         toolbar.url = "https://www.mozilla.org"
         toolbar.editMode()
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
-        verify(editToolbar).updateUrl("https://www.mozilla.org", true)
+        verify(toolbar.editToolbar).updateUrl("https://www.mozilla.org", true)
     }
 
     @Test
@@ -467,19 +477,18 @@ class BrowserToolbarTest {
     fun `search terms (if set) are forwarded to edit toolbar instead of URL`() {
         val toolbar = BrowserToolbar(testContext)
 
-        val ediToolbar = mock(EditToolbar::class.java)
-        toolbar.editToolbar = ediToolbar
+        toolbar.editToolbar = spy(toolbar.editToolbar)
 
         toolbar.url = "https://www.mozilla.org"
         toolbar.setSearchTerms("Mozilla Firefox")
 
-        verify(ediToolbar, never()).updateUrl("https://www.mozilla.org")
-        verify(ediToolbar, never()).updateUrl("Mozilla Firefox")
+        verify(toolbar.editToolbar, never()).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar, never()).updateUrl("Mozilla Firefox")
 
         toolbar.editMode()
 
-        verify(ediToolbar, never()).updateUrl("https://www.mozilla.org")
-        verify(ediToolbar).updateUrl("Mozilla Firefox")
+        verify(toolbar.editToolbar, never()).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar).updateUrl("Mozilla Firefox")
     }
 
     @Test
@@ -822,7 +831,7 @@ class BrowserToolbarTest {
     @Test
     fun `displaySiteSecurityIcon getter and setter`() {
         val toolbar = BrowserToolbar(testContext)
-        assertEquals(toolbar.displayToolbar.siteSecurityIconView.isVisible(), toolbar.displaySiteSecurityIcon)
+        assertEquals(toolbar.displayToolbar.siteSecurityIconView.isVisible, toolbar.displaySiteSecurityIcon)
 
         toolbar.displaySiteSecurityIcon = false
         assertEquals(View.GONE, toolbar.displayToolbar.siteSecurityIconView.visibility)

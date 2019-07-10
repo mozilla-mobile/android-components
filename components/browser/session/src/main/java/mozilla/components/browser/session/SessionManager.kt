@@ -21,9 +21,8 @@ import mozilla.components.support.base.observer.Observable
 @Suppress("TooManyFunctions")
 class SessionManager(
     val engine: Engine,
-    val defaultSession: (() -> Session)? = null,
     private val store: BrowserStore? = null,
-    private val delegate: LegacySessionManager = LegacySessionManager(engine, defaultSession)
+    private val delegate: LegacySessionManager = LegacySessionManager(engine)
 ) : Observable<SessionManager.Observer> by delegate {
     /**
      * Returns the number of session including CustomTab sessions.
@@ -122,7 +121,32 @@ class SessionManager(
      * @param snapshot A [Snapshot] which may be produced by [createSnapshot].
      * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
-    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) = delegate.restore(snapshot, updateSelection)
+    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
+        delegate.restore(snapshot, updateSelection)
+
+        val tabs = snapshot.sessions
+            .filter {
+                // A restored snapshot should not contain any custom tab so we should be able to safely ignore
+                // them here.
+                !it.session.isCustomTabSession()
+            }
+            .map { item ->
+                item.session.toTabSessionState()
+            }
+
+        val selectedTabId = if (updateSelection && snapshot.selectedSessionIndex != NO_SELECTION) {
+            val index = snapshot.selectedSessionIndex
+            if (index in 0..snapshot.sessions.lastIndex) {
+                snapshot.sessions[index].session.id
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+
+        store?.syncDispatch(TabListAction.RestoreAction(tabs, selectedTabId))
+    }
 
     /**
      * Gets the linked engine session for the provided session (if it exists).
@@ -161,6 +185,9 @@ class SessionManager(
      */
     fun removeSessions() {
         delegate.removeSessions()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
     }
 
     /**
@@ -168,6 +195,12 @@ class SessionManager(
      */
     fun removeAll() {
         delegate.removeAll()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
+        store?.syncDispatch(
+            CustomTabListAction.RemoveAllCustomTabsAction
+        )
     }
 
     /**

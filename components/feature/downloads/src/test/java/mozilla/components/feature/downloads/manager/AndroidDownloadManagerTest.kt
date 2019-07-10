@@ -14,8 +14,9 @@ import mozilla.components.browser.session.Download
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.grantPermission
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,7 +28,7 @@ import org.mockito.Mockito.verifyZeroInteractions
 class AndroidDownloadManagerTest {
 
     private lateinit var download: Download
-    private lateinit var downloadManager: DownloadManager
+    private lateinit var downloadManager: AndroidDownloadManager
 
     @Before
     fun setup() {
@@ -48,17 +49,15 @@ class AndroidDownloadManagerTest {
     fun `calling download must download the file`() {
         var downloadCompleted = false
 
-        downloadManager.onDownloadCompleted = { _, _ ->
-            downloadCompleted = true
-        }
+        downloadManager.onDownloadCompleted = { _, _ -> downloadCompleted = true }
 
         grantPermissions()
 
-        val id = downloadManager.download(download)
+        val id = downloadManager.download(download)!!
 
         notifyDownloadCompleted(id)
 
-        assert(downloadCompleted)
+        assertTrue(downloadCompleted)
     }
 
     @Test
@@ -66,14 +65,11 @@ class AndroidDownloadManagerTest {
 
         val invalidDownload = download.copy(url = "ftp://ipv4.download.thinkbroadband.com/5MB.zip")
 
-        downloadManager.onDownloadCompleted = { _, _ ->
-        }
-
         grantPermissions()
 
         val id = downloadManager.download(invalidDownload)
 
-        assertEquals(id, FILE_NOT_SUPPORTED)
+        assertNull(id)
     }
 
     @Test
@@ -85,15 +81,14 @@ class AndroidDownloadManagerTest {
 
         val id = downloadManager.download(
             downloadWithFileName,
-            cookie = "yummy_cookie=choco",
-            refererUrl = "https://www.mozilla.org"
-        )
+            cookie = "yummy_cookie=choco"
+        )!!
 
         downloadManager.onDownloadCompleted = { _, _ -> downloadCompleted = true }
 
         notifyDownloadCompleted(id)
 
-        assert(downloadCompleted)
+        assertTrue(downloadCompleted)
 
         downloadCompleted = false
         notifyDownloadCompleted(id)

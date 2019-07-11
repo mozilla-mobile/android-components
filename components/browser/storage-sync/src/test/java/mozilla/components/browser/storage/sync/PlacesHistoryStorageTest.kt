@@ -21,7 +21,7 @@ import mozilla.components.browser.storage.sync.GleanMetrics.HistorySync
 import mozilla.components.browser.storage.sync.GleanMetrics.Pings
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.VisitType
-import mozilla.components.concept.sync.AuthInfo
+import mozilla.components.concept.sync.SyncAuthInfo
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -268,7 +268,7 @@ class PlacesHistoryStorageTest {
         // Empty search.
         assertEquals(4, history.getSuggestions("", 100).size)
 
-        val search2 = history.getSuggestions("Mozilla", 100)
+        val search2 = history.getSuggestions("Mozilla", 100).sortedByDescending { it.url }
         assertEquals(2, search2.size)
         assertEquals("http://www.mozilla.org/", search2[0].id)
         assertEquals("http://www.mozilla.org/", search2[0].url)
@@ -277,15 +277,16 @@ class PlacesHistoryStorageTest {
         assertEquals("http://www.firefox.com/", search2[1].url)
         assertEquals("Mozilla Firefox", search2[1].title)
 
-        val search3 = history.getSuggestions("Mo", 100)
+        val search3 = history.getSuggestions("Mo", 100).sortedByDescending { it.url }
         assertEquals(3, search3.size)
-        assertEquals("http://www.moscow.ru/", search3[0].id)
-        assertEquals("http://www.moscow.ru/", search3[0].url)
-        assertEquals("Moscow City", search3[0].title)
 
-        assertEquals("http://www.mozilla.org/", search3[1].id)
-        assertEquals("http://www.mozilla.org/", search3[1].url)
-        assertEquals("Mozilla", search3[1].title)
+        assertEquals("http://www.mozilla.org/", search3[0].id)
+        assertEquals("http://www.mozilla.org/", search3[0].url)
+        assertEquals("Mozilla", search3[0].title)
+
+        assertEquals("http://www.moscow.ru/", search3[1].id)
+        assertEquals("http://www.moscow.ru/", search3[1].url)
+        assertEquals("Moscow City", search3[1].title)
 
         assertEquals("http://www.firefox.com/", search3[2].id)
         assertEquals("http://www.firefox.com/", search3[2].url)
@@ -518,11 +519,12 @@ class PlacesHistoryStorageTest {
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
-        storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
 
         assertEquals("kid", passedAuthInfo!!.kid)
-        assertEquals("serverUrl", passedAuthInfo!!.tokenserverURL)
+        assertEquals("serverUrl", passedAuthInfo!!.tokenServerUrl)
         assertEquals("token", passedAuthInfo!!.fxaAccessToken)
+        assertEquals(123L, passedAuthInfo!!.fxaAccessTokenExpiresAt)
         assertEquals("key", passedAuthInfo!!.syncKey)
     }
 
@@ -549,7 +551,7 @@ class PlacesHistoryStorageTest {
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
-        val result = storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        val result = storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
         assertEquals(SyncStatus.Ok, result)
     }
 
@@ -581,7 +583,7 @@ class PlacesHistoryStorageTest {
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
-        val result = storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        val result = storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
 
         assertTrue(result is SyncStatus.Error)
 
@@ -724,7 +726,7 @@ class PlacesHistoryStorageTest {
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
-        val result = storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        val result = storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
 
         assertTrue(result is SyncStatus.Ok)
         assertEquals(2, conn.pingCount)
@@ -901,7 +903,7 @@ class PlacesHistoryStorageTest {
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
-        val result = storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        val result = storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
 
         assertTrue(result is SyncStatus.Ok)
         assertEquals(6, conn.pingCount)
@@ -970,7 +972,7 @@ class PlacesHistoryStorageTest {
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
-        val result = storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        val result = storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
 
         assertTrue(result is SyncStatus.Ok)
         assertEquals(1, conn.pingCount)
@@ -1003,7 +1005,7 @@ class PlacesHistoryStorageTest {
             }
         }
         val storage = MockingPlacesHistoryStorage(conn)
-        storage.sync(AuthInfo("kid", "token", "key", "serverUrl"))
+        storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
         fail()
     }
 }

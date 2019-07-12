@@ -22,11 +22,13 @@ internal class GeckoMediaDelegate(
     private val mediaMap: MutableMap<MediaElement, Media> = mutableMapOf()
 
     override fun onMediaAdd(session: GeckoSession, element: MediaElement) {
-        val media = GeckoMedia(element).also {
-            mediaMap[element] = it
-        }
+        engineSession.notifyObservers {
+            val media = GeckoMedia(element)
 
-        engineSession.notifyObservers { onMediaAdded(media) }
+            mediaMap[element] = media
+
+            onMediaAdded(media)
+        }
     }
 
     override fun onMediaRemove(session: GeckoSession, element: MediaElement) {

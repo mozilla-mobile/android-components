@@ -4,26 +4,27 @@
 
 package mozilla.components.browser.storage.memory
 
-import android.support.annotation.VisibleForTesting
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
+import androidx.annotation.VisibleForTesting
+import mozilla.components.concept.storage.HistoryAutocompleteResult
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.SearchResult
+import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
+import mozilla.components.support.utils.StorageUtils.levenshteinDistance
 import mozilla.components.support.utils.segmentAwareDomainMatch
 
 data class Visit(val timestamp: Long, val type: VisitType)
 
-private const val URL_MATCH_WEIGHT = 10
-private const val TITLE_MATCH_WEIGHT = 5
+const val AUTOCOMPLETE_SOURCE_NAME = "memoryHistory"
 
 /**
  * An in-memory implementation of [mozilla.components.concept.storage.HistoryStorage].
  */
+@SuppressWarnings("TooManyFunctions")
 class InMemoryHistoryStorage : HistoryStorage {
     @VisibleForTesting
-    internal val pages: LinkedHashMap<String, MutableList<Visit>> = linkedMapOf()
+    internal var pages: HashMap<String, MutableList<Visit>> = linkedMapOf()
     @VisibleForTesting
     internal val pageMeta: HashMap<String, PageObservation> = hashMapOf()
 
@@ -39,27 +40,48 @@ class InMemoryHistoryStorage : HistoryStorage {
         }
     }
 
-    override suspend fun recordObservation(uri: String, observation: PageObservation) {
-        synchronized(pageMeta) {
-            pageMeta[uri] = observation
+    override suspend fun recordObservation(uri: String, observation: PageObservation) = synchronized(pageMeta) {
+        pageMeta[uri] = observation
+    }
+
+    override suspend fun getVisited(uris: List<String>): List<Boolean> = synchronized(pages) {
+        return uris.map {
+            if (pages[it] != null && pages[it]!!.size > 0) {
+                return@map true
+            }
+            return@map false
         }
     }
 
-    override fun getVisited(uris: List<String>): Deferred<List<Boolean>> {
-        return CompletableDeferred(synchronized(pages) {
-            uris.map {
-                if (pages[it] != null && pages[it]!!.size > 0) {
-                    return@map true
-                }
-                return@map false
-            }
-        })
+    override suspend fun getVisited(): List<String> = synchronized(pages) {
+        return pages.keys.toList()
     }
 
-    override fun getVisited(): Deferred<List<String>> {
-        return CompletableDeferred(synchronized(pages) {
-            pages.keys.toList()
-        })
+    override suspend fun getVisitsPaginated(offset: Long, count: Long, excludeTypes: List<VisitType>): List<VisitInfo> {
+        throw UnsupportedOperationException("Pagination is not yet supported by the in-memory history storage")
+    }
+
+    override suspend fun getDetailedVisits(
+        start: Long,
+        end: Long,
+        excludeTypes: List<VisitType>
+    ): List<VisitInfo> = synchronized(pages + pageMeta) {
+        val visits = mutableListOf<VisitInfo>()
+
+        pages.forEach {
+            it.value.forEach { visit ->
+                if (visit.timestamp >= start && visit.timestamp <= end && !excludeTypes.contains(visit.type)) {
+                    visits.add(VisitInfo(
+                        url = it.key,
+                        title = pageMeta[it.key]?.title,
+                        visitTime = visit.timestamp,
+                        visitType = visit.type
+                    ))
+                }
+            }
+        }
+
+        return visits
     }
 
     override fun getSuggestions(query: String, limit: Int): List<SearchResult> = synchronized(pages + pageMeta) {
@@ -81,8 +103,7 @@ class InMemoryHistoryStorage : HistoryStorage {
         }
         // Calculate maxScore so that we can invert our scoring.
         // Lower Levenshtein distance should produce a higher score.
-        val maxScore = urlMatches.maxBy { it.score }?.score
-        if (maxScore == null) return@synchronized listOf()
+        val maxScore = urlMatches.maxBy { it.score }?.score ?: return@synchronized listOf()
 
         // TODO exclude non-matching results entirely? Score that implies complete mismatch.
         matchedUrls.asSequence().sortedBy { it.value }.map {
@@ -90,37 +111,52 @@ class InMemoryHistoryStorage : HistoryStorage {
         }.take(limit).toList()
     }
 
-    override fun getDomainSuggestion(query: String): String? {
-        return segmentAwareDomainMatch(query, pages.keys)
+    override fun getAutocompleteSuggestion(query: String): HistoryAutocompleteResult? = synchronized(pages) {
+        segmentAwareDomainMatch(query, pages.keys)?.let { urlMatch ->
+            return HistoryAutocompleteResult(
+                query, urlMatch.matchedSegment, urlMatch.url, AUTOCOMPLETE_SOURCE_NAME, pages.size)
+        }
     }
 
-    // Borrowed from https://gist.github.com/ademar111190/34d3de41308389a0d0d8
-    private fun levenshteinDistance(a: String, b: String): Int {
-        val lhsLength = a.length
-        val rhsLength = b.length
+    override suspend fun deleteEverything() = synchronized(pages + pageMeta) {
+        pages.clear()
+        pageMeta.clear()
+    }
 
-        var cost = Array(lhsLength) { it }
-        var newCost = Array(lhsLength) { 0 }
-
-        for (i in 1..rhsLength - 1) {
-            newCost[0] = i
-
-            for (j in 1..lhsLength - 1) {
-                val match = if (a[j - 1] == b[i - 1]) 0 else 1
-
-                val costReplace = cost[j - 1] + match
-                val costInsert = cost[j] + 1
-                val costDelete = newCost[j - 1] + 1
-
-                newCost[j] = Math.min(Math.min(costInsert, costDelete), costReplace)
-            }
-
-            val swap = cost
-            cost = newCost
-            newCost = swap
+    override suspend fun deleteVisitsSince(since: Long) = synchronized(pages) {
+        pages.entries.forEach {
+            it.setValue(it.value.filterNot { visit -> visit.timestamp >= since }.toMutableList())
         }
+        pages = pages.filter { it.value.isNotEmpty() } as HashMap<String, MutableList<Visit>>
+    }
 
-        return cost[lhsLength - 1]
+    override suspend fun deleteVisitsBetween(startTime: Long, endTime: Long) = synchronized(pages) {
+        pages.entries.forEach {
+            it.setValue(it.value.filterNot { visit ->
+                visit.timestamp >= startTime && visit.timestamp <= endTime
+            }.toMutableList())
+        }
+        pages = pages.filter { it.value.isNotEmpty() } as HashMap<String, MutableList<Visit>>
+    }
+
+    override suspend fun deleteVisitsFor(url: String) = synchronized(pages + pageMeta) {
+        pages.remove(url)
+        pageMeta.remove(url)
+        Unit
+    }
+
+    override suspend fun deleteVisit(url: String, timestamp: Long) = synchronized(pages) {
+        if (pages.containsKey(url)) {
+            pages[url] = pages[url]!!.filter { it.timestamp != timestamp }.toMutableList()
+        }
+    }
+
+    override suspend fun prune() {
+        // Not applicable.
+    }
+
+    override suspend fun runMaintenance() {
+        // Not applicable.
     }
 
     override fun cleanup() {

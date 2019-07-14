@@ -6,13 +6,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -30,8 +30,9 @@ android {
 dependencies {
     implementation project(':concept-fetch')
 
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
 
-    implementation Deps.testing_mockwebserver
-    implementation Deps.testing_junit
+    implementation Dependencies.testing_mockwebserver
+    implementation Dependencies.testing_junit
+    implementation Dependencies.kotlin_coroutines
 }

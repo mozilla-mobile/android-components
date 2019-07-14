@@ -9,11 +9,11 @@ targetCompatibility = JavaVersion.VERSION_1_8
 sourceCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
-  compileOnly Deps.tools_lintapi
-  compileOnly Deps.kotlin_stdlib
+  compileOnly Dependencies.tools_lintapi
+  compileOnly Dependencies.kotlin_stdlib
 
-  testImplementation Deps.tools_lint
-  testImplementation Deps.tools_linttests
+  testImplementation Dependencies.tools_lint
+  testImplementation Dependencies.tools_linttests
 }
 
 jar {
@@ -27,5 +27,12 @@ task lint {
     // Do nothing. We execute the same set of tasks for all our modules in parallel on taskcluster.
     // This project doesn't have a lint task. To avoid special casing our automation I just added
     // an empty lint task here.
+  }
+}
+
+task assembleAndroidTest {
+  doLast {
+    // Do nothing. Like the `lint` task above this is just a dummy task so that this module
+    // behaves like our others and we do not need to special case it in automation.
   }
 }

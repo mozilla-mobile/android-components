@@ -6,13 +6,14 @@ package mozilla.components.lib.crash
 
 import android.content.ComponentName
 import android.content.Intent
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class NativeCodeCrashTest {
+
     @Test
     fun `Creating NativeCodeCrash object from sample GeckoView intent`() {
         val intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
@@ -26,7 +27,7 @@ class NativeCodeCrashTest {
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra")
         intent.putExtra("minidumpSuccess", true)
 
-        val crash = Crash.NativeCodeCrash.fromBundle(intent.extras)
+        val crash = Crash.NativeCodeCrash.fromBundle(intent.extras!!)
 
         assertEquals(crash.minidumpSuccess, true)
         assertEquals(crash.isFatal, false)

@@ -9,13 +9,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.fragment.app.Fragment
 
 class LoginFragment : Fragment() {
 
@@ -27,8 +27,8 @@ class LoginFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            authUrl = it.getString(AUTH_URL)
-            redirectUrl = it.getString(REDIRECT_URL)
+            authUrl = it.getString(AUTH_URL)!!
+            redirectUrl = it.getString(REDIRECT_URL)!!
         }
     }
 
@@ -69,7 +69,7 @@ class LoginFragment : Fragment() {
         if (context is OnLoginCompleteListener) {
             listener = context
         } else {
-            throw IllegalStateException(context.toString() + " must implement OnLoginCompleteListener")
+            throw IllegalStateException("$context must implement OnLoginCompleteListener")
         }
     }
 

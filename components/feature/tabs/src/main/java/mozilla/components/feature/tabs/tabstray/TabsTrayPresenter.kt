@@ -4,8 +4,8 @@
 
 package mozilla.components.feature.tabs.tabstray
 
-import android.support.v7.util.DiffUtil
-import android.support.v7.util.ListUpdateCallback
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListUpdateCallback
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.tabstray.TabsTray
@@ -17,9 +17,10 @@ import mozilla.components.concept.tabstray.TabsTray
 class TabsTrayPresenter(
     private val tabsTray: TabsTray,
     private val sessionManager: SessionManager,
-    private val closeTabsTray: () -> Unit
+    private val closeTabsTray: () -> Unit,
+    internal var sessionsFilter: (Session) -> Boolean = { true }
 ) : SessionManager.Observer {
-    private var sessions = sessionManager.sessions
+    private var sessions = sessionManager.sessions.filter { sessionsFilter(it) }
     private var selectedIndex = sessions.indexOf(sessionManager.selectedSession)
 
     fun start() {
@@ -59,8 +60,8 @@ class TabsTrayPresenter(
      * tab tray with the new data and notifies it about what changes happened so that it can animate
      * those changes.
      */
-    private fun calculateDiffAndUpdateTabsTray() {
-        val updatedSessions = sessionManager.sessions
+    internal fun calculateDiffAndUpdateTabsTray() {
+        val updatedSessions = sessionManager.sessions.filter { sessionsFilter(it) }
         val updatedIndex = if (updatedSessions.isNotEmpty()) {
             updatedSessions.indexOf(sessionManager.selectedSession)
         } else {

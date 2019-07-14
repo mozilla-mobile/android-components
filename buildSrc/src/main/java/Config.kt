@@ -2,21 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-object Config {
-    // Synchronized library configuration for all modules
+// Synchronized library configuration for all modules
+// This "componentsVersion" number is defined in ".buildconfig.yml" and should follow
+// semantic versioning (MAJOR.MINOR.PATCH). See https://semver.org/
+class Config(val componentsVersion: String) {
+    companion object {
+        // Maven group ID used for all components
+        const val componentsGroupId = "org.mozilla.components"
 
-    // This version number should follow semantic versioning (MAJOR.MINOR.PATCH).
-    // See https://semver.org/
-    const val componentsVersion = "0.32.0"
+        // Synchronized build configuration for all modules
+        const val compileSdkVersion = 28
+        const val minSdkVersion = 21
+        const val targetSdkVersion = 28
 
-    // Maven group ID used for all components
-    const val componentsGroupId = "org.mozilla.components"
-
-    // Synchronized build configuration for all modules
-    const val compileSdkVersion = 27
-    const val minSdkVersion = 21
-    const val targetSdkVersion = 27
-
-    // Component lib-dataprotect requires functionality from API 23.
-    const val minSdkVersion_dataprotect = 23
+        // Component lib-dataprotect requires functionality from API 23.
+        const val minSdkVersion_dataprotect = 23
+    }
 }

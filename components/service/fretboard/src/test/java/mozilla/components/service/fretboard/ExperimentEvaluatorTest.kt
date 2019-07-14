@@ -8,6 +8,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -20,11 +23,10 @@ import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ExperimentEvaluatorTest {
+
     @Test
     fun evaluateEmtpyMatchers() {
         val experiment = Experiment(
@@ -41,12 +43,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("other.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -77,12 +79,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -118,12 +120,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("other.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -156,12 +158,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -211,12 +213,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -268,12 +270,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -307,12 +309,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -365,12 +367,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -414,12 +416,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -471,12 +473,12 @@ class ExperimentEvaluatorTest {
             ),
             1528916183)
 
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         `when`(context.packageName).thenReturn("test.appId")
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("testexperiment"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
-        val packageManager = mock(PackageManager::class.java)
+        val packageManager = mock<PackageManager>()
         val packageInfo = PackageInfo()
         packageInfo.versionName = "test.version"
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
@@ -501,8 +503,8 @@ class ExperimentEvaluatorTest {
 
     @Test
     fun evaluateActivateOverride() {
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("id"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
         val evaluator = ExperimentEvaluator()
@@ -514,8 +516,8 @@ class ExperimentEvaluatorTest {
 
     @Test
     fun evaluateDeactivateOverride() {
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
         `when`(sharedPreferences.getBoolean(eq("name"), anyBoolean())).thenAnswer { invocation -> invocation.arguments[1] as Boolean }
         `when`(context.getSharedPreferences(anyString(), eq(Context.MODE_PRIVATE))).thenReturn(sharedPreferences)
         val evaluator = ExperimentEvaluator()
@@ -529,14 +531,14 @@ class ExperimentEvaluatorTest {
     fun evaluateNoExperimentSameAsDescriptor() {
         val savedExperiment = Experiment("wrongid", name = "wrongname")
         val descriptor = ExperimentDescriptor("testname")
-        val context = mock(Context::class.java)
+        val context = mock<Context>()
         assertNull(ExperimentEvaluator().evaluate(context, descriptor, listOf(savedExperiment), 20))
     }
 
     @Test
     fun setOverrideActivate() {
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
         `when`(sharedPreferencesEditor.putBoolean(anyString(), anyBoolean())).thenReturn(sharedPreferencesEditor)
         `when`(sharedPreferences.edit()).thenReturn(sharedPreferencesEditor)
@@ -548,8 +550,8 @@ class ExperimentEvaluatorTest {
 
     @Test
     fun setOverrideDeactivate() {
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
         `when`(sharedPreferencesEditor.putBoolean(eq("exp-2-name"), anyBoolean())).thenReturn(sharedPreferencesEditor)
         `when`(sharedPreferences.edit()).thenReturn(sharedPreferencesEditor)
@@ -561,8 +563,8 @@ class ExperimentEvaluatorTest {
 
     @Test
     fun clearOverride() {
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
         `when`(sharedPreferencesEditor.remove(anyString())).thenReturn(sharedPreferencesEditor)
         `when`(sharedPreferences.edit()).thenReturn(sharedPreferencesEditor)
@@ -574,8 +576,8 @@ class ExperimentEvaluatorTest {
 
     @Test
     fun clearAllOverrides() {
-        val context = mock(Context::class.java)
-        val sharedPreferences = mock(SharedPreferences::class.java)
+        val context = mock<Context>()
+        val sharedPreferences = mock<SharedPreferences>()
         val sharedPreferencesEditor = mock(SharedPreferences.Editor::class.java)
         `when`(sharedPreferencesEditor.clear()).thenReturn(sharedPreferencesEditor)
         `when`(sharedPreferences.edit()).thenReturn(sharedPreferencesEditor)
@@ -591,12 +593,12 @@ class ExperimentEvaluatorTest {
             override fun getClientId(context: Context): String = "c641eacf-c30c-4171-b403-f077724e848a"
         })
 
-        assertEquals(79, evaluator1.getUserBucket(RuntimeEnvironment.application))
+        assertEquals(79, evaluator1.getUserBucket(testContext))
 
         val evaluator2 = ExperimentEvaluator(object : ValuesProvider() {
             override fun getClientId(context: Context): String = "01a15650-9a5d-4383-a7ba-2f047b25c620"
         })
 
-        assertEquals(55, evaluator2.getUserBucket(RuntimeEnvironment.application))
+        assertEquals(55, evaluator2.getUserBucket(testContext))
     }
 }

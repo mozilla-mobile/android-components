@@ -4,41 +4,40 @@
 
 package mozilla.components.service.fxa
 
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import org.mozilla.fxaclient.internal.Config as InternalConfig
+import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.DeviceType
+import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
+
+typealias ServerConfig = mozilla.appservices.fxaclient.Config
 
 /**
- * Config represents the server endpoint configurations needed for the
- * authentication flow.
+ * Configuration for the current device.
+ *
+ * @property name An initial name to use for the device record which will be created during authentication.
+ * This can be changed later via [FxaDeviceConstellation].
+ *
+ * @property type Type of a device - mobile, desktop - used for displaying identifying icons on other devices.
+ * This cannot be changed once device record is created.
+ *
+ * @property capabilities A set of device capabilities, such as SEND_TAB. This set can be expanded by
+ * re-initializing [FxaAccountManager] with a new set (e.g. on app restart).
+ * Shrinking a set of capabilities is currently not supported.
  */
-class Config internal constructor(internal val inner: InternalConfig) : AutoCloseable {
+data class DeviceConfig(
+    val name: String,
+    val type: DeviceType,
+    val capabilities: Set<DeviceCapability>
+)
 
-    override fun close() {
-        inner.close()
-    }
-
-    companion object {
-        /**
-         * Set up endpoints used in the production Firefox Accounts instance.
-         */
-        fun release(): Deferred<Config> {
-            return GlobalScope.async(Dispatchers.IO) {
-                Config(InternalConfig.release())
-            }
-        }
-
-        /**
-         * Set up endpoints used by a custom host for authentication
-         *
-         * @param content_base Hostname of the FxA auth service provider
-         */
-        fun custom(content_base: String): Deferred<Config> {
-            return GlobalScope.async(Dispatchers.IO) {
-                Config(InternalConfig.custom(content_base))
-            }
-        }
-    }
-}
+/**
+ * Configuration for sync.
+ *
+ * @property syncableStores A set of store names to sync, exposed via [GlobalSyncableStoreProvider].
+ * @property syncPeriodInMinutes Optional, how frequently periodic sync should happen. If this is `null`,
+ * periodic syncing will be disabled.
+ */
+data class SyncConfig(
+    val syncableStores: Set<String>,
+    val syncPeriodInMinutes: Long? = null
+)

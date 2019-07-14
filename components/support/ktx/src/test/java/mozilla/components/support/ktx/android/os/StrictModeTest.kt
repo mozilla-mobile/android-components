@@ -10,10 +10,11 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import androidx.test.ext.junit.runners.AndroidJUnit4
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class StrictModeTest {
+
     @Test
     fun `strict mode policy should be restored`() {
         StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
@@ -39,7 +40,7 @@ class StrictModeTest {
                 StrictMode.setThreadPolicy(this)
             }
 
-        var exceptionCaught = false
+        val exceptionCaught: Boolean
 
         assertEquals(policy.toString(), StrictMode.getThreadPolicy().toString())
 

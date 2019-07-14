@@ -10,10 +10,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.support.design.widget.Snackbar
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_crash.*
 import mozilla.components.lib.crash.Crash
 
@@ -27,7 +27,7 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
             val crash = Crash.fromIntent(intent)
 
             Snackbar.make(findViewById(android.R.id.content), "Sorry. We crashed.", Snackbar.LENGTH_LONG)
-                .setAction("Report") { _ -> crashReporter.submitReport(crash) }
+                .setAction("Report") { crashReporter.submitReport(crash) }
                 .show()
         }
     }
@@ -39,6 +39,7 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
 
         fatalCrashButton.setOnClickListener(this)
         crashButton.setOnClickListener(this)
+        fatalServiceCrashButton.setOnClickListener(this)
     }
 
     override fun onResume() {
@@ -53,6 +54,7 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
         unregisterReceiver(receiver)
     }
 
+    @Suppress("TooGenericExceptionThrown")
     override fun onClick(view: View) {
         when (view) {
             fatalCrashButton -> throw RuntimeException("Boom!")
@@ -76,6 +78,11 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
                 intent.putExtra("minidumpSuccess", true)
 
                 ContextCompat.startForegroundService(this, intent)
+            }
+
+            fatalServiceCrashButton -> {
+                startService(Intent(this, CrashService::class.java))
+                finish()
             }
         }
     }

@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -23,22 +23,27 @@ android {
 
 dependencies {
     api project(':concept-toolbar')
+    api project(':ui-autocomplete')
+    api project(':support-base')
 
     implementation project(':browser-menu')
-
-    api project(':ui-autocomplete')
     implementation project(':ui-icons')
-
+    implementation project(':ui-colors')
     implementation project(':support-ktx')
-    api project(':support-base')
-    implementation Deps.support_appcompat
-    implementation Deps.kotlin_stdlib
+
+    implementation Dependencies.androidx_appcompat
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.google_material
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
     testImplementation project(':support-test')
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

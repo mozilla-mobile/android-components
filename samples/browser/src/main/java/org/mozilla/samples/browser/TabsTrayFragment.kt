@@ -5,12 +5,13 @@
 package org.mozilla.samples.browser
 
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import kotlinx.android.synthetic.main.fragment_tabstray.*
 import mozilla.components.feature.tabs.tabstray.TabsFeature
+import mozilla.components.support.base.feature.BackHandler
 import org.mozilla.samples.browser.ext.components
 
 /**
@@ -34,7 +35,7 @@ class TabsTrayFragment : Fragment(), BackHandler {
         toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.newTab -> {
-                    components.tabsUseCases.addSession.invoke("about:blank", selectTab = true)
+                    components.tabsUseCases.addTab.invoke("about:blank", selectTab = true)
                     closeTabsTray()
                 }
             }
@@ -45,19 +46,8 @@ class TabsTrayFragment : Fragment(), BackHandler {
             tabsTray,
             components.sessionManager,
             components.tabsUseCases,
-            ::closeTabsTray)
-    }
-
-    override fun onStart() {
-        super.onStart()
-
-        tabsFeature?.start()
-    }
-
-    override fun onStop() {
-        super.onStop()
-
-        tabsFeature?.stop()
+            ::closeTabsTray
+        ).also { lifecycle.addObserver(it) }
     }
 
     override fun onBackPressed(): Boolean {

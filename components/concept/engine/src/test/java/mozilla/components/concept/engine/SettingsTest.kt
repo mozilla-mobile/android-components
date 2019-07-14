@@ -6,6 +6,7 @@ package mozilla.components.concept.engine
 
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.test.expectException
 import mozilla.components.support.test.mock
@@ -28,6 +29,10 @@ class SettingsTest {
             { settings.domStorageEnabled = false },
             { settings.webFontsEnabled },
             { settings.webFontsEnabled = false },
+            { settings.automaticFontSizeAdjustment },
+            { settings.automaticFontSizeAdjustment = false },
+            { settings.automaticLanguageAdjustment },
+            { settings.automaticLanguageAdjustment = false },
             { settings.trackingProtectionPolicy },
             { settings.trackingProtectionPolicy = TrackingProtectionPolicy.all() },
             { settings.historyTrackingDelegate },
@@ -44,6 +49,8 @@ class SettingsTest {
             { settings.displayZoomControls = false },
             { settings.loadWithOverviewMode },
             { settings.loadWithOverviewMode = false },
+            { settings.useWideViewPort },
+            { settings.useWideViewPort = null },
             { settings.allowFileAccess },
             { settings.allowFileAccess = false },
             { settings.allowContentAccess },
@@ -57,7 +64,21 @@ class SettingsTest {
             { settings.horizontalScrollBarEnabled },
             { settings.horizontalScrollBarEnabled = false },
             { settings.remoteDebuggingEnabled },
-            { settings.remoteDebuggingEnabled = false }
+            { settings.remoteDebuggingEnabled = false },
+            { settings.supportMultipleWindows },
+            { settings.supportMultipleWindows = false },
+            { settings.preferredColorScheme },
+            { settings.preferredColorScheme = PreferredColorScheme.System },
+            { settings.testingModeEnabled },
+            { settings.testingModeEnabled = false },
+            { settings.allowAutoplayMedia },
+            { settings.allowAutoplayMedia = false },
+            { settings.suspendMediaWhenInactive },
+            { settings.suspendMediaWhenInactive = false },
+            { settings.fontInflationEnabled },
+            { settings.fontInflationEnabled = false },
+            { settings.fontSizeFactor },
+            { settings.fontSizeFactor = 1.0F }
         )
     }
 
@@ -79,7 +100,10 @@ class SettingsTest {
         assertTrue(settings.mediaPlaybackRequiresUserGesture)
         assertFalse(settings.javaScriptCanOpenWindowsAutomatically)
         assertTrue(settings.displayZoomControls)
+        assertTrue(settings.automaticFontSizeAdjustment)
+        assertTrue(settings.automaticLanguageAdjustment)
         assertFalse(settings.loadWithOverviewMode)
+        assertNull(settings.useWideViewPort)
         assertTrue(settings.allowContentAccess)
         assertTrue(settings.allowFileAccess)
         assertFalse(settings.allowFileAccessFromFileURLs)
@@ -87,6 +111,13 @@ class SettingsTest {
         assertTrue(settings.verticalScrollBarEnabled)
         assertTrue(settings.horizontalScrollBarEnabled)
         assertFalse(settings.remoteDebuggingEnabled)
+        assertFalse(settings.supportMultipleWindows)
+        assertEquals(PreferredColorScheme.System, settings.preferredColorScheme)
+        assertFalse(settings.testingModeEnabled)
+        assertTrue(settings.allowAutoplayMedia)
+        assertFalse(settings.suspendMediaWhenInactive)
+        assertNull(settings.fontInflationEnabled)
+        assertNull(settings.fontSizeFactor)
 
         val interceptor: RequestInterceptor = mock()
         val historyTrackingDelegate: HistoryTrackingDelegate = mock()
@@ -95,6 +126,8 @@ class SettingsTest {
             javascriptEnabled = false,
             domStorageEnabled = false,
             webFontsEnabled = false,
+            automaticFontSizeAdjustment = false,
+            automaticLanguageAdjustment = false,
             trackingProtectionPolicy = TrackingProtectionPolicy.all(),
             historyTrackingDelegate = historyTrackingDelegate,
             requestInterceptor = interceptor,
@@ -103,17 +136,27 @@ class SettingsTest {
             javaScriptCanOpenWindowsAutomatically = true,
             displayZoomControls = false,
             loadWithOverviewMode = true,
+            useWideViewPort = true,
             allowContentAccess = false,
             allowFileAccess = false,
             allowFileAccessFromFileURLs = true,
             allowUniversalAccessFromFileURLs = true,
             verticalScrollBarEnabled = false,
             horizontalScrollBarEnabled = false,
-            remoteDebuggingEnabled = true)
+            remoteDebuggingEnabled = true,
+            supportMultipleWindows = true,
+            preferredColorScheme = PreferredColorScheme.Dark,
+            testingModeEnabled = true,
+            allowAutoplayMedia = false,
+            suspendMediaWhenInactive = true,
+            fontInflationEnabled = false,
+            fontSizeFactor = 2.0F)
 
         assertFalse(defaultSettings.domStorageEnabled)
         assertFalse(defaultSettings.javascriptEnabled)
         assertFalse(defaultSettings.webFontsEnabled)
+        assertFalse(defaultSettings.automaticFontSizeAdjustment)
+        assertFalse(defaultSettings.automaticLanguageAdjustment)
         assertEquals(TrackingProtectionPolicy.all(), defaultSettings.trackingProtectionPolicy)
         assertEquals(historyTrackingDelegate, defaultSettings.historyTrackingDelegate)
         assertEquals(interceptor, defaultSettings.requestInterceptor)
@@ -122,6 +165,7 @@ class SettingsTest {
         assertTrue(defaultSettings.javaScriptCanOpenWindowsAutomatically)
         assertFalse(defaultSettings.displayZoomControls)
         assertTrue(defaultSettings.loadWithOverviewMode)
+        assertEquals(defaultSettings.useWideViewPort, true)
         assertFalse(defaultSettings.allowContentAccess)
         assertFalse(defaultSettings.allowFileAccess)
         assertTrue(defaultSettings.allowFileAccessFromFileURLs)
@@ -129,5 +173,12 @@ class SettingsTest {
         assertFalse(defaultSettings.verticalScrollBarEnabled)
         assertFalse(defaultSettings.horizontalScrollBarEnabled)
         assertTrue(defaultSettings.remoteDebuggingEnabled)
+        assertTrue(defaultSettings.supportMultipleWindows)
+        assertEquals(PreferredColorScheme.Dark, defaultSettings.preferredColorScheme)
+        assertTrue(defaultSettings.testingModeEnabled)
+        assertFalse(defaultSettings.allowAutoplayMedia)
+        assertTrue(defaultSettings.suspendMediaWhenInactive)
+        assertFalse(defaultSettings.fontInflationEnabled!!)
+        assertEquals(2.0F, defaultSettings.fontSizeFactor)
     }
 }

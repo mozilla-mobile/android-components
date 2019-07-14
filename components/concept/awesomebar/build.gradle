@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -24,10 +24,9 @@ android {
 dependencies {
     implementation project(':support-base')
 
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 }
 
-archivesBaseName = "concept-awesomebar"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

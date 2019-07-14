@@ -4,14 +4,15 @@
 
 package mozilla.components.concept.engine
 
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.OnLifecycleEvent
+import android.graphics.Bitmap
 import android.view.View
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.OnLifecycleEvent
 
 /**
  * View component that renders web content.
  */
+@Suppress("TooManyFunctions")
 interface EngineView {
 
     /**
@@ -23,6 +24,15 @@ interface EngineView {
      * Render the content of the given session.
      */
     fun render(session: EngineSession)
+
+    /**
+     * Releases an [EngineSession] that is currently rendered by this view (after calling [render]).
+     *
+     * Usually an app does not need to call this itself since [EngineView] will take care of that if it gets detached.
+     * However there are situations where an app wants to hand-off rendering of an [EngineSession] to a different
+     * [EngineView] without the current [EngineView] getting detached immediately.
+     */
+    fun release()
 
     /**
      * To be called in response to [Lifecycle.Event.ON_RESUME]. See [EngineView]
@@ -59,12 +69,38 @@ interface EngineView {
      * implementations for details.
      */
     fun onDestroy() = Unit
+
+    /**
+     * Check if [EngineView] can be scrolled vertically up.
+     * true if can and false otherwise.
+     */
+    fun canScrollVerticallyUp(): Boolean = true
+
+    /**
+     * Check if [EngineView] can be scrolled vertically down.
+     * true if can and false otherwise.
+     */
+    fun canScrollVerticallyDown(): Boolean = true
+
+    /**
+     * Request a screenshot of the visible portion of the web page currently being rendered.
+     * @param onFinish A callback to inform that process of capturing a thumbnail has finished.
+     */
+    fun captureThumbnail(onFinish: (Bitmap?) -> Unit)
+
+    /**
+     * Updates the amount of vertical space that is clipped or visibly obscured in the bottom portion of the view.
+     * Tells the [EngineView] where to put bottom fixed elements so they are fully visible.
+     *
+     * @param clippingHeight The height of the bottom clipped space in screen pixels.
+     */
+    fun setVerticalClipping(clippingHeight: Int)
 }
 
 /**
  * [LifecycleObserver] which dispatches lifecycle events to an [EngineView].
  */
-class LifecycleObserver(val engineView: EngineView) : LifecycleObserver {
+class LifecycleObserver(val engineView: EngineView) : androidx.lifecycle.LifecycleObserver {
 
     @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     fun onPause() {

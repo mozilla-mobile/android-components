@@ -4,16 +4,16 @@
 
 package mozilla.components.feature.downloads
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Download
 import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.KEY_FILE_NAME
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class DownloadDialogFragmentTest {
 
     private lateinit var dialog: DownloadDialogFragment
@@ -21,7 +21,6 @@ class DownloadDialogFragmentTest {
 
     @Before
     fun setup() {
-
         dialog = object : DownloadDialogFragment() {}
         download = Download(
             "http://ipv4.download.thinkbroadband.com/5MB.zip",

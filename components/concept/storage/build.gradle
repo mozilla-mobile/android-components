@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -22,20 +22,11 @@ android {
 }
 
 dependencies {
-    implementation Deps.kotlin_stdlib
-    implementation Deps.support_annotations
-    implementation Deps.kotlin_coroutines
-
-    // We expose this as API because we are using Observable in our public API and do not want every
-    // consumer to have to manually import "base".
-    api project(':support-base')
-
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
-
-    testImplementation project(':support-test')
+    // Necessary because we use 'suspend'. Fun fact: this module will compile just fine without this
+    // dependency, but it will crash at runtime.
+    // Included via 'api' because this module is unusable without coroutines.
+    api Dependencies.kotlin_coroutines
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

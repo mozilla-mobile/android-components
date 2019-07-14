@@ -1,0 +1,11 @@
+{
+  "manifest_version": 2,
+  "name": "Mozilla Android Components - Borderify",
+  "version": "1.0",
+  "content_scripts": [
+    {
+      "matches": ["*://www.mozilla.org/*"],
+      "js": ["borderify.js"]
+    }
+  ]
+}

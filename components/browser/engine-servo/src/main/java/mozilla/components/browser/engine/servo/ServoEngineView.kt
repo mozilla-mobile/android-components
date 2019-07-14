@@ -5,6 +5,7 @@
 package mozilla.components.browser.engine.servo
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.AttributeSet
 import android.widget.FrameLayout
 import mozilla.components.concept.engine.EngineSession
@@ -32,6 +33,10 @@ class ServoEngineView @JvmOverloads constructor(
         session.attachView(this)
     }
 
+    override fun release() {
+        // no-op
+    }
+
     override fun onResume() {
         super.onResume()
 
@@ -42,5 +47,11 @@ class ServoEngineView @JvmOverloads constructor(
         super.onPause()
 
         servoView.onPause()
+    }
+
+    override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
+
+    override fun setVerticalClipping(clippingHeight: Int) {
+        // no-op
     }
 }

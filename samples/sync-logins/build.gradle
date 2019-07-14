@@ -7,16 +7,16 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
         applicationId "org.mozilla.samples.sync.logins"
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -36,12 +36,13 @@ android {
 }
 
 dependencies {
+    implementation project(':concept-storage')
     implementation project(':service-firefox-accounts')
     implementation project(':service-sync-logins')
 
-    implementation Deps.kotlin_stdlib
-    implementation Deps.kotlin_coroutines
+    implementation Dependencies.kotlin_stdlib
 
-    implementation Deps.support_appcompat
-    implementation Deps.support_customtabs
+    implementation Dependencies.androidx_appcompat
+    implementation Dependencies.androidx_browser
+    implementation Dependencies.androidx_recyclerview
 }

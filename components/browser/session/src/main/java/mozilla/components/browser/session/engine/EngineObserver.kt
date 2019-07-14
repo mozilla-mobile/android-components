@@ -8,23 +8,58 @@ import android.graphics.Bitmap
 import android.os.Environment
 import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.engine.request.LoadRequestMetadata
+import mozilla.components.browser.session.engine.request.LoadRequestOption
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
 
+/**
+ * [EngineSession.Observer] implementation responsible to update the state of a [Session] from the events coming out of
+ * an [EngineSession].
+ */
 @Suppress("TooManyFunctions")
-internal class EngineObserver(val session: Session) : EngineSession.Observer {
+internal class EngineObserver(
+    val session: Session
+) : EngineSession.Observer {
 
     override fun onLocationChange(url: String) {
+        if (session.url != url) {
+            session.title = ""
+            session.icon = null
+        }
+
         session.url = url
-        session.searchTerms = ""
-        session.title = ""
+
+        // Meh, GeckoView doesn't notify us about recording devices no longer used when navigating away. As a
+        // workaround we clear them here. But that's not perfect...
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1554778
+        session.recordingDevices = listOf()
 
         session.contentPermissionRequest.consume {
             it.reject()
             true
         }
+    }
+
+    override fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
+        if (triggeredByRedirect || triggeredByWebContent) {
+            session.searchTerms = ""
+        }
+
+        session.loadRequestMetadata = LoadRequestMetadata(
+            url,
+            arrayOf(
+                if (triggeredByRedirect) LoadRequestOption.REDIRECT else LoadRequestOption.NONE,
+                if (triggeredByWebContent) LoadRequestOption.WEB_CONTENT else LoadRequestOption.NONE
+            )
+        )
     }
 
     override fun onTitleChange(title: String) {
@@ -107,5 +142,42 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
 
     override fun onAppPermissionRequest(permissionRequest: PermissionRequest) {
         session.appPermissionRequest = Consumable.from(permissionRequest)
+    }
+
+    override fun onPromptRequest(promptRequest: PromptRequest) {
+        session.promptRequest = Consumable.from(promptRequest)
+    }
+
+    override fun onOpenWindowRequest(windowRequest: WindowRequest) {
+        session.openWindowRequest = Consumable.from(windowRequest)
+    }
+
+    override fun onCloseWindowRequest(windowRequest: WindowRequest) {
+        session.closeWindowRequest = Consumable.from(windowRequest)
+    }
+
+    override fun onMediaAdded(media: Media) {
+        session.media = session.media.toMutableList().also {
+            it.add(media)
+        }
+    }
+
+    override fun onMediaRemoved(media: Media) {
+        session.media = session.media.toMutableList().also {
+            it.remove(media)
+        }
+        media.unregisterObservers()
+    }
+
+    override fun onWebAppManifestLoaded(manifest: WebAppManifest) {
+        session.webAppManifest = manifest
+    }
+
+    override fun onCrashStateChange(crashed: Boolean) {
+        session.crashed = crashed
+    }
+
+    override fun onRecordingStateChanged(devices: List<RecordingDevice>) {
+        session.recordingDevices = devices
     }
 }

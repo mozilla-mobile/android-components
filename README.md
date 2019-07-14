@@ -23,9 +23,11 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
 
+* Localization happens on [Pontoon](https://pontoon.mozilla.org/projects/android-l10n/). Please get in touch with delphine (at) mozilla (dot) com directly for more information.
+
 # Maven repository
 
-All components are getting published on [maven.mozilla.org](http://maven.mozilla.org/).
+All components are getting published on [maven.mozilla.org](https://maven.mozilla.org/).
 To use them, you need to add the following to your projects top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
 
 ```groovy
@@ -35,6 +37,14 @@ repositories {
     }
 }
 ```
+
+## Snapshot builds
+
+Snapshots are build daily from the `master` branch and published on [snapshots.maven.mozilla.org](https://snapshots.maven.mozilla.org).
+
+# API Reference
+
+The API reference docs are available at [mozac.org/api/](https://mozac.org/api/).
 
 # Components
 
@@ -50,19 +60,21 @@ High-level components for building browser(-like) apps.
 
 * 🔵 [**Domains**](components/browser/domains/README.md) Localized and customizable domain lists for auto-completion in browsers.
 
-* 🔴 [**Engine-Gecko**](components/browser/engine-gecko/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Release channel).
+* ⚪ [**Engine-Gecko**](components/browser/engine-gecko/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Release channel).
 
-* 🔴 [**Engine-Gecko-Beta**](components/browser/engine-gecko-beta/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Beta channel).
+* ⚪ [**Engine-Gecko-Beta**](components/browser/engine-gecko-beta/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Beta channel).
 
-* 🔴 [**Engine-Gecko-Nightly**](components/browser/engine-gecko-nightly/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
+* ⚪ [**Engine-Gecko-Nightly**](components/browser/engine-gecko-nightly/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
 
 * 🔴 [**Engine-Servo**](components/browser/engine-servo/README.md) - *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
 
 * ⚪ [**Engine-System**](components/browser/engine-system/README.md) - *Engine* implementation based on the system's WebView.
 
-* ⚪ [**Errorpages**](components/browser/errorpages/README.md) - Responsive browser error pages for Android apps.
+* 🔵 [**Errorpages**](components/browser/errorpages/README.md) - Responsive browser error pages for Android apps.
 
-* 🔴 [**Menu**](components/browser/menu/README.md) - A generic menu with customizable items primarily for browser toolbars.
+* 🔴 [**Icons**](components/browser/icons/README.md) - A component for loading and storing website icons (like [Favicons](https://en.wikipedia.org/wiki/Favicon)).
+
+* ⚪ [**Menu**](components/browser/menu/README.md) - A generic menu with customizable items primarily for browser toolbars.
 
 * 🔵 [**Search**](components/browser/search/README.md) - Search plugins and companion code to load, parse and use them.
 
@@ -70,7 +82,7 @@ High-level components for building browser(-like) apps.
 
 * 🔴 [**Storage-Memory**](components/browser/storage-memory/README.md) - An in-memory implementation of browser storage.
 
-* 🔴 [**Storage-Sync**](components/browser/storage-sync/README.md) - A syncable implementation of browser storage backed by [application-services' Places lib](https://github.com/mozilla/application-services).
+* ⚪ [**Storage-Sync**](components/browser/storage-sync/README.md) - A syncable implementation of browser storage backed by [application-services' Places lib](https://github.com/mozilla/application-services).
 
 * 🔴 [**Tabstray**](components/browser/tabstray/README.md) - A customizable tabs tray for browsers.
 
@@ -80,13 +92,15 @@ High-level components for building browser(-like) apps.
 
 _API contracts and abstraction layers for browser components._
 
-* 🔴 [**Awesomebar**](components/concept/awesomebar/README.md) - An abstract definition of an awesome bar component.
+* ⚪ [**Awesomebar**](components/concept/awesomebar/README.md) - An abstract definition of an awesome bar component.
 
 * ⚪ [**Engine**](components/concept/engine/README.md) - Abstraction layer that allows hiding the actual browser engine implementation.
 
 * ⚪ [**Fetch**](components/concept/fetch/README.md) - An abstract definition of an HTTP client for fetching resources.
 
-* 🔴 [**Storage**](components/concept/storage/README.md) - Abstract definition of a browser storage component.
+* 🔴 [**Push**](components/concept/push/README.md) - An abstract definition of a push service component.
+
+* ⚪ [**Storage**](components/concept/storage/README.md) - Abstract definition of a browser storage component.
 
 * 🔴 [**Tabstray**](components/concept/tabstray/README.md) - Abstract definition of a tabs tray component.
 
@@ -96,7 +110,11 @@ _API contracts and abstraction layers for browser components._
 
 _Combined components to implement feature-specific use cases._
 
+* 🔴 [**Accounts**](components/feature/accounts/README.md) - A component that connects an FxaAccountManager from [service-firefox-accounts](components/service/firefox-accounts/README.md) with [feature-tabs](components/feature/tabs/README.md) in order to facilitate authentication flows.
+
 * ⚪ [**Awesomebar**](components/feature/awesomebar/README.md) - A component that connects a [concept-awesomebar](components/concept/awesomebar/README.md) implementation to a [concept-toolbar](components/concept/toolbar/README.md) implementation and provides implementations of various suggestion providers.
+
+* ⚪ [**Context Menu**](components/feature/contextmenu/README.md) - A component for displaying context menus when *long-pressing* web content.
 
 * 🔴 [**Custom Tabs**](components/feature/customtabs/README.md) - A component for providing [Custom Tabs](https://developer.chrome.com/multidevice/android/customtabs) functionality in browsers.
 
@@ -104,15 +122,31 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Intent**](components/feature/intent/README.md) - A component that provides intent processing functionality by combining various other feature modules.
 
+* 🔴 [**Progressive Web Apps (PWA)**](components/feature/pwa/README.md) - A component that provides functionality for supporting Progressive Web Apps (PWA).
+
+* 🔴 [**Reader View**](components/feature/readerview/README.md) - A component that provides Reader View functionality.
+
+* ⚪ [**QR**](components/feature/qr/README.md) - A component that provides functionality for scanning QR codes.
+
 * 🔴 [**Search**](components/feature/search/README.md) - A component that connects an (concept) engine implementation with the browser search module.
 
-* ⚪ [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session module.
+* ⚪ [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session and storage modules.
 
-* 🔴 [**Storage**](components/feature/storage/README.md) -A component that connects a (concept) storage implementation with its various consumers, like a (concept) engine implementation for history tracking.
+* 🔴 [**Sync**](components/feature/sync/README.md) -A component that provides synchronization orchestration for groups of (concept) SyncableStore objects.
 
 * 🔴 [**Tabs**](components/feature/tabs/README.md) - A component that connects a tabs tray implementation with the session and toolbar modules.
 
+* 🔴 [**Tab Collections**](components/feature/tab-collections/README.md) - Feature implementation for saving, restoring and organizing collections of tabs.
+
 * 🔴 [**Toolbar**](components/feature/toolbar/README.md) - A component that connects a (concept) toolbar implementation with the browser session module.
+
+* ⚪ [**Prompts**](components/feature/prompts/README.md) - A component that will handle all the common prompt dialogs from web content.
+
+* ⚪ [**Push**](components/feature/push/README.md) - A component that provides Autopush messages with help from a supported push service.
+
+* ⚪ [**Find In Page**](components/feature/findinpage/README.md) - A component that provides an UI widget for [find in page functionality](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links).
+
+* 🔴 [**Site Permissions**](components/feature/sitepermissions/README.md) - A feature for showing site permission request prompts.
 
 ## UI
 
@@ -125,8 +159,6 @@ _Generic low-level UI components for building apps._
 * 🔵 [**Fonts**](components/ui/fonts/README.md) - The standard set of fonts used by Mozilla Android products.
 
 * 🔵 [**Icons**](components/ui/icons/README.md) - A collection of often used browser icons.
-
-* 🔵 [**Progress**](components/ui/progress/README.md) - An animated progress bar following the Photon Design System.
 
 * ⚪ [**Tabcounter**](components/ui/tabcounter/README.md) - A button that shows the current tab count and can animate state changes.
 
@@ -142,17 +174,23 @@ _Components and libraries to interact with backend services._
 
 * 🔴 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
 
+* 🔴 [**Experiments**](components/service/experiments/README.md) - An Android SDK for running experiments on user segments in multiple branches.
+
+* 🔴 [**Pocket**](components/service/pocket/README.md) - A library for communicating with the Pocket API.
+
 * 🔵 [**Telemetry**](components/service/telemetry/README.md) - A generic library for sending telemetry pings from Android applications to Mozilla's telemetry service.
 
 ## Support
 
 _Supporting components with generic helper code._
 
+* 🔵 [**Android Test**](components/support/android-test/README.md) - A collection of helpers for testing components in instrumented (on device) tests (`src/androidTest`).
+
 * 🔵 [**Base**](components/support/base/README.md) - Base component containing building blocks for components.
 
 * 🔵 [**Ktx**](components/support/ktx/README.md) - A set of Kotlin extensions on top of the Android framework and Kotlin standard library.
 
-* 🔵 [**Test**](components/support/test/README.md) - A collection of helpers for testing components.
+* 🔵 [**Test**](components/support/test/README.md) - A collection of helpers for testing components in local unit tests (`src/test`).
 
 * 🔵 [**Utils**](components/support/utils/README.md) - Generic utility classes to be shared between projects.
 
@@ -160,11 +198,23 @@ _Supporting components with generic helper code._
 
 * ⚪ [**Crash**](components/lib/crash/README.md) - A generic crash reporter component that can report crashes to multiple services.
 
-* 🔴 [**Dataprotect**](components/lib/dataprotect/README.md) - A component using AndroidKeyStore to protect user data.
+* 🔵 [**Dataprotect**](components/lib/dataprotect/README.md) - A component using AndroidKeyStore to protect user data.
+
+* ⚪ [**Fetch-HttpURLConnection**](components/lib/fetch-httpurlconnection/README.md) - A [concept-fetch](concept/fetch/README.md) implementation using [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection.html).
+
+* ⚪ [**Fetch-OkHttp**](components/lib/fetch-okhttp/README.md) - A [concept-fetch](concept/fetch/README.md) implementation using [OkHttp](https://github.com/square/okhttp).
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
+* ⚪ [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
+
+* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
+
+* 🔴 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
+
 ## Tooling
+
+* 🔵 [**Fetch-Tests**](components/tooling/fetch-tests/README.md) - A generic test suite for components that implement [concept-fetch](concept/fetch/README.md).
 
 * 🔵 [**Lint**](components/tooling/lint/README.md) - Custom Lint rules for the components repository.
 
@@ -177,6 +227,8 @@ _Sample apps using various components._
 * [**Crash**](samples/crash) - An app showing the integration of the `lib-crash` component.
 
 * [**Firefox Accounts (FxA)**](samples/firefox-accounts) - A simple app demoing Firefox Accounts integration.
+
+* [**Firefox Sync**](samples/sync) - A simple app demoing general Firefox Sync integration, with bookmarks and history.
 
 * [**Firefox Sync - Logins**](samples/sync-logins) - A simple app demoing Firefox Sync (Logins) integration.
 

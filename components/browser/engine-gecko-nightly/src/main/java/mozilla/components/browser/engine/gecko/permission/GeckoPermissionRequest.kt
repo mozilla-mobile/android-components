@@ -4,25 +4,21 @@
 
 package mozilla.components.browser.engine.gecko.permission
 
-import mozilla.components.concept.engine.permission.Permission
-import mozilla.components.concept.engine.permission.PermissionRequest
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_DESKTOP_NOTIFICATION
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_AUTOPLAY_MEDIA
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_AUDIOCAPTURE
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_APPLICATION
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_BROWSER
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_CAMERA
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_MICROPHONE
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_OTHER
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_SCREEN
-import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_WINDOW
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.CAMERA
 import android.Manifest.permission.RECORD_AUDIO
+import mozilla.components.concept.engine.permission.Permission
+import mozilla.components.concept.engine.permission.PermissionRequest
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_AUDIOCAPTURE
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_CAMERA
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_MICROPHONE
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_OTHER
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.MediaSource.SOURCE_SCREEN
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_DESKTOP_NOTIFICATION
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION
 
 /**
  * Gecko-based implementation of [PermissionRequest].
@@ -53,7 +49,6 @@ sealed class GeckoPermissionRequest constructor(
     ) {
         companion object {
             val permissionsMap = mapOf(
-                PERMISSION_AUTOPLAY_MEDIA to Permission.ContentAutoplayMedia(),
                 PERMISSION_DESKTOP_NOTIFICATION to Permission.ContentNotification(),
                 PERMISSION_GEOLOCATION to Permission.ContentGeoLocation()
             )
@@ -111,31 +106,36 @@ sealed class GeckoPermissionRequest constructor(
             callback.grant(videos.firstOrNull(), audios.firstOrNull())
         }
 
+        override fun containsVideoAndAudioSources(): Boolean {
+            return videoSources.isNotEmpty() && audioSources.isNotEmpty()
+        }
+
         override fun reject() {
             callback.reject()
         }
 
         companion object {
-            @Suppress("ComplexMethod", "SwitchIntDef")
-            fun mapPermission(mediaSource: MediaSource): Permission {
+            fun mapPermission(mediaSource: MediaSource): Permission =
                 if (mediaSource.type == MediaSource.TYPE_AUDIO) {
-                    return when (mediaSource.source) {
-                        SOURCE_AUDIOCAPTURE -> Permission.ContentAudioCapture(mediaSource.id, mediaSource.name)
-                        SOURCE_MICROPHONE -> Permission.ContentAudioMicrophone(mediaSource.id, mediaSource.name)
-                        SOURCE_OTHER -> Permission.ContentAudioOther(mediaSource.id, mediaSource.name)
-                        else -> Permission.Generic(mediaSource.id, mediaSource.name)
-                    }
+                    mapAudioPermission(mediaSource)
                 } else {
-                    return when (mediaSource.source) {
-                        SOURCE_CAMERA -> Permission.ContentVideoCamera(mediaSource.id, mediaSource.name)
-                        SOURCE_APPLICATION -> Permission.ContentVideoApplication(mediaSource.id, mediaSource.name)
-                        SOURCE_BROWSER -> Permission.ContentVideoBrowser(mediaSource.id, mediaSource.name)
-                        SOURCE_SCREEN -> Permission.ContentVideoScreen(mediaSource.id, mediaSource.name)
-                        SOURCE_WINDOW -> Permission.ContentVideoWindow(mediaSource.id, mediaSource.name)
-                        SOURCE_OTHER -> Permission.ContentVideoOther(mediaSource.id, mediaSource.name)
-                        else -> Permission.Generic(mediaSource.id, mediaSource.name)
-                    }
+                    mapVideoPermission(mediaSource)
                 }
+
+            @Suppress("SwitchIntDef")
+            private fun mapAudioPermission(mediaSource: MediaSource) = when (mediaSource.source) {
+                SOURCE_AUDIOCAPTURE -> Permission.ContentAudioCapture(mediaSource.id, mediaSource.name)
+                SOURCE_MICROPHONE -> Permission.ContentAudioMicrophone(mediaSource.id, mediaSource.name)
+                SOURCE_OTHER -> Permission.ContentAudioOther(mediaSource.id, mediaSource.name)
+                else -> Permission.Generic(mediaSource.id, mediaSource.name)
+            }
+
+            @Suppress("ComplexMethod", "SwitchIntDef")
+            private fun mapVideoPermission(mediaSource: MediaSource) = when (mediaSource.source) {
+                SOURCE_CAMERA -> Permission.ContentVideoCamera(mediaSource.id, mediaSource.name)
+                SOURCE_SCREEN -> Permission.ContentVideoScreen(mediaSource.id, mediaSource.name)
+                SOURCE_OTHER -> Permission.ContentVideoOther(mediaSource.id, mediaSource.name)
+                else -> Permission.Generic(mediaSource.id, mediaSource.name)
             }
         }
     }

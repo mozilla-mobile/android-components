@@ -9,19 +9,25 @@ import android.net.Uri
 import io.sentry.SentryClient
 import io.sentry.SentryClientFactory
 import io.sentry.android.AndroidSentryClientFactory
+import mozilla.components.Build
 import mozilla.components.lib.crash.Crash
 
 /**
  * A [CrashReporterService] implementation that uploads crash reports to a Sentry server.
  *
+ * This implementation will add default tags to every sent crash report (like the used Android Components version)
+ * prefixed with "ac.".
+ *
  * @param context The application [Context].
  * @param dsn Data Source Name of the Sentry server.
  * @param tags A list of additional tags that will be sent together with crash reports.
+ * @param environment An optional, environment name string or null to set none
  */
 class SentryService(
     context: Context,
     dsn: String,
     tags: Map<String, String> = emptyMap(),
+    environment: String? = null,
     private val sendEventForNativeCrashes: Boolean = false,
     clientFactory: SentryClientFactory = AndroidSentryClientFactory(context)
 ) : CrashReporterService {
@@ -31,9 +37,15 @@ class SentryService(
             .build()
             .toString(),
         clientFactory).apply {
+        this.environment = environment
         tags.forEach { entry ->
             addTag(entry.key, entry.value)
         }
+
+        // Add default tags
+        addTag("ac.version", Build.version)
+        addTag("ac.git", Build.gitHash)
+        addTag("ac.as.build_version", Build.applicationServicesVersion)
     }
 
     override fun report(crash: Crash.UncaughtExceptionCrash) {

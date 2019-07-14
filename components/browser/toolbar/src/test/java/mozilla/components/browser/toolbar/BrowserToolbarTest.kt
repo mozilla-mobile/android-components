@@ -4,13 +4,20 @@
 
 package mozilla.components.browser.toolbar
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
-import android.util.AttributeSet
 import android.view.View
+import android.view.ViewParent
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityManager
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import androidx.core.view.inputmethod.EditorInfoCompat
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.BrowserToolbar.Companion.ACTION_PADDING_DP
 import mozilla.components.browser.toolbar.display.DisplayToolbar
@@ -18,8 +25,8 @@ import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
 import mozilla.components.support.base.android.Padding
-import mozilla.components.support.ktx.android.view.isVisible
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -28,28 +35,32 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
+import org.robolectric.Robolectric.buildAttributeSet
+import org.robolectric.Shadows
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class BrowserToolbarTest {
+
     @Test
     fun `display toolbar is visible by default`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertTrue(toolbar.displayToolbar.visibility == View.VISIBLE)
         assertTrue(toolbar.editToolbar.visibility == View.GONE)
     }
 
     @Test
     fun `calling editMode() makes edit toolbar visible`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertTrue(toolbar.displayToolbar.visibility == View.VISIBLE)
         assertTrue(toolbar.editToolbar.visibility == View.GONE)
 
@@ -60,8 +71,21 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `calling editModeFocus() focuses the editToolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.editToolbar = spy(toolbar.editToolbar)
+
+        verify(toolbar.editToolbar, never()).focus()
+
+        toolbar.editMode()
+        toolbar.focus()
+
+        verify(toolbar.editToolbar, times(2)).focus()
+    }
+
+    @Test
     fun `calling displayMode() makes display toolbar visible`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.editMode()
 
         assertTrue(toolbar.displayToolbar.visibility == View.GONE)
@@ -75,7 +99,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `back presses will not be handled in display mode`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.displayMode()
 
         assertFalse(toolbar.onBackPressed())
@@ -86,7 +110,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `back presses will switch from edit mode to display mode`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.editMode()
 
         assertTrue(toolbar.displayToolbar.visibility == View.GONE)
@@ -100,37 +124,68 @@ class BrowserToolbarTest {
 
     @Test
     fun `displayUrl will be forwarded to display toolbar immediately`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
-        val ediToolbar = mock(EditToolbar::class.java)
+        val editToolbar = mock(EditToolbar::class.java)
 
         toolbar.displayToolbar = displayToolbar
-        toolbar.editToolbar = ediToolbar
+        toolbar.editToolbar = editToolbar
 
         toolbar.url = "https://www.mozilla.org"
 
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
-        verify(ediToolbar, never()).updateUrl(ArgumentMatchers.anyString())
+        verify(editToolbar, never()).updateUrl(ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean())
     }
 
     @Test
     fun `last URL will be forwarded to edit toolbar when switching mode`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
-
-        val ediToolbar = mock(EditToolbar::class.java)
-        toolbar.editToolbar = ediToolbar
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.editToolbar = spy(toolbar.editToolbar)
 
         toolbar.url = "https://www.mozilla.org"
-        verify(ediToolbar, never()).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar, never()).updateUrl("https://www.mozilla.org", true)
 
         toolbar.editMode()
 
-        verify(ediToolbar).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar).updateUrl("https://www.mozilla.org", true)
+    }
+
+    @Test
+    fun `displayProgress will send accessibility events`() {
+        val toolbar = BrowserToolbar(testContext)
+        val root = mock(ViewParent::class.java)
+        Shadows.shadowOf(toolbar).setMyParent(root)
+        `when`(root.requestSendAccessibilityEvent(any(), any())).thenReturn(false)
+
+        Shadows.shadowOf(testContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager).setEnabled(true)
+
+        toolbar.displayProgress(10)
+        toolbar.displayProgress(50)
+        toolbar.displayProgress(100)
+
+        val captor = ArgumentCaptor.forClass(AccessibilityEvent::class.java)
+
+        verify(root, times(4)).requestSendAccessibilityEvent(any(), captor.capture())
+
+        assertEquals(AccessibilityEvent.TYPE_ANNOUNCEMENT, captor.allValues[0].eventType)
+        assertEquals(testContext.getString(R.string.mozac_browser_toolbar_progress_loading), captor.allValues[0].text[0])
+
+        assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[1].eventType)
+        assertEquals(10, captor.allValues[1].scrollY)
+        assertEquals(100, captor.allValues[1].maxScrollY)
+
+        assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[2].eventType)
+        assertEquals(50, captor.allValues[2].scrollY)
+        assertEquals(100, captor.allValues[2].maxScrollY)
+
+        assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[3].eventType)
+        assertEquals(100, captor.allValues[3].scrollY)
+        assertEquals(100, captor.allValues[3].maxScrollY)
     }
 
     @Test
     fun `displayProgress will be forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
 
         toolbar.displayToolbar = displayToolbar
@@ -150,15 +205,16 @@ class BrowserToolbarTest {
 
     @Test
     fun `internal onUrlEntered callback will be forwarded to urlChangeListener`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         val mockedListener = object {
             var called = false
             var url: String? = null
 
-            fun invoke(url: String) {
+            fun invoke(url: String): Boolean {
                 this.called = true
                 this.url = url
+                return true
             }
         }
 
@@ -170,8 +226,19 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `internal onEditCancelled callback will be forwarded to editListener`() {
+        val toolbar = BrowserToolbar(testContext)
+        val listener: Toolbar.OnEditListener = mock()
+        toolbar.setOnEditListener(listener)
+        assertEquals(toolbar.editToolbar.editListener, listener)
+
+        toolbar.onEditCancelled()
+        verify(listener, times(1)).onCancelEditing()
+    }
+
+    @Test
     fun `toolbar measure will use full width and fixed 56dp height`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
         val heightSpec = View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.AT_MOST)
@@ -184,7 +251,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `toolbar will use provided height with EXACTLY measure spec`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
         val heightSpec = View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY)
@@ -197,7 +264,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `display and edit toolbar will use full size of browser toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         assertEquals(0, toolbar.displayToolbar.measuredWidth)
         assertEquals(0, toolbar.displayToolbar.measuredHeight)
@@ -217,7 +284,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `toolbar will switch back to display mode after an URL has been entered`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.editMode()
 
         assertTrue(toolbar.displayToolbar.visibility == View.GONE)
@@ -230,8 +297,38 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `toolbar will switch back to display mode if URL commit listener returns true`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.setOnUrlCommitListener { true }
+        toolbar.editMode()
+
+        assertTrue(toolbar.displayToolbar.isGone)
+        assertTrue(toolbar.editToolbar.isVisible)
+
+        toolbar.onUrlEntered("https://www.mozilla.org")
+
+        assertTrue(toolbar.displayToolbar.isVisible)
+        assertTrue(toolbar.editToolbar.isGone)
+    }
+
+    @Test
+    fun `toolbar will stay in edit mode if URL commit listener returns false`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.setOnUrlCommitListener { false }
+        toolbar.editMode()
+
+        assertTrue(toolbar.displayToolbar.isGone)
+        assertTrue(toolbar.editToolbar.isVisible)
+
+        toolbar.onUrlEntered("https://www.mozilla.org")
+
+        assertTrue(toolbar.displayToolbar.isGone)
+        assertTrue(toolbar.editToolbar.isVisible)
+    }
+
+    @Test
     fun `display and edit toolbar will be laid out at the exact same position`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
         val editToolbar = mock(EditToolbar::class.java)
 
@@ -255,7 +352,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `menu builder will be forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         assertNull(toolbar.displayToolbar.menuBuilder)
 
@@ -268,7 +365,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `add browser action will be forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
 
         toolbar.displayToolbar = displayToolbar
@@ -284,7 +381,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `add page action will be forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         val displayToolbar = mock(DisplayToolbar::class.java)
 
@@ -300,30 +397,57 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `add edit action will be forwarded to edit toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        val editToolbar: EditToolbar = mock()
+        toolbar.editToolbar = editToolbar
+
+        val action = BrowserToolbar.Button(mock(), "QR code scanner") {
+            // Do nothing
+        }
+
+        toolbar.addEditAction(action)
+
+        verify(editToolbar).addEditAction(action)
+    }
+
+    @Test
+    fun `cast to view`() {
+        // Given
+        val toolbar = BrowserToolbar(testContext)
+
+        // When
+        val view = toolbar.asView()
+
+        // Then
+        assertNotNull(view)
+    }
+
+    @Test
     fun `URL update does not override search terms in edit mode`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
-        val editToolbar = mock(EditToolbar::class.java)
 
         toolbar.displayToolbar = displayToolbar
-        toolbar.editToolbar = editToolbar
+        toolbar.editToolbar = spy(toolbar.editToolbar)
 
         toolbar.setSearchTerms("mozilla android")
         toolbar.url = "https://www.mozilla.com"
         toolbar.editMode()
         verify(displayToolbar).updateUrl("https://www.mozilla.com")
-        verify(editToolbar).updateUrl("mozilla android")
+        verify(toolbar.editToolbar).updateUrl("mozilla android", false)
 
         toolbar.setSearchTerms("")
         toolbar.url = "https://www.mozilla.org"
         toolbar.editMode()
         verify(displayToolbar).updateUrl("https://www.mozilla.org")
-        verify(editToolbar).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar).updateUrl("https://www.mozilla.org", true)
     }
 
     @Test
     fun `add navigation action will be forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
         toolbar.displayToolbar = displayToolbar
 
@@ -338,7 +462,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `invalidate actions is forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = mock(DisplayToolbar::class.java)
         toolbar.displayToolbar = displayToolbar
 
@@ -351,26 +475,25 @@ class BrowserToolbarTest {
 
     @Test
     fun `search terms (if set) are forwarded to edit toolbar instead of URL`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
-        val ediToolbar = mock(EditToolbar::class.java)
-        toolbar.editToolbar = ediToolbar
+        toolbar.editToolbar = spy(toolbar.editToolbar)
 
         toolbar.url = "https://www.mozilla.org"
         toolbar.setSearchTerms("Mozilla Firefox")
 
-        verify(ediToolbar, never()).updateUrl("https://www.mozilla.org")
-        verify(ediToolbar, never()).updateUrl("Mozilla Firefox")
+        verify(toolbar.editToolbar, never()).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar, never()).updateUrl("Mozilla Firefox")
 
         toolbar.editMode()
 
-        verify(ediToolbar, never()).updateUrl("https://www.mozilla.org")
-        verify(ediToolbar).updateUrl("Mozilla Firefox")
+        verify(toolbar.editToolbar, never()).updateUrl("https://www.mozilla.org")
+        verify(toolbar.editToolbar).updateUrl("Mozilla Firefox")
     }
 
     @Test
     fun `urlBoxBackgroundDrawable, browserActionMargin and urlBoxMargin are forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = toolbar.displayToolbar
 
         assertNull(displayToolbar.urlBoxView)
@@ -389,7 +512,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `onUrlClicked is forwarded to display toolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val displayToolbar = toolbar.displayToolbar
 
         assertTrue(displayToolbar.onUrlClicked())
@@ -400,16 +523,37 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `onUrlLongClick is forwarded to the display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        var hasBeenLongClicked = false
+
+        toolbar.setOnUrlLongClickListener {
+            hasBeenLongClicked = true
+            true
+        }
+
+        toolbar.displayToolbar.urlView.performLongClick()
+        assertTrue(hasBeenLongClicked)
+
+        hasBeenLongClicked = false
+        toolbar.setOnUrlLongClickListener(null)
+        toolbar.displayToolbar.urlView.performLongClick()
+
+        assertFalse(hasBeenLongClicked)
+    }
+
+    @Test
     fun `layout of children will factor in padding`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.setPadding(50, 20, 60, 15)
         toolbar.removeAllViews()
 
-        val displayToolbar = spy(DisplayToolbar(RuntimeEnvironment.application, toolbar)).also {
+        val displayToolbar = spy(DisplayToolbar(testContext, toolbar)).also {
             toolbar.displayToolbar = it
         }
 
-        val editToolbar = spy(EditToolbar(RuntimeEnvironment.application, toolbar)).also {
+        val editToolbar = spy(EditToolbar(testContext, toolbar)).also {
             toolbar.editToolbar = it
         }
 
@@ -436,7 +580,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `editListener is set on EditToolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertNull(toolbar.editToolbar.editListener)
 
         val listener: Toolbar.OnEditListener = mock()
@@ -447,7 +591,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `editListener is invoked when switching between modes`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         val listener: Toolbar.OnEditListener = mock()
         toolbar.setOnEditListener(listener)
@@ -465,7 +609,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `editListener is invoked when text changes`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         val listener: Toolbar.OnEditListener = mock()
         toolbar.setOnEditListener(listener)
@@ -485,7 +629,7 @@ class BrowserToolbarTest {
     @Test
     fun `BrowserToolbar Button must set padding`() {
         var button = BrowserToolbar.Button(mock(), "imageResource", visible = { true }) {}
-        val linearLayout = LinearLayout(RuntimeEnvironment.application)
+        val linearLayout = LinearLayout(testContext)
         var view = button.createView(linearLayout)
         val padding = Padding(0, 0, 0, 0)
         assertEquals(view.paddingLeft, ACTION_PADDING_DP)
@@ -527,7 +671,7 @@ class BrowserToolbarTest {
             selected = false,
             background = 0
         ) {}
-        val linearLayout = LinearLayout(RuntimeEnvironment.application)
+        val linearLayout = LinearLayout(testContext)
         var view = button.createView(linearLayout)
         assertEquals(view.paddingLeft, ACTION_PADDING_DP)
         assertEquals(view.paddingTop, ACTION_PADDING_DP)
@@ -565,7 +709,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `hint changes edit and display urlView`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         assertNull(toolbar.displayToolbar.urlView.hint)
         assertNull(toolbar.editToolbar.urlView.hint)
@@ -580,7 +724,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `hintColor changes edit and display urlView`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         assertTrue(toolbar.displayToolbar.urlView.currentHintTextColor != Color.RED)
         assertTrue(toolbar.editToolbar.urlView.currentHintTextColor != Color.RED)
@@ -593,7 +737,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `textColor changes edit and display urlView`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         assertTrue(toolbar.displayToolbar.urlView.currentTextColor != Color.RED)
         assertTrue(toolbar.editToolbar.urlView.currentTextColor != Color.RED)
@@ -606,7 +750,7 @@ class BrowserToolbarTest {
 
     @Test
     fun `textSize changes edit and display urlView`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
 
         assertTrue(toolbar.displayToolbar.urlView.textSize != 12f)
         assertTrue(toolbar.editToolbar.urlView.textSize != 12f)
@@ -618,8 +762,47 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `titleTextSize changes display titleView`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        assertTrue(toolbar.displayToolbar.titleView.textSize != 12f)
+
+        toolbar.titleTextSize = 12f
+
+        assertEquals(12f, toolbar.displayToolbar.titleView.textSize)
+    }
+
+    @Test
+    fun `titleTextColor changes display titleView`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        toolbar.titleColor = R.color.photonBlue40
+
+        assertEquals(R.color.photonBlue40, toolbar.displayToolbar.titleView.currentTextColor)
+    }
+
+    @Test
+    fun `titleView visibility is based on being set`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        assertEquals(toolbar.displayToolbar.titleView.visibility, View.GONE)
+        toolbar.title = "Mozilla"
+        assertEquals(toolbar.displayToolbar.titleView.visibility, View.VISIBLE)
+        toolbar.title = ""
+        assertEquals(toolbar.displayToolbar.titleView.visibility, View.GONE)
+    }
+
+    @Test
+    fun `titleView text is set properly`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        toolbar.title = "Mozilla"
+        assertEquals(toolbar.displayToolbar.titleView.text, "Mozilla")
+    }
+
+    @Test
     fun `typeface changes edit and display urlView`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         val typeface: Typeface = mock()
 
         assertNotEquals(typeface, toolbar.editToolbar.urlView.typeface)
@@ -635,8 +818,8 @@ class BrowserToolbarTest {
 
     @Test
     fun `obtainAttributes called when attributes provided`() {
-        val application = spy(RuntimeEnvironment.application)
-        val attributeSet: AttributeSet = mock()
+        val application = spy(testContext)
+        val attributeSet = buildAttributeSet().build()
 
         BrowserToolbar(application)
         verify(application, never()).obtainStyledAttributes(attributeSet, R.styleable.BrowserToolbar, 0, 0)
@@ -647,43 +830,43 @@ class BrowserToolbarTest {
 
     @Test
     fun `displaySiteSecurityIcon getter and setter`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
-        assertEquals(toolbar.displayToolbar.iconView.isVisible(), toolbar.displaySiteSecurityIcon)
+        val toolbar = BrowserToolbar(testContext)
+        assertEquals(toolbar.displayToolbar.siteSecurityIconView.isVisible, toolbar.displaySiteSecurityIcon)
 
         toolbar.displaySiteSecurityIcon = false
-        assertEquals(View.GONE, toolbar.displayToolbar.iconView.visibility)
+        assertEquals(View.GONE, toolbar.displayToolbar.siteSecurityIconView.visibility)
 
         toolbar.displaySiteSecurityIcon = true
-        assertEquals(View.VISIBLE, toolbar.displayToolbar.iconView.visibility)
+        assertEquals(View.VISIBLE, toolbar.displayToolbar.siteSecurityIconView.visibility)
     }
 
     @Test
     fun `urlBoxView getter`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertEquals(toolbar.displayToolbar.urlBoxView, toolbar.urlBoxView)
     }
 
     @Test
     fun `browserActionMargin getter`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertEquals(toolbar.displayToolbar.browserActionMargin, toolbar.browserActionMargin)
     }
 
     @Test
     fun `urlBoxMargin getter`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertEquals(toolbar.displayToolbar.urlBoxMargin, toolbar.urlBoxMargin)
     }
 
     @Test
     fun `onUrlClicked getter`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         assertEquals(toolbar.displayToolbar.onUrlClicked, toolbar.onUrlClicked)
     }
 
     @Test
     fun `setUrlTextPadding applies padding to urlView`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.setUrlTextPadding(5, 5, 5, 5)
         assertEquals(5, toolbar.displayToolbar.urlView.paddingLeft)
         assertEquals(5, toolbar.displayToolbar.urlView.paddingTop)
@@ -741,12 +924,35 @@ class BrowserToolbarTest {
 
     @Test
     fun `siteSecure updates the displayToolbar`() {
-        val toolbar = BrowserToolbar(RuntimeEnvironment.application)
+        val toolbar = BrowserToolbar(testContext)
         toolbar.displayToolbar = spy(toolbar.displayToolbar)
         assertEquals(SiteSecurity.INSECURE, toolbar.siteSecure)
 
         toolbar.siteSecure = SiteSecurity.SECURE
 
         verify(toolbar.displayToolbar).setSiteSecurity(SiteSecurity.SECURE)
+    }
+
+    @Test
+    fun `private flag sets IME_FLAG_NO_PERSONALIZED_LEARNING on url edit view`() {
+        val toolbar = BrowserToolbar(testContext)
+        val editToolbar = toolbar.editToolbar
+
+        // By default "private mode" is off.
+        assertEquals(0, editToolbar.urlView.imeOptions and
+            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(false, toolbar.private)
+
+        // Turning on private mode sets flag
+        toolbar.private = true
+        assertNotEquals(0, editToolbar.urlView.imeOptions and
+            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertTrue(toolbar.private)
+
+        // Turning private mode off again - should remove flag
+        toolbar.private = false
+        assertEquals(0, editToolbar.urlView.imeOptions and
+            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(false, toolbar.private)
     }
 }

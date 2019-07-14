@@ -4,28 +4,42 @@
 
 package mozilla.components.feature.toolbar
 
+import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.feature.toolbar.internal.URLRenderer
 
 /**
  * Presenter implementation for a toolbar implementation in order to update the toolbar whenever
  * the state of the selected session changes.
  */
+@Suppress("TooManyFunctions")
 class ToolbarPresenter(
     private val toolbar: Toolbar,
     private val sessionManager: SessionManager,
-    private val sessionId: String? = null
+    private val sessionId: String? = null,
+    urlRenderConfiguration: ToolbarFeature.UrlRenderConfiguration? = null
 ) : SelectionAwareSessionObserver(sessionManager) {
+
+    @VisibleForTesting
+    internal var renderer = URLRenderer(toolbar, urlRenderConfiguration)
 
     /**
      * Start presenter: Display data in toolbar.
      */
     fun start() {
-        val session = sessionId?.let { sessionManager.findSessionById(sessionId) }
-        session?.let { observeFixed(it) } ?: observeSelected()
+        observeIdOrSelected(sessionId)
         initializeView()
+
+        renderer.start()
+    }
+
+    override fun stop() {
+        super.stop()
+
+        renderer.stop()
     }
 
     /**
@@ -36,20 +50,29 @@ class ToolbarPresenter(
         initializeView()
     }
 
-    private fun initializeView() {
-        activeSession?.let { session ->
-            toolbar.url = session.url
+    override fun onAllSessionsRemoved() {
+        initializeView()
+    }
 
-            session.customTabConfig?.toolbarColor?.let {
-                toolbar.asView().setBackgroundColor(it)
-            }
-            // TODO Apply remaining configurations: https://github.com/mozilla-mobile/android-components/issues/306
+    override fun onSessionRemoved(session: Session) {
+        if (sessionManager.selectedSession == null) {
+            initializeView()
         }
     }
 
+    internal fun initializeView() {
+        val session = sessionId?.let { sessionManager.findSessionById(sessionId) }
+            ?: sessionManager.selectedSession
+
+        renderer.post(session?.url ?: "")
+
+        toolbar.setSearchTerms(session?.searchTerms ?: "")
+        toolbar.displayProgress(session?.progress ?: 0)
+        updateToolbarSecurity(session?.securityInfo ?: Session.SecurityInfo())
+    }
+
     override fun onUrlChanged(session: Session, url: String) {
-        toolbar.url = url
-        toolbar.setSearchTerms(session.searchTerms)
+        renderer.post(url)
     }
 
     override fun onProgress(session: Session, progress: Int) {
@@ -60,10 +83,12 @@ class ToolbarPresenter(
         toolbar.setSearchTerms(searchTerms)
     }
 
-    override fun onSecurityChanged(session: Session, securityInfo: Session.SecurityInfo) {
+    override fun onSecurityChanged(session: Session, securityInfo: Session.SecurityInfo) =
+        updateToolbarSecurity(securityInfo)
+
+    private fun updateToolbarSecurity(securityInfo: Session.SecurityInfo) =
         when (securityInfo.secure) {
             true -> toolbar.siteSecure = Toolbar.SiteSecurity.SECURE
             false -> toolbar.siteSecure = Toolbar.SiteSecurity.INSECURE
         }
-    }
 }

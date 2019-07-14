@@ -4,13 +4,16 @@
 
 package mozilla.components.browser.engine.system
 
-import android.support.v4.view.NestedScrollingChildHelper
-import android.support.v4.view.ViewCompat.SCROLL_AXIS_VERTICAL
-import android.view.MotionEvent
 import android.view.MotionEvent.ACTION_CANCEL
 import android.view.MotionEvent.ACTION_DOWN
+import android.view.MotionEvent.ACTION_MOVE
 import android.view.MotionEvent.ACTION_UP
+import androidx.core.view.NestedScrollingChildHelper
+import androidx.core.view.ViewCompat.SCROLL_AXIS_VERTICAL
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.mockMotionEvent
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,15 +23,13 @@ import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class NestedWebViewTest {
 
     @Test
     fun `NestedWebView must delegate NestedScrollingChild implementation to childHelper`() {
-        val nestedWebView = NestedWebView(RuntimeEnvironment.application)
+        val nestedWebView = NestedWebView(testContext)
         val mockChildHelper: NestedScrollingChildHelper = mock()
         nestedWebView.childHelper = mockChildHelper
 
@@ -65,27 +66,19 @@ class NestedWebViewTest {
 
     @Test
     fun `verify onTouchEvent when ACTION_DOWN`() {
-        val nestedWebView = NestedWebView(RuntimeEnvironment.application)
-        val mockMotionEvent: MotionEvent = mock()
+        val nestedWebView = NestedWebView(testContext)
         val mockChildHelper: NestedScrollingChildHelper = mock()
         nestedWebView.childHelper = mockChildHelper
 
-        doReturn(ACTION_DOWN).`when`(mockMotionEvent).actionMasked
-
-        nestedWebView.onTouchEvent(mockMotionEvent)
+        nestedWebView.onTouchEvent(mockMotionEvent(ACTION_DOWN))
         verify(mockChildHelper).startNestedScroll(SCROLL_AXIS_VERTICAL)
     }
 
     @Test
     fun `verify onTouchEvent when ACTION_MOVE`() {
-        val nestedWebView = NestedWebView(RuntimeEnvironment.application)
-        val mockMotionEvent: MotionEvent = mock()
+        val nestedWebView = NestedWebView(testContext)
         val mockChildHelper: NestedScrollingChildHelper = mock()
         nestedWebView.childHelper = mockChildHelper
-
-        doReturn(MotionEvent.ACTION_MOVE).`when`(mockMotionEvent).actionMasked
-
-        doReturn(10f).`when`(mockMotionEvent).y
 
         doReturn(true).`when`(mockChildHelper).dispatchNestedPreScroll(
             anyInt(), anyInt(), any(),
@@ -95,7 +88,7 @@ class NestedWebViewTest {
         nestedWebView.scrollOffset[0] = 1
         nestedWebView.scrollOffset[1] = 2
 
-        nestedWebView.onTouchEvent(mockMotionEvent)
+        nestedWebView.onTouchEvent(mockMotionEvent(ACTION_MOVE, y = 10f))
         assertEquals(nestedWebView.nestedOffsetY, 2)
         assertEquals(nestedWebView.lastY, 8)
 
@@ -103,26 +96,21 @@ class NestedWebViewTest {
             anyInt(), anyInt(), anyInt(), anyInt(), any()
         )
 
-        nestedWebView.onTouchEvent(mockMotionEvent)
+        nestedWebView.onTouchEvent(mockMotionEvent(ACTION_MOVE, y = 10f))
         assertEquals(nestedWebView.nestedOffsetY, 6)
         assertEquals(nestedWebView.lastY, 6)
     }
 
     @Test
     fun `verify onTouchEvent when ACTION_UP or ACTION_CANCEL`() {
-        val nestedWebView = NestedWebView(RuntimeEnvironment.application)
-        val mockMotionEvent: MotionEvent = mock()
+        val nestedWebView = NestedWebView(testContext)
         val mockChildHelper: NestedScrollingChildHelper = mock()
         nestedWebView.childHelper = mockChildHelper
 
-        doReturn(ACTION_UP).`when`(mockMotionEvent).actionMasked
-
-        nestedWebView.onTouchEvent(mockMotionEvent)
+        nestedWebView.onTouchEvent(mockMotionEvent(ACTION_UP))
         verify(mockChildHelper).stopNestedScroll()
 
-        doReturn(ACTION_CANCEL).`when`(mockMotionEvent).actionMasked
-
-        nestedWebView.onTouchEvent(mockMotionEvent)
+        nestedWebView.onTouchEvent(mockMotionEvent(ACTION_CANCEL))
         verify(mockChildHelper, times(2)).stopNestedScroll()
     }
 }

@@ -4,59 +4,91 @@
 
 package mozilla.components.browser.session.storage
 
-import mozilla.components.browser.session.Session
+import android.content.Context
+import android.util.AtomicFile
+import androidx.annotation.CheckResult
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.WorkerThread
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.ext.readSnapshot
+import mozilla.components.browser.session.ext.writeSnapshot
 import mozilla.components.concept.engine.Engine
-import mozilla.components.concept.engine.EngineSession
+import java.io.File
+import java.util.concurrent.TimeUnit
 
-data class SessionWithState(
-    val session: Session,
-    val engineSession: EngineSession? = null
-)
-data class SessionsSnapshot(
-    val sessions: List<SessionWithState>,
-    val selectedSessionIndex: Int
-)
+private const val STORE_FILE_NAME_FORMAT = "mozilla_components_session_storage_%s.json"
+
+private val sessionFileLock = Any()
 
 /**
- * Storage component for browser and engine sessions.
+ * Session storage for persisting the state of a [SessionManager] to disk (browser and engine session states).
  */
-interface SessionStorage {
-    /**
-     * Erases persisted [SessionsSnapshot] (if present) for a given [Engine].
-     */
-    fun clear(engine: Engine)
+class SessionStorage(
+    private val context: Context,
+    private val engine: Engine
+) : AutoSave.Storage {
+    private val serializer = SnapshotSerializer()
 
     /**
-     * Persists the provided [SessionsSnapshot] for a given [Engine].
-     * [SessionsSnapshot] may be obtained using [SessionManager.createSnapshot].
-     * Throws if snapshot is empty or otherwise incoherent.
-     *
-     * @param engine the engine in which context to persist a snapshot.
-     * @param snapshot the snapshot of snapshot which are to be persisted.
-     * @return true if the snapshot was persisted, otherwise false.
+     * Reads the saved state from disk. Returns null if no state was found on disk or if reading the file failed.
      */
-    @Throws(IllegalArgumentException::class)
-    fun persist(engine: Engine, snapshot: SessionsSnapshot): Boolean
+    @WorkerThread
+    fun restore(): SessionManager.Snapshot? {
+        synchronized(sessionFileLock) {
+            return getFileForEngine(context, engine)
+                .readSnapshot(engine, serializer)
+        }
+    }
 
     /**
-     * Returns the latest persisted sessions snapshot that may be used to read sessions.
-     * Resulting [SessionsSnapshot] may be restored via [SessionManager.restore].
-     *
-     * @param engine the engine for which to read the snapshot.
-     * @return snapshot of sessions to read, or null if it's empty or couldn't be read.
+     * Clears the state saved on disk.
      */
-    fun read(engine: Engine): SessionsSnapshot?
+    @WorkerThread
+    fun clear() {
+        removeSnapshotFromDisk(context, engine)
+    }
 
     /**
-     * Starts persisting the state frequently and automatically.
-     *
-     * @param sessionManager the session manager to persist from.
+     * Saves the given state to disk.
      */
-    fun start(sessionManager: SessionManager)
+    @WorkerThread
+    override fun save(snapshot: SessionManager.Snapshot): Boolean {
+        if (snapshot.isEmpty()) {
+            clear()
+            return true
+        }
+
+        requireNotNull(snapshot.sessions.getOrNull(snapshot.selectedSessionIndex)) {
+            "SessionSnapshot's selected index must be in bounds"
+        }
+
+        synchronized(sessionFileLock) {
+            return getFileForEngine(context, engine)
+                .writeSnapshot(snapshot, serializer)
+        }
+    }
 
     /**
-     * Stops persisting the state automatically.
+     * Starts configuring automatic saving of the state.
      */
-    fun stop()
+    @CheckResult
+    fun autoSave(
+        sessionManager: SessionManager,
+        interval: Long = AutoSave.DEFAULT_INTERVAL_MILLISECONDS,
+        unit: TimeUnit = TimeUnit.MILLISECONDS
+    ): AutoSave {
+        return AutoSave(sessionManager, this, unit.toMillis(interval))
+    }
+}
+
+private fun removeSnapshotFromDisk(context: Context, engine: Engine) {
+    synchronized(sessionFileLock) {
+        getFileForEngine(context, engine)
+            .delete()
+    }
+}
+
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal fun getFileForEngine(context: Context, engine: Engine): AtomicFile {
+    return AtomicFile(File(context.filesDir, String.format(STORE_FILE_NAME_FORMAT, engine.name()).toLowerCase()))
 }

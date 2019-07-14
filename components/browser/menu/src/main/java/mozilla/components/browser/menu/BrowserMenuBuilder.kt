@@ -10,13 +10,17 @@ import android.content.Context
  * Helper class for building browser menus.
  *
  * @param items List of BrowserMenuItem objects to compose the menu from.
+ * @param extras Map of extra values that are added to emitted facts
+ * @param endOfMenuAlwaysVisible when is set to true makes sure the bottom of the menu is always visible otherwise,
+ *  the top of the menu is always visible.
  */
 class BrowserMenuBuilder(
-    private val items: List<BrowserMenuItem>
+    val items: List<BrowserMenuItem>,
+    val extras: Map<String, Any> = emptyMap(),
+    val endOfMenuAlwaysVisible: Boolean = false
 ) {
     fun build(context: Context): BrowserMenu {
         val adapter = BrowserMenuAdapter(context, items)
-
         return BrowserMenu(adapter)
     }
 }

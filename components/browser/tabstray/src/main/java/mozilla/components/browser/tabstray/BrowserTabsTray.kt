@@ -5,11 +5,16 @@
 package mozilla.components.browser.tabstray
 
 import android.content.Context
-import android.support.v7.widget.GridLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
 import android.view.View
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.tabstray.TabsTray
+
+const val DEFAULT_ITEM_BACKGROUND_COLOR = 0xFFFFFFFF.toInt()
+const val DEFAULT_ITEM_BACKGROUND_SELECTED_COLOR = 0xFFFF45A1FF.toInt()
+const val DEFAULT_ITEM_TEXT_COLOR = 0xFF111111.toInt()
+const val DEFAULT_ITEM_TEXT_SELECTED_COLOR = 0xFFFFFFFF.toInt()
 
 /**
  * A customizable tabs tray for browsers.
@@ -18,15 +23,28 @@ class BrowserTabsTray @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-    private val tabsAdapter: TabsAdapter = TabsAdapter()
+    val tabsAdapter: TabsAdapter = TabsAdapter()
 ) : RecyclerView(context, attrs, defStyleAttr),
     TabsTray by tabsAdapter {
+
+    internal val styling: TabsTrayStyling
 
     init {
         tabsAdapter.tabsTray = this
 
         layoutManager = GridLayoutManager(context, 2)
         adapter = tabsAdapter
+
+        val attr = context.obtainStyledAttributes(attrs, R.styleable.BrowserTabsTray, defStyleAttr, 0)
+        styling = TabsTrayStyling(
+            attr.getColor(R.styleable.BrowserTabsTray_tabsTrayItemBackgroundColor, DEFAULT_ITEM_BACKGROUND_COLOR),
+            attr.getColor(R.styleable.BrowserTabsTray_tabsTraySelectedItemBackgroundColor,
+                DEFAULT_ITEM_BACKGROUND_SELECTED_COLOR),
+            attr.getColor(R.styleable.BrowserTabsTray_tabsTrayItemTextColor, DEFAULT_ITEM_TEXT_COLOR),
+            attr.getColor(R.styleable.BrowserTabsTray_tabsTraySelectedItemTextColor, DEFAULT_ITEM_TEXT_SELECTED_COLOR),
+            attr.getDimensionPixelSize(R.styleable.BrowserTabsTray_tabsTrayItemElevation, 0).toFloat()
+        )
+        attr.recycle()
     }
 
     override fun onDetachedFromWindow() {
@@ -45,3 +63,11 @@ class BrowserTabsTray @JvmOverloads constructor(
         return this
     }
 }
+
+internal data class TabsTrayStyling(
+    val itemBackgroundColor: Int,
+    val selectedItemBackgroundColor: Int,
+    val itemTextColor: Int,
+    val selectedItemTextColor: Int,
+    val itemElevation: Float
+)

@@ -5,44 +5,47 @@
 package mozilla.components.support.ktx.android.content
 
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.hardware.camera2.CameraManager
+import androidx.core.content.getSystemService
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-import org.robolectric.Shadows
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
+import org.robolectric.Robolectric
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowApplication
+import org.robolectric.shadows.ShadowCameraCharacteristics
+import org.robolectric.shadows.ShadowProcess
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ContextTest {
-    @Test
-    fun `systemService() returns same service as getSystemService()`() {
-        val context = RuntimeEnvironment.application
 
-        assertEquals(
-            context.getSystemService(Context.INPUT_METHOD_SERVICE),
-            context.systemService(Context.INPUT_METHOD_SERVICE))
-
-        assertEquals(
-            context.getSystemService(Context.ACTIVITY_SERVICE),
-            context.systemService(Context.ACTIVITY_SERVICE))
-
-        assertEquals(
-            context.getSystemService(Context.LOCATION_SERVICE),
-            context.systemService(Context.LOCATION_SERVICE))
+    @Before
+    fun setup() {
+        isMainProcess = null
     }
 
     @Test
     fun `isOSOnLowMemory() should return the same as getMemoryInfo() lowMemory`() {
-        val context = RuntimeEnvironment.application
-        val extensionFunctionResult = context.isOSOnLowMemory()
+        val extensionFunctionResult = testContext.isOSOnLowMemory()
 
-        val activityManager = context.systemService<ActivityManager>(Context.ACTIVITY_SERVICE)
+        val activityManager: ActivityManager? = testContext.getSystemService()
 
         val normalMethodResult = ActivityManager.MemoryInfo().also { memoryInfo ->
-            activityManager.getMemoryInfo(memoryInfo)
+            activityManager?.getMemoryInfo(memoryInfo)
         }.lowMemory
 
         assertEquals(extensionFunctionResult, normalMethodResult)
@@ -50,17 +53,73 @@ class ContextTest {
 
     @Test
     fun `isPermissionGranted() returns same service as checkSelfPermission()`() {
-        val context = RuntimeEnvironment.application
-        val application = Shadows.shadowOf(context)
+        val application = ShadowApplication()
 
         assertEquals(
-                context.isPermissionGranted(WRITE_EXTERNAL_STORAGE),
-                context.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED)
+            testContext.isPermissionGranted(WRITE_EXTERNAL_STORAGE),
+            testContext.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED)
 
         application.grantPermissions(WRITE_EXTERNAL_STORAGE)
 
         assertEquals(
-                context.isPermissionGranted(WRITE_EXTERNAL_STORAGE),
-                context.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED)
+            testContext.isPermissionGranted(WRITE_EXTERNAL_STORAGE),
+            testContext.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED)
+    }
+
+    @Test
+    fun `share invokes startActivity`() {
+        val context = spy(testContext)
+        val argCaptor = argumentCaptor<Intent>()
+
+        val result = context.share("https://mozilla.org")
+
+        verify(context).startActivity(argCaptor.capture())
+
+        assertTrue(result)
+        assertEquals(FLAG_ACTIVITY_NEW_TASK, argCaptor.value.flags)
+    }
+
+    @Test
+    fun `isMainProcess must only return true if we are in the main process`() {
+        val myPid = Int.MAX_VALUE
+
+        assertTrue(testContext.isMainProcess())
+
+        ShadowProcess.setPid(myPid)
+        isMainProcess = null
+
+        assertFalse(testContext.isMainProcess())
+    }
+
+    @Test
+    fun `runOnlyInMainProcess must only run if we are in the main process`() {
+        val myPid = Int.MAX_VALUE
+        var wasExecuted = false
+
+        testContext.runOnlyInMainProcess {
+            wasExecuted = true
+        }
+
+        assertTrue(wasExecuted)
+
+        wasExecuted = false
+        ShadowProcess.setPid(myPid)
+        isMainProcess = false
+
+        testContext.runOnlyInMainProcess {
+            wasExecuted = true
+        }
+
+        assertFalse(wasExecuted)
+    }
+
+    @Test
+    fun `hasCamera returns true if the device has a camera`() {
+        val context = Robolectric.buildActivity(Activity::class.java).get()
+        assertFalse(context.hasCamera())
+
+        val cameraManager: CameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        shadowOf(cameraManager).addCamera("camera0", ShadowCameraCharacteristics.newCameraCharacteristics())
+        assertTrue(context.hasCamera())
     }
 }

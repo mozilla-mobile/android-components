@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -23,29 +23,35 @@ android {
 
 dependencies {
     implementation project(':concept-awesomebar')
+    implementation project(':concept-fetch')
     implementation project(':concept-engine')
     implementation project(':concept-toolbar')
     implementation project(':concept-storage')
 
     implementation project(':browser-session')
     implementation project(':browser-search')
+    implementation project(':browser-icons')
 
     implementation project(':feature-tabs')
     implementation project(':feature-session')
     implementation project(':feature-search')
 
     implementation project(':support-ktx')
+    implementation project(':support-utils')
 
-    implementation Deps.kotlin_stdlib
-    implementation Deps.kotlin_coroutines
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.kotlin_stdlib
 
     testImplementation project(':support-test')
     testImplementation project(':browser-storage-memory')
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
-    testImplementation Deps.testing_mockwebserver
+    testImplementation project(':lib-fetch-httpurlconnection')
+
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_mockwebserver
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

@@ -9,6 +9,7 @@ import android.content.Intent
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.TextView
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mozilla.components.lib.crash.Crash
@@ -16,6 +17,7 @@ import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
 import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,11 +25,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.verify
 import org.robolectric.Robolectric
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class CrashReporterActivityTest {
+
     @Test
     fun `Pressing close button sends report`() {
         val service: CrashReporterService = mock()
@@ -35,7 +36,7 @@ class CrashReporterActivityTest {
         CrashReporter(
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(service)
-        ).install(RuntimeEnvironment.application)
+        ).install(testContext)
 
         val crash = Crash.UncaughtExceptionCrash(RuntimeException("Hello World"))
 
@@ -66,7 +67,7 @@ class CrashReporterActivityTest {
         CrashReporter(
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(service)
-        ).install(RuntimeEnvironment.application)
+        ).install(testContext)
 
         val crash = Crash.UncaughtExceptionCrash(RuntimeException("Hello World"))
 
@@ -96,10 +97,10 @@ class CrashReporterActivityTest {
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             promptConfiguration = CrashReporter.PromptConfiguration(
                 message = "Hello World!",
-                theme = android.R.style.Theme_Holo_Dialog // Yolo!
+                theme = android.R.style.Theme_DeviceDefault // Yolo!
             ),
             services = listOf(mock())
-        ).install(RuntimeEnvironment.application)
+        ).install(testContext)
 
         val crash = Crash.UncaughtExceptionCrash(RuntimeException("Hello World"))
 
@@ -124,7 +125,7 @@ class CrashReporterActivityTest {
         CrashReporter(
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(service)
-        ).install(RuntimeEnvironment.application)
+        ).install(testContext)
 
         val crash = Crash.UncaughtExceptionCrash(RuntimeException("Hello World"))
 

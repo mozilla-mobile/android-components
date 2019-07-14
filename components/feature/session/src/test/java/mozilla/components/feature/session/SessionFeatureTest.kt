@@ -6,53 +6,97 @@ package mozilla.components.feature.session
 
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.whenever
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 
 class SessionFeatureTest {
-    private val sessionManager = mock(SessionManager::class.java)
-    private val engineView = mock(EngineView::class.java)
-    private val sessionStorage = mock(SessionStorage::class.java)
+
+    private val sessionManager = mock<SessionManager>()
+    private val engineView = mock<EngineView>()
     private val sessionUseCases = SessionUseCases(sessionManager)
 
     @Test
     fun start() {
-        val feature = SessionFeature(sessionManager, sessionUseCases, engineView, sessionStorage)
+        val feature = SessionFeature(sessionManager, sessionUseCases, engineView)
         feature.start()
         verify(sessionManager).register(feature.presenter)
-        verify(sessionStorage).start(sessionManager)
     }
 
     @Test
-    fun handleBackPressed() {
+    fun `handleBackPressed uses selectedSession`() {
         val session = Session("https://www.mozilla.org")
-        `when`(sessionManager.selectedSession).thenReturn(session)
-        `when`(sessionManager.selectedSessionOrThrow).thenReturn(session)
+        whenever(sessionManager.selectedSession).thenReturn(session)
+        whenever(sessionManager.selectedSessionOrThrow).thenReturn(session)
 
-        val engineSession = mock(EngineSession::class.java)
-        `when`(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+        val engineSession = mock<EngineSession>()
+        whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
         val feature = SessionFeature(sessionManager, sessionUseCases, engineView)
 
-        feature.handleBackPressed()
+        feature.onBackPressed()
         verify(engineSession, never()).goBack()
 
         session.canGoBack = true
-        feature.handleBackPressed()
+        feature.onBackPressed()
         verify(engineSession).goBack()
     }
 
     @Test
+    fun `handleBackPressed uses sessionId`() {
+        val session = Session("https://www.mozilla.org")
+        val sessionAlt = Session("https://firefox.com")
+        val engineSession = mock<EngineSession>()
+        val sessionId = "123"
+
+        whenever(sessionManager.selectedSession).thenReturn(sessionAlt)
+        whenever(sessionManager.selectedSessionOrThrow).thenReturn(sessionAlt)
+        whenever(sessionManager.findSessionById(sessionId)).thenReturn(session)
+        whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+        session.canGoBack = true
+
+        val feature = SessionFeature(sessionManager, sessionUseCases, engineView, sessionId)
+
+        val result = feature.onBackPressed()
+
+        verify(engineSession).goBack()
+        assertTrue(result)
+    }
+
+    @Test
+    fun `handleBackPressed does nothing when sessionId provided but no session found`() {
+        val engineSession = mock<EngineSession>()
+        val sessionId = "123"
+
+        val feature = SessionFeature(sessionManager, sessionUseCases, engineView, sessionId)
+
+        val result = feature.onBackPressed()
+
+        verify(engineSession, never()).goBack()
+        assertFalse(result)
+    }
+
+    @Test
+    fun `handleBackPressed does nothing when no session found`() {
+        val engineSession = mock<EngineSession>()
+
+        val feature = SessionFeature(sessionManager, sessionUseCases, engineView)
+        val result = feature.onBackPressed()
+
+        verify(engineSession, never()).goBack()
+        assertFalse(result)
+    }
+
+    @Test
     fun stop() {
-        val feature = SessionFeature(sessionManager, sessionUseCases, engineView, sessionStorage)
+        val feature = SessionFeature(sessionManager, sessionUseCases, engineView)
         feature.stop()
         verify(sessionManager).unregister(feature.presenter)
-        verify(sessionStorage).stop()
     }
 }

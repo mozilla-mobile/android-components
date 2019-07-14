@@ -1,27 +1,25 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-buildscript {
-    ext.geckoRelease = [
-        revision: '84219fbf133cacfc6e31c9471ad20ee7162a02af',
-    ]
+import org.gradle.internal.logging.text.StyledTextOutput.Style
+import org.gradle.internal.logging.text.StyledTextOutputFactory
+import static org.gradle.api.tasks.testing.TestResult.ResultType
 
+buildscript {
     repositories {
         google()
         jcenter()
     }
 
     dependencies {
-        classpath Deps.tools_androidgradle
-        classpath Deps.tools_kotlingradle
-        classpath Deps.tools_dokka
-
-        // Publish.
-        classpath Deps.tools_mavengradle
+        classpath Dependencies.tools_androidgradle
+        classpath Dependencies.tools_kotlingradle
+        classpath Dependencies.tools_dokka
+        classpath Dependencies.tools_androidmavenpublish
     }
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("1.0.0.RC9.2")
+    id("io.gitlab.arturbosch.detekt").version("1.0.0-RC16")
 }
 
 allprojects {
@@ -31,25 +29,6 @@ allprojects {
 
         maven {
             url "https://maven.mozilla.org/maven2"
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        // GeckoView Release
-        ////////////////////////////////////////////////////////////////////////////////////////////
-
-        // ARM
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-api-16-opt/artifacts/public/android/maven"
-        }
-
-        // x86
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-x86-opt/artifacts/public/android/maven"
-        }
-
-        // aarch64
-        maven {
-            url "https://index.taskcluster.net/v1/task/gecko.v2.mozilla-release.revision.${geckoRelease['revision']}.mobile.android-aarch64-opt/artifacts/public/android/maven"
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,10 +45,67 @@ subprojects {
     apply plugin: 'jacoco'
     apply plugin: 'org.jetbrains.dokka-android'
 
+    // Enable Kotlin warnings as errors for all modules
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+        kotlinOptions.allWarningsAsErrors = true
+    }
+
+    // Enforce that all (transitive) dependencies are using the same support library version as we do.
+    project.configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'com.android.support'
+                    && !details.requested.name.contains('multidex') ) {
+                details.useVersion Versions.support_libraries
+            }
+        }
+    }
+
     afterEvaluate {
         if (it.hasProperty('android')) {
             jacoco {
-                toolVersion = "0.8.2"
+                toolVersion = "0.8.4"
+            }
+
+            // Format test output
+            tasks.matching {it instanceof Test}.all {
+                systemProperty "robolectric.logging", "stdout"
+                systemProperty "logging.test-mode", "true"
+
+                testLogging.events = []
+
+                def out = services.get(StyledTextOutputFactory).create("an-ouput")
+
+                beforeSuite { descriptor ->
+                    if (descriptor.getClassName() != null) {
+                        out.style(Style.Header).println("\nSUITE: " + descriptor.getClassName())
+                    }
+                }
+
+                beforeTest { descriptor ->
+                    out.style(Style.Description).println("  TEST: " + descriptor.getName())
+                }
+
+                onOutput { descriptor, event ->
+                    logger.lifecycle("    " + event.message.trim())
+                }
+
+                afterTest { descriptor, result ->
+                    switch (result.getResultType()) {
+                        case ResultType.SUCCESS:
+                            out.style(Style.Success).println("  SUCCESS")
+                            break
+
+                        case ResultType.FAILURE:
+                            out.style(Style.Failure).println("  FAILURE")
+                            logger.lifecycle("", result.getException())
+                            break
+
+                        case ResultType.SKIPPED:
+                            out.style(Style.Info).println("  SKIPPED")
+                            break
+                    }
+                    logger.lifecycle("")
+                }
             }
 
             dependencies {
@@ -85,14 +121,27 @@ subprojects {
 
                 lintOptions {
                     warningsAsErrors true
-                    abortOnError true
+                    abortOnError (project.name != "support-test")
+
+                    // With our L10N process its totally possible to have missing or (temporarily) extra translations.
+                    disable 'MissingTranslation', 'ExtraTranslation'
+                }
+
+                packagingOptions {
+                    exclude 'META-INF/atomicfu.kotlin_module'
+                }
+
+                compileOptions {
+                    sourceCompatibility 1.8
+                    targetCompatibility 1.8
                 }
             }
 
             if (project.hasProperty("coverage") && project.name != "support-test") {
                 tasks.withType(Test) {
                     jacoco.includeNoLocationClasses = true
-                    doLast { jacocoTestReport.execute() }
+
+                    finalizedBy jacocoTestReport
                 }
 
                 task jacocoTestReport(type: JacocoReport) {
@@ -131,7 +180,7 @@ evaluationDependsOnChildren()
 task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
     moduleName = "$rootProject.name"
     outputDirectory = "$buildDir/javadoc"
-    outputFormat = "html"
+    outputFormat = "gfm"
     jdkVersion = 7
 
     subprojects.findAll {
@@ -141,6 +190,10 @@ task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
         it.android.libraryVariants.all { variant ->
             classpath += files(variant.javaCompile.classpath.files)
         }
+    }
+
+    externalDocumentationLink {
+        url = new URL("https://mozilla.github.io/geckoview/javadoc/mozilla-central/package-list")
     }
 
     sourceDirs = files(subprojects.findAll {
@@ -159,18 +212,14 @@ task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
     })
 }
 
-
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
 
 detekt {
-    // The version number is duplicated, please refer to plugins block for more details
-    version = "1.0.0.RC9.2"
-    input = files("$projectDir/components")
+    input = files("$projectDir/components", "$projectDir/buildSrc", "$projectDir/samples")
     config = files("$projectDir/config/detekt.yml")
-    filters = ".*test.*,.*/resources/.*,.*/tmp/.*"
     baseline = file("$projectDir/config/detekt-baseline.xml")
 
     reports {
@@ -178,7 +227,23 @@ detekt {
             enabled = true
             destination = file("$projectDir/build/reports/detekt.html")
         }
+        xml {
+            enabled = false
+        }
     }
+}
+
+tasks.withType(io.gitlab.arturbosch.detekt.Detekt) {
+    autoCorrect = true
+
+    exclude "**/src/androidTest/**"
+    exclude "**/src/test/**"
+    exclude "**/test/src/**"
+    exclude "**/build/**"
+    exclude "**/resources/**"
+    exclude "**/tmp/**"
+    exclude "**/tooling/fetch/tests/**"
+    exclude "**/tooling/fetch-tests/**"
 }
 
 configurations {
@@ -186,32 +251,15 @@ configurations {
 }
 
 dependencies {
-    ktlint "com.github.shyiko:ktlint:0.29.0"
+    ktlint "com.github.shyiko:ktlint:0.31.0"
 }
 
 task ktlint(type: JavaExec, group: "verification") {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     main = "com.github.shyiko.ktlint.Main"
-    args "components/**/*.kt", "samples/**/*.kt", "!**/build"
+    args "components/**/*.kt" , "samples/**/*.kt", "!**/build", "buildSrc/**/*.kt"
 }
 
-task printModules {
-    doLast {
-        def modules = subprojects.collect { p -> [
-            name: p.path.toString(),
-            buildPath: p.buildDir.toString(),
-            shouldPublish: p.ext.shouldPublish
-        ] }
-        println "modules: " + groovy.json.JsonOutput.toJson(modules)
-    }
-}
-
-task printVersion {
-    doLast {
-        println("version: " + Config.componentsVersion)
-    }
-}
-
-apply plugin: GVNightlyVersionVerifierPlugin
+apply plugin: GVVersionVerifierPlugin
 apply plugin: GitHubPlugin

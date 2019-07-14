@@ -4,100 +4,53 @@
 
 package mozilla.components.browser.session
 
-import android.support.annotation.GuardedBy
-import mozilla.components.browser.session.engine.EngineObserver
-import mozilla.components.browser.session.storage.SessionWithState
-import mozilla.components.browser.session.storage.SessionsSnapshot
+import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.session.ext.toCustomTabSessionState
+import mozilla.components.browser.session.ext.toTabSessionState
+import mozilla.components.browser.state.action.CustomTabListAction
+import mozilla.components.browser.state.action.SystemAction
+import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.base.observer.Observable
-import mozilla.components.support.base.observer.ObserverRegistry
-import kotlin.math.max
 
 /**
  * This class provides access to a centralized registry of all active sessions.
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("TooManyFunctions")
 class SessionManager(
     val engine: Engine,
-    val defaultSession: (() -> Session)? = null,
-    delegate: Observable<SessionManager.Observer> = ObserverRegistry()
+    private val store: BrowserStore? = null,
+    private val delegate: LegacySessionManager = LegacySessionManager(engine)
 ) : Observable<SessionManager.Observer> by delegate {
-    private val values = mutableListOf<Session>()
-
-    @GuardedBy("values")
-    private var selectedIndex: Int = NO_SELECTION
-
     /**
      * Returns the number of session including CustomTab sessions.
      */
     val size: Int
-        get() = synchronized(values) { values.size }
+        get() = delegate.size
 
     /**
      * Produces a snapshot of this manager's state, suitable for restoring via [SessionManager.restore].
      * Only regular sessions are included in the snapshot. Private and Custom Tab sessions are omitted.
      *
-     * @return [SessionsSnapshot] or null if no sessions are present.
+     * @return [Snapshot] of the current session state.
      */
-    fun createSnapshot(): SessionsSnapshot? = synchronized(values) {
-        if (values.isEmpty()) {
-            return@synchronized null
-        }
+    fun createSnapshot(): Snapshot = delegate.createSnapshot()
 
-        // Filter out CustomTab and private sessions.
-        // We're using 'values' directly instead of 'sessions' to get benefits of a sequence.
-        val sessionStateTuples = values.asSequence()
-                .filter { !it.isCustomTabSession() }
-                .filter { !it.private }
-                .map { session ->
-                    SessionWithState(
-                            session,
-                            session.engineSessionHolder.engineSession
-                    )
-                }
-                .toList()
-
-        // We might have some sessions (private, custom tab) but none we'd include in the snapshot.
-        if (sessionStateTuples.isEmpty()) {
-            return@synchronized null
-        }
-
-        // We need to find out the index of our selected session in the filtered list. If we have a
-        // mix of private, custom tab and regular sessions, global selectedIndex isn't good enough.
-        // We must have a selectedSession if there is at least one "regular" (non-CustomTabs) session
-        // present. Selected session might be private, in which case we reset our selection index to 0.
-        var selectedIndexAfterFiltering = 0
-        selectedSession?.takeIf { !it.private }?.let { selected ->
-            sessionStateTuples.find { it.session.id == selected.id }?.let { selectedTuple ->
-                selectedIndexAfterFiltering = sessionStateTuples.indexOf(selectedTuple)
-            }
-        }
-
-        // Sanity check to guard against producing invalid snapshots.
-        checkNotNull(sessionStateTuples.getOrNull(selectedIndexAfterFiltering)) {
-            "Selection index after filtering session must be valid"
-        }
-
-        SessionsSnapshot(
-            sessions = sessionStateTuples,
-            selectedSessionIndex = selectedIndexAfterFiltering
-        )
-    }
+    /**
+     * Produces a [Snapshot.Item] of a single [Session], suitable for restoring via [SessionManager.restore].
+     */
+    fun createSessionSnapshot(session: Session): Snapshot.Item = delegate.createSessionSnapshot(session)
 
     /**
      * Gets the currently selected session if there is one.
      *
      * Only one session can be selected at a given time.
      */
-    val selectedSession: Session?
-        get() = synchronized(values) {
-            if (selectedIndex == NO_SELECTION) {
-                null
-            } else {
-                values[selectedIndex]
-            }
-        }
+    val selectedSession
+        get() = delegate.selectedSession
 
     /**
      * Gets the currently selected session or throws an IllegalStateException if no session is
@@ -112,19 +65,19 @@ class SessionManager(
      * Only one session can be selected at a given time.
      */
     val selectedSessionOrThrow: Session
-        get() = selectedSession ?: throw IllegalStateException("No selected session")
+        get() = delegate.selectedSessionOrThrow
 
     /**
      * Returns a list of active sessions and filters out sessions used for CustomTabs.
      */
     val sessions: List<Session>
-        get() = synchronized(values) { values.filter { !it.isCustomTabSession() } }
+        get() = delegate.sessions
 
     /**
      * Returns a list of all active sessions (including CustomTab sessions).
      */
     val all: List<Session>
-        get() = synchronized(values) { values.toList() }
+        get() = delegate.all
 
     /**
      * Adds the provided session.
@@ -134,116 +87,81 @@ class SessionManager(
         selected: Boolean = false,
         engineSession: EngineSession? = null,
         parent: Session? = null
-    ) = synchronized(values) {
-        addInternal(session, selected, engineSession, parent, viaRestore = false)
-    }
+    ) {
+        // Add store to Session so that it can dispatch actions whenever it changes.
+        session.store = store
 
-    private fun addInternal(
-        session: Session,
-        selected: Boolean = false,
-        engineSession: EngineSession? = null,
-        parent: Session? = null,
-        viaRestore: Boolean = false
-    ) = synchronized(values) {
-        if (parent != null) {
-            val parentIndex = values.indexOf(parent)
+        delegate.add(session, selected, engineSession, parent)
 
-            if (parentIndex == -1) {
-                throw IllegalArgumentException("The parent does not exist")
-            }
-
-            session.parentId = parent.id
-
-            values.add(parentIndex + 1, session)
+        if (session.isCustomTabSession()) {
+            store?.syncDispatch(
+                CustomTabListAction.AddCustomTabAction(
+                    session.toCustomTabSessionState()
+                )
+            )
         } else {
-            values.add(session)
-        }
-
-        engineSession?.let { link(session, it) }
-
-        // If session is being added via restore, skip notification and auto-selection.
-        // Restore will handle these actions as appropriate.
-        if (viaRestore) {
-            return@synchronized
-        }
-
-        notifyObservers { onSessionAdded(session) }
-
-        // Auto-select incoming session if we don't have a currently selected one.
-        if (selected || selectedIndex == NO_SELECTION && !session.isCustomTabSession()) {
-            select(session)
+            store?.syncDispatch(
+                TabListAction.AddTabAction(
+                    session.toTabSessionState(),
+                    select = selected
+                )
+            )
         }
     }
 
     /**
-     * Restores sessions from the provided [SessionsSnapshot].
+     * Restores sessions from the provided [Snapshot].
+     *
      * Notification behaviour is as follows:
      * - onSessionAdded notifications will not fire,
-     * - onSessionSelected notification will fire exactly once if the snapshot isn't empty,
+     * - onSessionSelected notification will fire exactly once if the snapshot isn't empty (See [updateSelection]
+     *   parameter),
      * - once snapshot has been restored, and appropriate session has been selected, onSessionsRestored
      *   notification will fire.
      *
-     * @param snapshot A [SessionsSnapshot] which may be produced by [createSnapshot].
-     * @throws IllegalArgumentException if an empty snapshot is passed in.
+     * @param snapshot A [Snapshot] which may be produced by [createSnapshot].
+     * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
-    fun restore(snapshot: SessionsSnapshot) = synchronized(values) {
-        require(snapshot.sessions.isNotEmpty()) {
-            "Snapshot must contain session state tuples"
+    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
+        // Add store to each Session so that it can dispatch actions whenever it changes.
+        snapshot.sessions.forEach { it.session.store = store }
+
+        delegate.restore(snapshot, updateSelection)
+
+        val tabs = snapshot.sessions
+            .filter {
+                // A restored snapshot should not contain any custom tab so we should be able to safely ignore
+                // them here.
+                !it.session.isCustomTabSession()
+            }
+            .map { item ->
+                item.session.toTabSessionState()
+            }
+
+        val selectedTabId = if (updateSelection && snapshot.selectedSessionIndex != NO_SELECTION) {
+            val index = snapshot.selectedSessionIndex
+            if (index in 0..snapshot.sessions.lastIndex) {
+                snapshot.sessions[index].session.id
+            } else {
+                null
+            }
+        } else {
+            null
         }
 
-        // Let's be forgiving about incoming illegal selection indices, but strict about what we
-        // produce ourselves in `createSnapshot`.
-        val sessionTupleToSelect = snapshot.sessions.getOrElse(snapshot.selectedSessionIndex) {
-            // Default to the first session if we received an illegal selection index.
-            snapshot.sessions[0]
-        }
-
-        snapshot.sessions.forEach {
-            addInternal(it.session, engineSession = it.engineSession, parent = null, viaRestore = true)
-        }
-
-        select(sessionTupleToSelect.session)
-
-        notifyObservers { onSessionsRestored() }
+        store?.syncDispatch(TabListAction.RestoreAction(tabs, selectedTabId))
     }
 
     /**
      * Gets the linked engine session for the provided session (if it exists).
      */
-    fun getEngineSession(session: Session = selectedSessionOrThrow) = session.engineSessionHolder.engineSession
+    fun getEngineSession(session: Session = selectedSessionOrThrow) = delegate.getEngineSession(session)
 
     /**
      * Gets the linked engine session for the provided session and creates it if needed.
      */
     fun getOrCreateEngineSession(session: Session = selectedSessionOrThrow): EngineSession {
-        getEngineSession(session)?.let { return it }
-
-        return engine.createSession(session.private).apply {
-            link(session, this)
-        }
-    }
-
-    private fun link(session: Session, engineSession: EngineSession) {
-        unlink(session)
-
-        session.engineSessionHolder.apply {
-            this.engineSession = engineSession
-            this.engineObserver = EngineObserver(session).also { observer ->
-                engineSession.register(observer)
-                engineSession.loadUrl(session.url)
-            }
-        }
-    }
-
-    private fun unlink(session: Session) {
-        session.engineSessionHolder.engineObserver?.let { observer ->
-            session.engineSessionHolder.apply {
-                engineSession?.unregister(observer)
-                engineSession?.close()
-                engineSession = null
-                engineObserver = null
-            }
-        }
+        return delegate.getOrCreateEngineSession(session)
     }
 
     /**
@@ -252,188 +170,89 @@ class SessionManager(
     fun remove(
         session: Session = selectedSessionOrThrow,
         selectParentIfExists: Boolean = false
-    ) = synchronized(values) {
-        val indexToRemove = values.indexOf(session)
-        if (indexToRemove == -1) {
-            return
+    ) {
+        delegate.remove(session, selectParentIfExists)
+
+        if (session.isCustomTabSession()) {
+            store?.syncDispatch(
+                CustomTabListAction.RemoveCustomTabAction(session.id)
+            )
+        } else {
+            store?.syncDispatch(
+                TabListAction.RemoveTabAction(session.id)
+            )
         }
-
-        values.removeAt(indexToRemove)
-
-        unlink(session)
-
-        val selectionUpdated = recalculateSelectionIndex(indexToRemove, selectParentIfExists, session.parentId)
-
-        values.filter { it.parentId == session.id }
-            .forEach { child -> child.parentId = session.parentId }
-
-        notifyObservers { onSessionRemoved(session) }
-
-        // NB: we're not explicitly calling notifyObservers here, since adding a session when none
-        // are present will notify observers with onSessionSelected.
-        if (selectedIndex == NO_SELECTION && defaultSession != null) {
-            add(defaultSession.invoke())
-            return
-        }
-
-        if (selectionUpdated && selectedIndex != NO_SELECTION) {
-            notifyObservers { onSessionSelected(selectedSessionOrThrow) }
-        }
-    }
-
-    /**
-     * Recalculate the index of the selected session after a session was removed. Returns true if the index has changed.
-     * False otherwise.
-     */
-    @Suppress("ComplexMethod")
-    private fun recalculateSelectionIndex(
-        indexToRemove: Int,
-        selectParentIfExists: Boolean,
-        parentId: String?
-    ): Boolean {
-        // Recalculate selection
-        var newSelectedIndex = when {
-            // All items have been removed
-            values.size == 0 -> NO_SELECTION
-
-            // The selected session was removed and it has a parent
-            selectParentIfExists && indexToRemove == selectedIndex && parentId != null -> {
-                val parent = findSessionById(parentId)
-                    ?: throw java.lang.IllegalStateException("Parent session referenced by id does not exist")
-                values.indexOf(parent)
-            }
-
-            // Something on the left of our selection has been removed, we need to move the index to the left
-            indexToRemove < selectedIndex -> selectedIndex - 1
-
-            // The selection is out of bounds. Let's selected the previous item.
-            selectedIndex == values.size -> selectedIndex - 1
-
-            // We can keep the selected index.
-            else -> selectedIndex
-        }
-
-        if (newSelectedIndex != NO_SELECTION && values[newSelectedIndex].isCustomTabSession()) {
-            // Oh shoot! The session we want to select is a custom tab and that's a no no. Let's find a regular session
-            // that is still close.
-            newSelectedIndex = findNearbyNonCustomTabSession(
-                // Find a new index. Either from the one we wanted to select or if that was the parent then start from
-                // the index we just removed.
-                if (selectParentIfExists) indexToRemove else newSelectedIndex)
-        }
-
-        val selectionUpdated = newSelectedIndex != selectedIndex
-
-        if (selectionUpdated) {
-            selectedIndex = newSelectedIndex
-        }
-
-        return selectionUpdated
-    }
-
-    /**
-     * @return Index of a new session that is not a custom tab and as close as possible to the given index. Returns
-     * [NO_SELECTION] if no session to select could be found.
-     */
-    private fun findNearbyNonCustomTabSession(index: Int): Int {
-        val maxSteps = max(values.lastIndex - index, index)
-
-        if (maxSteps <= 0) {
-            return NO_SELECTION
-        }
-
-        // Try sessions oscillating near the index.
-        for (steps in 1..maxSteps) {
-            listOf(index - steps, index + steps).forEach { current ->
-                if (current >= 0 &&
-                    current <= values.lastIndex &&
-                    !values[current].isCustomTabSession()) {
-                    return current
-                }
-            }
-        }
-
-        return NO_SELECTION
     }
 
     /**
      * Removes all sessions but CustomTab sessions.
      */
-    fun removeSessions() = synchronized(values) {
-        sessions.forEach {
-            unlink(it)
-            values.remove(it)
-        }
-
-        selectedIndex = NO_SELECTION
-
-        // NB: This callback indicates to observers that either removeSessions or removeAll were
-        // invoked, not that the manager is now empty.
-        notifyObservers { onAllSessionsRemoved() }
-
-        if (defaultSession != null) {
-            add(defaultSession.invoke())
-        }
+    fun removeSessions() {
+        delegate.removeSessions()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
     }
 
     /**
      * Removes all sessions including CustomTab sessions.
      */
-    fun removeAll() = synchronized(values) {
-        val onlyCustomTabSessionsPresent = values.isNotEmpty() && sessions.isEmpty()
-
-        values.forEach { unlink(it) }
-        values.clear()
-
-        selectedIndex = NO_SELECTION
-
-        // NB: This callback indicates to observers that either removeSessions or removeAll were
-        // invoked, not that the manager is now empty.
-        notifyObservers { onAllSessionsRemoved() }
-
-        // Don't create a default session if we only had CustomTab sessions to begin with.
-        if (!onlyCustomTabSessionsPresent && defaultSession != null) {
-            add(defaultSession.invoke())
-        }
+    fun removeAll() {
+        delegate.removeAll()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
+        store?.syncDispatch(
+            CustomTabListAction.RemoveAllCustomTabsAction
+        )
     }
 
     /**
      * Marks the given session as selected.
      */
-    fun select(session: Session) = synchronized(values) {
-        val index = values.indexOf(session)
+    fun select(session: Session) {
+        delegate.select(session)
 
-        require(index != -1) {
-            "Value to select is not in list"
-        }
-
-        selectedIndex = index
-
-        notifyObservers { onSessionSelected(session) }
+        store?.syncDispatch(
+            TabListAction.SelectTabAction(session.id)
+        )
     }
 
     /**
      * Finds and returns the session with the given id. Returns null if no matching session could be
      * found.
      */
-    fun findSessionById(id: String): Session? = values.find { session -> session.id == id }
+    fun findSessionById(id: String) = delegate.findSessionById(id)
 
     /**
      * Informs this [SessionManager] that the OS is in low memory condition so it
      * can reduce its allocated objects.
      */
     fun onLowMemory() {
-        // Removing the all the thumbnails except for the selected session to
-        // reduce memory consumption.
-        sessions.forEach {
-            if (it != selectedSession) {
-                it.thumbnail = null
-            }
-        }
+        delegate.onLowMemory()
+        store?.syncDispatch(SystemAction.LowMemoryAction)
     }
 
     companion object {
         const val NO_SELECTION = -1
+    }
+
+    data class Snapshot(
+        val sessions: List<Item>,
+        val selectedSessionIndex: Int
+    ) {
+        fun isEmpty() = sessions.isEmpty()
+
+        data class Item(
+            val session: Session,
+            val engineSession: EngineSession? = null,
+            val engineSessionState: EngineSessionState? = null
+        )
+
+        companion object {
+            fun empty() = Snapshot(emptyList(), NO_SELECTION)
+            fun singleItem(item: Item) = Snapshot(listOf(item), NO_SELECTION)
+        }
     }
 
     /**
@@ -470,4 +289,43 @@ class SessionManager(
          */
         fun onAllSessionsRemoved() = Unit
     }
+}
+
+/**
+ * Tries to find a session with the provided session ID and runs the block if found.
+ *
+ * @return True if the session was found and run successfully.
+ */
+fun SessionManager.runWithSession(
+    sessionId: String?,
+    block: SessionManager.(Session) -> Boolean
+): Boolean {
+    sessionId?.let {
+        findSessionById(sessionId)?.let { session ->
+            return block(session)
+        }
+    }
+    return false
+}
+
+/**
+ * Tries to find a session with the provided session ID or uses the selected session and runs the block if found.
+ *
+ * @return True if the session was found and run successfully.
+ */
+fun SessionManager.runWithSessionIdOrSelected(
+    sessionId: String?,
+    block: SessionManager.(Session) -> Unit
+): Boolean {
+    sessionId?.let {
+        findSessionById(sessionId)?.let { session ->
+            block(session)
+            return true
+        }
+    }
+    selectedSession?.let {
+        block(it)
+        return true
+    }
+    return false
 }

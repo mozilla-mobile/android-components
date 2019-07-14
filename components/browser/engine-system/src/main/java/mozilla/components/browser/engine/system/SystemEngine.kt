@@ -5,26 +5,29 @@
 package mozilla.components.browser.engine.system
 
 import android.content.Context
-import android.support.annotation.VisibleForTesting
 import android.util.AttributeSet
 import android.webkit.WebSettings
 import android.webkit.WebView
+import androidx.annotation.VisibleForTesting
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.utils.EngineVersion
+import org.json.JSONObject
+import java.lang.IllegalStateException
 
 /**
  * WebView-based implementation of the Engine interface.
  */
 class SystemEngine(
-    context: Context,
-    private val defaultSettings: DefaultSettings = DefaultSettings()
+    private val context: Context,
+    private val defaultSettings: Settings = DefaultSettings()
 ) : Engine {
-
     init {
         initDefaultUserAgent(context)
     }
@@ -43,13 +46,41 @@ class SystemEngine(
             // TODO Implement private browsing: https://github.com/mozilla-mobile/android-components/issues/649
             throw UnsupportedOperationException("Private browsing is not supported in ${this::class.java.simpleName}")
         }
-        return SystemEngineSession(defaultSettings)
+        return SystemEngineSession(context, defaultSettings)
     }
+
+    /**
+     * Opens a speculative connection to the host of [url].
+     *
+     * Note: This implementation is a no-op.
+     */
+    override fun speculativeConnect(url: String) = Unit
 
     /**
      * See [Engine.name]
      */
     override fun name(): String = "System"
+
+    @Suppress("TooGenericExceptionCaught")
+    override val version: EngineVersion
+        get() {
+            val userAgent = WebSettings.getDefaultUserAgent(context)
+            val version = try {
+                "Chrome/([^ ]+)".toRegex().find(userAgent)?.groups?.get(1)?.value
+                    ?: throw IllegalStateException("Could not get version from user agent: $userAgent")
+            } catch (e: IllegalStateException) {
+                throw IllegalStateException("Could not get version from user agent: $userAgent")
+            } catch (e: IndexOutOfBoundsException) {
+                throw IllegalStateException("Could not get version from user agent: $userAgent")
+            }
+
+            return EngineVersion.parse(version)
+                ?: throw IllegalStateException("Could not determine engine version: $version")
+        }
+
+    override fun createSessionState(json: JSONObject): EngineSessionState {
+        return SystemEngineSessionState.fromJSON(json)
+    }
 
     /**
      * See [Engine.settings]

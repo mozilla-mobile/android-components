@@ -6,13 +6,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -23,20 +23,31 @@ android {
     }
 
     lintOptions {
+        // Disabled since this caused issues with Android Gradle Plugin 3.2.1+ (NullPointerException:InvalidPackageDetector)
+        tasks.lint.enabled = false
+
         lintConfig file("lint.xml")
     }
 }
 
 dependencies {
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
-    implementation Deps.testing_junit
-    implementation Deps.testing_mockito
-    implementation Deps.testing_robolectric
-    testImplementation Deps.support_compat
+    implementation Dependencies.androidx_test_junit
+    implementation Dependencies.testing_mockito
+    implementation (Dependencies.testing_robolectric) {
+        exclude group: 'org.apache.maven'
+    }
+    testImplementation Dependencies.testing_maven_ant_tasks
+
+    implementation Dependencies.androidx_test_core
+
+    testImplementation Dependencies.androidx_core
+    testImplementation Dependencies.androidx_test_junit
     testImplementation project(':support-ktx')
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)
 

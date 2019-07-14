@@ -6,13 +6,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -21,24 +21,26 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
 }
 
 dependencies {
     implementation project(':support-base')
 
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
 
-    implementation Deps.support_annotations
-    implementation Deps.support_compat
+    implementation Dependencies.androidx_annotation
+    implementation Dependencies.androidx_core
 
     // We expose the app-compat as API so that consumers get access to the Lifecycle classes automatically
-    api Deps.support_appcompat
+    api Dependencies.androidx_appcompat
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+    testImplementation project(":support-test")
+
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_robolectric
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

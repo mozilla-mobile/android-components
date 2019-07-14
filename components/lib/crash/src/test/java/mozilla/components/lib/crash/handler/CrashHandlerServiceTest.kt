@@ -6,9 +6,11 @@ package mozilla.components.lib.crash.handler
 
 import android.content.ComponentName
 import android.content.Intent
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.service.CrashReporterService
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -17,11 +19,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.spy
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class CrashHandlerServiceTest {
+
     @After
     fun tearDown() {
         CrashReporter.reset()
@@ -42,7 +43,7 @@ class CrashHandlerServiceTest {
                     caughtCrash = crash
                 }
             })
-        ).install(RuntimeEnvironment.application)
+        ).install(testContext)
 
         val intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
         intent.component = ComponentName(
@@ -66,7 +67,7 @@ class CrashHandlerServiceTest {
 
         assertNotNull(caughtCrash)
 
-        val nativeCrash = caughtCrash as? Crash.NativeCodeCrash
+        val nativeCrash = caughtCrash
             ?: throw AssertionError("Expected NativeCodeCrash instance")
 
         assertEquals(true, nativeCrash.minidumpSuccess)

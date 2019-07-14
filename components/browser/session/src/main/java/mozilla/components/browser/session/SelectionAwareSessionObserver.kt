@@ -4,7 +4,7 @@
 
 package mozilla.components.browser.session
 
-import android.support.annotation.CallSuper
+import androidx.annotation.CallSuper
 
 /**
  * This class is a combination of [Session.Observer] and
@@ -42,6 +42,17 @@ abstract class SelectionAwareSessionObserver(
         activeSession = sessionManager.selectedSession
         sessionManager.register(this)
         activeSession?.register(this)
+    }
+
+    /**
+     * Starts observing changes to the session matching the [sessionId]. If
+     * the session does not exist, then observe the selected session.
+     *
+     * @param sessionId the session ID to observe.
+     */
+    fun observeIdOrSelected(sessionId: String?) {
+        val session = sessionId?.let { sessionManager.findSessionById(sessionId) }
+        session?.let { observeFixed(it) } ?: observeSelected()
     }
 
     /**

@@ -24,6 +24,16 @@ interface AwesomeBar {
     fun addProviders(vararg providers: SuggestionProvider)
 
     /**
+     * Removes the following [SuggestionProvider]
+     */
+    fun removeProviders(vararg providers: SuggestionProvider)
+
+    /**
+     * Removes all [SuggestionProvider]s
+     */
+    fun removeAllProviders()
+
+    /**
      * Fired when the user starts interacting with the awesome bar by entering text in the toolbar.
      */
     fun onInputStarted() = Unit
@@ -54,8 +64,9 @@ interface AwesomeBar {
     /**
      * A [Suggestion] to be displayed by an [AwesomeBar] implementation.
      *
-     * @property id A unique ID identifying this [Suggestion]. A stable ID but different data indicates to the
-     * [AwesomeBar] that this is the same [Suggestion] with new data. This will affect how the [AwesomeBar]
+     * @property provider The provider this suggestion came from.
+     * @property id A unique ID (provider scope) identifying this [Suggestion]. A stable ID but different data indicates
+     * to the [AwesomeBar] that this is the same [Suggestion] with new data. This will affect how the [AwesomeBar]
      * animates showing the new suggestion.
      * @property title A user-readable title for the [Suggestion].
      * @property description A user-readable description for the [Suggestion].
@@ -69,10 +80,11 @@ interface AwesomeBar {
      * score will be shown on top of suggestions with a lower score.
      */
     data class Suggestion(
+        val provider: SuggestionProvider,
         val id: String = UUID.randomUUID().toString(),
         val title: String? = null,
         val description: String? = null,
-        val icon: ((width: Int, height: Int) -> Bitmap?) = { _, _ -> null },
+        val icon: (suspend (width: Int, height: Int) -> Bitmap?)? = null,
         val chips: List<Chip> = emptyList(),
         val flags: Set<Flag> = emptySet(),
         val onSuggestionClicked: (() -> Unit)? = null,
@@ -94,7 +106,8 @@ interface AwesomeBar {
          */
         enum class Flag {
             BOOKMARK,
-            OPEN_TAB
+            OPEN_TAB,
+            CLIPBOARD
         }
 
         /**
@@ -117,9 +130,19 @@ interface AwesomeBar {
      */
     interface SuggestionProvider {
         /**
-         * Fired when the user starts interacting with the awesome bar by entering text in the toolbar.
+         * A unique ID used for identifying this provider.
+         *
+         * The recommended approach for a [SuggestionProvider] implementation is to generate a UUID.
          */
-        fun onInputStarted() = Unit
+        val id: String
+
+        /**
+         * Fired when the user starts interacting with the awesome bar by entering text in the toolbar.
+         *
+         * The provider has the option to return an initial list of suggestions that will be displayed before the
+         * user has entered/modified any of the text.
+         */
+        fun onInputStarted(): List<Suggestion> = emptyList()
 
         /**
          * Fired whenever the user changes their input, after they have started interacting with the awesome bar.

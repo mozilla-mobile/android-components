@@ -5,14 +5,15 @@
 package mozilla.components.support.ktx.android.view
 
 import android.content.Context
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
-import android.support.v4.view.ViewCompat
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import androidx.core.content.getSystemService
+import androidx.core.view.ViewCompat
 import mozilla.components.support.base.android.Padding
-import mozilla.components.support.ktx.android.content.res.pxToDp
-import mozilla.components.support.ktx.android.content.systemService
+import mozilla.components.support.ktx.android.util.dpToPx
 import java.lang.ref.WeakReference
 
 /**
@@ -30,6 +31,7 @@ val View.isLTR: Boolean
 /**
  * Returns true if this view's visibility is set to View.VISIBLE.
  */
+@Deprecated("Use Android KTX instead", ReplaceWith("isVisible", "androidx.core.view.isVisible"))
 fun View.isVisible(): Boolean {
     return visibility == View.VISIBLE
 }
@@ -37,6 +39,7 @@ fun View.isVisible(): Boolean {
 /**
  * Returns true if this view's visibility is set to View.GONE.
  */
+@Deprecated("Use Android KTX instead", ReplaceWith("isGone", "androidx.core.view.isGone"))
 fun View.isGone(): Boolean {
     return visibility == View.GONE
 }
@@ -44,6 +47,7 @@ fun View.isGone(): Boolean {
 /**
  * Returns true if this view's visibility is set to View.INVISIBLE.
  */
+@Deprecated("Use Android KTX instead", ReplaceWith("isInvisible", "androidx.core.view.isInvisible"))
 fun View.isInvisible(): Boolean {
     return visibility == View.INVISIBLE
 }
@@ -69,15 +73,28 @@ fun View.hideKeyboard() {
 }
 
 /**
+ * Fills the given [Rect] with data about location view in the window.
+ *
+ * @see View.getLocationInWindow
+ */
+fun View.getRectWithViewLocation(): Rect {
+    val locationInWindow = IntArray(2).apply { getLocationInWindow(this) }
+    return Rect(locationInWindow[0],
+            locationInWindow[1],
+            locationInWindow[0] + width,
+            locationInWindow[1] + height)
+}
+
+/**
  * Set a padding using [Padding] object.
  */
 fun View.setPadding(padding: Padding) {
     with(resources) {
         setPadding(
-            pxToDp(padding.left),
-            pxToDp(padding.top),
-            pxToDp(padding.right),
-            pxToDp(padding.bottom)
+            padding.left.dpToPx(displayMetrics),
+            padding.top.dpToPx(displayMetrics),
+            padding.right.dpToPx(displayMetrics),
+            padding.bottom.dpToPx(displayMetrics)
         )
     }
 }
@@ -103,7 +120,7 @@ private class ShowKeyboard(
                 return
             }
 
-            view.context?.systemService<InputMethodManager>(Context.INPUT_METHOD_SERVICE)?.let { imm ->
+            view.context?.getSystemService<InputMethodManager>()?.let { imm ->
                 if (!imm.isActive(view)) {
                     // This view is not the currently active view for the input method yet.
                     post()

@@ -4,12 +4,16 @@
 
 package mozilla.components.browser.awesomebar
 
-import android.support.annotation.GuardedBy
-import android.support.annotation.VisibleForTesting
-import android.support.v7.util.DiffUtil
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.GuardedBy
+import androidx.annotation.VisibleForTesting
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.browser.awesomebar.layout.DefaultSuggestionLayout
+import mozilla.components.browser.awesomebar.layout.SuggestionLayout
+import mozilla.components.browser.awesomebar.layout.SuggestionViewHolder
 import mozilla.components.concept.awesomebar.AwesomeBar
 
 /**
@@ -17,7 +21,13 @@ import mozilla.components.concept.awesomebar.AwesomeBar
  */
 internal class SuggestionsAdapter(
     private val awesomeBar: BrowserAwesomeBar
-) : RecyclerView.Adapter<SuggestionViewHolder>() {
+) : RecyclerView.Adapter<ViewHolderWrapper>() {
+    internal var layout: SuggestionLayout = DefaultSuggestionLayout()
+
+    init {
+        setHasStableIds(true)
+    }
+
     /**
      * List of suggestions to be displayed by this adapter.
      */
@@ -41,11 +51,8 @@ internal class SuggestionsAdapter(
         // Start with the current list of suggestions
         val updatedSuggestions = suggestions.toMutableList()
 
-        if (!provider.shouldClearSuggestions) {
-            // This provider doesn't want its suggestions to be cleared when the typed text changes. This means now
-            // that there are new suggestions we need to remove the previous suggestions of this provider.
-            suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
-        }
+        // Remove previous suggestions of this provider.
+        suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
 
         // Remember which suggestions this provider added
         suggestionMap[provider] = providerSuggestions
@@ -53,12 +60,24 @@ internal class SuggestionsAdapter(
         updatedSuggestions.addAll(providerSuggestions)
 
         updateTo(updatedSuggestions.sortedByDescending { it.score })
+
+        // Make sure we're always displaying first suggestions at the top of the screen after input
+        // changes. Without this manual scroll, we might end with UI "scrolled" to a middle of the
+        // suggestions list.
+        awesomeBar.scrollToPosition(0)
+    }
+
+    fun removeSuggestions(provider: AwesomeBar.SuggestionProvider) = synchronized(suggestions) {
+        val updatedSuggestions = suggestions.toMutableList()
+
+        suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
+        updateTo(updatedSuggestions)
     }
 
     /**
      * Removes all suggestions except the ones from providers that have set shouldClearSuggestions to false.
      */
-    fun clearSuggestions() = synchronized(suggestions) {
+    fun optionallyClearSuggestions() = synchronized(suggestions) {
         val updatedSuggestions = suggestions.toMutableList()
 
         suggestionMap.keys.forEach { provider ->
@@ -84,30 +103,19 @@ internal class SuggestionsAdapter(
     override fun onCreateViewHolder(
         parent: ViewGroup,
         viewType: Int
-    ): SuggestionViewHolder = synchronized(suggestions) {
-        return when (viewType) {
-            SuggestionViewHolder.DefaultSuggestionViewHolder.LAYOUT_ID -> {
-                val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
-                SuggestionViewHolder.DefaultSuggestionViewHolder(awesomeBar, view)
-            }
+    ): ViewHolderWrapper = synchronized(suggestions) {
+        val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
+        return ViewHolderWrapper(layout.createViewHolder(awesomeBar, view, viewType), view)
+    }
 
-            SuggestionViewHolder.ChipsSuggestionViewHolder.LAYOUT_ID -> {
-                val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
-                SuggestionViewHolder.ChipsSuggestionViewHolder(awesomeBar, view)
-            }
-
-            else -> throw IllegalArgumentException("Unknown view type: $viewType")
-        }
+    override fun getItemId(position: Int): Long = synchronized(suggestions) {
+        val suggestion = suggestions[position]
+        return awesomeBar.getUniqueSuggestionId(suggestion)
     }
 
     override fun getItemViewType(position: Int): Int = synchronized(suggestions) {
-        val suggestion = suggestions.get(position)
-
-        return if (suggestion.chips.isNotEmpty()) {
-            SuggestionViewHolder.ChipsSuggestionViewHolder.LAYOUT_ID
-        } else {
-            SuggestionViewHolder.DefaultSuggestionViewHolder.LAYOUT_ID
-        }
+        val suggestion = suggestions[position]
+        return layout.getLayoutResource(suggestion)
     }
 
     override fun getItemCount(): Int = synchronized(suggestions) {
@@ -115,11 +123,15 @@ internal class SuggestionsAdapter(
     }
 
     override fun onBindViewHolder(
-        holder: SuggestionViewHolder,
+        holder: ViewHolderWrapper,
         position: Int
     ) = synchronized(suggestions) {
         val suggestion = suggestions[position]
-        holder.bind(suggestion)
+        holder.actual.bind(suggestion) { awesomeBar.listener?.invoke() }
+    }
+
+    override fun onViewRecycled(holder: ViewHolderWrapper) {
+        holder.actual.recycle()
     }
 }
 
@@ -137,3 +149,8 @@ internal class SuggestionDiffCallback(
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
         suggestions[oldItemPosition].areContentsTheSame(updatedSuggestions[newItemPosition])
 }
+
+internal class ViewHolderWrapper(
+    val actual: SuggestionViewHolder,
+    view: View
+) : RecyclerView.ViewHolder(view)

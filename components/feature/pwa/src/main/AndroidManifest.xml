@@ -1,0 +1,18 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="mozilla.components.feature.pwa">
+
+    <application>
+
+        <activity android:name=".WebAppLauncherActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="mozilla.components.feature.pwa.PWA_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

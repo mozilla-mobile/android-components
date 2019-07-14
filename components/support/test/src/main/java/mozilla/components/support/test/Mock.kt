@@ -4,6 +4,7 @@
 
 package mozilla.components.support.test
 
+import android.view.MotionEvent
 import org.mockito.Mockito
 
 /**
@@ -17,3 +18,28 @@ import org.mockito.Mockito
  * <code>val foo: Bar<Baz> = mock()</code>
  */
 inline fun <reified T : Any> mock(): T = Mockito.mock(T::class.java)!!
+
+/**
+ * Enables stubbing methods. Use it when you want the mock to return particular value when particular method is called.
+ *
+ * Alias for [Mockito.when ].
+ *
+ * Taken from [mockito-kotlin](https://github.com/nhaarman/mockito-kotlin/).
+ */
+@Suppress("NOTHING_TO_INLINE")
+inline fun <T> whenever(methodCall: T) = Mockito.`when`(methodCall)!!
+
+/**
+ * Creates a custom [MotionEvent] for testing. As of SDK 28 [MotionEvent]s can't be mocked anymore and need to be created
+ * through [MotionEvent.obtain].
+ */
+fun mockMotionEvent(
+    action: Int,
+    downTime: Long = System.currentTimeMillis(),
+    eventTime: Long = System.currentTimeMillis(),
+    x: Float = 0f,
+    y: Float = 0f,
+    metaState: Int = 0
+): MotionEvent {
+    return MotionEvent.obtain(downTime, eventTime, action, x, y, metaState)
+}

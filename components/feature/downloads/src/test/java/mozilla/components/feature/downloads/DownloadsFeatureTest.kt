@@ -6,30 +6,36 @@ package mozilla.components.feature.downloads
 
 import android.Manifest.permission.INTERNET
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.support.v4.app.FragmentManager
-import org.junit.Assert.assertTrue
+import androidx.core.content.PermissionChecker
+import androidx.fragment.app.FragmentManager
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.FRAGMENT_TAG
+import mozilla.components.feature.downloads.manager.DownloadManager
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.any
-import mozilla.components.support.test.robolectric.grantPermission
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.grantPermission
+import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.`when`
-import org.mockito.Mockito.mock
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.mockito.Mockito.times
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class DownloadsFeatureTest {
 
     private lateinit var feature: DownloadsFeature
@@ -38,11 +44,43 @@ class DownloadsFeatureTest {
 
     @Before
     fun setup() {
-        val engine = mock(Engine::class.java)
-        val context = RuntimeEnvironment.application
+        val engine = mock<Engine>()
         mockSessionManager = spy(SessionManager(engine))
         mockDownloadManager = mock()
-        feature = DownloadsFeature(context, downloadManager = mockDownloadManager, sessionManager = mockSessionManager)
+        `when`(mockDownloadManager.permissions).thenReturn(arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE))
+        feature = DownloadsFeature(testContext,
+            downloadManager = mockDownloadManager,
+            sessionManager = mockSessionManager)
+    }
+
+    @Test
+    fun `when valid sessionId is provided, observe it's session`() {
+        feature = spy(DownloadsFeature(
+            testContext,
+            downloadManager = mockDownloadManager,
+            sessionManager = mockSessionManager,
+            sessionId = "123"
+        ))
+        `when`(mockSessionManager.findSessionById(anyString())).thenReturn(mock())
+
+        feature.start()
+
+        verify(feature).observeIdOrSelected(anyString())
+        verify(feature).observeFixed(any())
+    }
+
+    @Test
+    fun `when sessionId is NOT provided, observe selected session`() {
+        feature = spy(DownloadsFeature(
+            testContext,
+            downloadManager = mockDownloadManager,
+            sessionManager = mockSessionManager
+        ))
+
+        feature.start()
+
+        verify(feature).observeIdOrSelected(null)
+        verify(feature).observeSelected()
     }
 
     @Test
@@ -90,7 +128,7 @@ class DownloadsFeatureTest {
     }
 
     @Test
-    fun `after stop is called and new download must not pass the download to the download manager `() {
+    fun `after stop is called, new download must not pass to the download manager `() {
         val session = Session("https://mozilla.com")
         val download = mock<Download>()
 
@@ -100,14 +138,17 @@ class DownloadsFeatureTest {
         mockSessionManager.add(session)
         mockSessionManager.select(session)
 
+        verify(mockDownloadManager).onDownloadCompleted = any()
+
         session.notifyObservers {
             onDownload(session, download)
         }
 
+        verify(mockDownloadManager).permissions
         verify(mockDownloadManager).download(download)
         feature.stop()
 
-        verify(mockDownloadManager).unregisterListener()
+        verify(mockDownloadManager).unregisterListeners()
 
         session.download = Consumable.from(download)
 
@@ -118,24 +159,20 @@ class DownloadsFeatureTest {
     fun `when a download came and permissions aren't granted needToRequestPermissions must be called `() {
         var needToRequestPermissionCalled = false
 
-        feature.onNeedToRequestPermissions = { _, _ ->
-            needToRequestPermissionCalled = true
-        }
+        feature.onNeedToRequestPermissions = { needToRequestPermissionCalled = true }
 
         feature.start()
         val download = startDownload()
 
-        verify(mockDownloadManager, times(0)).download(download)
+        verify(mockDownloadManager, never()).download(download)
         assertTrue(needToRequestPermissionCalled)
     }
 
     @Test
-    fun `when a download came and permissions aren't granted needToRequestPermissions and after onPermissionsGranted the download must be triggered`() {
+    fun `when a downloading & permissions aren't granted needToRequestPermissions, after onPermissionsGranted the download must be triggered`() {
         var needToRequestPermissionCalled = false
 
-        feature.onNeedToRequestPermissions = { _, _ ->
-            needToRequestPermissionCalled = true
-        }
+        feature.onNeedToRequestPermissions = { needToRequestPermissionCalled = true }
 
         feature.start()
 
@@ -146,22 +183,25 @@ class DownloadsFeatureTest {
 
         grantPermissions()
 
-        feature.onPermissionsGranted()
+        feature.onPermissionsResult(arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE),
+                intArrayOf(PermissionChecker.PERMISSION_GRANTED, PermissionChecker.PERMISSION_GRANTED))
         verify(mockDownloadManager).download(download)
     }
 
     @Test
     fun `when fragmentManager is not null a confirmation dialog must be show before starting a download`() {
-        val context = RuntimeEnvironment.application
         val mockDialog = spy(DownloadDialogFragment::class.java)
-        val mockFragmentManager = mock(FragmentManager::class.java)
+        val mockFragmentManager = mock<FragmentManager>()
 
         `when`(mockFragmentManager.beginTransaction()).thenReturn(mock())
 
         val featureWithDialog =
             DownloadsFeature(
-                context, downloadManager = mockDownloadManager, sessionManager = mockSessionManager,
-                fragmentManager = mockFragmentManager, dialog = mockDialog
+                testContext,
+                downloadManager = mockDownloadManager,
+                sessionManager = mockSessionManager,
+                fragmentManager = mockFragmentManager,
+                dialog = mockDialog
             )
 
         grantPermissions()
@@ -176,16 +216,72 @@ class DownloadsFeatureTest {
     }
 
     @Test
-    fun `shouldn't show twice a dialog if is already created`() {
-        val context = RuntimeEnvironment.application
+    fun `feature with a sessionId will re-attach to already existing fragment`() {
         val mockDialog = spy(DownloadDialogFragment::class.java)
-        val mockFragmentManager = mock(FragmentManager::class.java)
+        val mockFragmentManager = mock<FragmentManager>()
+        val mockDownload: Consumable<Download> = mock()
+        val mockSession: Session = mock()
+
+        doReturn(mockDownload).`when`(mockSession).download
+        doReturn("sessionId").`when`(mockSession).id
+        doReturn(mockDialog).`when`(mockFragmentManager).findFragmentByTag(any())
+
+        mockSessionManager.add(mockSession)
+
+        val feature =
+            DownloadsFeature(
+                testContext,
+                downloadManager = mockDownloadManager,
+                sessionId = "sessionId",
+                sessionManager = mockSessionManager,
+                fragmentManager = mockFragmentManager
+            )
+
+        feature.start()
+        assertTrue(feature.dialog !is SimpleDownloadDialogFragment)
+        verify(mockSession).download
+    }
+
+    @Test
+    fun `feature with a selected session will re-attach to already existing fragment`() {
+        val mockDialog = spy(DownloadDialogFragment::class.java)
+        val mockFragmentManager = mock<FragmentManager>()
+        val mockDownload: Consumable<Download> = mock()
+        val mockSession: Session = mock()
+
+        doReturn(mockDownload).`when`(mockSession).download
+        doReturn("sessionId").`when`(mockSession).id
+        doReturn(mockDialog).`when`(mockFragmentManager).findFragmentByTag(any())
+
+        mockSessionManager.add(mockSession)
+        mockSessionManager.select(mockSession)
+
+        val feature =
+            DownloadsFeature(
+                testContext,
+                downloadManager = mockDownloadManager,
+                sessionId = "sessionId",
+                sessionManager = mockSessionManager,
+                fragmentManager = mockFragmentManager
+            )
+
+        feature.start()
+        assertTrue(feature.dialog !is SimpleDownloadDialogFragment)
+        verify(mockSession).download
+    }
+
+    @Test
+    fun `shouldn't show twice a dialog if is already created`() {
+        val mockDialog = spy(DownloadDialogFragment::class.java)
+        val mockFragmentManager = mock<FragmentManager>()
 
         `when`(mockFragmentManager.findFragmentByTag(FRAGMENT_TAG)).thenReturn(mockDialog)
 
         val featureWithDialog =
             DownloadsFeature(
-                context, downloadManager = mockDownloadManager, sessionManager = mockSessionManager,
+                testContext,
+                downloadManager = mockDownloadManager,
+                sessionManager = mockSessionManager,
                 fragmentManager = mockFragmentManager
             )
 
@@ -196,6 +292,22 @@ class DownloadsFeatureTest {
         startDownload()
 
         verify(mockDialog, times(0)).show(mockFragmentManager, FRAGMENT_TAG)
+    }
+
+    @Test
+    fun `download is cleared when permissions denied`() {
+        feature.start()
+        feature.onPermissionsResult(arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE),
+                intArrayOf(PermissionChecker.PERMISSION_GRANTED, PermissionChecker.PERMISSION_GRANTED))
+        assertNull(mockSessionManager.selectedSession)
+
+        val download = startDownload()
+        feature.onPermissionsResult(arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE),
+                intArrayOf(PermissionChecker.PERMISSION_GRANTED, PermissionChecker.PERMISSION_DENIED))
+
+        verify(mockDownloadManager, never()).download(download)
+        assertNotNull(mockSessionManager.selectedSession)
+        assertTrue(mockSessionManager.selectedSession!!.download.isConsumed())
     }
 
     private fun startDownload(): Download {

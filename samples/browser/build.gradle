@@ -7,16 +7,17 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
         applicationId "org.mozilla.samples.browser"
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments clearPackageData: 'true'
     }
 
     buildTypes {
@@ -48,7 +49,7 @@ android {
         servo {
             dimension "engine"
         }
-        
+
         // Processor architecture
         arm {
             dimension "abi"
@@ -76,26 +77,23 @@ android {
             setIgnore(true)
         }
 
-        if (flavors.contains("gecko") && flavors.contains("universal")) {
+        // Only allow "universal" flavors of "system" and "geckoviewNightly" engines
+        if (flavors.contains("universal") && !(flavors.contains("system") || flavors.contains("geckonightly"))) {
             setIgnore(true)
         }
 
-        if (flavors.contains("servo") && !flavors.contains("arm")) {
+        // Ignore all non-universal GeckoView Nightly builds
+        if (!flavors.contains("universal") && flavors.contains("geckonightly")) {
             setIgnore(true)
         }
-    }
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        if (flavors.contains("servo") && !flavors.contains("arm") && !flavors.contains("x86")) {
+            setIgnore(true)
+        }
     }
 }
 
 configurations {
-    geckoNightlyArmImplementation {}
-    geckoNightlyX86Implementation {}
-    geckoNightlyAarch64Implementation {}
-
     geckoBetaArmImplementation {}
     geckoBetaX86Implementation {}
     geckoBetaAarch64Implementation {}
@@ -103,29 +101,48 @@ configurations {
     geckoReleaseArmImplementation {}
     geckoReleaseX86Implementation {}
     geckoReleaseAarch64Implementation {}
+
+    servoX86Implementation {}
+    servoArmImplementation {}
 }
 
 dependencies {
+    implementation project(':concept-awesomebar')
+    implementation project(':concept-fetch')
     implementation project(':concept-engine')
     implementation project(':concept-tabstray')
     implementation project(':concept-toolbar')
     implementation project(':concept-storage')
 
+    implementation project(':browser-awesomebar')
     implementation project(':browser-engine-system')
-
+    implementation project(':browser-domains')
+    implementation project(':browser-icons')
     implementation project(':browser-search')
     implementation project(':browser-session')
+    implementation project(':browser-state')
     implementation project(':browser-tabstray')
     implementation project(':browser-toolbar')
     implementation project(':browser-menu')
     implementation project(':browser-storage-memory')
 
+    implementation project(':lib-fetch-httpurlconnection')
+
+    implementation project(':feature-awesomebar')
+    implementation project(':feature-app-links')
+    implementation project(':feature-contextmenu')
+    implementation project(':feature-customtabs')
     implementation project(':feature-intent')
+    implementation project(':feature-media')
+    implementation project(':feature-readerview')
     implementation project(':feature-search')
     implementation project(':feature-session')
-    implementation project(':feature-storage')
     implementation project(':feature-toolbar')
     implementation project(':feature-tabs')
+    implementation project(':feature-prompts')
+    implementation project(':feature-pwa')
+    implementation project(':feature-findinpage')
+    implementation project(':feature-sitepermissions')
 
     implementation project(':ui-autocomplete')
 
@@ -134,11 +151,11 @@ dependencies {
     implementation project(':support-ktx')
 
     servoImplementation project(':browser-engine-servo')
+    servoX86Implementation Dependencies.mozilla_servo_x86
+    servoArmImplementation Dependencies.mozilla_servo_arm
 
     geckoNightlyImplementation project(':browser-engine-gecko-nightly')
-    geckoNightlyArmImplementation Gecko.geckoview_nightly_arm
-    geckoNightlyX86Implementation Gecko.geckoview_nightly_x86
-    geckoNightlyAarch64Implementation Gecko.geckoview_nightly_aarch64
+    geckoNightlyImplementation Gecko.geckoview_nightly
 
     geckoBetaImplementation project(':browser-engine-gecko-beta')
     geckoBetaArmImplementation Gecko.geckoview_beta_arm
@@ -149,11 +166,19 @@ dependencies {
     geckoReleaseArmImplementation Gecko.geckoview_release_arm
     geckoReleaseX86Implementation Gecko.geckoview_release_x86
     geckoReleaseAarch64Implementation Gecko.geckoview_release_aarch64
-    implementation Deps.support_design
 
-    implementation Deps.kotlin_stdlib
-    implementation Deps.kotlin_coroutines
+    implementation Dependencies.google_material
 
-    implementation Deps.support_appcompat
-    implementation Deps.support_constraintlayout
+    implementation Dependencies.kotlin_stdlib
+
+    implementation Dependencies.androidx_appcompat
+    implementation Dependencies.androidx_constraintlayout
+
+    androidTestImplementation Dependencies.androidx_test_core
+    androidTestImplementation Dependencies.androidx_test_runner
+    androidTestImplementation Dependencies.androidx_test_rules
+    androidTestImplementation Dependencies.androidx_test_junit
+    androidTestImplementation Dependencies.androidx_test_uiautomator
+    androidTestImplementation Dependencies.androidx_espresso_core
+    androidTestImplementation Dependencies.testing_mockwebserver
 }

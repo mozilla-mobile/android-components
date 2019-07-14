@@ -4,7 +4,7 @@
 
 package mozilla.components.concept.engine.history
 
-import kotlinx.coroutines.Deferred
+import mozilla.components.concept.storage.VisitType
 
 /**
  * An interface used for providing history information to an engine (e.g. for link highlighting),
@@ -17,20 +17,26 @@ interface HistoryTrackingDelegate {
     /**
      * A URI visit happened that an engine considers worthy of being recorded in browser's history.
      */
-    suspend fun onVisited(uri: String, isReload: Boolean = false, privateMode: Boolean)
+    suspend fun onVisited(uri: String, type: VisitType)
 
     /**
      * Title changed for a given URI.
      */
-    suspend fun onTitleChanged(uri: String, title: String, privateMode: Boolean)
+    suspend fun onTitleChanged(uri: String, title: String)
 
     /**
      * An engine needs to know "visited" (true/false) status for provided URIs.
      */
-    fun getVisited(uris: List<String>, privateMode: Boolean): Deferred<List<Boolean>>
+    suspend fun getVisited(uris: List<String>): List<Boolean>
 
     /**
      * An engine needs to know a list of all visited URIs.
      */
-    fun getVisited(privateMode: Boolean): Deferred<List<String>>
+    suspend fun getVisited(): List<String>
+
+    /**
+     * Allows an engine to check if this URI is going to be accepted by the delegate.
+     * This helps avoid unnecessary coroutine overhead for URIs which won't be accepted.
+     */
+    fun shouldStoreUri(uri: String): Boolean
 }

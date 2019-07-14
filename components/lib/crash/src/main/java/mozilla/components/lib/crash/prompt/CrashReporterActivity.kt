@@ -7,8 +7,8 @@ package mozilla.components.lib.crash.prompt
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.mozac_lib_crash_crashreporter.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -73,8 +73,10 @@ class CrashReporterActivity : AppCompatActivity() {
 
         sendCrashReportIfNeeded {
             val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-            launchIntent.flags = launchIntent.flags or Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivity(launchIntent)
+            if (launchIntent != null) {
+                launchIntent.flags = launchIntent.flags or Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(launchIntent)
+            }
 
             finish()
         }
@@ -94,6 +96,12 @@ class CrashReporterActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 then()
             }
+        }
+    }
+
+    override fun onBackPressed() {
+        sendCrashReportIfNeeded {
+            finish()
         }
     }
 }

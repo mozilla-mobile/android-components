@@ -1,24 +1,42 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # This file defines the metrics that are recorded by glean telemetry. They are
 # automatically converted to Kotlin code at build time using the `glean_parser`
 # PyPI package.
 
 $schema: moz://mozilla.org/schemas/glean/metrics/1-0-0
 
-browser_engagement:
+browser.engagement:
   click:
     type: event
     description: >
       Just testing events
     bugs:
       - 123456789
+    data_reviews:
+      - N/A 
     notification_emails:
-      - telemetry-client-dev@mozilla.com
-    objects:
-      - object1
-      - object2
+      - CHANGE-ME@example.com
     extra_keys:
-      key1: "This is key one"
-      key2: "This is key two"
+      key1:
+        description: "This is key one"
+      key2:
+        description: "This is key two"
+    expires: 2100-01-01 
+    
+  event_no_keys:
+    type: event
+    description: >
+      Just testing events without keys
+    bugs:
+      - 123456789
+    data_reviews:
+      - N/A 
+    notification_emails:
+      - CHANGE-ME@example.com
+    expires: 2100-01-01
 
 basic:
   os:
@@ -27,16 +45,69 @@ basic:
       The name of the os
     bugs:
       - 123456789
+    data_reviews:
+      - N/A 
     notification_emails:
-      - telemetry-client-dev@mozilla.com
+      - CHANGE-ME@example.com
+    expires: 2100-01-01
 
-  client_id:
-    type: uuid
-    lifetime: user
+test:
+  test_string_list:
+    type: string_list
     description: >
-      A UUID identifying a profile and allowing user-oriented correlation of
-      data.
+      Testing StringList ping
+    send_in_pings:
+      - test_string_list
+    lifetime: user
     bugs:
-      - 123456789
+      - 1234567890
+    data_reviews:
+      - N/A 
     notification_emails:
-      - telemetry-client-dev@mozilla.com
+      - CHANGE-ME@example.com
+    expires: 2100-01-01
+
+  test_counter:
+    type: counter
+    description: >
+      Testing counter
+    send_in_pings:
+      - test_string_list
+    lifetime: user
+    bugs:
+      - 1234567890
+    data_reviews:
+      - N/A 
+    notification_emails:
+      - CHANGE-ME@example.com
+    expires: 2100-01-01
+
+  test_timespan:
+    type: timespan
+    description: >
+      Testing a timespan
+    time_unit: microsecond
+    lifetime: application
+    bugs:
+      - 1508948
+    data_reviews:
+      - N/A 
+    notification_emails:
+      - CHANGE-ME@example.com
+    expires: 2100-01-01
+
+custom:
+  counter:
+    type: counter
+    description: >
+      A custom counter that goes on a custom ping
+    lifetime: ping
+    send_in_pings:
+      - sample
+    bugs:
+      - 1547330
+    data_reviews:
+      - N/A
+    notification_emails:
+      - CHANGE-ME@test-only.com
+    expires: 2100-01-01

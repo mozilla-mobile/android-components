@@ -4,9 +4,11 @@
 
 package mozilla.components.concept.fetch
 
+import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
@@ -15,7 +17,6 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import java.io.IOException
 import java.io.InputStream
-import java.lang.RuntimeException
 
 class ResponseTest {
     @Test
@@ -40,6 +41,56 @@ class ResponseTest {
             readerUsed = true
         }
 
+        assertTrue(readerUsed)
+
+        verify(body).close()
+    }
+
+    @Test
+    fun `Creating BufferedReader from Body with custom Charset `() {
+        var stream = "ÄäÖöÜü".byteInputStream(Charsets.ISO_8859_1)
+        var body = spy(Response.Body(stream, "text/plain; charset=UTF-8"))
+        var readerUsed = false
+        body.useBufferedReader { reader ->
+            assertNotEquals("ÄäÖöÜü", reader.readText())
+            readerUsed = true
+        }
+        assertTrue(readerUsed)
+
+        stream = "ÄäÖöÜü".byteInputStream(Charsets.ISO_8859_1)
+        body = spy(Response.Body(stream, "text/plain; charset=UTF-8"))
+        readerUsed = false
+        body.useBufferedReader(Charsets.ISO_8859_1) { reader ->
+            assertEquals("ÄäÖöÜü", reader.readText())
+            readerUsed = true
+        }
+        assertTrue(readerUsed)
+
+        verify(body).close()
+    }
+
+    @Test
+    fun `Creating String from Body with custom Charset `() {
+        var stream = "ÄäÖöÜü".byteInputStream(Charsets.ISO_8859_1)
+        var body = spy(Response.Body(stream, "text/plain; charset=UTF-8"))
+        assertNotEquals("ÄäÖöÜü", body.string())
+
+        stream = "ÄäÖöÜü".byteInputStream(Charsets.ISO_8859_1)
+        body = spy(Response.Body(stream, "text/plain; charset=UTF-8"))
+        assertEquals("ÄäÖöÜü", body.string(Charsets.ISO_8859_1))
+
+        verify(body).close()
+    }
+
+    @Test
+    fun `Creating Body with invalid charset falls back to UTF-8`() {
+        var stream = "ÄäÖöÜü".byteInputStream(Charsets.UTF_8)
+        var body = spy(Response.Body(stream, "text/plain; charset=invalid"))
+        var readerUsed = false
+        body.useBufferedReader { reader ->
+            assertEquals("ÄäÖöÜü", reader.readText())
+            readerUsed = true
+        }
         assertTrue(readerUsed)
 
         verify(body).close()
@@ -72,23 +123,23 @@ class ResponseTest {
 
     @Test
     fun `success() extension function returns true for 2xx response codes`() {
-        assertTrue(Response("https://www.mozilla.org", 200, headers = mock(), body = mock()).success)
-        assertTrue(Response("https://www.mozilla.org", 203, headers = mock(), body = mock()).success)
+        assertTrue(Response("https://www.mozilla.org", 200, headers = mock(), body = mock()).isSuccess)
+        assertTrue(Response("https://www.mozilla.org", 203, headers = mock(), body = mock()).isSuccess)
 
-        assertFalse(Response("https://www.mozilla.org", 404, headers = mock(), body = mock()).success)
-        assertFalse(Response("https://www.mozilla.org", 500, headers = mock(), body = mock()).success)
-        assertFalse(Response("https://www.mozilla.org", 302, headers = mock(), body = mock()).success)
+        assertFalse(Response("https://www.mozilla.org", 404, headers = mock(), body = mock()).isSuccess)
+        assertFalse(Response("https://www.mozilla.org", 500, headers = mock(), body = mock()).isSuccess)
+        assertFalse(Response("https://www.mozilla.org", 302, headers = mock(), body = mock()).isSuccess)
     }
 
     @Test
     fun `clientError() extension function returns true for 4xx response codes`() {
-        assertTrue(Response("https://www.mozilla.org", 404, headers = mock(), body = mock()).clientError)
-        assertTrue(Response("https://www.mozilla.org", 403, headers = mock(), body = mock()).clientError)
+        assertTrue(Response("https://www.mozilla.org", 404, headers = mock(), body = mock()).isClientError)
+        assertTrue(Response("https://www.mozilla.org", 403, headers = mock(), body = mock()).isClientError)
 
-        assertFalse(Response("https://www.mozilla.org", 200, headers = mock(), body = mock()).clientError)
-        assertFalse(Response("https://www.mozilla.org", 203, headers = mock(), body = mock()).clientError)
-        assertFalse(Response("https://www.mozilla.org", 500, headers = mock(), body = mock()).clientError)
-        assertFalse(Response("https://www.mozilla.org", 302, headers = mock(), body = mock()).clientError)
+        assertFalse(Response("https://www.mozilla.org", 200, headers = mock(), body = mock()).isClientError)
+        assertFalse(Response("https://www.mozilla.org", 203, headers = mock(), body = mock()).isClientError)
+        assertFalse(Response("https://www.mozilla.org", 500, headers = mock(), body = mock()).isClientError)
+        assertFalse(Response("https://www.mozilla.org", 302, headers = mock(), body = mock()).isClientError)
     }
 
     @Test
@@ -97,7 +148,7 @@ class ResponseTest {
             url = "https://www.mozilla.org",
             status = 200,
             headers = MutableHeaders(
-                "Content-Type" to "text/html; charset=utf-8",
+                CONTENT_TYPE to "text/html; charset=utf-8",
                 "Connection" to "Close",
                 "Expires" to "Thu, 08 Nov 2018 15:41:43 GMT"
             ),

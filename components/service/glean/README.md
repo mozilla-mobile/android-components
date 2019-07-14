@@ -1,16 +1,17 @@
 # [Android Components](../../../README.md) > Service > Glean
 
-A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](../telemetry/README.md)).
+A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service
+(eventually replacing [service-telemetry](../telemetry/README.md)).
 
-## Usage
+Visit the [complete Glean documentation](https://mozilla.github.io/glean/). 
 
-### Setting up the dependency
+## Contact
 
-Use Gradle to download the library from [maven.mozilla.org](https://maven.mozilla.org/) ([Setup repository](../../../README.md#maven-repository)):
-
-```Groovy
-implementation "org.mozilla.components:service-glean:{latest-version}"
-```
+To contact us you can:
+- Find us on the Mozilla Slack in *#glean*, on [Mozilla IRC](https://wiki.mozilla.org/IRC) in *#telemetry*.
+- To report issues or request changes, file a bug in [Bugzilla in Data Platform & Tools :: Glean: SDK](https://bugzilla.mozilla.org/enter_bug.cgi?product=Data%20Platform%20and%20Tools&component=Glean%3A%20SDK).
+- Send an email to *glean-team@mozilla.com*.
+- The Glean Android team is: *:dexter*, *:travis*, *:mdroettboom*, *:gfritzsche*
 
 ## License
 

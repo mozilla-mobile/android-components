@@ -5,13 +5,13 @@
 package mozilla.components.concept.toolbar
 
 import android.graphics.drawable.Drawable
-import android.support.annotation.DrawableRes
-import android.support.v7.widget.AppCompatImageButton
-import android.support.v7.widget.AppCompatImageView
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import androidx.annotation.DrawableRes
+import androidx.appcompat.widget.AppCompatImageButton
+import androidx.appcompat.widget.AppCompatImageView
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.ktx.android.view.setPadding
 import java.lang.ref.WeakReference
@@ -22,9 +22,22 @@ import java.lang.ref.WeakReference
 @Suppress("TooManyFunctions")
 interface Toolbar {
     /**
+     * Sets/Gets the title to be displayed on the toolbar.
+     */
+    var title: String
+
+    /**
      * Sets/Gets the URL to be displayed on the toolbar.
      */
-    var url: String
+    var url: CharSequence
+
+    /**
+     * Sets/gets private mode.
+     *
+     * In private mode the IME should not update any personalized data such as typing history and personalized language
+     * model based on what the user typed.
+     */
+    var private: Boolean
 
     /**
      * Sets/Gets the site security to be displayed on the toolbar.
@@ -54,9 +67,19 @@ interface Toolbar {
      * Registers the given function to be invoked when the user selected a new URL i.e. is done
      * editing.
      *
+     * If the function returns `true` then the toolbar will automatically switch to "display mode". Otherwise it
+     * remains in "edit mode".
+     *
      * @param listener the listener function
      */
-    fun setOnUrlCommitListener(listener: (String) -> Unit)
+    fun setOnUrlCommitListener(listener: (String) -> Boolean)
+
+    /**
+     * Registers the given function to be invoked when users changes text in the toolbar.
+     *
+     * @param filter A function which will perform autocompletion and send results to [AutocompleteDelegate].
+     */
+    fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit)
 
     /**
      * Adds an action to be displayed on the right side of the toolbar in display mode.
@@ -78,6 +101,11 @@ interface Toolbar {
      * Adds an action to be displayed on the far left side of the URL in display mode.
      */
     fun addNavigationAction(action: Action)
+
+    /**
+     * Adds an action to be displayed in edit mode.
+     */
+    fun addEditAction(action: Action)
 
     /**
      * Casts this toolbar to an Android View object.
@@ -107,6 +135,11 @@ interface Toolbar {
          * Fired when the toolbar switches to edit mode.
          */
         fun onStartEditing() = Unit
+
+        /**
+         * Fired when the user presses the back button while in edit mode.
+         */
+        fun onCancelEditing(): Boolean = true
 
         /**
          * Fired when the toolbar switches back to display mode.
@@ -208,9 +241,9 @@ interface Toolbar {
             if (background == 0) {
                 val outValue = TypedValue()
                 parent.context.theme.resolveAttribute(
-                        android.R.attr.selectableItemBackgroundBorderless,
-                        outValue,
-                        true)
+                    android.R.attr.selectableItemBackgroundBorderless,
+                    outValue,
+                    true)
 
                 imageButton.setBackgroundResource(outValue.resourceId)
             } else {

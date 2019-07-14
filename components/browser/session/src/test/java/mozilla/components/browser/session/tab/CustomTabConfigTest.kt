@@ -9,7 +9,11 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
-import android.support.customtabs.CustomTabsIntent
+import android.util.DisplayMetrics
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.SafeIntent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,10 +24,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class CustomTabConfigTest {
 
     @Test
@@ -74,6 +76,21 @@ class CustomTabConfigTest {
         val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent((builder.build().intent)))
         assertNull(customTabConfig.closeButtonIcon)
         assertFalse(customTabConfig.options.contains(CustomTabConfig.CLOSE_BUTTON_OPTION))
+    }
+
+    @Test
+    fun createFromIntentUsingDisplayMetricsForCloseButton() {
+        val size = 64
+        val builder = CustomTabsIntent.Builder()
+        val displayMetrics: DisplayMetrics = mock()
+        val closeButtonIcon = Bitmap.createBitmap(IntArray(size * size), size, size, Bitmap.Config.ARGB_8888)
+        builder.setCloseButtonIcon(closeButtonIcon)
+
+        displayMetrics.density = 3f
+
+        val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent((builder.build().intent)), displayMetrics)
+        assertEquals(closeButtonIcon, customTabConfig.closeButtonIcon)
+        assertTrue(customTabConfig.options.contains(CustomTabConfig.CLOSE_BUTTON_OPTION))
     }
 
     @Test
@@ -128,7 +145,7 @@ class CustomTabConfigTest {
         val builder = CustomTabsIntent.Builder()
 
         val bitmap = mock(Bitmap::class.java)
-        val intent = PendingIntent.getActivity(RuntimeEnvironment.application, 0, Intent("testAction"), 0)
+        val intent = PendingIntent.getActivity(testContext, 0, Intent("testAction"), 0)
         builder.setActionButton(bitmap, "desc", intent)
 
         val customTabsIntent = builder.build()

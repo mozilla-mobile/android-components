@@ -5,25 +5,26 @@
 package mozilla.components.browser.engine.system
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.webkit.CookieManager
+import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import kotlinx.coroutines.launch
-import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.DefaultSettings
 import android.webkit.WebViewDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.errorpages.ErrorType
+import mozilla.components.concept.engine.Engine.BrowsingData
+import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
-import mozilla.components.support.ktx.kotlin.toBundle
-import java.lang.ref.WeakReference
 import kotlin.reflect.KProperty
 
 internal val additionalHeaders = mapOf(
@@ -38,28 +39,39 @@ internal val additionalHeaders = mapOf(
  * WebView-based EngineSession implementation.
  */
 @Suppress("TooManyFunctions")
-class SystemEngineSession(private val defaultSettings: Settings? = null) : EngineSession() {
-
-    internal var view: WeakReference<SystemEngineView>? = null
-    internal var scheduledLoad = ScheduledLoad(null)
+class SystemEngineSession(
+    context: Context,
+    private val defaultSettings: Settings? = null
+) : EngineSession() {
+    private val resources = context.resources
+    @Volatile internal lateinit var internalSettings: Settings
     @Volatile internal var historyTrackingDelegate: HistoryTrackingDelegate? = null
     @Volatile internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
     @Volatile internal var webFontsEnabled = true
-    @Volatile internal var internalSettings: Settings? = null
+    @Volatile internal var currentUrl = ""
+    @Volatile internal var useWideViewPort: Boolean? = null // See [toggleDesktopMode]
+    @Volatile internal var fullScreenCallback: WebChromeClient.CustomViewCallback? = null
+
+    // This is public for FFTV which needs access to the WebView instance. We can mark it internal once
+    // https://github.com/mozilla-mobile/android-components/issues/1616 is resolved.
+    @Volatile var webView: WebView = NestedWebView(context)
+        set(value) {
+            field = value
+            initSettings()
+        }
+
+    init {
+        initSettings()
+    }
 
     /**
-     * See [EngineSession.loadUrl]
+     * See [EngineSession.loadUrl]. Note that [LoadUrlFlags] are ignored in this engine
+     * implementation.
      */
-    override fun loadUrl(url: String) {
-        val internalView = currentView()
-
-        if (internalView == null) {
-            // We can't load a URL without a WebView. So let's just remember the URL here until
-            // this session gets linked to a WebView. See: EngineView.render(session).
-            scheduledLoad = ScheduledLoad(url)
-        } else {
-            view?.get()?.currentUrl = url
-            internalView.loadUrl(url, additionalHeaders)
+    override fun loadUrl(url: String, flags: LoadUrlFlags) {
+        if (!url.isEmpty()) {
+            currentUrl = url
+            webView.loadUrl(url, additionalHeaders)
         }
     }
 
@@ -67,75 +79,72 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
      * See [EngineSession.loadData]
      */
     override fun loadData(data: String, mimeType: String, encoding: String) {
-        val internalView = currentView()
-
-        if (internalView == null) {
-            // We remember the data that we want to load and when then session gets linked
-            // to a WebView we call loadData then.
-            scheduledLoad = ScheduledLoad(data, mimeType)
-        } else {
-            internalView.loadData(data, mimeType, encoding)
-        }
+        webView.loadData(data, mimeType, encoding)
     }
 
     /**
      * See [EngineSession.stopLoading]
      */
     override fun stopLoading() {
-        currentView()?.stopLoading()
+        webView.stopLoading()
     }
 
     /**
      * See [EngineSession.reload]
      */
     override fun reload() {
-        currentView()?.reload()
+        webView.reload()
     }
 
     /**
      * See [EngineSession.goBack]
      */
     override fun goBack() {
-        currentView()?.goBack()
+        webView.goBack()
     }
 
     /**
      * See [EngineSession.goForward]
      */
     override fun goForward() {
-        currentView()?.goForward()
+        webView.goForward()
     }
 
     /**
      * See [EngineSession.saveState]
      */
-    override fun saveState(): Map<String, Any> {
-        val state = Bundle()
-        currentView()?.saveState(state)
+    override fun saveState(): EngineSessionState {
+        return runBlocking(Dispatchers.Main) {
+            val state = Bundle()
+            webView.saveState(state)
 
-        return mutableMapOf<String, Any>().apply {
-            state.keySet().forEach { k -> put(k, state[k]) }
+            SystemEngineSessionState(state)
         }
     }
 
     /**
      * See [EngineSession.restoreState]
      */
-    override fun restoreState(state: Map<String, Any>) {
-        currentView()?.restoreState(state.toBundle())
+    override fun restoreState(state: EngineSessionState) {
+        if (state !is SystemEngineSessionState) {
+            throw IllegalArgumentException("Can only restore from SystemEngineSessionState")
+        }
+
+        webView.restoreState(state.bundle)
     }
 
     /**
      * See [EngineSession.enableTrackingProtection]
      */
     override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
-        currentView()?.let {
-            // Make sure Url matcher is preloaded now that tracking protection is enabled
-            CoroutineScope(Dispatchers.IO).launch {
-                SystemEngineView.getOrCreateUrlMatcher(it.context, policy)
-            }
+        // Make sure Url matcher is preloaded now that tracking protection is enabled
+        CoroutineScope(Dispatchers.IO).launch {
+            SystemEngineView.getOrCreateUrlMatcher(resources, policy)
         }
 
+        // TODO check if policy should be applied for this session type
+        // (regular|private) once we support private browsing in system engine:
+        // https://github.com/mozilla-mobile/android-components/issues/649
         trackingProtectionPolicy = policy
         notifyObservers { onTrackerBlockingEnabledChange(true) }
     }
@@ -149,22 +158,46 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
     }
 
     /**
+     * See [EngineSession.close]
+     */
+    override fun close() {
+        super.close()
+        // The WebView instance must remain useable for the duration of this session.
+        // We can only destroy it once we're sure this session will not be used
+        // again which is why destroy happens here are not part of regular (activity)
+        // lifecycle event.
+        webView.destroy()
+    }
+
+    /**
      * See [EngineSession.clearData]
      */
-    override fun clearData() {
-        currentView()?.apply {
-            clearFormData()
-            clearHistory()
-            clearMatches()
-            clearSslPreferences()
-            clearCache(true)
-
-            // We don't care about the callback - we just want to make sure cookies are gone
-            CookieManager.getInstance().removeAllCookies(null)
-
-            webStorage().deleteAllData()
-
-            webViewDatabase(context).clearHttpAuthUsernamePassword()
+    @Suppress("TooGenericExceptionCaught")
+    override fun clearData(data: BrowsingData, host: String?, onSuccess: () -> Unit, onError: (Throwable) -> Unit) {
+        webView.apply {
+            try {
+                if (data.contains(BrowsingData.DOM_STORAGES)) {
+                    webStorage().deleteAllData()
+                }
+                if (data.contains(BrowsingData.IMAGE_CACHE) || data.contains(BrowsingData.NETWORK_CACHE)) {
+                    clearCache(true)
+                }
+                if (data.contains(BrowsingData.COOKIES)) {
+                    CookieManager.getInstance().removeAllCookies(null)
+                }
+                if (data.contains(BrowsingData.AUTH_SESSIONS)) {
+                    webViewDatabase(context).clearHttpAuthUsernamePassword()
+                }
+                if (data.contains(BrowsingData.ALL)) {
+                    clearSslPreferences()
+                    clearFormData()
+                    clearMatches()
+                    clearHistory()
+                }
+                onSuccess()
+            } catch (e: Throwable) {
+                onError(e)
+            }
         }
     }
 
@@ -173,56 +206,62 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
      */
     override fun findAll(text: String) {
         notifyObservers { onFind(text) }
-        currentView()?.findAllAsync(text)
+        webView.findAllAsync(text)
     }
 
     /**
      * See [EngineSession.findNext]
      */
     override fun findNext(forward: Boolean) {
-        currentView()?.findNext(forward)
+        webView.findNext(forward)
     }
 
     /**
-     * See [EngineSession.clearFindResults]
+     * See [EngineSession.clearFindMatches]
      */
     override fun clearFindMatches() {
-        currentView()?.clearMatches()
+        webView.clearMatches()
+    }
+
+    /**
+     * This method is a no-op.
+     */
+    override fun recoverFromCrash(): Boolean {
+        // Do nothing.
+        // Technically we could remember saved states and restore the last one we saw. But for that to be useful we
+        // would need to implement and handle onRenderProcessGone() first.
+        return false
     }
 
     /**
      * See [EngineSession.settings]
      */
     override val settings: Settings
-        // Settings are initialized when the engine view is rendered
-        // as we need the WebView instance to do it. If this method is
-        // called before that we can return the provided default settings,
-        // or the global defaults.
-        get() = internalSettings ?: defaultSettings ?: DefaultSettings()
+        get() = internalSettings
 
     class WebSetting<T>(private val get: () -> T, private val set: (T) -> Unit) {
         operator fun getValue(thisRef: Any?, property: KProperty<*>): T = get()
         operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) = set(value)
     }
 
-    internal fun initSettings(): Settings {
-        currentView()?.let { webView ->
-            webView.settings?.let { webSettings ->
-                // Explicitly set global defaults.
-                webSettings.setAppCacheEnabled(false)
-                webSettings.databaseEnabled = false
+    private fun initSettings() {
+        webView.settings?.let { webSettings ->
+            // Explicitly set global defaults.
+            webSettings.setAppCacheEnabled(false)
+            webSettings.databaseEnabled = false
 
-                setDeprecatedWebSettings(webSettings)
+            setDeprecatedWebSettings(webSettings)
 
-                // We currently don't implement the callback to support turning this on.
-                webSettings.setGeolocationEnabled(false)
+            // We currently don't implement the callback to support turning this on.
+            webSettings.setGeolocationEnabled(false)
 
-                // webViewSettings built-in zoom controls are the only supported ones, so they should be turned on.
-                webSettings.builtInZoomControls = true
+            // webViewSettings built-in zoom controls are the only supported ones,
+            // so they should be turned on but hidden.
+            webSettings.builtInZoomControls = true
+            webSettings.displayZoomControls = false
 
-                return initSettings(webView, webSettings)
-            }
-        } ?: throw IllegalStateException("System engine session not initialized")
+            initSettings(webView, webSettings)
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -234,7 +273,12 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
         webSettings.savePassword = false
     }
 
-    private fun initSettings(webView: WebView, s: WebSettings): Settings {
+    private fun setUseWideViewPort(settings: WebSettings, useWideViewPort: Boolean?) {
+        this.useWideViewPort = useWideViewPort
+        useWideViewPort?.let { settings.useWideViewPort = it }
+    }
+
+    private fun initSettings(webView: WebView, s: WebSettings) {
         internalSettings = object : Settings() {
             override var javascriptEnabled by WebSetting(s::getJavaScriptEnabled, s::setJavaScriptEnabled)
             override var domStorageEnabled by WebSetting(s::getDomStorageEnabled, s::setDomStorageEnabled)
@@ -243,6 +287,10 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
             override var userAgentString by WebSetting(s::getUserAgentString, s::setUserAgentString)
             override var displayZoomControls by WebSetting(s::getDisplayZoomControls, s::setDisplayZoomControls)
             override var loadWithOverviewMode by WebSetting(s::getLoadWithOverviewMode, s::setLoadWithOverviewMode)
+            override var useWideViewPort: Boolean?
+                get() = this@SystemEngineSession.useWideViewPort
+                set(value) = setUseWideViewPort(s, value)
+            override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
             override var allowUniversalAccessFromFileURLs by WebSetting(
@@ -280,6 +328,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 webFontsEnabled = it.webFontsEnabled
                 displayZoomControls = it.displayZoomControls
                 loadWithOverviewMode = it.loadWithOverviewMode
+                useWideViewPort = it.useWideViewPort
                 trackingProtectionPolicy = it.trackingProtectionPolicy
                 historyTrackingDelegate = it.historyTrackingDelegate
                 requestInterceptor = it.requestInterceptor
@@ -292,24 +341,27 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
                 verticalScrollBarEnabled = it.verticalScrollBarEnabled
                 horizontalScrollBarEnabled = it.horizontalScrollBarEnabled
                 userAgentString = it.userAgentString
+                supportMultipleWindows = it.supportMultipleWindows
             }
         }
-
-        return internalSettings as Settings
     }
 
     /**
      * See [EngineSession.toggleDesktopMode]
+     *
+     * Precondition:
+     * If settings.useWideViewPort = true, then webSettings.useWideViewPort is always on
+     * If settings.useWideViewPort = false or null, then webSettings.useWideViewPort can be on/off
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
-        currentView()?.let { view ->
-            val webSettings = view.settings
-            webSettings.userAgentString = toggleDesktopUA(webSettings.userAgentString, enable)
-            webSettings.useWideViewPort = enable
+        val webSettings = webView.settings
+        webSettings.userAgentString = toggleDesktopUA(webSettings.userAgentString, enable)
+        webSettings.useWideViewPort = if (settings.useWideViewPort == true) true else enable
 
-            if (reload) {
-                view.reload()
-            }
+        notifyObservers { onDesktopModeChange(enable) }
+
+        if (reload) {
+            webView.reload()
         }
     }
 
@@ -317,18 +369,7 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
      * See [EngineSession.exitFullScreenMode]
      */
     override fun exitFullScreenMode() {
-        view?.get()?.fullScreenCallback?.onCustomViewHidden()
-    }
-
-    override fun captureThumbnail(): Bitmap? {
-        val webView = currentView()
-
-        return webView?.let {
-            it.buildDrawingCache()
-            val outBitmap = it.drawingCache?.let { cache -> Bitmap.createBitmap(cache) }
-            it.destroyDrawingCache()
-            outBitmap
-        }
+        fullScreenCallback?.onCustomViewHidden()
     }
 
     internal fun toggleDesktopUA(userAgent: String, requestDesktop: Boolean): String {
@@ -337,10 +378,6 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
         } else {
             userAgent.replace("eliboM", "Mobile").replace("diordnA", "Android")
         }
-    }
-
-    internal fun currentView(): WebView? {
-        return view?.get()?.currentWebView
     }
 
     internal fun webStorage(): WebStorage = WebStorage.getInstance()
@@ -363,7 +400,6 @@ class SystemEngineSession(private val defaultSettings: Settings? = null) : Engin
          * Chromium's mapping (internal error code, to Android WebView error code) is described at:
          * https://goo.gl/vspwct (ErrorCodeConversionHelper.java)
          */
-        @Suppress("ComplexMethod")
         internal fun webViewErrorToErrorType(errorCode: Int) =
             when (errorCode) {
                 WebViewClient.ERROR_UNKNOWN -> ErrorType.UNKNOWN

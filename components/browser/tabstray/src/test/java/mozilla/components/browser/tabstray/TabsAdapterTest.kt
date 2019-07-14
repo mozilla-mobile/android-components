@@ -5,18 +5,21 @@
 package mozilla.components.browser.tabstray
 
 import android.widget.LinearLayout
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class TabsAdapterTest {
+
     @Test
     fun `itemCount will reflect number of sessions`() {
         val adapter = TabsAdapter()
@@ -46,15 +49,16 @@ class TabsAdapterTest {
     @Test
     fun `holders get registered and unregistered from session`() {
         val adapter = TabsAdapter()
+        adapter.tabsTray = mockTabsTrayWithStyles()
 
-        val view = LinearLayout(RuntimeEnvironment.application)
+        val view = LinearLayout(testContext)
 
         val holder1 = adapter.createViewHolder(view, 0)
         val holder2 = adapter.createViewHolder(view, 0)
 
-        val session1: Session = mock()
-        val session2: Session = mock()
-        val session3: Session = mock()
+        val session1: Session = spy(Session("A"))
+        val session2: Session = spy(Session("B"))
+        val session3: Session = spy(Session("C"))
 
         adapter.displaySessions(listOf(session1, session2, session3), 0)
 
@@ -70,5 +74,14 @@ class TabsAdapterTest {
         verify(session1).unregister(holder1)
         verify(session2).unregister(holder2)
         verifyNoMoreInteractions(session3)
+    }
+
+    private fun mockTabsTrayWithStyles(): BrowserTabsTray {
+        val styles: TabsTrayStyling = mock()
+
+        val tabsTray: BrowserTabsTray = mock()
+        Mockito.doReturn(styles).`when`(tabsTray).styling
+
+        return tabsTray
     }
 }

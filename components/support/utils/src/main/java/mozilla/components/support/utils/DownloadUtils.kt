@@ -59,6 +59,7 @@ object DownloadUtils {
      * which unfortunately does not implement RfC 5987.
      */
     @JvmStatic
+    @SuppressWarnings("ComplexMethod", "LongMethod", "NestedBlockDepth")
     fun guessFileName(contentDisposition: String?, url: String?, mimeType: String?): String {
         var filename: String? = null
         var extension: String? = null
@@ -108,14 +109,14 @@ object DownloadUtils {
                 }
             }
             if (extension == null) {
-                if (mimeType != null && mimeType.toLowerCase(Locale.ROOT).startsWith("text/")) {
+                extension = if (mimeType?.toLowerCase(Locale.ROOT)?.startsWith("text/") == true) {
                     if (mimeType.equals("text/html", ignoreCase = true)) {
-                        extension = ".html"
+                        ".html"
                     } else {
-                        extension = ".txt"
+                        ".txt"
                     }
                 } else {
-                    extension = ".bin"
+                    ".bin"
                 }
             }
         } else {
@@ -128,7 +129,7 @@ object DownloadUtils {
                 if (typeFromExt == null || !typeFromExt.equals(mimeType, ignoreCase = true)) {
                     extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
                     if (extension != null) {
-                        extension = "." + extension
+                        extension = ".$extension"
                     }
                 }
             }
@@ -150,22 +151,22 @@ object DownloadUtils {
                 val encodedFileName = m.group(ENCODED_FILE_NAME_GROUP)
                 val encoding = m.group(ENCODING_GROUP)
 
-                if (encodedFileName != null) {
+                if (encodedFileName != null && encoding != null) {
                     return decodeHeaderField(encodedFileName, encoding)
                 }
 
                 // Return quoted string if available and replace escaped characters.
                 val quotedFileName = m.group(QUOTED_FILE_NAME_GROUP)
 
-                return if (quotedFileName != null) {
-                    quotedFileName.replace("\\\\(.)".toRegex(), "$1")
-                } else m.group(UNQUOTED_FILE_NAME)
+                return quotedFileName?.replace("\\\\(.)".toRegex(), "$1")
+                    ?: m.group(UNQUOTED_FILE_NAME)
 
                 // Otherwise try to extract the unquoted file name
             }
         } catch (ex: IllegalStateException) {
             // This function is defined as returning null when it can't parse the header
         } catch (ex: UnsupportedEncodingException) {
+            // Do nothing
         }
 
         return null
@@ -180,7 +181,7 @@ object DownloadUtils {
             val symbol = m.group()
 
             if (symbol.startsWith("%")) {
-                stream.write(Integer.parseInt(symbol.substring(1), 16))
+                stream.write(symbol.substring(1).toInt(radix = 16))
             } else {
                 stream.write(symbol[0].toInt())
             }

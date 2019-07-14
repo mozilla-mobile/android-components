@@ -5,28 +5,30 @@
 package mozilla.components.support.base.observer
 
 import android.app.Activity
-import android.arch.lifecycle.GenericLifecycleObserver
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleObserver
-import android.arch.lifecycle.LifecycleOwner
 import android.view.View
 import android.view.WindowManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.any
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.robolectric.Robolectric
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ObserverRegistryTest {
+
     @Test
     fun `registered observer gets notified`() {
         val registry = ObserverRegistry<TestObserver>()
@@ -68,6 +70,8 @@ class ObserverRegistryTest {
         }
 
         assertFalse(observer.notified)
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
     }
 
     @Test
@@ -109,11 +113,13 @@ class ObserverRegistryTest {
         }
 
         assertFalse(observer.notified)
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
     }
 
     @Test
     fun `observer will not get registered if lifecycle state is DESTROYED`() {
-        val owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.DESTROYED))
+        val owner = MockedLifecycleOwner(Lifecycle.State.DESTROYED)
 
         val registry = ObserverRegistry<TestObserver>()
         val observer = TestObserver()
@@ -127,12 +133,13 @@ class ObserverRegistryTest {
         }
 
         assertFalse(observer.notified)
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
     }
 
     @Test
     fun `observer will get removed if lifecycle gets destroyed`() {
-        val mockedLifecycle = MockedLifecycle(Lifecycle.State.STARTED)
-        val owner = MockedLifecycleOwner(mockedLifecycle)
+        val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
 
         val registry = ObserverRegistry<TestObserver>()
         val observer = TestObserver()
@@ -145,18 +152,18 @@ class ObserverRegistryTest {
         assertTrue(observer.notified)
 
         // Pretend lifecycle gets destroyed
-        mockedLifecycle.state = Lifecycle.State.DESTROYED
-        mockedLifecycle.observer?.onStateChanged(null, null)
+        owner.lifecycleRegistry.markState(Lifecycle.State.DESTROYED)
 
         observer.notified = false
         registry.notifyObservers { somethingChanged() }
         assertFalse(observer.notified)
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
     }
 
     @Test
     fun `non-destroy lifecycle changes do not affect observer`() {
-        val mockedLifecycle = MockedLifecycle(Lifecycle.State.STARTED)
-        val owner = MockedLifecycleOwner(mockedLifecycle)
+        val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
 
         val registry = ObserverRegistry<TestObserver>()
         val observer = TestObserver()
@@ -169,15 +176,13 @@ class ObserverRegistryTest {
         assertTrue(observer.notified)
 
         // RESUMED
-        mockedLifecycle.state = Lifecycle.State.RESUMED
-        mockedLifecycle.observer?.onStateChanged(null, null)
+        owner.lifecycleRegistry.markState(Lifecycle.State.RESUMED)
         observer.notified = false
         registry.notifyObservers { somethingChanged() }
         assertTrue(observer.notified)
 
         // CREATED
-        mockedLifecycle.state = Lifecycle.State.CREATED
-        mockedLifecycle.observer?.onStateChanged(null, null)
+        owner.lifecycleRegistry.markState(Lifecycle.State.CREATED)
         observer.notified = false
         registry.notifyObservers { somethingChanged() }
         assertTrue(observer.notified)
@@ -186,12 +191,19 @@ class ObserverRegistryTest {
     @Test
     fun `unregisterObservers unregisters all observers`() {
         val registry = ObserverRegistry<TestObserver>()
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val view = View(testContext)
 
         val observer1 = TestObserver()
         val observer2 = TestObserver()
+        val observer3 = TestObserver()
+        val observer4 = TestObserver()
 
         registry.register(observer1)
         registry.register(observer2)
+        registry.register(observer3, MockedLifecycleOwner(Lifecycle.State.CREATED))
+        registry.register(observer4, view)
+        activity.windowManager.addView(view, WindowManager.LayoutParams(100, 100))
 
         assertFalse(observer1.notified)
         assertFalse(observer2.notified)
@@ -200,9 +212,13 @@ class ObserverRegistryTest {
 
         assertTrue(observer1.notified)
         assertTrue(observer2.notified)
+        assertTrue(observer3.notified)
+        assertTrue(observer4.notified)
 
         observer1.notified = false
         observer2.notified = false
+        observer3.notified = false
+        observer4.notified = false
 
         registry.unregisterObservers()
 
@@ -210,11 +226,73 @@ class ObserverRegistryTest {
 
         assertFalse(observer1.notified)
         assertFalse(observer2.notified)
+        assertFalse(observer3.notified)
+        assertFalse(observer4.notified)
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
+    }
+
+    @Test
+    fun `unregisterObservers clears references to all observers`() {
+        val registry = ObserverRegistry<TestObserver>()
+
+        val observer1 = TestObserver()
+        val observer2 = TestObserver()
+        val observer3 = TestObserver()
+        val observer4 = TestObserver()
+
+        registry.register(observer1)
+        registry.register(observer2)
+        registry.register(observer3, MockedLifecycleOwner(Lifecycle.State.CREATED))
+        registry.register(observer4, View(testContext))
+
+        registry.unregisterObservers()
+
+        assertFalse(registry.isObserved())
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
+    }
+
+    @Test
+    fun `unregister removes observers from observers map`() {
+        val registry = ObserverRegistry<String>()
+        val observer = "Observer"
+
+        registry.unregister(observer)
+
+        assertFalse(registry.isObserved())
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
+    }
+
+    @Test
+    fun `unregister removes observers from lifecycle observers map`() {
+        val registry = ObserverRegistry<String>()
+        val observer = "Observer"
+        val lifecycleOwner = MockedLifecycleOwner(Lifecycle.State.CREATED)
+
+        registry.register(observer, lifecycleOwner)
+        registry.unregister(observer)
+
+        assertFalse(registry.isObserved())
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
+    }
+
+    @Test
+    fun `unregister removes observers from view observers map`() {
+        val registry = ObserverRegistry<String>()
+        val observer = "Observer"
+        val view = View(testContext)
+
+        registry.register(observer, view)
+        registry.unregister(observer)
+
+        assertFalse(registry.isObserved())
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
     }
 
     @Test
     fun `observer will not get added if view is detached`() {
-        val view = mock(View::class.java)
+        val view = mock<View>()
 
         val registry = ObserverRegistry<TestObserver>()
         val observer = TestObserver()
@@ -234,9 +312,36 @@ class ObserverRegistryTest {
     }
 
     @Test
+    fun `observer will get added once view is attached`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val view = View(testContext)
+
+        val registry = ObserverRegistry<TestObserver>()
+        val observer = TestObserver()
+
+        assertFalse(view.isAttachedToWindow)
+        registry.register(observer, view)
+
+        registry.notifyObservers {
+            somethingChanged()
+        }
+
+        assertFalse(observer.notified)
+
+        activity.windowManager.addView(view, WindowManager.LayoutParams(100, 100))
+        assertTrue(view.isAttachedToWindow)
+
+        registry.notifyObservers {
+            somethingChanged()
+        }
+
+        assertTrue(observer.notified)
+    }
+
+    @Test
     fun `observer will get unregistered if view gets detached`() {
         val activity = Robolectric.buildActivity(Activity::class.java).create().get()
-        val view = View(RuntimeEnvironment.application)
+        val view = View(testContext)
         activity.windowManager.addView(view, WindowManager.LayoutParams(100, 100))
 
         val registry = ObserverRegistry<TestObserver>()
@@ -264,6 +369,42 @@ class ObserverRegistryTest {
         }
 
         assertFalse(observer.notified)
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
+    }
+
+    @Test
+    fun `unregisterObservers will unregister from view`() {
+        val view: View = mock()
+        doReturn(true).`when`(view).isAttachedToWindow
+
+        val registry = ObserverRegistry<TestObserver>()
+        val observer = TestObserver()
+
+        registry.register(observer, view)
+        verify(view).addOnAttachStateChangeListener(any())
+
+        registry.unregisterObservers()
+        verify(view).removeOnAttachStateChangeListener(any())
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
+    }
+
+    @Test
+    fun `unregisterObserver will remove attach listener`() {
+        val view: View = mock()
+        doReturn(true).`when`(view).isAttachedToWindow
+
+        val registry = ObserverRegistry<TestObserver>()
+        val observer = TestObserver()
+
+        registry.register(observer, view)
+        verify(view).addOnAttachStateChangeListener(any())
+
+        registry.unregister(observer)
+        verify(view).removeOnAttachStateChangeListener(any())
+
+        assertTrue(registry.checkInternalCollectionsAreEmpty())
     }
 
     @Test
@@ -297,8 +438,7 @@ class ObserverRegistryTest {
 
     @Test
     fun `observer is paused on lifecycle event (ON_PAUSE)`() {
-        val mockedLifecycle = MockedLifecycle(Lifecycle.State.STARTED)
-        val owner = MockedLifecycleOwner(mockedLifecycle)
+        val owner = MockedLifecycleOwner(Lifecycle.State.RESUMED)
 
         val registry = spy(ObserverRegistry<TestObserver>())
 
@@ -316,7 +456,7 @@ class ObserverRegistryTest {
         assertTrue(autoPausedObserver.notified)
 
         // Pause observers
-        mockedLifecycle.observer?.onStateChanged(null, Lifecycle.Event.ON_PAUSE)
+        owner.lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
 
         observer.notified = false
         autoPausedObserver.notified = false
@@ -333,27 +473,116 @@ class ObserverRegistryTest {
 
     @Test
     fun `observer is resumed on lifecycle event (ON_RESUME)`() {
-        val mockedLifecycle = MockedLifecycle(Lifecycle.State.STARTED)
-        val owner = MockedLifecycleOwner(mockedLifecycle)
+        val owner = MockedLifecycleOwner(Lifecycle.State.RESUMED)
 
         val registry = spy(ObserverRegistry<TestIntObserver>())
         val observer = TestIntObserver()
         registry.register(observer, owner, autoPause = true)
 
+        // Called once on register, since the lifecycle is already resumed
+        verify(registry, times(1)).resumeObserver(observer)
+
         // Pause observer
-        mockedLifecycle.observer?.onStateChanged(null, Lifecycle.Event.ON_PAUSE)
+        owner.lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         registry.notifyObservers { somethingChanged(1) }
         registry.notifyObservers { somethingChanged(2) }
         registry.notifyObservers { somethingChanged(3) }
         assertEquals(emptyList<Int>(), observer.notified)
 
         // Resume observer
-        mockedLifecycle.observer?.onStateChanged(null, Lifecycle.Event.ON_RESUME)
+        owner.lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
         // Resumed observer gets notified
         registry.notifyObservers { somethingChanged(4) }
         assertEquals(listOf(4), observer.notified)
-        verify(registry).resumeObserver(observer)
+        verify(registry, times(2)).resumeObserver(observer)
+    }
+
+    @Test
+    fun `observer starts paused if needed`() {
+        // Start in state other than RESUMED
+        val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
+
+        val registry = spy(ObserverRegistry<TestObserver>())
+
+        val observer = TestObserver()
+        registry.register(observer, owner, autoPause = false)
+
+        val autoPausedObserver = TestObserver()
+        registry.register(autoPausedObserver, owner, autoPause = true)
+
+        verify(registry, never()).pauseObserver(observer)
+        verify(registry).pauseObserver(autoPausedObserver)
+    }
+
+    @Test
+    fun `register observer only once, notify once`() {
+        // Given
+        val observer = TestIntObserver()
+        val registry = ObserverRegistry<TestIntObserver>()
+
+        // When
+        registry.register(observer)
+        registry.register(observer)
+
+        registry.notifyObservers { somethingChanged(1) }
+
+        // Then
+        assertEquals(1, observer.notified.size)
+    }
+
+    @Test
+    fun `register observer only once, don't notify after unregister`() {
+        // Given
+        val observer = TestIntObserver()
+        val registry = ObserverRegistry<TestIntObserver>()
+
+        // When
+        registry.register(observer)
+        registry.register(observer)
+        registry.unregister(observer)
+
+        registry.notifyObservers { somethingChanged(1) }
+
+        // Then
+        assertEquals(0, observer.notified.size)
+    }
+
+    @Test
+    fun `isObserved is true if observers is empty`() {
+        val registry = ObserverRegistry<TestIntObserver>()
+        val observer = TestIntObserver()
+
+        assertFalse(registry.isObserved())
+
+        registry.register(observer)
+
+        assertTrue(registry.isObserved())
+
+        registry.unregister(observer)
+
+        assertFalse(registry.isObserved())
+    }
+
+    @Test
+    fun `isObserved is true if there is still a view observer that may register an observer for a view`() {
+        val registry = ObserverRegistry<TestIntObserver>()
+        val observer: TestIntObserver = mock()
+
+        val view: View = mock()
+        doReturn(false).`when`(view).isAttachedToWindow
+
+        registry.register(observer, view)
+
+        // observer is not registered since the view is not attached yet
+        registry.notifyObservers { somethingChanged(42) }
+        verify(observer, never()).somethingChanged(42)
+
+        // But it still counts as being observed
+        assertTrue(registry.isObserved())
+
+        registry.unregister(observer)
+        assertFalse(registry.isObserved())
     }
 
     private class TestObserver {
@@ -365,7 +594,7 @@ class ObserverRegistryTest {
     }
 
     private class TestIntObserver {
-        var notified: List<Int> = listOf()
+        val notified = mutableListOf<Int>()
 
         fun somethingChanged(value: Int) {
             notified += value
@@ -385,21 +614,11 @@ class ObserverRegistryTest {
         }
     }
 
-    private class MockedLifecycle(var state: State) : Lifecycle() {
-        var observer: GenericLifecycleObserver? = null
-
-        override fun addObserver(observer: LifecycleObserver) {
-            this.observer = observer as GenericLifecycleObserver
+    private class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
+        val lifecycleRegistry = LifecycleRegistry(this).apply {
+            markState(initialState)
         }
 
-        override fun removeObserver(observer: LifecycleObserver) {
-            this.observer = null
-        }
-
-        override fun getCurrentState(): State = state
-    }
-
-    private class MockedLifecycleOwner(private val lifecycle: MockedLifecycle) : LifecycleOwner {
-        override fun getLifecycle(): Lifecycle = lifecycle
+        override fun getLifecycle(): Lifecycle = lifecycleRegistry
     }
 }

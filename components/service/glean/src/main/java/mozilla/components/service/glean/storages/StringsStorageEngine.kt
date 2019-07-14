@@ -4,74 +4,68 @@
 
 package mozilla.components.service.glean.storages
 
-import android.support.annotation.VisibleForTesting
-import org.json.JSONObject
+import android.annotation.SuppressLint
+import android.content.SharedPreferences
+import mozilla.components.service.glean.error.ErrorRecording.ErrorType
+import mozilla.components.service.glean.error.ErrorRecording.recordError
+import mozilla.components.service.glean.private.CommonMetricData
+import mozilla.components.support.base.log.logger.Logger
 
 /**
  * This singleton handles the in-memory storage logic for strings. It is meant to be used by
- * the Specific Strings API and the ping assembling objects. No validation on the stored data
- * is performed at this point: validation must be performed by the Specific Strings API.
+ * the Specific Strings API and the ping assembling objects.
+ *
+ * This class contains a reference to the Android application Context. While the IDE warns
+ * us that this could leak, the application context lives as long as the application and this
+ * object. For this reason, we should be safe to suppress the IDE warning.
  */
-internal object StringsStorageEngine : StorageEngine {
-    private val stringStores: MutableMap<String, MutableMap<String, String>> = mutableMapOf()
+@SuppressLint("StaticFieldLeak")
+internal object StringsStorageEngine : StringsStorageEngineImplementation()
+
+internal open class StringsStorageEngineImplementation(
+    override val logger: Logger = Logger("glean/StringsStorageEngine")
+) : GenericStorageEngine<String>() {
+    companion object {
+        // Maximum length of any passed value string, in characters.
+        internal const val MAX_LENGTH_VALUE = 100
+    }
+
+    override fun deserializeSingleMetric(metricName: String, value: Any?): String? {
+        return value as? String
+    }
+
+    override fun serializeSingleMetric(
+        userPreferences: SharedPreferences.Editor?,
+        storeName: String,
+        value: String,
+        extraSerializationData: Any?
+    ) {
+        userPreferences?.putString(storeName, value)
+    }
 
     /**
      * Record a string in the desired stores.
      *
-     * @param stores the list of stores to record the string into
-     * @param category the category of the string
-     * @param name the name of the string
+     * @param metricData object with metric settings
      * @param value the string value to record
      */
     fun record(
-        stores: List<String>,
-        category: String,
-        name: String,
+        metricData: CommonMetricData,
         value: String
     ) {
-        // Record a copy of the string in all the needed stores.
-        synchronized(this) {
-            for (storeName in stores) {
-                val storeData = stringStores.getOrPut(storeName) { mutableMapOf() }
-                storeData.put("$category.$name", value)
+        val truncatedValue = value.let {
+            if (it.length > MAX_LENGTH_VALUE) {
+                recordError(
+                    metricData,
+                    ErrorType.InvalidValue,
+                    "Value length ${it.length} exceeds maximum of $MAX_LENGTH_VALUE",
+                    logger
+                )
+                return@let it.substring(0, MAX_LENGTH_VALUE)
             }
-        }
-    }
-
-    /**
-     * Retrieves the [recorded string data][String] for the provided
-     * store name.
-     *
-     * @param storeName the name of the desired string store
-     * @param clearStore whether or not to clearStore the requested string store
-     *
-     * @return the strings recorded in the requested store
-     */
-    @Synchronized
-    fun getSnapshot(storeName: String, clearStore: Boolean): MutableMap<String, String>? {
-        if (clearStore) {
-            return stringStores.remove(storeName)
+            it
         }
 
-        return stringStores.get(storeName)
-    }
-
-    /**
-     * Get a snapshot of the stored data as a JSON object.
-     *
-     * @param storeName the name of the desired store
-     * @param clearStore whether or not to clearStore the requested store
-     *
-     * @return the [JSONObject] containing the recorded data.
-     */
-    override fun getSnapshotAsJSON(storeName: String, clearStore: Boolean): Any? {
-        return getSnapshot(storeName, clearStore)?.let { stringMap ->
-            return JSONObject(stringMap)
-        }
-    }
-
-    @VisibleForTesting
-    internal fun clearAllStores() {
-        stringStores.clear()
+        super.recordMetric(metricData, truncatedValue)
     }
 }

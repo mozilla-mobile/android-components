@@ -1,6 +1,6 @@
 # [Android Components](../../../README.md) > Support > Test
 
-A collection of helpers for testing components.
+A collection of helpers for testing components in local unit tests (`src/test`).
 
 ## Usage
 

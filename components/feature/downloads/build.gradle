@@ -7,11 +7,11 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -25,16 +25,22 @@ android {
 dependencies {
 
     implementation project(':browser-session')
+    implementation project(':concept-fetch')
     implementation project(':support-ktx')
     implementation project(':support-utils')
-    implementation Deps.kotlin_stdlib
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.kotlin_coroutines
+    implementation Dependencies.kotlin_stdlib
+
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.kotlin_coroutines_test
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
     testImplementation project(':support-test')
     testImplementation project(':concept-engine')
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

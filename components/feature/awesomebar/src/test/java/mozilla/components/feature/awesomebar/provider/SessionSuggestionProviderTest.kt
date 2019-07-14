@@ -88,6 +88,24 @@ class SessionSuggestionProviderTest {
     }
 
     @Test
+    fun `Provider only returns non-private Sessions`() = runBlocking {
+        val sessionManager = SessionManager(mock())
+        val session = Session("https://www.mozilla.org")
+        val privateSession1 = Session("https://mozilla.org/firefox", true)
+        val privateSession2 = Session("https://mozilla.org/projects", true)
+        sessionManager.add(privateSession1)
+        sessionManager.add(session)
+        sessionManager.add(privateSession2)
+
+        val useCase: TabsUseCases.SelectTabUseCase = mock()
+
+        val provider = SessionSuggestionProvider(sessionManager, useCase)
+        val suggestions = provider.onInputChanged("mozilla")
+
+        assertEquals(1, suggestions.size)
+    }
+
+    @Test
     fun `Clicking suggestion invokes SelectTabUseCase`() = runBlocking {
         val sessionManager = SessionManager(mock())
         val session = Session("https://www.mozilla.org")

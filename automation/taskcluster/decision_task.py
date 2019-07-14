@@ -3,130 +3,378 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 """
-Decision task for pull requests and pushes
+Decision task
 """
 
 from __future__ import print_function
-import datetime
+
+import argparse
+import itertools
 import os
 import taskcluster
 import sys
 
-import lib.module_definitions
-import lib.tasks
+from lib.build_config import components_version, components, snapshot_components
+from lib.tasks import TaskBuilder, schedule_task_graph
+from lib.util import (
+    populate_chain_of_trust_task_graph,
+    populate_chain_of_trust_required_but_unused_files
+)
 
 
-TASK_ID = os.environ.get('TASK_ID')
 REPO_URL = os.environ.get('MOBILE_HEAD_REPOSITORY')
-BRANCH = os.environ.get('MOBILE_HEAD_BRANCH')
 COMMIT = os.environ.get('MOBILE_HEAD_REV')
 PR_TITLE = os.environ.get('GITHUB_PULL_TITLE', '')
 
 # If we see this text inside a pull request title then we will not execute any tasks for this PR.
 SKIP_TASKS_TRIGGER = '[ci skip]'
 
+AAR_EXTENSIONS = ('.aar', '.pom', '-sources.jar')
+HASH_EXTENSIONS = ('', '.sha1', '.md5')
 
-def create_task(name, description, command, scopes = []):
-    return create_raw_task(name, description, "./gradlew --no-daemon clean %s" % command, scopes)
+BUILDER = TaskBuilder(
+    task_id=os.environ.get('TASK_ID'),
+    repo_url=os.environ.get('MOBILE_HEAD_REPOSITORY'),
+    branch=os.environ.get('MOBILE_HEAD_BRANCH'),
+    commit=COMMIT,
+    owner="skaspari@mozilla.com",
+    source='{}/raw/{}/.taskcluster.yml'.format(REPO_URL, COMMIT),
+    scheduler_id=os.environ.get('SCHEDULER_ID', 'taskcluster-github'),
+    build_worker_type=os.environ.get('BUILD_WORKER_TYPE'),
+    beetmover_worker_type=os.environ.get('BEETMOVER_WORKER_TYPE'),
+    tasks_priority=os.environ.get('TASKS_PRIORITY'),
+)
 
 
-def create_raw_task(name, description, full_command, scopes = []):
-    created = datetime.datetime.now()
-    expires = taskcluster.fromNow('1 year')
-    deadline = taskcluster.fromNow('1 day')
+def create_module_tasks(module):
+    def gradle_module_task_name(module, gradle_task_name):
+        return "%s:%s" % (module, gradle_task_name)
 
-    return {
-        "workerType": 'github-worker',
-        "taskGroupId": TASK_ID,
-        "expires": taskcluster.stringDate(expires),
-        "retries": 5,
-        "created": taskcluster.stringDate(created),
-        "tags": {},
-        "priority": "lowest",
-        "schedulerId": "taskcluster-github",
-        "deadline": taskcluster.stringDate(deadline),
-        "dependencies": [ TASK_ID ],
-        "routes": [],
-        "scopes": scopes,
-        "requires": "all-completed",
-        "payload": {
-            "features": {
-                'taskclusterProxy': True
-            },
-            "maxRunTime": 7200,
-            "image": "mozillamobile/android-components:1.9",
-            "command": [
-                "/bin/bash",
-                "--login",
-                "-cx",
-                "export TERM=dumb && git fetch %s %s && git config advice.detachedHead false && git checkout %s && %s" % (REPO_URL, BRANCH, COMMIT, full_command)
-            ],
-            "artifacts": {},
-            "env": {
-                "TASK_GROUP_ID": TASK_ID
-            }
+    def craft_definition(module, variant, run_tests=True, lint_task=None):
+        module_task = gradle_module_task_name(module, "assemble%s" % variant)
+        subtitle = "assemble"
+
+        if run_tests:
+            module_task = "%s %s" % (module_task, gradle_module_task_name(module, "test%sDebugUnitTest" % variant))
+            subtitle = "%sAndTest" % subtitle
+
+        scheduled_lint = False
+        if lint_task and variant in lint_task:
+            module_task = "%s %s" % (module_task, gradle_module_task_name(module, lint_task))
+            subtitle = "%sAndLintDebug" % subtitle
+            scheduled_lint = True
+
+        return BUILDER.craft_build_task(
+            module_name=module,
+            gradle_tasks=module_task,
+            subtitle=subtitle + variant,
+            run_coverage=True,
+        ), scheduled_lint
+
+    # Takes list of variants and produces taskcluster task definitions.
+    # Schedules a specified lint task at most once.
+    def variants_to_definitions(variants, run_tests=True, lint_task=None):
+        scheduled_lint = False
+        definitions = []
+        for variant in variants:
+            task_definition, definition_has_lint = craft_definition(
+                module, variant, run_tests=run_tests, lint_task=lint_task)
+            if definition_has_lint:
+                scheduled_lint = True
+            lint_task = lint_task if lint_task and not definition_has_lint else None
+            definitions.append(task_definition)
+        return definitions, scheduled_lint
+
+    # Module settings that describe which task definitions will be created.
+    # Absence of a module override means that default definition pattern will be used for the module.
+    module_overrides = {
+        ":samples-browser": {
+            "assembleOnly/Test": (
+                ["ServoArm", "ServoX86", "SystemUniversal"],
+                [
+                    "GeckoBetaAarch64", "GeckoBetaArm", "GeckoBetaX86",
+                    "GeckoNightlyUniversal",
+                    "GeckoReleaseAarch64", "GeckoReleaseArm", "GeckoReleaseX86"
+                ]
+            ),
+            "lintTask": "lintGeckoBetaArmDebug"
         },
-        "provisionerId": "aws-provisioner-v1",
-        "metadata": {
-            "name": name,
-            "description": description,
-            "owner": "skaspari@mozilla.com",
-            "source": "https://github.com/mozilla-mobile/android-components"
+        ":support-test": {
+            "lintTask": "lint"
+        },
+        ":tooling-lint": {
+            "lintTask": "lint"
         }
     }
 
+    override = module_overrides.get(module, {})
+    task_definitions = []
 
-def create_module_task(module):
-    return create_task(
-        name='Android Components - Module ' + module,
-        description='Building and testing module ' + module,
-        command="-Pcoverage " + " ".join(map(lambda x: module + ":" + x, ['assemble', 'test', 'lint']))  +
-            " && automation/taskcluster/action/upload_coverage_report.sh",
-        scopes = [
-            "secrets:get:project/mobile/android-components/public-tokens"
+    # If assemble/test variant lists are specified, create individual tasks as appropriate,
+    # while also checking if we can sneak in a specified lint task along with a matching assemble
+    # or test variant. If lint task isn't specified, it's created separately.
+    if "assembleOnly/Test" in override:
+        assemble_only, assemble_and_test = override["assembleOnly/Test"]
+
+        # As an optimization, lint task will appear at most once in our final list of definitions.
+        lint_task = override.get("lintTask", "lintRelease")
+
+        # Assemble-only definitions with an optional lint task (if it matches variants).
+        assemble_only_definitions, scheduled_lint_with_assemble = variants_to_definitions(
+            assemble_only, run_tests=False, lint_task=lint_task)
+        # Assemble-and-test definitions with an optional lint task if it wasn't present
+        # above and matches variants.
+        assemble_and_test_definitions, scheduled_lint_with_test = variants_to_definitions(
+            assemble_and_test, run_tests=True, lint_task=lint_task if lint_task and not scheduled_lint_with_assemble else None)
+        # Combine two lists of task definitions.
+        task_definitions += assemble_only_definitions + assemble_and_test_definitions
+
+        # If neither list has a lint task within it, append a separate lint task.
+        # Overhead of a separate task just for linting is quite significant, but this should be a rare case.
+        if not scheduled_lint_with_assemble and not scheduled_lint_with_test:
+            task_definitions.append(
+                BUILDER.craft_build_task(
+                    module_name=module,
+                    gradle_tasks=gradle_module_task_name(module, lint_task),
+                    subtitle="onlyLintRelease",
+                    run_coverage=True,
+                )
+            )
+
+    # If only the lint task override is specified, 'assemble' and 'test' are left as-is.
+    elif "lintTask" in override:
+        gradle_tasks = " ".join([
+            gradle_module_task_name(module, gradle_task)
+            for gradle_task in ['assemble', 'assembleAndroidTest', 'test', override["lintTask"]]
         ])
+        task_definitions.append(
+            BUILDER.craft_build_task(
+                module_name=module,
+                gradle_tasks=gradle_tasks,
+                subtitle="assembleAndTestAndCustomLintAll",
+                run_coverage=True,
+            )
+        )
+
+    # Default module task configuration is a single gradle task which runs assemble, test and lint for every
+    # variant configured for the given module.
+    else:
+        gradle_tasks = " ".join([
+            gradle_module_task_name(module, gradle_task)
+            for gradle_task in ['assemble', 'assembleAndroidTest', 'test', 'lintRelease']
+        ])
+        task_definitions.append(
+            BUILDER.craft_build_task(
+                module_name=module,
+                gradle_tasks=gradle_tasks,
+                subtitle="assembleAndTestAndLintReleaseAll",
+                run_coverage=True,
+            )
+        )
+
+    return task_definitions
 
 
-def create_detekt_task():
-    return create_task(
-        name='Android Components - detekt',
-        description='Running detekt over all modules',
-        command='detekt')
-
-
-def create_ktlint_task():
-    return create_task(
-        name='Android Components - ktlint',
-        description='Running ktlint over all modules',
-        command='ktlint')
-
-
-def create_compare_locales_task():
-    return create_raw_task(
-        name='Android Components - compare-locales',
-        description='Validate strings.xml with compare-locales',
-        full_command='pip install "compare-locales>=4.0.1,<5.0" && compare-locales --validate l10n.toml .')
-
-
-if __name__ == "__main__":
+def pr(artifacts_info):
     if SKIP_TASKS_TRIGGER in PR_TITLE:
         print("Pull request title contains", SKIP_TASKS_TRIGGER)
         print("Exit")
         exit(0)
 
-    queue = taskcluster.Queue({ 'baseUrl': 'http://taskcluster/queue/v1' })
+    modules = [_get_gradle_module_name(artifact_info) for artifact_info in artifacts_info]
 
-    modules = [':' + artifact['name'] for artifact in lib.module_definitions.from_gradle()]
+    build_tasks = {}
+    other_tasks = {}
 
-    if len(modules) == 0:
+    for module in modules:
+        tasks = create_module_tasks(module)
+        for task in tasks:
+            build_tasks[taskcluster.slugId()] = task
+
+    for craft_function in (BUILDER.craft_detekt_task, BUILDER.craft_ktlint_task, BUILDER.craft_compare_locales_task):
+        other_tasks[taskcluster.slugId()] = craft_function()
+
+    return (build_tasks, other_tasks)
+
+
+def push(artifacts_info):
+    all_tasks = pr(artifacts_info)
+    other_tasks = all_tasks[1]
+    other_tasks[taskcluster.slugId()] = BUILDER.craft_ui_tests_task()
+    return all_tasks
+
+
+def _get_gradle_module_name(artifact_info):
+    return ':{}'.format(artifact_info['name'])
+
+
+def _get_release_gradle_tasks(module_name, is_snapshot):
+    gradle_tasks = ' '.join(
+        '{}:{}{}'.format(
+            module_name,
+            gradle_task,
+            '' if is_snapshot else 'Release'
+        )
+        for gradle_task in ('assemble', 'test', 'lint')
+    )
+
+    return gradle_tasks + ' ' + module_name + ':publish' + ' ' + module_name + ':zipMavenArtifacts'
+
+
+def _to_release_artifact(extension, version, component):
+    artifact_filename = '{}-{}{}'.format(component['name'], version, extension)
+
+    return {
+        'taskcluster_path': 'public/build/{}'.format(artifact_filename),
+        'build_fs_path': '{}/build/maven/org/mozilla/components/{}/{}/{}'.format(
+            os.path.abspath(component['path']),
+            component['name'],
+            version, artifact_filename),
+        'maven_destination': 'maven2/org/mozilla/components/{}/{}/{}'.format(
+            component['name'],
+            version,
+            artifact_filename,
+        )
+    }
+
+
+# TODO: DELETE once bug 1558795 is fixed in early Q3
+def release_snapshot(components, is_snapshot, is_staging):
+    version = components_version()
+
+    build_tasks = {}
+    wait_on_builds_tasks = {}
+    beetmover_tasks = {}
+    other_tasks = {}
+    wait_on_builds_task_id = taskcluster.slugId()
+
+    for component in components:
+        build_task_id = taskcluster.slugId()
+        module_name = _get_gradle_module_name(component)
+        build_tasks[build_task_id] = BUILDER.craft_build_task(
+            module_name=module_name,
+            gradle_tasks=_get_release_gradle_tasks(module_name, is_snapshot),
+            subtitle='({}{})'.format(version, '-SNAPSHOT' if is_snapshot else ''),
+            run_coverage=False,
+            is_snapshot=is_snapshot,
+            component=component
+        )
+
+        beetmover_tasks[taskcluster.slugId()] = BUILDER.craft_snapshot_beetmover_task(
+            build_task_id, wait_on_builds_task_id, version, component['artifact'],
+            component['name'], is_snapshot, is_staging
+        )
+
+    wait_on_builds_tasks[wait_on_builds_task_id] = BUILDER.craft_barrier_task(build_tasks.keys())
+
+    for craft_function in (BUILDER.craft_detekt_task, BUILDER.craft_ktlint_task, BUILDER.craft_compare_locales_task):
+        other_tasks[taskcluster.slugId()] = craft_function()
+
+    return (build_tasks, wait_on_builds_tasks, beetmover_tasks, other_tasks)
+
+
+def release(components, is_snapshot, is_staging):
+    if is_snapshot:
+        # TODO: DELETE once bug 1558795 is fixed in early Q3
+        return release_snapshot(components, is_snapshot, is_staging)
+
+    version = components_version()
+
+    build_tasks = {}
+    wait_on_builds_tasks = {}
+    sign_tasks = {}
+    beetmover_tasks = {}
+    other_tasks = {}
+    wait_on_builds_task_id = taskcluster.slugId()
+
+
+    for component in components:
+        build_task_id = taskcluster.slugId()
+        module_name = _get_gradle_module_name(component)
+        build_tasks[build_task_id] = BUILDER.craft_build_task(
+            module_name=module_name,
+            gradle_tasks=_get_release_gradle_tasks(module_name, is_snapshot),
+            subtitle='({}{})'.format(version, '-SNAPSHOT' if is_snapshot else ''),
+            run_coverage=False,
+            is_snapshot=is_snapshot,
+            component=component,
+            artifacts=[_to_release_artifact(extension + hash_extension, version, component)
+                       for extension, hash_extension in
+                       itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)]
+        )
+
+        sign_task_id = taskcluster.slugId()
+        sign_tasks[sign_task_id] = BUILDER.craft_sign_task(
+            build_task_id, wait_on_builds_task_id, [_to_release_artifact(extension, version, component)
+                            for extension in AAR_EXTENSIONS],
+            component['name'], is_staging,
+        )
+
+        beetmover_build_artifacts = [_to_release_artifact(extension + hash_extension, version, component)
+                                     for extension, hash_extension in
+                                     itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)]
+        beetmover_sign_artifacts = [_to_release_artifact(extension + '.asc', version, component)
+                                    for extension in AAR_EXTENSIONS]
+        beetmover_tasks[taskcluster.slugId()] = BUILDER.craft_beetmover_task(
+            build_task_id, sign_task_id, beetmover_build_artifacts, beetmover_sign_artifacts,
+            component['name'], is_snapshot, is_staging
+        )
+
+    wait_on_builds_tasks[wait_on_builds_task_id] = BUILDER.craft_barrier_task(build_tasks.keys())
+
+    if is_snapshot:     # XXX These jobs perma-fail on release
+        for craft_function in (BUILDER.craft_detekt_task, BUILDER.craft_ktlint_task, BUILDER.craft_compare_locales_task):
+            other_tasks[taskcluster.slugId()] = craft_function()
+
+    return (build_tasks, wait_on_builds_tasks, sign_tasks, beetmover_tasks, other_tasks)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Creates and submit a graph of tasks on Taskcluster.')
+
+    subparsers = parser.add_subparsers(dest='command')
+
+    subparsers.add_parser('pr')
+    subparsers.add_parser('push')
+    release_parser = subparsers.add_parser('release')
+
+    release_parser.add_argument(
+        '--snapshot', action='store_true', dest='is_snapshot',
+        help='Create snapshot artifacts and upload them onto the snapshot repository'
+    )
+    release_parser.add_argument(
+        '--staging', action='store_true', dest='is_staging',
+        help='Perform a staging build. Artifacts are uploaded on either '
+             'https://maven-default.stage.mozaws.net/ or https://maven-snapshots.stage.mozaws.net/'
+    )
+
+    result = parser.parse_args()
+
+    command = result.command
+
+    components = components()
+    if command == 'release':
+        if result.is_snapshot:
+            # TODO: DELETE once bug 1558795 is fixed in early Q3
+            components = snapshot_components()
+        components = [info for info in components if info['shouldPublish']]
+
+    if len(components) == 0:
         print("Could not get module names from gradle")
         sys.exit(2)
 
-    for module in modules:
-        task = create_module_task(module)
-        task_id = taskcluster.slugId()
-        lib.tasks.schedule_task(queue, task_id, task)
+    if command == 'pr':
+        ordered_groups_of_tasks = pr(components)
+    elif command == 'push':
+        ordered_groups_of_tasks = push(components)
+    elif command == 'release':
+        ordered_groups_of_tasks = release(
+            components, result.is_snapshot, result.is_staging
+        )
+    else:
+        raise Exception('Unsupported command "{}"'.format(command))
 
-    lib.tasks.schedule_task(queue, taskcluster.slugId(), create_detekt_task())
-    lib.tasks.schedule_task(queue, taskcluster.slugId(), create_ktlint_task())
-    lib.tasks.schedule_task(queue, taskcluster.slugId(), create_compare_locales_task())
+    full_task_graph = schedule_task_graph(ordered_groups_of_tasks)
+
+    populate_chain_of_trust_task_graph(full_task_graph)
+    populate_chain_of_trust_required_but_unused_files()

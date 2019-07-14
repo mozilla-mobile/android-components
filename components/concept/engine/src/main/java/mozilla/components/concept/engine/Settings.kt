@@ -6,6 +6,7 @@ package mozilla.components.concept.engine
 
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.request.RequestInterceptor
 import kotlin.reflect.KProperty
 
@@ -30,6 +31,17 @@ abstract class Settings {
      * Setting to control whether or not Web fonts are enabled.
      */
     open var webFontsEnabled: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether the fonts adjust size with the system accessibility settings.
+     */
+    open var automaticFontSizeAdjustment: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether the [Accept-Language] headers are altered with system locale
+     * settings.
+     */
+    open var automaticLanguageAdjustment: Boolean by UnsupportedSetting()
 
     /**
      * Setting to control tracking protection.
@@ -72,6 +84,13 @@ abstract class Settings {
     open var loadWithOverviewMode: Boolean by UnsupportedSetting()
 
     /**
+     * Setting to control whether to support the viewport HTML meta tag or if a wide viewport
+     * should be used. If not null, this value overrides useWideViePort webSettings in
+     * [EngineSession.toggleDesktopMode].
+     */
+    open var useWideViewPort: Boolean? by UnsupportedSetting()
+
+    /**
      * Setting to control whether or not file access is allowed.
      */
     open var allowFileAccess: Boolean by UnsupportedSetting()
@@ -108,6 +127,42 @@ abstract class Settings {
      * Setting to control whether or not remote debugging is enabled.
      */
     open var remoteDebuggingEnabled: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether or not multiple windows are supported.
+     */
+    open var supportMultipleWindows: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether or not testing mode is enabled.
+     */
+    open var testingModeEnabled: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to alert the content that the user prefers a particular theme. This affects the
+     * [@media(prefers-color-scheme)] query.
+     */
+    open var preferredColorScheme: PreferredColorScheme by UnsupportedSetting()
+
+    /**
+     * Setting to control whether media is allowed to auto-play on page load.
+     */
+    open var allowAutoplayMedia: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether media should be suspended when the session is inactive.
+     */
+    open var suspendMediaWhenInactive: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control whether font inflation is enabled.
+     */
+    open var fontInflationEnabled: Boolean? by UnsupportedSetting()
+
+    /**
+     * Setting to control the font size factor. All font sizes will be multiplied by this factor.
+     */
+    open var fontSizeFactor: Float? by UnsupportedSetting()
 }
 
 /**
@@ -117,6 +172,8 @@ data class DefaultSettings(
     override var javascriptEnabled: Boolean = true,
     override var domStorageEnabled: Boolean = true,
     override var webFontsEnabled: Boolean = true,
+    override var automaticFontSizeAdjustment: Boolean = true,
+    override var automaticLanguageAdjustment: Boolean = true,
     override var mediaPlaybackRequiresUserGesture: Boolean = true,
     override var trackingProtectionPolicy: TrackingProtectionPolicy? = null,
     override var requestInterceptor: RequestInterceptor? = null,
@@ -125,13 +182,21 @@ data class DefaultSettings(
     override var javaScriptCanOpenWindowsAutomatically: Boolean = false,
     override var displayZoomControls: Boolean = true,
     override var loadWithOverviewMode: Boolean = false,
+    override var useWideViewPort: Boolean? = null,
     override var allowFileAccess: Boolean = true,
     override var allowFileAccessFromFileURLs: Boolean = false,
     override var allowUniversalAccessFromFileURLs: Boolean = false,
     override var allowContentAccess: Boolean = true,
     override var verticalScrollBarEnabled: Boolean = true,
     override var horizontalScrollBarEnabled: Boolean = true,
-    override var remoteDebuggingEnabled: Boolean = false
+    override var remoteDebuggingEnabled: Boolean = false,
+    override var supportMultipleWindows: Boolean = false,
+    override var preferredColorScheme: PreferredColorScheme = PreferredColorScheme.System,
+    override var testingModeEnabled: Boolean = false,
+    override var allowAutoplayMedia: Boolean = true,
+    override var suspendMediaWhenInactive: Boolean = false,
+    override var fontInflationEnabled: Boolean? = null,
+    override var fontSizeFactor: Float? = null
 ) : Settings()
 
 class UnsupportedSetting<T> {

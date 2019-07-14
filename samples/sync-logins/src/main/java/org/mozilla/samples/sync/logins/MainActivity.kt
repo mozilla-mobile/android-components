@@ -4,100 +4,124 @@
 
 package org.mozilla.samples.sync.logins
 
-import android.Manifest
-import android.content.Context
-import android.net.Uri
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.view.View
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import android.support.v4.content.ContextCompat
-import android.widget.Toast
 import android.widget.ArrayAdapter
 import android.widget.ListView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import mozilla.components.service.fxa.Config
+import mozilla.components.concept.sync.AccountObserver
+import mozilla.components.concept.sync.DeviceType
+import mozilla.components.concept.sync.OAuthAccount
+import mozilla.components.concept.sync.Profile
 import mozilla.components.service.fxa.FirefoxAccount
-import mozilla.components.service.fxa.FxaException
+import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.DeviceConfig
+import mozilla.components.service.fxa.ServerConfig
+import mozilla.components.service.fxa.SyncConfig
+import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
+import mozilla.components.service.fxa.sync.SyncStatusObserver
+import mozilla.components.service.sync.logins.AsyncLoginsStorageAdapter
+import mozilla.components.service.sync.logins.SyncableLoginsStore
+import mozilla.components.support.base.log.Log
+import mozilla.components.support.base.log.sink.AndroidLogSink
+import java.io.File
 import kotlin.coroutines.CoroutineContext
 
-open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
+const val CLIENT_ID = "3c49430b43dfba77"
+const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
 
-    private var scopes: Array<String> = arrayOf("profile", "https://identity.mozilla.com/apps/oldsync")
-    private var wantsKeys: Boolean = true
+class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope, SyncStatusObserver {
+    private val loginsStorage by lazy {
+        SyncableLoginsStore(
+                AsyncLoginsStorageAdapter.forDatabase(File(this.filesDir, "logins.sqlite").canonicalPath)
+        ) {
+            CompletableDeferred("my-not-so-secret-password")
+        }
+    }
+
+    init {
+        GlobalSyncableStoreProvider.configureStore("logins" to loginsStorage)
+    }
 
     private lateinit var listView: ListView
     private lateinit var adapter: ArrayAdapter<String>
     private lateinit var activityContext: MainActivity
-    private lateinit var whenAccount: Deferred<FirefoxAccount>
+    private lateinit var account: FirefoxAccount
+    private val accountManager by lazy {
+        FxaAccountManager(
+                applicationContext,
+                ServerConfig.release(CLIENT_ID, REDIRECT_URL),
+                DeviceConfig("A-C Logins Sync Sample", DeviceType.MOBILE, setOf()),
+                SyncConfig(setOf("logins"))
+        )
+    }
 
     private lateinit var job: Job
     override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + job
-
-    companion object {
-        const val CLIENT_ID = "12cc4070a481bc73"
-        const val REDIRECT_URL = "fxaclient://android.redirect"
-        const val CONFIG_URL = "https://latest.dev.lcip.org"
-        const val FXA_STATE_PREFS_KEY = "fxaAppState"
-        const val FXA_STATE_KEY = "fxaState"
-    }
+    get() = Dispatchers.Main + job
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Log.addSink(AndroidLogSink())
+
         setContentView(R.layout.activity_main)
         job = Job()
+
+        // Observe sync state changes.
+        accountManager.registerForSyncEvents(observer = this, owner = this, autoPause = true)
 
         listView = findViewById(R.id.logins_list_view)
         adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1)
         listView.adapter = adapter
         activityContext = this
 
-        whenAccount = async {
-            try {
-                val savedJSON = getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE)
-                        .getString(FXA_STATE_KEY, "")
-                FirefoxAccount.fromJSONString(savedJSON)
-            } catch (e: FxaException) {
-                Config.custom(CONFIG_URL).await().use { config ->
-                    FirefoxAccount(config, CLIENT_ID, REDIRECT_URL)
-                }
-            }
-        }
+        accountManager.register(accountObserver, owner = this, autoPause = true)
+
+        launch { accountManager.initAsync().await() }
 
         findViewById<View>(R.id.buttonWebView).setOnClickListener {
             launch {
-                val url = whenAccount.await().beginOAuthFlow(scopes, wantsKeys).await()
-                openWebView(url)
+                val authUrl = accountManager.beginAuthenticationAsync().await()
+                if (authUrl == null) {
+                    Toast.makeText(this@MainActivity, "Account auth error", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                openWebView(authUrl)
+            }
+        }
+    }
+
+    private val accountObserver = object : AccountObserver {
+
+        @Suppress("EmptyFunctionBlock")
+        override fun onLoggedOut() {}
+
+        override fun onAuthenticated(account: OAuthAccount) {
+            accountManager.syncNowAsync()
+        }
+
+        @Suppress("EmptyFunctionBlock")
+        override fun onProfileUpdated(profile: Profile) {}
+
+        override fun onAuthenticationProblems() {
+            launch {
+                Toast.makeText(this@MainActivity, "Account auth problem", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        runBlocking { whenAccount.await().close() }
+        account.close()
         job.cancel()
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        val action = intent.action
-        val data = intent.dataString
-
-        if (Intent.ACTION_VIEW == action && data != null) {
-            val url = Uri.parse(data)
-            val code = url.getQueryParameter("code")
-            val state = url.getQueryParameter("state")
-            displayAndPersistProfile(code, state)
-        }
     }
 
     private fun openWebView(url: String) {
@@ -109,35 +133,37 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
     }
 
     override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
-        displayAndPersistProfile(code, state)
-        supportFragmentManager?.popBackStack()
+        launch {
+            accountManager.finishAuthenticationAsync(code, state).await()
+            supportFragmentManager?.popBackStack()
+        }
     }
 
-    private fun displayAndPersistProfile(code: String, state: String) {
+    // SyncManager observable interface:
+    override fun onStarted() {
+        Toast.makeText(this@MainActivity, "Syncing...", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onIdle() {
+        Toast.makeText(this@MainActivity, "Logins sync success", Toast.LENGTH_SHORT).show()
+
         launch {
-            val account = whenAccount.await()
-            val oauthInfo = account.completeOAuthFlow(code, state).await()
-
-            val permissionCheck = ContextCompat.checkSelfPermission(this@MainActivity,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
-            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
+            val syncedLogins = CoroutineScope(Dispatchers.IO + job).async {
+                loginsStorage.withUnlocked {
+                    it.list().await()
                 }
             }
 
-            val appFiles = this@MainActivity.applicationContext.getExternalFilesDir(null)
-            SyncLoginsClient(appFiles.absolutePath + "/logins.sqlite").use { logins ->
-                val tokenServer = account.getTokenServerEndpointURL()
-                val syncLogins = logins.syncAndGetPasswords(oauthInfo, tokenServer)
-                Toast.makeText(this@MainActivity, "Logins success", Toast.LENGTH_SHORT).show()
-                for (i in 0 until syncLogins.size) {
-                    adapter.addAll("Login: " + syncLogins[i].hostname)
-                    adapter.notifyDataSetChanged()
-                }
-            }
+            adapter.addAll(syncedLogins.await().map { "Login: " + it.hostname })
+            adapter.notifyDataSetChanged()
         }
+    }
+
+    override fun onError(error: java.lang.Exception?) {
+        Toast.makeText(
+            this@MainActivity,
+            "Logins sync error ${error?.localizedMessage}",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }

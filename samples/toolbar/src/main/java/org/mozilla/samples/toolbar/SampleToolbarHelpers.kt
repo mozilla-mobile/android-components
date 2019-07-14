@@ -5,12 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.drawable.ClipDrawable
-import android.support.v7.widget.RecyclerView
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -22,10 +22,15 @@ enum class ToolbarConfiguration(val label: String) {
     DEFAULT("Default"),
     FOCUS_TABLET("Firefox Focus (Tablet)"),
     FOCUS_PHONE("Firefox Focus (Phone)"),
-    SEEDLING("Seedling")
+    SEEDLING("Seedling"),
+    CUSTOM_MENU("Custom Menu"),
+    PRIVATE_MODE("Private Mode")
 }
 
-class ConfigurationAdapter(val configuration: ToolbarConfiguration) : RecyclerView.Adapter<ConfigurationViewHolder>() {
+@Suppress("MagicNumber")
+class ConfigurationAdapter(
+    private val configuration: ToolbarConfiguration
+) : RecyclerView.Adapter<ConfigurationViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ConfigurationViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_toolbar_configuration, parent, false)
         return ConfigurationViewHolder(view as TextView)
@@ -72,6 +77,7 @@ object Extra {
 /**
  * A custom view to be drawn behind the URL and page actions. Acts as a custom progress view.
  */
+@Suppress("MagicNumber")
 class UrlBoxProgressView(
     context: Context
 ) : View(context) {
@@ -122,7 +128,7 @@ class UrlBoxProgressView(
         progressDrawable.setBounds(0, 0, w, h)
     }
 
-    override fun onDraw(canvas: Canvas?) {
+    override fun onDraw(canvas: Canvas) {
         backgroundDrawable.draw(canvas)
         progressDrawable.draw(canvas)
     }

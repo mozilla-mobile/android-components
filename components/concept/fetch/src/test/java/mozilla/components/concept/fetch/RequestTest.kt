@@ -4,20 +4,24 @@
 
 package mozilla.components.concept.fetch
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
-import java.lang.IllegalStateException
+import java.net.URLEncoder
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+@RunWith(AndroidJUnit4::class)
 class RequestTest {
+
     @Test
     fun `URL-only Request`() {
         val request = Request("https://www.mozilla.org")
@@ -39,7 +43,9 @@ class RequestTest {
             connectTimeout = Pair(10, TimeUnit.SECONDS),
             readTimeout = Pair(1, TimeUnit.MINUTES),
             body = Request.Body.fromString("Hello World!"),
-            redirect = Request.Redirect.MANUAL
+            redirect = Request.Redirect.MANUAL,
+            cookiePolicy = Request.CookiePolicy.INCLUDE,
+            useCaches = true
         )
 
         assertEquals("https://www.mozilla.org", request.url)
@@ -53,6 +59,8 @@ class RequestTest {
 
         assertEquals("Hello World!", request.body!!.useStream { it.bufferedReader().readText() })
         assertEquals(Request.Redirect.MANUAL, request.redirect)
+        assertEquals(Request.CookiePolicy.INCLUDE, request.cookiePolicy)
+        assertEquals(true, request.useCaches)
 
         val headers = request.headers!!
         assertEquals(3, headers.size)
@@ -69,7 +77,7 @@ class RequestTest {
     @Test
     fun `Create request body from string`() {
         val body = Request.Body.fromString("Hello World")
-        assertEquals("Hello World", body.useStream { it.bufferedReader().readText() })
+        assertEquals("Hello World", body.readText())
     }
 
     @Test
@@ -78,7 +86,37 @@ class RequestTest {
         file.writer().use { it.write("Banana") }
 
         val body = Request.Body.fromFile(file)
-        assertEquals("Banana", body.useStream { it.bufferedReader().readText() })
+        assertEquals("Banana", body.readText())
+    }
+
+    @Test
+    fun `WHEN creating a request body from empty params THEN the empty string is returned`() {
+        assertEquals("", Request.Body.fromParamsForFormUrlEncoded().readText())
+    }
+
+    @Test
+    fun `WHEN creating a request body from params with empty keys or values THEN they are represented as the empty string in the result`() {
+        // In practice, we don't expect anyone to do this but this test is here as to documentation of what happens.
+        val expected = "=value&hello=world&key="
+        val body = Request.Body.fromParamsForFormUrlEncoded(
+            "" to "value",
+            "hello" to "world",
+            "key" to ""
+        )
+        assertEquals(expected, body.readText())
+    }
+
+    @Test
+    fun `WHEN creating a request body from non-alphabetized params for urlencoded THEN it's in the correct format and ordering`() {
+        val inputUrl = "https://github.com/mozilla-mobile/android-components/issues/2394"
+        val encodedURL = URLEncoder.encode(inputUrl, Charsets.UTF_8.name())
+        val expected = "v=2&url=$encodedURL"
+
+        val body = Request.Body.fromParamsForFormUrlEncoded(
+            "v" to "2",
+            "url" to inputUrl
+        )
+        assertEquals(expected, body.readText())
     }
 
     @Test
@@ -132,3 +170,5 @@ class RequestTest {
         }
     }
 }
+
+private fun Request.Body.readText(): String = useStream { it.bufferedReader().readText() }

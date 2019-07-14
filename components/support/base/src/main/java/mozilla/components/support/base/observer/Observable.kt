@@ -1,7 +1,7 @@
 package mozilla.components.support.base.observer
 
-import android.arch.lifecycle.LifecycleOwner
 import android.view.View
+import androidx.lifecycle.LifecycleOwner
 
 /**
  * Interface for observables. This interface is implemented by ObserverRegistry so that classes that
@@ -39,7 +39,8 @@ interface Observable<T> {
     /**
      * Registers an observer to get notified about changes.
      *
-     * The observer will automatically unsubscribe if the provided view gets detached.
+     * The observer will only be notified if the view is attached and will be unregistered/
+     * registered if the attached state changes.
      *
      * @param observer the observer to register.
      * @param view the view the provided observer is bound to.
@@ -86,4 +87,9 @@ interface Observable<T> {
      * Returns a list of lambdas wrapping a consuming method of an observer.
      */
     fun <R> wrapConsumers(block: T.(R) -> Boolean): List<(R) -> Boolean>
+
+    /**
+     * If the observable has registered observers.
+     */
+    fun isObserved(): Boolean
 }

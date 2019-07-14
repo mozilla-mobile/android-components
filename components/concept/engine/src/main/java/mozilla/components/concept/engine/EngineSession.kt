@@ -5,10 +5,18 @@
 package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
-import android.support.annotation.CallSuper
+import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS
+import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import java.lang.UnsupportedOperationException
 
 /**
  * Class representing a single engine session.
@@ -40,6 +48,24 @@ abstract class EngineSession(
         fun onAppPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onContentPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
+        fun onPromptRequest(promptRequest: PromptRequest) = Unit
+        fun onOpenWindowRequest(windowRequest: WindowRequest) = Unit
+        fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
+        fun onMediaAdded(media: Media) = Unit
+        fun onMediaRemoved(media: Media) = Unit
+        fun onWebAppManifestLoaded(manifest: WebAppManifest) = Unit
+        fun onCrashStateChange(crashed: Boolean) = Unit
+        fun onRecordingStateChanged(devices: List<RecordingDevice>) = Unit
+
+        /**
+         * The engine received a request to load a request.
+         *
+         * @param url The string url that was requested.
+         * @param triggeredByRedirect True if and only if the request was triggered by an HTTP redirect.
+         * @param triggeredByWebContent True if and only if the request was triggered from within
+         * web content (as opposed to via the browser chrome).
+         */
+        fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
@@ -58,24 +84,129 @@ abstract class EngineSession(
     abstract val settings: Settings
 
     /**
-     * Represents a tracking protection policy which is a combination of
-     * tracker categories that should be blocked.
+     * Represents a tracking protection policy, which is a combination of
+     * tracker categories that should be blocked. Unless otherwise specified,
+     * a [TrackingProtectionPolicy] is applicable to all session types (see
+     * [TrackingProtectionPolicyForSessionTypes]).
      */
-    class TrackingProtectionPolicy(val categories: Int) {
+    open class TrackingProtectionPolicy internal constructor(
+        val categories: Int,
+        val useForPrivateSessions: Boolean = true,
+        val useForRegularSessions: Boolean = true,
+        val cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS
+    ) {
+
+        /**
+         * Indicates how cookies should behave for a given [TrackingProtectionPolicy].
+         * The ids of each cookiePolicy is aligned with the GeckoView @CookieBehavior constants.
+         */
+        @Suppress("MagicNumber")
+        enum class CookiePolicy(val id: Int) {
+            /**
+             * Accept first-party and third-party cookies and site data.
+             */
+            ACCEPT_ALL(0),
+
+            /**
+             * Accept only first-party cookies and site data to block cookies which are
+             * not associated with the domain of the visited site.
+             */
+            ACCEPT_ONLY_FIRST_PARTY(1),
+
+            /**
+             * Do not store any cookies and site data.
+             */
+            ACCEPT_NONE(2),
+
+            /**
+             * Accept first-party and third-party cookies and site data only from
+             * sites previously visited in a first-party context.
+             */
+            ACCEPT_VISITED(3),
+
+            /**
+             * Accept only first-party and non-tracking third-party cookies and site data
+             * to block cookies which are not associated with the domain of the visited
+             * site set by known trackers.
+             */
+            ACCEPT_NON_TRACKERS(4)
+        }
+
         companion object {
             internal const val NONE: Int = 0
-            const val AD: Int = 1 shl 0
-            const val ANALYTICS: Int = 1 shl 1
-            const val SOCIAL: Int = 1 shl 2
-            const val CONTENT: Int = 1 shl 3
-            // This policy is just to align categories with GeckoView (which has CATEGORY_TEST = 1 << 4)
-            const val TEST: Int = 1 shl 4
-            internal const val ALL: Int = (1 shl 5) - 1
+            /**
+             * Blocks advertisement trackers.
+             */
+            const val AD: Int = 1 shl 1
+            /**
+             * Blocks analytics trackers.
+             */
+            const val ANALYTICS: Int = 1 shl 2
+            /**
+             * Blocks social trackers.
+             */
+            const val SOCIAL: Int = 1 shl 3
+            /**
+             * Blocks content trackers.
+             * May cause issues with some web sites.
+             */
+            const val CONTENT: Int = 1 shl 4
+            // This policy is just to align categories with GeckoView (which has AT_TEST = 1 << 5)
+            const val TEST: Int = 1 shl 5
+            /**
+             * Blocks cryptocurrency miners.
+             */
+            const val CRYPTOMINING = 1 shl 6
+            /**
+             * Blocks fingerprinting trackers.
+             */
+            const val FINGERPRINTING = 1 shl 7
+            /**
+             * Blocks malware sites.
+             */
+            const val SAFE_BROWSING_MALWARE = 1 shl 10
+            /**
+             * Blocks unwanted sites.
+             */
+            const val SAFE_BROWSING_UNWANTED = 1 shl 11
+            /**
+             * Blocks harmful sites.
+             */
+            const val SAFE_BROWSING_HARMFUL = 1 shl 12
+            /**
+             * Blocks phishing sites.
+             */
+            const val SAFE_BROWSING_PHISHING = 1 shl 13
+            /**
+             * Blocks all unsafe sites.
+             */
+            const val SAFE_BROWSING_ALL =
+                SAFE_BROWSING_MALWARE + SAFE_BROWSING_UNWANTED + SAFE_BROWSING_HARMFUL + SAFE_BROWSING_PHISHING
 
-            fun none(): TrackingProtectionPolicy = TrackingProtectionPolicy(NONE)
-            fun all(): TrackingProtectionPolicy = TrackingProtectionPolicy(ALL)
-            fun select(vararg categories: Int): TrackingProtectionPolicy =
-                TrackingProtectionPolicy(categories.sum())
+            const val RECOMMENDED = AD + ANALYTICS + SOCIAL + TEST + SAFE_BROWSING_ALL
+
+            const val ALL = RECOMMENDED + CRYPTOMINING + FINGERPRINTING + CONTENT
+
+            fun none() = TrackingProtectionPolicy(NONE, cookiePolicy = ACCEPT_ALL)
+
+            /**
+             * Strict policy.
+             * Combining the [recommended] categories plus [CRYPTOMINING], [FINGERPRINTING] and [CONTENT].
+             * With a cookiePolicy of [ACCEPT_NON_TRACKERS].
+             * This is the strictest setting and may cause issues on some web sites.
+             */
+            fun all() = TrackingProtectionPolicyForSessionTypes(ALL)
+
+            /**
+             * Recommended policy.
+             * Combining the [AD], [ANALYTICS], [SOCIAL], [TEST] categories plus [SAFE_BROWSING_ALL].
+             * With a [CookiePolicy] of [ACCEPT_NON_TRACKERS].
+             * This is the recommended setting.
+             */
+            fun recommended() = TrackingProtectionPolicyForSessionTypes(RECOMMENDED)
+
+            fun select(vararg categories: Int, cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS) =
+                TrackingProtectionPolicyForSessionTypes(categories.sum(), cookiePolicy)
         }
 
         fun contains(category: Int) = (categories and category) != 0
@@ -84,18 +215,81 @@ abstract class EngineSession(
             if (this === other) return true
             if (other !is TrackingProtectionPolicy) return false
             if (categories != other.categories) return false
+            if (useForPrivateSessions != other.useForPrivateSessions) return false
+            if (useForRegularSessions != other.useForRegularSessions) return false
             return true
         }
 
-        override fun hashCode(): Int {
-            return categories
+        override fun hashCode() = categories
+    }
+
+    /**
+     * Subtype of [TrackingProtectionPolicy] to control the type of session this policy
+     * should be applied to. By default, a policy will be applied to all sessions.
+     */
+    class TrackingProtectionPolicyForSessionTypes internal constructor(
+        categories: Int,
+        cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS
+    ) : TrackingProtectionPolicy(categories, cookiePolicy = cookiePolicy) {
+        /**
+         * Marks this policy to be used for private sessions only.
+         */
+        fun forPrivateSessionsOnly() = TrackingProtectionPolicy(
+            categories,
+            useForPrivateSessions = true,
+            useForRegularSessions = false,
+            cookiePolicy = cookiePolicy
+        )
+
+        /**
+         * Marks this policy to be used for regular (non-private) sessions only.
+         */
+        fun forRegularSessionsOnly() = TrackingProtectionPolicy(
+            categories,
+            useForPrivateSessions = false,
+            useForRegularSessions = true,
+            cookiePolicy = cookiePolicy
+        )
+    }
+
+    /**
+     * Describes a combination of flags provided to the engine when loading a URL.
+     */
+    class LoadUrlFlags internal constructor(val value: Int) {
+        companion object {
+            const val NONE: Int = 0
+            const val BYPASS_CACHE: Int = 1 shl 0
+            const val BYPASS_PROXY: Int = 1 shl 1
+            const val EXTERNAL: Int = 1 shl 2
+            const val ALLOW_POPUPS: Int = 1 shl 3
+            const val BYPASS_CLASSIFIER: Int = 1 shl 4
+            internal const val ALL = BYPASS_CACHE + BYPASS_PROXY + EXTERNAL + ALLOW_POPUPS + BYPASS_CLASSIFIER
+
+            fun all() = LoadUrlFlags(ALL)
+            fun none() = LoadUrlFlags(NONE)
+            fun external() = LoadUrlFlags(EXTERNAL)
+            fun select(vararg types: Int) = LoadUrlFlags(types.sum())
         }
+
+        fun contains(flag: Int) = (value and flag) != 0
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is LoadUrlFlags) return false
+            if (value != other.value) return false
+            return true
+        }
+
+        override fun hashCode() = value
     }
 
     /**
      * Loads the given URL.
+     *
+     * @param url the url to load.
+     * @param flags the [LoadUrlFlags] to use when loading the provider url.
      */
-    abstract fun loadUrl(url: String)
+    abstract fun loadUrl(url: String, flags: LoadUrlFlags = LoadUrlFlags.none())
 
     /**
      * Loads the data with the given mimeType.
@@ -144,14 +338,14 @@ abstract class EngineSession(
      * to restore the original state. See [restoreState] and the specific
      * engine implementation for details.
      */
-    abstract fun saveState(): Map<String, Any>
+    abstract fun saveState(): EngineSessionState
 
     /**
      * Restores the engine state as provided by [saveState].
      *
      * @param state state retrieved from [saveState]
      */
-    abstract fun restoreState(state: Map<String, Any>)
+    abstract fun restoreState(state: EngineSessionState)
 
     /**
      * Enables tracking protection for this engine session.
@@ -171,9 +365,21 @@ abstract class EngineSession(
     abstract fun toggleDesktopMode(enable: Boolean, reload: Boolean = false)
 
     /**
-     * Clears all user data sources available.
+     * Clears browsing data stored by the engine.
+     *
+     * @param data the type of data that should be cleared.
+     * @param host (optional) name of the host for which data should be cleared. If
+     * omitted data will be cleared for all hosts.
+     * @param onSuccess (optional) callback invoked if the data was cleared successfully.
+     * @param onError (optional) callback invoked if clearing the data caused an exception.
      */
-    abstract fun clearData()
+    open fun clearData(
+        data: Engine.BrowsingData = Engine.BrowsingData.all(),
+        host: String? = null,
+        onSuccess: (() -> Unit) = { },
+        onError: ((Throwable) -> Unit) = { }
+    ): Unit = onError(UnsupportedOperationException("Clearing browsing data is not supported by this engine. " +
+            "Check both the engine and engine session implementation."))
 
     /**
      * Finds and highlights all occurrences of the provided String and highlights them asynchronously.
@@ -201,14 +407,16 @@ abstract class EngineSession(
     abstract fun exitFullScreenMode()
 
     /**
-     * Takes a screenshot of the actual tab
+     * Tries to recover from a crash by restoring the last know state.
+     *
+     * Returns true if a last known state was restored, otherwise false.
      */
-    abstract fun captureThumbnail(): Bitmap?
+    abstract fun recoverFromCrash(): Boolean
 
     /**
      * Close the session. This may free underlying objects. Call this when you are finished using
      * this session.
      */
     @CallSuper
-    fun close() = delegate.unregisterObservers()
+    open fun close() = delegate.unregisterObservers()
 }

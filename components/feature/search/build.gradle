@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -22,16 +22,18 @@ android {
 }
 
 dependencies {
-    implementation project(':browser-search')
+    api project(':browser-search')
     implementation project(':browser-session')
     implementation project(':concept-engine')
 
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+    testImplementation project(':support-test')
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
 }
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(Config.componentsGroupId, archivesBaseName, gradle.componentDescriptions[archivesBaseName])
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

@@ -4,6 +4,8 @@
 
 package mozilla.components.service.fretboard.source.kinto
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.fretboard.Experiment
 import mozilla.components.service.fretboard.ExperimentDownloadException
 import mozilla.components.service.fretboard.JSONExperimentParser
@@ -17,12 +19,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import java.util.Date
 import java.util.Calendar
+import java.util.Date
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SignatureVerifierTest {
+
     private lateinit var server: MockWebServer
 
     @Before
@@ -622,7 +624,7 @@ class SignatureVerifierTest {
         for (i in 0 until experimentsJSONArray.length()) {
             experiments.add(parser.fromJson(experimentsJSONArray[i] as JSONObject))
         }
-        val client = HttpURLConnectionHttpClient()
+        val client = HttpURLConnectionClient()
         val verifier = SignatureVerifier(client, KintoClient(client, url, "testbucket", "testcollection"), currentDate)
         assertEquals(expected, verifier.validSignature(experiments, experimentsJSON.getLong("last_modified")))
         server.shutdown()

@@ -4,9 +4,12 @@
 
 package mozilla.components.feature.tabs.tabstray
 
+import androidx.annotation.VisibleForTesting
+import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
  * Feature implementation for connecting a tabs tray implementation with the session module.
@@ -16,25 +19,33 @@ class TabsFeature(
     sessionManager: SessionManager,
     tabsUseCases: TabsUseCases,
     closeTabsTray: () -> Unit
-) {
-    private val presenter = TabsTrayPresenter(
+) : LifecycleAwareFeature {
+    @VisibleForTesting
+    internal var presenter = TabsTrayPresenter(
         tabsTray,
         sessionManager,
-        closeTabsTray)
+        closeTabsTray
+    )
 
-    private val interactor = TabsTrayInteractor(
+    @VisibleForTesting
+    internal var interactor = TabsTrayInteractor(
         tabsTray,
-        tabsUseCases.selectSession,
-        tabsUseCases.removeSession,
+        tabsUseCases.selectTab,
+        tabsUseCases.removeTab,
         closeTabsTray)
 
-    fun start() {
+    override fun start() {
         presenter.start()
         interactor.start()
     }
 
-    fun stop() {
+    override fun stop() {
         presenter.stop()
         interactor.stop()
+    }
+
+    fun filterTabs(tabsFilter: (Session) -> Boolean) {
+        presenter.sessionsFilter = tabsFilter
+        presenter.calculateDiffAndUpdateTabsTray()
     }
 }

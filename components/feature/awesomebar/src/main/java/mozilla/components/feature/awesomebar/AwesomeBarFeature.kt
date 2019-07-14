@@ -4,13 +4,17 @@
 
 package mozilla.components.feature.awesomebar
 
+import android.content.Context
 import android.view.View
+import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.search.SearchEngine
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.feature.awesomebar.provider.ClipboardSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.HistoryStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SessionSuggestionProvider
@@ -24,16 +28,19 @@ import mozilla.components.feature.tabs.TabsUseCases
 class AwesomeBarFeature(
     private val awesomeBar: AwesomeBar,
     private val toolbar: Toolbar,
-    private val engineView: EngineView? = null
+    private val engineView: EngineView? = null,
+    private val icons: BrowserIcons? = null,
+    onEditStart: (() -> Unit)? = null,
+    onEditComplete: (() -> Unit)? = null
 ) {
     init {
-        toolbar.setOnEditListener(object : mozilla.components.concept.toolbar.Toolbar.OnEditListener {
-            override fun onTextChanged(text: String) = awesomeBar.onInputChanged(text)
-
-            override fun onStartEditing() = showAwesomeBar()
-
-            override fun onStopEditing() = hideAwesomeBar()
-        })
+        toolbar.setOnEditListener(ToolbarEditListener(
+            awesomeBar,
+            onEditStart,
+            onEditComplete,
+            ::showAwesomeBar,
+            ::hideAwesomeBar
+        ))
 
         awesomeBar.setOnStopListener { toolbar.displayMode() }
     }
@@ -45,7 +52,7 @@ class AwesomeBarFeature(
         sessionManager: SessionManager,
         selectTabUseCase: TabsUseCases.SelectTabUseCase
     ): AwesomeBarFeature {
-        val provider = SessionSuggestionProvider(sessionManager, selectTabUseCase)
+        val provider = SessionSuggestionProvider(sessionManager, selectTabUseCase, icons)
         awesomeBar.addProviders(provider)
         return this
     }
@@ -55,9 +62,12 @@ class AwesomeBarFeature(
      */
     fun addSearchProvider(
         searchEngine: SearchEngine,
-        searchUseCase: SearchUseCases.DefaultSearchUrlUseCase
+        searchUseCase: SearchUseCases.SearchUseCase,
+        fetchClient: Client,
+        limit: Int = 15,
+        mode: SearchSuggestionProvider.Mode = SearchSuggestionProvider.Mode.SINGLE_SUGGESTION
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchSuggestionProvider(searchEngine, searchUseCase))
+        awesomeBar.addProviders(SearchSuggestionProvider(searchEngine, searchUseCase, fetchClient, limit, mode))
         return this
     }
 
@@ -68,19 +78,57 @@ class AwesomeBarFeature(
         historyStorage: HistoryStorage,
         loadUrlUseCase: SessionUseCases.LoadUrlUseCase
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase))
+        awesomeBar.addProviders(HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons))
+        return this
+    }
+
+    fun addClipboardProvider(
+        context: Context,
+        loadUrlUseCase: SessionUseCases.LoadUrlUseCase
+    ): AwesomeBarFeature {
+        awesomeBar.addProviders(ClipboardSuggestionProvider(context, loadUrlUseCase, icons = icons))
         return this
     }
 
     private fun showAwesomeBar() {
         awesomeBar.asView().visibility = View.VISIBLE
         engineView?.asView()?.visibility = View.GONE
-        awesomeBar.onInputStarted()
     }
 
     private fun hideAwesomeBar() {
         awesomeBar.asView().visibility = View.GONE
         engineView?.asView()?.visibility = View.VISIBLE
+    }
+}
+
+internal class ToolbarEditListener(
+    private val awesomeBar: AwesomeBar,
+    private val onEditStart: (() -> Unit)? = null,
+    private val onEditComplete: (() -> Unit)? = null,
+    private val showAwesomeBar: () -> Unit,
+    private val hideAwesomeBar: () -> Unit
+) : Toolbar.OnEditListener {
+    private var inputStarted = false
+
+    override fun onTextChanged(text: String) {
+        if (inputStarted) {
+            awesomeBar.onInputChanged(text)
+        }
+    }
+
+    override fun onStartEditing() {
+        onEditStart?.invoke() ?: showAwesomeBar()
+        awesomeBar.onInputStarted()
+        inputStarted = true
+    }
+
+    override fun onStopEditing() {
+        onEditComplete?.invoke() ?: hideAwesomeBar()
         awesomeBar.onInputCancelled()
+        inputStarted = false
+    }
+
+    override fun onCancelEditing(): Boolean {
+        return true
     }
 }

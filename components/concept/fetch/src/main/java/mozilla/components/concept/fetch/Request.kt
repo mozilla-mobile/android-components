@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.fetch
 
+import android.net.Uri
 import java.io.Closeable
 import java.io.File
 import java.io.IOException
@@ -27,6 +28,13 @@ import java.util.concurrent.TimeUnit
  * timeout.
  * @property body An optional body to be send with the request.
  * @property redirect Whether the [Client] should follow redirects (HTTP 3xx) for this request or not.
+ * @property cookiePolicy A policy to specify whether or not cookies should be
+ * sent with the request, defaults to [CookiePolicy.INCLUDE]
+ * @property useCaches Whether caches should be used or a network request
+ * should be forced, defaults to true (use caches).
+ *
+ * @see [Headers.Names]
+ * @see [Headers.Values]
  */
 data class Request(
     val url: String,
@@ -35,7 +43,9 @@ data class Request(
     val connectTimeout: Pair<Long, TimeUnit>? = null,
     val readTimeout: Pair<Long, TimeUnit>? = null,
     val body: Body? = null,
-    val redirect: Redirect = Redirect.FOLLOW
+    val redirect: Redirect = Redirect.FOLLOW,
+    val cookiePolicy: CookiePolicy = CookiePolicy.INCLUDE,
+    val useCaches: Boolean = true
 ) {
     /**
      * A [Body] to be send with the [Request].
@@ -55,6 +65,23 @@ data class Request(
              * Create a [Body] from the provided [File].
              */
             fun fromFile(file: File): Body = Body(file.inputStream())
+
+            /**
+             * Create a [Body] from the provided [unencodedParams] in the format of Content-Type
+             * "application/x-www-form-urlencoded". Parameters are formatted as "key1=value1&key2=value2..."
+             * and values are percent-encoded. If the given map is empty, the response body will contain the
+             * empty string.
+             *
+             * @see [Headers.Values.CONTENT_TYPE_FORM_URLENCODED]
+             */
+            fun fromParamsForFormUrlEncoded(vararg unencodedParams: Pair<String, String>): Body {
+                // It's unintuitive to use the Uri class format and encode
+                // but its GET query syntax is exactly what we need.
+                val uriBuilder = Uri.Builder()
+                unencodedParams.forEach { (key, value) -> uriBuilder.appendQueryParameter(key, value) }
+                val encodedBody = uriBuilder.build().encodedQuery ?: "" // null when the given map is empty.
+                return Body(encodedBody.byteInputStream())
+            }
         }
 
         /**
@@ -107,5 +134,17 @@ data class Request(
          * Do not follow redirects and let caller handle them manually.
          */
         MANUAL
+    }
+
+    enum class CookiePolicy {
+        /**
+         * Include cookies when sending the request.
+         */
+        INCLUDE,
+
+        /**
+         * Do not send cookies with the request.
+         */
+        OMIT
     }
 }

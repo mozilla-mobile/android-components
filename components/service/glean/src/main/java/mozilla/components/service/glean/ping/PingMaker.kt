@@ -4,28 +4,64 @@
 
 package mozilla.components.service.glean.ping
 
-import android.support.annotation.VisibleForTesting
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.glean.BuildConfig
+import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.storages.StorageEngineManager
+import mozilla.components.service.glean.storages.ExperimentsStorageEngine
+import mozilla.components.service.glean.utils.getISOTimeString
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.android.org.json.mergeWith
+import org.json.JSONException
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 internal class PingMaker(
-    private val storageManager: StorageEngineManager
+    private val storageManager: StorageEngineManager,
+    private val applicationContext: Context
 ) {
+    private val logger = Logger("glean/PingMaker")
     private val pingStartTimes: MutableMap<String, String> = mutableMapOf()
     private val objectStartTime = getISOTimeString()
+    internal val sharedPreferences: SharedPreferences? by lazy {
+        applicationContext.getSharedPreferences(
+            this.javaClass.canonicalName,
+            Context.MODE_PRIVATE
+        )
+    }
 
     /**
-     * Generate an ISO8601 compliant time string for the current time.
+     * Get the ping sequence number for a given ping. This is a
+     * monotonically-increasing value that is updated every time a particular ping
+     * type is sent.
      *
-     * @return a string containing the date and time.
+     * @param pingName The name of the ping
+     * @return sequence number
      */
-    private fun getISOTimeString(): String {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mmXXX", Locale.US)
-        return dateFormat.format(Date())
+    internal fun getPingSeq(pingName: String): Int {
+        sharedPreferences?.let {
+            val key = "${pingName}_seq"
+            val currentValue = it.getInt(key, 0)
+            val editor = it.edit()
+            editor.putInt(key, currentValue + 1)
+            editor.apply()
+            return currentValue
+        }
+
+        // This clause should happen in testing only, where a sharedPreferences object
+        // isn't guaranteed to exist if using a mocked ApplicationContext
+        logger.error("Couldn't get SharedPreferences object for ping sequence number")
+        return 0
+    }
+
+    /**
+     * Reset all ping sequence numbers.
+     */
+    internal fun resetPingSequenceNumbers() {
+        sharedPreferences?.let {
+            it.edit().clear().apply()
+        }
     }
 
     /**
@@ -36,11 +72,13 @@ internal class PingMaker(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     fun getPingInfo(pingName: String): JSONObject {
-        // TODO this section is still missing app_build, client_id, seq and experiments.
-        // These fields will be added by bug 1497894 when 1499756 and 1501318 land.
         val pingInfo = JSONObject()
         pingInfo.put("ping_type", pingName)
-        pingInfo.put("telemetry_sdk_build", BuildConfig.LIBRARY_VERSION)
+
+        // Experiments belong in ping_info, because they must appear in every ping
+        pingInfo.put("experiments", ExperimentsStorageEngine.getSnapshotAsJSON("", false))
+
+        pingInfo.put("seq", getPingSeq(pingName))
 
         // This needs to be a bit more involved for start-end times. "start_time" is
         // the time the ping was generated the last time. If not available, we use the
@@ -55,18 +93,68 @@ internal class PingMaker(
     }
 
     /**
+     * Return the object containing the "client_info" section of a ping.
+     *
+     * @param includeClientId When `true`, include the "client_id" metric.
+     * @return a [JSONObject] containing the "client_info" data
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    fun getClientInfo(includeClientId: Boolean): JSONObject {
+        val clientInfo = JSONObject()
+        clientInfo.put("telemetry_sdk_build", BuildConfig.LIBRARY_VERSION)
+        clientInfo.mergeWith(getClientInfoMetrics(includeClientId))
+        return clientInfo
+    }
+
+    /**
+     * Collect the metrics stored in the "glean_client_info" bucket.
+     *
+     * @param includeClientId When `true`, include the "client_id" metric.
+     * @return a [JSONObject] containing the metrics belonging to the "client_info"
+     *         section of the ping.
+     */
+    private fun getClientInfoMetrics(includeClientId: Boolean): JSONObject {
+        val pingInfoData = storageManager.collect("glean_client_info")
+
+        // The data returned by the manager is keyed by the storage engine name.
+        // For example, the client id will live in the "uuid" object, within
+        // `clientInfoData`. Remove the first level of indirection and return
+        // the flattened data to the caller.
+        val flattenedData = JSONObject()
+        try {
+            val metricsData = pingInfoData.getJSONObject("metrics")
+            for (key in metricsData.keys()) {
+                flattenedData.mergeWith(metricsData.getJSONObject(key))
+            }
+        } catch (e: JSONException) {
+            logger.warn("Empty client info data.")
+        }
+
+        if (!includeClientId) {
+            flattenedData.remove("client_id")
+        }
+
+        return flattenedData
+    }
+
+    /**
      * Collects the relevant data and assembles the requested ping.
      *
-     * @param storage the name of the storage containing the data for the ping.
-     *        This usually matches with the name of the ping
-     * @return a string holding the data for the ping.
+     * @param ping The metadata describing the ping to collect.
+     * @return a string holding the data for the ping, or null if there is no data to send.
      */
-    fun collect(storage: String): String {
-        val jsonPing = JSONObject()
+    fun collect(ping: PingType): String? {
+        logger.debug("Collecting ${ping.name}")
+        val jsonPing = storageManager.collect(ping.name)
 
-        // Assemble the JSON ping.
-        jsonPing.put("ping_info", getPingInfo(storage))
-        jsonPing.put("metrics", storageManager.collect(storage))
+        // Return null if there is nothing in the jsonPing object so that this can be used by
+        // consuming functions (i.e. sendPing()) to indicate no ping data is available to send.
+        if (jsonPing.length() == 0) {
+            return null
+        }
+
+        jsonPing.put("ping_info", getPingInfo(ping.name))
+        jsonPing.put("client_info", getClientInfo(ping.includeClientId))
 
         return jsonPing.toString()
     }

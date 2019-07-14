@@ -5,34 +5,65 @@
 package mozilla.components.support.ktx.kotlin
 
 import android.net.Uri
-import android.text.TextUtils
+import mozilla.components.support.utils.URLStringUtils
+import java.security.MessageDigest
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.text.RegexOption.IGNORE_CASE
 
 /**
- * Normalizes a URL String.
+ * A collection of regular expressions used in the `is*` methods below.
  */
-fun String.toNormalizedUrl(): String {
-    val trimmedInput = this.trim()
-    var uri = Uri.parse(trimmedInput)
-    if (TextUtils.isEmpty(uri.scheme)) {
-        uri = Uri.parse("http://$trimmedInput")
-    }
-    return uri.toString()
+private val re = object {
+    val phoneish = "^\\s*tel:\\S?\\d+\\S*\\s*$".toRegex(IGNORE_CASE)
+    val emailish = "^\\s*mailto:\\w+\\S*\\s*$".toRegex(IGNORE_CASE)
+    val geoish = "^\\s*geo:\\S*\\d+\\S*\\s*$".toRegex(IGNORE_CASE)
 }
 
 /**
  * Checks if this String is a URL.
  */
-fun String.isUrl(): Boolean {
-    val trimmedUrl = this.trim()
-    if (trimmedUrl.contains(" ")) {
-        return false
-    }
+fun String.isUrl() = URLStringUtils.isURLLike(this)
 
-    return trimmedUrl.contains(".") || trimmedUrl.contains(":")
+fun String.toNormalizedUrl() = URLStringUtils.toNormalizedURL(this)
+
+fun String.isPhone() = re.phoneish.matches(this)
+
+fun String.isEmail() = re.emailish.matches(this)
+
+fun String.isGeoLocation() = re.geoish.matches(this)
+
+/**
+ * Converts a [String] to a [Date] object.
+ * @param format date format used for formatting the this given [String] object.
+ * @param locale the locale to use when converting the String, defaults to [Locale.ROOT].
+ * @return a [Date] object with the values in the provided in this string, if empty string was provided, a current date
+ * will be returned.
+ */
+fun String.toDate(format: String, locale: Locale = Locale.ROOT): Date {
+    val formatter = SimpleDateFormat(format, locale)
+    return if (isNotEmpty()) {
+        formatter.parse(this) ?: Date()
+    } else {
+        Date()
+    }
 }
 
-fun String.isPhone(): Boolean = contains("tel:", true)
+/**
+ * Converts a [String] to a [Uri] object.
+ */
+@Deprecated("Use Android KTX instead", ReplaceWith("toUri()", "androidx.core.net.toUri"))
+fun String.toUri() = Uri.parse(this)
 
-fun String.isEmail(): Boolean = contains("mailto:", true)
-
-fun String.isGeoLocation(): Boolean = contains("geo:", true)
+/**
+ * Calculates a SHA1 hash for this string.
+ */
+@Suppress("MagicNumber")
+fun String.sha1(): String {
+    val characters = "0123456789abcdef"
+    val digest = MessageDigest.getInstance("SHA-1").digest(toByteArray())
+    return digest.joinToString(separator = "", transform = { byte ->
+        String(charArrayOf(characters[byte.toInt() shr 4 and 0x0f], characters[byte.toInt() and 0x0f]))
+    })
+}

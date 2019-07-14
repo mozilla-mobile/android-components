@@ -7,16 +7,16 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
         applicationId "org.mozilla.samples.crash"
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -30,11 +30,12 @@ android {
 
 dependencies {
     implementation project(':lib-crash')
+    implementation project(':support-base')
 
-    implementation Deps.kotlin_stdlib
-    implementation Deps.kotlin_coroutines
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
-    implementation Deps.support_appcompat
-    implementation Deps.support_design
-    implementation Deps.support_recyclerview
+    implementation Dependencies.androidx_appcompat
+    implementation Dependencies.google_material
+    implementation Dependencies.androidx_recyclerview
 }

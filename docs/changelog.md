@@ -49,8 +49,12 @@ permalink: /changelog/
   * Added `SessionManager.add(List<Session>)` to add a list of `Session`s to the `SessionManager`.
 
 * **feature-tab-collections**
+  * ⚠️ **These are breaking changes below**:
   * `Tab.restore()` now returns a `Session` instead of a `SessionManager.Snapshot`
   * `TabCollection.restore()` and `TabCollection.restoreSubset()` now return a `List<Session>` instead of a `SessionManager.Snapshot`
+
+* **support-ktx**
+  * Added `onNextGlobalLayout` to add a `ViewTreeObserver.OnGlobalLayoutListener` that is only called once.
 
 # 3.0.0
 

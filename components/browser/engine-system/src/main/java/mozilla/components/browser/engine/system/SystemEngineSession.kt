@@ -49,6 +49,7 @@ class SystemEngineSession(
     @Volatile internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
     @Volatile internal var webFontsEnabled = true
     @Volatile internal var currentUrl = ""
+    @Volatile internal var useWideViewPort: Boolean? = null // See [toggleDesktopMode]
     @Volatile internal var fullScreenCallback: WebChromeClient.CustomViewCallback? = null
 
     // This is public for FFTV which needs access to the WebView instance. We can mark it internal once
@@ -272,6 +273,11 @@ class SystemEngineSession(
         webSettings.savePassword = false
     }
 
+    private fun setUseWideViewPort(settings: WebSettings, useWideViewPort: Boolean?) {
+        this.useWideViewPort = useWideViewPort
+        useWideViewPort?.let { settings.useWideViewPort = it }
+    }
+
     private fun initSettings(webView: WebView, s: WebSettings) {
         internalSettings = object : Settings() {
             override var javascriptEnabled by WebSetting(s::getJavaScriptEnabled, s::setJavaScriptEnabled)
@@ -281,6 +287,9 @@ class SystemEngineSession(
             override var userAgentString by WebSetting(s::getUserAgentString, s::setUserAgentString)
             override var displayZoomControls by WebSetting(s::getDisplayZoomControls, s::setDisplayZoomControls)
             override var loadWithOverviewMode by WebSetting(s::getLoadWithOverviewMode, s::setLoadWithOverviewMode)
+            override var useWideViewPort: Boolean?
+                get() = this@SystemEngineSession.useWideViewPort
+                set(value) = setUseWideViewPort(s, value)
             override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
@@ -319,6 +328,7 @@ class SystemEngineSession(
                 webFontsEnabled = it.webFontsEnabled
                 displayZoomControls = it.displayZoomControls
                 loadWithOverviewMode = it.loadWithOverviewMode
+                useWideViewPort = it.useWideViewPort
                 trackingProtectionPolicy = it.trackingProtectionPolicy
                 historyTrackingDelegate = it.historyTrackingDelegate
                 requestInterceptor = it.requestInterceptor
@@ -338,11 +348,15 @@ class SystemEngineSession(
 
     /**
      * See [EngineSession.toggleDesktopMode]
+     *
+     * Precondition:
+     * If settings.useWideViewPort = true, then webSettings.useWideViewPort is always on
+     * If settings.useWideViewPort = false or null, then webSettings.useWideViewPort can be on/off
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
         val webSettings = webView.settings
         webSettings.userAgentString = toggleDesktopUA(webSettings.userAgentString, enable)
-        webSettings.useWideViewPort = enable
+        webSettings.useWideViewPort = if (settings.useWideViewPort == true) true else enable
 
         notifyObservers { onDesktopModeChange(enable) }
 

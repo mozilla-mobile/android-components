@@ -8,12 +8,14 @@ import mozilla.components.browser.session.ext.syncDispatch
 import mozilla.components.browser.session.ext.toCustomTabSessionState
 import mozilla.components.browser.session.ext.toTabSessionState
 import mozilla.components.browser.state.action.CustomTabListAction
+import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.base.observer.Observable
+import java.lang.IllegalArgumentException
 
 /**
  * This class provides access to a centralized registry of all active sessions.
@@ -106,6 +108,35 @@ class SessionManager(
                 )
             )
         }
+    }
+
+    /**
+     * Adds multiple sessions.
+     *
+     * Note that for performance reasons this method will invoke
+     * [SessionManager.Observer.onSessionsRestored] and not [SessionManager.Observer.onSessionAdded]
+     * for every added [Session].
+     */
+    fun add(sessions: List<Session>) {
+        // We disallow bulk adding custom tabs or sessions with a parent. At the moment this is not
+        // needed and it makes the browser-state migration logic easier.
+
+        sessions.find { it.isCustomTabSession() }?.let {
+            throw IllegalArgumentException("Bulk adding of custom tab sessions is not supported.")
+        }
+
+        sessions.find { it.parentId != null }?.let {
+            throw IllegalArgumentException("Bulk adding of sessions with a parent is not supported. ")
+        }
+
+        // Add store to each Session so that it can dispatch actions whenever it changes.
+        sessions.forEach { it.store = store }
+
+        delegate.add(sessions)
+
+        store?.syncDispatch(TabListAction.AddMultipleTabsAction(
+            tabs = sessions.map { it.toTabSessionState() }
+        ))
     }
 
     /**
@@ -227,7 +258,10 @@ class SessionManager(
      * Informs this [SessionManager] that the OS is in low memory condition so it
      * can reduce its allocated objects.
      */
-    fun onLowMemory() = delegate.onLowMemory()
+    fun onLowMemory() {
+        delegate.onLowMemory()
+        store?.syncDispatch(SystemAction.LowMemoryAction)
+    }
 
     companion object {
         const val NO_SELECTION = -1

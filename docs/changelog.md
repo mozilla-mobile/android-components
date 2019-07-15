@@ -12,8 +12,48 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * **Merge day!**
+    * `browser-engine-gecko-release`: GeckoView 68.0
+    * `browser-engine-gecko-beta`: GeckoView 69.0
+    * `browser-engine-gecko-nightly`: GeckoView 70.0
+
+* **browser-engine-gecko-beta**
+  * Like with the nightly flavor previously (0.55.0) this component now has a hard dependency on the new [universal GeckoView build](https://bugzilla.mozilla.org/show_bug.cgi?id=1508976) that is no longer architecture specific (ARM, x86, ..). With that apps no longer need to specify the GeckoView dependency themselves and synchronize the used version with Android Components. Additionally apps can now make use of [APK splits](https://developer.android.com/studio/build/configure-apk-splits) or [Android App Bundles (AAB)](https://developer.android.com/guide/app-bundle).
+
 * **feature-media**
   * Added `MediaNotificationFeature` - a feature implementation to show an ongoing notification (keeping the app process alive) while web content is playing media.
+
+* **feature-downloads**
+  * Added custom notification icon for `FetchDownloadManager`.
+
+* **feature-app-links**
+  * Added whitelist for schemes of URLs to open with an external app. This defaults to `mailto`, `market`, `sms` and `tel`.
+
+* **feature-accounts**
+  * ⚠️ **This is a breaking change**: Public API for interacting with `FxaAccountManager` and sync changes
+  * `FxaAccountManager` now has a new, simplified public API.
+  * `BackgroundSyncManager` is longer exists; sync functionality exposed directly via `FxaAccountManager`.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/firefox-accounts/README.md) for detailed description of the new API.
+  * As part of these changes, token caching issue has been fixed. See [#3579](https://github.com/mozilla-mobile/android-components/pull/3579) for details.
+
+* **concept-engine**, **browser-engine-gecko(-beta/nightly)**.
+  * Added `TrackingProtectionPolicy.CookiePolicy` to indicate how cookies should behave for a given `TrackingProtectionPolicy`.
+  * Now `TrackingProtectionPolicy.select` allows you to specify a `TrackingProtectionPolicy.CookiePolicy`, if not specified, `TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS` will be used.
+  * Behavior change: Now `TrackingProtectionPolicy.none()` will get assigned a `TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL`, and both `TrackingProtectionPolicy.all()` and `TrackingProtectionPolicy.recommended()` will have a `TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS`.
+
+* **concept-engine**, **browser-engine-system**
+  * Added `useWideViewPort` in `Settings` to support the viewport HTML meta tag or if a wide viewport should be used. (Only affects `SystemEngineSession`)
+
+* **browser-session**
+  * Added `SessionManager.add(List<Session>)` to add a list of `Session`s to the `SessionManager`.
+
+* **feature-tab-collections**
+  * `Tab.restore()` now returns a `Session` instead of a `SessionManager.Snapshot`
+  * `TabCollection.restore()` and `TabCollection.restoreSubset()` now return a `List<Session>` instead of a `SessionManager.Snapshot`
+
+* **support-ktx**
+  * Added `onNextGlobalLayout` to add a `ViewTreeObserver.OnGlobalLayoutListener` that is only called once.
 
 # 3.0.0
 

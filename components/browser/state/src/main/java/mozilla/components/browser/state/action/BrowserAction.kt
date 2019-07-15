@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.state.action
 
+import android.graphics.Bitmap
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.SecurityInfoState
@@ -18,16 +19,32 @@ import mozilla.components.lib.state.Action
 sealed class BrowserAction : Action
 
 /**
+ * [BrowserAction] implementations to react to system events.
+ */
+sealed class SystemAction : BrowserAction() {
+    /**
+     * Optimizes the [BrowserState] by removing unneeded and optional
+     * resources if the system is in a low memory condition.
+     */
+    object LowMemoryAction : SystemAction()
+}
+
+/**
  * [BrowserAction] implementations related to updating the list of [TabSessionState] inside [BrowserState].
  */
 sealed class TabListAction : BrowserAction() {
     /**
-     * Adds a new [TabSessionState] to the list.
+     * Adds a new [TabSessionState] to the [BrowserState.tabs] list.
      *
      * @property tab the [TabSessionState] to add
      * @property select whether or not to the tab should be selected.
      */
     data class AddTabAction(val tab: TabSessionState, val select: Boolean = false) : TabListAction()
+
+    /**
+     * Adds multiple [TabSessionState] objects to the [BrowserState.tabs] list.
+     */
+    data class AddMultipleTabsAction(val tabs: List<TabSessionState>) : TabListAction()
 
     /**
      * Marks the [TabSessionState] with the given [tabId] as selected tab.
@@ -99,6 +116,11 @@ sealed class CustomTabListAction : BrowserAction() {
  */
 sealed class ContentAction : BrowserAction() {
     /**
+     * Removes the thumbnail of the [ContentState] with the given [sessionId].
+     */
+    data class RemoveThumbnailAction(val sessionId: String) : ContentAction()
+
+    /**
      * Updates the URL of the [ContentState] with the given [sessionId].
      */
     data class UpdateUrlAction(val sessionId: String, val url: String) : ContentAction()
@@ -127,4 +149,9 @@ sealed class ContentAction : BrowserAction() {
      * Updates the [SecurityInfoState] of the [ContentState] with the given [sessionId].
      */
     data class UpdateSecurityInfo(val sessionId: String, val securityInfo: SecurityInfoState) : ContentAction()
+
+    /**
+     * Updates the thumbnail of the [ContentState] with the given [sessionId].
+     */
+    data class UpdateThumbnailAction(val sessionId: String, val thumbnail: Bitmap) : ContentAction()
 }

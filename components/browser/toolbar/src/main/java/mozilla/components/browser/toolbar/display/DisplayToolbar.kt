@@ -90,7 +90,6 @@ internal class DisplayToolbar(
         gravity = Gravity.CENTER_VERTICAL
         textSize = URL_TEXT_SIZE_SP
         visibility = View.GONE
-        ellipsize = TextUtils.TruncateAt.END
 
         setSingleLine(true)
     }

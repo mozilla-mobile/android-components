@@ -26,20 +26,11 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
-import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.reset
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.robolectric.Shadows.shadowOf
 
 @RunWith(AndroidJUnit4::class)
@@ -327,7 +318,7 @@ class DisplayToolbarTest {
         assertFalse(listenerExecuted)
 
         extractActionView(displayToolbar, "Back")!!
-            .performClick()
+                .performClick()
 
         assertTrue(listenerExecuted)
     }
@@ -338,7 +329,7 @@ class DisplayToolbarTest {
         val displayToolbar = DisplayToolbar(testContext, toolbar)
 
         displayToolbar.addNavigationAction(
-            BrowserToolbar.Button(mock(), "Back") {})
+                BrowserToolbar.Button(mock(), "Back") {})
 
         val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
         val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
@@ -359,9 +350,9 @@ class DisplayToolbarTest {
         var shouldActionBeDisplayed = true
 
         val action = BrowserToolbar.Button(
-            mock(),
-            "Back",
-            visible = { shouldActionBeDisplayed }
+                mock(),
+                "Back",
+                visible = { shouldActionBeDisplayed }
         ) { /* Do nothing */ }
 
         displayToolbar.addNavigationAction(action)
@@ -404,9 +395,9 @@ class DisplayToolbarTest {
 
         val visibleAction = BrowserToolbar.Button(mock(), "Reload") {}
         val invisibleAction = BrowserToolbar.Button(
-            mock(),
-            "Reader Mode",
-            visible = { false }) {}
+                mock(),
+                "Reader Mode",
+                visible = { false }) {}
 
         displayToolbar.addPageAction(visibleAction)
         displayToolbar.addPageAction(invisibleAction)
@@ -422,9 +413,9 @@ class DisplayToolbarTest {
 
         val visibleAction = BrowserToolbar.Button(mock(), "Tabs") {}
         val invisibleAction = BrowserToolbar.Button(
-            mock(),
-            "Settings",
-            visible = { false }) {}
+                mock(),
+                "Settings",
+                visible = { false }) {}
 
         displayToolbar.addBrowserAction(visibleAction)
         displayToolbar.addBrowserAction(invisibleAction)
@@ -440,9 +431,9 @@ class DisplayToolbarTest {
 
         val visibleAction = BrowserToolbar.Button(mock(), "Forward") {}
         val invisibleAction = BrowserToolbar.Button(
-            mock(),
-            "Back",
-            visible = { false }) {}
+                mock(),
+                "Back",
+                visible = { false }) {}
 
         displayToolbar.addNavigationAction(visibleAction)
         displayToolbar.addNavigationAction(invisibleAction)
@@ -525,7 +516,7 @@ class DisplayToolbarTest {
         assertTrue(view.measuredWidth > 0)
 
         assertEquals(urlView.measuredWidth + reloadView.measuredWidth + readerView.measuredWidth + iconView.measuredWidth,
-            view.measuredWidth)
+                view.measuredWidth)
         assertEquals(200, view.measuredHeight)
     }
 
@@ -817,8 +808,8 @@ class DisplayToolbarTest {
             val menuView = extractMenuView(displayToolbar)
 
             val menuBuilder = BrowserMenuBuilder(listOf(SimpleBrowserMenuItem("Mozilla")), mapOf(
-                "customTab" to true,
-                "test" to "23"
+                    "customTab" to true,
+                    "test" to "23"
             ))
             displayToolbar.menuBuilder = menuBuilder
 
@@ -879,31 +870,43 @@ class DisplayToolbarTest {
         assertNull(toolbar.displayToolbar.siteSecurityIconView.background)
     }
 
+
+    @Test
+    fun `titleView in displayToolbar is not ellipsized`() {
+
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(testContext, toolbar)
+        val titleView = displayToolbar.titleView
+
+        assertNull(titleView.ellipsize)
+    }
+
+
     companion object {
         private fun extractUrlView(displayToolbar: DisplayToolbar): TextView =
-            extractView(displayToolbar) {
-                it?.id == R.id.mozac_browser_toolbar_url_view
-            } ?: throw AssertionError("Could not find URL view")
+                extractView(displayToolbar) {
+                    it?.id == R.id.mozac_browser_toolbar_url_view
+                } ?: throw AssertionError("Could not find URL view")
 
         private fun extractProgressView(displayToolbar: DisplayToolbar): ProgressBar =
-            extractView(displayToolbar) ?: throw AssertionError("Could not find progress bar")
+                extractView(displayToolbar) ?: throw AssertionError("Could not find progress bar")
 
         private fun extractIconView(displayToolbar: DisplayToolbar): ImageView =
-            extractView(displayToolbar) ?: throw AssertionError("Could not find icon view")
+                extractView(displayToolbar) ?: throw AssertionError("Could not find icon view")
 
         private fun extractMenuView(displayToolbar: DisplayToolbar): MenuButton =
-            extractView(displayToolbar) ?: throw AssertionError("Could not find menu view")
+                extractView(displayToolbar) ?: throw AssertionError("Could not find menu view")
 
         private fun extractActionView(
-            displayToolbar: DisplayToolbar,
-            contentDescription: String
+                displayToolbar: DisplayToolbar,
+                contentDescription: String
         ): ImageButton? = extractView(displayToolbar) {
             it?.contentDescription == contentDescription
         }
 
         private inline fun <reified T> extractView(
-            displayToolbar: DisplayToolbar,
-            otherCondition: (T) -> Boolean = { _ -> true }
+                displayToolbar: DisplayToolbar,
+                otherCondition: (T) -> Boolean = { _ -> true }
         ): T? {
             displayToolbar.forEach {
                 if (it is T && otherCondition(it)) {

@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.util.AttributeSet
 import android.view.View
 import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
@@ -27,26 +28,16 @@ import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
-import org.mockito.Mockito.`when`
-import org.mockito.Mockito.any
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.never
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyNoMoreInteractions
+import org.mockito.Mockito.*
+import org.robolectric.Robolectric
 import org.robolectric.Robolectric.buildAttributeSet
 import org.robolectric.Shadows
+import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
 class BrowserToolbarTest {
@@ -649,8 +640,8 @@ class BrowserToolbarTest {
         view = button.createView(linearLayout)
         assertEquals(view.paddingBottom, 16)
         button = BrowserToolbar.Button(
-            mock(), "imageResource",
-            padding = Padding(16, 20, 24, 28)
+                mock(), "imageResource",
+                padding = Padding(16, 20, 24, 28)
         ) {}
         view = button.createView(linearLayout)
         view.paddingLeft
@@ -663,13 +654,13 @@ class BrowserToolbarTest {
     @Test
     fun `BrowserToolbar ToggleButton must set padding`() {
         var button = BrowserToolbar.ToggleButton(
-            mock(),
-            mock(),
-            "imageResource",
-            "",
-            visible = { true },
-            selected = false,
-            background = 0
+                mock(),
+                mock(),
+                "imageResource",
+                "",
+                visible = { true },
+                selected = false,
+                background = 0
         ) {}
         val linearLayout = LinearLayout(testContext)
         var view = button.createView(linearLayout)
@@ -679,14 +670,14 @@ class BrowserToolbarTest {
         assertEquals(view.paddingBottom, ACTION_PADDING_DP)
 
         button = BrowserToolbar.ToggleButton(
-            mock(),
-            mock(),
-            "imageResource",
-            "",
-            visible = { true },
-            selected = false,
-            background = 0,
-            padding = Padding(16, 20, 24, 28)
+                mock(),
+                mock(),
+                "imageResource",
+                "",
+                visible = { true },
+                selected = false,
+                background = 0,
+                padding = Padding(16, 20, 24, 28)
         ) {}
         view = button.createView(linearLayout)
         view.paddingLeft
@@ -696,12 +687,12 @@ class BrowserToolbarTest {
         assertEquals(view.paddingBottom, 28)
 
         button = BrowserToolbar.ToggleButton(
-            mock(),
-            mock(),
-            "imageResource",
-            "",
-            selected = false,
-            background = 0
+                mock(),
+                mock(),
+                "imageResource",
+                "",
+                selected = false,
+                background = 0
         ) {}
 
         assertTrue(button.visible())
@@ -801,6 +792,65 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `titleView fading is set properly with null attrs`() {
+        val toolbar = BrowserToolbar(testContext)
+        val titleView = toolbar.displayToolbar.titleView
+        val edgeLength = Random.nextInt(1, 24)
+
+        assertFalse(titleView.isHorizontalFadingEdgeEnabled)
+        assertEquals(0, titleView.horizontalFadingEdgeLength)
+
+        titleView.setFadingEdgeLength(edgeLength)
+        titleView.isHorizontalFadingEdgeEnabled = edgeLength > 0
+
+        assertTrue(titleView.isHorizontalFadingEdgeEnabled)
+        assertEquals(edgeLength, titleView.horizontalFadingEdgeLength)
+    }
+
+    @Test
+    fun `titleView fading is set properly with non-null attrs`() {
+        val attributeSet: AttributeSet = Robolectric.buildAttributeSet().build()
+
+        val toolbar = BrowserToolbar(testContext, attributeSet)
+        val titleView = toolbar.displayToolbar.titleView
+        val edgeLength = testContext.resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_fading_edge_size)
+
+        assertTrue(titleView.isHorizontalFadingEdgeEnabled)
+        assertEquals(edgeLength, titleView.horizontalFadingEdgeLength)
+
+    }
+
+    @Test
+    fun `urlView fading is set properly with null attrs`() {
+        val toolbar = BrowserToolbar(testContext)
+        val urlView = toolbar.displayToolbar.urlView
+        val edgeLength = Random.nextInt(1, 24)
+
+        assertFalse(urlView.isHorizontalFadingEdgeEnabled)
+        assertEquals(0, urlView.horizontalFadingEdgeLength)
+
+        urlView.setFadingEdgeLength(edgeLength)
+        urlView.isHorizontalFadingEdgeEnabled = edgeLength > 0
+
+        assertTrue(urlView.isHorizontalFadingEdgeEnabled)
+        assertEquals(edgeLength, urlView.horizontalFadingEdgeLength)
+
+    }
+
+    @Test
+    fun `urlView fading is set properly with non-null attrs`() {
+        val attributeSet: AttributeSet = Robolectric.buildAttributeSet().build()
+
+        val toolbar = BrowserToolbar(testContext, attributeSet)
+        val urlView = toolbar.displayToolbar.urlView
+        val edgeLength = testContext.resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_fading_edge_size)
+
+        assertTrue(urlView.isHorizontalFadingEdgeEnabled)
+        assertEquals(edgeLength, urlView.horizontalFadingEdgeLength)
+
+    }
+
+    @Test
     fun `typeface changes edit and display urlView`() {
         val toolbar = BrowserToolbar(testContext)
         val typeface: Typeface = mock()
@@ -890,17 +940,17 @@ class BrowserToolbarTest {
     @Test
     fun `ToggleButton constructor with drawable`() {
         val buttonDefault =
-            BrowserToolbar.ToggleButton(mock(), mock(), "imageDrawable", "imageSelectedDrawable") {}
+                BrowserToolbar.ToggleButton(mock(), mock(), "imageDrawable", "imageSelectedDrawable") {}
 
         assertEquals(true, buttonDefault.visible())
         assertEquals(BrowserToolbar.DEFAULT_PADDING, buttonDefault.padding)
 
         val button = BrowserToolbar.ToggleButton(
-            mock(),
-            mock(),
-            "imageDrawable",
-            "imageSelectedDrawable",
-            visible = { false }) {}
+                mock(),
+                mock(),
+                "imageDrawable",
+                "imageSelectedDrawable",
+                visible = { false }) {}
 
         assertEquals(false, button.visible())
     }
@@ -940,19 +990,19 @@ class BrowserToolbarTest {
 
         // By default "private mode" is off.
         assertEquals(0, editToolbar.urlView.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
         assertEquals(false, toolbar.private)
 
         // Turning on private mode sets flag
         toolbar.private = true
         assertNotEquals(0, editToolbar.urlView.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
         assertTrue(toolbar.private)
 
         // Turning private mode off again - should remove flag
         toolbar.private = false
         assertEquals(0, editToolbar.urlView.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
         assertEquals(false, toolbar.private)
     }
 }

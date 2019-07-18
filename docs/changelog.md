@@ -16,13 +16,14 @@ permalink: /changelog/
 
 * **browser-icons**
   * Added `BrowserIcons.loadIntoView` to automatically load an icon into an `ImageView`.
+  * Changed the maximum size for decoded icons. Icons are now scaled to the target size to save memory.
 
 * **service-glean**
   * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
 
 * **support-ktx**
   * ⚠️ **This is a breaking behavior change**: `JSONArray.mapNotNull` is now an inline function, changing the behavior of the `return` keyword within its lambda.
-  
+
 # 4.0.1
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v4.0.1)
@@ -32,7 +33,7 @@ permalink: /changelog/
 
 * **service-glean**
   * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
-  
+
 * Imported latest state of translations.
 
 # 4.0.0

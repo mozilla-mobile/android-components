@@ -27,34 +27,23 @@ class TaskBuilder(object):
         self.tasks_priority = tasks_priority
 
     def craft_build_task(self, module_name, gradle_tasks, subtitle='', run_coverage=False,
-                         is_snapshot=False, component=None, artifacts=None):
+                         is_snapshot=False, component=None, artifacts=None, timestamp=None):
         taskcluster_artifacts = {}
         # component is not None when this is a release build, in which case artifacts is defined too
         if component is not None:
-            if is_snapshot:
-                # TODO: DELETE once bug 1558795 is fixed in early Q3
-                taskcluster_artifacts = {
-                    component['artifact']: {
-                        'type': 'file',
-                        'expires': taskcluster.stringDate(taskcluster.fromNow(DEFAULT_EXPIRES_IN)),
-                        'path': component['path']
-                    }
-                }
-            else:
-                # component is not None when this is a release build, in which case artifacts is defined too
-                taskcluster_artifacts = {
-                    artifact['taskcluster_path']: {
-                        'type': 'file',
-                        'expires': taskcluster.stringDate(taskcluster.fromNow(DEFAULT_EXPIRES_IN)),
-                        'path': artifact['build_fs_path'],
-                    } for artifact in artifacts
-                }
+            taskcluster_artifacts = {
+                artifact['taskcluster_path']: {
+                    'type': 'file',
+                    'expires': taskcluster.stringDate(taskcluster.fromNow(DEFAULT_EXPIRES_IN)),
+                    'path': artifact['build_fs_path'],
+                } for artifact in artifacts
+            }
 
         scopes = [
             "secrets:get:project/mobile/android-components/public-tokens"
         ] if run_coverage else []
 
-        snapshot_flag = '-Psnapshot ' if is_snapshot else ''
+        snapshot_flag = '-Psnapshot -Ptimestamp={} '.format(timestamp) if is_snapshot else ''
         coverage_flag = '-Pcoverage ' if run_coverage else ''
         gradle_command = (
             './gradlew --no-daemon clean ' + coverage_flag + snapshot_flag + gradle_tasks
@@ -227,54 +216,6 @@ class TaskBuilder(object):
             ],
             name="Android Components - Publish Module :{} via beetmover".format(component_name),
             description="Publish release module {} to {}".format(component_name, bucket_public_url),
-            payload=payload
-        )
-
-    # TODO: DELETE once bug 1558795 is fixed in early Q3
-    def craft_snapshot_beetmover_task(
-        self, build_task_id, wait_on_builds_task_id, version, artifact, artifact_name,
-        is_snapshot, is_staging
-    ):
-        if is_snapshot:
-            if is_staging:
-                bucket_name = 'maven-snapshot-staging'
-                bucket_public_url = 'https://maven-snapshots.stage.mozaws.net/'
-            else:
-                bucket_name = 'maven-snapshot-production'
-                bucket_public_url = 'https://snapshots.maven.mozilla.org/'
-        else:
-            if is_staging:
-                bucket_name = 'maven-staging'
-                bucket_public_url = 'https://maven-default.stage.mozaws.net/'
-            else:
-                bucket_name = 'maven-production'
-                bucket_public_url = 'https://maven.mozilla.org/'
-
-        payload = {
-            "upstreamArtifacts": [{
-                'paths': [artifact],
-                'taskId': build_task_id,
-                'taskType': 'build',
-                'zipExtract': True,
-            }],
-            "releaseProperties": {
-                "appName": "snapshot_components" if is_snapshot else "components",
-            },
-            "version": "{}-SNAPSHOT".format(version) if is_snapshot else version,
-            "artifact_id": artifact_name
-        }
-
-        return self._craft_default_task_definition(
-            self.beetmover_worker_type,
-            'scriptworker-prov-v1',
-            dependencies=[build_task_id, wait_on_builds_task_id],
-            routes=[],
-            scopes=[
-                "project:mobile:android-components:releng:beetmover:bucket:{}".format(bucket_name),
-                "project:mobile:android-components:releng:beetmover:action:push-to-maven",
-            ],
-            name="Android Components - Publish Module :{} via beetmover".format(artifact_name),
-            description="Publish release module {} to {}".format(artifact_name, bucket_public_url),
             payload=payload
         )
 

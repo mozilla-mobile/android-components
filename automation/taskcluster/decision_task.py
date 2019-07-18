@@ -14,7 +14,7 @@ import os
 import taskcluster
 import sys
 
-from lib.build_config import components_version, components, snapshot_components
+from lib.build_config import components_version, components, generate_snapshot_timestamp
 from lib.tasks import TaskBuilder, schedule_task_graph
 from lib.util import (
     populate_chain_of_trust_task_graph,
@@ -218,66 +218,32 @@ def _get_release_gradle_tasks(module_name, is_snapshot):
         for gradle_task in ('assemble', 'test', 'lint')
     )
 
-    return gradle_tasks + ' ' + module_name + ':publish' + ' ' + module_name + ':zipMavenArtifacts'
+    rename_step = '{}:renameSnapshotArtifacts'.format(module_name) if is_snapshot else ''
+    return "{} {}:publish {}".format(gradle_tasks, module_name, rename_step, module_name)
 
 
-def _to_release_artifact(extension, version, component):
-    artifact_filename = '{}-{}{}'.format(component['name'], version, extension)
+def _to_release_artifact(extension, version, component, timestamp=None):
+    if timestamp:
+        artifact_filename = '{}-{}-{}{}'.format(component['name'], version, timestamp, extension)
+    else:
+        artifact_filename = '{}-{}{}'.format(component['name'], version, extension)
 
     return {
         'taskcluster_path': 'public/build/{}'.format(artifact_filename),
         'build_fs_path': '{}/build/maven/org/mozilla/components/{}/{}/{}'.format(
             os.path.abspath(component['path']),
             component['name'],
-            version, artifact_filename),
+            version if not timestamp else version + '-SNAPSHOT',
+            artifact_filename),
         'maven_destination': 'maven2/org/mozilla/components/{}/{}/{}'.format(
             component['name'],
-            version,
+            version if not timestamp else version + '-SNAPSHOT',
             artifact_filename,
         )
     }
 
 
-# TODO: DELETE once bug 1558795 is fixed in early Q3
-def release_snapshot(components, is_snapshot, is_staging):
-    version = components_version()
-
-    build_tasks = {}
-    wait_on_builds_tasks = {}
-    beetmover_tasks = {}
-    other_tasks = {}
-    wait_on_builds_task_id = taskcluster.slugId()
-
-    for component in components:
-        build_task_id = taskcluster.slugId()
-        module_name = _get_gradle_module_name(component)
-        build_tasks[build_task_id] = BUILDER.craft_build_task(
-            module_name=module_name,
-            gradle_tasks=_get_release_gradle_tasks(module_name, is_snapshot),
-            subtitle='({}{})'.format(version, '-SNAPSHOT' if is_snapshot else ''),
-            run_coverage=False,
-            is_snapshot=is_snapshot,
-            component=component
-        )
-
-        beetmover_tasks[taskcluster.slugId()] = BUILDER.craft_snapshot_beetmover_task(
-            build_task_id, wait_on_builds_task_id, version, component['artifact'],
-            component['name'], is_snapshot, is_staging
-        )
-
-    wait_on_builds_tasks[wait_on_builds_task_id] = BUILDER.craft_barrier_task(build_tasks.keys())
-
-    for craft_function in (BUILDER.craft_detekt_task, BUILDER.craft_ktlint_task, BUILDER.craft_compare_locales_task):
-        other_tasks[taskcluster.slugId()] = craft_function()
-
-    return (build_tasks, wait_on_builds_tasks, beetmover_tasks, other_tasks)
-
-
 def release(components, is_snapshot, is_staging):
-    if is_snapshot:
-        # TODO: DELETE once bug 1558795 is fixed in early Q3
-        return release_snapshot(components, is_snapshot, is_staging)
-
     version = components_version()
 
     build_tasks = {}
@@ -287,6 +253,9 @@ def release(components, is_snapshot, is_staging):
     other_tasks = {}
     wait_on_builds_task_id = taskcluster.slugId()
 
+    timestamp = None
+    if is_snapshot:
+        timestamp = generate_snapshot_timestamp()
 
     for component in components:
         build_task_id = taskcluster.slugId()
@@ -298,22 +267,23 @@ def release(components, is_snapshot, is_staging):
             run_coverage=False,
             is_snapshot=is_snapshot,
             component=component,
-            artifacts=[_to_release_artifact(extension + hash_extension, version, component)
+            artifacts=[_to_release_artifact(extension + hash_extension, version, component, timestamp)
                        for extension, hash_extension in
-                       itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)]
+                       itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)],
+            timestamp=timestamp,
         )
 
         sign_task_id = taskcluster.slugId()
         sign_tasks[sign_task_id] = BUILDER.craft_sign_task(
-            build_task_id, wait_on_builds_task_id, [_to_release_artifact(extension, version, component)
+            build_task_id, wait_on_builds_task_id, [_to_release_artifact(extension, version, component, timestamp)
                             for extension in AAR_EXTENSIONS],
             component['name'], is_staging,
         )
 
-        beetmover_build_artifacts = [_to_release_artifact(extension + hash_extension, version, component)
+        beetmover_build_artifacts = [_to_release_artifact(extension + hash_extension, version, component, timestamp)
                                      for extension, hash_extension in
                                      itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)]
-        beetmover_sign_artifacts = [_to_release_artifact(extension + '.asc', version, component)
+        beetmover_sign_artifacts = [_to_release_artifact(extension + '.asc', version, component, timestamp)
                                     for extension in AAR_EXTENSIONS]
         beetmover_tasks[taskcluster.slugId()] = BUILDER.craft_beetmover_task(
             build_task_id, sign_task_id, beetmover_build_artifacts, beetmover_sign_artifacts,
@@ -354,9 +324,6 @@ if __name__ == "__main__":
 
     components = components()
     if command == 'release':
-        if result.is_snapshot:
-            # TODO: DELETE once bug 1558795 is fixed in early Q3
-            components = snapshot_components()
         components = [info for info in components if info['shouldPublish']]
 
     if len(components) == 0:

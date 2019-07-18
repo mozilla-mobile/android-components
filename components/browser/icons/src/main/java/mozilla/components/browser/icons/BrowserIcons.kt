@@ -6,11 +6,19 @@ package mozilla.components.browser.icons
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import android.widget.ImageView
+import androidx.annotation.MainThread
+import androidx.annotation.WorkerThread
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import mozilla.components.browser.icons.decoder.AndroidIconDecoder
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
 import mozilla.components.browser.icons.decoder.IconDecoder
@@ -30,13 +38,15 @@ import mozilla.components.browser.icons.preparer.TippyTopIconPreparer
 import mozilla.components.browser.icons.processor.DiskIconProcessor
 import mozilla.components.browser.icons.processor.IconProcessor
 import mozilla.components.browser.icons.processor.MemoryIconProcessor
-import mozilla.components.browser.icons.utils.DiskCache
-import mozilla.components.browser.icons.utils.MemoryCache
+import mozilla.components.browser.icons.utils.CancelOnDetach
+import mozilla.components.browser.icons.utils.IconDiskCache
+import mozilla.components.browser.icons.utils.IconMemoryCache
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.utils.AllSessionsObserver
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.support.base.log.logger.Logger
+import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
 
 private const val MAXIMUM_SCALE_FACTOR = 2.0f
@@ -44,8 +54,8 @@ private const val MAXIMUM_SCALE_FACTOR = 2.0f
 // Number of worker threads we are using internally.
 private const val THREADS = 3
 
-internal val sharedMemoryCache = MemoryCache()
-internal val sharedDiskCache = DiskCache()
+internal val sharedMemoryCache = IconMemoryCache()
+internal val sharedDiskCache = IconDiskCache()
 
 /**
  * Entry point for loading icons for websites.
@@ -91,6 +101,7 @@ class BrowserIcons(
         }
     }
 
+    @WorkerThread
     private fun loadIconInternal(initialRequest: IconRequest): Icon {
         val desiredSize = DesiredSize(
             targetSize = context.resources.getDimensionPixelSize(initialRequest.size.dimen),
@@ -110,9 +121,8 @@ class BrowserIcons(
             is IconLoader.Result.BitmapResult -> Icon(result.bitmap, source = result.source)
 
             is IconLoader.Result.BytesResult ->
-                decode(result.bytes, decoders, desiredSize)?.let { bitmap ->
-                    Icon(bitmap, source = result.source)
-                } ?: return generator.generate(context, request)
+                decode(result.bytes, decoders, desiredSize)?.let { Icon(it, source = result.source) }
+                    ?: return generator.generate(context, request)
         }
 
         // (3) Finally process the icon.
@@ -138,6 +148,57 @@ class BrowserIcons(
                 Logger.error("Could not install browser-icons extension", throwable)
             })
     }
+
+    /**
+     * Loads an icon asynchronously using [BrowserIcons] and then displays it in the [ImageView].
+     * If the view is detached from the window before loading is completed, then loading is cancelled.
+     *
+     * @param view [ImageView] to load icon into.
+     * @param request Load icon for this given [IconRequest].
+     * @param placeholder [Drawable] to display while icon is loading.
+     * @param error [Drawable] to display if loading fails.
+     */
+    fun loadIntoView(
+        view: ImageView,
+        request: IconRequest,
+        placeholder: Drawable? = null,
+        error: Drawable? = null
+    ) = scope.launch(Dispatchers.Main) {
+        loadIntoViewInternal(WeakReference(view), request, placeholder, error)
+    }
+
+    @Suppress("LongMethod")
+    @MainThread
+    private suspend fun loadIntoViewInternal(
+        view: WeakReference<ImageView>,
+        request: IconRequest,
+        placeholder: Drawable?,
+        error: Drawable?
+    ) {
+        // If we previously started loading into the view, cancel the job.
+        val existingJob = view.get()?.getTag(R.id.mozac_browser_icons_tag_job) as? Job
+        existingJob?.cancel()
+
+        view.get()?.setImageDrawable(placeholder)
+
+        // Create a loading job
+        val deferredIcon = loadIcon(request)
+
+        view.get()?.setTag(R.id.mozac_browser_icons_tag_job, deferredIcon)
+        val onAttachStateChangeListener = CancelOnDetach(deferredIcon).also {
+            view.get()?.addOnAttachStateChangeListener(it)
+        }
+
+        try {
+            val icon = deferredIcon.await()
+            view.get()?.setImageBitmap(icon.bitmap)
+        } catch (e: CancellationException) {
+            view.get()?.setImageDrawable(error)
+        } finally {
+            view.get()?.removeOnAttachStateChangeListener(onAttachStateChangeListener)
+            view.get()?.setTag(R.id.mozac_browser_icons_tag_job, null)
+        }
+    }
 }
 
 private fun prepare(context: Context, preparers: List<IconPreprarer>, request: IconRequest): IconRequest =
@@ -150,17 +211,19 @@ private fun load(
     request: IconRequest,
     loaders: List<IconLoader>
 ): Pair<IconLoader.Result, IconRequest.Resource?> {
-    // We are just looping over the resources here. We need to rank them first to try the best icon first.
-    // https://github.com/mozilla-mobile/android-components/issues/2048
-    request.resources.toSortedSet(IconResourceComparator).forEach { resource ->
-        loaders.forEach { loader ->
-            val result = loader.load(context, request, resource)
+    request.resources
+        .asSequence()
+        .distinct()
+        .sortedWith(IconResourceComparator)
+        .forEach { resource ->
+            loaders.forEach { loader ->
+                val result = loader.load(context, request, resource)
 
-            if (result != IconLoader.Result.NoResult) {
-                return Pair(result, resource)
+                if (result != IconLoader.Result.NoResult) {
+                    return Pair(result, resource)
+                }
             }
         }
-    }
 
     return Pair(IconLoader.Result.NoResult, null)
 }

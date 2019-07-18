@@ -41,6 +41,9 @@ permalink: /changelog/
 * **support-ktx**
   * ⚠️ **This is a breaking behavior change**: `JSONArray.mapNotNull` is now an inline function, changing the behavior of the `return` keyword within its lambda.
 
+* **service-firefox-accounts**
+  * Added `AccountMigration`, which may be used to query trusted FxA Auth providers and automatically sign-in into available accounts.
+
 # 4.0.1
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v4.0.1)

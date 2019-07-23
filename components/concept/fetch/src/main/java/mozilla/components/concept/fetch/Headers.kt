@@ -65,6 +65,7 @@ interface Headers : Iterable<Header> {
      */
     object Values {
         const val CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded"
+        const val CONTENT_TYPE_APPLICATION_JSON = "application/json"
     }
 }
 
@@ -159,3 +160,5 @@ class MutableHeaders(headers: List<Header>) : Headers, MutableIterable<Header> {
 
     override fun hashCode() = headers.hashCode()
 }
+
+fun List<Header>.toMutableHeaders() = MutableHeaders(this)

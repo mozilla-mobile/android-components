@@ -11,7 +11,9 @@ import mozilla.components.browser.session.engine.request.LoadRequestOption
 import mozilla.components.browser.session.ext.syncDispatch
 import mozilla.components.browser.session.ext.toSecurityInfoState
 import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.browser.state.action.ContentAction.RemoveIconAction
 import mozilla.components.browser.state.action.ContentAction.RemoveThumbnailAction
+import mozilla.components.browser.state.action.ContentAction.UpdateIconAction
 import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
 import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfo
@@ -21,6 +23,7 @@ import mozilla.components.browser.state.action.ContentAction.UpdateTitleAction
 import mozilla.components.browser.state.action.ContentAction.UpdateUrlAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -81,7 +84,7 @@ class Session(
         fun onWebAppManifestChanged(session: Session, manifest: WebAppManifest?) = Unit
         fun onDownload(session: Session, download: Download): Boolean = false
         fun onTrackerBlockingEnabledChanged(session: Session, blockingEnabled: Boolean) = Unit
-        fun onTrackerBlocked(session: Session, blocked: String, all: List<String>) = Unit
+        fun onTrackerBlocked(session: Session, tracker: Tracker, all: List<Tracker>) = Unit
         fun onLongPress(session: Session, hitResult: HitResult): Boolean = false
         fun onFindResult(session: Session, result: FindResult) = Unit
         fun onDesktopModeChanged(session: Session, enabled: Boolean) = Unit
@@ -300,9 +303,9 @@ class Session(
     }
 
     /**
-     * List of URIs that have been blocked in this session.
+     * List of [Tracker]s that have been blocked in this session.
      */
-    var trackersBlocked: List<String> by Delegates.observable(emptyList()) { _, old, new ->
+    var trackersBlocked: List<Tracker> by Delegates.observable(emptyList()) { _, old, new ->
         notifyObservers(old, new) {
             if (new.isNotEmpty()) {
                 onTrackerBlocked(this@Session, new.last(), new)
@@ -357,7 +360,10 @@ class Session(
      * An icon for the currently visible page.
      */
     var icon: Bitmap? by Delegates.observable<Bitmap?>(null) { _, old, new ->
-        notifyObservers(old, new) { onIconChanged(this@Session, new) }
+        if (notifyObservers(old, new) { onIconChanged(this@Session, new) }) {
+            val action = if (new != null) UpdateIconAction(id, new) else RemoveIconAction(id)
+            store?.syncDispatch(action)
+        }
     }
 
     /**

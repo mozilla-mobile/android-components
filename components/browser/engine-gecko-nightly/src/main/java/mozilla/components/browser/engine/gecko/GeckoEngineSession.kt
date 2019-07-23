@@ -17,6 +17,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.manifest.WebAppManifestParser
 import mozilla.components.concept.engine.request.RequestInterceptor
@@ -26,10 +27,15 @@ import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
-import mozilla.components.support.utils.DownloadUtils
 import org.json.JSONObject
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
+import org.mozilla.geckoview.ContentBlocking.AT_AD
+import org.mozilla.geckoview.ContentBlocking.AT_ANALYTIC
+import org.mozilla.geckoview.ContentBlocking.AT_CONTENT
+import org.mozilla.geckoview.ContentBlocking.AT_CRYPTOMINING
+import org.mozilla.geckoview.ContentBlocking.AT_FINGERPRINTING
+import org.mozilla.geckoview.ContentBlocking.AT_SOCIAL
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
@@ -494,10 +500,33 @@ class GeckoEngineSession(
         override fun onCrash(session: GeckoSession) {
             stateBeforeCrash = lastSessionState
 
+            recoverGeckoSession()
+
+            notifyObservers { onCrash() }
+        }
+
+        override fun onKill(session: GeckoSession) {
+            // The content process of this session got killed (resources reclaimed by Android).
+            // Let's recover and restore the last known state.
+
+            val state = lastSessionState
+
+            recoverGeckoSession()
+
+            state?.let { geckoSession.restoreState(it) }
+
+            notifyObservers { onProcessKilled() }
+        }
+
+        private fun recoverGeckoSession() {
+            // Recover the GeckoSession after the process getting killed or crashing. We create a
+            // new underlying GeckoSession.
+            // Eventually we may be able to re-use the same GeckoSession by re-opening it. However
+            // that seems to have caused issues:
+            // https://github.com/mozilla-mobile/android-components/issues/3640
+
             geckoSession.close()
             createGeckoSession()
-
-            notifyObservers { onCrashStateChange(crashed = true) }
         }
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
@@ -506,13 +535,11 @@ class GeckoEngineSession(
 
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
             notifyObservers {
-                val fileName = response.filename
-                    ?: DownloadUtils.guessFileName("", response.uri, response.contentType)
                 onExternalResource(
                         url = response.uri,
                         contentLength = response.contentLength,
                         contentType = response.contentType,
-                        fileName = fileName)
+                        fileName = response.filename)
             }
         }
 
@@ -543,8 +570,43 @@ class GeckoEngineSession(
 
     private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {
         override fun onContentBlocked(session: GeckoSession, event: ContentBlocking.BlockEvent) {
-            notifyObservers { onTrackerBlocked(event.uri) }
+            notifyObservers {
+                onTrackerBlocked(event.toTracker())
+            }
         }
+    }
+
+    @Suppress("LongMethod")
+    private fun ContentBlocking.BlockEvent.toTracker(): Tracker {
+        val blockedContentCategories = ArrayList<Tracker.Category>()
+
+        if (categories.contains(AT_AD)) {
+            blockedContentCategories.add(Tracker.Category.Ad)
+        }
+
+        if (categories.contains(AT_ANALYTIC)) {
+            blockedContentCategories.add(Tracker.Category.Analytic)
+        }
+
+        if (categories.contains(AT_SOCIAL)) {
+            blockedContentCategories.add(Tracker.Category.Social)
+        }
+
+        if (categories.contains(AT_FINGERPRINTING)) {
+            blockedContentCategories.add(Tracker.Category.Fingerprinting)
+        }
+
+        if (categories.contains(AT_CRYPTOMINING)) {
+            blockedContentCategories.add(Tracker.Category.Cryptomining)
+        }
+        if (categories.contains(AT_CONTENT)) {
+            blockedContentCategories.add(Tracker.Category.Content)
+        }
+        return Tracker(uri, blockedContentCategories)
+    }
+
+    private operator fun Int.contains(mask: Int): Boolean {
+        return (this and mask) != 0
     }
 
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {

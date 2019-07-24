@@ -1,4 +1,4 @@
-componentsVersion: 5.0.0
+componentsVersion: 6.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -203,6 +203,10 @@ projects:
   service-firefox-accounts:
     path: components/service/firefox-accounts
     description: 'A library for integrating with Firefox Accounts.'
+    publish: true
+  service-location:
+    path: components/service/location
+    description: 'A library for providing location-based services.'
     publish: true
   service-sync-logins:
     path: components/service/sync-logins

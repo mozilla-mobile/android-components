@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.util.AttributeSet
 import android.view.View
 import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
@@ -45,6 +46,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import org.robolectric.Robolectric
 import org.robolectric.Robolectric.buildAttributeSet
 import org.robolectric.Shadows
 
@@ -798,6 +800,66 @@ class BrowserToolbarTest {
 
         toolbar.title = "Mozilla"
         assertEquals(toolbar.displayToolbar.titleView.text, "Mozilla")
+    }
+
+    @Test
+    fun `titleView fading is set properly with null attrs`() {
+        val toolbar = BrowserToolbar(testContext)
+        val titleView = toolbar.displayToolbar.titleView
+        val edgeLengthArray = arrayOf(1, 12, 24)
+
+        assertFalse(titleView.isHorizontalFadingEdgeEnabled)
+        assertEquals(0, titleView.horizontalFadingEdgeLength)
+
+        for (edgeLength in edgeLengthArray) {
+            titleView.setFadingEdgeLength(edgeLength)
+            titleView.isHorizontalFadingEdgeEnabled = edgeLength > 0
+
+            assertTrue(titleView.isHorizontalFadingEdgeEnabled)
+            assertEquals(edgeLength, titleView.horizontalFadingEdgeLength)
+        }
+    }
+
+    @Test
+    fun `titleView fading is set properly with non-null attrs`() {
+        val attributeSet: AttributeSet = Robolectric.buildAttributeSet().build()
+
+        val toolbar = BrowserToolbar(testContext, attributeSet)
+        val titleView = toolbar.displayToolbar.titleView
+        val edgeLength = testContext.resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_fading_edge_size)
+
+        assertTrue(titleView.isHorizontalFadingEdgeEnabled)
+        assertEquals(edgeLength, titleView.horizontalFadingEdgeLength)
+    }
+
+    @Test
+    fun `urlView fading is set properly with null attrs`() {
+        val toolbar = BrowserToolbar(testContext)
+        val urlView = toolbar.displayToolbar.urlView
+        val edgeLengthArray = arrayOf(1, 12, 24)
+
+        assertFalse(urlView.isHorizontalFadingEdgeEnabled)
+        assertEquals(0, urlView.horizontalFadingEdgeLength)
+
+        for (edgeLength in edgeLengthArray) {
+            urlView.setFadingEdgeLength(edgeLength)
+            urlView.isHorizontalFadingEdgeEnabled = edgeLength > 0
+
+            assertTrue(urlView.isHorizontalFadingEdgeEnabled)
+            assertEquals(edgeLength, urlView.horizontalFadingEdgeLength)
+        }
+    }
+
+    @Test
+    fun `urlView fading is set properly with non-null attrs`() {
+        val attributeSet: AttributeSet = Robolectric.buildAttributeSet().build()
+
+        val toolbar = BrowserToolbar(testContext, attributeSet)
+        val urlView = toolbar.displayToolbar.urlView
+        val edgeLength = testContext.resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_fading_edge_size)
+
+        assertTrue(urlView.isHorizontalFadingEdgeEnabled)
+        assertEquals(edgeLength, urlView.horizontalFadingEdgeLength)
     }
 
     @Test

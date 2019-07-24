@@ -16,6 +16,7 @@ import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.UnsupportedSettingException
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -784,17 +785,28 @@ class GeckoEngineSessionTest {
         val engineSession = GeckoEngineSession(mock(),
                 geckoSessionProvider = geckoSessionProvider)
 
-        var trackerBlocked = ""
+        var trackerBlocked: Tracker? = null
         engineSession.register(object : EngineSession.Observer {
-            override fun onTrackerBlocked(url: String) {
-                trackerBlocked = url
+            override fun onTrackerBlocked(tracker: Tracker) {
+                trackerBlocked = tracker
             }
         })
 
         captureDelegates()
 
-        contentBlockingDelegate.value.onContentBlocked(geckoSession, ContentBlocking.BlockEvent("tracker1", 0))
-        assertEquals("tracker1", trackerBlocked)
+        var geckoCatgories = 0
+        geckoCatgories = geckoCatgories.or(ContentBlocking.AT_AD)
+        geckoCatgories = geckoCatgories.or(ContentBlocking.AT_ANALYTIC)
+        geckoCatgories = geckoCatgories.or(ContentBlocking.AT_SOCIAL)
+        geckoCatgories = geckoCatgories.or(ContentBlocking.AT_CRYPTOMINING)
+        geckoCatgories = geckoCatgories.or(ContentBlocking.AT_FINGERPRINTING)
+        geckoCatgories = geckoCatgories.or(ContentBlocking.AT_CONTENT)
+
+        contentBlockingDelegate.value.onContentBlocked(geckoSession,
+            ContentBlocking.BlockEvent("tracker1", geckoCatgories)
+        )
+        assertEquals("tracker1", trackerBlocked!!.url)
+        assertTrue(trackerBlocked!!.categories.containsAll(Tracker.Category.values().toList()))
     }
 
     @Test
@@ -1534,37 +1546,6 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun whenOnExternalResponseDoNotProvideAFileNameMustProvideMeaningFulFileNameToTheSessionObserver() {
-        val engineSession = GeckoEngineSession(mock())
-        var meaningFulFileName = ""
-
-        val observer = object : EngineSession.Observer {
-            override fun onExternalResource(
-                url: String,
-                fileName: String,
-                contentLength: Long?,
-                contentType: String?,
-                cookie: String?,
-                userAgent: String?
-            ) {
-                meaningFulFileName = fileName
-            }
-        }
-        engineSession.register(observer)
-
-        val info: GeckoSession.WebResponseInfo = MockWebResponseInfo(
-            uri = "http://ipv4.download.thinkbroadband.com/1MB.zip",
-            contentLength = 0,
-            contentType = "",
-            filename = null
-        )
-
-        engineSession.geckoSession.contentDelegate!!.onExternalResponse(mock(), info)
-
-        assertEquals("1MB.zip", meaningFulFileName)
-    }
-
-    @Test
     fun `Closing engine session should close underlying gecko session`() {
         val geckoSession = mockGeckoSession()
 
@@ -1614,11 +1595,11 @@ class GeckoEngineSessionTest {
 
         captureDelegates()
 
-        var crashedState: Boolean? = null
+        var crashedState = false
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onCrashStateChange(crashed: Boolean) {
-                crashedState = crashed
+            override fun onCrash() {
+                crashedState = true
             }
         })
 

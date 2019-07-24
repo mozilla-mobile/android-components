@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -89,14 +90,12 @@ class SearchEngineManager(
      * a matching search engine was loaded then this search engine will be returned instead.
      */
     @Synchronized
-    fun getDefaultSearchEngine(context: Context, name: String = EMPTY): SearchEngine {
+    fun getDefaultSearchEngine(context: Context, name: String = ""): SearchEngine {
         val searchEngineList = getSearchEngineList(context)
         val providedDefault = getProvidedDefaultSearchEngine(context)
 
-        return when (name) {
-            EMPTY -> defaultSearchEngine ?: providedDefault
-            else -> searchEngineList.list.find { it.name == name } ?: providedDefault
-        }
+        val default = if (name.isEmpty()) defaultSearchEngine else searchEngineList.list.find { it.name == name }
+        return default ?: providedDefault
     }
 
     /**
@@ -123,19 +122,12 @@ class SearchEngineManager(
      * gets to set this [SearchEngineManager] default.
      */
     private suspend fun loadSearchEngines(context: Context): SearchEngineList {
-        val deferredSearchEngines = providers.map {
-            scope.async {
-                it.loadSearchEngines(context)
-            }
-        }
-
-        val searchEngineLists =
-            deferredSearchEngines.map { it.await() }
+        val searchEngineLists = providers.map {
+            scope.async { it.loadSearchEngines(context) }
+        }.awaitAll()
 
         val searchEngines = searchEngineLists
-            .fold(emptyList<SearchEngine>()) { sum, searchEngineList ->
-                sum + searchEngineList.list
-            }
+            .flatMap { searchEngineList -> searchEngineList.list }
             .distinctBy { it.name }
 
         val defaultSearchEngine = searchEngineLists
@@ -152,9 +144,5 @@ class SearchEngineManager(
                 }
             }
         }
-    }
-
-    companion object {
-        private const val EMPTY = ""
     }
 }

@@ -7,7 +7,6 @@ package mozilla.components.browser.search.provider
 import android.content.Context
 import android.content.res.AssetManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import mozilla.components.browser.search.SearchEngine
@@ -15,6 +14,7 @@ import mozilla.components.browser.search.SearchEngineParser
 import mozilla.components.browser.search.provider.filter.SearchEngineFilter
 import mozilla.components.browser.search.provider.localization.SearchLocalizationProvider
 import mozilla.components.support.ktx.android.content.res.readJSONObject
+import mozilla.components.support.ktx.android.org.json.asSequence
 import mozilla.components.support.ktx.android.org.json.toList
 import mozilla.components.support.ktx.android.org.json.tryGetString
 import org.json.JSONArray
@@ -80,18 +80,16 @@ class AssetsSearchEngineProvider(
         context: Context,
         searchEngineIdentifiers: List<String>
     ): List<SearchEngine> {
-        val searchEngines = mutableListOf<SearchEngine>()
-
         val assets = context.assets
         val parser = SearchEngineParser()
 
-        val deferredSearchEngines = mutableListOf<Deferred<SearchEngine>>()
-
-        searchEngineIdentifiers.forEach {
-            deferredSearchEngines.add(scope.async {
+        val deferredSearchEngines = searchEngineIdentifiers.map {
+            scope.async {
                 loadSearchEngine(assets, parser, it)
-            })
+            }
         }
+
+        val searchEngines = mutableListOf<SearchEngine>()
 
         deferredSearchEngines.forEach {
             val searchEngine = it.await()
@@ -103,15 +101,8 @@ class AssetsSearchEngineProvider(
         return searchEngines
     }
 
-    private fun shouldBeFiltered(context: Context, searchEngine: SearchEngine): Boolean {
-        filters.forEach {
-            if (!it.filter(context, searchEngine)) {
-                return false
-            }
-        }
-
-        return true
-    }
+    private fun shouldBeFiltered(context: Context, searchEngine: SearchEngine) =
+        filters.all { it.filter(context, searchEngine) }
 
     private fun loadSearchEngine(
         assets: AssetManager,
@@ -192,12 +183,11 @@ class AssetsSearchEngineProvider(
      * according to these rules.
      */
     private fun <T : Any> getValueFromBlock(blocks: Array<JSONObject>, transform: (JSONObject) -> T?): T? {
-        val regions = arrayOf(localizationProvider.region, "default")
-            .mapNotNull { it }
+        val regions = arrayOf(localizationProvider.region, "default").filterNotNull()
 
-        return blocks
+        return blocks.asSequence()
             .flatMap { block ->
-                regions.mapNotNull { region -> block.optJSONObject(region) }
+                regions.asSequence().mapNotNull { region -> block.optJSONObject(region) }
             }
             .mapNotNull(transform)
             .firstOrNull()
@@ -205,23 +195,16 @@ class AssetsSearchEngineProvider(
 
     private fun applyOverridesIfNeeded(config: JSONObject, jsonSearchEngineIdentifiers: JSONArray): List<String> {
         val overrides = config.getJSONObject("regionOverrides")
-        val searchEngineIdentifiers = mutableListOf<String>()
-        val region = localizationProvider.region
-        val regionOverrides = if (region != null && overrides.has(region)) {
-            overrides.getJSONObject(region)
-        } else {
-            null
+        val regionOverrides = localizationProvider.region?.let { region ->
+            overrides.optJSONObject(region)
         }
 
-        for (i in 0 until jsonSearchEngineIdentifiers.length()) {
-            var identifier = jsonSearchEngineIdentifiers.getString(i)
-            if (regionOverrides != null && regionOverrides.has(identifier)) {
-                identifier = regionOverrides.getString(identifier)
+        return jsonSearchEngineIdentifiers
+            .asSequence { i -> getString(i) }
+            .map { identifier ->
+                regionOverrides?.tryGetString(identifier) ?: identifier
             }
-            searchEngineIdentifiers.add(identifier)
-        }
-
-        return searchEngineIdentifiers
+            .toList()
     }
 }
 

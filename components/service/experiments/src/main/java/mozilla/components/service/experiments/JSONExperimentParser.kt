@@ -9,6 +9,7 @@ import mozilla.components.support.ktx.android.org.json.toList
 import mozilla.components.support.ktx.android.org.json.tryGetLong
 import mozilla.components.support.ktx.android.org.json.tryGetString
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 /**
@@ -35,6 +36,9 @@ internal class JSONExperimentParser {
                 it.getInt(BRANCHES_RATIO_KEY)
             )
         }
+        if (branches.isEmpty()) {
+            throw JSONException("Branches array should not be empty")
+        }
 
         val matchObject: JSONObject = jsonObject.getJSONObject(MATCH_KEY)
         val regions: List<String>? = matchObject.optJSONArray(MATCH_REGIONS_KEY)?.toList()
@@ -42,6 +46,8 @@ internal class JSONExperimentParser {
         val matcher = Experiment.Matcher(
                 appId = matchObject.tryGetString(MATCH_APP_ID_KEY),
                 appDisplayVersion = matchObject.tryGetString(MATCH_APP_DISPLAY_VERSION_KEY),
+                appMinVersion = matchObject.tryGetString(MATCH_APP_MIN_VERSION_KEY),
+                appMaxVersion = matchObject.tryGetString(MATCH_APP_MAX_VERSION_KEY),
                 localeLanguage = matchObject.tryGetString(MATCH_LOCALE_LANGUAGE_KEY),
                 localeCountry = matchObject.tryGetString(MATCH_LOCALE_COUNTRY_KEY),
                 deviceManufacturer = matchObject.tryGetString(MATCH_DEVICE_MANUFACTURER_KEY),
@@ -100,6 +106,8 @@ internal class JSONExperimentParser {
         val matchObject = JSONObject()
         matchObject.putIfNotNull(MATCH_APP_ID_KEY, experiment.match.appId)
         matchObject.putIfNotNull(MATCH_APP_DISPLAY_VERSION_KEY, experiment.match.appDisplayVersion)
+        matchObject.putIfNotNull(MATCH_APP_MIN_VERSION_KEY, experiment.match.appMinVersion)
+        matchObject.putIfNotNull(MATCH_APP_MAX_VERSION_KEY, experiment.match.appMaxVersion)
         matchObject.putIfNotNull(MATCH_LOCALE_COUNTRY_KEY, experiment.match.localeCountry)
         matchObject.putIfNotNull(MATCH_LOCALE_LANGUAGE_KEY, experiment.match.localeLanguage)
         matchObject.putIfNotNull(MATCH_DEVICE_MANUFACTURER_KEY, experiment.match.deviceManufacturer)
@@ -126,6 +134,8 @@ internal class JSONExperimentParser {
         private const val MATCH_KEY = "match"
         private const val MATCH_APP_ID_KEY = "app_id"
         private const val MATCH_APP_DISPLAY_VERSION_KEY = "app_display_version"
+        private const val MATCH_APP_MIN_VERSION_KEY = "app_min_version"
+        private const val MATCH_APP_MAX_VERSION_KEY = "app_max_version"
         private const val MATCH_LOCALE_COUNTRY_KEY = "locale_country"
         private const val MATCH_LOCALE_LANGUAGE_KEY = "locale_language"
         private const val MATCH_DEVICE_MANUFACTURER_KEY = "device_manufacturer"

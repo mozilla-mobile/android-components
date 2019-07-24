@@ -59,36 +59,23 @@ object DownloadUtils {
      * which unfortunately does not implement RfC 5987.
      */
     @JvmStatic
+    @SuppressWarnings("ComplexMethod", "LongMethod", "NestedBlockDepth")
     fun guessFileName(contentDisposition: String?, url: String?, mimeType: String?): String {
+        val mimeTypeMap = MimeTypeMap.getSingleton()
         var filename: String? = null
         var extension: String? = null
 
         // Extract file name from content disposition header field
         if (contentDisposition != null) {
-            filename = parseContentDisposition(contentDisposition)
-            if (filename != null) {
-                val index = filename.lastIndexOf('/') + 1
-                if (index > 0) {
-                    filename = filename.substring(index)
-                }
-            }
+            filename = parseContentDisposition(contentDisposition)?.substringAfterLast('/')
         }
 
         // If all the other http-related approaches failed, use the plain uri
         if (filename == null) {
-            var decodedUrl: String? = Uri.decode(url)
-            if (decodedUrl != null) {
-                val queryIndex = decodedUrl.indexOf('?')
-                // If there is a query string strip it, same as desktop browsers
-                if (queryIndex > 0) {
-                    decodedUrl = decodedUrl.substring(0, queryIndex)
-                }
-                if (!decodedUrl.endsWith("/")) {
-                    val index = decodedUrl.lastIndexOf('/') + 1
-                    if (index > 0) {
-                        filename = decodedUrl.substring(index)
-                    }
-                }
+            // If there is a query string strip it, same as desktop browsers
+            val decodedUrl: String? = Uri.decode(url)?.substringBefore('?')
+            if (decodedUrl?.endsWith('/') == false) {
+                filename = decodedUrl.substringAfterLast('/')
             }
         }
 
@@ -102,10 +89,7 @@ object DownloadUtils {
         val dotIndex = filename.indexOf('.')
         if (dotIndex < 0) {
             if (mimeType != null) {
-                extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
-                if (extension != null) {
-                    extension = "" + extension
-                }
+                extension = mimeTypeMap.getExtensionFromMimeType(mimeType)?.let { ".$it" }
             }
             if (extension == null) {
                 extension = if (mimeType?.toLowerCase(Locale.ROOT)?.startsWith("text/") == true) {
@@ -122,14 +106,9 @@ object DownloadUtils {
             if (mimeType != null) {
                 // Compare the last segment of the extension against the mime type.
                 // If there's a mismatch, discard the entire extension.
-                val lastDotIndex = filename.lastIndexOf('.')
-                val typeFromExt = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
-                        filename.substring(lastDotIndex + 1))
-                if (typeFromExt == null || !typeFromExt.equals(mimeType, ignoreCase = true)) {
-                    extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
-                    if (extension != null) {
-                        extension = ".$extension"
-                    }
+                val typeFromExt = mimeTypeMap.getMimeTypeFromExtension(filename.substringAfterLast('.'))
+                if (typeFromExt?.equals(mimeType, ignoreCase = true) != false) {
+                    extension = mimeTypeMap.getExtensionFromMimeType(mimeType)?.let { ".$it" }
                 }
             }
             if (extension == null) {
@@ -150,7 +129,7 @@ object DownloadUtils {
                 val encodedFileName = m.group(ENCODED_FILE_NAME_GROUP)
                 val encoding = m.group(ENCODING_GROUP)
 
-                if (encodedFileName != null) {
+                if (encodedFileName != null && encoding != null) {
                     return decodeHeaderField(encodedFileName, encoding)
                 }
 
@@ -165,6 +144,7 @@ object DownloadUtils {
         } catch (ex: IllegalStateException) {
             // This function is defined as returning null when it can't parse the header
         } catch (ex: UnsupportedEncodingException) {
+            // Do nothing
         }
 
         return null
@@ -179,7 +159,7 @@ object DownloadUtils {
             val symbol = m.group()
 
             if (symbol.startsWith("%")) {
-                stream.write(Integer.parseInt(symbol.substring(1), 16))
+                stream.write(symbol.substring(1).toInt(radix = 16))
             } else {
                 stream.write(symbol[0].toInt())
             }

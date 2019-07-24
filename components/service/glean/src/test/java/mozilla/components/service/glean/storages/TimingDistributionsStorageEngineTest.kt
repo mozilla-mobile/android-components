@@ -8,10 +8,12 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
+import mozilla.components.service.glean.collectAndCheckPingSchema
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.TimeUnit
 import mozilla.components.service.glean.private.TimingDistributionMetricType
 import mozilla.components.service.glean.error.ErrorRecording
+import mozilla.components.service.glean.private.PingType
 import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.timing.TimingManager
 import org.junit.After
@@ -52,7 +54,7 @@ class TimingDistributionsStorageEngineTest {
             timeUnit = TimeUnit.Millisecond
         )
 
-        // Create a sample that will fall into the first bucket (bucket '0') so we can easily
+        // Create a sample that will fall into the underflow bucket (bucket '0') so we can easily
         // find it
         val sample = 1L
         TimingDistributionsStorageEngine.accumulate(
@@ -93,14 +95,14 @@ class TimingDistributionsStorageEngineTest {
             "store1#telemetry.invalid_int" to -1,
             "store1#telemetry.invalid_list" to listOf("1", "2", "3"),
             "store1#telemetry.invalid_int_list" to "[1,2,3]",
-            "store1#telemetry.invalid_td_name" to "{\"category\":\"telemetry\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_bucketCount" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":\"not an int!\",\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_range" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_range2" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[\"not\",\"numeric\"],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_histogramType" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":-1,\"values\":{},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_values" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{\"0\": \"nope\"},\"sum\":0,\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_sum" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":\"nope\",\"timeUnit\":2}",
-            "store1#telemetry.invalid_td_timeUnit" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucketCount\":100,\"range\":[0,60000,12],\"histogramType\":1,\"values\":{},\"sum\":0,\"timeUnit\":-1}",
+            "store1#telemetry.invalid_td_name" to "{\"category\":\"telemetry\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_bucket_count" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":\"not an int!\",\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_range" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_range2" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[\"not\",\"numeric\"],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_histogram_type" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":-1,\"values\":{},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_values" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{\"0\": \"nope\"},\"sum\":0,\"time_unit\":2}",
+            "store1#telemetry.invalid_td_sum" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":\"nope\",\"time_unit\":2}",
+            "store1#telemetry.invalid_td_time_unit" to "{\"category\":\"telemetry\",\"name\":\"test_timing_distribution\",\"bucket_count\":100,\"range\":[0,60000,12],\"histogram_type\":1,\"values\":{},\"sum\":0,\"time_unit\":-1}",
             "store1#telemetry.test_timing_distribution" to td.toJsonObject().toString()
         )
 
@@ -126,6 +128,29 @@ class TimingDistributionsStorageEngineTest {
         assertEquals(1, snapshot!!.size)
         assertEquals(td.toJsonObject().toString(),
             snapshot["telemetry.test_timing_distribution"]?.toJsonObject().toString())
+    }
+
+    @Test
+    fun `serializer should serialize timing distribution that matches schema`() {
+        val ping1 = PingType("store1", true)
+
+        val metric = TimingDistributionMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.User,
+            name = "test_timing_distribution",
+            sendInPings = listOf("store1"),
+            timeUnit = TimeUnit.Millisecond
+        )
+
+        runBlocking {
+            TimingManager.getElapsedNanos = { 0 }
+            val id = metric.start()
+            TimingManager.getElapsedNanos = { 1000000 }
+            metric.stopAndAccumulate(id)
+        }
+
+        collectAndCheckPingSchema(ping1)
     }
 
     @Test
@@ -196,9 +221,9 @@ class TimingDistributionsStorageEngineTest {
 
         // Attempt to accumulate a negative sample
         TimingManager.getElapsedNanos = { 0 }
-        metric.start(this)
+        val timerId = metric.start()
         TimingManager.getElapsedNanos = { -1 }
-        metric.stopAndAccumulate(this)
+        metric.stopAndAccumulate(timerId)
         // Check that nothing was recorded.
         assertFalse("Timing distributions must not accumulate negative values",
             metric.testHasValue())
@@ -207,6 +232,35 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("Accumulating negative values must generate an error",
             1,
             ErrorRecording.testGetNumRecordedErrors(metric, ErrorRecording.ErrorType.InvalidValue))
+    }
+
+    @Test
+    fun `underflow values accumulate in the first bucket`() {
+        // Define a timing distribution metric, which will be stored in "store1".
+        val metric = TimingDistributionMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.User,
+            name = "test_timing_distribution",
+            sendInPings = listOf("store1"),
+            timeUnit = TimeUnit.Millisecond
+        )
+
+        // Attempt to accumulate an overflow sample
+        TimingManager.getElapsedNanos = { 0 }
+        val timerId = metric.start()
+        TimingManager.getElapsedNanos = { 0 }
+        metric.stopAndAccumulate(timerId)
+
+        // Check that timing distribution was recorded.
+        assertTrue("Accumulating underflow values records data",
+            metric.testHasValue())
+
+        // Make sure that the underflow landed in the correct (first) bucket
+        val snapshot = metric.testGetValue()
+        assertEquals("Accumulating overflow values should increment underflow bucket",
+            1L,
+            snapshot.values[0])
     }
 
     @Test
@@ -223,9 +277,9 @@ class TimingDistributionsStorageEngineTest {
 
         // Attempt to accumulate an overflow sample
         TimingManager.getElapsedNanos = { 0 }
-        metric.start(this)
+        val timerId = metric.start()
         TimingManager.getElapsedNanos = { (TimingDistributionData.DEFAULT_RANGE_MAX + 100) * 1000000 }
-        metric.stopAndAccumulate(this)
+        metric.stopAndAccumulate(timerId)
 
         // Check that timing distribution was recorded.
         assertTrue("Accumulating overflow values records data",
@@ -235,7 +289,7 @@ class TimingDistributionsStorageEngineTest {
         val snapshot = metric.testGetValue()
         assertEquals("Accumulating overflow values should increment last bucket",
             1L,
-            snapshot.values[TimingDistributionData.DEFAULT_BUCKET_COUNT - 1])
+            snapshot.values[TimingDistributionData.DEFAULT_RANGE_MAX])
     }
 
     @Test
@@ -243,13 +297,13 @@ class TimingDistributionsStorageEngineTest {
         // Hand calculated values using current default range 0 - 60000 and bucket count of 100.
         // NOTE: The final bucket, regardless of width, represents the overflow bucket to hold any
         // values beyond the maximum (in this case the maximum is 60000)
-        val testBuckets: List<Long> = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17,
+        val testBuckets: List<Long> = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17,
             19, 21, 23, 25, 28, 31, 34, 38, 42, 46, 51, 56, 62, 68, 75, 83, 92, 101, 111, 122, 135,
             149, 164, 181, 200, 221, 244, 269, 297, 328, 362, 399, 440, 485, 535, 590, 651, 718,
             792, 874, 964, 1064, 1174, 1295, 1429, 1577, 1740, 1920, 2118, 2337, 2579, 2846, 3140,
             3464, 3822, 4217, 4653, 5134, 5665, 6250, 6896, 7609, 8395, 9262, 10219, 11275, 12440,
             13726, 15144, 16709, 18436, 20341, 22443, 24762, 27321, 30144, 33259, 36696, 40488,
-            44672, 49288, 54381, 60000, 60001)
+            44672, 49288, 54381, 60000)
 
         // Define a timing distribution metric, which will be stored in "store1".
         val metric = TimingDistributionMetricType(
@@ -263,14 +317,14 @@ class TimingDistributionsStorageEngineTest {
 
         // Accumulate a sample to force the lazy loading of `buckets` to occur
         TimingManager.getElapsedNanos = { 0 }
-        metric.start(this)
+        val timerId = metric.start()
         TimingManager.getElapsedNanos = { 1 }
-        metric.stopAndAccumulate(this)
+        metric.stopAndAccumulate(timerId)
 
         // Check that timing distribution was recorded.
         assertTrue("Accumulating values records data", metric.testHasValue())
 
-        // Make sure that the sample in the correct (first) bucket
+        // Make sure that the sample in the correct (underflow) bucket
         val snapshot = metric.testGetValue()
         assertEquals("Accumulating should increment correct bucket",
             1L, snapshot.values[0])
@@ -299,9 +353,9 @@ class TimingDistributionsStorageEngineTest {
         // Attempt to accumulate a sample to force metric to be stored
         for (i in listOf(1L, 10L, 100L, 1000L, 10000L)) {
             TimingManager.getElapsedNanos = { 0 }
-            metric.start(this)
+            val timerId = metric.start()
             TimingManager.getElapsedNanos = { i * 1000000 } // Convert ms to ns
-            metric.stopAndAccumulate(this)
+            metric.stopAndAccumulate(timerId)
         }
 
         // Check that timing distribution was recorded.
@@ -315,15 +369,15 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("Accumulating updates the count", 5, snapshot.count)
 
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values[0])
+            1L, snapshot.values[1])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values[9])
+            1L, snapshot.values[10])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values[33])
+            1L, snapshot.values[92])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values[57])
+            1L, snapshot.values[964])
         assertEquals("Accumulating should increment correct bucket",
-            1L, snapshot.values[80])
+            1L, snapshot.values[9262])
     }
 
     @Test
@@ -345,7 +399,7 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("JSON name must match Timing Distribution name",
             "test_timing_distribution", jsonTdd.getString("name"))
         assertEquals("JSON bucket count must match Timing Distribution bucket count",
-            tdd.bucketCount, jsonTdd.getInt("bucketCount"))
+            tdd.bucketCount, jsonTdd.getInt("bucket_count"))
         assertEquals("JSON name must match Timing Distribution name",
             "test_timing_distribution", jsonTdd.getString("name"))
         val jsonRange = jsonTdd.getJSONArray("range")
@@ -354,17 +408,17 @@ class TimingDistributionsStorageEngineTest {
         assertEquals("JSON range maximum must match Timing Distribution range maximum",
             tdd.rangeMax, jsonRange.getLong(1))
         assertEquals("JSON histogram type must match Timing Distribution histogram type",
-            tdd.histogramType.ordinal, jsonTdd.getInt("histogramType"))
+            tdd.histogramType.toString().toLowerCase(), jsonTdd.getString("histogram_type"))
         val jsonValue = jsonTdd.getJSONObject("values")
-        assertEquals("JSON values must match Timing Distribution values",
-            tdd.values[0], jsonValue.getLong("0"))
         assertEquals("JSON values must match Timing Distribution values",
             tdd.values[1], jsonValue.getLong("1"))
         assertEquals("JSON values must match Timing Distribution values",
             tdd.values[2], jsonValue.getLong("2"))
+        assertEquals("JSON values must match Timing Distribution values",
+            tdd.values[3], jsonValue.getLong("3"))
         assertEquals("JSON sum must match Timing Distribution sum",
             tdd.sum, jsonTdd.getLong("sum"))
         assertEquals("JSON time unit must match Timing Distribution time unit",
-            tdd.timeUnit.ordinal, jsonTdd.getInt("timeUnit"))
+            tdd.timeUnit.toString().toLowerCase(), jsonTdd.getString("time_unit"))
     }
 }

@@ -10,14 +10,15 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.text.RegexOption.IGNORE_CASE
 
 /**
  * A collection of regular expressions used in the `is*` methods below.
  */
 private val re = object {
-    val phoneish = "^\\s*tel:\\S?\\d+\\S*\\s*$".toRegex(RegexOption.IGNORE_CASE)
-    val emailish = "^\\s*mailto:\\w+\\S*\\s*$".toRegex(RegexOption.IGNORE_CASE)
-    val geoish = "^\\s*geo:\\S*\\d+\\S*\\s*$".toRegex(RegexOption.IGNORE_CASE)
+    val phoneish = "^\\s*tel:\\S?\\d+\\S*\\s*$".toRegex(IGNORE_CASE)
+    val emailish = "^\\s*mailto:\\w+\\S*\\s*$".toRegex(IGNORE_CASE)
+    val geoish = "^\\s*geo:\\S*\\d+\\S*\\s*$".toRegex(IGNORE_CASE)
 }
 
 /**
@@ -42,8 +43,8 @@ fun String.isGeoLocation() = re.geoish.matches(this)
  */
 fun String.toDate(format: String, locale: Locale = Locale.ROOT): Date {
     val formatter = SimpleDateFormat(format, locale)
-    return if (!this.isEmpty()) {
-        formatter.parse(this)
+    return if (isNotEmpty()) {
+        formatter.parse(this) ?: Date()
     } else {
         Date()
     }
@@ -52,6 +53,7 @@ fun String.toDate(format: String, locale: Locale = Locale.ROOT): Date {
 /**
  * Converts a [String] to a [Uri] object.
  */
+@Deprecated("Use Android KTX instead", ReplaceWith("toUri()", "androidx.core.net.toUri"))
 fun String.toUri() = Uri.parse(this)
 
 /**

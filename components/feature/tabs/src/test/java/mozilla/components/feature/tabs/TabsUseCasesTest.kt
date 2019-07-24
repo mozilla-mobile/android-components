@@ -9,6 +9,7 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -30,7 +31,7 @@ class TabsUseCasesTest {
         val useCases = TabsUseCases(sessionManager)
 
         val session = Session("A")
-        useCases.selectTab.invoke(session)
+        useCases.selectTab(session)
 
         verify(sessionManager).select(session)
     }
@@ -41,7 +42,7 @@ class TabsUseCasesTest {
         val useCases = TabsUseCases(sessionManager)
 
         val session = Session("A")
-        useCases.removeTab.invoke(session)
+        useCases.removeTab(session)
 
         verify(sessionManager).remove(session)
     }
@@ -56,7 +57,7 @@ class TabsUseCasesTest {
 
         assertEquals(0, sessionManager.size)
 
-        useCases.addTab.invoke("https://www.mozilla.org")
+        useCases.addTab("https://www.mozilla.org")
 
         assertEquals(1, sessionManager.size)
         assertEquals("https://www.mozilla.org", sessionManager.selectedSessionOrThrow.url)
@@ -76,7 +77,7 @@ class TabsUseCasesTest {
 
         assertEquals(0, sessionManager.size)
 
-        useCases.addPrivateTab.invoke("https://www.mozilla.org")
+        useCases.addPrivateTab("https://www.mozilla.org")
 
         assertEquals(1, sessionManager.size)
         assertEquals("https://www.mozilla.org", sessionManager.selectedSessionOrThrow.url)
@@ -94,9 +95,21 @@ class TabsUseCasesTest {
 
         val useCases = TabsUseCases(sessionManager)
 
-        useCases.addTab.invoke("https://www.mozilla.org", startLoading = false)
+        useCases.addTab("https://www.mozilla.org", startLoading = false)
 
         verify(engineSession, never()).loadUrl("https://www.mozilla.org")
+    }
+
+    @Test
+    fun `AddNewTabUseCase forwards load flags to engine`() {
+        val sessionManager = spy(SessionManager(mock()))
+        val engineSession: EngineSession = mock()
+        doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(any())
+
+        val useCases = TabsUseCases(sessionManager)
+
+        useCases.addTab.invoke("https://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+        verify(engineSession).loadUrl("https://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
     }
 
     @Test
@@ -107,9 +120,21 @@ class TabsUseCasesTest {
 
         val useCases = TabsUseCases(sessionManager)
 
-        useCases.addPrivateTab.invoke("https://www.mozilla.org", startLoading = false)
+        useCases.addPrivateTab("https://www.mozilla.org", startLoading = false)
 
         verify(engineSession, never()).loadUrl("https://www.mozilla.org")
+    }
+
+    @Test
+    fun `AddNewPrivateTabUseCase forwards load flags to engine`() {
+        val sessionManager = spy(SessionManager(mock()))
+        val engineSession: EngineSession = mock()
+        doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(any())
+
+        val useCases = TabsUseCases(sessionManager)
+
+        useCases.addPrivateTab.invoke("https://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+        verify(engineSession).loadUrl("https://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
     }
 
     @Test
@@ -120,12 +145,12 @@ class TabsUseCasesTest {
 
         val useCases = TabsUseCases(sessionManager)
 
-        useCases.addPrivateTab.invoke("https://www.mozilla.org")
-        useCases.addTab.invoke("https://www.mozilla.org")
+        useCases.addPrivateTab("https://www.mozilla.org")
+        useCases.addTab("https://www.mozilla.org")
 
         assertEquals(2, sessionManager.size)
 
-        useCases.removeAllTabs.invoke()
+        useCases.removeAllTabs()
 
         assertEquals(0, sessionManager.size)
 
@@ -144,26 +169,26 @@ class TabsUseCasesTest {
         session1.customTabConfig = mock()
         sessionManager.add(session1)
 
-        useCases.addPrivateTab.invoke("https://www.mozilla.org")
-        useCases.addTab.invoke("https://www.mozilla.org")
+        useCases.addPrivateTab("https://www.mozilla.org")
+        useCases.addTab("https://www.mozilla.org")
 
         assertEquals(3, sessionManager.size)
 
-        useCases.removeAllTabsOfType.invoke(private = false)
+        useCases.removeAllTabsOfType(private = false)
 
         assertEquals(2, sessionManager.all.size)
 
-        useCases.addPrivateTab.invoke("https://www.mozilla.org")
-        useCases.addTab.invoke("https://www.mozilla.org")
-        useCases.addTab.invoke("https://www.mozilla.org")
+        useCases.addPrivateTab("https://www.mozilla.org")
+        useCases.addTab("https://www.mozilla.org")
+        useCases.addTab("https://www.mozilla.org")
 
         assertEquals(5, sessionManager.size)
 
-        useCases.removeAllTabsOfType.invoke(private = true)
+        useCases.removeAllTabsOfType(private = true)
 
         assertEquals(3, sessionManager.size)
 
-        useCases.removeAllTabsOfType.invoke(private = false)
+        useCases.removeAllTabsOfType(private = false)
         assertEquals(1, sessionManager.size)
 
         assertTrue(sessionManager.all[0].isCustomTabSession())

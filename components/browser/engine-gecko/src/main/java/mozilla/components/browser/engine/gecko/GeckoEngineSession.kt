@@ -5,13 +5,12 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
-import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import mozilla.components.browser.engine.gecko.media.GeckoMediaDelegate
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
 import mozilla.components.browser.errorpages.ErrorType
@@ -21,14 +20,13 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
-import mozilla.components.support.utils.DownloadUtils
-import mozilla.components.support.utils.ThreadUtils
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
@@ -37,7 +35,7 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.WebRequestError
-import java.lang.IllegalStateException
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Gecko-based EngineSession implementation.
@@ -58,7 +56,10 @@ class GeckoEngineSession(
 
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
+    internal var scrollY: Int = 0
     internal var job: Job = Job()
+    private var lastSessionState: GeckoSession.SessionState? = null
+    private var stateBeforeCrash: GeckoSession.SessionState? = null
 
     /**
      * See [EngineSession.settings]
@@ -69,6 +70,9 @@ class GeckoEngineSession(
         override var userAgentString: String?
             get() = geckoSession.settings.userAgentOverride
             set(value) { geckoSession.settings.userAgentOverride = value }
+        override var suspendMediaWhenInactive: Boolean
+            get() = geckoSession.settings.suspendMediaWhenInactive
+            set(value) { geckoSession.settings.suspendMediaWhenInactive = value }
     }
 
     private var initialLoad = true
@@ -85,9 +89,9 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.loadUrl]
      */
-    override fun loadUrl(url: String) {
+    override fun loadUrl(url: String, flags: LoadUrlFlags) {
         requestFromWebContent = false
-        geckoSession.loadUri(url)
+        geckoSession.loadUri(url, flags.value)
     }
 
     /**
@@ -134,28 +138,9 @@ class GeckoEngineSession(
 
     /**
      * See [EngineSession.saveState]
-     *
-     * See https://bugzilla.mozilla.org/show_bug.cgi?id=1441810 for
-     * discussion on sync vs. async, where a decision was made that
-     * callers should provide synchronous wrappers, if needed. In case we're
-     * asking for the state when persisting, a separate (independent) thread
-     * is used so we're not blocking anything else. In case of calling this
-     * method from onPause or similar, we also want a synchronous response.
      */
-    override fun saveState(): EngineSessionState = runBlocking {
-        val state = CompletableDeferred<GeckoEngineSessionState>()
-
-        ThreadUtils.postToBackgroundThread {
-            geckoSession.saveState().then({ sessionState ->
-                state.complete(GeckoEngineSessionState(sessionState))
-                GeckoResult<Void>()
-            }, { throwable ->
-                state.completeExceptionally(throwable)
-                GeckoResult<Void>()
-            })
-        }
-
-        state.await()
+    override fun saveState(): EngineSessionState {
+        return GeckoEngineSessionState(lastSessionState)
     }
 
     /**
@@ -268,17 +253,28 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.recoverFromCrash]
+     */
+    @Synchronized
+    override fun recoverFromCrash(): Boolean {
+        val state = stateBeforeCrash
+
+        return if (state != null) {
+            geckoSession.restoreState(state)
+            stateBeforeCrash = null
+            true
+        } else {
+            false
+        }
+    }
+
+    /**
      * See [EngineSession.close].
      */
     override fun close() {
         super.close()
         job.cancel()
         geckoSession.close()
-    }
-
-    override fun recoverFromCrash(): Boolean {
-        // No-op: Functionality requires GeckoView 68.0
-        return false
     }
 
     /**
@@ -320,7 +316,22 @@ class GeckoEngineSession(
                     is InterceptionResponse.Url -> loadUrl(url)
                 }
             }
-            return GeckoResult.fromValue(if (response != null) AllowOrDeny.DENY else AllowOrDeny.ALLOW)
+
+            return if (response != null) {
+                GeckoResult.fromValue(AllowOrDeny.DENY)
+            } else {
+                notifyObservers {
+                    // As the name LoadRequest.isRedirect may imply this flag is about http redirects. The flag
+                    // is "True if and only if the request was triggered by an HTTP redirect."
+                    onLoadRequest(
+                        url = request.uri,
+                        triggeredByRedirect = request.isRedirect,
+                        triggeredByWebContent = requestFromWebContent
+                    )
+                }
+
+                GeckoResult.fromValue(AllowOrDeny.ALLOW)
+            }
         }
 
         override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) {
@@ -392,6 +403,10 @@ class GeckoEngineSession(
                 onProgress(PROGRESS_STOP)
                 onLoadingStateChange(false)
             }
+        }
+
+        override fun onSessionStateChange(session: GeckoSession, sessionState: GeckoSession.SessionState) {
+            lastSessionState = sessionState
         }
     }
 
@@ -479,8 +494,12 @@ class GeckoEngineSession(
         }
 
         override fun onCrash(session: GeckoSession) {
+            stateBeforeCrash = lastSessionState
+
             geckoSession.close()
             createGeckoSession()
+
+            notifyObservers { onCrash() }
         }
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
@@ -489,13 +508,11 @@ class GeckoEngineSession(
 
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
             notifyObservers {
-                val fileName = response.filename
-                    ?: DownloadUtils.guessFileName("", response.uri, response.contentType)
                 onExternalResource(
                         url = response.uri,
                         contentLength = response.contentLength,
                         contentType = response.contentType,
-                        fileName = fileName)
+                        fileName = response.filename)
             }
         }
 
@@ -519,8 +536,43 @@ class GeckoEngineSession(
 
     private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {
         override fun onContentBlocked(session: GeckoSession, event: ContentBlocking.BlockEvent) {
-            notifyObservers { onTrackerBlocked(event.uri) }
+            notifyObservers {
+                onTrackerBlocked(event.toTracker())
+            }
         }
+    }
+
+    @Suppress("LongMethod")
+    private fun ContentBlocking.BlockEvent.toTracker(): Tracker {
+        val blockedContentCategories = ArrayList<Tracker.Category>()
+
+        if (categories.contains(ContentBlocking.AT_AD)) {
+            blockedContentCategories.add(Tracker.Category.Ad)
+        }
+
+        if (categories.contains(ContentBlocking.AT_ANALYTIC)) {
+            blockedContentCategories.add(Tracker.Category.Analytic)
+        }
+
+        if (categories.contains(ContentBlocking.AT_SOCIAL)) {
+            blockedContentCategories.add(Tracker.Category.Social)
+        }
+
+        if (categories.contains(ContentBlocking.AT_FINGERPRINTING)) {
+            blockedContentCategories.add(Tracker.Category.Fingerprinting)
+        }
+
+        if (categories.contains(ContentBlocking.AT_CRYPTOMINING)) {
+            blockedContentCategories.add(Tracker.Category.Cryptomining)
+        }
+        if (categories.contains(ContentBlocking.AT_CONTENT)) {
+            blockedContentCategories.add(Tracker.Category.Content)
+        }
+        return Tracker(uri, blockedContentCategories)
+    }
+
+    private operator fun Int.contains(mask: Int): Boolean {
+        return (this and mask) != 0
     }
 
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
@@ -558,6 +610,12 @@ class GeckoEngineSession(
                     permissions?.toList() ?: emptyList(),
                     callback)
             notifyObservers { onAppPermissionRequest(request) }
+        }
+    }
+
+    private fun createScrollDelegate() = object : GeckoSession.ScrollDelegate {
+        override fun onScrollChanged(session: GeckoSession, scrollX: Int, scrollY: Int) {
+            this@GeckoEngineSession.scrollY = scrollY
         }
     }
 
@@ -603,12 +661,9 @@ class GeckoEngineSession(
         defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }
-        defaultSettings?.testingModeEnabled?.let {
-            geckoSession.settings.fullAccessibilityTree = it
-        }
-        defaultSettings?.userAgentString?.let {
-            geckoSession.settings.userAgentOverride = it
-        }
+        defaultSettings?.testingModeEnabled?.let { geckoSession.settings.fullAccessibilityTree = it }
+        defaultSettings?.userAgentString?.let { geckoSession.settings.userAgentOverride = it }
+        defaultSettings?.suspendMediaWhenInactive?.let { geckoSession.settings.suspendMediaWhenInactive = it }
 
         geckoSession.open(runtime)
 
@@ -619,6 +674,8 @@ class GeckoEngineSession(
         geckoSession.permissionDelegate = createPermissionDelegate()
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
         geckoSession.historyDelegate = createHistoryDelegate()
+        geckoSession.mediaDelegate = GeckoMediaDelegate(this)
+        geckoSession.scrollDelegate = createScrollDelegate()
     }
 
     companion object {
@@ -631,7 +688,7 @@ class GeckoEngineSession(
          * Provides an ErrorType corresponding to the error code provided.
          */
         @Suppress("ComplexMethod")
-        internal fun geckoErrorToErrorType(@WebRequestError.Error errorCode: Int) =
+        internal fun geckoErrorToErrorType(errorCode: Int) =
             when (errorCode) {
                 WebRequestError.ERROR_UNKNOWN -> ErrorType.UNKNOWN
                 WebRequestError.ERROR_SECURITY_SSL -> ErrorType.ERROR_SECURITY_SSL

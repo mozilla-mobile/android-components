@@ -26,11 +26,13 @@ dependencies {
     implementation project(':browser-session')
     implementation project(':browser-toolbar')
     implementation project(':concept-engine')
+    implementation project(':feature-session')
     implementation project(':support-base')
     implementation project(':support-ktx')
     implementation project(':support-utils')
     implementation project(':ui-icons')
 
+    implementation Dependencies.androidx_core_ktx
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines
 
@@ -40,6 +42,7 @@ dependencies {
 
     testImplementation Dependencies.androidx_test_core
     testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.kotlin_coroutines_test
     testImplementation Dependencies.testing_robolectric
     testImplementation Dependencies.testing_mockito
 }

@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.system
 import android.annotation.TargetApi
 import android.app.Activity
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
@@ -41,6 +42,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
+import androidx.core.net.toUri
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.engine.system.permission.SystemPermissionRequest
@@ -50,11 +52,11 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.ktx.android.view.getRectWithViewLocation
-import mozilla.components.support.ktx.kotlin.toUri
 import mozilla.components.support.utils.DownloadUtils
 import java.util.Date
 
@@ -82,6 +84,12 @@ class SystemEngineView @JvmOverloads constructor(
         this.session = session as SystemEngineSession
         (session.webView.parent as? SystemEngineView)?.removeView(session.webView)
         addView(initWebView(session.webView))
+    }
+
+    override fun release() {
+        this.session = null
+
+        removeAllViews()
     }
 
     override fun onLongClick(view: View?): Boolean {
@@ -206,8 +214,15 @@ class SystemEngineView @JvmOverloads constructor(
                 }
 
                 if (!request.isForMainFrame &&
-                        getOrCreateUrlMatcher(view.context, it).matches(resourceUri, Uri.parse(session?.currentUrl))) {
-                    session?.internalNotifyObservers { onTrackerBlocked(resourceUri.toString()) }
+                        getOrCreateUrlMatcher(resources, it).matches(resourceUri, Uri.parse(session?.currentUrl))) {
+                    session?.internalNotifyObservers {
+                        onTrackerBlocked(
+                            Tracker(
+                                resourceUri.toString(),
+                                emptyList()
+                            )
+                        )
+                    }
                     return WebResourceResponse(null, null, null)
                 }
             }
@@ -287,7 +302,7 @@ class SystemEngineView @JvmOverloads constructor(
             val session = session ?: return handler.cancel()
 
             val formattedUrl = session.currentUrl.toUri().let { uri ->
-                (uri.scheme ?: "http") + "://" + (uri.host ?: host)
+                "${uri.scheme ?: "http"}://${uri.host ?: host}"
             }
 
             // Trim obnoxiously long realms.
@@ -437,7 +452,7 @@ class SystemEngineView @JvmOverloads constructor(
                 session.notifyObservers {
                     onPromptRequest(
                         PromptRequest.TextPrompt(
-                            title ?: "",
+                            title,
                             message ?: "",
                             defaultValue ?: "",
                             areDialogsBeingAbused(),
@@ -511,6 +526,12 @@ class SystemEngineView @JvmOverloads constructor(
 
             val isMultipleFilesSelection = fileChooserParams?.mode == MODE_OPEN_MULTIPLE
 
+            val captureMode = if (fileChooserParams?.isCaptureEnabled == true) {
+                PromptRequest.File.FacingMode.ANY
+            } else {
+                PromptRequest.File.FacingMode.NONE
+            }
+
             val onSelectMultiple: (Context, Array<Uri>) -> Unit = { _, uris ->
                 filePathCallback?.onReceiveValue(uris)
             }
@@ -528,6 +549,7 @@ class SystemEngineView @JvmOverloads constructor(
                     PromptRequest.File(
                         mimeTypes,
                         isMultipleFilesSelection,
+                        captureMode,
                         onSelectSingle,
                         onSelectMultiple,
                         onDismiss
@@ -707,13 +729,12 @@ class SystemEngineView @JvmOverloads constructor(
         return areDialogsAbusedByTime() || areDialogsAbusedByCount()
     }
 
-    @Suppress("MagicNumber")
     internal fun areDialogsAbusedByTime(): Boolean {
         return if (jsAlertCount == 0) {
             false
         } else {
             val now = Date()
-            val diffInSeconds = (now.time - lastDialogShownAt.time) / 1000 // 1 second equal to 1000 milliseconds
+            val diffInSeconds = (now.time - lastDialogShownAt.time) / SECOND_MS
             diffInSeconds < MAX_SUCCESSIVE_DIALOG_SECONDS_LIMIT
         }
     }
@@ -753,6 +774,9 @@ class SystemEngineView @JvmOverloads constructor(
         // Maximum realm length to be shown in authentication dialog.
         internal const val MAX_REALM_LENGTH: Int = 50
 
+        // Number of milliseconds in 1 second.
+        internal const val SECOND_MS: Int = 1000
+
         @Volatile
         internal var URL_MATCHER: UrlMatcher? = null
 
@@ -764,12 +788,12 @@ class SystemEngineView @JvmOverloads constructor(
         )
 
         @Synchronized
-        internal fun getOrCreateUrlMatcher(context: Context, policy: TrackingProtectionPolicy): UrlMatcher {
+        internal fun getOrCreateUrlMatcher(resources: Resources, policy: TrackingProtectionPolicy): UrlMatcher {
             val categories = urlMatcherCategoryMap.filterValues { policy.contains(it) }.keys
 
             URL_MATCHER?.setCategoriesEnabled(categories) ?: run {
                 URL_MATCHER = UrlMatcher.createMatcher(
-                        context,
+                        resources,
                         R.raw.domain_blacklist,
                         intArrayOf(R.raw.domain_overrides),
                         R.raw.domain_whitelist,

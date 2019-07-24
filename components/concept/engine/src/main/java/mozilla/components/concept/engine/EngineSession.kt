@@ -6,6 +6,9 @@ package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -14,7 +17,6 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
-import java.lang.UnsupportedOperationException
 
 /**
  * Class representing a single engine session.
@@ -36,7 +38,7 @@ abstract class EngineSession(
         fun onNavigationStateChange(canGoBack: Boolean? = null, canGoForward: Boolean? = null) = Unit
         fun onSecurityChange(secure: Boolean, host: String? = null, issuer: String? = null) = Unit
         fun onTrackerBlockingEnabledChange(enabled: Boolean) = Unit
-        fun onTrackerBlocked(url: String) = Unit
+        fun onTrackerBlocked(tracker: Tracker) = Unit
         fun onLongPress(hitResult: HitResult) = Unit
         fun onDesktopModeChange(enabled: Boolean) = Unit
         fun onFind(text: String) = Unit
@@ -52,7 +54,8 @@ abstract class EngineSession(
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
         fun onWebAppManifestLoaded(manifest: WebAppManifest) = Unit
-        fun onCrashStateChange(crashed: Boolean) = Unit
+        fun onCrash() = Unit
+        fun onProcessKilled() = Unit
         fun onRecordingStateChanged(devices: List<RecordingDevice>) = Unit
 
         /**
@@ -68,7 +71,7 @@ abstract class EngineSession(
         @Suppress("LongParameterList")
         fun onExternalResource(
             url: String,
-            fileName: String,
+            fileName: String? = null,
             contentLength: Long? = null,
             contentType: String? = null,
             cookie: String? = null,
@@ -90,8 +93,46 @@ abstract class EngineSession(
     open class TrackingProtectionPolicy internal constructor(
         val categories: Int,
         val useForPrivateSessions: Boolean = true,
-        val useForRegularSessions: Boolean = true
+        val useForRegularSessions: Boolean = true,
+        val cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS
     ) {
+
+        /**
+         * Indicates how cookies should behave for a given [TrackingProtectionPolicy].
+         * The ids of each cookiePolicy is aligned with the GeckoView @CookieBehavior constants.
+         */
+        @Suppress("MagicNumber")
+        enum class CookiePolicy(val id: Int) {
+            /**
+             * Accept first-party and third-party cookies and site data.
+             */
+            ACCEPT_ALL(0),
+
+            /**
+             * Accept only first-party cookies and site data to block cookies which are
+             * not associated with the domain of the visited site.
+             */
+            ACCEPT_ONLY_FIRST_PARTY(1),
+
+            /**
+             * Do not store any cookies and site data.
+             */
+            ACCEPT_NONE(2),
+
+            /**
+             * Accept first-party and third-party cookies and site data only from
+             * sites previously visited in a first-party context.
+             */
+            ACCEPT_VISITED(3),
+
+            /**
+             * Accept only first-party and non-tracking third-party cookies and site data
+             * to block cookies which are not associated with the domain of the visited
+             * site set by known trackers.
+             */
+            ACCEPT_NON_TRACKERS(4)
+        }
+
         companion object {
             internal const val NONE: Int = 0
             /**
@@ -143,15 +184,16 @@ abstract class EngineSession(
             const val SAFE_BROWSING_ALL =
                 SAFE_BROWSING_MALWARE + SAFE_BROWSING_UNWANTED + SAFE_BROWSING_HARMFUL + SAFE_BROWSING_PHISHING
 
-            internal const val RECOMMENDED: Int = AD + ANALYTICS + SOCIAL + TEST + SAFE_BROWSING_ALL
+            const val RECOMMENDED = AD + ANALYTICS + SOCIAL + TEST + SAFE_BROWSING_ALL
 
-            internal const val ALL: Int = RECOMMENDED + CRYPTOMINING + FINGERPRINTING + CONTENT
+            const val ALL = RECOMMENDED + CRYPTOMINING + FINGERPRINTING + CONTENT
 
-            fun none() = TrackingProtectionPolicy(NONE)
+            fun none() = TrackingProtectionPolicy(NONE, cookiePolicy = ACCEPT_ALL)
 
             /**
              * Strict policy.
              * Combining the [recommended] categories plus [CRYPTOMINING], [FINGERPRINTING] and [CONTENT].
+             * With a cookiePolicy of [ACCEPT_NON_TRACKERS].
              * This is the strictest setting and may cause issues on some web sites.
              */
             fun all() = TrackingProtectionPolicyForSessionTypes(ALL)
@@ -159,11 +201,13 @@ abstract class EngineSession(
             /**
              * Recommended policy.
              * Combining the [AD], [ANALYTICS], [SOCIAL], [TEST] categories plus [SAFE_BROWSING_ALL].
+             * With a [CookiePolicy] of [ACCEPT_NON_TRACKERS].
              * This is the recommended setting.
              */
             fun recommended() = TrackingProtectionPolicyForSessionTypes(RECOMMENDED)
 
-            fun select(vararg categories: Int) = TrackingProtectionPolicyForSessionTypes(categories.sum())
+            fun select(vararg categories: Int, cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS) =
+                TrackingProtectionPolicyForSessionTypes(categories.sum(), cookiePolicy)
         }
 
         fun contains(category: Int) = (categories and category) != 0
@@ -185,15 +229,17 @@ abstract class EngineSession(
      * should be applied to. By default, a policy will be applied to all sessions.
      */
     class TrackingProtectionPolicyForSessionTypes internal constructor(
-        categories: Int
-    ) : TrackingProtectionPolicy(categories) {
+        categories: Int,
+        cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS
+    ) : TrackingProtectionPolicy(categories, cookiePolicy = cookiePolicy) {
         /**
          * Marks this policy to be used for private sessions only.
          */
         fun forPrivateSessionsOnly() = TrackingProtectionPolicy(
             categories,
             useForPrivateSessions = true,
-            useForRegularSessions = false
+            useForRegularSessions = false,
+            cookiePolicy = cookiePolicy
         )
 
         /**
@@ -202,14 +248,49 @@ abstract class EngineSession(
         fun forRegularSessionsOnly() = TrackingProtectionPolicy(
             categories,
             useForPrivateSessions = false,
-            useForRegularSessions = true
+            useForRegularSessions = true,
+            cookiePolicy = cookiePolicy
         )
     }
 
     /**
-     * Loads the given URL.
+     * Describes a combination of flags provided to the engine when loading a URL.
      */
-    abstract fun loadUrl(url: String)
+    class LoadUrlFlags internal constructor(val value: Int) {
+        companion object {
+            const val NONE: Int = 0
+            const val BYPASS_CACHE: Int = 1 shl 0
+            const val BYPASS_PROXY: Int = 1 shl 1
+            const val EXTERNAL: Int = 1 shl 2
+            const val ALLOW_POPUPS: Int = 1 shl 3
+            const val BYPASS_CLASSIFIER: Int = 1 shl 4
+            internal const val ALL = BYPASS_CACHE + BYPASS_PROXY + EXTERNAL + ALLOW_POPUPS + BYPASS_CLASSIFIER
+
+            fun all() = LoadUrlFlags(ALL)
+            fun none() = LoadUrlFlags(NONE)
+            fun external() = LoadUrlFlags(EXTERNAL)
+            fun select(vararg types: Int) = LoadUrlFlags(types.sum())
+        }
+
+        fun contains(flag: Int) = (value and flag) != 0
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is LoadUrlFlags) return false
+            if (value != other.value) return false
+            return true
+        }
+
+        override fun hashCode() = value
+    }
+
+    /**
+     * Loads the given URL.
+     *
+     * @param url the url to load.
+     * @param flags the [LoadUrlFlags] to use when loading the provider url.
+     */
+    abstract fun loadUrl(url: String, flags: LoadUrlFlags = LoadUrlFlags.none())
 
     /**
      * Loads the data with the given mimeType.

@@ -8,7 +8,6 @@ import android.annotation.SuppressLint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.engine.gecko.media.GeckoMediaDelegate
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
@@ -18,7 +17,9 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.manifest.WebAppManifestParser
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.storage.VisitType
@@ -27,6 +28,7 @@ import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
 import mozilla.components.support.utils.DownloadUtils
+import org.json.JSONObject
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
@@ -89,9 +91,9 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.loadUrl]
      */
-    override fun loadUrl(url: String) {
+    override fun loadUrl(url: String, flags: LoadUrlFlags) {
         requestFromWebContent = false
-        geckoSession.loadUri(url)
+        geckoSession.loadUri(url, flags.value)
     }
 
     /**
@@ -321,8 +323,9 @@ class GeckoEngineSession(
                 GeckoResult.fromValue(AllowOrDeny.DENY)
             } else {
                 notifyObservers {
-                    // As the name LoadRequest.isRedirect may imply this flag is about http redirects. The flag
+                    // Unlike the name LoadRequest.isRedirect may imply this flag is not about http redirects. The flag
                     // is "True if and only if the request was triggered by an HTTP redirect."
+                    // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1545170
                     onLoadRequest(
                         url = request.uri,
                         triggeredByRedirect = request.isRedirect,
@@ -450,12 +453,10 @@ class GeckoEngineSession(
                 return GeckoResult.fromValue(false)
             }
 
-            val result = GeckoResult<Boolean>()
-            launch {
+            return launchGeckoResult {
                 delegate.onVisited(url, visitType)
-                result.complete(true)
+                true
             }
-            return result
         }
 
         override fun getVisited(
@@ -468,12 +469,10 @@ class GeckoEngineSession(
 
             val delegate = settings.historyTrackingDelegate ?: return GeckoResult.fromValue(null)
 
-            val result = GeckoResult<BooleanArray>()
-            launch {
-                val visits: List<Boolean>? = delegate.getVisited(urls.toList())
-                result.complete(visits?.toBooleanArray())
+            return launchGeckoResult {
+                val visits = delegate.getVisited(urls.toList())
+                visits.toBooleanArray()
             }
-            return result
         }
     }
 
@@ -499,7 +498,7 @@ class GeckoEngineSession(
             geckoSession.close()
             createGeckoSession()
 
-            notifyObservers { onCrashStateChange(crashed = true) }
+            notifyObservers { onCrash() }
         }
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
@@ -509,7 +508,7 @@ class GeckoEngineSession(
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
             notifyObservers {
                 val fileName = response.filename
-                    ?: DownloadUtils.guessFileName("", response.uri, response.contentType)
+                    ?: DownloadUtils.guessFileName(null, response.uri, response.contentType)
                 onExternalResource(
                         url = response.uri,
                         contentLength = response.contentLength,
@@ -534,12 +533,54 @@ class GeckoEngineSession(
         }
 
         override fun onFocusRequest(session: GeckoSession) = Unit
+
+        override fun onWebAppManifest(session: GeckoSession, manifest: JSONObject) {
+            val parsed = WebAppManifestParser().parse(manifest)
+            if (parsed is WebAppManifestParser.Result.Success) {
+                notifyObservers { onWebAppManifestLoaded(parsed.manifest) }
+            }
+        }
     }
 
     private fun createContentBlockingDelegate() = object : ContentBlocking.Delegate {
         override fun onContentBlocked(session: GeckoSession, event: ContentBlocking.BlockEvent) {
-            notifyObservers { onTrackerBlocked(event.uri) }
+            notifyObservers {
+                onTrackerBlocked(event.toTracker())
+            }
         }
+    }
+
+    @Suppress("LongMethod")
+    private fun ContentBlocking.BlockEvent.toTracker(): Tracker {
+        val blockedContentCategories = ArrayList<Tracker.Category>()
+
+        if (categories.contains(ContentBlocking.AT_AD)) {
+            blockedContentCategories.add(Tracker.Category.Ad)
+        }
+
+        if (categories.contains(ContentBlocking.AT_ANALYTIC)) {
+            blockedContentCategories.add(Tracker.Category.Analytic)
+        }
+
+        if (categories.contains(ContentBlocking.AT_SOCIAL)) {
+            blockedContentCategories.add(Tracker.Category.Social)
+        }
+
+        if (categories.contains(ContentBlocking.AT_FINGERPRINTING)) {
+            blockedContentCategories.add(Tracker.Category.Fingerprinting)
+        }
+
+        if (categories.contains(ContentBlocking.AT_CRYPTOMINING)) {
+            blockedContentCategories.add(Tracker.Category.Cryptomining)
+        }
+        if (categories.contains(ContentBlocking.AT_CONTENT)) {
+            blockedContentCategories.add(Tracker.Category.Content)
+        }
+        return Tracker(uri, blockedContentCategories)
+    }
+
+    private operator fun Int.contains(mask: Int): Boolean {
+        return (this and mask) != 0
     }
 
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {

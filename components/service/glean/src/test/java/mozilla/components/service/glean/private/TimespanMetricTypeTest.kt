@@ -34,8 +34,8 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start(this)
-        metric.stopAndSum(this)
+        metric.start()
+        metric.stop()
 
         // Check that data was properly recorded.
         assertTrue(metric.testHasValue())
@@ -55,11 +55,11 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start(this)
-        metric.stopAndSum(this)
+        metric.start()
+        metric.stop()
 
         // Let's also call cancel() to make sure it's a no-op.
-        metric.cancel(this)
+        metric.cancel()
 
         // Check that data was not recorded.
         assertFalse("The API should not record a counter if metric is disabled",
@@ -79,9 +79,9 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start(this)
-        metric.cancel(this)
-        metric.stopAndSum(this)
+        metric.start()
+        metric.cancel()
+        metric.stop()
 
         // Check that data was not recorded.
         assertFalse("The API should not record a counter if metric is cancelled",
@@ -115,8 +115,8 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start(this)
-        metric.stopAndSum(this)
+        metric.start()
+        metric.stop()
 
         // Check that data was properly recorded in the second ping.
         assertTrue(metric.testHasValue("store2"))
@@ -136,14 +136,37 @@ class TimespanMetricTypeTest {
         )
 
         // Record a timespan.
-        metric.start(this)
-        metric.start(this)
-        metric.stopAndSum(this)
+        metric.start()
+        metric.start()
+        metric.stop()
 
         // Check that data was properly recorded in the second ping.
         assertTrue(metric.testHasValue("store2"))
         assertTrue(metric.testGetValue("store2") >= 0)
         assertEquals(1, testGetNumRecordedErrors(metric, ErrorType.InvalidValue))
+    }
+
+    @Test
+    fun `Value unchanged if stopped twice`() {
+        // Define a timespan metric, which will be stored in "store1" and "store2"
+        val metric = TimespanMetricType(
+            disabled = false,
+            category = "telemetry",
+            lifetime = Lifetime.Application,
+            name = "timespan_metric",
+            sendInPings = listOf("store1"),
+            timeUnit = TimeUnit.Nanosecond
+        )
+
+        // Record a timespan.
+        metric.start()
+        metric.stop()
+        assertTrue(metric.testHasValue())
+        val value = metric.testGetValue()
+
+        metric.stop()
+
+        assertEquals(value, metric.testGetValue())
     }
 
     @Test
@@ -156,14 +179,8 @@ class TimespanMetricTypeTest {
             Lifetime.Ping,
             "explicit_timespan",
             listOf("store1"),
-            timeUnit = TimeUnit.Second
+            timeUnit = TimeUnit.Nanosecond
         )
-
-        // This should have no effect
-        TimingManager.getElapsedNanos = { 0 }
-        metric.start(this)
-        TimingManager.getElapsedNanos = { 50 }
-        metric.stopAndSum(this)
 
         metric.setRawNanos(timespanNanos)
         assertEquals(timespanNanos, metric.testGetValue())
@@ -179,36 +196,62 @@ class TimespanMetricTypeTest {
             Lifetime.Ping,
             "explicit_timespan",
             listOf("store1"),
-            timeUnit = TimeUnit.Second
+            timeUnit = TimeUnit.Nanosecond
         )
 
         metric.setRawNanos(timespanNanos)
         assertEquals(timespanNanos, metric.testGetValue())
 
         TimingManager.getElapsedNanos = { 0 }
-        metric.start(this)
+        metric.start()
         TimingManager.getElapsedNanos = { 50 }
-        metric.stopAndSum(this)
+        metric.stop()
         val value = metric.testGetValue()
         assertTrue(timespanNanos < value)
     }
 
     @Test
-    fun `test sumRawNanos`() {
-        val timespanNanos = 1200000000L
+    fun `setRawNanos does not overwrite value`() {
+        val timespanNanos = 6 * 1000000000L
 
+        val metric = TimespanMetricType(
+            false,
+            "telemetry",
+            Lifetime.Ping,
+            "explicit_timespan_1",
+            listOf("store1"),
+            timeUnit = TimeUnit.Nanosecond
+        )
+
+        metric.start()
+        metric.stop()
+        val value = metric.testGetValue()
+
+        metric.setRawNanos(timespanNanos)
+
+        assertEquals(value, metric.testGetValue())
+    }
+
+    @Test
+    fun `setRawNanos does nothing when timer is running`() {
         val metric = TimespanMetricType(
             false,
             "telemetry",
             Lifetime.Ping,
             "explicit_timespan",
             listOf("store1"),
-            timeUnit = TimeUnit.Second
+            timeUnit = TimeUnit.Nanosecond
         )
 
-        metric.sumRawNanos(timespanNanos)
-        assertEquals(timespanNanos, metric.testGetValue())
-        metric.sumRawNanos(timespanNanos)
-        assertEquals(timespanNanos * 2, metric.testGetValue())
+        TimingManager.getElapsedNanos = { 0 }
+        metric.start()
+
+        metric.setRawNanos(1000)
+
+        TimingManager.getElapsedNanos = { 50 }
+        metric.stop()
+
+        assertEquals(50, metric.testGetValue())
+        assertEquals(1, testGetNumRecordedErrors(metric, ErrorType.InvalidValue))
     }
 }

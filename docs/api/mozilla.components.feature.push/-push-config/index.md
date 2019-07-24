@@ -2,7 +2,7 @@
 
 # PushConfig
 
-`data class PushConfig` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/push/src/main/java/mozilla/components/feature/push/AutoPushFeature.kt#L309)
+`data class PushConfig` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/push/src/main/java/mozilla/components/feature/push/AutoPushFeature.kt#L327)
 
 Configuration object for initializing the Push Manager.
 
@@ -10,7 +10,7 @@ Configuration object for initializing the Push Manager.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `PushConfig(senderId: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, serverHost: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "push.service.mozilla.com", protocol: `[`Protocol`](../-protocol/index.md)` = Protocol.HTTPS, serviceType: `[`ServiceType`](../-service-type/index.md)` = ServiceType.FCM)`<br>Configuration object for initializing the Push Manager. |
+| [&lt;init&gt;](-init-.md) | `PushConfig(senderId: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, serverHost: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "updates.push.services.mozilla.com", protocol: `[`Protocol`](../-protocol/index.md)` = Protocol.HTTPS, serviceType: `[`ServiceType`](../-service-type/index.md)` = ServiceType.FCM)`<br>Configuration object for initializing the Push Manager. |
 
 ### Properties
 

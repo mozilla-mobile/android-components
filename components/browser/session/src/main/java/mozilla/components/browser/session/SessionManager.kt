@@ -4,10 +4,18 @@
 
 package mozilla.components.browser.session
 
+import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.session.ext.toCustomTabSessionState
+import mozilla.components.browser.session.ext.toTabSessionState
+import mozilla.components.browser.state.action.CustomTabListAction
+import mozilla.components.browser.state.action.SystemAction
+import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.base.observer.Observable
+import java.lang.IllegalArgumentException
 
 /**
  * This class provides access to a centralized registry of all active sessions.
@@ -15,8 +23,8 @@ import mozilla.components.support.base.observer.Observable
 @Suppress("TooManyFunctions")
 class SessionManager(
     val engine: Engine,
-    val defaultSession: (() -> Session)? = null,
-    private val delegate: LegacySessionManager = LegacySessionManager(engine, defaultSession)
+    private val store: BrowserStore? = null,
+    private val delegate: LegacySessionManager = LegacySessionManager(engine)
 ) : Observable<SessionManager.Observer> by delegate {
     /**
      * Returns the number of session including CustomTab sessions.
@@ -81,7 +89,54 @@ class SessionManager(
         engineSession: EngineSession? = null,
         parent: Session? = null
     ) {
+        // Add store to Session so that it can dispatch actions whenever it changes.
+        session.store = store
+
         delegate.add(session, selected, engineSession, parent)
+
+        if (session.isCustomTabSession()) {
+            store?.syncDispatch(
+                CustomTabListAction.AddCustomTabAction(
+                    session.toCustomTabSessionState()
+                )
+            )
+        } else {
+            store?.syncDispatch(
+                TabListAction.AddTabAction(
+                    session.toTabSessionState(),
+                    select = selected
+                )
+            )
+        }
+    }
+
+    /**
+     * Adds multiple sessions.
+     *
+     * Note that for performance reasons this method will invoke
+     * [SessionManager.Observer.onSessionsRestored] and not [SessionManager.Observer.onSessionAdded]
+     * for every added [Session].
+     */
+    fun add(sessions: List<Session>) {
+        // We disallow bulk adding custom tabs or sessions with a parent. At the moment this is not
+        // needed and it makes the browser-state migration logic easier.
+
+        sessions.find { it.isCustomTabSession() }?.let {
+            throw IllegalArgumentException("Bulk adding of custom tab sessions is not supported.")
+        }
+
+        sessions.find { it.parentId != null }?.let {
+            throw IllegalArgumentException("Bulk adding of sessions with a parent is not supported. ")
+        }
+
+        // Add store to each Session so that it can dispatch actions whenever it changes.
+        sessions.forEach { it.store = store }
+
+        delegate.add(sessions)
+
+        store?.syncDispatch(TabListAction.AddMultipleTabsAction(
+            tabs = sessions.map { it.toTabSessionState() }
+        ))
     }
 
     /**
@@ -97,7 +152,35 @@ class SessionManager(
      * @param snapshot A [Snapshot] which may be produced by [createSnapshot].
      * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
-    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) = delegate.restore(snapshot, updateSelection)
+    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
+        // Add store to each Session so that it can dispatch actions whenever it changes.
+        snapshot.sessions.forEach { it.session.store = store }
+
+        delegate.restore(snapshot, updateSelection)
+
+        val tabs = snapshot.sessions
+            .filter {
+                // A restored snapshot should not contain any custom tab so we should be able to safely ignore
+                // them here.
+                !it.session.isCustomTabSession()
+            }
+            .map { item ->
+                item.session.toTabSessionState()
+            }
+
+        val selectedTabId = if (updateSelection && snapshot.selectedSessionIndex != NO_SELECTION) {
+            val index = snapshot.selectedSessionIndex
+            if (index in 0..snapshot.sessions.lastIndex) {
+                snapshot.sessions[index].session.id
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+
+        store?.syncDispatch(TabListAction.RestoreAction(tabs, selectedTabId))
+    }
 
     /**
      * Gets the linked engine session for the provided session (if it exists).
@@ -117,23 +200,52 @@ class SessionManager(
     fun remove(
         session: Session = selectedSessionOrThrow,
         selectParentIfExists: Boolean = false
-    ) = delegate.remove(session, selectParentIfExists)
+    ) {
+        delegate.remove(session, selectParentIfExists)
+
+        if (session.isCustomTabSession()) {
+            store?.syncDispatch(
+                CustomTabListAction.RemoveCustomTabAction(session.id)
+            )
+        } else {
+            store?.syncDispatch(
+                TabListAction.RemoveTabAction(session.id)
+            )
+        }
+    }
 
     /**
      * Removes all sessions but CustomTab sessions.
      */
-    fun removeSessions() = delegate.removeSessions()
+    fun removeSessions() {
+        delegate.removeSessions()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
+    }
 
     /**
      * Removes all sessions including CustomTab sessions.
      */
-    fun removeAll() = delegate.removeAll()
+    fun removeAll() {
+        delegate.removeAll()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
+        store?.syncDispatch(
+            CustomTabListAction.RemoveAllCustomTabsAction
+        )
+    }
 
     /**
      * Marks the given session as selected.
      */
     fun select(session: Session) {
         delegate.select(session)
+
+        store?.syncDispatch(
+            TabListAction.SelectTabAction(session.id)
+        )
     }
 
     /**
@@ -146,7 +258,10 @@ class SessionManager(
      * Informs this [SessionManager] that the OS is in low memory condition so it
      * can reduce its allocated objects.
      */
-    fun onLowMemory() = delegate.onLowMemory()
+    fun onLowMemory() {
+        delegate.onLowMemory()
+        store?.syncDispatch(SystemAction.LowMemoryAction)
+    }
 
     companion object {
         const val NO_SELECTION = -1

@@ -52,11 +52,11 @@ tasks:
 
     decision_task:
       $if: 'tasks_for == "github-pull-request"'
-      then: 'pr' 
+      then: 'pr'
       else:
         $if: 'tasks_for == "github-push"'
-        then: 'push' 
-        else: 'release' 
+        then: 'push'
+        else: 'release'
 
   in:
     $let:
@@ -100,7 +100,7 @@ tasks:
             - statuses  # Automatically added by taskcluster-github. It must be explicit because of Chain of Trust
           payload:
             maxRunTime: 600   # Decision should remain fast enough to schedule a handful of tasks
-            image: mozillamobile/android-components:1.18
+            image: mozillamobile/android-components:1.19
             command:
               - /bin/bash
               - --login
@@ -133,7 +133,7 @@ tasks:
                     && git config advice.detachedHead false
                     && git checkout ${head_rev}
                     && ./gradlew --no-daemon --version
-                    && python automation/taskcluster/decision_task.py ${decision_task} 
+                    && python automation/taskcluster/decision_task.py ${decision_task}
           in:
             - $if: 'tasks_for == "github-pull-request" && event["action"] in ["opened", "reopened", "edited", "synchronize"]'
               then:
@@ -213,26 +213,23 @@ tasks:
               in:
                 - $if: 'tasks_for == "github-release" && event["action"] == "published"'
                   then:
-                    $let:
-                      tag: ${event.release.tag_name}
-                    in:
-                      $mergeDeep:
-                        - {$eval: 'default_task_definition'}
-                        - {$eval: 'nightly_or_release_definition'}
-                        - scopes:
-                            - ${assume_scope_prefix}:release
-                          payload:
-                            command:
-                              - >-
-                                git fetch ${repository} --tags
-                                && git config advice.detachedHead false
-                                && git checkout ${tag}
-                                && ./gradlew --no-daemon --version
-                                && python automation/taskcluster/decision_task.py release --version "${tag}"
-                                ${command_staging_flag}
-                          metadata:
-                            name: Android Components - Decision task (${tag})
-                            description: Build and publish release versions.
+                    $mergeDeep:
+                      - {$eval: 'default_task_definition'}
+                      - {$eval: 'nightly_or_release_definition'}
+                      - scopes:
+                          - ${assume_scope_prefix}:release
+                        payload:
+                          command:
+                            - >-
+                              git fetch ${repository} --tags
+                              && git config advice.detachedHead false
+                              && git checkout ${event.release.tag_name}
+                              && ./gradlew --no-daemon --version
+                              && python automation/taskcluster/decision_task.py release
+                              ${command_staging_flag}
+                        metadata:
+                          name: Android Components - Decision task (${event.release.tag_name})
+                          description: Build and publish release versions.
                 - $if: 'tasks_for == "cron"'
                   then:
                     $mergeDeep:

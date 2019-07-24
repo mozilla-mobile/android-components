@@ -33,13 +33,13 @@ import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
-import mozilla.components.support.ktx.android.content.res.pxToDp
+import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.ktx.android.view.hideKeyboard
 
 /**
  * This sample application shows how to use and customize the browser-toolbar component.
  */
-@Suppress("TooManyFunctions", "MagicNumber", "LargeClass")
+@Suppress("TooManyFunctions", "LargeClass")
 class ToolbarActivity : AppCompatActivity() {
     private val shippedDomainsProvider = ShippedDomainsProvider()
     private val customDomainsProvider = CustomDomainsProvider()
@@ -267,19 +267,19 @@ class ToolbarActivity : AppCompatActivity() {
     /**
      * A large dark toolbar with padding, flexible space and branding.
      */
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "MagicNumber")
     private fun setupSeedlingToolbar() {
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Setup background and size/padding
         // //////////////////////////////////////////////////////////////////////////////////////////
 
         toolbar.setBackgroundColor(0xFF38383D.toInt())
-        toolbar.layoutParams.height = toolbar.resources.pxToDp(104)
+        toolbar.layoutParams.height = 104.dpToPx(resources.displayMetrics)
         toolbar.setPadding(
-                resources.pxToDp(58),
-                resources.pxToDp(24),
-                resources.pxToDp(58),
-                resources.pxToDp(24))
+            58.dpToPx(resources.displayMetrics),
+            24.dpToPx(resources.displayMetrics),
+            58.dpToPx(resources.displayMetrics),
+            24.dpToPx(resources.displayMetrics))
 
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Hide the site security icon and set padding around the URL
@@ -288,11 +288,11 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.displaySiteSecurityIcon = false
 
         toolbar.setUrlTextPadding(
-                left = resources.pxToDp(16),
-                right = resources.pxToDp(16)
+                left = 16.dpToPx(resources.displayMetrics),
+                right = 16.dpToPx(resources.displayMetrics)
         )
 
-        toolbar.browserActionMargin = toolbar.resources.pxToDp(16)
+        toolbar.browserActionMargin = 16.dpToPx(resources.displayMetrics)
 
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Add a custom "URL box" (url + page actions) background view that also acts as a custom
@@ -302,7 +302,7 @@ class ToolbarActivity : AppCompatActivity() {
         val urlBoxProgress = UrlBoxProgressView(this)
 
         toolbar.urlBoxView = urlBoxProgress
-        toolbar.urlBoxMargin = toolbar.resources.pxToDp(16)
+        toolbar.urlBoxMargin = 16.dpToPx(resources.displayMetrics)
 
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Add navigation actions
@@ -390,7 +390,7 @@ class ToolbarActivity : AppCompatActivity() {
         // Add a fixed size element for spacing and a branding image
         // //////////////////////////////////////////////////////////////////////////////////////////
 
-        val space = Toolbar.ActionSpace(toolbar.resources.pxToDp(128))
+        val space = Toolbar.ActionSpace(SPACING_SIZE_DP.dpToPx(resources.displayMetrics))
 
         toolbar.addBrowserAction(space)
 
@@ -458,7 +458,7 @@ class ToolbarActivity : AppCompatActivity() {
 
         job = CoroutineScope(Dispatchers.Main).launch {
             try {
-                loop@ for (progress in 0..100 step 5) {
+                loop@ for (progress in PROGRESS_RANGE step RELOAD_STEP_SIZE) {
                     if (!isActive) {
                         break@loop
                     }
@@ -469,7 +469,7 @@ class ToolbarActivity : AppCompatActivity() {
                         view.progress = progress
                     }
 
-                    delay(progress * 5L)
+                    delay(progress * RELOAD_STEP_SIZE.toLong())
                 }
             } catch (t: Throwable) {
                 if (view == null) {
@@ -492,4 +492,10 @@ class ToolbarActivity : AppCompatActivity() {
     }
 
     private fun Resources.getThemedDrawable(@DrawableRes resId: Int) = getDrawable(resId, theme)
+
+    companion object {
+        private val PROGRESS_RANGE = 0..100
+        private const val SPACING_SIZE_DP = 128
+        private const val RELOAD_STEP_SIZE = 5
+    }
 }

@@ -10,7 +10,7 @@ A base class for concrete implementations of PlacesStorages
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `PlacesStorage(context: `[`Context`](https://developer.android.com/reference/android/content/Context.html)`)`<br>A base class for concrete implementations of PlacesStorages |
+| [&lt;init&gt;](-init-.md) | `PlacesStorage(context: <ERROR CLASS>)`<br>A base class for concrete implementations of PlacesStorages |
 
 ### Properties
 
@@ -31,7 +31,7 @@ A base class for concrete implementations of PlacesStorages
 
 | Name | Summary |
 |---|---|
-| [sync](../../mozilla.components.concept.sync/-syncable-store/sync.md) | `abstract suspend fun sync(authInfo: `[`AuthInfo`](../../mozilla.components.concept.sync/-auth-info/index.md)`): `[`SyncStatus`](../../mozilla.components.concept.sync/-sync-status/index.md)<br>Performs a sync. |
+| [sync](../../mozilla.components.concept.sync/-syncable-store/sync.md) | `abstract suspend fun sync(authInfo: `[`SyncAuthInfo`](../../mozilla.components.concept.sync/-sync-auth-info/index.md)`): `[`SyncStatus`](../../mozilla.components.concept.sync/-sync-status/index.md)<br>Performs a sync. |
 
 ### Inheritors
 

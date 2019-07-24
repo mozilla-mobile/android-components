@@ -41,13 +41,14 @@ class GeckoEngineView @JvmOverloads constructor(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val observer = object : EngineSession.Observer {
-        override fun onCrashStateChange(crashed: Boolean) {
-            if (crashed) {
-                // When crashing the previous GeckoSession is no longer usable. Internally GeckoEngineSession will
-                // create a new instance. This means we will need to tell GeckoView about this new GeckoSession:
-                currentSession?.let { currentGeckoView.setSession(it.geckoSession) }
-            }
+        override fun onCrash() {
+            rebind()
         }
+
+        override fun onProcessKilled() {
+            rebind()
+        }
+
         override fun onAppPermissionRequest(permissionRequest: PermissionRequest) = Unit
         override fun onContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
     }
@@ -85,10 +86,28 @@ class GeckoEngineView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Rebinds the current session to this view. This may be required after the session crashed and
+     * the view needs to notified about a new underlying GeckoSession (created under the hood by
+     * GeckoEngineSession) - since the previous one is no longer usable.
+     */
+    private fun rebind() {
+        currentSession?.let { currentGeckoView.setSession(it.geckoSession) }
+    }
+
+    @Synchronized
+    override fun release() {
+        currentSession?.apply { unregister(observer) }
+
+        currentSession = null
+
+        currentGeckoView.releaseSession()
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
 
-        currentSession?.apply { unregister(observer) }
+        release()
     }
 
     override fun canScrollVerticallyUp() = currentSession?.let { it.scrollY > 0 } != false

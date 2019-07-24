@@ -11,7 +11,7 @@ to rewrite the [IconRequest](../../mozilla.components.browser.icons/-icon-reques
 
 | Name | Summary |
 |---|---|
-| [prepare](prepare.md) | `abstract fun prepare(context: `[`Context`](https://developer.android.com/reference/android/content/Context.html)`, request: `[`IconRequest`](../../mozilla.components.browser.icons/-icon-request/index.md)`): `[`IconRequest`](../../mozilla.components.browser.icons/-icon-request/index.md) |
+| [prepare](prepare.md) | `abstract fun prepare(context: <ERROR CLASS>, request: `[`IconRequest`](../../mozilla.components.browser.icons/-icon-request/index.md)`): `[`IconRequest`](../../mozilla.components.browser.icons/-icon-request/index.md) |
 
 ### Inheritors
 
@@ -19,3 +19,4 @@ to rewrite the [IconRequest](../../mozilla.components.browser.icons/-icon-reques
 |---|---|
 | [DiskIconPreparer](../-disk-icon-preparer/index.md) | `class DiskIconPreparer : `[`IconPreprarer`](./index.md)<br>[IconPreprarer](./index.md) implementation implementation that will add known resource URLs (from a disk cache) to the request if the request doesn't contain a list of resources yet. |
 | [MemoryIconPreparer](../-memory-icon-preparer/index.md) | `class MemoryIconPreparer : `[`IconPreprarer`](./index.md)<br>An [IconPreprarer](./index.md) implementation that will add known resource URLs (from an in-memory cache) to the request if the request doesn't contain a list of resources yet. |
+| [TippyTopIconPreparer](../-tippy-top-icon-preparer/index.md) | `class TippyTopIconPreparer : `[`IconPreprarer`](./index.md)<br>[IconPreprarer](./index.md) implementation that looks up the host in our "tippy top" list. If it can find a match then it inserts the icon URL into the request. |

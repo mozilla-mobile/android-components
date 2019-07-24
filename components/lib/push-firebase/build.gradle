@@ -23,11 +23,13 @@ android {
 
 dependencies {
     implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
     implementation project(':concept-push')
+    implementation project(':support-base')
+
     implementation Dependencies.firebase_core
-    implementation Dependencies.firebase_messaging
-    implementation Dependencies.mozilla_push
+    api Dependencies.firebase_messaging
 
     testImplementation project(':support-test')
 

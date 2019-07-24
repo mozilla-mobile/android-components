@@ -15,6 +15,7 @@ import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.os.Process
+import android.view.accessibility.AccessibilityManager
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.content.getSystemService
@@ -26,19 +27,13 @@ import mozilla.components.support.ktx.R
  * attribute. E.g. "2.0".
  */
 val Context.appVersionName: String?
-    get() {
-        val packageInfo = packageManager.getPackageInfo(packageName, 0)
-        return packageInfo.versionName
-    }
+    get() = packageManager.getPackageInfo(packageName, 0).versionName
 
 /**
  * Returns the name (label) of the application or the package name as a fallback.
  */
 val Context.appName: String
-    get() {
-        return packageManager.getApplicationLabel(applicationInfo)?.toString()
-            ?: packageName
-    }
+    get() = packageManager.getApplicationLabel(applicationInfo).toString()
 
 /**
  * Returns whether or not the operating system is under low memory conditions.
@@ -54,8 +49,11 @@ fun Context.isOSOnLowMemory(): Boolean {
  * Returns if a list of permission have been granted, if all the permission have been granted
  * returns true otherwise false.
  */
-fun Context.isPermissionGranted(vararg permission: String): Boolean {
+fun Context.isPermissionGranted(permission: Iterable<String>): Boolean {
     return permission.all { checkSelfPermission(this, it) == PERMISSION_GRANTED }
+}
+fun Context.isPermissionGranted(vararg permission: String): Boolean {
+    return isPermissionGranted(permission.asIterable())
 }
 
 /**
@@ -95,6 +93,14 @@ fun Context.share(text: String, subject: String = getString(R.string.mozac_suppo
         false
     }
 }
+
+/**
+ * Check if TalkBack service is enabled.
+ *
+ * (via https://stackoverflow.com/a/12362545/512580)
+ */
+inline val Context.isScreenReaderEnabled: Boolean
+    get() = (getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager).isTouchExplorationEnabled
 
 @VisibleForTesting
 internal var isMainProcess: Boolean? = null

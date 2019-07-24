@@ -11,6 +11,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -61,7 +62,7 @@ class EngineObserverTest {
                 notifyObservers { onLoadingStateChange(true) }
                 notifyObservers { onNavigationStateChange(true, true) }
             }
-            override fun loadUrl(url: String) {
+            override fun loadUrl(url: String, flags: LoadUrlFlags) {
                 notifyObservers { onLocationChange(url) }
                 notifyObservers { onProgress(100) }
                 notifyObservers { onLoadingStateChange(true) }
@@ -103,7 +104,7 @@ class EngineObserverTest {
             override fun saveState(): EngineSessionState = mock()
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun recoverFromCrash(): Boolean { return false }
-            override fun loadUrl(url: String) {
+            override fun loadUrl(url: String, flags: LoadUrlFlags) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
                 } else {
@@ -141,7 +142,7 @@ class EngineObserverTest {
 
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun saveState(): EngineSessionState = mock()
-            override fun loadUrl(url: String) {}
+            override fun loadUrl(url: String, flags: LoadUrlFlags) {}
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
@@ -158,11 +159,14 @@ class EngineObserverTest {
         engineSession.disableTrackingProtection()
         assertFalse(session.trackerBlockingEnabled)
 
-        observer.onTrackerBlocked("tracker1")
-        assertEquals(listOf("tracker1"), session.trackersBlocked)
+        val tracker1 = Tracker("tracker1", emptyList())
+        val tracker2 = Tracker("tracker2", emptyList())
 
-        observer.onTrackerBlocked("tracker2")
-        assertEquals(listOf("tracker1", "tracker2"), session.trackersBlocked)
+        observer.onTrackerBlocked(tracker1)
+        assertEquals(listOf(tracker1), session.trackersBlocked)
+
+        observer.onTrackerBlocked(tracker2)
+        assertEquals(listOf(tracker1, tracker2), session.trackersBlocked)
     }
 
     @Test
@@ -200,9 +204,11 @@ class EngineObserverTest {
         val session = Session("https://www.mozilla.org")
         val observer = EngineObserver(session)
 
-        observer.onTrackerBlocked("tracker1")
-        observer.onTrackerBlocked("tracker2")
-        assertEquals(listOf("tracker1", "tracker2"), session.trackersBlocked)
+        val tracker1 = Tracker("tracker1")
+        val tracker2 = Tracker("tracker2")
+        observer.onTrackerBlocked(tracker1)
+        observer.onTrackerBlocked(tracker2)
+        assertEquals(listOf(tracker1, tracker2), session.trackersBlocked)
 
         observer.onLoadingStateChange(true)
         assertEquals(emptyList<String>(), session.trackersBlocked)
@@ -405,13 +411,12 @@ class EngineObserverTest {
 
         val observer = EngineObserver(session)
 
-        observer.onCrashStateChange(true)
+        observer.onCrash()
         assertTrue(session.crashed)
 
-        observer.onCrashStateChange(false)
-        assertFalse(session.crashed)
+        session.crashed = false
 
-        observer.onCrashStateChange(true)
+        observer.onCrash()
         assertTrue(session.crashed)
     }
 
@@ -441,21 +446,37 @@ class EngineObserverTest {
     }
 
     @Test
-    fun `onLoadRequest clears search terms for requests triggered by user interaction`() {
+    fun `onLoadRequest clears search terms for requests triggered by webcontent`() {
         val url = "https://www.mozilla.org"
         val session = Session(url)
         session.searchTerms = "Mozilla Foundation"
 
         val observer = EngineObserver(session)
-        observer.onLoadRequest(url = url, triggeredByRedirect = true, triggeredByWebContent = true)
+        observer.onLoadRequest(url = url, triggeredByRedirect = false, triggeredByWebContent = true)
+
+        assertEquals("", session.searchTerms)
+        val triggeredByRedirect = session.loadRequestMetadata.isSet(LoadRequestOption.REDIRECT)
+        val triggeredByWebContent = session.loadRequestMetadata.isSet(LoadRequestOption.WEB_CONTENT)
+
+        assertFalse(triggeredByRedirect)
+        assertTrue(triggeredByWebContent)
+    }
+
+    @Test
+    fun `onLoadRequest clears search terms for requests triggered by redirect`() {
+        val url = "https://www.mozilla.org"
+        val session = Session(url)
+        session.searchTerms = "Mozilla Foundation"
+
+        val observer = EngineObserver(session)
+        observer.onLoadRequest(url = url, triggeredByRedirect = true, triggeredByWebContent = false)
 
         assertEquals("", session.searchTerms)
         val triggeredByRedirect = session.loadRequestMetadata.isSet(LoadRequestOption.REDIRECT)
         val triggeredByWebContent = session.loadRequestMetadata.isSet(LoadRequestOption.WEB_CONTENT)
 
         assertTrue(triggeredByRedirect)
-        assertTrue(triggeredByWebContent)
-        assertEquals(session.loadRequestMetadata.url, url)
+        assertFalse(triggeredByWebContent)
     }
 
     @Test
@@ -465,14 +486,14 @@ class EngineObserverTest {
         session.searchTerms = "Mozilla Foundation"
 
         val observer = EngineObserver(session)
-        observer.onLoadRequest(url = url, triggeredByRedirect = true, triggeredByWebContent = false)
+        observer.onLoadRequest(url = url, triggeredByRedirect = false, triggeredByWebContent = false)
 
         assertEquals("Mozilla Foundation", session.searchTerms)
 
         val triggeredByRedirect = session.loadRequestMetadata.isSet(LoadRequestOption.REDIRECT)
         val triggeredByWebContent = session.loadRequestMetadata.isSet(LoadRequestOption.WEB_CONTENT)
 
-        assertTrue(triggeredByRedirect)
+        assertFalse(triggeredByRedirect)
         assertFalse(triggeredByWebContent)
     }
 }

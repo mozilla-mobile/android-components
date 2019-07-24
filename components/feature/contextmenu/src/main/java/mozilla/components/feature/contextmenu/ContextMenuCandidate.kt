@@ -15,7 +15,6 @@ import mozilla.components.browser.session.Session
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.base.observer.Consumable
-import mozilla.components.support.utils.DownloadUtils
 
 /**
  * A candidate for an item to be displayed in the context menu.
@@ -66,7 +65,7 @@ data class ContextMenuCandidate(
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_new_tab),
             showFor = { session, hitResult -> hitResult.isLink() && !session.private },
             action = { parent, hitResult ->
-                val session = tabsUseCases.addTab.invoke(
+                val session = tabsUseCases.addTab(
                     hitResult.getLink(), selectTab = false, startLoading = true, parent = parent)
 
                 snackbarDelegate.show(
@@ -75,7 +74,7 @@ data class ContextMenuCandidate(
                     duration = Snackbar.LENGTH_LONG,
                     action = R.string.mozac_feature_contextmenu_snackbar_action_switch
                 ) {
-                    tabsUseCases.selectTab.invoke(session)
+                    tabsUseCases.selectTab(session)
                 }
             }
         )
@@ -93,8 +92,8 @@ data class ContextMenuCandidate(
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_private_tab),
             showFor = { _, hitResult -> hitResult.isLink() },
             action = { parent, hitResult ->
-                val session = tabsUseCases.addPrivateTab.invoke(
-                    hitResult.src, selectTab = false, startLoading = true, parent = parent)
+                val session = tabsUseCases.addPrivateTab(
+                    hitResult.getLink(), selectTab = false, startLoading = true, parent = parent)
 
                 snackbarDelegate.show(
                     snackBarParentView,
@@ -102,7 +101,7 @@ data class ContextMenuCandidate(
                     Snackbar.LENGTH_LONG,
                     R.string.mozac_feature_contextmenu_snackbar_action_switch
                 ) {
-                    tabsUseCases.selectTab.invoke(session)
+                    tabsUseCases.selectTab(session)
                 }
             }
         )
@@ -121,10 +120,10 @@ data class ContextMenuCandidate(
             showFor = { _, hitResult -> hitResult.isImage() },
             action = { parent, hitResult ->
                 val session = if (parent.private) {
-                    tabsUseCases.addPrivateTab.invoke(
+                    tabsUseCases.addPrivateTab(
                         hitResult.src, selectTab = false, startLoading = true, parent = parent)
                 } else {
-                    tabsUseCases.addTab.invoke(
+                    tabsUseCases.addTab(
                         hitResult.src, selectTab = false, startLoading = true, parent = parent)
                 }
 
@@ -134,7 +133,7 @@ data class ContextMenuCandidate(
                     duration = Snackbar.LENGTH_LONG,
                     action = R.string.mozac_feature_contextmenu_snackbar_action_switch
                 ) {
-                    tabsUseCases.selectTab.invoke(session)
+                    tabsUseCases.selectTab(session)
                 }
             }
         )
@@ -149,9 +148,7 @@ data class ContextMenuCandidate(
             label = context.getString(R.string.mozac_feature_contextmenu_save_image),
             showFor = { _, hitResult -> hitResult.isImage() },
             action = { session, hitResult ->
-                session.download = Consumable.from(Download(
-                    hitResult.src,
-                    DownloadUtils.guessFileName(null, hitResult.src, null)))
+                session.download = Consumable.from(Download(hitResult.src))
             }
         )
 
@@ -194,7 +191,7 @@ data class ContextMenuCandidate(
             action = { _, hitResult ->
                 val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText(hitResult.getLink(), hitResult.getLink())
-                clipboardManager.primaryClip = clip
+                clipboardManager.setPrimaryClip(clip)
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
@@ -218,7 +215,7 @@ data class ContextMenuCandidate(
             action = { _, hitResult ->
                 val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText(hitResult.getLink(), hitResult.src)
-                clipboardManager.primaryClip = clip
+                clipboardManager.setPrimaryClip(clip)
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,

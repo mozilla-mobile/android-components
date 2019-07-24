@@ -16,7 +16,6 @@ import org.junit.Before
 import org.robolectric.Robolectric
 import android.content.pm.ActivityInfo
 import android.content.pm.ResolveInfo
-import androidx.work.testing.WorkManagerTestInitHelper
 import mozilla.components.service.glean.private.BooleanMetricType
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.resetGlean
@@ -34,9 +33,6 @@ class GleanDebugActivityTest {
     @Before
     fun setup() {
         resetGlean()
-
-        WorkManagerTestInitHelper.initializeTestWorkManager(
-            ApplicationProvider.getApplicationContext())
 
         // This makes sure we have a "launch" intent in our package, otherwise
         // it will fail looking for it in `GleanDebugActivityTest`.
@@ -204,10 +200,9 @@ class GleanDebugActivityTest {
     fun `pings are correctly tagged using tagPings`() {
         val pingTag = "test-debug-ID"
 
-        // The TestClient class found at the bottom of this file is used to intercept the request
-        // in order to check that the header has been added and the URL has been redirected.
+        // The TestClient class found in TestUtil is used to intercept the request in order to check
+        // that the header has been added correctly for the tagged ping.
         val testClient = TestPingTagClient(
-            responseUrl = Configuration.DEFAULT_DEBUGVIEW_ENDPOINT,
             debugHeaderValue = pingTag)
 
         // Use the test client in the Glean configuration

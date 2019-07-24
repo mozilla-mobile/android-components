@@ -8,8 +8,22 @@ import android.graphics.Bitmap
 import mozilla.components.browser.session.engine.EngineSessionHolder
 import mozilla.components.browser.session.engine.request.LoadRequestMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.session.ext.toSecurityInfoState
 import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.browser.state.action.ContentAction.RemoveIconAction
+import mozilla.components.browser.state.action.ContentAction.RemoveThumbnailAction
+import mozilla.components.browser.state.action.ContentAction.UpdateIconAction
+import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
+import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
+import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfo
+import mozilla.components.browser.state.action.ContentAction.UpdateSearchTermsAction
+import mozilla.components.browser.state.action.ContentAction.UpdateThumbnailAction
+import mozilla.components.browser.state.action.ContentAction.UpdateTitleAction
+import mozilla.components.browser.state.action.ContentAction.UpdateUrlAction
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -39,6 +53,10 @@ class Session(
      */
     internal val engineSessionHolder = EngineSessionHolder()
 
+    // For migration purposes every `Session` has a reference to the `BrowserStore` (if used) in order to dispatch
+    // actions to it when the `Session` changes.
+    internal var store: BrowserStore? = null
+
     /**
      * Id of parent session, usually refer to the session which created this one. The clue to indicate if this session
      * is terminated, which target we should go back.
@@ -66,7 +84,7 @@ class Session(
         fun onWebAppManifestChanged(session: Session, manifest: WebAppManifest?) = Unit
         fun onDownload(session: Session, download: Download): Boolean = false
         fun onTrackerBlockingEnabledChanged(session: Session, blockingEnabled: Boolean) = Unit
-        fun onTrackerBlocked(session: Session, blocked: String, all: List<String>) = Unit
+        fun onTrackerBlocked(session: Session, tracker: Tracker, all: List<Tracker>) = Unit
         fun onLongPress(session: Session, hitResult: HitResult): Boolean = false
         fun onFindResult(session: Session, result: FindResult) = Unit
         fun onDesktopModeChanged(session: Session, enabled: Boolean) = Unit
@@ -158,59 +176,66 @@ class Session(
     /**
      * The currently loading or loaded URL.
      */
-    var url: String by Delegates.observable(initialUrl) {
-        _, old, new -> notifyObservers(old, new) { onUrlChanged(this@Session, new) }
+    var url: String by Delegates.observable(initialUrl) { _, old, new ->
+        if (notifyObservers(old, new) { onUrlChanged(this@Session, new) }) {
+            store?.syncDispatch(UpdateUrlAction(id, new))
+        }
     }
 
     /**
      * The title of the currently displayed website changed.
      */
-    var title: String by Delegates.observable("") {
-        _, old, new -> notifyObservers(old, new) { onTitleChanged(this@Session, new) }
+    var title: String by Delegates.observable("") { _, old, new ->
+        if (notifyObservers(old, new) { onTitleChanged(this@Session, new) }) {
+            store?.syncDispatch(UpdateTitleAction(id, new))
+        }
     }
 
     /**
      * The progress loading the current URL.
      */
-    var progress: Int by Delegates.observable(0) {
-        _, old, new -> notifyObservers(old, new) { onProgress(this@Session, new) }
+    var progress: Int by Delegates.observable(0) { _, old, new ->
+        if (notifyObservers(old, new) { onProgress(this@Session, new) }) {
+            store?.syncDispatch(UpdateProgressAction(id, new))
+        }
     }
 
     /**
      * Loading state, true if this session's url is currently loading, otherwise false.
      */
-    var loading: Boolean by Delegates.observable(false) {
-        _, old, new -> notifyObservers(old, new) { onLoadingStateChanged(this@Session, new) }
+    var loading: Boolean by Delegates.observable(false) { _, old, new ->
+        if (notifyObservers(old, new) { onLoadingStateChanged(this@Session, new) }) {
+            store?.syncDispatch(UpdateLoadingStateAction(id, new))
+        }
     }
 
     /**
      * Navigation state, true if there's an history item to go back to, otherwise false.
      */
-    var canGoBack: Boolean by Delegates.observable(false) {
-        _, old, new -> notifyObservers(old, new) { onNavigationStateChanged(this@Session, new, canGoForward) }
+    var canGoBack: Boolean by Delegates.observable(false) { _, old, new ->
+        notifyObservers(old, new) { onNavigationStateChanged(this@Session, new, canGoForward) }
     }
 
     /**
      * Navigation state, true if there's an history item to go forward to, otherwise false.
      */
-    var canGoForward: Boolean by Delegates.observable(false) {
-        _, old, new -> notifyObservers(old, new) { onNavigationStateChanged(this@Session, canGoBack, new) }
+    var canGoForward: Boolean by Delegates.observable(false) { _, old, new ->
+        notifyObservers(old, new) { onNavigationStateChanged(this@Session, canGoBack, new) }
     }
 
     /**
      * The currently / last used search terms (or an empty string).
      */
-    var searchTerms: String by Delegates.observable("") {
-        _, _, new -> notifyObservers {
-            onSearch(this@Session, new)
-        }
+    var searchTerms: String by Delegates.observable("") { _, _, new ->
+        notifyObservers { onSearch(this@Session, new) }
+        store?.syncDispatch(UpdateSearchTermsAction(id, new))
     }
 
     /**
      * Set when a load request is received, indicating if the request came from web content, or via a redirect.
      */
-    var loadRequestMetadata: LoadRequestMetadata by Delegates.observable(LoadRequestMetadata.blank) {
-        _, _, new -> notifyObservers {
+    var loadRequestMetadata: LoadRequestMetadata by Delegates.observable(LoadRequestMetadata.blank) { _, _, new ->
+        notifyObservers {
             onLoadRequest(
                 this@Session,
                 new.url,
@@ -224,22 +249,23 @@ class Session(
      * Security information indicating whether or not the current session is
      * for a secure URL, as well as the host and SSL certificate authority, if applicable.
      */
-    var securityInfo: SecurityInfo by Delegates.observable(SecurityInfo()) {
-        _, old, new -> notifyObservers(old, new) { onSecurityChanged(this@Session, new) }
+    var securityInfo: SecurityInfo by Delegates.observable(SecurityInfo()) { _, old, new ->
+        notifyObservers(old, new) { onSecurityChanged(this@Session, new) }
+        store?.syncDispatch(UpdateSecurityInfo(id, new.toSecurityInfoState()))
     }
 
     /**
      * Configuration data in case this session is used for a Custom Tab.
      */
-    var customTabConfig: CustomTabConfig? by Delegates.observable<CustomTabConfig?>(null) {
-        _, _, new -> notifyObservers { onCustomTabConfigChanged(this@Session, new) }
+    var customTabConfig: CustomTabConfig? by Delegates.observable<CustomTabConfig?>(null) { _, _, new ->
+        notifyObservers { onCustomTabConfigChanged(this@Session, new) }
     }
 
     /**
      * The Web App Manifest for the currently visited page (or null).
      */
-    var webAppManifest: WebAppManifest? by Delegates.observable<WebAppManifest?>(null) {
-        _, _, new -> notifyObservers { onWebAppManifestChanged(this@Session, new) }
+    var webAppManifest: WebAppManifest? by Delegates.observable<WebAppManifest?>(null) { _, _, new ->
+        notifyObservers { onWebAppManifestChanged(this@Session, new) }
     }
 
     /**
@@ -277,9 +303,9 @@ class Session(
     }
 
     /**
-     * List of URIs that have been blocked in this session.
+     * List of [Tracker]s that have been blocked in this session.
      */
-    var trackersBlocked: List<String> by Delegates.observable(emptyList()) { _, old, new ->
+    var trackersBlocked: List<Tracker> by Delegates.observable(emptyList()) { _, old, new ->
         notifyObservers(old, new) {
             if (new.isNotEmpty()) {
                 onTrackerBlocked(this@Session, new.last(), new)
@@ -309,8 +335,11 @@ class Session(
     /**
      * The target of the latest thumbnail.
      */
-    var thumbnail: Bitmap? by Delegates.observable<Bitmap?>(null) {
-        _, _, new -> notifyObservers { onThumbnailChanged(this@Session, new) }
+    var thumbnail: Bitmap? by Delegates.observable<Bitmap?>(null) { _, _, new ->
+        notifyObservers { onThumbnailChanged(this@Session, new) }
+
+        val action = if (new != null) UpdateThumbnailAction(id, new) else RemoveThumbnailAction(id)
+        store?.syncDispatch(action)
     }
 
     /**
@@ -331,7 +360,10 @@ class Session(
      * An icon for the currently visible page.
      */
     var icon: Bitmap? by Delegates.observable<Bitmap?>(null) { _, old, new ->
-        notifyObservers(old, new) { onIconChanged(this@Session, new) }
+        if (notifyObservers(old, new) { onIconChanged(this@Session, new) }) {
+            val action = if (new != null) UpdateIconAction(id, new) else RemoveIconAction(id)
+            store?.syncDispatch(action)
+        }
     }
 
     /**
@@ -361,16 +393,15 @@ class Session(
      * [Consumable] State for a prompt request from web content.
      */
     var promptRequest: Consumable<PromptRequest> by Delegates.vetoable(Consumable.empty()) {
-            _, _, request ->
-        val consumers = wrapConsumers<PromptRequest> { onPromptRequested(this@Session, it) }
-        !request.consumeBy(consumers)
+        _, _, request ->
+            val consumers = wrapConsumers<PromptRequest> { onPromptRequested(this@Session, it) }
+            !request.consumeBy(consumers)
     }
 
     /**
      * [Consumable] request to open/create a window.
      */
-    var openWindowRequest: Consumable<WindowRequest> by Delegates.vetoable(Consumable.empty()) {
-        _, _, request ->
+    var openWindowRequest: Consumable<WindowRequest> by Delegates.vetoable(Consumable.empty()) { _, _, request ->
         val consumers = wrapConsumers<WindowRequest> { onOpenWindowRequested(this@Session, it) }
         !request.consumeBy(consumers)
     }
@@ -378,8 +409,7 @@ class Session(
     /**
      * [Consumable] request to close a window.
      */
-    var closeWindowRequest: Consumable<WindowRequest> by Delegates.vetoable(Consumable.empty()) {
-        _, _, request ->
+    var closeWindowRequest: Consumable<WindowRequest> by Delegates.vetoable(Consumable.empty()) { _, _, request ->
         val consumers = wrapConsumers<WindowRequest> { onCloseWindowRequested(this@Session, it) }
         !request.consumeBy(consumers)
     }
@@ -425,10 +455,18 @@ class Session(
 
     /**
      * Helper method to notify observers only if a value changed.
+     *
+     * @param old the previous value of a session property
+     * @param new the current (new) value of a session property
+     *
+     * @return true if the observers where notified (the values changed), otherwise false.
      */
-    private fun notifyObservers(old: Any?, new: Any?, block: Observer.() -> Unit) {
-        if (old != new) {
+    private fun notifyObservers(old: Any?, new: Any?, block: Observer.() -> Unit): Boolean {
+        return if (old != new) {
             notifyObservers(block)
+            true
+        } else {
+            false
         }
     }
 

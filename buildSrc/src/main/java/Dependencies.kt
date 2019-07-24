@@ -4,8 +4,8 @@
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.3.31"
-    const val coroutines = "1.2.1"
+    const val kotlin = "1.3.40"
+    const val coroutines = "1.2.2"
 
     const val junit = "4.12"
     const val robolectric = "4.1"
@@ -15,7 +15,7 @@ object Versions {
     const val mockwebserver = "3.10.0"
 
     const val dokka = "0.9.17"
-    const val android_gradle_plugin = "3.3.2"
+    const val android_gradle_plugin = "3.4.1"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "26.3.2"
 
@@ -25,7 +25,7 @@ object Versions {
     const val jna = "5.2.0"
     const val disklrucache = "2.0.2"
 
-    const val mozilla_appservices = "0.31.2"
+    const val mozilla_appservices = "0.34.0"
     const val servo = "0.0.1.20181017.aa95911"
 
     const val material = "1.0.0"
@@ -40,14 +40,15 @@ object Versions {
         const val fragment = "1.0.0"
         const val recyclerview = "1.0.0"
         const val test = "1.2.0"
-        const val test_ext = "1.1.0"
-        const val espresso = "3.1.1"
+        const val test_ext = "1.1.1"
+        const val espresso = "3.2.0"
         const val room = "2.0.0"
         const val paging = "2.0.0"
         const val palette = "1.0.0"
         const val lifecycle = "2.0.0"
         const val work = "2.0.1"
         const val arch_core_testing = "2.0.0"
+        const val uiautomator = "2.2.0"
     }
 
     object Firebase {
@@ -92,6 +93,7 @@ object Dependencies {
     const val androidx_test_junit = "androidx.test.ext:junit:${Versions.AndroidX.test_ext}"
     const val androidx_test_runner = "androidx.test:runner:${Versions.AndroidX.test}"
     const val androidx_test_rules = "androidx.test:rules:${Versions.AndroidX.test}"
+    const val androidx_test_uiautomator = "androidx.test.uiautomator:uiautomator:${Versions.AndroidX.uiautomator}"
     const val androidx_work_runtime = "androidx.work:work-runtime-ktx:${Versions.AndroidX.work}"
     const val androidx_work_testing = "androidx.work:work-testing:${Versions.AndroidX.work}"
     const val androidx_espresso_core = "androidx.test.espresso:espresso-core:${Versions.AndroidX.espresso}"

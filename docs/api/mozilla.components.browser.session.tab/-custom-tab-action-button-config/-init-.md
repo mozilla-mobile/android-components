@@ -2,4 +2,4 @@
 
 # &lt;init&gt;
 
-`CustomTabActionButtonConfig(description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, icon: `[`Bitmap`](https://developer.android.com/reference/android/graphics/Bitmap.html)`, pendingIntent: `[`PendingIntent`](https://developer.android.com/reference/android/app/PendingIntent.html)`)`
+`CustomTabActionButtonConfig(description: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, icon: <ERROR CLASS>, pendingIntent: <ERROR CLASS>, id: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)` = CustomTabsIntent.TOOLBAR_ACTION_BUTTON_ID, tint: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = false)`

@@ -1,4 +1,4 @@
-componentsVersion: 1.0.0
+componentsVersion: 6.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -71,10 +71,6 @@ projects:
   feature-session:
     path: components/feature/session
     description: 'Feature implementation connecting an engine implementation with the session module.'
-    publish: true
-  feature-sync:
-    path: components/feature/sync
-    description: 'Feature implementation that enables syncing of syncable components.'
     publish: true
   feature-tabs:
     path: components/feature/tabs
@@ -167,7 +163,7 @@ projects:
   browser-state:
     path: components/browser/state
     description: 'Component responsible for maintaining the centralized state of a browser engine.'
-    publish: false
+    publish: true
   browser-storage-memory:
     path: components/browser/storage-memory
     description: 'A memory-backed implementation of core data storage.'
@@ -207,6 +203,10 @@ projects:
   service-firefox-accounts:
     path: components/service/firefox-accounts
     description: 'A library for integrating with Firefox Accounts.'
+    publish: true
+  service-location:
+    path: components/service/location
+    description: 'A library for providing location-based services.'
     publish: true
   service-sync-logins:
     path: components/service/sync-logins
@@ -256,6 +256,10 @@ projects:
     path: components/support/rustlog
     description: 'A bridge allowing log messages from Rust code to be sent to the log system in support-base'
     publish: true
+  support-locale:
+    path: components/support/locale
+    description: 'A component to allow apps to change the system defined language by their custom one'
+    publish: true
   lib-crash:
     path: components/lib/crash
     description: 'A generic crash reporter library that can report crashes to multiple services.'
@@ -280,9 +284,17 @@ projects:
     path: components/lib/publicsuffixlist
     description: 'A library for reading and using the public suffix list.'
     publish: true
+  lib-push-amazon:
+    path: components/lib/push-amazon
+    description: 'An implementation of concept-push for the Amazon Device Messaging.'
+    publish: false
   lib-push-firebase:
     path: components/lib/push-firebase
     description: 'An implementation of concept-push for the Firebase Message Service.'
+    publish: true
+  lib-state:
+    path: components/lib/state
+    description: 'A library for maintaining application state.'
     publish: true
   tooling-lint:
     path: components/tooling/lint

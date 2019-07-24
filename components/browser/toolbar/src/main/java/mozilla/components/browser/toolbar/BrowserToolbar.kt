@@ -16,7 +16,9 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
+import androidx.core.view.forEach
 import androidx.core.view.inputmethod.EditorInfoCompat
+import androidx.core.view.isVisible
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,9 +36,6 @@ import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.content.res.pxToDp
-import mozilla.components.support.ktx.android.view.forEach
-import mozilla.components.support.ktx.android.view.isVisible
 import mozilla.components.ui.autocomplete.AutocompleteView
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 import mozilla.components.ui.autocomplete.OnFilterListener
@@ -106,9 +105,9 @@ class BrowserToolbar @JvmOverloads constructor(
      * Set/Get whether a site security icon (usually a lock or globe icon) should be visible next to the URL.
      */
     var displaySiteSecurityIcon: Boolean
-        get() = displayToolbar.siteSecurityIconView.isVisible()
+        get() = displayToolbar.siteSecurityIconView.isVisible
         set(value) {
-            displayToolbar.siteSecurityIconView.visibility = if (value) View.VISIBLE else View.GONE
+            displayToolbar.siteSecurityIconView.isVisible = value
         }
 
     /**
@@ -385,10 +384,12 @@ class BrowserToolbar @JvmOverloads constructor(
                 siteSecurityColor = Pair(inSecure, secure)
                 val fadingEdgeLength = getDimensionPixelSize(
                     R.styleable.BrowserToolbar_browserToolbarFadingEdgeSize,
-                    resources.pxToDp(DisplayToolbar.URL_FADING_EDGE_SIZE_DP)
+                    resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_fading_edge_size)
                 )
                 displayToolbar.urlView.setFadingEdgeLength(fadingEdgeLength)
                 displayToolbar.urlView.isHorizontalFadingEdgeEnabled = fadingEdgeLength > 0
+                displayToolbar.titleView.setFadingEdgeLength(fadingEdgeLength)
+                displayToolbar.titleView.isHorizontalFadingEdgeEnabled = fadingEdgeLength > 0
             }
             recycle()
         }
@@ -417,7 +418,7 @@ class BrowserToolbar @JvmOverloads constructor(
         val height = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) {
             MeasureSpec.getSize(heightMeasureSpec)
         } else {
-            resources.pxToDp(DEFAULT_TOOLBAR_HEIGHT_DP)
+            resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_default_toolbar_height)
         }
 
         setMeasuredDimension(width, height)
@@ -505,6 +506,13 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     /**
+     * Focuses the editToolbar if already in edit mode
+     */
+    fun focus() {
+        editToolbar.focus()
+    }
+
+    /**
      * Switches to URL editing mode.
      */
     override fun editMode() {
@@ -513,10 +521,9 @@ class BrowserToolbar @JvmOverloads constructor(
         val shouldAutoComplete = searchTerms.isEmpty()
 
         editToolbar.updateUrl(urlValue.toString(), shouldAutoComplete)
-
         updateState(State.EDIT)
-
         editToolbar.focus()
+        editToolbar.urlView.selectAll()
     }
 
     /**
@@ -678,7 +685,6 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     companion object {
-        private const val DEFAULT_TOOLBAR_HEIGHT_DP = 56
         internal const val ACTION_PADDING_DP = 16
         internal val DEFAULT_PADDING =
             Padding(ACTION_PADDING_DP, ACTION_PADDING_DP, ACTION_PADDING_DP, ACTION_PADDING_DP)

@@ -14,6 +14,7 @@ import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.test.any
@@ -34,6 +35,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
 
+@Suppress("Deprecation")
 @RunWith(AndroidJUnit4::class)
 class IntentProcessorTest {
 
@@ -69,7 +71,7 @@ class IntentProcessorTest {
 
         whenever(intent.dataString).thenReturn("http://mozilla.org")
         handler.process(intent)
-        verify(engineSession).loadUrl("http://mozilla.org")
+        verify(engineSession).loadUrl("http://mozilla.org", LoadUrlFlags.external())
 
         val session = sessionManager.all[0]
         assertNotNull(session)
@@ -92,7 +94,7 @@ class IntentProcessorTest {
         whenever(intent.dataString).thenReturn("http://mozilla.org")
 
         handler.process(intent)
-        verify(engineSession).loadUrl("http://mozilla.org")
+        verify(engineSession).loadUrl("http://mozilla.org", LoadUrlFlags.external())
     }
 
     @Test
@@ -113,7 +115,7 @@ class IntentProcessorTest {
         whenever(intent.dataString).thenReturn("http://mozilla.org")
 
         handler.process(intent)
-        verify(engineSession).loadUrl("http://mozilla.org")
+        verify(engineSession).loadUrl("http://mozilla.org", LoadUrlFlags.external())
     }
 
     @Test
@@ -174,10 +176,11 @@ class IntentProcessorTest {
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
         whenever(intent.hasExtra(CustomTabsIntent.EXTRA_SESSION)).thenReturn(true)
         whenever(intent.dataString).thenReturn("http://mozilla.org")
+        whenever(intent.putExtra(any(), any<String>())).thenReturn(intent)
 
         handler.process(intent)
         verify(sessionManager).add(anySession(), eq(false), eq(null), eq(null))
-        verify(engineSession).loadUrl("http://mozilla.org")
+        verify(engineSession).loadUrl("http://mozilla.org", LoadUrlFlags.external())
 
         val customTabSession = sessionManager.all[0]
         assertNotNull(customTabSession)
@@ -197,23 +200,23 @@ class IntentProcessorTest {
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("http://mozilla.org")
         handler.process(intent)
-        verify(engineSession).loadUrl("http://mozilla.org")
+        verify(engineSession).loadUrl("http://mozilla.org", LoadUrlFlags.external())
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("see http://getpocket.com")
         handler.process(intent)
-        verify(engineSession).loadUrl("http://getpocket.com")
+        verify(engineSession).loadUrl("http://getpocket.com", LoadUrlFlags.external())
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("see http://mozilla.com and http://getpocket.com")
         handler.process(intent)
-        verify(engineSession).loadUrl("http://mozilla.com")
+        verify(engineSession).loadUrl("http://mozilla.com", LoadUrlFlags.external())
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("checkout the Tweet: http://tweets.mozilla.com")
         handler.process(intent)
-        verify(engineSession).loadUrl("http://tweets.mozilla.com")
+        verify(engineSession).loadUrl("http://tweets.mozilla.com", LoadUrlFlags.external())
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("checkout the Tweet: HTTP://tweets.mozilla.com")
         handler.process(intent)
-        verify(engineSession).loadUrl("http://tweets.mozilla.com")
+        verify(engineSession).loadUrl("http://tweets.mozilla.com", LoadUrlFlags.external())
     }
 
     @Test

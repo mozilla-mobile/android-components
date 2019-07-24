@@ -23,6 +23,8 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
 
+* Localization happens on [Pontoon](https://pontoon.mozilla.org/projects/android-l10n/). Please get in touch with delphine (at) mozilla (dot) com directly for more information.
+
 # Maven repository
 
 All components are getting published on [maven.mozilla.org](https://maven.mozilla.org/).
@@ -174,6 +176,8 @@ _Components and libraries to interact with backend services._
 
 * 🔴 [**Experiments**](components/service/experiments/README.md) - An Android SDK for running experiments on user segments in multiple branches.
 
+* ⚪ [**Location**](components/service/location/README.md) - A library for accessing Mozilla's and other location services.
+
 * 🔴 [**Pocket**](components/service/pocket/README.md) - A library for communicating with the Pocket API.
 
 * 🔵 [**Telemetry**](components/service/telemetry/README.md) - A generic library for sending telemetry pings from Android applications to Mozilla's telemetry service.
@@ -205,6 +209,8 @@ _Supporting components with generic helper code._
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
 * ⚪ [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
+
+* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
 
 * 🔴 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
 

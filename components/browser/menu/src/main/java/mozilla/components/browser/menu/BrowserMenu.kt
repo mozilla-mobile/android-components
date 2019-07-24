@@ -8,6 +8,7 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -20,8 +21,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.menu.BrowserMenu.Orientation.DOWN
 import mozilla.components.browser.menu.BrowserMenu.Orientation.UP
-import mozilla.components.support.ktx.android.content.res.pxToDp
 import mozilla.components.support.ktx.android.view.isRTL
+import mozilla.components.support.ktx.android.view.onNextGlobalLayout
 
 /**
  * A popup menu composed of BrowserMenuItem objects.
@@ -51,7 +52,7 @@ class BrowserMenu internal constructor(
 
         menuList = view.findViewById<RecyclerView>(R.id.mozac_browser_menu_recyclerView).apply {
             layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false).also {
-                it.stackFromEnd = endOfMenuAlwaysVisible
+                setEndOfMenuAlwaysVisibleCompact(endOfMenuAlwaysVisible, it)
             }
             adapter = this@BrowserMenu.adapter
         }
@@ -63,7 +64,7 @@ class BrowserMenu internal constructor(
         ).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             isFocusable = true
-            elevation = view.resources.pxToDp(MENU_ELEVATION_DP).toFloat()
+            elevation = view.resources.getDimension(R.dimen.mozac_browser_menu_elevation)
 
             setOnDismissListener {
                 adapter.menu = null
@@ -77,6 +78,27 @@ class BrowserMenu internal constructor(
         }
     }
 
+    private fun RecyclerView.setEndOfMenuAlwaysVisibleCompact(
+        endOfMenuAlwaysVisible: Boolean,
+        layoutManager: LinearLayoutManager
+    ) {
+        // In devices with Android 6 and below stackFromEnd is not working properly,
+        // as a result, we have to provided a backwards support.
+        // See: https://github.com/mozilla-mobile/android-components/issues/3211
+        if (endOfMenuAlwaysVisible && Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+            scrollOnceToTheBottom(this)
+        } else {
+            layoutManager.stackFromEnd = endOfMenuAlwaysVisible
+        }
+    }
+
+    @VisibleForTesting
+    internal fun scrollOnceToTheBottom(recyclerView: RecyclerView) {
+        recyclerView.onNextGlobalLayout {
+            recyclerView.adapter?.let { recyclerView.scrollToPosition(it.itemCount - 1) }
+        }
+    }
+
     fun dismiss() {
         currentPopup?.dismiss()
     }
@@ -86,8 +108,6 @@ class BrowserMenu internal constructor(
     }
 
     companion object {
-        private const val MENU_ELEVATION_DP = 8
-
         /**
          * Determines the orientation to be used for a menu based on the positioning of the [parent] in the layout.
          */

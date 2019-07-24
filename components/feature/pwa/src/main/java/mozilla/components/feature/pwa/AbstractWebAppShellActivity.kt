@@ -7,18 +7,25 @@ package mozilla.components.feature.pwa
 import android.os.Bundle
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.pwa.ext.applyOrientation
+import mozilla.components.feature.pwa.ext.asTaskDescription
 import mozilla.components.support.ktx.android.view.enterToImmersiveMode
+import mozilla.components.support.ktx.android.view.setNavigationBarTheme
+import mozilla.components.support.ktx.android.view.setStatusBarTheme
 
 /**
  * Activity for "standalone" and "fullscreen" web applications.
  */
-abstract class AbstractWebAppShellActivity : AppCompatActivity() {
+abstract class AbstractWebAppShellActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     abstract val engine: Engine
     abstract val sessionManager: SessionManager
 
@@ -27,40 +34,50 @@ abstract class AbstractWebAppShellActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val storage = ManifestStorage(this)
 
-        // We do not "install" web apps yet. So there's no place we can load a manifest from yet.
-        // https://github.com/mozilla-mobile/android-components/issues/2382
-        val manifest = createTestManifest()
+        val startUrl = intent.data?.toString() ?: return finish()
+        launch {
+            val manifest = storage.loadManifest(startUrl)
 
-        applyConfiguration(manifest)
-        renderSession(manifest)
+            applyConfiguration(manifest)
+            renderSession(startUrl)
+
+            if (manifest != null) {
+                setTaskDescription(manifest.asTaskDescription(null))
+            }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
 
+        coroutineContext.cancel()
         sessionManager
             .getOrCreateEngineSession(session)
             .close()
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun applyConfiguration(manifest: WebAppManifest) {
-        if (manifest.display == WebAppManifest.DisplayMode.FULLSCREEN) {
+    internal fun applyConfiguration(manifest: WebAppManifest?) {
+        if (manifest?.display == WebAppManifest.DisplayMode.FULLSCREEN) {
             enterToImmersiveMode()
         }
 
         applyOrientation(manifest)
+
+        manifest?.themeColor?.let { setStatusBarTheme(it) }
+        manifest?.backgroundColor?.let { setNavigationBarTheme(it) }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun renderSession(manifest: WebAppManifest) {
+    internal fun renderSession(startUrl: String) {
         setContentView(engine
             .createView(this)
             .also { engineView = it }
             .asView())
 
-        session = Session(manifest.startUrl)
+        session = Session(startUrl)
         engineView.render(sessionManager.getOrCreateEngineSession(session))
     }
 

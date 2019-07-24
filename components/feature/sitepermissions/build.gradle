@@ -43,6 +43,7 @@ dependencies {
     implementation project(':ui-icons')
     implementation project(':support-ktx')
 
+    implementation Dependencies.androidx_core_ktx
     implementation Dependencies.androidx_room_runtime
     kapt Dependencies.androidx_room_compiler
     implementation Dependencies.androidx_paging
@@ -52,6 +53,7 @@ dependencies {
 
     implementation Dependencies.kotlin_coroutines
 
+    implementation Dependencies.androidx_core_ktx
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.androidx_constraintlayout
 

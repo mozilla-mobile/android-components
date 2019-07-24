@@ -6,6 +6,7 @@ package mozilla.components.browser.icons.processor
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.icons.Icon
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
@@ -16,14 +17,13 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ColorProcessorTest {
     @Test
     fun `test extracting color`() {
         val icon = Icon(mockRedBitmap(1), source = Icon.Source.DISK)
-        val processed = ColorProcessor().process(mock(), mock(), mock(), icon)
+        val processed = ColorProcessor().process(mock(), mock(), mock(), icon, mock())
 
         assertEquals(icon.bitmap, processed.bitmap)
         assertNotNull(processed.color)
@@ -32,7 +32,7 @@ class ColorProcessorTest {
     @Test
     fun `test extracting color from larger bitmap`() {
         val icon = Icon(mockRedBitmap(3), source = Icon.Source.DISK)
-        val processed = ColorProcessor().process(mock(), mock(), mock(), icon)
+        val processed = ColorProcessor().process(mock(), mock(), mock(), icon, mock())
 
         assertEquals(icon.bitmap, processed.bitmap)
         assertNotNull(processed.color)

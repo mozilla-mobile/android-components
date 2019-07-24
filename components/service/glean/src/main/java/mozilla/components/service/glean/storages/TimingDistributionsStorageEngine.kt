@@ -59,7 +59,8 @@ internal open class TimingDistributionsStorageEngineImplementation(
      * Accumulate value for the provided metric.
      *
      * @param metricData the metric information for the timing distribution
-     * @param sample the value to accumulate
+     * @param sample the value to accumulate, in nanoseconds
+     * @param timeUnit the [TimeUnit] the sample will be converted to
      */
     @Synchronized
     fun accumulate(
@@ -67,6 +68,9 @@ internal open class TimingDistributionsStorageEngineImplementation(
         sample: Long,
         timeUnit: TimeUnit
     ) {
+        // We're checking for errors in `accumulateSamples` already, but
+        // we need to check it here too anyway because `getAdjustedTime` would
+        // throw otherwise.
         if (sample < 0) {
             ErrorRecording.recordError(
                 metricData,
@@ -78,21 +82,53 @@ internal open class TimingDistributionsStorageEngineImplementation(
         }
 
         val sampleInUnit = getAdjustedTime(timeUnit, sample)
+        accumulateSamples(metricData, longArrayOf(sampleInUnit), timeUnit)
+    }
+
+    /**
+     * Accumulate an array of samples for the provided metric.
+     *
+     * @param metricData the metric information for the timing distribution
+     * @param samples the values to accumulate, provided in the metric's [TimeUnit] (they won't
+     *        be truncated nor converted)
+     * @param timeUnit the [TimeUnit] the samples are in
+     */
+    @Suppress("LongMethod")
+    @Synchronized
+    fun accumulateSamples(
+        metricData: CommonMetricData,
+        samples: LongArray,
+        timeUnit: TimeUnit
+    ) {
+        val validSamples = samples.filter { sample -> sample >= 0 }
+        val numNegativeSamples = samples.size - validSamples.size
+        if (numNegativeSamples > 0) {
+            ErrorRecording.recordError(
+                metricData,
+                ErrorRecording.ErrorType.InvalidValue,
+                "Accumulate $numNegativeSamples negative samples",
+                logger,
+                numNegativeSamples
+            )
+            return
+        }
 
         // Since the custom combiner closure captures this value, we need to just create a dummy
         // value here that won't be used by the combine function, and create a fresh
         // TimingDistributionData for each value that doesn't have an existing current value.
         val dummy = TimingDistributionData(category = metricData.category, name = metricData.name,
             timeUnit = timeUnit)
-        super.recordMetric(metricData, dummy, null) { currentValue, _ ->
-            currentValue?.let {
-                it.accumulate(sampleInUnit)
-                it
-            } ?: let {
-                val newTD = TimingDistributionData(category = metricData.category, name = metricData.name,
-                    timeUnit = timeUnit)
-                newTD.accumulate(sampleInUnit)
-                return@let newTD
+        validSamples.forEach { sample ->
+            super.recordMetric(metricData, dummy, null) { currentValue, _ ->
+                currentValue?.let {
+                    it.accumulate(sample)
+                    it
+                } ?: let {
+                    val newTD = TimingDistributionData(category = metricData.category, name = metricData.name,
+                        timeUnit = timeUnit)
+                    newTD.accumulate(sample)
+                    return@let newTD
+                }
             }
         }
     }
@@ -124,7 +160,8 @@ internal open class TimingDistributionsStorageEngineImplementation(
  * @param category of the metric
  * @param name of the metric
  * @param bucketCount total number of buckets
- * @param range an array always containing 2 elements: the minimum and maximum bucket values
+ * @param rangeMin the minimum value that can be represented
+ * @param rangeMax the maximum value that can be represented
  * @param histogramType the [HistogramType] representing the bucket layout
  * @param values a map containing the bucket index mapped to the accumulated count
  * @param sum the accumulated sum of all the samples in the timing distribution
@@ -138,7 +175,8 @@ data class TimingDistributionData(
     val rangeMin: Long = DEFAULT_RANGE_MIN,
     val rangeMax: Long = DEFAULT_RANGE_MAX,
     val histogramType: HistogramType = HistogramType.Exponential,
-    val values: MutableMap<Int, Long> = mutableMapOf(),
+    // map from bucket limits to accumulated values
+    val values: MutableMap<Long, Long> = mutableMapOf(),
     var sum: Long = 0,
     val timeUnit: TimeUnit = TimeUnit.Millisecond
 ) {
@@ -172,7 +210,7 @@ data class TimingDistributionData(
             // something is wrong and we should return null.
             val category = jsonObject.tryGetString("category").orEmpty()
             val name = jsonObject.tryGetString("name") ?: return null
-            val bucketCount = jsonObject.tryGetInt("bucketCount") ?: return null
+            val bucketCount = jsonObject.tryGetInt("bucket_count") ?: return null
             // If 'range' isn't present, JSONException is thrown
             val range = try {
                 val array = jsonObject.getJSONArray("range")
@@ -190,15 +228,19 @@ data class TimingDistributionData(
             } catch (e: org.json.JSONException) {
                 return null
             }
-            val rawHistogramType = jsonObject.tryGetInt("histogramType") ?: return null
-            val histogramType = HistogramType.values().getOrNull(rawHistogramType) ?: return null
+            val rawHistogramType = jsonObject.tryGetString("histogram_type") ?: return null
+            val histogramType = try {
+                HistogramType.valueOf(rawHistogramType.capitalize())
+            } catch (e: IllegalArgumentException) {
+                return null
+            }
             // Attempt to parse the values map, if it fails then something is wrong and we need to
             // return null.
             val values = try {
                 val mapData = jsonObject.getJSONObject("values")
-                val valueMap: MutableMap<Int, Long> = mutableMapOf()
+                val valueMap: MutableMap<Long, Long> = mutableMapOf()
                 mapData.keys().forEach { key ->
-                    valueMap[key.toInt()] = mapData.tryGetLong(key) ?: 0L
+                    valueMap[key.toLong()] = mapData.tryGetLong(key) ?: 0L
                 }
                 valueMap
             } catch (e: org.json.JSONException) {
@@ -206,8 +248,12 @@ data class TimingDistributionData(
                 return null
             }
             val sum = jsonObject.tryGetLong("sum") ?: return null
-            val timeUnit = TimeUnit.values()[jsonObject.tryGetInt("timeUnit")
-                ?: return null]
+            val rawTimeUnit = jsonObject.tryGetString("time_unit") ?: return null
+            val timeUnit = try {
+                TimeUnit.valueOf(rawTimeUnit.capitalize())
+            } catch (e: IllegalArgumentException) {
+                return null
+            }
 
             return TimingDistributionData(
                 category = category,
@@ -236,21 +282,32 @@ data class TimingDistributionData(
     internal val buckets: List<Long> by lazy { getBuckets() }
 
     /**
-     * Accumulates a sample to the correct bucket, using a linear search to locate the index of the
-     * bucket where the sample is less than or equal to the bucket value.  This works since the
-     * buckets are sorted in ascending order.  If a mapped value doesn't exist for this bucket yet,
-     * one is created.
+     * Accumulates a sample to the correct bucket, using a binary search to locate the index of the
+     * bucket where the sample is bigger than or equal to the bucket limit.
+     * If a value doesn't exist for this bucket yet, one is created.
      *
      * @param sample Long value representing the sample that is being accumulated
      */
     internal fun accumulate(sample: Long) {
-        for (i in buckets.indices) {
-            if (sample <= buckets[i] || i == bucketCount - 1) {
-                values[i] = (values[i] ?: 0) + 1
+        var under = 0
+        var over = bucketCount
+        var mid: Int
+
+        do {
+            mid = under + (over - under) / 2
+            if (mid == under) {
                 break
             }
-        }
 
+            if (buckets[mid] <= sample) {
+                under = mid
+            } else {
+                over = mid
+            }
+        } while (true)
+
+        val limit = buckets[mid]
+        values[limit] = (values[limit] ?: 0) + 1
         sum += sample
     }
 
@@ -262,12 +319,12 @@ data class TimingDistributionData(
         return JSONObject(mapOf(
             "category" to category,
             "name" to name,
-            "bucketCount" to bucketCount,
+            "bucket_count" to bucketCount,
             "range" to JSONArray(arrayOf(rangeMin, rangeMax)),
-            "histogramType" to histogramType.ordinal,
+            "histogram_type" to histogramType.toString().toLowerCase(),
             "values" to values.mapKeys { "${it.key}" },
             "sum" to sum,
-            "timeUnit" to timeUnit.ordinal
+            "time_unit" to timeUnit.toString().toLowerCase()
         ))
     }
 
@@ -280,15 +337,23 @@ data class TimingDistributionData(
     private fun getBuckets(): List<Long> {
         // This algorithm calculates the bucket sizes using a natural log approach to get
         // `bucketCount` number of buckets, exponentially spaced between `range[MIN]` and
-        // `range[MAX]`
+        // `range[MAX]`.
+        //
+        // Bucket limits are the minimal bucket value.
+        // That means values in a bucket `i` are `range[i] <= value < range[i+1]`.
+        // It will always contain an underflow bucket (`< 1`).
         val logMax = Math.log(rangeMax.toDouble())
         val result: MutableList<Long> = mutableListOf()
         var current = rangeMin
         if (current == 0L) {
             current = 1L
         }
+
+        // underflow bucket
+        result.add(0)
         result.add(current)
-        for (i in 2..bucketCount) {
+
+        for (i in 2 until bucketCount) {
             val logCurrent = Math.log(current.toDouble())
             val logRatio = (logMax - logCurrent) / (bucketCount - i)
             val logNext = logCurrent + logRatio

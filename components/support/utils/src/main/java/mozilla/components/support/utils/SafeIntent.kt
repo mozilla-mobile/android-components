@@ -18,6 +18,7 @@ import java.util.ArrayList
  * for more.
  */
 class SafeIntent(val unsafe: Intent) {
+
     val extras: Bundle?
         get() = safeAccess { unsafe.extras }
 
@@ -28,10 +29,7 @@ class SafeIntent(val unsafe: Intent) {
         get() = unsafe.flags
 
     val isLauncherIntent: Boolean
-        get() {
-            val intentCategories = unsafe.categories
-            return intentCategories != null && intentCategories.contains(Intent.CATEGORY_LAUNCHER) && Intent.ACTION_MAIN == unsafe.action
-        }
+        get() = unsafe.categories?.contains(Intent.CATEGORY_LAUNCHER) == true && Intent.ACTION_MAIN == unsafe.action
 
     val dataString: String?
         get() = safeAccess { unsafe.dataString }
@@ -59,12 +57,7 @@ class SafeIntent(val unsafe: Intent) {
     }
 
     fun getBundleExtra(name: String): SafeBundle? = safeAccess {
-        val bundle = unsafe.getBundleExtra(name)
-        if (bundle != null) {
-            SafeBundle(bundle)
-        } else {
-            null
-        }
+        unsafe.getBundleExtra(name)?.toSafeBundle()
     }
 
     fun getCharSequenceExtra(name: String): CharSequence? = safeAccess {
@@ -77,7 +70,7 @@ class SafeIntent(val unsafe: Intent) {
 
     fun <T : Parcelable> getParcelableArrayListExtra(name: String): ArrayList<T>? {
         return safeAccess {
-            val value: ArrayList<T> = unsafe.getParcelableArrayListExtra(name)
+            val value: ArrayList<T>? = unsafe.getParcelableArrayListExtra(name)
             value
         }
     }
@@ -86,6 +79,7 @@ class SafeIntent(val unsafe: Intent) {
             getStringArrayListExtra(name)
     }
 
+    @SuppressWarnings("TooGenericExceptionCaught")
     private fun <T> safeAccess(default: T? = null, block: Intent.() -> T): T? {
         return try {
             block(unsafe)

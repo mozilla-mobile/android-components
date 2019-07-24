@@ -9,11 +9,12 @@ Decision task
 from __future__ import print_function
 
 import argparse
+import itertools
 import os
 import taskcluster
 import sys
 
-from lib.build_config import components_version, module_definitions
+from lib.build_config import components_version, components, generate_snapshot_timestamp
 from lib.tasks import TaskBuilder, schedule_task_graph
 from lib.util import (
     populate_chain_of_trust_task_graph,
@@ -28,6 +29,8 @@ PR_TITLE = os.environ.get('GITHUB_PULL_TITLE', '')
 # If we see this text inside a pull request title then we will not execute any tasks for this PR.
 SKIP_TASKS_TRIGGER = '[ci skip]'
 
+AAR_EXTENSIONS = ('.aar', '.pom', '-sources.jar')
+HASH_EXTENSIONS = ('', '.sha1', '.md5')
 
 BUILDER = TaskBuilder(
     task_id=os.environ.get('TASK_ID'),
@@ -89,12 +92,12 @@ def create_module_tasks(module):
             "assembleOnly/Test": (
                 ["ServoArm", "ServoX86", "SystemUniversal"],
                 [
-                    "GeckoBetaAarch64", "GeckoBetaArm", "GeckoBetaX86",
+                    "GeckoBetaUniversal",
                     "GeckoNightlyUniversal",
                     "GeckoReleaseAarch64", "GeckoReleaseArm", "GeckoReleaseX86"
                 ]
             ),
-            "lintTask": "lintGeckoBetaArmDebug"
+            "lintTask": "lintGeckoNightlyUniversal"
         },
         ":support-test": {
             "lintTask": "lint"
@@ -215,42 +218,85 @@ def _get_release_gradle_tasks(module_name, is_snapshot):
         for gradle_task in ('assemble', 'test', 'lint')
     )
 
-    return gradle_tasks + ' ' + module_name + ':publish' + ' ' + module_name + ':zipMavenArtifacts'
+    rename_step = '{}:renameSnapshotArtifacts'.format(module_name) if is_snapshot else ''
+    return "{} {}:publish {}".format(gradle_tasks, module_name, rename_step, module_name)
 
 
-def release(artifacts_info, version, is_snapshot, is_staging):
-    version = components_version() if version is None else version
+def _to_release_artifact(extension, version, component, timestamp=None):
+    if timestamp:
+        artifact_filename = '{}-{}-{}{}'.format(component['name'], version, timestamp, extension)
+    else:
+        artifact_filename = '{}-{}{}'.format(component['name'], version, extension)
+
+    return {
+        'taskcluster_path': 'public/build/{}'.format(artifact_filename),
+        'build_fs_path': '{}/build/maven/org/mozilla/components/{}/{}/{}'.format(
+            os.path.abspath(component['path']),
+            component['name'],
+            version if not timestamp else version + '-SNAPSHOT',
+            artifact_filename),
+        'maven_destination': 'maven2/org/mozilla/components/{}/{}/{}'.format(
+            component['name'],
+            version if not timestamp else version + '-SNAPSHOT',
+            artifact_filename,
+        )
+    }
+
+
+def release(components, is_snapshot, is_staging):
+    version = components_version()
 
     build_tasks = {}
     wait_on_builds_tasks = {}
+    sign_tasks = {}
     beetmover_tasks = {}
     other_tasks = {}
     wait_on_builds_task_id = taskcluster.slugId()
 
-    for artifact_info in artifacts_info:
+    timestamp = None
+    if is_snapshot:
+        timestamp = generate_snapshot_timestamp()
+
+    for component in components:
         build_task_id = taskcluster.slugId()
-        module_name = _get_gradle_module_name(artifact_info)
+        module_name = _get_gradle_module_name(component)
         build_tasks[build_task_id] = BUILDER.craft_build_task(
             module_name=module_name,
             gradle_tasks=_get_release_gradle_tasks(module_name, is_snapshot),
             subtitle='({}{})'.format(version, '-SNAPSHOT' if is_snapshot else ''),
             run_coverage=False,
             is_snapshot=is_snapshot,
-            artifact_info=artifact_info
+            component=component,
+            artifacts=[_to_release_artifact(extension + hash_extension, version, component, timestamp)
+                       for extension, hash_extension in
+                       itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)],
+            timestamp=timestamp,
         )
 
+        sign_task_id = taskcluster.slugId()
+        sign_tasks[sign_task_id] = BUILDER.craft_sign_task(
+            build_task_id, wait_on_builds_task_id, [_to_release_artifact(extension, version, component, timestamp)
+                            for extension in AAR_EXTENSIONS],
+            component['name'], is_staging,
+        )
+
+        beetmover_build_artifacts = [_to_release_artifact(extension + hash_extension, version, component, timestamp)
+                                     for extension, hash_extension in
+                                     itertools.product(AAR_EXTENSIONS, HASH_EXTENSIONS)]
+        beetmover_sign_artifacts = [_to_release_artifact(extension + '.asc', version, component, timestamp)
+                                    for extension in AAR_EXTENSIONS]
         beetmover_tasks[taskcluster.slugId()] = BUILDER.craft_beetmover_task(
-            build_task_id, wait_on_builds_task_id, version, artifact_info['artifact'],
-            artifact_info['name'], is_snapshot, is_staging
+            build_task_id, sign_task_id, beetmover_build_artifacts, beetmover_sign_artifacts,
+            component['name'], is_snapshot, is_staging
         )
 
-    wait_on_builds_tasks[wait_on_builds_task_id] = BUILDER.craft_wait_on_builds_task(build_tasks.keys())
+    wait_on_builds_tasks[wait_on_builds_task_id] = BUILDER.craft_barrier_task(build_tasks.keys())
 
     if is_snapshot:     # XXX These jobs perma-fail on release
         for craft_function in (BUILDER.craft_detekt_task, BUILDER.craft_ktlint_task, BUILDER.craft_compare_locales_task):
             other_tasks[taskcluster.slugId()] = craft_function()
 
-    return (build_tasks, wait_on_builds_tasks, beetmover_tasks, other_tasks)
+    return (build_tasks, wait_on_builds_tasks, sign_tasks, beetmover_tasks, other_tasks)
 
 
 if __name__ == "__main__":
@@ -262,10 +308,6 @@ if __name__ == "__main__":
     subparsers.add_parser('push')
     release_parser = subparsers.add_parser('release')
 
-    release_parser.add_argument(
-        '--version', action='store', help='git tag to build from',
-        default=None
-    )
     release_parser.add_argument(
         '--snapshot', action='store_true', dest='is_snapshot',
         help='Create snapshot artifacts and upload them onto the snapshot repository'
@@ -280,21 +322,21 @@ if __name__ == "__main__":
 
     command = result.command
 
-    artifacts_info = module_definitions()
+    components = components()
     if command == 'release':
-        artifacts_info = [info for info in artifacts_info if info['shouldPublish']]
+        components = [info for info in components if info['shouldPublish']]
 
-    if len(artifacts_info) == 0:
+    if len(components) == 0:
         print("Could not get module names from gradle")
         sys.exit(2)
 
     if command == 'pr':
-        ordered_groups_of_tasks = pr(artifacts_info)
+        ordered_groups_of_tasks = pr(components)
     elif command == 'push':
-        ordered_groups_of_tasks = push(artifacts_info)
+        ordered_groups_of_tasks = push(components)
     elif command == 'release':
         ordered_groups_of_tasks = release(
-            artifacts_info, result.version, result.is_snapshot, result.is_staging
+            components, result.is_snapshot, result.is_staging
         )
     else:
         raise Exception('Unsupported command "{}"'.format(command))

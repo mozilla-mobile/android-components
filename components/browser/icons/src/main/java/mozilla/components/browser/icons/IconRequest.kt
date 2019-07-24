@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.icons
 
+import androidx.annotation.DimenRes
 import mozilla.components.concept.engine.manifest.Size as HtmlSize
 
 /**
@@ -18,17 +19,16 @@ data class IconRequest(
     val size: Size = Size.DEFAULT,
     val resources: List<Resource> = emptyList()
 ) {
+
     /**
      * Supported sizes.
      *
      * We are trying to limit the supported sizes in order to optimize our caching strategy.
      */
-    @Suppress("MagicNumber")
-    enum class Size(
-        val value: Int
-    ) {
-        DEFAULT(32),
-        LAUNCHER(48)
+    enum class Size(@DimenRes val dimen: Int) {
+        DEFAULT(R.dimen.mozac_browser_icons_size_default),
+        LAUNCHER(R.dimen.mozac_browser_icons_size_launcher),
+        LAUNCHER_ADAPTIVE(R.dimen.mozac_browser_icons_size_launcher_adaptive)
     }
 
     /**
@@ -38,12 +38,14 @@ data class IconRequest(
      * @param type The type of the icon.
      * @param sizes Optional list of icon sizes provided by this resource (if known).
      * @param mimeType Optional MIME type of this icon resource (if known).
+     * @param maskable True if the icon represents as full-bleed icon that can be cropped to other shapes.
      */
     data class Resource(
         val url: String,
         val type: Type,
         val sizes: List<HtmlSize> = emptyList(),
-        val mimeType: String? = null
+        val mimeType: String? = null,
+        val maskable: Boolean = false
     ) {
         /**
          * An icon resource type.
@@ -112,7 +114,19 @@ data class IconRequest(
              *
              * https://technet.microsoft.com/en-us/windows/dn255024(v=vs.60)
              */
-            MICROSOFT_TILE
+            MICROSOFT_TILE,
+
+            /**
+             * An icon found in Mozilla's "tippy top" list.
+             */
+            TIPPY_TOP,
+
+            /**
+             * A Web App Manifest image.
+             *
+             * https://developer.mozilla.org/en-US/docs/Web/Manifest/icons
+             */
+            MANIFEST_ICON
         }
     }
 }

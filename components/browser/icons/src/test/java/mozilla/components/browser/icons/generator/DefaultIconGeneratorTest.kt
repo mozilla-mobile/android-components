@@ -9,7 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
-import mozilla.components.support.ktx.android.content.res.pxToDp
+import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -22,7 +22,7 @@ class DefaultIconGeneratorTest {
 
     @Test
     fun getRepresentativeCharacter() = runBlocking {
-        val generator = DefaultIconGenerator(testContext)
+        val generator = DefaultIconGenerator()
 
         assertEquals("M", generator.getRepresentativeCharacter("https://mozilla.org"))
         assertEquals("W", generator.getRepresentativeCharacter("http://wikipedia.org"))
@@ -72,28 +72,29 @@ class DefaultIconGeneratorTest {
 
     @Test
     fun pickColor() {
-        val generator = DefaultIconGenerator(testContext)
+        val generator = DefaultIconGenerator()
+        val res = testContext.resources
 
-        val color = generator.pickColor("http://m.facebook.com")
+        val color = generator.pickColor(res, "http://m.facebook.com")
 
         // Color does not change
         for (i in 0..99) {
-            assertEquals(color, generator.pickColor("http://m.facebook.com"))
+            assertEquals(color, generator.pickColor(res, "http://m.facebook.com"))
         }
 
         // Color is stable for "similar" hosts.
-        assertEquals(color, generator.pickColor("https://m.facebook.com"))
-        assertEquals(color, generator.pickColor("http://facebook.com"))
-        assertEquals(color, generator.pickColor("http://www.facebook.com"))
-        assertEquals(color, generator.pickColor("http://www.facebook.com/foo/bar/foobar?mobile=1"))
+        assertEquals(color, generator.pickColor(res, "https://m.facebook.com"))
+        assertEquals(color, generator.pickColor(res, "http://facebook.com"))
+        assertEquals(color, generator.pickColor(res, "http://www.facebook.com"))
+        assertEquals(color, generator.pickColor(res, "http://www.facebook.com/foo/bar/foobar?mobile=1"))
 
         // Returns a color for an empty string
-        assertNotEquals(0, generator.pickColor(""))
+        assertNotEquals(0, generator.pickColor(res, ""))
     }
 
     @Test
     fun generate() = runBlocking {
-        val generator = DefaultIconGenerator(testContext)
+        val generator = DefaultIconGenerator()
 
         val icon = generator.generate(testContext, IconRequest(
             url = "https://m.facebook.com"))
@@ -101,11 +102,11 @@ class DefaultIconGeneratorTest {
         assertNotNull(icon.bitmap)
         assertNotNull(icon.color)
 
-        val dp32 = testContext.resources.pxToDp(32)
-        assertEquals(dp32, icon.bitmap!!.width)
-        assertEquals(dp32, icon.bitmap!!.height)
+        val dp32 = 32.dpToPx(testContext.resources.displayMetrics)
+        assertEquals(dp32, icon.bitmap.width)
+        assertEquals(dp32, icon.bitmap.height)
 
-        assertEquals(Bitmap.Config.ARGB_8888, icon.bitmap!!.config)
+        assertEquals(Bitmap.Config.ARGB_8888, icon.bitmap.config)
 
         assertEquals(Icon.Source.GENERATOR, icon.source)
     }

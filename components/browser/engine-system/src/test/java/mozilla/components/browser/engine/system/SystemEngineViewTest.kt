@@ -438,7 +438,7 @@ class SystemEngineViewTest {
         engineSession.register(object : EngineSession.Observer {
             override fun onExternalResource(
                 url: String,
-                fileName: String,
+                fileName: String?,
                 contentLength: Long?,
                 contentType: String?,
                 cookie: String?,
@@ -901,13 +901,14 @@ class SystemEngineViewTest {
     @Test
     fun `URL matcher categories can be changed`() {
         SystemEngineView.URL_MATCHER = null
+        val resources = testContext.resources
 
-        var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(testContext,
+        var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(resources,
                 TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.ANALYTICS)
         )
         assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.ANALYTICS), urlMatcher.enabledCategories)
 
-        urlMatcher = SystemEngineView.getOrCreateUrlMatcher(testContext,
+        urlMatcher = SystemEngineView.getOrCreateUrlMatcher(resources,
                 TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.SOCIAL)
         )
         assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.SOCIAL), urlMatcher.enabledCategories)

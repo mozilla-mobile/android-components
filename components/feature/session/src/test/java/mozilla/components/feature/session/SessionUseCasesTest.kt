@@ -9,6 +9,7 @@ import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.Engine.BrowsingData
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -38,22 +39,30 @@ class SessionUseCasesTest {
 
     @Test
     fun loadUrl() {
-        useCases.loadUrl.invoke("http://mozilla.org")
+        useCases.loadUrl("http://mozilla.org")
         verify(selectedEngineSession).loadUrl("http://mozilla.org")
 
-        useCases.loadUrl.invoke("http://getpocket.com", selectedSession)
+        useCases.loadUrl("http://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+        verify(selectedEngineSession).loadUrl("http://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+
+        useCases.loadUrl("http://getpocket.com", selectedSession)
         verify(selectedEngineSession).loadUrl("http://getpocket.com")
+
+        useCases.loadUrl.invoke("http://www.getpocket.com", selectedSession,
+                LoadUrlFlags.select(LoadUrlFlags.BYPASS_PROXY))
+        verify(selectedEngineSession).loadUrl("http://www.getpocket.com",
+                LoadUrlFlags.select(LoadUrlFlags.BYPASS_PROXY))
     }
 
     @Test
     fun loadData() {
-        useCases.loadData.invoke("<html><body></body></html>", "text/html")
+        useCases.loadData("<html><body></body></html>", "text/html")
         verify(selectedEngineSession).loadData("<html><body></body></html>", "text/html", "UTF-8")
 
-        useCases.loadData.invoke("Should load in WebView", "text/plain", session = selectedSession)
+        useCases.loadData("Should load in WebView", "text/plain", session = selectedSession)
         verify(selectedEngineSession).loadData("Should load in WebView", "text/plain", "UTF-8")
 
-        useCases.loadData.invoke("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64", selectedSession)
+        useCases.loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64", selectedSession)
         verify(selectedEngineSession).loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
     }
 
@@ -63,11 +72,11 @@ class SessionUseCasesTest {
         val session = mock<Session>()
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.reload.invoke(session)
+        useCases.reload(session)
         verify(engineSession).reload()
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.reload.invoke()
+        useCases.reload()
         verify(selectedEngineSession).reload()
     }
 
@@ -77,11 +86,11 @@ class SessionUseCasesTest {
         val session = mock<Session>()
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.stopLoading.invoke(session)
+        useCases.stopLoading(session)
         verify(engineSession).stopLoading()
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.stopLoading.invoke()
+        useCases.stopLoading()
         verify(selectedEngineSession).stopLoading()
     }
 
@@ -90,17 +99,17 @@ class SessionUseCasesTest {
         val engineSession = mock<EngineSession>()
         val session = mock<Session>()
 
-        useCases.goBack.invoke(null)
+        useCases.goBack(null)
         verify(engineSession, never()).goBack()
         verify(selectedEngineSession, never()).goBack()
 
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.goBack.invoke(session)
+        useCases.goBack(session)
         verify(engineSession).goBack()
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.goBack.invoke()
+        useCases.goBack()
         verify(selectedEngineSession).goBack()
     }
 
@@ -109,17 +118,17 @@ class SessionUseCasesTest {
         val engineSession = mock<EngineSession>()
         val session = mock<Session>()
 
-        useCases.goForward.invoke(null)
+        useCases.goForward(null)
         verify(engineSession, never()).goForward()
         verify(selectedEngineSession, never()).goForward()
 
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.goForward.invoke(session)
+        useCases.goForward(session)
         verify(engineSession).goForward()
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.goForward.invoke()
+        useCases.goForward()
         verify(selectedEngineSession).goForward()
     }
 
@@ -129,11 +138,11 @@ class SessionUseCasesTest {
         val session = mock<Session>()
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.requestDesktopSite.invoke(true, session)
+        useCases.requestDesktopSite(true, session)
         verify(engineSession).toggleDesktopMode(true, reload = true)
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.requestDesktopSite.invoke(true)
+        useCases.requestDesktopSite(true)
         verify(selectedEngineSession).toggleDesktopMode(true, reload = true)
     }
 
@@ -143,11 +152,11 @@ class SessionUseCasesTest {
         val session = mock<Session>()
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.exitFullscreen.invoke(session)
+        useCases.exitFullscreen(session)
         verify(engineSession).exitFullScreenMode()
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.exitFullscreen.invoke()
+        useCases.exitFullscreen()
         verify(selectedEngineSession).exitFullScreenMode()
     }
 
@@ -159,18 +168,18 @@ class SessionUseCasesTest {
         whenever(sessionManager.engine).thenReturn(engine)
         whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
 
-        useCases.clearData.invoke(session)
+        useCases.clearData(session)
         verify(engine).clearData()
         verify(engineSession).clearData()
 
-        useCases.clearData.invoke(data = BrowsingData.select(BrowsingData.COOKIES))
+        useCases.clearData(data = BrowsingData.select(BrowsingData.COOKIES))
         verify(engine).clearData(eq(BrowsingData.select(BrowsingData.COOKIES)), eq(null), any(), any())
 
-        useCases.clearData.invoke(session, data = BrowsingData.select(BrowsingData.COOKIES))
+        useCases.clearData(session, data = BrowsingData.select(BrowsingData.COOKIES))
         verify(engineSession).clearData(eq(BrowsingData.select(BrowsingData.COOKIES)), eq(null), any(), any())
 
         whenever(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-        useCases.clearData.invoke()
+        useCases.clearData()
         verify(selectedEngineSession).clearData()
     }
 
@@ -187,7 +196,7 @@ class SessionUseCasesTest {
             Session(url).also { createdSession = it }
         }
 
-        loadUseCase.invoke("https://www.example.com")
+        loadUseCase("https://www.example.com")
 
         assertEquals("https://www.example.com", sessionCreatedForUrl)
         assertNotNull(createdSession)
@@ -209,7 +218,7 @@ class SessionUseCasesTest {
             Session(url).also { createdSession = it }
         }
 
-        loadUseCase.invoke("Hello", mimeType = "plain/text", encoding = "UTF-8")
+        loadUseCase("Hello", mimeType = "plain/text", encoding = "UTF-8")
 
         assertEquals("about:blank", sessionCreatedForUrl)
         assertNotNull(createdSession)

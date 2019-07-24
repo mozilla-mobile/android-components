@@ -20,6 +20,7 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.Engine.BrowsingData
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
@@ -39,14 +40,16 @@ internal val additionalHeaders = mapOf(
  */
 @Suppress("TooManyFunctions")
 class SystemEngineSession(
-    private val context: Context,
+    context: Context,
     private val defaultSettings: Settings? = null
 ) : EngineSession() {
+    private val resources = context.resources
     @Volatile internal lateinit var internalSettings: Settings
     @Volatile internal var historyTrackingDelegate: HistoryTrackingDelegate? = null
     @Volatile internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
     @Volatile internal var webFontsEnabled = true
     @Volatile internal var currentUrl = ""
+    @Volatile internal var useWideViewPort: Boolean? = null // See [toggleDesktopMode]
     @Volatile internal var fullScreenCallback: WebChromeClient.CustomViewCallback? = null
 
     // This is public for FFTV which needs access to the WebView instance. We can mark it internal once
@@ -62,9 +65,10 @@ class SystemEngineSession(
     }
 
     /**
-     * See [EngineSession.loadUrl]
+     * See [EngineSession.loadUrl]. Note that [LoadUrlFlags] are ignored in this engine
+     * implementation.
      */
-    override fun loadUrl(url: String) {
+    override fun loadUrl(url: String, flags: LoadUrlFlags) {
         if (!url.isEmpty()) {
             currentUrl = url
             webView.loadUrl(url, additionalHeaders)
@@ -135,7 +139,7 @@ class SystemEngineSession(
     override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
         // Make sure Url matcher is preloaded now that tracking protection is enabled
         CoroutineScope(Dispatchers.IO).launch {
-            SystemEngineView.getOrCreateUrlMatcher(context, policy)
+            SystemEngineView.getOrCreateUrlMatcher(resources, policy)
         }
 
         // TODO check if policy should be applied for this session type
@@ -269,6 +273,11 @@ class SystemEngineSession(
         webSettings.savePassword = false
     }
 
+    private fun setUseWideViewPort(settings: WebSettings, useWideViewPort: Boolean?) {
+        this.useWideViewPort = useWideViewPort
+        useWideViewPort?.let { settings.useWideViewPort = it }
+    }
+
     private fun initSettings(webView: WebView, s: WebSettings) {
         internalSettings = object : Settings() {
             override var javascriptEnabled by WebSetting(s::getJavaScriptEnabled, s::setJavaScriptEnabled)
@@ -278,6 +287,9 @@ class SystemEngineSession(
             override var userAgentString by WebSetting(s::getUserAgentString, s::setUserAgentString)
             override var displayZoomControls by WebSetting(s::getDisplayZoomControls, s::setDisplayZoomControls)
             override var loadWithOverviewMode by WebSetting(s::getLoadWithOverviewMode, s::setLoadWithOverviewMode)
+            override var useWideViewPort: Boolean?
+                get() = this@SystemEngineSession.useWideViewPort
+                set(value) = setUseWideViewPort(s, value)
             override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
@@ -316,6 +328,7 @@ class SystemEngineSession(
                 webFontsEnabled = it.webFontsEnabled
                 displayZoomControls = it.displayZoomControls
                 loadWithOverviewMode = it.loadWithOverviewMode
+                useWideViewPort = it.useWideViewPort
                 trackingProtectionPolicy = it.trackingProtectionPolicy
                 historyTrackingDelegate = it.historyTrackingDelegate
                 requestInterceptor = it.requestInterceptor
@@ -335,11 +348,15 @@ class SystemEngineSession(
 
     /**
      * See [EngineSession.toggleDesktopMode]
+     *
+     * Precondition:
+     * If settings.useWideViewPort = true, then webSettings.useWideViewPort is always on
+     * If settings.useWideViewPort = false or null, then webSettings.useWideViewPort can be on/off
      */
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
         val webSettings = webView.settings
         webSettings.userAgentString = toggleDesktopUA(webSettings.userAgentString, enable)
-        webSettings.useWideViewPort = enable
+        webSettings.useWideViewPort = if (settings.useWideViewPort == true) true else enable
 
         notifyObservers { onDesktopModeChange(enable) }
 

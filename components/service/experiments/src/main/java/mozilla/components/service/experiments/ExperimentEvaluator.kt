@@ -9,6 +9,7 @@ import android.content.Context
 import android.os.Looper
 import androidx.annotation.VisibleForTesting
 import android.text.TextUtils
+import mozilla.components.service.experiments.util.VersionString
 import mozilla.components.support.base.log.logger.Logger
 import java.util.zip.CRC32
 
@@ -23,6 +24,16 @@ internal class ExperimentEvaluator(
     private val valuesProvider: ValuesProvider = ValuesProvider()
 ) {
     private val logger: Logger = Logger(LOG_TAG)
+
+    internal fun findActiveExperiment(context: Context, experiments: List<Experiment>): ActiveExperiment? {
+        for (experiment in experiments) {
+            evaluate(context, ExperimentDescriptor(experiment.id), experiments)?.let {
+                return it
+            }
+        }
+
+        return null
+    }
 
     /**
      * Determines if a specific experiment should be enabled or not for the device
@@ -76,6 +87,7 @@ internal class ExperimentEvaluator(
     private fun matches(context: Context, experiment: Experiment): Boolean {
         val match = experiment.match
         val region = valuesProvider.getRegion(context)
+        val version = valuesProvider.getVersion(context) ?: ""
         val matchesRegion = (region == null) ||
             match.regions.isNullOrEmpty() ||
             match.regions.any { it == region }
@@ -83,20 +95,24 @@ internal class ExperimentEvaluator(
         val matchesTag = (tag == null) ||
             match.debugTags.isNullOrEmpty() ||
             match.debugTags.any { it == tag }
+        val matchesMinVersion = match.appMinVersion.isNullOrEmpty() ||
+            VersionString(match.appMinVersion) <= VersionString(version)
+        val matchesMaxVersion = match.appMaxVersion.isNullOrEmpty() ||
+            VersionString(match.appMaxVersion) >= VersionString(version)
 
-        return matchesRegion && matchesTag &&
+        return matchesRegion && matchesTag && matchesMinVersion && matchesMaxVersion &&
             matchesExperiment(match.appId, valuesProvider.getAppId(context)) &&
-            matchesExperiment(match.appDisplayVersion, valuesProvider.getVersion(context)) &&
+            matchesExperiment(match.appDisplayVersion, version) &&
             matchesExperiment(match.localeLanguage, valuesProvider.getLanguage(context)) &&
             matchesExperiment(match.localeCountry, valuesProvider.getCountry(context)) &&
             matchesExperiment(match.deviceManufacturer, valuesProvider.getManufacturer(context)) &&
             matchesExperiment(match.deviceModel, valuesProvider.getDevice(context))
     }
 
-    private fun matchesExperiment(experimentValue: String?, deviceValue: String): Boolean {
+    private fun matchesExperiment(experimentValue: String?, deviceValue: String?): Boolean {
         return !(experimentValue != null &&
             !TextUtils.isEmpty(experimentValue) &&
-            !deviceValue.matches(experimentValue.toRegex()))
+            !(deviceValue?.matches(experimentValue.toRegex()) ?: false))
     }
 
     private fun isInBucket(userBucket: Int, experiment: Experiment): Boolean {
@@ -283,7 +299,7 @@ internal class ExperimentEvaluator(
     companion object {
         private const val LOG_TAG = "experiments"
 
-        const val MAX_USER_BUCKET = 100
+        const val MAX_USER_BUCKET = 1000
         // This stores a boolean; whether an experiment is active or not.
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         const val PREF_NAME_OVERRIDES_ENABLED = "mozilla.components.service.experiments.overrides.enabled"

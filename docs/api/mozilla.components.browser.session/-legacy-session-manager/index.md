@@ -2,7 +2,7 @@
 
 # LegacySessionManager
 
-`class LegacySessionManager : `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/src/main/java/mozilla/components/browser/session/LegacySessionManager.kt#L20)
+`class LegacySessionManager : `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/src/main/java/mozilla/components/browser/session/LegacySessionManager.kt#L21)
 
 This class provides access to a centralized registry of all active sessions.
 
@@ -10,14 +10,13 @@ This class provides access to a centralized registry of all active sessions.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `LegacySessionManager(engine: `[`Engine`](../../mozilla.components.concept.engine/-engine/index.md)`, defaultSession: () -> `[`Session`](../-session/index.md)` = null, delegate: `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`> = ObserverRegistry())`<br>This class provides access to a centralized registry of all active sessions. |
+| [&lt;init&gt;](-init-.md) | `LegacySessionManager(engine: `[`Engine`](../../mozilla.components.concept.engine/-engine/index.md)`, delegate: `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`> = ObserverRegistry())`<br>This class provides access to a centralized registry of all active sessions. |
 
 ### Properties
 
 | Name | Summary |
 |---|---|
 | [all](all.md) | `val all: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`Session`](../-session/index.md)`>`<br>Returns a list of all active sessions (including CustomTab sessions). |
-| [defaultSession](default-session.md) | `val defaultSession: () -> `[`Session`](../-session/index.md) |
 | [engine](engine.md) | `val engine: `[`Engine`](../../mozilla.components.concept.engine/-engine/index.md) |
 | [selectedSession](selected-session.md) | `val selectedSession: `[`Session`](../-session/index.md)`?`<br>Gets the currently selected session if there is one. |
 | [selectedSessionOrThrow](selected-session-or-throw.md) | `val selectedSessionOrThrow: `[`Session`](../-session/index.md)<br>Gets the currently selected session or throws an IllegalStateException if no session is selected. |
@@ -28,7 +27,7 @@ This class provides access to a centralized registry of all active sessions.
 
 | Name | Summary |
 |---|---|
-| [add](add.md) | `fun add(session: `[`Session`](../-session/index.md)`, selected: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = false, engineSession: `[`EngineSession`](../../mozilla.components.concept.engine/-engine-session/index.md)`? = null, parent: `[`Session`](../-session/index.md)`? = null): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Adds the provided session. |
+| [add](add.md) | `fun add(session: `[`Session`](../-session/index.md)`, selected: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = false, engineSession: `[`EngineSession`](../../mozilla.components.concept.engine/-engine-session/index.md)`? = null, parent: `[`Session`](../-session/index.md)`? = null): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Adds the provided session.`fun add(sessions: `[`List`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html)`<`[`Session`](../-session/index.md)`>): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Adds multiple sessions. |
 | [createSessionSnapshot](create-session-snapshot.md) | `fun createSessionSnapshot(session: `[`Session`](../-session/index.md)`): `[`Item`](../-session-manager/-snapshot/-item/index.md) |
 | [createSnapshot](create-snapshot.md) | `fun createSnapshot(): `[`Snapshot`](../-session-manager/-snapshot/index.md)<br>Produces a snapshot of this manager's state, suitable for restoring via [SessionManager.restore](../-session-manager/restore.md). Only regular sessions are included in the snapshot. Private and Custom Tab sessions are omitted. |
 | [findSessionById](find-session-by-id.md) | `fun findSessionById(id: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Session`](../-session/index.md)`?`<br>Finds and returns the session with the given id. Returns null if no matching session could be found. |

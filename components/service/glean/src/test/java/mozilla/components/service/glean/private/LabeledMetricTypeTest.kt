@@ -9,6 +9,8 @@ import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.service.glean.GleanMetrics.Pings
 import mozilla.components.service.glean.collectAndCheckPingSchema
+import mozilla.components.service.glean.error.ErrorRecording
+import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.storages.BooleansStorageEngine
 import mozilla.components.service.glean.storages.CountersStorageEngine
 import mozilla.components.service.glean.storages.MockGenericStorageEngine
@@ -16,15 +18,12 @@ import mozilla.components.service.glean.storages.StringListsStorageEngine
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.storages.TimespansStorageEngine
 import mozilla.components.service.glean.storages.UuidsStorageEngine
-import mozilla.components.service.glean.error.ErrorRecording
-import mozilla.components.service.glean.resetGlean
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import java.util.UUID
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.`when`
@@ -33,6 +32,7 @@ import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.robolectric.RobolectricTestRunner
+import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 class LabeledMetricTypeTest {
@@ -81,27 +81,27 @@ class LabeledMetricTypeTest {
         val snapshot = CountersStorageEngine.getSnapshot(storeName = "metrics", clearStore = false)
 
         assertEquals(3, snapshot!!.size)
-        assertEquals(1, snapshot.get("telemetry.labeled_counter_metric/label1"))
-        assertEquals(2, snapshot.get("telemetry.labeled_counter_metric/label2"))
-        assertEquals(3, snapshot.get("telemetry.labeled_counter_metric"))
+        assertEquals(1, snapshot["telemetry.labeled_counter_metric/label1"])
+        assertEquals(2, snapshot["telemetry.labeled_counter_metric/label2"])
+        assertEquals(3, snapshot["telemetry.labeled_counter_metric"])
 
-        val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
         // Do the same checks again on the JSON structure
         assertEquals(
             1,
-            json.getJSONObject("labeled_counter")!!
-                .getJSONObject("telemetry.labeled_counter_metric")!!
+            json.getJSONObject("labeled_counter")
+                .getJSONObject("telemetry.labeled_counter_metric")
                 .get("label1")
         )
         assertEquals(
             2,
-            json.getJSONObject("labeled_counter")!!
-                .getJSONObject("telemetry.labeled_counter_metric")!!
+            json.getJSONObject("labeled_counter")
+                .getJSONObject("telemetry.labeled_counter_metric")
                 .get("label2")
         )
         assertEquals(
             3,
-            json.getJSONObject("counter")!!
+            json.getJSONObject("counter")
                 .get("telemetry.labeled_counter_metric")
         )
     }
@@ -143,23 +143,23 @@ class LabeledMetricTypeTest {
         assertNull(snapshot.get("telemetry.labeled_counter_metric/baz"))
         assertEquals(3, snapshot.get("telemetry.labeled_counter_metric/__other__"))
 
-        val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
         // Do the same checks again on the JSON structure
         assertEquals(
             2,
-            json.getJSONObject("labeled_counter")!!
+            json.getJSONObject("labeled_counter")
                 .getJSONObject("telemetry.labeled_counter_metric")
                 .get("foo")
         )
         assertEquals(
             1,
-            json.getJSONObject("labeled_counter")!!
+            json.getJSONObject("labeled_counter")
                 .getJSONObject("telemetry.labeled_counter_metric")
                 .get("bar")
         )
         assertEquals(
             3,
-            json.getJSONObject("labeled_counter")!!
+            json.getJSONObject("labeled_counter")
                 .getJSONObject("telemetry.labeled_counter_metric")
                 .get("__other__")
         )
@@ -201,26 +201,26 @@ class LabeledMetricTypeTest {
         }
         assertEquals(5, snapshot.get("telemetry.labeled_counter_metric/__other__"))
 
-        val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        val json = collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
         // Do the same checks again on the JSON structure
         assertEquals(
             2,
-            json.getJSONObject("labeled_counter")!!
-                .getJSONObject("telemetry.labeled_counter_metric")!!
+            json.getJSONObject("labeled_counter")
+                .getJSONObject("telemetry.labeled_counter_metric")
                 .get("label_0")
         )
         for (i in 1..15) {
             assertEquals(
                 1,
-                json.getJSONObject("labeled_counter")!!
-                    .getJSONObject("telemetry.labeled_counter_metric")!!
+                json.getJSONObject("labeled_counter")
+                    .getJSONObject("telemetry.labeled_counter_metric")
                     .get("label_$i")
             )
         }
         assertEquals(
             5,
-            json.getJSONObject("labeled_counter")!!
-                .getJSONObject("telemetry.labeled_counter_metric")!!
+            json.getJSONObject("labeled_counter")
+                .getJSONObject("telemetry.labeled_counter_metric")
                 .get("__other__")
         )
     }
@@ -288,34 +288,52 @@ class LabeledMetricTypeTest {
             subMetric = counterMetric
         )
 
-        // Add some passing labels
-        CountersStorageEngine.record(labeledCounterMetric["this.is.fine"], 1)
-        CountersStorageEngine.record(labeledCounterMetric["this.is_still_fine"], 1)
-        CountersStorageEngine.record(labeledCounterMetric["thisisfine"], 1)
+        // Declare the labels we expect to pass the regex.
+        val expectedToPass = listOf(
+            "this.is.fine",
+            "this.is_still_fine",
+            "thisisfine",
+            "this_is_fine_too",
+            "this.is_fine.2",
+            "_.is_fine",
+            "this.is-fine",
+            "this-is-fine"
+        )
 
-        // Add some labels that fail the regex to ensure they get filtered to "__other__"
-        CountersStorageEngine.record(
-            labeledCounterMetric["this.is.not_fine_due_to_the_length_being_too_long"],
-            1)
-        CountersStorageEngine.record(labeledCounterMetric["1.not_fine"], 1)
-        CountersStorageEngine.record(labeledCounterMetric["this.is-not-fine"], 1)
-        CountersStorageEngine.record(labeledCounterMetric["this.\$isnotfine"], 1)
+        // And the ones we expect to fail the regex.
+        val expectedToFail = listOf(
+            "this.is.not_fine_due_to_the_length_being_too_long",
+            "1.not_fine",
+            "this.\$isnotfine",
+            "-.not_fine"
+        )
 
+        // Attempt to record both the failing and the passing labels.
+        expectedToPass.forEach { label ->
+            CountersStorageEngine.record(labeledCounterMetric[label], 1)
+        }
+
+        expectedToFail.forEach { label ->
+            CountersStorageEngine.record(labeledCounterMetric[label], 1)
+        }
+
+        // Validate the recorded data.
         val snapshot = CountersStorageEngine.getSnapshot(storeName = "metrics", clearStore = false)
         // This snapshot includes:
-        // - The 3 valid values from above
+        // - The expectedToPass.size valid values from above
         // - The error counter
         // - The invalid (__other__) value
-        assertEquals(5, snapshot!!.size)
+        val numExpectedLabels = expectedToPass.size + 2
+        assertEquals(numExpectedLabels, snapshot!!.size)
 
         // Make sure the passing labels were accepted
-        assertEquals(1, snapshot["telemetry.labeled_counter_metric/this.is.fine"])
-        assertEquals(1, snapshot["telemetry.labeled_counter_metric/this.is_still_fine"])
-        assertEquals(1, snapshot["telemetry.labeled_counter_metric/thisisfine"])
+        expectedToPass.forEach { label ->
+            assertEquals(1, snapshot["telemetry.labeled_counter_metric/$label"])
+        }
 
         // Make sure we see the bad labels went to "__other__"
         assertEquals(
-            4,
+            expectedToFail.size,
             labeledCounterMetric["__other__"].testGetValue()
         )
     }
@@ -342,14 +360,14 @@ class LabeledMetricTypeTest {
             subMetric = timespanMetric
         )
 
-        labeledTimespanMetric["label1"].start(this)
-        labeledTimespanMetric["label1"].stopAndSum(this)
-        labeledTimespanMetric["label2"].start(this)
-        labeledTimespanMetric["label2"].stopAndSum(this)
+        labeledTimespanMetric["label1"].start()
+        labeledTimespanMetric["label1"].stop()
+        labeledTimespanMetric["label2"].start()
+        labeledTimespanMetric["label2"].stop()
 
         assertTrue(labeledTimespanMetric["label1"].testHasValue())
 
-        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
     }
 
     @Test
@@ -374,7 +392,7 @@ class LabeledMetricTypeTest {
         UuidsStorageEngine.record(labeledUuidMetric["label1"], UUID.randomUUID())
         UuidsStorageEngine.record(labeledUuidMetric["label2"], UUID.randomUUID())
 
-        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
     }
 
     @Test
@@ -401,7 +419,7 @@ class LabeledMetricTypeTest {
         StringListsStorageEngine.set(labeledStringListMetric["label1"], listOf("a", "b", "c"))
         StringListsStorageEngine.set(labeledStringListMetric["label2"], listOf("a", "b", "c"))
 
-        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
     }
 
     @Test
@@ -426,7 +444,7 @@ class LabeledMetricTypeTest {
         StringsStorageEngine.record(labeledStringMetric["label1"], "foo")
         StringsStorageEngine.record(labeledStringMetric["label2"], "bar")
 
-        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
     }
 
     @Test
@@ -453,7 +471,7 @@ class LabeledMetricTypeTest {
         BooleansStorageEngine.record(labeledBooleanMetric["label1"], false)
         BooleansStorageEngine.record(labeledBooleanMetric["label2"], true)
 
-        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")!!
+        collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
     }
 
     @Test(expected = IllegalStateException::class)

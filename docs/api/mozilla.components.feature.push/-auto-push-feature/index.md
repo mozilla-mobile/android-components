@@ -16,7 +16,7 @@ Listen also for push messages for each registered [PushType](../-push-type/index
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `AutoPushFeature(context: `[`Context`](https://developer.android.com/reference/android/content/Context.html)`, service: `[`PushService`](../../mozilla.components.concept.push/-push-service/index.md)`, config: `[`PushConfig`](../-push-config/index.md)`, coroutineContext: `[`CoroutineContext`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines/-coroutine-context/index.html)` = Executors.newSingleThreadExecutor().asCoroutineDispatcher(), connection: `[`PushConnection`](../-push-connection/index.md)` = RustPushConnection(
+| [&lt;init&gt;](-init-.md) | `AutoPushFeature(context: <ERROR CLASS>, service: `[`PushService`](../../mozilla.components.concept.push/-push-service/index.md)`, config: `[`PushConfig`](../-push-config/index.md)`, coroutineContext: `[`CoroutineContext`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.coroutines/-coroutine-context/index.html)` = Executors.newSingleThreadExecutor().asCoroutineDispatcher(), connection: `[`PushConnection`](../-push-connection/index.md)` = RustPushConnection(
         senderId = config.senderId,
         serverHost = config.serverHost,
         socketProtocol = config.protocol,
@@ -28,6 +28,7 @@ Listen also for push messages for each registered [PushType](../-push-type/index
 
 | Name | Summary |
 |---|---|
+| [forceRegistrationRenewal](force-registration-renewal.md) | `fun forceRegistrationRenewal(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Deletes the registration token locally so that it forces the service to get a new one the next time hits it's messaging server. |
 | [initialize](initialize.md) | `fun initialize(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Starts the push service provided. |
 | [onError](on-error.md) | `fun onError(error: `[`PushError`](../../mozilla.components.concept.push/-push-error/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>An error has occurred. |
 | [onMessageReceived](on-message-received.md) | `fun onMessageReceived(message: `[`EncryptedPushMessage`](../../mozilla.components.concept.push/-encrypted-push-message/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>New encrypted messages received from a supported push messaging service. |

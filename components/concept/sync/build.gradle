@@ -29,6 +29,7 @@ dependencies {
 
     // Observables are part of the public API of this module.
     api project(':support-base')
+    api project(':lib-state')
 }
 
 apply from: '../../../publish.gradle'

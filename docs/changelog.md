@@ -31,6 +31,9 @@ permalink: /changelog/
   * Deprecated `ViewGroup.forEach` in favour of Android Core KTX.
   * Deprecated `Map.toBundle()` in favour of Android Core KTX `bundleOf`.
 
+* **service-glean**
+  * ⚠️ **This is a breaking change**: `StringListMetricType` is replaced by `StringSetMetricType` which does not allow for duplicate values. See bug 1557353.
+
 # 5.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v5.0.0)

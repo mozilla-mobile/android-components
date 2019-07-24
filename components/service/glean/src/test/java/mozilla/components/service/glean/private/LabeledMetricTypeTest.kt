@@ -14,7 +14,7 @@ import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.storages.BooleansStorageEngine
 import mozilla.components.service.glean.storages.CountersStorageEngine
 import mozilla.components.service.glean.storages.MockGenericStorageEngine
-import mozilla.components.service.glean.storages.StringListsStorageEngine
+import mozilla.components.service.glean.storages.StringSetsStorageEngine
 import mozilla.components.service.glean.storages.StringsStorageEngine
 import mozilla.components.service.glean.storages.TimespansStorageEngine
 import mozilla.components.service.glean.storages.UuidsStorageEngine
@@ -397,9 +397,9 @@ class LabeledMetricTypeTest {
 
     @Test
     fun `Test labeled string list metric type`() {
-        StringListsStorageEngine.clearAllStores()
+        StringSetsStorageEngine.clearAllStores()
 
-        val stringListMetric = StringListMetricType(
+        val stringSetMetric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
@@ -407,17 +407,17 @@ class LabeledMetricTypeTest {
             sendInPings = listOf("metrics")
         )
 
-        val labeledStringListMetric = LabeledMetricType<StringListMetricType>(
+        val labeledStringSetMetric = LabeledMetricType<StringSetMetricType>(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
             name = "labeled_string_list_metric",
             sendInPings = listOf("metrics"),
-            subMetric = stringListMetric
+            subMetric = stringSetMetric
         )
 
-        StringListsStorageEngine.set(labeledStringListMetric["label1"], listOf("a", "b", "c"))
-        StringListsStorageEngine.set(labeledStringListMetric["label2"], listOf("a", "b", "c"))
+        StringSetsStorageEngine.set(labeledStringSetMetric["label1"], setOf("a", "b", "c"))
+        StringSetsStorageEngine.set(labeledStringSetMetric["label2"], setOf("a", "b", "c"))
 
         collectAndCheckPingSchema(Pings.metrics).getJSONObject("metrics")
     }
@@ -455,7 +455,7 @@ class LabeledMetricTypeTest {
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
-            name = "labeled_string_list_metric",
+            name = "boolean_metric",
             sendInPings = listOf("metrics")
         )
 
@@ -463,7 +463,7 @@ class LabeledMetricTypeTest {
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
-            name = "labeled_string_list_metric",
+            name = "labeled_boolean_metric",
             sendInPings = listOf("metrics"),
             subMetric = booleanMetric
         )

@@ -10,7 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import mozilla.components.service.glean.error.ErrorRecording.ErrorType
 import mozilla.components.service.glean.error.ErrorRecording.testGetNumRecordedErrors
 import mozilla.components.service.glean.private.Lifetime
-import mozilla.components.service.glean.private.StringListMetricType
+import mozilla.components.service.glean.private.StringSetMetricType
 import mozilla.components.service.glean.resetGlean
 import org.json.JSONArray
 import org.json.JSONObject
@@ -25,7 +25,7 @@ import org.mockito.Mockito
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-class StringListsStorageEngineTest {
+class StringSetsStorageEngineTest {
 
     @Before
     fun setUp() {
@@ -36,7 +36,7 @@ class StringListsStorageEngineTest {
     fun `set() properly sets the value in all stores`() {
         val storeNames = listOf("store1", "store2")
 
-        val metric = StringListMetricType(
+        val metric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Ping,
@@ -44,22 +44,22 @@ class StringListsStorageEngineTest {
             sendInPings = storeNames
         )
 
-        val list = listOf("First", "Second")
+        val set = setOf("First", "Second")
 
-        StringListsStorageEngine.set(
+        StringSetsStorageEngine.set(
             metricData = metric,
-            value = list
+            value = set
         )
 
         // Check that the data was correctly set in each store.
         for (storeName in storeNames) {
-            val snapshot = StringListsStorageEngine.getSnapshot(
+            val snapshot = StringSetsStorageEngine.getSnapshot(
                 storeName = storeName,
                 clearStore = false
             )
             assertEquals(1, snapshot!!.size)
-            assertEquals("First", snapshot["telemetry.string_list_metric"]?.get(0))
-            assertEquals("Second", snapshot["telemetry.string_list_metric"]?.get(1))
+            assertTrue(snapshot["telemetry.string_list_metric"]!!.contains("First"))
+            assertTrue(snapshot["telemetry.string_list_metric"]!!.contains("Second"))
         }
     }
 
@@ -67,7 +67,7 @@ class StringListsStorageEngineTest {
     fun `add() properly adds the value in all stores`() {
         val storeNames = listOf("store1", "store2")
 
-        val metric = StringListMetricType(
+        val metric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Ping,
@@ -75,23 +75,23 @@ class StringListsStorageEngineTest {
             sendInPings = storeNames
         )
 
-        StringListsStorageEngine.add(
+        StringSetsStorageEngine.add(
             metricData = metric,
             value = "First"
         )
 
         // Check that the data was correctly added in each store.
         for (storeName in storeNames) {
-            val snapshot = StringListsStorageEngine.getSnapshot(
+            val snapshot = StringSetsStorageEngine.getSnapshot(
                 storeName = storeName,
                 clearStore = false)
-            assertEquals("First", snapshot!!["telemetry.string_list_metric"]?.get(0))
+            assertTrue(snapshot!!["telemetry.string_list_metric"]!!.contains("First"))
         }
     }
 
     @Test
-    fun `add() won't allow adding beyond the max list length in a single accumulation`() {
-        val metric = StringListMetricType(
+    fun `add() won't allow adding beyond the max set length in a single accumulation`() {
+        val metric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Ping,
@@ -99,21 +99,21 @@ class StringListsStorageEngineTest {
             sendInPings = listOf("store1")
         )
 
-        for (i in 1..StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE + 1) {
-            StringListsStorageEngine.add(
+        for (i in 1..StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE + 1) {
+            StringSetsStorageEngine.add(
                 metricData = metric,
                 value = "value$i"
             )
         }
 
         // Check that list was truncated.
-        val snapshot = StringListsStorageEngine.getSnapshot(
+        val snapshot = StringSetsStorageEngine.getSnapshot(
             storeName = "store1",
             clearStore = false)
         assertEquals(1, snapshot!!.size)
         assertEquals(true, snapshot.containsKey("telemetry.string_list_metric"))
         assertEquals(
-            StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE,
+            StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE,
             snapshot["telemetry.string_list_metric"]?.count()
         )
 
@@ -121,8 +121,8 @@ class StringListsStorageEngineTest {
     }
 
     @Test
-    fun `add() won't allow adding beyond the max list length over multiple accumulations`() {
-        val metric = StringListMetricType(
+    fun `add() won't allow adding beyond the max set length over multiple accumulations`() {
+        val metric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Ping,
@@ -131,50 +131,50 @@ class StringListsStorageEngineTest {
         )
 
         // Add values up to half capacity
-        for (i in 1..StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE / 2) {
-            StringListsStorageEngine.add(
+        for (i in 1..StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE / 2) {
+            StringSetsStorageEngine.add(
                 metricData = metric,
                 value = "value$i"
             )
         }
 
         // Check that list was added
-        val snapshot = StringListsStorageEngine.getSnapshot(
+        val snapshot = StringSetsStorageEngine.getSnapshot(
             storeName = "store1",
             clearStore = false)
         assertEquals(1, snapshot!!.size)
         assertEquals(true, snapshot.containsKey("telemetry.string_list_metric"))
         assertEquals(
-            StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE / 2,
+            StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE / 2,
             snapshot["telemetry.string_list_metric"]?.count()
         )
 
         // Add values that would exceed capacity
-        for (i in 1..StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE) {
-            StringListsStorageEngine.add(
+        for (i in 1..StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE) {
+            StringSetsStorageEngine.add(
                 metricData = metric,
                 value = "otherValue$i"
             )
         }
 
         // Check that the list was truncated to the list capacity
-        val snapshot2 = StringListsStorageEngine.getSnapshot(
+        val snapshot2 = StringSetsStorageEngine.getSnapshot(
             storeName = "store1",
             clearStore = false)
         assertEquals(1, snapshot2!!.size)
         assertEquals(true, snapshot2.containsKey("telemetry.string_list_metric"))
         assertEquals(
-            StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE,
+            StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE,
             snapshot2["telemetry.string_list_metric"]?.count()
         )
 
-        assertEquals(StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE / 2,
+        assertEquals(StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE / 2,
             testGetNumRecordedErrors(metric, ErrorType.InvalidValue))
     }
 
     @Test
-    fun `set() won't allow adding a list longer than the max list length`() {
-        val metric = StringListMetricType(
+    fun `set() won't allow adding a set longer than the max list length`() {
+        val metric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Ping,
@@ -182,21 +182,21 @@ class StringListsStorageEngineTest {
             sendInPings = listOf("store1")
         )
 
-        val stringList: MutableList<String> = mutableListOf()
-        for (i in 1..StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE + 1) {
-            stringList.add("value$i")
+        val stringSet: MutableSet<String> = mutableSetOf()
+        for (i in 1..StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE + 1) {
+            stringSet.add("value$i")
         }
 
-        StringListsStorageEngine.set(metricData = metric, value = stringList)
+        StringSetsStorageEngine.set(metricData = metric, value = stringSet)
 
         // Check that list was truncated.
-        val snapshot = StringListsStorageEngine.getSnapshot(
+        val snapshot = StringSetsStorageEngine.getSnapshot(
             storeName = "store1",
             clearStore = false)
         assertEquals(1, snapshot!!.size)
         assertEquals(true, snapshot.containsKey("telemetry.string_list_metric"))
         assertEquals(
-            StringListsStorageEngineImplementation.MAX_LIST_LENGTH_VALUE,
+            StringSetsStorageEngineImplementation.MAX_SET_SIZE_VALUE,
             snapshot["telemetry.string_list_metric"]?.count()
         )
 
@@ -204,18 +204,18 @@ class StringListsStorageEngineTest {
     }
 
     @Test
-    fun `string list deserializer should correctly parse string lists`() {
+    fun `string set deserializer should correctly parse string sets`() {
         val persistedSample = mapOf(
             "store1#telemetry.invalid_string" to "invalid_string",
             "store1#telemetry.invalid_bool" to false,
             "store1#telemetry.null" to null,
             "store1#telemetry.invalid_int" to -1,
-            "store1#telemetry.invalid_list" to listOf("1", "2", "3"),
-            "store1#telemetry.invalid_int_list" to "[1,2,3]",
+            "store1#telemetry.invalid_set" to listOf("1", "2", "3"),
+            "store1#telemetry.invalid_int_set" to "[1,2,3]",
             "store1#telemetry.valid" to "[\"a\",\"b\",\"c\"]"
         )
 
-        val storageEngine = StringListsStorageEngineImplementation()
+        val storageEngine = StringSetsStorageEngineImplementation()
 
         // Create a fake application context that will be used to load our data.
         val context = Mockito.mock(Context::class.java)
@@ -235,20 +235,20 @@ class StringListsStorageEngineTest {
         storageEngine.applicationContext = context
         val snapshot = storageEngine.getSnapshot(storeName = "store1", clearStore = true)
         // Because JSONArray constructor will deserialize with or without the escaped quotes, it
-        // treat the invalid_int_list above the same as the valid list, so we assertEquals 2
+        // treat the invalid_int_set above the same as the valid list, so we assertEquals 2
         assertEquals(2, snapshot!!.size)
-        assertEquals(listOf("a", "b", "c"), snapshot["telemetry.valid"])
+        assertEquals(setOf("a", "b", "c"), snapshot["telemetry.valid"])
     }
 
     @Test
-    fun `string list serializer should correctly serialize lists`() {
+    fun `string set serializer should correctly serialize sets`() {
         run {
-            val storageEngine = StringListsStorageEngineImplementation()
+            val storageEngine = StringSetsStorageEngineImplementation()
             storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
             val storeNames = listOf("store1", "store2")
 
-            val metric = StringListMetricType(
+            val metric = StringSetMetricType(
                     disabled = false,
                     category = "telemetry",
                     lifetime = Lifetime.User,
@@ -256,11 +256,11 @@ class StringListsStorageEngineTest {
                     sendInPings = storeNames
             )
 
-            val list = listOf("First", "Second")
+            val set = setOf("First", "Second")
 
             storageEngine.set(
                     metricData = metric,
-                    value = list
+                    value = set
             )
 
             // Get snapshot from store1
@@ -275,7 +275,7 @@ class StringListsStorageEngineTest {
         // Create a new instance of storage engine to verify serialization to storage rather than
         // to the cache
         run {
-            val storageEngine = StringListsStorageEngineImplementation()
+            val storageEngine = StringSetsStorageEngineImplementation()
             storageEngine.applicationContext = ApplicationProvider.getApplicationContext()
 
             // Get snapshot from store1
@@ -292,7 +292,7 @@ class StringListsStorageEngineTest {
     fun `test JSON output`() {
         val storeNames = listOf("store1", "store2")
 
-        val metric = StringListMetricType(
+        val metric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Ping,
@@ -300,18 +300,18 @@ class StringListsStorageEngineTest {
             sendInPings = storeNames
         )
 
-        val list = listOf("First", "Second")
+        val set = setOf("First", "Second")
 
-        StringListsStorageEngine.set(
+        StringSetsStorageEngine.set(
             metricData = metric,
-            value = list
+            value = set
         )
 
         // Get snapshot from store1 and clear it
-        val json = StringListsStorageEngine.getSnapshotAsJSON("store1", true)
+        val json = StringSetsStorageEngine.getSnapshotAsJSON("store1", true)
         // Check that getting a new snapshot for "store1" returns an empty store.
         Assert.assertNull("The engine must report 'null' on empty stores",
-                StringListsStorageEngine.getSnapshotAsJSON(storeName = "store1", clearStore = false))
+                StringSetsStorageEngine.getSnapshotAsJSON(storeName = "store1", clearStore = false))
         // Check for correct JSON serialization
         assertEquals(
             "{\"telemetry.string_list_metric\":[\"First\",\"Second\"]}",
@@ -322,32 +322,32 @@ class StringListsStorageEngineTest {
     @Test
     fun `The API truncates long string values`() {
         // Define a 'stringMetric' string metric, which will be stored in "store1"
-        val stringListMetric = StringListMetricType(
+        val stringSetMetric = StringSetMetricType(
             disabled = false,
             category = "telemetry",
             lifetime = Lifetime.Application,
-            name = "string_list_metric",
+            name = "string_set_metric",
             sendInPings = listOf("store1")
         )
 
-        val longString = "a".repeat(StringListsStorageEngineImplementation.MAX_STRING_LENGTH + 10)
+        val longString = "a".repeat(StringSetsStorageEngineImplementation.MAX_STRING_LENGTH + 10)
 
         // Check that data was truncated via add() method.
-        StringListsStorageEngine.add(stringListMetric, longString)
-        var snapshot = StringListsStorageEngine.getSnapshotAsJSON("store1", true) as JSONObject
-        var stringList = snapshot["telemetry.string_list_metric"] as JSONArray
-        assertEquals(longString.take(StringListsStorageEngineImplementation.MAX_STRING_LENGTH),
-            stringList[0])
+        StringSetsStorageEngine.add(stringSetMetric, longString)
+        var snapshot = StringSetsStorageEngine.getSnapshotAsJSON("store1", true) as JSONObject
+        var stringSet = snapshot["telemetry.string_set_metric"] as JSONArray
+        assertEquals(longString.take(StringSetsStorageEngineImplementation.MAX_STRING_LENGTH),
+            stringSet[0])
 
         // Check that data was truncated via set() method.
-        StringListsStorageEngine.set(stringListMetric, listOf(longString))
-        snapshot = StringListsStorageEngine.getSnapshotAsJSON("store1", true) as JSONObject
-        stringList = snapshot["telemetry.string_list_metric"] as JSONArray
-        assertEquals(1, stringList.length())
-        assertTrue(stringListMetric.testHasValue())
-        assertEquals(longString.take(StringListsStorageEngineImplementation.MAX_STRING_LENGTH),
-            stringList[0])
+        StringSetsStorageEngine.set(stringSetMetric, setOf(longString))
+        snapshot = StringSetsStorageEngine.getSnapshotAsJSON("store1", true) as JSONObject
+        stringSet = snapshot["telemetry.string_set_metric"] as JSONArray
+        assertEquals(1, stringSet.length())
+        assertTrue(stringSetMetric.testHasValue())
+        assertEquals(longString.take(StringSetsStorageEngineImplementation.MAX_STRING_LENGTH),
+            stringSet[0])
 
-        assertEquals(2, testGetNumRecordedErrors(stringListMetric, ErrorType.InvalidValue))
+        assertEquals(2, testGetNumRecordedErrors(stringSetMetric, ErrorType.InvalidValue))
     }
 }

@@ -8,7 +8,7 @@ import android.content.Context
 import mozilla.components.service.glean.private.BooleanMetricType
 import mozilla.components.service.glean.private.CounterMetricType
 import mozilla.components.service.glean.private.DatetimeMetricType
-import mozilla.components.service.glean.private.StringListMetricType
+import mozilla.components.service.glean.private.StringSetMetricType
 import mozilla.components.service.glean.private.StringMetricType
 import mozilla.components.service.glean.private.TimespanMetricType
 import mozilla.components.service.glean.private.TimingDistributionMetricType
@@ -29,7 +29,7 @@ internal class StorageEngineManager(
         "datetime" to DatetimesStorageEngine,
         "events" to EventsStorageEngine,
         "string" to StringsStorageEngine,
-        "string_list" to StringListsStorageEngine,
+        "string_list" to StringSetsStorageEngine,
         "timespan" to TimespansStorageEngine,
         "timing_distribution" to TimingDistributionsStorageEngine,
         "uuid" to UuidsStorageEngine
@@ -144,7 +144,7 @@ internal class StorageEngineManager(
                 is BooleanMetricType -> BooleansStorageEngine
                 is CounterMetricType -> CountersStorageEngine
                 is DatetimeMetricType -> DatetimesStorageEngine
-                is StringListMetricType -> StringListsStorageEngine
+                is StringSetMetricType -> StringSetsStorageEngine
                 is StringMetricType -> StringsStorageEngine
                 is TimingDistributionMetricType -> TimingDistributionsStorageEngine
                 is TimespanMetricType -> TimespansStorageEngine

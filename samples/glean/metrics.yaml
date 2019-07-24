@@ -52,12 +52,12 @@ basic:
     expires: 2100-01-01
 
 test:
-  test_string_list:
-    type: string_list
+  test_string_set:
+    type: string_set
     description: >
-      Testing StringList ping
+      Testing StringSet ping
     send_in_pings:
-      - test_string_list
+      - test_string_set
     lifetime: user
     bugs:
       - 1234567890
@@ -72,7 +72,7 @@ test:
     description: >
       Testing counter
     send_in_pings:
-      - test_string_list
+      - test_string_set
     lifetime: user
     bugs:
       - 1234567890

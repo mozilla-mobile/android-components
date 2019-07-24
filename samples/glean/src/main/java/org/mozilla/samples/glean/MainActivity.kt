@@ -27,7 +27,7 @@ open class MainActivity : AppCompatActivity() {
 
             // Adds the EditText's text content as a new string in the string list metric from the
             // metrics.yaml file.
-            Test.testStringList.add(etStringListInput.text.toString())
+            Test.testStringSet.add(etStringListInput.text.toString())
             // Clear current text to help indicate something happened
             etStringListInput.setText("")
 

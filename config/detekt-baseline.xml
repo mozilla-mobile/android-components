@@ -171,8 +171,8 @@
     <ID>LongMethod:SnapshotSerializer.kt$@Throws(JSONException::class) @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE) internal fun deserializeSession(json: JSONObject, restoreId: Boolean): Session</ID>
     <ID>LongMethod:StorageSync.kt$StorageSync$private suspend fun syncStore( store: SyncableStore, storeName: String, auth: AuthInfo ): StoreSyncStatus</ID>
     <ID>LongMethod:StorageUtils.kt$StorageUtils$// Borrowed from https://gist.github.com/ademar111190/34d3de41308389a0d0d8 fun levenshteinDistance(a: String, b: String): Int</ID>
-    <ID>LongMethod:StringListsStorageEngine.kt$StringListsStorageEngineImplementation$ fun add( metricData: CommonMetricData, value: String )</ID>
-    <ID>LongMethod:StringListsStorageEngine.kt$StringListsStorageEngineImplementation$ fun set( metricData: CommonMetricData, value: List&lt;String&gt; )</ID>
+    <ID>LongMethod:StringSetsStorageEngine.kt$StringSetsStorageEngineImplementation$ fun add( metricData: CommonMetricData, value: String )</ID>
+    <ID>LongMethod:StringSetsStorageEngine.kt$StringSetsStorageEngineImplementation$ fun set( metricData: CommonMetricData, value: List&lt;String&gt; )</ID>
     <ID>LongMethod:SystemEngineSession.kt$SystemEngineSession$ @Suppress("TooGenericExceptionCaught") override fun clearData(data: BrowsingData, host: String?, onSuccess: () -&gt; Unit, onError: (Throwable) -&gt; Unit)</ID>
     <ID>LongMethod:SystemEngineSession.kt$SystemEngineSession$private fun initSettings(webView: WebView, s: WebSettings)</ID>
     <ID>LongMethod:SystemEngineView.kt$SystemEngineView$internal fun handleLongClick(type: Int, extra: String): Boolean</ID>

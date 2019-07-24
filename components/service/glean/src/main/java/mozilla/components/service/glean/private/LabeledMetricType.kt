@@ -155,7 +155,7 @@ data class LabeledMetricType<T>(
             is BooleanMetricType -> subMetric.copy(name = newName) as T
             is CounterMetricType -> subMetric.copy(name = newName) as T
             is DatetimeMetricType -> subMetric.copy(name = newName) as T
-            is StringListMetricType -> subMetric.copy(name = newName) as T
+            is StringSetMetricType -> subMetric.copy(name = newName) as T
             is StringMetricType -> subMetric.copy(name = newName) as T
             is TimespanMetricType -> subMetric.copy(name = newName) as T
             is UuidMetricType -> subMetric.copy(name = newName) as T

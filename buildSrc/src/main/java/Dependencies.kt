@@ -132,3 +132,22 @@ object Dependencies {
     const val firebase_core = "com.google.firebase:firebase-core:${Versions.Firebase.core}"
     const val firebase_messaging = "com.google.firebase:firebase-messaging:${Versions.Firebase.messaging}"
 }
+
+/**
+ * Used for matching dependencies to specific repositories.
+ */
+object GroupMatching {
+    const val REGEX_ANDROIDX = "androidx\\..*"
+    const val REGEX_MOZILLA = "org\\.mozilla\\..*"
+    const val REGEX_ANDROID = "com\\.android\\..*"
+
+    // Excluding the accessibility framework since it is not getting published to maven.google.com
+    // See https://github.com/google/Accessibility-Test-Framework-for-Android/issues/14
+    const val REGEX_GOOGLE_ANDROID = "com\\.google\\.android\\.(?!apps\\.common\\.testing\\.accessibility\\.framework).*"
+
+    const val GROUP_GOOGLE_FIREBASE = "com.google.firebase"
+    const val GROUP_MOZILLA_APPSERVICES = "org.mozilla.appservices"
+    const val GROUP_MOZILLA_COMPONENTS = "org.mozilla.components"
+    const val GROUP_MOZILLA_GECKOVIEW = "org.mozilla.geckoview"
+    const val GROUP_MOZILLA_SERVOVIEW = "org.mozilla.servoview"
+}

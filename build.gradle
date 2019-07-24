@@ -24,19 +24,63 @@ plugins {
 
 allprojects {
     repositories {
-        google()
-        jcenter()
-
         maven {
             url "https://maven.mozilla.org/maven2"
+            content {
+                // We want to fetch all our known Mozilla groups from our own repository.
+                includeGroup GroupMatching.GROUP_MOZILLA_APPSERVICES
+                includeGroup GroupMatching.GROUP_MOZILLA_COMPONENTS
+                includeGroup GroupMatching.GROUP_MOZILLA_GECKOVIEW
+                excludeGroup GroupMatching.GROUP_MOZILLA_SERVOVIEW
+            }
         }
 
-        ////////////////////////////////////////////////////////////////////////////////////////////
-        // Servo
-        ////////////////////////////////////////////////////////////////////////////////////////////
+        google() {
+            content {
+                // We want to fetch all AndroidX, Google and Firebase groups from Google's repository.
+                includeGroupByRegex GroupMatching.REGEX_ANDROIDX
+                includeGroupByRegex GroupMatching.REGEX_ANDROID
+                includeGroupByRegex GroupMatching.REGEX_GOOGLE_ANDROID
+                includeGroup GroupMatching.GROUP_GOOGLE_FIREBASE
+
+                // We never want to fetch Mozilla groups from Google.
+                excludeGroupByRegex GroupMatching.REGEX_MOZILLA
+                excludeGroup GroupMatching.GROUP_MOZILLA_SERVOVIEW
+            }
+        }
+
+        mavenCentral() {
+            // We list Maven Central before jcenter since we prefer pulling artifacts from there if available. Maven
+            // Central has a more strict vetting process when adding new artifacts.
+
+            content {
+                // We never want to fetch Mozilla, AndroidX, Google or Firebase groups from Maven Central.
+                excludeGroupByRegex GroupMatching.REGEX_MOZILLA
+                excludeGroupByRegex GroupMatching.REGEX_ANDROIDX
+                excludeGroupByRegex GroupMatching.REGEX_ANDROID
+                includeGroupByRegex GroupMatching.REGEX_GOOGLE_ANDROID
+                excludeGroup GroupMatching.GROUP_GOOGLE_FIREBASE
+                excludeGroup GroupMatching.GROUP_MOZILLA_SERVOVIEW
+            }
+        }
+
+        jcenter() {
+            content {
+                // We never want to fetch Mozilla, AndroidX, Google or Firebase groups from jcenter.
+                excludeGroupByRegex GroupMatching.REGEX_MOZILLA
+                excludeGroupByRegex GroupMatching.REGEX_ANDROIDX
+                excludeGroupByRegex GroupMatching.REGEX_ANDROID
+                excludeGroupByRegex GroupMatching.REGEX_GOOGLE_ANDROID
+                excludeGroup GroupMatching.GROUP_GOOGLE_FIREBASE
+                excludeGroup GroupMatching.GROUP_MOZILLA_SERVOVIEW
+            }
+        }
 
         maven {
             url "https://download.servo.org/nightly/maven"
+            content {
+                includeGroup GroupMatching.GROUP_MOZILLA_SERVOVIEW
+            }
         }
     }
 }

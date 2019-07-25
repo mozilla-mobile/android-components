@@ -16,6 +16,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
+import androidx.core.view.forEach
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.isVisible
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -35,7 +36,6 @@ import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.view.forEach
 import mozilla.components.ui.autocomplete.AutocompleteView
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 import mozilla.components.ui.autocomplete.OnFilterListener
@@ -388,6 +388,8 @@ class BrowserToolbar @JvmOverloads constructor(
                 )
                 displayToolbar.urlView.setFadingEdgeLength(fadingEdgeLength)
                 displayToolbar.urlView.isHorizontalFadingEdgeEnabled = fadingEdgeLength > 0
+                displayToolbar.titleView.setFadingEdgeLength(fadingEdgeLength)
+                displayToolbar.titleView.isHorizontalFadingEdgeEnabled = fadingEdgeLength > 0
             }
             recycle()
         }

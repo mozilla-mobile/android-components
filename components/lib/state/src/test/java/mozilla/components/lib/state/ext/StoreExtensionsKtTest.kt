@@ -11,6 +11,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.TestAction
 import mozilla.components.lib.state.TestState
@@ -23,6 +30,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class StoreExtensionsKtTest {
@@ -75,39 +84,113 @@ class StoreExtensionsKtTest {
             ::reducer
         )
 
+        // Observer does not get invoked since lifecycle is not started
         var stateObserved = false
         store.observe(owner) { stateObserved = true }
-        assertTrue(stateObserved)
+        assertFalse(stateObserved)
 
-        // CREATED
+        // CREATED: Observer does still not get invoked
         stateObserved = false
         owner.lifecycleRegistry.markState(Lifecycle.State.CREATED)
         store.dispatch(TestAction.IncrementAction).joinBlocking()
-        assertTrue(stateObserved)
+        assertFalse(stateObserved)
 
-        // STARTED
+        // STARTED: Observer gets initial state and observers updates
         stateObserved = false
         owner.lifecycleRegistry.markState(Lifecycle.State.STARTED)
+        assertTrue(stateObserved)
+
+        stateObserved = false
         store.dispatch(TestAction.IncrementAction).joinBlocking()
         assertTrue(stateObserved)
 
-        // RESUMED
+        // RESUMED: Observer continues to get updates
         stateObserved = false
         owner.lifecycleRegistry.markState(Lifecycle.State.RESUMED)
         store.dispatch(TestAction.IncrementAction).joinBlocking()
         assertTrue(stateObserved)
 
-        // CREATED
+        // CREATED: Not observing anymore
         stateObserved = false
         owner.lifecycleRegistry.markState(Lifecycle.State.CREATED)
         store.dispatch(TestAction.IncrementAction).joinBlocking()
-        assertTrue(stateObserved)
+        assertFalse(stateObserved)
 
-        // DESTROYED
+        // DESTROYED: Not observing
         stateObserved = false
         owner.lifecycleRegistry.markState(Lifecycle.State.DESTROYED)
         store.dispatch(TestAction.IncrementAction).joinBlocking()
         assertFalse(stateObserved)
+    }
+
+    @Test
+    @Synchronized
+    @ExperimentalCoroutinesApi // Channel
+    @ObsoleteCoroutinesApi // consumeEach
+    fun `Reading state updates from channel`() {
+        val owner = MockedLifecycleOwner(Lifecycle.State.INITIALIZED)
+
+        val store = Store(
+            TestState(counter = 23),
+            ::reducer
+        )
+
+        var receivedValue = 0
+        var latch = CountDownLatch(1)
+
+        val channel = store.channel(owner)
+
+        val job = GlobalScope.launch {
+            channel.consumeEach { state ->
+                receivedValue = state.counter
+                latch.countDown()
+            }
+        }
+
+        // Nothing received yet.
+        assertFalse(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(0, receivedValue)
+
+        // Updating state: Nothing received yet.
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertFalse(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(0, receivedValue)
+
+        // Switching to STARTED state: Receiving initial state
+        owner.lifecycleRegistry.markState(Lifecycle.State.STARTED)
+        assertTrue(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(24, receivedValue)
+        latch = CountDownLatch(1)
+
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertTrue(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(25, receivedValue)
+        latch = CountDownLatch(1)
+
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertTrue(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(26, receivedValue)
+        latch = CountDownLatch(1)
+
+        runBlocking { job.cancelAndJoin() }
+        assertTrue(channel.isClosedForReceive)
+
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertFalse(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(26, receivedValue)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    @ExperimentalCoroutinesApi // Channel
+    fun `Creating broadcast channel throws if lifecycle is already DESTROYED`() {
+        val owner = MockedLifecycleOwner(Lifecycle.State.DESTROYED)
+
+        val store = Store(
+            TestState(counter = 23),
+            ::reducer
+        )
+
+        store.channel(owner)
     }
 
     @Test
@@ -157,9 +240,49 @@ class StoreExtensionsKtTest {
         store.dispatch(TestAction.IncrementAction).joinBlocking()
         assertFalse(stateObserved)
     }
+
+    @Test
+    fun `Observer bound to view will not get notified about state changes until the view is attached`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).create().get()
+        val view = View(testContext)
+
+        assertFalse(view.isAttachedToWindow)
+
+        val store = Store(
+            TestState(counter = 23),
+            ::reducer
+        )
+
+        var stateObserved = false
+        store.observe(view) { stateObserved = true }
+        assertFalse(stateObserved)
+
+        stateObserved = false
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertFalse(stateObserved)
+
+        activity.windowManager.addView(view, WindowManager.LayoutParams(100, 100))
+        assertTrue(view.isAttachedToWindow)
+        assertTrue(stateObserved)
+
+        stateObserved = false
+        store.observe(view) { stateObserved = true }
+        assertTrue(stateObserved)
+
+        stateObserved = false
+        store.observe(view) { stateObserved = true }
+        assertTrue(stateObserved)
+
+        activity.windowManager.removeView(view)
+        assertFalse(view.isAttachedToWindow)
+
+        stateObserved = false
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertFalse(stateObserved)
+    }
 }
 
-private class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
+internal class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
     val lifecycleRegistry = LifecycleRegistry(this).apply {
         markState(initialState)
     }

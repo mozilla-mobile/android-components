@@ -11,8 +11,12 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.inputmethod.InputMethodManager
+import androidx.annotation.MainThread
 import androidx.core.content.getSystemService
 import androidx.core.view.ViewCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.ktx.android.util.dpToPx
 import java.lang.ref.WeakReference
@@ -98,6 +102,31 @@ fun View.setPadding(padding: Padding) {
             padding.bottom.dpToPx(displayMetrics)
         )
     }
+}
+
+/**
+ * Creates a [CoroutineScope] that is active as long as this [View] is attached. Once this [View]
+ * gets detached this [CoroutineScope] gets cancelled automatically.
+ *
+ * By default coroutines dispatched on the created [CoroutineScope] run on the main dispatcher.
+ *
+ * Note: This scope gets only cancelled if the [View] gets detached. In cases where the [View] never
+ * gets attached this may create a scope that never gets cancelled!
+ */
+@MainThread
+fun View.toScope(): CoroutineScope {
+    val scope = CoroutineScope(Dispatchers.Main)
+
+    addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(view: View) = Unit
+
+        override fun onViewDetachedFromWindow(view: View) {
+            scope.cancel()
+            view.removeOnAttachStateChangeListener(this)
+        }
+    })
+
+    return scope
 }
 
 /**

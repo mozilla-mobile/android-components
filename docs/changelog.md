@@ -43,6 +43,9 @@ permalink: /changelog/
 * **browser-icons**
   * Changed the maximum size for decoded icons. Icons are now scaled to the target size to save memory.
 
+* **service-firefox-account**
+ * Added `isSyncActive(): Boolean` method to `FxaAccountManager`
+
 # 5.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v5.0.0)
@@ -106,6 +109,9 @@ permalink: /changelog/
   * Added `deleteToken` to the PushService interface.
   * Added the implementation for it to Firebase Push implementation.
   * Added `forceRegistrationRenewal` to the AutopushFeature for situations where our current registration token may be invalid for us to use.
+
+* **service-firefox-accounts**
+  * Added `AccountMigration`, which may be used to query trusted FxA Auth providers and automatically sign-in into available accounts.
 
 # 4.0.1
 

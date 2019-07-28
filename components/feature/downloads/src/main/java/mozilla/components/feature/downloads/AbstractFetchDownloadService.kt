@@ -7,18 +7,17 @@ package mozilla.components.feature.downloads
 import android.annotation.TargetApi
 import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.Environment
 import android.os.IBinder
-import androidx.core.app.NotificationCompat
-import androidx.core.content.getSystemService
+import android.os.ParcelFileDescriptor
+import android.provider.MediaStore
+import androidx.annotation.VisibleForTesting
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.Dispatchers.IO
@@ -26,19 +25,19 @@ import kotlinx.coroutines.withContext
 import mozilla.components.browser.session.Download
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Header
-import mozilla.components.concept.fetch.Headers.Names.CONTENT_DISPOSITION
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_LENGTH
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
 import mozilla.components.concept.fetch.Headers.Names.REFERRER
-import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
-import mozilla.components.concept.fetch.Response
+import mozilla.components.concept.fetch.toMutableHeaders
+import mozilla.components.feature.downloads.ext.addCompletedDownload
 import mozilla.components.feature.downloads.ext.getDownloadExtra
-import mozilla.components.feature.downloads.manager.SystemDownloadManager
-import mozilla.components.feature.downloads.manager.getFileName
+import mozilla.components.feature.downloads.ext.withResponse
 import mozilla.components.support.base.ids.NotificationIds
+import mozilla.components.support.base.ids.notify
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.OutputStream
 
 /**
@@ -46,20 +45,19 @@ import java.io.OutputStream
  * Android download manager.
  *
  * To use this service, you must create a subclass in your application and it to the manifest.
- *
- * @param broadcastManager Override the [LocalBroadcastManager] instance.
  */
-abstract class AbstractFetchDownloadService(
-    broadcastManager: LocalBroadcastManager? = null
-) : CoroutineService() {
+abstract class AbstractFetchDownloadService : CoroutineService() {
 
     protected abstract val httpClient: Client
-    private val broadcastManager = broadcastManager ?: LocalBroadcastManager.getInstance(this)
+    @VisibleForTesting
+    internal val broadcastManager by lazy { LocalBroadcastManager.getInstance(this) }
+    @VisibleForTesting
+    internal val context: Context get() = this
 
     override fun onCreate() {
         startForeground(
-            NotificationIds.getIdForTag(this, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-            buildNotification()
+            NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
+            DownloadNotification.createOngoingDownloadNotification(context)
         )
         super.onCreate()
     }
@@ -68,7 +66,18 @@ abstract class AbstractFetchDownloadService(
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         val download = intent?.getDownloadExtra() ?: return
-        performDownload(download)
+
+        val notification = try {
+            performDownload(download)
+            DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
+        } catch (e: IOException) {
+            DownloadNotification.createDownloadFailedNotification(context, download.fileName)
+        }
+        NotificationManagerCompat.from(context).notify(
+            context,
+            COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+            notification
+        )
 
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
         sendDownloadCompleteBroadcast(downloadID)
@@ -81,15 +90,14 @@ abstract class AbstractFetchDownloadService(
             REFERRER to download.referrerUrl
         ).mapNotNull { (name, value) ->
             if (value.isNullOrBlank()) null else Header(name, value)
-        }
+        }.toMutableHeaders()
 
-        val request = Request(download.url, headers = MutableHeaders(headers))
+        val request = Request(download.url, headers = headers)
 
         val response = httpClient.fetch(request)
-        val filename = download.getFileName(response.headers[CONTENT_DISPOSITION])
 
         response.body.useStream { inStream ->
-            useFileStream(download, response, filename) { outStream ->
+            useFileStream(download.withResponse(response.headers, inStream)) { outStream ->
                 inStream.copyTo(outStream)
             }
         }
@@ -111,136 +119,61 @@ abstract class AbstractFetchDownloadService(
      *
      * Encapsulates different behaviour depending on the SDK version.
      */
-    @Suppress("LongMethod")
     internal fun useFileStream(
         download: Download,
-        response: Response,
-        filename: String,
         block: (OutputStream) -> Unit
     ) {
-        /*if (SDK_INT >= Build.VERSION_CODES.Q) {
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, filename)
-                put(MediaStore.Downloads.MIME_TYPE, download.contentType)
-                put(MediaStore.Downloads.SIZE, download.contentLength)
-                put(MediaStore.Downloads.IS_PENDING, 1)
-            }
+        if (SDK_INT >= Build.VERSION_CODES.Q) {
+            useFileStreamScopedStorage(download, block)
+        } else {
+            useFileStreamLegacy(download, block)
+        }
+    }
 
-            val resolver = applicationContext.contentResolver
-            val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            val item = resolver.insert(collection, values)
+    @TargetApi(Build.VERSION_CODES.Q)
+    private fun useFileStreamScopedStorage(download: Download, block: (OutputStream) -> Unit) {
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, download.fileName)
+            put(MediaStore.Downloads.MIME_TYPE, download.contentType ?: "*/*")
+            put(MediaStore.Downloads.SIZE, download.contentLength)
+            put(MediaStore.Downloads.IS_PENDING, 1)
+        }
 
-            val pfd = resolver.openFileDescriptor(item!!, "w")
-            ParcelFileDescriptor.AutoCloseOutputStream(pfd).use(block)
+        val resolver = applicationContext.contentResolver
+        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val item = resolver.insert(collection, values)
 
-            values.clear()
-            values.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(item, values, null, null)
-        } else {*/
+        val pfd = resolver.openFileDescriptor(item!!, "w")
+        ParcelFileDescriptor.AutoCloseOutputStream(pfd).use(block)
+
+        values.clear()
+        values.put(MediaStore.Downloads.IS_PENDING, 0)
+        resolver.update(item, values, null, null)
+    }
+
+    @TargetApi(Build.VERSION_CODES.P)
+    @Suppress("Deprecation")
+    private fun useFileStreamLegacy(download: Download, block: (OutputStream) -> Unit) {
         val dir = Environment.getExternalStoragePublicDirectory(download.destinationDirectory)
-        val file = File(dir, filename)
+        val file = File(dir, download.fileName!!)
         FileOutputStream(file).use(block)
 
-        val contentType = response.headers[CONTENT_TYPE]
-        val contentLength = response.headers[CONTENT_LENGTH]?.toLongOrNull()
-
         addCompletedDownload(
-            title = filename,
-            description = filename,
+            title = download.fileName!!,
+            description = download.fileName!!,
             isMediaScannerScannable = true,
-            mimeType = contentType ?: download.contentType ?: "*/*",
+            mimeType = download.contentType ?: "*/*",
             path = file.absolutePath,
-            length = contentLength ?: download.contentLength ?: file.length(),
-            showNotification = true,
+            length = download.contentLength ?: file.length(),
+            // Only show notifications if our channel is blocked
+            showNotification = !DownloadNotification.isChannelEnabled(context),
             uri = download.url.toUri(),
             referer = download.referrerUrl?.toUri()
         )
-        // }
-    }
-
-    /**
-     * Wraps around [android.app.DownloadManager.addCompletedDownload] and calls the correct
-     * method depending on the SDK version.
-     *
-     * Deprecated in Android Q, use MediaStore on that version.
-     */
-    @TargetApi(Build.VERSION_CODES.P)
-    @Suppress("Deprecation", "LongParameterList", "LongMethod")
-    private fun addCompletedDownload(
-        title: String,
-        description: String,
-        isMediaScannerScannable: Boolean,
-        mimeType: String,
-        path: String,
-        length: Long,
-        showNotification: Boolean,
-        uri: Uri,
-        referer: Uri?
-    ) = getSystemService<SystemDownloadManager>()!!.run {
-        if (SDK_INT >= Build.VERSION_CODES.N) {
-            addCompletedDownload(
-                title,
-                description,
-                isMediaScannerScannable,
-                mimeType,
-                path,
-                length,
-                showNotification,
-                uri,
-                referer
-            )
-        } else {
-            addCompletedDownload(
-                title,
-                description,
-                isMediaScannerScannable,
-                mimeType,
-                path,
-                length,
-                showNotification
-            )
-        }
-    }
-
-    /**
-     * Build the notification to be displayed while the service is active.
-     */
-    private fun buildNotification(): Notification {
-        val channelId = ensureChannelExists(this)
-
-        return NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.mozac_feature_download_ic_download)
-            .setContentTitle(getString(R.string.mozac_feature_downloads_ongoing_notification_title))
-            .setContentText(getString(R.string.mozac_feature_downloads_ongoing_notification_text))
-            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setProgress(1, 0, true)
-            .setOngoing(true)
-            .build()
-    }
-
-    /**
-     * Make sure a notification channel for download notification exists.
-     *
-     * Returns the channel id to be used for download notifications.
-     */
-    private fun ensureChannelExists(context: Context): String {
-        if (SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager: NotificationManager = context.getSystemService()!!
-
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                context.getString(R.string.mozac_feature_downloads_notification_channel),
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        return NOTIFICATION_CHANNEL_ID
     }
 
     companion object {
-        private const val NOTIFICATION_CHANNEL_ID = "Downloads"
         private const val ONGOING_DOWNLOAD_NOTIFICATION_TAG = "OngoingDownload"
+        private const val COMPLETED_DOWNLOAD_NOTIFICATION_TAG = "CompletedDownload"
     }
 }

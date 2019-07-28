@@ -35,6 +35,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
 
+@Suppress("Deprecation")
 @RunWith(AndroidJUnit4::class)
 class IntentProcessorTest {
 
@@ -175,6 +176,7 @@ class IntentProcessorTest {
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
         whenever(intent.hasExtra(CustomTabsIntent.EXTRA_SESSION)).thenReturn(true)
         whenever(intent.dataString).thenReturn("http://mozilla.org")
+        whenever(intent.putExtra(any(), any<String>())).thenReturn(intent)
 
         handler.process(intent)
         verify(sessionManager).add(anySession(), eq(false), eq(null), eq(null))

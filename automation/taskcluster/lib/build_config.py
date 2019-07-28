@@ -3,6 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import print_function
+
+import datetime
 import os
 import yaml
 
@@ -27,17 +29,12 @@ def components():
     } for (name, project) in build_config['projects'].items()]
 
 
-# TODO: DELETE once bug 1558795 is fixed in early Q3
-def snapshot_components():
-    build_config = read_build_config()
-    return [{
-        'name': name,
-        'artifact': 'public/build/{}.maven.zip'.format(name),
-        'path': '{}/build/target.maven.zip'.format(os.path.abspath(project['path'])),
-        'shouldPublish': project['publish']
-    } for (name, project) in build_config['projects'].items()]
-
-
 def components_version():
     build_config = read_build_config()
     return build_config['componentsVersion']
+
+
+def generate_snapshot_timestamp():
+    """Function to return a valid snapshot timestamp. The build number always
+    defaults to 1."""
+    return datetime.datetime.now().strftime('%Y%m%d.%H%M%S-1')

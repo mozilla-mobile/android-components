@@ -27,7 +27,8 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.memory.InMemoryHistoryStorage
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
-import mozilla.components.feature.intent.IntentProcessor
+import mozilla.components.feature.customtabs.CustomTabIntentProcessor
+import mozilla.components.feature.intent.TabIntentProcessor
 import mozilla.components.feature.media.RecordingDevicesNotificationFeature
 import mozilla.components.feature.media.notification.MediaNotificationFeature
 import mozilla.components.feature.media.state.MediaStateMachine
@@ -109,16 +110,14 @@ open class DefaultComponents(private val applicationContext: Context) {
     val searchUseCases by lazy { SearchUseCases(applicationContext, searchEngineManager, sessionManager) }
     val defaultSearchUseCase by lazy { { searchTerms: String -> searchUseCases.defaultSearch.invoke(searchTerms) } }
 
-    val webAppUseCases by lazy { WebAppUseCases(applicationContext, sessionManager) }
+    val webAppUseCases by lazy { WebAppUseCases(applicationContext, sessionManager, client) }
 
     // Intent
-    val sessionIntentProcessor by lazy {
-        IntentProcessor(
-            sessionUseCases,
-            sessionManager,
-            searchUseCases,
-            applicationContext
-        )
+    val tabIntentProcessor by lazy {
+        TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
+    }
+    val customTabIntentProcessor by lazy {
+        CustomTabIntentProcessor(sessionManager, sessionUseCases.loadUrl, applicationContext.resources)
     }
 
     // Menu
@@ -139,15 +138,15 @@ open class DefaultComponents(private val applicationContext: Context) {
             BrowserMenuDivider()
         )
 
-        if (webAppUseCases.isPinningSupported()) {
-            items.add(
-                SimpleBrowserMenuItem("Add to homescreen") {
-                    MainScope().launch {
-                        webAppUseCases.addToHomescreen()
-                    }
+        items.add(
+            SimpleBrowserMenuItem("Add to homescreen") {
+                MainScope().launch {
+                    webAppUseCases.addToHomescreen()
                 }
-            )
-        }
+            }.apply {
+                visible = { webAppUseCases.isPinningSupported() && sessionManager.selectedSession != null }
+            }
+        )
 
         items.add(
             SimpleBrowserMenuItem("Clear Data") {

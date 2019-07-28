@@ -110,14 +110,23 @@ data class TimespanMetricType(
      * This API should only be used if your library or application requires recording
      * times in a way that can not make use of [start]/[stop]/[cancel].
      *
-     * Care should be taken using this if the ping lifetime might contain more than one
-     * timespan measurement.  To be safe, [setRawNanos] should generally be followed by
-     * sending a custom ping containing the timespan.
+     * [setRawNanos] does not overwrite a running timer or an already existing value.
      *
      * @param elapsedNanos The elapsed time to record, in nanoseconds.
      */
+    @Suppress("LongMethod")
     fun setRawNanos(elapsedNanos: Long) {
         if (!shouldRecord(logger)) {
+            return
+        }
+
+        if (timerId != null) {
+            ErrorRecording.recordError(
+                    this,
+                    ErrorRecording.ErrorType.InvalidValue,
+                    "Timespan already running. Raw value not recorded.",
+                    logger
+            )
             return
         }
 
@@ -141,11 +150,11 @@ data class TimespanMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testHasValue(pingName: String = sendInPings.first()): Boolean {
-        return TimespansStorageEngine.getSnapshot(pingName, false)?.get(identifier) != null
+        return TimespansStorageEngine.getSnapshotWithTimeUnit(pingName, false)?.get(identifier) != null
     }
 
     /**
-     * Returns the stored value for testing purposes only
+     * Returns the stored value for testing purposes only, in the metric's time unit.
      *
      * @param pingName represents the name of the ping to retrieve the metric for.  Defaults
      *                 to the either the first value in [defaultStorageDestinations] or the first
@@ -155,6 +164,6 @@ data class TimespanMetricType(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     fun testGetValue(pingName: String = sendInPings.first()): Long {
-        return TimespansStorageEngine.getSnapshot(pingName, false)!![identifier]!!
+        return TimespansStorageEngine.getSnapshotWithTimeUnit(pingName, false)!![identifier]!!.second
     }
 }

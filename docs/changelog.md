@@ -4,19 +4,143 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 4.0.0-SNAPSHOT  (In Development)
+# 6.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v3.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/63?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v5.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/65?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **support-utils**
+  * Fixed [#3871](https://github.com/mozilla-mobile/android-components/issues/3871) autocomplete incorrectly fills urls that contains a port number.
+
+* **feature-readerview**
+  * Fixed [#3864](https://github.com/mozilla-mobile/android-components/issues/3864) now minus and plus buttons have the same size on reader view.
+
+* **browser-engine-gecko-nightly**
+  * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+
+* **service-location**
+  * 🆕 A new component for accessing Mozilla's and other location services.
+
+* **feature-prompts**
+  * Improved month picker UI, now we have the same widget as Fennec.
+
+* **support-ktx**
+  * Deprecated `ViewGroup.forEach` in favour of Android Core KTX.
+  * Deprecated `Map.toBundle()` in favour of Android Core KTX `bundleOf`.
+
+* **lib-state**
+  * Migrated `Store.broadcastChannel()` to `Store.channel()`returning a `ReceiveChannel` that can be read by only one receiver. Broadcast channels have a more complicated lifetime that is not needed in most use cases. For multiple receivers multiple channels can be created from the `Store` or Kotlin's `ReceiveChannel.broadcast()` extension method can be used.
+
+* **support-android-test**
+  * Added `LeakDetectionRule` to install LeakCanary when running instrumented tests. If a leak is found the test will fail and the test report will contain the leak trace.
+
+* **lib-push-amazon**
+  * 🆕 Added a new component for Amazon Device Messaging push support.
+
+* **browser-icons**
+  * Changed the maximum size for decoded icons. Icons are now scaled to the target size to save memory.
+
+* **service-firefox-account**
+ * Added `isSyncActive(): Boolean` method to `FxaAccountManager`
+
+# 5.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v5.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/64?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v5.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v5.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v5.0.0/buildSrc/src/main/java/Config.kt)
+
+* **All components**
+  * Increased `compileSdkVersion` to 29 (Android Q)
+
+* **feature-tab**
+  * ⚠️ **This is a breaking change**: Now `TabsUseCases.SelectTabUseCase` is an interface, if you want to rely on its previous behavior you could keep using `TabsUseCases.selectTab` or use `TabsUseCases.DefaultSelectTabUseCase`.
+
+* **feature-awesomebar**
+  * `SessionSuggestionProvider` now have a new parameter `excludeSelectedSession`, to ignore the selected session on the suggestions.
+
+* **concept-engine** and **browser-session**
+  * ⚠️ **This is a breaking change**: Function signature changed from `Session.Observer.onTrackerBlocked(session: Session, blocked: String, all: List<String>) = Unit` to `Session.Observer.onTrackerBlocked(session: Session, tracker: Tracker, all: List<Tracker>) = Unit`
+  * ⚠️ **This is a breaking change**: Function signature changed from `EngineSession.Observer.onTrackerBlocked(url: String) = Unit` to `EngineSession.Observer.onTrackerBlocked(tracker: Tracker) = Unit`
+  * Added: To provide more details about a blocked content, we introduced a new class called `Tracker` this contains information like the `url` and `categories` of the `Tracker`. Among the categories we have `Ad`, `Analytic`, `Social`,`Cryptomining`, `Fingerprinting` and `Content`.
+
+* **browser-icons**
+  * Added `BrowserIcons.loadIntoView` to automatically load an icon into an `ImageView`.
+
+* **browser-session**
+  * Added `IntentProcessor` interface to represent a class that processes intents to create sessions.
+  * Deprecated `CustomTabConfig.isCustomTabIntent` and `CustomTabConfig.createFromIntent`. Use `isCustomTabIntent` and `createFromCustomTabIntent` in feature-customtabs instead.
+
+* **feature-customtabs**
+  * Added `CustomTabIntentProcessor` to create custom tab sessions from intents.
+  * Added `isCustomTabIntent` to check if an intent is for creating custom tabs.
+  * Added `createCustomTabConfigFromIntent` to create a `CustomTabConfig` from a custom tab intent.
+
+* **feature-downloads**
+  * `FetchDownloadManager` now determines the filename during the download, resulting in more accurate filenames.
+
+* **feature-intent**
+  * Deprecated `IntentProcessor` class and moved some of its code to the new `TabIntentProcessor`.
+
+* **feature-push**
+  * Updated the default autopush service endpoint to `updates.push.services.mozilla.com`.
+
+* **service-glean**
+  * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
+  * ⚠️ **This is a breaking change**: Timespan values are returned in their configured time unit in the testing API.
+
+* **lib-state**
+  * Added ability to pause/resume observing a `Store` via `pause()` and `resume()` methods on the subscription
+  * When using `observeManually` the returned `Subscription` is in paused state by default.
+  * When binding a subscription to a `LifecycleOwner` then this subscription will automatically paused and resumed based on whether the lifecycle is in STARTED state.
+  * When binding a subscription to a `View` then this subscription will be paused until the `View` gets attached.
+  * Added `Store.broadcastChannel()` to observe state from a coroutine sequentially ordered.
+  * Added helpers to process states coming from a `Store` sequentially via `Fragment.consumeFrom(Store)` and `View.consumeFrom(Store)`.
+
+* **support-ktx**
+  * ⚠️ **This is a breaking behavior change**: `JSONArray.mapNotNull` is now an inline function, changing the behavior of the `return` keyword within its lambda.
+  * Added `View.toScope()` to create a `CoroutineScope` that is active as long as the `View` is attached. Once the `View` gets detached the `CoroutineScope` gets cancelled automatically.  By default coroutines dispatched on the created [CoroutineScope] run on the main dispatcher
+
+* **concept-push**, **lib-push-firebase**, **feature-push**
+  * Added `deleteToken` to the PushService interface.
+  * Added the implementation for it to Firebase Push implementation.
+  * Added `forceRegistrationRenewal` to the AutopushFeature for situations where our current registration token may be invalid for us to use.
+
+* **service-firefox-accounts**
+  * Added `AccountMigration`, which may be used to query trusted FxA Auth providers and automatically sign-in into available accounts.
+
+# 4.0.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v4.0.1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v4.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v4.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v4.0.1/buildSrc/src/main/java/Config.kt)
+
+* **service-glean**
+  * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
+
+* Imported latest state of translations.
+
+# 4.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v3.0.0...v4.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/63?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v4.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v4.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v4.0.0/buildSrc/src/main/java/Config.kt)
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * **Merge day!**
     * `browser-engine-gecko-release`: GeckoView 68.0
     * `browser-engine-gecko-beta`: GeckoView 69.0
     * `browser-engine-gecko-nightly`: GeckoView 70.0
+
+* **browser-engine-gecko-beta**
+  * Like with the nightly flavor previously (0.55.0) this component now has a hard dependency on the new [universal GeckoView build](https://bugzilla.mozilla.org/show_bug.cgi?id=1508976) that is no longer architecture specific (ARM, x86, ..). With that apps no longer need to specify the GeckoView dependency themselves and synchronize the used version with Android Components. Additionally apps can now make use of [APK splits](https://developer.android.com/studio/build/configure-apk-splits) or [Android App Bundles (AAB)](https://developer.android.com/guide/app-bundle).
 
 * **feature-media**
   * Added `MediaNotificationFeature` - a feature implementation to show an ongoing notification (keeping the app process alive) while web content is playing media.
@@ -42,6 +166,17 @@ permalink: /changelog/
 * **concept-engine**, **browser-engine-system**
   * Added `useWideViewPort` in `Settings` to support the viewport HTML meta tag or if a wide viewport should be used. (Only affects `SystemEngineSession`)
 
+* **browser-session**
+  * Added `SessionManager.add(List<Session>)` to add a list of `Session`s to the `SessionManager`.
+
+* **feature-tab-collections**
+  * ⚠️ **These are breaking changes below**:
+  * `Tab.restore()` now returns a `Session` instead of a `SessionManager.Snapshot`
+  * `TabCollection.restore()` and `TabCollection.restoreSubset()` now return a `List<Session>` instead of a `SessionManager.Snapshot`
+
+* **support-ktx**
+  * Added `onNextGlobalLayout` to add a `ViewTreeObserver.OnGlobalLayoutListener` that is only called once.
+
 # 3.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v2.0.0...v3.0.0)
@@ -53,6 +188,7 @@ permalink: /changelog/
 * **feature-prompts**
   * Improved file picker prompt by displaying the option to use the camera to capture images,
     microphone to record audio, or video camera to capture a video.
+  * The color picker has been redesigned based on Firefox for Android (Fennec).
 
 * **feature-pwa**
   * Added preliminary support for pinning websites to the home screen.
@@ -73,9 +209,6 @@ permalink: /changelog/
   * Deprecated `String.toUri()` in favour of Android Core KTX.
   * Deprecated `View.isGone` and `View.isInvisible` in favour of Android Core KTX.
   * Added `putCompoundDrawablesRelative` and `putCompoundDrawablesRelativeWithIntrinsicBounds`, aliases of `setCompoundDrawablesRelative` that use Kotlin named and default arguments.
-
-* **feature-prompts**
-  * The color picker has been redesigned based on Firefox for Android (Fennec).
 
 # 2.0.0
 

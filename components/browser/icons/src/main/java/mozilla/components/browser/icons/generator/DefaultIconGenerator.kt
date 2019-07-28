@@ -22,18 +22,19 @@ import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.icons.R
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
+import kotlin.math.abs
 
 /**
  * [IconGenerator] implementation that will generate an icon with a background color, rounded corners and a letter
  * representing the URL.
  */
 class DefaultIconGenerator(
-    @DimenRes private val cornerRadiusDimen: Int = R.dimen.mozac_browser_icons_generator_default_corner_radius,
+    @DimenRes private val cornerRadiusDimen: Int? = R.dimen.mozac_browser_icons_generator_default_corner_radius,
     @ColorRes private val textColorRes: Int = R.color.mozac_browser_icons_generator_default_text_color,
     @ArrayRes private val backgroundColorsRes: Int = R.array.mozac_browser_icons_photon_palette
 ) : IconGenerator {
 
-    @Suppress("MagicNumber")
+    @Suppress("LongMethod")
     override fun generate(context: Context, request: IconRequest): Icon {
         val size = context.resources.getDimension(request.size.dimen)
         val sizePx = size.toInt()
@@ -47,7 +48,7 @@ class DefaultIconGenerator(
         paint.color = backgroundColor
 
         val sizeRect = RectF(0f, 0f, size, size)
-        val cornerRadius = context.resources.getDimension(cornerRadiusDimen)
+        val cornerRadius = cornerRadiusDimen?.let { context.resources.getDimension(it) } ?: 0f
         canvas.drawRoundRect(sizeRect, cornerRadius, cornerRadius, paint)
 
         val character = getRepresentativeCharacter(request.url)
@@ -56,7 +57,7 @@ class DefaultIconGenerator(
         // size of 112dp we'd use a text size of 14dp (112 / 8).
         val textSize = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
-            size / 8.0f,
+            size * TARGET_ICON_RATIO,
             context.resources.displayMetrics
         )
 
@@ -75,7 +76,8 @@ class DefaultIconGenerator(
         return Icon(
             bitmap = bitmap,
             color = backgroundColor,
-            source = Icon.Source.GENERATOR
+            source = Icon.Source.GENERATOR,
+            maskable = cornerRadius == 0f
         )
     }
 
@@ -90,7 +92,7 @@ class DefaultIconGenerator(
             backgroundColors.getColor(0, 0)
         } else {
             val snippet = getRepresentativeSnippet(url)
-            val index = Math.abs(snippet.hashCode() % backgroundColors.length())
+            val index = abs(snippet.hashCode() % backgroundColors.length())
 
             backgroundColors.getColor(index, 0)
         }
@@ -135,5 +137,9 @@ class DefaultIconGenerator(
         }
 
         return "?"
+    }
+
+    companion object {
+        private const val TARGET_ICON_RATIO = 1 / 8f
     }
 }

@@ -10,23 +10,28 @@ import android.os.Bundle
 import android.util.AttributeSet
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import mozilla.components.browser.session.intent.getSessionId
 import mozilla.components.browser.tabstray.BrowserTabsTray
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.tabstray.TabsTray
-import mozilla.components.feature.intent.IntentProcessor
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.utils.SafeIntent
 import org.mozilla.samples.browser.ext.components
 
 open class BrowserActivity : AppCompatActivity(), ComponentCallbacks2 {
+
+    open fun createBrowserFragment(sessionId: String?): Fragment =
+        BrowserFragment.create(sessionId)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         if (savedInstanceState == null) {
-            val sessionId = SafeIntent(intent).getStringExtra(IntentProcessor.ACTIVE_SESSION_ID)
+            val sessionId = SafeIntent(intent).getSessionId()
             supportFragmentManager?.beginTransaction()?.apply {
-                replace(R.id.container, BrowserFragment.create(sessionId))
+                replace(R.id.container, createBrowserFragment(sessionId))
                 commit()
             }
         }

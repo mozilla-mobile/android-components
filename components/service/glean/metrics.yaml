@@ -219,6 +219,8 @@ glean.error:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     expires: never
+    send_in_pings:
+      - all_pings
 
   invalid_label:
     type: labeled_counter
@@ -232,3 +234,5 @@ glean.error:
     notification_emails:
       - telemetry-client-dev@mozilla.com
     expires: never
+    send_in_pings:
+      - all_pings

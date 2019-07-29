@@ -61,8 +61,8 @@ class MainActivity :
     }
 
     init {
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.HISTORY to historyStorage)
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.BOOKMARKS to bookmarksStorage)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.History to historyStorage)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to bookmarksStorage)
     }
 
     private val accountManager by lazy {
@@ -74,7 +74,7 @@ class MainActivity :
                     type = DeviceType.MOBILE,
                     capabilities = setOf(DeviceCapability.SEND_TAB)
                 ),
-                SyncConfig(setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS), syncPeriodInMinutes = 15L)
+                SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 15L)
         )
     }
 

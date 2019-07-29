@@ -386,6 +386,11 @@ data class SyncableLoginsStore(
         }
     }
 
+    override fun getHandle(): Long {
+        // TODO
+        return 123L
+    }
+
     /**
      * Run some [block] which operates over an unlocked instance of [AsyncLoginsStorage].
      * Database is locked once [block] is done.

@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
                 applicationContext,
                 ServerConfig.release(CLIENT_ID, REDIRECT_URL),
                 DeviceConfig("A-C Logins Sync Sample", DeviceType.MOBILE, setOf()),
-                SyncConfig(setOf(SyncEngine.PASSWORDS))
+                SyncConfig(setOf(SyncEngine.Passwords))
         )
     }
 
@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         ) {
             CompletableDeferred("my-not-so-secret-password")
         }
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.PASSWORDS to loginsStorage)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.Passwords to loginsStorage)
 
         accountManager.register(accountObserver, owner = this, autoPause = true)
 

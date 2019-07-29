@@ -184,4 +184,11 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
             }
         }
     }
+
+    /**
+     * TODO
+     */
+    override fun getHandle(): Long {
+        return places.getHandle()
+    }
 }

@@ -166,7 +166,7 @@ class FxaWebChannelFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val responseToTheWebChannel = argumentCaptor<JSONObject>()
         val port = mock<Port>()
-        val expectedEngines = setOf(SyncEngine.HISTORY)
+        val expectedEngines = setOf(SyncEngine.History)
 
         FxaWebChannelFeature.installedWebExt = ext
 
@@ -214,7 +214,7 @@ class FxaWebChannelFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val responseToTheWebChannel = argumentCaptor<JSONObject>()
         val port = mock<Port>()
-        val expectedEngines = setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS, SyncEngine.PASSWORDS)
+        val expectedEngines = setOf(SyncEngine.History, SyncEngine.Bookmarks, SyncEngine.Passwords)
 
         FxaWebChannelFeature.installedWebExt = ext
 
@@ -264,7 +264,7 @@ class FxaWebChannelFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val responseToTheWebChannel = argumentCaptor<JSONObject>()
         val port = mock<Port>()
-        val expectedEngines = setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS, SyncEngine.PASSWORDS)
+        val expectedEngines = setOf(SyncEngine.History, SyncEngine.Bookmarks, SyncEngine.Passwords)
         val logoutDeferred = CompletableDeferred<Unit>()
 
         FxaWebChannelFeature.installedWebExt = ext
@@ -317,7 +317,7 @@ class FxaWebChannelFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val responseToTheWebChannel = argumentCaptor<JSONObject>()
         val port = mock<Port>()
-        val expectedEngines = setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS, SyncEngine.PASSWORDS)
+        val expectedEngines = setOf(SyncEngine.History, SyncEngine.Bookmarks, SyncEngine.Passwords)
 
         FxaWebChannelFeature.installedWebExt = ext
 
@@ -368,7 +368,7 @@ class FxaWebChannelFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val responseToTheWebChannel = argumentCaptor<JSONObject>()
         val port = mock<Port>()
-        val expectedEngines = setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS, SyncEngine.PASSWORDS)
+        val expectedEngines = setOf(SyncEngine.History, SyncEngine.Bookmarks, SyncEngine.Passwords)
 
         FxaWebChannelFeature.installedWebExt = ext
 
@@ -538,7 +538,7 @@ class FxaWebChannelFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val jsonFromWebChannel = argumentCaptor<JSONObject>()
         val port = mock<Port>()
-        val expectedEngines = setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS)
+        val expectedEngines = setOf(SyncEngine.History, SyncEngine.Bookmarks)
 
         FxaWebChannelFeature.installedWebExt = ext
 

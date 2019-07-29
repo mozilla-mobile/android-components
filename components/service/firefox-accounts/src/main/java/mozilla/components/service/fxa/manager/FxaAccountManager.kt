@@ -55,8 +55,8 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
 
 /**
- * A global registry for propagating [AuthException] errors. Components such as [SyncManager] and
- * [FxaDeviceRefreshManager] may encounter authentication problems during their normal operation, and
+ * A global registry for propagating [AuthException] errors. Components such as [SyncManager] may
+ * encounter authentication problems during their normal operation, and
  * this registry is how they inform [FxaAccountManager] that these errors happened.
  *
  * [FxaAccountManager] monitors this registry, adjusts internal state accordingly, and notifies
@@ -146,8 +146,16 @@ open class FxaAccountManager(
     }
     private val fxaAuthErrorObserver = FxaAuthErrorObserver(this)
 
+    private val syncEngineObserver = object : DeclinedEnginesObserver {
+        override fun onUpdatedDeclinedEngines(declinedEngines: Set<SyncEngine>, isLocalChange: Boolean) {
+            if (!isLocalChange) return
+            syncNowAsync()
+        }
+    }
+
     init {
         authErrorRegistry.register(fxaAuthErrorObserver)
+        SyncEngineManager(context).register(syncEngineObserver)
     }
 
     private class FxaStatePersistenceCallback(
@@ -634,6 +642,16 @@ open class FxaAccountManager(
                         account.deviceConstellation().initDeviceAsync(
                             deviceConfig.name, deviceConfig.type, deviceConfig.capabilities
                         ).await()
+
+                        // Sync may not be configured at all (e.g. won't run), but if we received a
+                        // list of declined engines, that indicates user intent, so we preserve it
+                        // within SyncEngineManager regardless. If sync becomes enabled later on,
+                        // we will be respecting user choice around what to sync.
+                        via.authData.declinedEngines?.let {
+                            it.forEach { declinedEngine ->
+                                SyncEngineManager(context).setStatus(declinedEngine, false)
+                            }
+                        }
 
                         postAuthenticated(via.authData.authType)
 

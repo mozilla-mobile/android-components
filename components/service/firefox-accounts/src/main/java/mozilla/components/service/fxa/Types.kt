@@ -39,8 +39,14 @@ fun String?.toAuthType(): AuthType {
  * @property authType Type of authentication which caused this object to be created.
  * @property code OAuth code.
  * @property state OAuth state.
+ * @property declinedEngines An optional list of [SyncEngine]s that user declined to sync.
  */
-data class FxaAuthData(val authType: AuthType, val code: String, val state: String)
+data class FxaAuthData(
+    val authType: AuthType,
+    val code: String,
+    val state: String,
+    val declinedEngines: Set<SyncEngine>? = null
+)
 
 // The rest of this file describes translations between fxaclient's internal type definitions and analogous
 // types defined by concept-sync. It's a little tedious, but ensures decoupling between abstract

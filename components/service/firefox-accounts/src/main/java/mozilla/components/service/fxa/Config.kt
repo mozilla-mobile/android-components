@@ -50,8 +50,9 @@ data class SyncConfig(
  * robust integrations. We do not expose "unknown" engines via our public API, but do handle them
  * internally (by persisting their enabled/disabled status).
 */
-enum class SyncEngine(val nativeName: String) {
-    HISTORY("history"),
-    BOOKMARKS("bookmarks"),
-    PASSWORDS("passwords"),
+sealed class SyncEngine(val nativeName: String) {
+    object History : SyncEngine("history")
+    object Bookmarks : SyncEngine("bookmarks")
+    object Passwords : SyncEngine("passwords")
+    data class Other(val name: String) : SyncEngine(name)
 }

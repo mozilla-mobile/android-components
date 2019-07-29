@@ -31,6 +31,11 @@ const val MAX_FAILURE_REASON_LENGTH = 100
  * Writer is always the same, as guaranteed by [PlacesApi].
  */
 internal interface Connection : Closeable {
+    /**
+     * TODO
+     */
+    fun getHandle(): Long
+
     fun reader(): PlacesReaderConnection
     fun writer(): PlacesWriterConnection
 
@@ -171,6 +176,11 @@ internal object RustPlacesConnection : Connection {
             api = PlacesApi(File(parentDir, DB_NAME).canonicalPath)
         }
         cachedReader = api!!.openReader()
+    }
+
+    override fun getHandle(): Long {
+        check(api != null) { "must call init first" }
+        return api!!.getHandle()
     }
 
     override fun reader(): PlacesReaderConnection = synchronized(this) {

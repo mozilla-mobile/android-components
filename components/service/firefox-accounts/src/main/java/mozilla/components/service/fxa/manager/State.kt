@@ -5,6 +5,7 @@
 package mozilla.components.service.fxa.manager
 
 import mozilla.components.concept.sync.AuthException
+import mozilla.components.service.fxa.Engine
 import mozilla.components.service.fxa.sharing.ShareableAccount
 
 /**
@@ -34,7 +35,7 @@ internal sealed class Event {
     object AccountRestored : Event()
 
     object Authenticate : Event()
-    data class Authenticated(val code: String, val state: String) : Event() {
+    data class Authenticated(val code: String, val state: String, val declinedSyncEngines: List<Engine>? = null) : Event() {
         override fun toString(): String {
             // data classes define their own toString, so we override it here as well as in the base
             // class to avoid exposing 'code' and 'state' in logs.
@@ -42,6 +43,11 @@ internal sealed class Event {
         }
     }
     data class AuthenticationError(val error: AuthException) : Event() {
+        override fun toString(): String {
+            return this.javaClass.simpleName
+        }
+    }
+    data class AuthenticatedViaWebChannel(val loginData: FxaAccountManager.LoginData) : Event() {
         override fun toString(): String {
             return this.javaClass.simpleName
         }

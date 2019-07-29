@@ -18,6 +18,8 @@ interface AccountStorage {
     fun clear()
 }
 
+// In the future, we want to encrypt this see for more info:
+// https://github.com/mozilla-mobile/android-components/issues/3982
 class SharedPrefAccountStorage(val context: Context) : AccountStorage {
     /**
      * @throws FxaException if JSON failed to parse into a [FirefoxAccount].

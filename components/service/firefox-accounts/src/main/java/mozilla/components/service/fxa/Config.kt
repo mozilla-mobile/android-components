@@ -41,3 +41,9 @@ data class SyncConfig(
     val syncableStores: Set<String>,
     val syncPeriodInMinutes: Long? = null
 )
+
+enum class Engine {
+    History,
+    Bookmarks,
+    Logins
+}

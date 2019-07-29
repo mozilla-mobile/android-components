@@ -25,6 +25,7 @@ import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.StatePersistenceCallback
 import mozilla.components.service.fxa.AccountStorage
 import mozilla.components.service.fxa.DeviceConfig
+import mozilla.components.service.fxa.Engine
 import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.FxaException
 import mozilla.components.service.fxa.FxaPanicException
@@ -127,6 +128,11 @@ open class FxaAccountManager(
         }
     }
     private val oauthObservers = object : Observable<OAuthObserver> by ObserverRegistry() {}
+
+    private val syncEnginesManager by lazy {
+        SyncEngineManager(context)
+    }
+
     init {
         oauthObservers.register(fxaOAuthObserver)
     }
@@ -138,8 +144,16 @@ open class FxaAccountManager(
     }
     private val fxaAuthErrorObserver = FxaAuthErrorObserver(this)
 
+    private val syncEngineObserver = object : DeclinedEnginesObserver {
+        override fun onUpdatedDeclinedEngines(declinedEngines: Set<Engine>, isLocalChange: Boolean) {
+            if (!isLocalChange) return
+            syncNowAsync()
+        }
+    }
+
     init {
         authErrorRegistry.register(fxaAuthErrorObserver)
+        SyncEngineManager(context).register(syncEngineObserver)
     }
 
     private class FxaStatePersistenceCallback(
@@ -179,6 +193,7 @@ open class FxaAccountManager(
 
                     is Event.Pair -> AccountState.NotAuthenticated
                     is Event.Authenticated -> AccountState.AuthenticatedNoProfile
+                    is Event.AuthenticatedViaWebChannel -> AccountState.AuthenticatedNoProfile
                     else -> null
                 }
                 AccountState.AuthenticatedNoProfile -> when (event) {
@@ -409,6 +424,37 @@ open class FxaAccountManager(
         return processQueueAsync(Event.Authenticated(code, state))
     }
 
+    enum class LoginAction {
+        Signin,
+        Signup
+    }
+
+
+    data class LoginData(
+        val action: LoginAction,
+        val state: String,
+        val code: String,
+        val sessionToken: String,
+        val declinedSyncEngines: List<Engine>?
+    )
+
+
+    /**
+     * TODO naming and docs
+     */
+    fun authenticated(loginData: LoginData): Deferred<Unit> {
+        // decide if we want to have a separate event for sign-in/sign-up (separate current "Authenticated"),
+        // and let the state machine deal with the `declinedSyncEngines` list,
+        // OR
+        // do the declinedSyncEngines work here, and just re-use the existing Authenticated event.
+
+
+        return processQueueAsync(Event.Authenticated(
+                loginData.code,
+                loginData.state,
+                declinedSyncEngines = loginData.declinedSyncEngines))
+    }
+
     fun logoutAsync(): Deferred<Unit> {
         return processQueueAsync(Event.Logout)
     }
@@ -499,6 +545,8 @@ open class FxaAccountManager(
                         // Delete persisted state.
                         getAccountStorage().clear()
                         SyncAuthInfoCache(context).clear()
+                        syncEnginesManager.clear()
+
                         // Re-initialize account.
                         account = createAccount(serverConfig)
 
@@ -546,6 +594,15 @@ open class FxaAccountManager(
                     is Event.Authenticated -> {
                         logger.info("Registering persistence callback")
                         account.registerPersistenceCallback(statePersistenceCallback)
+
+
+                        // When the user is loging, we are not be able to get the decline engines.
+                        // we only display the engines when we sign up.
+                        via.declinedSyncEngines?.let {
+                            it.forEach { declinedEngine ->
+                                syncEnginesManager.setStatus(declinedEngine, false)
+                            }
+                        }
 
                         logger.info("Completing oauth flow")
                         account.completeOAuthFlowAsync(via.code, via.state).await()

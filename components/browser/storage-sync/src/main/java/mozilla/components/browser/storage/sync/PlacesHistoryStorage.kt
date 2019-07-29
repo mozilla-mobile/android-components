@@ -177,4 +177,11 @@ open class PlacesHistoryStorage(context: Context) : PlacesStorage(context), Hist
             }
         }
     }
+
+    /**
+     * TODO
+     */
+    override fun getHandle(): Long {
+        return places.getHandle()
+    }
 }

@@ -34,8 +34,17 @@ permalink: /changelog/
 * **lib-state**
   * Migrated `Store.broadcastChannel()` to `Store.channel()`returning a `ReceiveChannel` that can be read by only one receiver. Broadcast channels have a more complicated lifetime that is not needed in most use cases. For multiple receivers multiple channels can be created from the `Store` or Kotlin's `ReceiveChannel.broadcast()` extension method can be used.
 
+* **support-android-test**
+  * Added `LeakDetectionRule` to install LeakCanary when running instrumented tests. If a leak is found the test will fail and the test report will contain the leak trace.
+
 * **lib-push-amazon**
   * 🆕 Added a new component for Amazon Device Messaging push support.
+
+* **browser-icons**
+  * Changed the maximum size for decoded icons. Icons are now scaled to the target size to save memory.
+
+* **service-firefox-account**
+ * Added `isSyncActive(): Boolean` method to `FxaAccountManager`
 
 # 5.0.0
 
@@ -100,6 +109,9 @@ permalink: /changelog/
   * Added `deleteToken` to the PushService interface.
   * Added the implementation for it to Firebase Push implementation.
   * Added `forceRegistrationRenewal` to the AutopushFeature for situations where our current registration token may be invalid for us to use.
+
+* **service-firefox-accounts**
+  * Added `AccountMigration`, which may be used to query trusted FxA Auth providers and automatically sign-in into available accounts.
 
 # 4.0.1
 

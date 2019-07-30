@@ -12,7 +12,20 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
-# 6.0.0-SNAPSHOT  (In Development)
+* **browser-engine-gecko-nightly**  
+  * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
+
+* **feature-app-links**
+  * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**:
+  * The `WindowFeature` no longer needs and engine can now be created using just: 
+  ```kotlin
+     val windowFeature = WindowFeature(components.sessionManager)
+  ```  
+
+# 6.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v5.0.0...v6.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/65?closed=1)
@@ -28,6 +41,7 @@ permalink: /changelog/
 
 * **browser-engine-gecko-nightly**
   * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+  * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
 
 * **service-location**
   * 🆕 A new component for accessing Mozilla's and other location services.
@@ -56,6 +70,7 @@ permalink: /changelog/
 
 * **feature-customtabs**
   * `CustomTabsToolbarFeature` now optionally takes `Window` as a parameter. It will update the status bar color to match the toolbar color.
+  * Custom tabs can now style the navigation bar using `CustomTabsConfig.navigationBarColor`.
 
 * **feature-sendtab**
   * 🆕 New component for send tab use cases.

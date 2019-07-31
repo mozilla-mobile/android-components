@@ -12,7 +12,7 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
-* **browser-engine-gecko-nightly**  
+* **browser-engine-gecko-nightly**
   * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
 
 * **feature-app-links**
@@ -20,10 +20,22 @@ permalink: /changelog/
 
 * **feature-session**
   * ⚠️ **This is a breaking change**:
-  * The `WindowFeature` no longer needs and engine can now be created using just: 
+  * The `WindowFeature` no longer needs and engine can now be created using just:
   ```kotlin
      val windowFeature = WindowFeature(components.sessionManager)
-  ```  
+  ```
+  
+# 6.0.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.0...v6.0.1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Config.kt)
+
+* **feature-app-links**
+  * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
+
+* Imported latest state of translations.
 
 # 6.0.0
 
@@ -91,6 +103,12 @@ permalink: /changelog/
 
 * **support-ktx**
   * Added `Collection.crossProduct` to retrieve the cartesian product of two `Collections`.
+  
+* **service-glean**
+  * ⚠️ **This is a breaking change**: `Glean.enableTestingMode` is now `internal`. Tests can use the `GleanTestRule` to enable testing mode. [Updated docs available here](https://mozilla.github.io/glean/book/user/testing-metrics.html).
+
+* **feature-push**
+  * Added default arguments when registering for subscriptions/messages.
 
 # 5.0.0
 

@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         @Suppress("EmptyFunctionBlock")
         override fun onLoggedOut() {}
 
-        override fun onAuthenticated(account: OAuthAccount) {
+        override fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) {
             accountManager.syncNowAsync()
         }
 

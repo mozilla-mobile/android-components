@@ -29,7 +29,7 @@ internal interface TabCollectionDao {
 
     @Transaction
     @Query("""
-        SELECT tab_collections.id, tab_collections.title, tab_collections.created_at,tab_collections.updated_at
+        SELECT tab_collections.id, tab_collections.title, tab_collections.created_at, tab_collections.updated_at
         FROM tab_collections LEFT JOIN tabs ON tab_collections.id = tab_collection_id
         GROUP BY tab_collections.id
         ORDER BY tab_collections.updated_at DESC

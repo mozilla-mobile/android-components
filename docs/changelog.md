@@ -18,6 +18,9 @@ permalink: /changelog/
 * **browser-engine-gecko-nightly**
   * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
 
+* **browser-icons**
+  * Handles low-memory scenarios by reducing memory footprint.
+
 * **feature-app-links**
   * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
 
@@ -27,7 +30,11 @@ permalink: /changelog/
   ```kotlin
      val windowFeature = WindowFeature(components.sessionManager)
   ```
-  
+
+* **feature-pwa**
+  * Added full support for pinning websites to the home screen.
+  * Added full support for Progressive Web Apps, which can be pinned and open in their own window.
+
 * **service-glean**
   * Fixed a bug in`TimeSpanMetricType` that prevented multiple consecutive `start()`/`stop()` calls. This resulted in the `glean.baseline.duration` being missing from most [`baseline`](https://mozilla.github.io/glean/book/user/pings/baseline.html) pings.
 
@@ -119,7 +126,7 @@ permalink: /changelog/
 
 * **support-ktx**
   * Added `Collection.crossProduct` to retrieve the cartesian product of two `Collections`.
-  
+
 * **service-glean**
   * ⚠️ **This is a breaking change**: `Glean.enableTestingMode` is now `internal`. Tests can use the `GleanTestRule` to enable testing mode. [Updated docs available here](https://mozilla.github.io/glean/book/user/testing-metrics.html).
 
@@ -204,6 +211,20 @@ permalink: /changelog/
   * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
 
 * Imported latest state of translations.
+
+* **support-rusthttp**
+  * ⚠️ **This is a breaking change**: The application-services (FxA, sync, push) code now will send HTTP requests through a kotlin-provided HTTP stack in all configurations, however it requires configuration at startup. This may be done via the neq `support-rusthttp` component as follows:
+
+  ```kotlin
+  import mozilla.components.support.rusthttp.RustHttpConfig
+  // Note: other implementions of `Client` from concept-fetch are fine as well.
+  import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+  // some point before calling rust code that makes HTTP requests.
+  RustHttpConfig.setClient(lazy { HttpURLConnectionClient() })
+  ```
+
+  * Note that code which uses a custom megazord **must** call this after initializing the megazord.
+
 
 # 4.0.0
 

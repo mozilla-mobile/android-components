@@ -29,8 +29,8 @@ import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.customtabs.CustomTabIntentProcessor
 import mozilla.components.feature.intent.TabIntentProcessor
+import mozilla.components.feature.media.MediaFeature
 import mozilla.components.feature.media.RecordingDevicesNotificationFeature
-import mozilla.components.feature.media.notification.MediaNotificationFeature
 import mozilla.components.feature.media.state.MediaStateMachine
 import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.intent.WebAppIntentProcessor
@@ -90,7 +90,7 @@ open class DefaultComponents(private val applicationContext: Context) {
             RecordingDevicesNotificationFeature(applicationContext, sessionManager = this)
                 .enable()
 
-            MediaNotificationFeature(applicationContext)
+            MediaFeature(applicationContext)
                 .enable()
 
             MediaStateMachine.start(this)

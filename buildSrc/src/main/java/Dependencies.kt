@@ -24,8 +24,9 @@ object Versions {
     const val zxing = "3.3.0"
     const val jna = "5.2.0"
     const val disklrucache = "2.0.2"
+    const val leakcanary = "1.6.3"
 
-    const val mozilla_appservices = "0.34.0"
+    const val mozilla_appservices = "0.36.0"
     const val servo = "0.0.1.20181017.aa95911"
 
     const val material = "1.0.0"
@@ -46,6 +47,7 @@ object Versions {
         const val paging = "2.0.0"
         const val palette = "1.0.0"
         const val lifecycle = "2.0.0"
+        const val media = "1.0.1"
         const val work = "2.0.1"
         const val arch_core_testing = "2.0.0"
         const val uiautomator = "2.2.0"
@@ -62,7 +64,6 @@ object Versions {
 object Dependencies {
     const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${Versions.kotlin}"
     const val kotlin_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
-    const val kotlin_coroutines_test = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}"
 
     const val testing_junit = "junit:junit:${Versions.junit}"
@@ -71,6 +72,7 @@ object Dependencies {
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.mockwebserver}"
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
     const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"
+    const val testing_leakcanary = "com.squareup.leakcanary:leakcanary-android-instrumentation:${Versions.leakcanary}"
 
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.AndroidX.annotation}"
     const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.AndroidX.appcompat}"
@@ -83,6 +85,7 @@ object Dependencies {
     const val androidx_fragment = "androidx.fragment:fragment:${Versions.AndroidX.fragment}"
     const val androidx_lifecycle_extensions = "androidx.lifecycle:lifecycle-extensions:${Versions.AndroidX.lifecycle}"
     const val androidx_lifecycle_compiler = "androidx.lifecycle:lifecycle-compiler:${Versions.AndroidX.lifecycle}"
+    const val androidx_media = "androidx.media:media:${Versions.AndroidX.media}"
     const val androidx_paging = "androidx.paging:paging-runtime:${Versions.AndroidX.paging}"
     const val androidx_palette = "androidx.palette:palette-ktx:${Versions.AndroidX.palette}"
     const val androidx_recyclerview = "androidx.recyclerview:recyclerview:${Versions.AndroidX.recyclerview}"
@@ -110,11 +113,16 @@ object Dependencies {
     const val tools_linttests = "com.android.tools.lint:lint-tests:${Versions.lint}"
 
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
-    const val mozilla_support = "org.mozilla.appservices:support:${Versions.mozilla_appservices}"
+
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
-    const val mozilla_places_forUnitTests = "org.mozilla.appservices:places-forUnitTests:${Versions.mozilla_appservices}"
+
     const val mozilla_push = "org.mozilla.appservices:push:${Versions.mozilla_appservices}"
+
+    const val mozilla_httpconfig = "org.mozilla.appservices:httpconfig:${Versions.mozilla_appservices}"
+    const val mozilla_full_megazord = "org.mozilla.appservices:full-megazord:${Versions.mozilla_appservices}"
+    const val mozilla_full_megazord_forUnitTests = "org.mozilla.appservices:full-megazord-forUnitTests:${Versions.mozilla_appservices}"
+
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
     const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
     const val mozilla_servo_x86 = "org.mozilla.servoview:servoview-x86:${Versions.servo}"

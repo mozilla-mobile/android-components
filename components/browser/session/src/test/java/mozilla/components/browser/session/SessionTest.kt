@@ -289,7 +289,14 @@ class SessionTest {
 
         assertNull(session.customTabConfig)
 
-        val customTabConfig = CustomTabConfig("id", null, null, true, null, true, listOf(), listOf())
+        val customTabConfig = CustomTabConfig(
+            "id",
+            toolbarColor = null,
+            closeButtonIcon = null,
+            enableUrlbarHiding = true,
+            actionButtonConfig = null,
+            showShareMenuItem = true
+        )
         session.customTabConfig = customTabConfig
 
         assertEquals(customTabConfig, session.customTabConfig)
@@ -1056,6 +1063,24 @@ class SessionTest {
         session.icon = bitmapMock
 
         assertEquals(bitmapMock, notifiedIcon)
+    }
+
+    @Test
+    fun `action is dispatched when icon changes`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+
+        val icon = spy(Bitmap::class.java)
+        session.icon = icon
+        verify(store).dispatch(ContentAction.UpdateIconAction(session.id, icon))
+
+        session.icon = null
+        verify(store).dispatch(ContentAction.RemoveIconAction(session.id))
+
+        verifyNoMoreInteractions(store)
     }
 
     @Test

@@ -165,7 +165,8 @@ val deviceEventsObserver = object : DeviceEventsObserver {
 ### Low level APIs
 
 First you need some OAuth information. Generate a `client_id`, `redirectUrl` and find out the scopes for your application.
-See Firefox Account documentation for that.
+See the [Firefox Account documentation](https://mozilla.github.io/application-services/docs/accounts/welcome.html)
+for that.
 
 Once you have the OAuth info, you can start adding `FxAClient` to your Android project.
 As part of the OAuth flow your application will be opening up a WebView or a Custom Tab.
@@ -254,6 +255,33 @@ launch {
     val json = account.toJSONString()
     getSharedPreferences(FXA_STATE_PREFS_KEY, Context.MODE_PRIVATE).edit()
         .putString(FXA_STATE_KEY, json).apply()
+}
+```
+
+## Automatic sign-in via trusted on-device FxA Auth providers
+
+If there are trusted FxA auth providers available on the device, and they're signed-in, it's possible
+to automatically sign-in into the same account, gaining access to the same data they have access to (e.g. Firefox Sync).
+
+Currently supported FxA auth providers are:
+- Firefox for Android (release, beta and nightly channels)
+
+`AccountSharing` provides facilities to securely query auth providers for available accounts. It may be used
+directly in concert with a low-level `FirefoxAccount.migrateFromSessionTokenAsync`, or via the high-level `FxaAccountManager`:
+
+```kotlin
+val availableAccounts = accountManager.shareableAccounts(context)
+// Display a list of accounts to the user, identified by account.email and account.sourcePackage
+// Or, pick the first available account. They're sorted in an order of internal preference (release, beta, nightly).
+val selectedAccount = availableAccounts[0]
+launch {
+    val result = accountManager.signInWithShareableAccountAsync(selectedAccount).await()
+    if (result) {
+        // Successfully signed-into an account.
+        // accountManager.authenticatedAccount() is the new account.
+    } else {
+        // Failed to sign-into an account, either due to bad credentials or networking issues.
+    }
 }
 ```
 

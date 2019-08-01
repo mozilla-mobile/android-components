@@ -21,6 +21,7 @@ import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
@@ -1562,8 +1563,7 @@ class GeckoEngineSessionTest {
                 mockLoadRequest("sample:about", GeckoSession.NavigationDelegate.TARGET_WINDOW_NEW))
 
         assertNotNull(result)
-        assertEquals(result!!.poll(0), AllowOrDeny.DENY)
-        verify(geckoSession).loadUri("sample:about")
+        assertEquals(result!!.poll(0), AllowOrDeny.ALLOW)
     }
 
     @Test
@@ -1592,11 +1592,11 @@ class GeckoEngineSessionTest {
 
         captureDelegates()
 
-        var crashedState: Boolean? = null
+        var crashedState = false
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onCrashStateChange(crashed: Boolean) {
-                crashedState = crashed
+            override fun onCrash() {
+                crashedState = true
             }
         })
 
@@ -1790,6 +1790,52 @@ class GeckoEngineSessionTest {
         assertEquals(LoadUrlFlags.EXTERNAL, GeckoSession.LOAD_FLAGS_EXTERNAL)
         assertEquals(LoadUrlFlags.ALLOW_POPUPS, GeckoSession.LOAD_FLAGS_ALLOW_POPUPS)
         assertEquals(LoadUrlFlags.BYPASS_CLASSIFIER, GeckoSession.LOAD_FLAGS_BYPASS_CLASSIFIER)
+    }
+
+    @Test
+    fun `onKill will recover, restore state and notify observers`() {
+        val engineSession = GeckoEngineSession(mock(),
+            geckoSessionProvider = geckoSessionProvider)
+
+        captureDelegates()
+
+        var observerNotified = false
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onProcessKilled() {
+                observerNotified = true
+            }
+        })
+
+        val mockedState: GeckoSession.SessionState = mock()
+        progressDelegate.value.onSessionStateChange(geckoSession, mockedState)
+
+        verify(geckoSession, never()).restoreState(mockedState)
+
+        contentDelegate.value.onKill(geckoSession)
+
+        verify(geckoSession).restoreState(mockedState)
+        assertTrue(observerNotified)
+    }
+
+    @Test
+    fun `onNewSession creates window request`() {
+        val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
+
+        captureDelegates()
+
+        var receivedWindowRequest: WindowRequest? = null
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onOpenWindowRequest(windowRequest: WindowRequest) {
+                receivedWindowRequest = windowRequest
+            }
+        })
+
+        navigationDelegate.value.onNewSession(mock(), "mozilla.org")
+
+        assertNotNull(receivedWindowRequest)
+        assertEquals("mozilla.org", receivedWindowRequest!!.url)
     }
 
     private fun mockGeckoSession(): GeckoSession {

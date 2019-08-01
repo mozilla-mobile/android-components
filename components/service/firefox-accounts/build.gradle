@@ -36,6 +36,7 @@ dependencies {
 
     // Observable is part of public API of the FxaAccountManager.
     api project(':support-base')
+    implementation project(':support-ktx')
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines
@@ -48,7 +49,7 @@ dependencies {
     testImplementation Dependencies.androidx_work_testing
     testImplementation Dependencies.testing_robolectric
     testImplementation Dependencies.testing_mockito
-    testImplementation Dependencies.kotlin_coroutines_test
+    testImplementation Dependencies.testing_coroutines
 }
 
 apply from: '../../../publish.gradle'

@@ -130,6 +130,8 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Search**](components/feature/search/README.md) - A component that connects an (concept) engine implementation with the browser search module.
 
+* 🔴 [**SendTab**](components/feature/sendtab/README.md) - A component for sending tabs to other devices with a registered FxA Account.
+
 * ⚪ [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session and storage modules.
 
 * 🔴 [**Sync**](components/feature/sync/README.md) -A component that provides synchronization orchestration for groups of (concept) SyncableStore objects.
@@ -147,6 +149,8 @@ _Combined components to implement feature-specific use cases._
 * ⚪ [**Find In Page**](components/feature/findinpage/README.md) - A component that provides an UI widget for [find in page functionality](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links).
 
 * 🔴 [**Site Permissions**](components/feature/sitepermissions/README.md) - A feature for showing site permission request prompts.
+
+* 🔴 [**Web Notifications**](components/feature/webnotifications/README.md) - A component for displaying web notifications.
 
 ## UI
 
@@ -175,6 +179,8 @@ _Components and libraries to interact with backend services._
 * 🔴 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
 
 * 🔴 [**Experiments**](components/service/experiments/README.md) - An Android SDK for running experiments on user segments in multiple branches.
+
+* ⚪ [**Location**](components/service/location/README.md) - A library for accessing Mozilla's and other location services.
 
 * 🔴 [**Pocket**](components/service/pocket/README.md) - A library for communicating with the Pocket API.
 

@@ -85,6 +85,7 @@ open class GleanInternalAPI internal constructor () {
      * as shared preferences
      * @param configuration A Glean [Configuration] object with global settings.
      */
+    @Suppress("LongMethod")
     fun initialize(
         applicationContext: Context,
         configuration: Configuration = Configuration()
@@ -133,6 +134,10 @@ open class GleanInternalAPI internal constructor () {
         if (!Dispatchers.API.testingMode) {
             metricsPingScheduler.startupCheck()
         }
+
+        // Signal Dispatcher that init is complete
+        @Suppress("EXPERIMENTAL_API_USAGE")
+        Dispatchers.API.flushQueuedInitialTasks()
 
         // At this point, all metrics and events can be recorded.
         ProcessLifecycleOwner.get().lifecycle.addObserver(gleanLifecycleObserver)
@@ -524,15 +529,45 @@ open class GleanInternalAPI internal constructor () {
     }
 
     /**
-     * Should be called from all users of the Glean testing API.
+     * TEST ONLY FUNCTION.
+     * This is called by the GleanTestRule, to enable test mode.
      *
      * This makes all asynchronous work synchronous so we can test the results of the
      * API synchronously.
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    fun enableTestingMode() {
+    internal fun enableTestingMode() {
         @Suppress("EXPERIMENTAL_API_USAGE")
         Dispatchers.API.setTestingMode(enabled = true)
+    }
+
+    /**
+     * TEST ONLY FUNCTION.
+     * Resets the Glean state and trigger init again.
+     *
+     * @param context the application context to init Glean with
+     * @param config the [Configuration] to init Glean with
+     * @param clearStores if true, clear the contents of all stores
+     */
+    internal fun resetGlean(
+        context: Context,
+        config: Configuration,
+        clearStores: Boolean
+    ) {
+        Glean.enableTestingMode()
+
+        if (clearStores) {
+            // Clear all the stored data.
+            val storageManager = StorageEngineManager(applicationContext = context)
+            storageManager.clearAllStores()
+            // The experiments storage engine needs to be cleared manually as it's not listed
+            // in the `StorageEngineManager`.
+            ExperimentsStorageEngine.clearAllStores()
+        }
+
+        // Init Glean.
+        Glean.initialized = false
+        Glean.setUploadEnabled(true)
+        Glean.initialize(context, config)
     }
 }
 

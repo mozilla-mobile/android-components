@@ -9,6 +9,7 @@ package mozilla.components.feature.push
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -81,7 +82,8 @@ class AutoPushFeature(
     private val subscriptionObservers: Observable<PushSubscriptionObserver> = ObserverRegistry()
     private val messageObserverBus: Bus<PushType, String> = MessageBus()
     // The preference that stores new registration tokens.
-    private val prefToken = preferences(context).getString(PREF_TOKEN, null)
+    private val prefToken: String?
+        get() = preferences(context).getString(PREF_TOKEN, null)
 
     internal var job: Job = SupervisorJob()
     private val scope = CoroutineScope(coroutineContext) + job
@@ -131,7 +133,7 @@ class AutoPushFeature(
                 subscribeAll()
             }
 
-            putPreference(context, PREF_TOKEN, newToken)
+            saveToken(context, newToken)
         }
     }
 
@@ -161,21 +163,32 @@ class AutoPushFeature(
 
     /**
      * Register to receive push subscriptions when requested or when they have been re-registered.
+     *
+     * @param observer the observer that will be notified.
+     * @param owner the lifecycle owner for the observer. Defaults to [ProcessLifecycleOwner].
+     * @param autoPause whether to stop notifying the observer during onPause lifecycle events.
+     * Defaults to false so that subscriptions are always delivered to observers.
      */
     fun registerForSubscriptions(
         observer: PushSubscriptionObserver,
-        owner: LifecycleOwner,
-        autoPause: Boolean
+        owner: LifecycleOwner = ProcessLifecycleOwner.get(),
+        autoPause: Boolean = false
     ) = subscriptionObservers.register(observer, owner, autoPause)
 
     /**
      * Register to receive push messages for the associated [PushType].
+     *
+     * @param type the push message type that you want to be registered.
+     * @param observer the observer that will be notified.
+     * @param owner the lifecycle owner for the observer. Defaults to [ProcessLifecycleOwner].
+     * @param autoPause whether to stop notifying the observer during onPause lifecycle events.
+     * Defaults to false so that messages are always delivered to observers.
      */
     fun registerForPushMessages(
         type: PushType,
         observer: Bus.Observer<PushType, String>,
-        owner: LifecycleOwner,
-        autoPause: Boolean
+        owner: LifecycleOwner = ProcessLifecycleOwner.get(),
+        autoPause: Boolean = false
     ) = messageObserverBus.register(type, observer, owner, autoPause)
 
     /**
@@ -193,7 +206,7 @@ class AutoPushFeature(
     /**
      * Returns subscription information for the push type if available.
      */
-    internal fun unsubscribeForType(type: PushType) {
+    fun unsubscribeForType(type: PushType) {
         DeliveryManager.with(connection) {
             scope.launchAndTry {
                 unsubscribe(type.toChannelId())
@@ -215,7 +228,20 @@ class AutoPushFeature(
         }
     }
 
-    internal fun CoroutineScope.launchAndTry(block: suspend CoroutineScope.() -> Unit) {
+    /**
+     * Deletes the registration token locally so that it forces the service to get a new one the
+     * next time hits it's messaging server.
+     */
+    fun forceRegistrationRenewal() {
+        // Remove the cached token we have.
+        deleteToken(context)
+
+        // Tell the service to delete the token as well, which will trigger a new token to be
+        // retrieved the next time it hits the server.
+        service.deleteToken()
+    }
+
+    private fun CoroutineScope.launchAndTry(block: suspend CoroutineScope.() -> Unit) {
         job = launch {
             try {
                 block()
@@ -225,8 +251,12 @@ class AutoPushFeature(
         }
     }
 
-    private fun putPreference(context: Context, key: String, value: String) {
-        preferences(context).edit().putString(key, value).apply()
+    private fun saveToken(context: Context, value: String) {
+        preferences(context).edit().putString(PREF_TOKEN, value).apply()
+    }
+
+    private fun deleteToken(context: Context) {
+        preferences(context).edit().remove(PREF_TOKEN).apply()
     }
 
     private fun preferences(context: Context): SharedPreferences =
@@ -301,7 +331,12 @@ enum class Protocol {
 /**
  * The subscription information from Autopush that can be used to send push messages to other devices.
  */
-data class AutoPushSubscription(val type: PushType, val endpoint: String, val publicKey: String, val authKey: String)
+data class AutoPushSubscription(
+    val type: PushType,
+    val endpoint: String,
+    val publicKey: String,
+    val authKey: String
+)
 
 /**
  * Configuration object for initializing the Push Manager.

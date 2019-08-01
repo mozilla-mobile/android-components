@@ -1,4 +1,4 @@
-componentsVersion: 5.0.0
+componentsVersion: 7.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -60,6 +60,10 @@ projects:
     path: components/feature/media
     description: 'Feature component for website media related features.'
     publish: true
+  feature-webnotifications:
+    path: components/feature/webnotifications
+    description: 'Feature component for Web Notifications.'
+    publish: true
   feature-readerview:
     path: components/feature/readerview
     description: 'Feature implementation providing a Reader View WebExtension.'
@@ -67,6 +71,10 @@ projects:
   feature-search:
     path: components/feature/search
     description: 'Feature implementation connecting an engine implementation with the search module.'
+    publish: true
+  feature-sendtab:
+    path: components/feature/sendtab
+    description: 'Feature of use cases for sending tabs between devices in an FxA Account.'
     publish: true
   feature-session:
     path: components/feature/session
@@ -204,6 +212,10 @@ projects:
     path: components/service/firefox-accounts
     description: 'A library for integrating with Firefox Accounts.'
     publish: true
+  service-location:
+    path: components/service/location
+    description: 'A library for providing location-based services.'
+    publish: true
   service-sync-logins:
     path: components/service/sync-logins
     description: 'A library for integrating with Firefox Sync - Logins.'
@@ -252,6 +264,10 @@ projects:
     path: components/support/rustlog
     description: 'A bridge allowing log messages from Rust code to be sent to the log system in support-base'
     publish: true
+  support-rusthttp:
+    path: components/support/rusthttp
+    description: 'A bridge allowing configuration of Rust HTTP requests without directly depending on the application services library'
+    publish: true
   support-locale:
     path: components/support/locale
     description: 'A component to allow apps to change the system defined language by their custom one'
@@ -283,7 +299,7 @@ projects:
   lib-push-amazon:
     path: components/lib/push-amazon
     description: 'An implementation of concept-push for the Amazon Device Messaging.'
-    publish: false
+    publish: true
   lib-push-firebase:
     path: components/lib/push-firebase
     description: 'An implementation of concept-push for the Firebase Message Service.'

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:Suppress("TooManyFunctions")
+
 package mozilla.components.concept.engine.manifest
 
 import android.graphics.Color
@@ -57,7 +59,9 @@ class WebAppManifestParser {
                 themeColor = parseColor(json.tryGetString("theme_color")),
                 dir = parseTextDirection(json),
                 lang = json.tryGetString("lang"),
-                orientation = parseOrientation(json)
+                orientation = parseOrientation(json),
+                relatedApplications = parseRelatedApplications(json),
+                preferRelatedApplications = json.optBoolean("prefer_related_applications", false)
             ))
         } catch (e: JSONException) {
             Result.Failure(e)
@@ -87,11 +91,19 @@ class WebAppManifestParser {
         putOpt("dir", serializeEnumName(manifest.dir.name))
         putOpt("lang", manifest.lang)
         putOpt("orientation", serializeEnumName(manifest.orientation.name))
+        putOpt("orientation", serializeEnumName(manifest.orientation.name))
+        put("related_applications", serializeRelatedApplications(manifest.relatedApplications))
+        put("prefer_related_applications", manifest.preferRelatedApplications)
     }
 }
 
-private const val HEX_RADIX = 16
-private val whitespace = "\\s+".toRegex()
+/**
+ * Returns the encapsulated value if this instance represents success or `null` if it is failure.
+ */
+fun WebAppManifestParser.Result.getOrNull(): WebAppManifest? = when (this) {
+    is WebAppManifestParser.Result.Success -> manifest
+    is WebAppManifestParser.Result.Failure -> null
+}
 
 private fun parseDisplayMode(json: JSONObject): WebAppManifest.DisplayMode {
     return when (json.optString("display")) {
@@ -116,45 +128,6 @@ private fun parseColor(color: String?): Int? {
     }
 }
 
-private fun parseIcons(json: JSONObject): List<WebAppManifest.Icon> {
-    val array = json.optJSONArray("icons") ?: return emptyList()
-
-    return array
-        .asSequence()
-        .map { it as JSONObject }
-        .map { obj ->
-            WebAppManifest.Icon(
-                src = obj.getString("src"),
-                sizes = parseIconSizes(obj),
-                type = obj.tryGetString("type"),
-                purpose = parsePurposes(obj)
-            )
-        }
-        .toList()
-}
-
-private fun parseIconSizes(json: JSONObject): List<Size> {
-    val sizes = json.tryGetString("sizes") ?: return emptyList()
-
-    return sizes
-        .split(whitespace)
-        .mapNotNull { Size.parse(it) }
-}
-
-private fun parsePurposes(json: JSONObject): Set<WebAppManifest.Icon.Purpose> =
-    json.tryGetString("purpose").orEmpty()
-        .split(whitespace)
-        .mapNotNull {
-            when (it.toLowerCase()) {
-                "badge" -> WebAppManifest.Icon.Purpose.BADGE
-                "maskable" -> WebAppManifest.Icon.Purpose.MASKABLE
-                "any" -> WebAppManifest.Icon.Purpose.ANY
-                else -> null
-            }
-        }
-        .toSet()
-        .ifEmpty { setOf(WebAppManifest.Icon.Purpose.ANY) }
-
 private fun parseTextDirection(json: JSONObject): WebAppManifest.TextDirection {
     return when (json.optString("dir")) {
         "ltr" -> WebAppManifest.TextDirection.LTR
@@ -176,20 +149,73 @@ private fun parseOrientation(json: JSONObject) = when (json.optString("orientati
     else -> WebAppManifest.Orientation.ANY
 }
 
-private fun serializeEnumName(name: String) = name.toLowerCase().replace('_', '-')
+private fun parseRelatedApplications(json: JSONObject): List<WebAppManifest.ExternalApplicationResource> {
+    val array = json.optJSONArray("related_applications") ?: return emptyList()
+
+    return array
+        .asSequence { i -> getJSONObject(i) }
+        .mapNotNull { app -> parseRelatedApplication(app) }
+        .toList()
+}
+
+private fun parseRelatedApplication(app: JSONObject): WebAppManifest.ExternalApplicationResource? {
+    val platform = app.tryGetString("platform")
+    val url = app.tryGetString("url")
+    val id = app.tryGetString("id")
+    return if (platform != null && (url != null || id != null)) {
+        WebAppManifest.ExternalApplicationResource(
+            platform = platform,
+            url = url,
+            id = id,
+            minVersion = app.tryGetString("min_version"),
+            fingerprints = parseFingerprints(app)
+        )
+    } else {
+        null
+    }
+}
+
+private fun parseFingerprints(app: JSONObject): List<WebAppManifest.ExternalApplicationResource.Fingerprint> {
+    val array = app.optJSONArray("fingerprints") ?: return emptyList()
+
+    return array
+        .asSequence { i -> getJSONObject(i) }
+        .map {
+            WebAppManifest.ExternalApplicationResource.Fingerprint(
+                type = it.getString("type"),
+                value = it.getString("value")
+            )
+        }
+        .toList()
+}
 
 @Suppress("MagicNumber")
 private fun serializeColor(color: Int?): String? = color?.let {
     String.format("#%06X", 0xFFFFFF and color)
 }
 
-private fun serializeIcons(icons: List<WebAppManifest.Icon>): JSONArray {
-    val list = icons.map { icon ->
+private fun serializeRelatedApplications(
+    relatedApplications: List<WebAppManifest.ExternalApplicationResource>
+): JSONArray {
+    val list = relatedApplications.map { app ->
         JSONObject().apply {
-            put("src", icon.src)
-            put("sizes", icon.sizes.joinToString(" ") { it.toString() })
-            putOpt("type", icon.type)
-            put("purpose", icon.purpose.joinToString(" ") { serializeEnumName(it.name) })
+            put("platform", app.platform)
+            putOpt("url", app.url)
+            putOpt("id", app.id)
+            putOpt("min_version", app.minVersion)
+            put("fingerprints", serializeFingerprints(app.fingerprints))
+        }
+    }
+    return JSONArray(list)
+}
+
+private fun serializeFingerprints(
+    fingerprints: List<WebAppManifest.ExternalApplicationResource.Fingerprint>
+): JSONArray {
+    val list = fingerprints.map {
+        JSONObject().apply {
+            put("type", it.type)
+            put("value", it.value)
         }
     }
     return JSONArray(list)

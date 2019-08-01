@@ -25,6 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 
+@Suppress("Deprecation")
 @RunWith(AndroidJUnit4::class)
 class CustomTabConfigTest {
 
@@ -184,41 +185,5 @@ class CustomTabConfigTest {
         val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent(customTabsIntent.intent))
         assertNotNull(customTabConfig)
         assertNull(customTabConfig.actionButtonConfig)
-    }
-
-    @Test
-    fun createFromIntentWithActionButtonTint() {
-        val customTabsIntent = CustomTabsIntent.Builder().build()
-        customTabsIntent.intent.putExtra(CustomTabsIntent.EXTRA_TINT_ACTION_BUTTON, true)
-
-        val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent((customTabsIntent.intent)))
-        assertTrue(customTabConfig.options.contains(CustomTabConfig.ACTION_BUTTON_TINT_OPTION))
-    }
-
-    @Test
-    fun createFromIntentWithBottomToolbarOption() {
-        val customTabsIntent = CustomTabsIntent.Builder().build()
-        customTabsIntent.intent.putExtra(CustomTabsIntent.EXTRA_TOOLBAR_ITEMS, Bundle())
-
-        val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent((customTabsIntent.intent)))
-        assertTrue(customTabConfig.options.contains(CustomTabConfig.BOTTOM_TOOLBAR_OPTION))
-    }
-
-    @Test
-    fun createFromIntentWithExitAnimationOption() {
-        val customTabsIntent = CustomTabsIntent.Builder().build()
-        customTabsIntent.intent.putExtra(CustomTabsIntent.EXTRA_EXIT_ANIMATION_BUNDLE, Bundle())
-
-        val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent((customTabsIntent.intent)))
-        assertTrue(customTabConfig.options.contains(CustomTabConfig.EXIT_ANIMATION_OPTION))
-    }
-
-    @Test
-    fun createFromIntentWithPageTitleOption() {
-        val customTabsIntent = CustomTabsIntent.Builder().build()
-        customTabsIntent.intent.putExtra(CustomTabsIntent.EXTRA_TITLE_VISIBILITY_STATE, CustomTabsIntent.SHOW_PAGE_TITLE)
-
-        val customTabConfig = CustomTabConfig.createFromIntent(SafeIntent((customTabsIntent.intent)))
-        assertTrue(customTabConfig.options.contains(CustomTabConfig.PAGE_TITLE_OPTION))
     }
 }

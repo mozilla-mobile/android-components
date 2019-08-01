@@ -4,23 +4,23 @@
 
 package mozilla.components.service.glean.error
 
+import androidx.test.core.app.ApplicationProvider
 import mozilla.components.service.glean.private.Lifetime
 import mozilla.components.service.glean.private.StringMetricType
-import mozilla.components.service.glean.resetGlean
 import mozilla.components.service.glean.storages.CountersStorageEngine
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.base.log.logger.Logger
 import org.junit.Assert.assertEquals
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ErrorRecordingTest {
-    @Before
-    fun setup() {
-        resetGlean()
-    }
+
+    @get:Rule
+    val gleanRule = GleanTestRule(ApplicationProvider.getApplicationContext())
 
     @Test
     fun `test recording of all error types`() {
@@ -35,6 +35,11 @@ class ErrorRecordingTest {
             sendInPings = listOf("store1", "store2")
         )
 
+        val expectedErrors = mapOf(
+            ErrorRecording.ErrorType.InvalidValue to 1,
+            ErrorRecording.ErrorType.InvalidLabel to 2
+        )
+
         ErrorRecording.recordError(
             stringMetric,
             ErrorRecording.ErrorType.InvalidValue,
@@ -46,16 +51,14 @@ class ErrorRecordingTest {
             stringMetric,
             ErrorRecording.ErrorType.InvalidLabel,
             "Invalid label",
-            logger
+            logger,
+            numErrors = expectedErrors[ErrorRecording.ErrorType.InvalidLabel]
         )
 
         for (storeName in listOf("store1", "store2", "metrics")) {
-            for (errorType in listOf(
-                ErrorRecording.ErrorType.InvalidValue,
-                ErrorRecording.ErrorType.InvalidLabel
-            )) {
+            for (errorType in expectedErrors.keys) {
                 assertEquals(
-                    1,
+                    expectedErrors[errorType],
                     ErrorRecording.testGetNumRecordedErrors(stringMetric, errorType, storeName)
                 )
             }

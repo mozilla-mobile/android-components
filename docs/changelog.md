@@ -12,6 +12,20 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **feature-accounts**
+    * ⚠️ **This is a breaking change**:
+    * The `FirefoxAccountsAuthFeature` no longer needs an `TabsUseCases` instead it takes a lambda to
+      allow apps to decide which action should be taken fixing [#2438](https://github.com/mozilla-mobile/android-components/issues/2438) and [#3272](https://github.com/mozilla-mobile/android-components/issues/3272).
+
+    ```kotlin
+     val feature = FirefoxAccountsAuthFeature(
+         accountManager,
+         redirectUrl
+     ){
+        tabsUseCases.addTab(authUrl)
+     }
+    ```
+
 * **browser-engine-gecko-nightly**
   * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
 

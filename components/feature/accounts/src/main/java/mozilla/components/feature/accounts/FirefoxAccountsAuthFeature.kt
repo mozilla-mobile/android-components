@@ -10,19 +10,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
-import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import kotlin.coroutines.CoroutineContext
 
 /**
  * Ties together an account manager with a session manager/tabs implementation, facilitating an
  * authentication flow.
+ * @property accountManager .
+ * @property redirectUrl This is the url that will be reached at the final authentication state.
+ * @property coroutineContext The context which will be used to execute network requests necessary
+ * to initiate authentication. Note that [onBeginAuthentication] will be executed using this context.
+ * @property onBeginAuthentication A lambda function that receives the authentication url.
+ * Executed on [coroutineContext].
  */
 class FirefoxAccountsAuthFeature(
     private val accountManager: FxaAccountManager,
-    private val tabsUseCases: TabsUseCases,
     private val redirectUrl: String,
-    private val coroutineContext: CoroutineContext = Dispatchers.Main
+    private val coroutineContext: CoroutineContext = Dispatchers.IO,
+    private val onBeginAuthentication: (String) -> Unit = {}
 ) {
     fun beginAuthentication() {
         beginAuthenticationAsync {
@@ -48,7 +53,8 @@ class FirefoxAccountsAuthFeature(
             // UI to the user.
             // It's possible that the underlying problem will go away by the time the tab actually
             // loads, resulting in a confusing experience.
-            tabsUseCases.addTab.invoke(authUrl)
+
+            onBeginAuthentication(authUrl)
         }
     }
 

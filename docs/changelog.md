@@ -4,13 +4,69 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 6.0.0-SNAPSHOT  (In Development)
+# 7.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v5.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/65?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/66?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **browser-menu**
+  * `BrowserMenuHighlightableItem` now has a ripple effect and includes an example of how to pass in a drawable properly to also include a ripple when highlighted
+
+* **browser-engine-gecko-nightly**
+  * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
+
+* **browser-icons**
+  * Handles low-memory scenarios by reducing memory footprint.
+
+* **feature-app-links**
+  * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**:
+  * The `WindowFeature` no longer needs and engine can now be created using just:
+  ```kotlin
+     val windowFeature = WindowFeature(components.sessionManager)
+  ```
+
+* **feature-pwa**
+  * Added full support for pinning websites to the home screen.
+  * Added full support for Progressive Web Apps, which can be pinned and open in their own window.
+
+* **service-glean**
+  * Fixed a bug in`TimeSpanMetricType` that prevented multiple consecutive `start()`/`stop()` calls. This resulted in the `glean.baseline.duration` being missing from most [`baseline`](https://mozilla.github.io/glean/book/user/pings/baseline.html) pings.
+
+# 6.0.2
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.1...v6.0.2)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.2/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.2/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.2/buildSrc/src/main/java/Config.kt)
+
+* **service-glean**
+  * Fixed a bug in`TimeSpanMetricType` that prevented multiple consecutive `start()`/`stop()` calls. This resulted in the `glean.baseline.duration` being missing from most [`baseline`](https://mozilla.github.io/glean/book/user/pings/baseline.html) pings.
+
+# 6.0.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.0...v6.0.1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Config.kt)
+
+* **feature-app-links**
+  * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
+
+* Imported latest state of translations.
+
+# 6.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v5.0.0...v6.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/65?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.0/buildSrc/src/main/java/Config.kt)
 
 * **support-utils**
   * Fixed [#3871](https://github.com/mozilla-mobile/android-components/issues/3871) autocomplete incorrectly fills urls that contains a port number.
@@ -20,6 +76,7 @@ permalink: /changelog/
 
 * **browser-engine-gecko-nightly**
   * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+  * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
 
 * **service-location**
   * 🆕 A new component for accessing Mozilla's and other location services.
@@ -51,6 +108,7 @@ permalink: /changelog/
 
 * **feature-customtabs**
   * `CustomTabsToolbarFeature` now optionally takes `Window` as a parameter. It will update the status bar color to match the toolbar color.
+  * Custom tabs can now style the navigation bar using `CustomTabsConfig.navigationBarColor`.
 
 * **feature-sendtab**
   * 🆕 New component for send tab use cases.
@@ -71,6 +129,12 @@ permalink: /changelog/
 
 * **support-ktx**
   * Added `Collection.crossProduct` to retrieve the cartesian product of two `Collections`.
+
+* **service-glean**
+  * ⚠️ **This is a breaking change**: `Glean.enableTestingMode` is now `internal`. Tests can use the `GleanTestRule` to enable testing mode. [Updated docs available here](https://mozilla.github.io/glean/book/user/testing-metrics.html).
+
+* **feature-push**
+  * Added default arguments when registering for subscriptions/messages.
 
 # 5.0.0
 
@@ -150,6 +214,20 @@ permalink: /changelog/
   * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
 
 * Imported latest state of translations.
+
+* **support-rusthttp**
+  * ⚠️ **This is a breaking change**: The application-services (FxA, sync, push) code now will send HTTP requests through a kotlin-provided HTTP stack in all configurations, however it requires configuration at startup. This may be done via the neq `support-rusthttp` component as follows:
+
+  ```kotlin
+  import mozilla.components.support.rusthttp.RustHttpConfig
+  // Note: other implementions of `Client` from concept-fetch are fine as well.
+  import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+  // some point before calling rust code that makes HTTP requests.
+  RustHttpConfig.setClient(lazy { HttpURLConnectionClient() })
+  ```
+
+  * Note that code which uses a custom megazord **must** call this after initializing the megazord.
+
 
 # 4.0.0
 

@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.media.notification
+package mozilla.components.feature.media
 
 import android.content.Context
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.media.Media
@@ -12,21 +13,30 @@ import mozilla.components.feature.media.state.MediaStateMachine
 import mozilla.components.feature.media.state.MockMedia
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
 
-class MediaNotificationFeatureTest {
+@RunWith(AndroidJUnit4::class)
+class MediaFeatureTest {
+    @Before
+    @After
+    fun setUp() {
+        MediaStateMachine.stop()
+    }
+
     @Test
     fun `Media playing in Session starts service`() {
         val context: Context = mock()
         val sessionManager = SessionManager(engine = mock())
 
-        val stateMachine = MediaStateMachine(sessionManager)
-        stateMachine.start()
+        MediaStateMachine.start(sessionManager)
 
-        val feature = MediaNotificationFeature(context, stateMachine)
+        val feature = MediaFeature(context)
         feature.enable()
 
         // A session gets added
@@ -57,10 +67,9 @@ class MediaNotificationFeatureTest {
             add(Session("https://www.mozilla.org").also { it.media = listOf(media) })
         }
 
-        val stateMachine = MediaStateMachine(sessionManager)
-        stateMachine.start()
+        MediaStateMachine.start(sessionManager)
 
-        val feature = MediaNotificationFeature(context, stateMachine)
+        val feature = MediaFeature(context)
         feature.enable()
 
         reset(context)
@@ -72,7 +81,7 @@ class MediaNotificationFeatureTest {
     }
 
     @Test
-    fun `Media stopping to play with stop service`() {
+    fun `Media stopping to play will notify service`() {
         val context: Context = mock()
         val media = MockMedia(Media.PlaybackState.UNKNOWN)
 
@@ -80,19 +89,20 @@ class MediaNotificationFeatureTest {
             add(Session("https://www.mozilla.org").also { it.media = listOf(media) })
         }
 
-        val stateMachine = MediaStateMachine(sessionManager)
-        stateMachine.start()
+        MediaStateMachine.start(sessionManager)
 
-        val feature = MediaNotificationFeature(context, stateMachine)
+        val feature = MediaFeature(context)
         feature.enable()
 
         media.playbackState = Media.PlaybackState.PLAYING
 
         verify(context).startService(any())
-        verify(context, never()).stopService(any())
+
+        reset(context)
+        verify(context, never()).startService(any())
 
         media.playbackState = Media.PlaybackState.ENDED
 
-        verify(context).stopService(any())
+        verify(context).startService(any())
     }
 }

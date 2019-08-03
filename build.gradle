@@ -22,6 +22,8 @@ plugins {
     id("io.gitlab.arturbosch.detekt").version("1.0.0-RC11")
 }
 
+apply plugin: plugins.LocalPropertiesLoader
+
 allprojects {
     repositories {
         google()
@@ -46,8 +48,15 @@ subprojects {
     apply plugin: 'org.jetbrains.dokka-android'
 
     // Enable Kotlin warnings as errors for all modules
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-        kotlinOptions.allWarningsAsErrors = true
+    def enableWarningsAsErrors = rootProject.ext.getProperties()
+            .get('mozilla.build.kotlin.warnings.as.error', true)
+            .toBoolean()
+    if (enableWarningsAsErrors) {
+        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+            kotlinOptions.allWarningsAsErrors = true
+        }
+    } else {
+        println("Warning: `kotlinOptions.allWarningsAsErrors` is not enabled for module ':${project.name}'.")
     }
 
     // Enforce that all (transitive) dependencies are using the same support library version as we do.

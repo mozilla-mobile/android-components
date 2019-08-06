@@ -39,6 +39,9 @@ permalink: /changelog/
 * **browser-icons**
   * Handles low-memory scenarios by reducing memory footprint.
 
+* **browser-session**
+  * Clear session icon only if URL host changes.
+
 * **feature-app-links**
   * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
 

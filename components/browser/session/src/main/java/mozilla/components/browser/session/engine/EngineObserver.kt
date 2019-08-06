@@ -5,6 +5,7 @@
 package mozilla.components.browser.session.engine
 
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Environment
 import mozilla.components.browser.session.Download
 import mozilla.components.browser.session.Session
@@ -31,7 +32,7 @@ internal class EngineObserver(
 ) : EngineSession.Observer {
 
     override fun onLocationChange(url: String) {
-        if (session.url != url) {
+        if (!isHostEquals(session.url, url)) {
             session.title = ""
             session.icon = null
         }
@@ -47,6 +48,13 @@ internal class EngineObserver(
             it.reject()
             true
         }
+    }
+
+    private fun isHostEquals(sessionUrl: String, newUrl: String): Boolean {
+        val sessionUri = Uri.parse(sessionUrl)
+        val newUri = Uri.parse(newUrl)
+
+        return sessionUri.host.equals(newUri.host)
     }
 
     override fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {

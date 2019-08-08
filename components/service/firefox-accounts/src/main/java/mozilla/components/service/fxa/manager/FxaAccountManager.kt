@@ -33,6 +33,8 @@ import mozilla.components.service.fxa.SharedPrefAccountStorage
 import mozilla.components.service.fxa.SyncAuthInfoCache
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.asSyncAuthInfo
+import mozilla.components.service.fxa.sharing.AccountSharing
+import mozilla.components.service.fxa.sharing.ShareableAccount
 import mozilla.components.service.fxa.sync.SyncManager
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.service.fxa.sync.WorkManagerSyncManager
@@ -171,6 +173,10 @@ open class FxaAccountManager(
                 AccountState.NotAuthenticated -> when (event) {
                     Event.Authenticate -> AccountState.NotAuthenticated
                     Event.FailedToAuthenticate -> AccountState.NotAuthenticated
+
+                    is Event.SignInShareableAccount -> AccountState.NotAuthenticated
+                    Event.SignedInShareableAccount -> AccountState.AuthenticatedNoProfile
+
                     is Event.Pair -> AccountState.NotAuthenticated
                     is Event.Authenticated -> AccountState.AuthenticatedNoProfile
                     else -> null
@@ -243,11 +249,36 @@ open class FxaAccountManager(
     }
 
     /**
+     * Queries trusted FxA Auth providers available on the device, returning a list of [ShareableAccount]
+     * in an order of preference. Any of the returned [ShareableAccount] may be used with
+     * [signInWithShareableAccountAsync] to sign-in into an FxA account without any required user input.
+     */
+    fun shareableAccounts(context: Context): List<ShareableAccount> {
+        return AccountSharing.queryShareableAccounts(context)
+    }
+
+    /**
+     * Uses a provided [fromAccount] to sign-in into a corresponding FxA account without any required
+     * user input. Once sign-in completes, any registered [AccountObserver.onAuthenticated] listeners
+     * will be notified and [authenticatedAccount] will refer to the new account.
+     * This may fail in case of network errors, or if provided credentials are not valid.
+     * @return A deferred boolean flag indicating success (if true) of the sign-in operation.
+     */
+    fun signInWithShareableAccountAsync(fromAccount: ShareableAccount): Deferred<Boolean> {
+        val stateMachineTransition = processQueueAsync(Event.SignInShareableAccount(fromAccount))
+        val result = CompletableDeferred<Boolean>()
+        CoroutineScope(coroutineContext).launch {
+            stateMachineTransition.await()
+            result.complete(authenticatedAccount() != null)
+        }
+        return result
+    }
+
+    /**
      * Allows setting a new [SyncConfig], changing sync behaviour.
      *
      * @param config Sync behaviour configuration, see [SyncConfig].
      */
-    @SuppressWarnings("LongMethod")
     fun setSyncConfigAsync(config: SyncConfig): Deferred<Unit> = synchronized(this) {
         logger.info("Enabling/updating sync with a new SyncConfig: $config")
 
@@ -306,6 +337,11 @@ open class FxaAccountManager(
         }
         Unit
     }
+
+    /**
+     * Indicates if sync is currently running.
+     */
+    fun isSyncActive() = syncManager?.isSyncActive() ?: false
 
     /**
      * Call this after registering your observers, and before interacting with this class.
@@ -454,8 +490,12 @@ open class FxaAccountManager(
             AccountState.NotAuthenticated -> {
                 when (via) {
                     Event.Logout -> {
-                        // Destroy the current device record.
-                        account.deviceConstellation().destroyCurrentDeviceAsync().await()
+                        // Clean up internal account state and destroy the current FxA device record.
+                        if (account.disconnectAsync().await()) {
+                            logger.info("Disconnected FxA account")
+                        } else {
+                            logger.warn("Failed to fully disconnect the FxA account")
+                        }
                         // Clean up resources.
                         profile = null
                         account.close()
@@ -476,6 +516,21 @@ open class FxaAccountManager(
                     }
                     Event.Authenticate -> {
                         return doAuthenticate()
+                    }
+                    is Event.SignInShareableAccount -> {
+                        account.registerPersistenceCallback(statePersistenceCallback)
+
+                        val migrationResult = account.migrateFromSessionTokenAsync(
+                            via.account.authInfo.sessionToken,
+                            via.account.authInfo.kSync,
+                            via.account.authInfo.kXCS
+                        ).await()
+
+                        return if (migrationResult) {
+                            Event.SignedInShareableAccount
+                        } else {
+                            null
+                        }
                     }
                     is Event.Pair -> {
                         val url = account.beginPairingFlowAsync(via.pairingUrl, scopes).await()
@@ -509,7 +564,7 @@ open class FxaAccountManager(
 
                         maybeUpdateSyncAuthInfoCache()
 
-                        notifyObservers { onAuthenticated(account) }
+                        notifyObservers { onAuthenticated(account, true) }
 
                         Event.FetchProfile
                     }
@@ -536,10 +591,27 @@ open class FxaAccountManager(
 
                         maybeUpdateSyncAuthInfoCache()
 
-                        notifyObservers { onAuthenticated(account) }
+                        notifyObservers { onAuthenticated(account, false) }
 
                         Event.FetchProfile
                     }
+                    Event.SignedInShareableAccount -> {
+                        logger.info("Registering device constellation observer")
+                        account.deviceConstellation().register(deviceEventsIntegration)
+
+                        logger.info("Initializing device")
+                        // NB: underlying API is expected to 'ensureCapabilities' as part of device initialization.
+                        account.deviceConstellation().initDeviceAsync(
+                                deviceConfig.name, deviceConfig.type, deviceConfig.capabilities
+                        ).await()
+
+                        maybeUpdateSyncAuthInfoCache()
+
+                        notifyObservers { onAuthenticated(account, true) }
+
+                        Event.FetchProfile
+                    }
+
                     Event.RecoveredFromAuthenticationProblem -> {
                         // This path is a blend of "authenticated" and "account restored".
                         // We need to re-initialize an fxa device, but we don't need to complete an auth.
@@ -557,7 +629,7 @@ open class FxaAccountManager(
 
                         maybeUpdateSyncAuthInfoCache()
 
-                        notifyObservers { onAuthenticated(account) }
+                        notifyObservers { onAuthenticated(account, false) }
 
                         Event.FetchProfile
                     }
@@ -722,7 +794,7 @@ open class FxaAccountManager(
             syncManager.stop()
         }
 
-        override fun onAuthenticated(account: OAuthAccount) {
+        override fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) {
             syncManager.start()
         }
 

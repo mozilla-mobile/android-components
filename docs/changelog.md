@@ -4,13 +4,110 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 6.0.0-SNAPSHOT  (In Development)
+# 8.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v5.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/65?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v7.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/67?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **support-test**
+  * Fixed [#3893](https://github.com/mozilla-mobile/android-components/issues/3893) Moving WebserverRule to support-test.
+
+* **browser-engine-gecko-beta**
+  * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+
+# 7.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.2...v7.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/66?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v7.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v7.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v7.0.0/buildSrc/src/main/java/Config.kt)
+
+* **browser-menu**
+  * ⚠️ **This is a breaking change**: `BrowserMenuHighlightableItem` now has a ripple effect and includes an example of how to pass in a drawable properly to also include a ripple when highlighted
+
+* **feature-accounts**
+    * ⚠️ **This is a breaking change**:
+    * The `FirefoxAccountsAuthFeature` no longer needs an `TabsUseCases`, instead is taking a lambda to
+      allow applications to decide which action should be taken. This fixes [#2438](https://github.com/mozilla-mobile/android-components/issues/2438) and [#3272](https://github.com/mozilla-mobile/android-components/issues/3272).
+
+    ```kotlin
+     val feature = FirefoxAccountsAuthFeature(
+         accountManager,
+         redirectUrl
+     ) { context, authUrl ->
+        // passed-in context allows easily opening new activities for handling urls.
+        tabsUseCases.addTab(authUrl)
+     }
+
+     // ... elsewhere, in the UI code, handling click on button "Sign In":
+     components.feature.beginAuthentication(activityContext)
+    ```
+
+* **browser-engine-gecko-nightly**
+  * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
+
+* **browser-icons**
+  * Handles low-memory scenarios by reducing memory footprint.
+
+* **feature-app-links**
+  * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**:
+  * The `WindowFeature` no longer needs an engine. It can now be created using just:
+  ```kotlin
+     val windowFeature = WindowFeature(components.sessionManager)
+  ```
+
+* **feature-pwa**
+  * Added full support for pinning websites to the home screen.
+  * Added full support for Progressive Web Apps, which can be pinned and open in their own window.
+
+* **service-glean**
+  * Fixed a bug in`TimeSpanMetricType` that prevented multiple consecutive `start()`/`stop()` calls. This resulted in the `glean.baseline.duration` being missing from most [`baseline`](https://mozilla.github.io/glean/book/user/pings/baseline.html) pings.
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: `AccountObserver.onAuthenticated` now helps observers distinguish when an account is a new authenticated account one with a second `newAccount` boolean parameter.
+
+* **concept-sync**, **service-firefox-accounts**:
+  * ⚠️ **This is a breaking change**: Added `OAuthAccount@disconnectAsync`, which replaced `DeviceConstellation@destroyCurrentDeviceAsync`.
+
+* **lib-crash**
+  * ⚠️ **Known issue**: Sending a crash using the `MozillaSocorroService` with GeckoView 69.0 or 68.0, will lead to a `NoSuchMethodError` when using this particular version of android components. See [#4052](https://github.com/mozilla-mobile/android-components/issues/4052).
+
+# 6.0.2
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.1...v6.0.2)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.2/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.2/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.2/buildSrc/src/main/java/Config.kt)
+
+* **service-glean**
+  * Fixed a bug in`TimeSpanMetricType` that prevented multiple consecutive `start()`/`stop()` calls. This resulted in the `glean.baseline.duration` being missing from most [`baseline`](https://mozilla.github.io/glean/book/user/pings/baseline.html) pings.
+
+# 6.0.1
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.0...v6.0.1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.1/buildSrc/src/main/java/Config.kt)
+
+* **feature-app-links**
+  * Fixed [#3944](https://github.com/mozilla-mobile/android-components/issues/3944) causing third-party apps being opened when links with a `javascript` scheme are clicked.
+
+* Imported latest state of translations.
+
+# 6.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v5.0.0...v6.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/65?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v6.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v6.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v6.0.0/buildSrc/src/main/java/Config.kt)
 
 * **support-utils**
   * Fixed [#3871](https://github.com/mozilla-mobile/android-components/issues/3871) autocomplete incorrectly fills urls that contains a port number.
@@ -20,6 +117,7 @@ permalink: /changelog/
 
 * **browser-engine-gecko-nightly**
   * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+  * Now supports window requests. A new tab will be opened for `target="_blank"` links and `window.open` calls.
 
 * **service-location**
   * 🆕 A new component for accessing Mozilla's and other location services.
@@ -33,6 +131,48 @@ permalink: /changelog/
 
 * **lib-state**
   * Migrated `Store.broadcastChannel()` to `Store.channel()`returning a `ReceiveChannel` that can be read by only one receiver. Broadcast channels have a more complicated lifetime that is not needed in most use cases. For multiple receivers multiple channels can be created from the `Store` or Kotlin's `ReceiveChannel.broadcast()` extension method can be used.
+
+* **support-android-test**
+  * Added `LeakDetectionRule` to install LeakCanary when running instrumented tests. If a leak is found the test will fail and the test report will contain the leak trace.
+
+* **lib-push-amazon**
+  * 🆕 Added a new component for Amazon Device Messaging push support.
+
+* **browser-icons**
+  * Changed the maximum size for decoded icons. Icons are now scaled to the target size to save memory.
+
+* **service-firefox-account**
+ * Added `isSyncActive(): Boolean` method to `FxaAccountManager`
+
+* **feature-customtabs**
+  * `CustomTabsToolbarFeature` now optionally takes `Window` as a parameter. It will update the status bar color to match the toolbar color.
+  * Custom tabs can now style the navigation bar using `CustomTabsConfig.navigationBarColor`.
+
+* **feature-sendtab**
+  * 🆕 New component for send tab use cases.
+
+  ```kotlin
+    val sendTabUseCases = SendTabUseCases(accountManager)
+
+    // Send to a particular device
+    sendTabUseCases.sendToDeviceAsync("1234", TabData("Mozilla", "https://mozilla.org"))
+
+    // Send to all devices
+    sendTabUseCases.sendToAllAsync(TabData("Mozilla", "https://mozilla.org"))
+
+    // Send multiple tabs to devices works too..
+    sendTabUseCases.sendToDeviceAsync("1234", listof(tab1, tab2))
+    sendTabUseCases.sendToAllAsync(listof(tab1, tab2))
+  ```
+
+* **support-ktx**
+  * Added `Collection.crossProduct` to retrieve the cartesian product of two `Collections`.
+
+* **service-glean**
+  * ⚠️ **This is a breaking change**: `Glean.enableTestingMode` is now `internal`. Tests can use the `GleanTestRule` to enable testing mode. [Updated docs available here](https://mozilla.github.io/glean/book/user/testing-metrics.html).
+
+* **feature-push**
+  * Added default arguments when registering for subscriptions/messages.
 
 # 5.0.0
 
@@ -98,6 +238,9 @@ permalink: /changelog/
   * Added the implementation for it to Firebase Push implementation.
   * Added `forceRegistrationRenewal` to the AutopushFeature for situations where our current registration token may be invalid for us to use.
 
+* **service-firefox-accounts**
+  * Added `AccountMigration`, which may be used to query trusted FxA Auth providers and automatically sign-in into available accounts.
+
 # 4.0.1
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v4.0.0...v4.0.1)
@@ -109,6 +252,20 @@ permalink: /changelog/
   * Hyphens `-` are now allowed in labels for metrics.  See [1566764](https://bugzilla.mozilla.org/show_bug.cgi?id=1566764).
 
 * Imported latest state of translations.
+
+* **support-rusthttp**
+  * ⚠️ **This is a breaking change**: The application-services (FxA, sync, push) code now will send HTTP requests through a kotlin-provided HTTP stack in all configurations, however it requires configuration at startup. This may be done via the neq `support-rusthttp` component as follows:
+
+  ```kotlin
+  import mozilla.components.support.rusthttp.RustHttpConfig
+  // Note: other implementions of `Client` from concept-fetch are fine as well.
+  import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+  // some point before calling rust code that makes HTTP requests.
+  RustHttpConfig.setClient(lazy { HttpURLConnectionClient() })
+  ```
+
+  * Note that code which uses a custom megazord **must** call this after initializing the megazord.
+
 
 # 4.0.0
 

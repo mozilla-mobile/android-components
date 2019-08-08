@@ -27,12 +27,15 @@ import mozilla.components.service.fxa.manager.Event
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.manager.authErrorRegistry
 import mozilla.components.service.fxa.manager.SCOPE_SYNC
+import mozilla.components.service.fxa.sharing.ShareableAccount
+import mozilla.components.service.fxa.sharing.ShareableAuthInfo
 import mozilla.components.service.fxa.sync.SyncManager
 import mozilla.components.service.fxa.sync.SyncDispatcher
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.test.any
+import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -107,6 +110,8 @@ class FxaAccountManagerTest {
         assertNull(FxaAccountManager.nextState(state, Event.FailedToAuthenticate))
         assertNull(FxaAccountManager.nextState(state, Event.Logout))
         assertNull(FxaAccountManager.nextState(state, Event.AuthenticationError(AuthException(AuthExceptionType.UNAUTHORIZED))))
+        assertNull(FxaAccountManager.nextState(state, Event.SignInShareableAccount(mock())))
+        assertNull(FxaAccountManager.nextState(state, Event.SignedInShareableAccount))
 
         // State 'NotAuthenticated'.
         state = AccountState.NotAuthenticated
@@ -122,6 +127,8 @@ class FxaAccountManagerTest {
         assertEquals(AccountState.NotAuthenticated, FxaAccountManager.nextState(state, Event.FailedToAuthenticate))
         assertNull(FxaAccountManager.nextState(state, Event.Logout))
         assertNull(FxaAccountManager.nextState(state, Event.AuthenticationError(AuthException(AuthExceptionType.UNAUTHORIZED))))
+        assertEquals(AccountState.NotAuthenticated, FxaAccountManager.nextState(state, Event.SignInShareableAccount(mock())))
+        assertEquals(AccountState.AuthenticatedNoProfile, FxaAccountManager.nextState(state, Event.SignedInShareableAccount))
 
         // State 'AuthenticatedNoProfile'.
         state = AccountState.AuthenticatedNoProfile
@@ -136,6 +143,8 @@ class FxaAccountManagerTest {
         assertNull(FxaAccountManager.nextState(state, Event.FailedToAuthenticate))
         assertEquals(AccountState.NotAuthenticated, FxaAccountManager.nextState(state, Event.Logout))
         assertEquals(AccountState.AuthenticationProblem, FxaAccountManager.nextState(state, Event.AuthenticationError(AuthException(AuthExceptionType.UNAUTHORIZED))))
+        assertNull(FxaAccountManager.nextState(state, Event.SignInShareableAccount(mock())))
+        assertNull(FxaAccountManager.nextState(state, Event.SignedInShareableAccount))
 
         // State 'AuthenticatedWithProfile'.
         state = AccountState.AuthenticatedWithProfile
@@ -150,6 +159,8 @@ class FxaAccountManagerTest {
         assertNull(FxaAccountManager.nextState(state, Event.FailedToAuthenticate))
         assertEquals(AccountState.NotAuthenticated, FxaAccountManager.nextState(state, Event.Logout))
         assertEquals(AccountState.AuthenticationProblem, FxaAccountManager.nextState(state, Event.AuthenticationError(AuthException(AuthExceptionType.UNAUTHORIZED))))
+        assertNull(FxaAccountManager.nextState(state, Event.SignInShareableAccount(mock())))
+        assertNull(FxaAccountManager.nextState(state, Event.SignedInShareableAccount))
 
         // State 'AuthenticationProblem'.
         state = AccountState.AuthenticationProblem
@@ -164,6 +175,8 @@ class FxaAccountManagerTest {
         assertEquals(AccountState.AuthenticationProblem, FxaAccountManager.nextState(state, Event.FailedToAuthenticate))
         assertEquals(AccountState.NotAuthenticated, FxaAccountManager.nextState(state, Event.Logout))
         assertNull(FxaAccountManager.nextState(state, Event.AuthenticationError(AuthException(AuthExceptionType.UNAUTHORIZED))))
+        assertNull(FxaAccountManager.nextState(state, Event.SignInShareableAccount(mock())))
+        assertNull(FxaAccountManager.nextState(state, Event.SignedInShareableAccount))
     }
 
     class TestSyncDispatcher(registry: ObserverRegistry<SyncStatusObserver>) : SyncDispatcher, Observable<SyncStatusObserver> by registry {
@@ -263,6 +276,9 @@ class FxaAccountManagerTest {
 
         manager.initAsync().await()
 
+        // Can check if sync is running (it's not!), even if we don't have sync configured.
+        assertFalse(manager.isSyncActive())
+
         val syncStatusObserver = TestSyncStatusObserver()
         val lifecycleOwner: LifecycleOwner = mock()
         val lifecycle: Lifecycle = mock()
@@ -300,6 +316,7 @@ class FxaAccountManagerTest {
         verify(latestSyncManager!!.dispatcher.inner, times(1)).syncNow(anyBoolean())
 
         // Make sure sync status listeners are working.
+        // TODO fix these tests.
 //        // Test dispatcher -> sync manager -> account manager -> our test observer.
 //        latestSyncManager!!.dispatcherRegistry.notifyObservers { onStarted() }
 //        assertEquals(1, syncStatusObserver.onStartedCount)
@@ -389,6 +406,7 @@ class FxaAccountManagerTest {
         manager.syncNowAsync(startup = true).await()
         verify(latestSyncManager!!.dispatcher.inner, times(3)).syncNow(anyBoolean())
 
+        // TODO fix these tests
 //        assertEquals(0, syncStatusObserver.onStartedCount)
 //        assertEquals(0, syncStatusObserver.onIdleCount)
 //        assertEquals(0, syncStatusObserver.onErrorCount)
@@ -414,6 +432,79 @@ class FxaAccountManagerTest {
         verify(latestSyncManager!!.dispatcher.inner, times(2)).syncNow(anyBoolean())
         manager.syncNowAsync(startup = true).await()
         verify(latestSyncManager!!.dispatcher.inner, times(3)).syncNow(anyBoolean())
+
+        // Pretend sync is running.
+        `when`(latestSyncManager!!.dispatcher.inner.isSyncActive()).thenReturn(true)
+        assertTrue(manager.isSyncActive())
+
+        // Pretend sync is not running.
+        `when`(latestSyncManager!!.dispatcher.inner.isSyncActive()).thenReturn(false)
+        assertFalse(manager.isSyncActive())
+    }
+
+    @Test
+    fun `migrating an account via migrateAccountAsync`() = runBlocking {
+        // We'll test three scenarios:
+        // - hitting a network issue during migration
+        // - hitting an auth issue during migration (bad credentials)
+        // - all good, migrated successfully
+        val accountStorage: AccountStorage = mock()
+        val profile = Profile("testUid", "test@example.com", null, "Test Profile")
+        val constellation: DeviceConstellation = mock()
+        val account = StatePersistenceTestableAccount(profile, constellation)
+        val accountObserver: AccountObserver = mock()
+
+        val manager = TestableFxaAccountManager(
+                testContext, ServerConfig.release("dummyId", "http://auth-url/redirect"), accountStorage,
+                setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
+        ) {
+            account
+        }
+        manager.register(accountObserver)
+
+        // We don't have an account at the start.
+        `when`(accountStorage.read()).thenReturn(null)
+        manager.initAsync().await()
+
+        // Bad package name.
+        var migratableAccount = ShareableAccount(
+            email = "test@example.com",
+            sourcePackage = "org.mozilla.firefox",
+            authInfo = ShareableAuthInfo("session", "kSync", "kXCS")
+        )
+
+        // TODO Need to mock inputs into - mock a PackageManager, and have it return PackageInfo with the right signature.
+//        AccountSharing.isTrustedPackage
+
+        // We failed to migrate for some reason.
+        account.ableToMigrate = false
+        assertFalse(manager.signInWithShareableAccountAsync(migratableAccount).await())
+
+        assertEquals("session", account.latestMigrateAuthInfo?.sessionToken)
+        assertEquals("kSync", account.latestMigrateAuthInfo?.kSync)
+        assertEquals("kXCS", account.latestMigrateAuthInfo?.kXCS)
+
+        assertNull(manager.authenticatedAccount())
+
+        // Prepare for a successful migration.
+        `when`(constellation.initDeviceAsync(any(), any(), any())).thenReturn(CompletableDeferred(true))
+
+        // Success.
+        account.ableToMigrate = true
+        migratableAccount = migratableAccount.copy(
+            authInfo = ShareableAuthInfo("session2", "kSync2", "kXCS2")
+        )
+
+        assertTrue(manager.signInWithShareableAccountAsync(migratableAccount).await())
+
+        assertEquals("session2", account.latestMigrateAuthInfo?.sessionToken)
+        assertEquals("kSync2", account.latestMigrateAuthInfo?.kSync)
+        assertEquals("kXCS2", account.latestMigrateAuthInfo?.kXCS)
+
+        assertNotNull(manager.authenticatedAccount())
+        assertEquals(profile, manager.accountProfile())
+
+        verify(accountObserver, times(1)).onAuthenticated(account, true)
     }
 
     @Test
@@ -622,10 +713,13 @@ class FxaAccountManagerTest {
         private val constellation: DeviceConstellation,
         val ableToRecoverFromAuthError: Boolean = false,
         val tokenServerEndpointUrl: String? = null,
+        var ableToMigrate: Boolean = false,
         val accessToken: (() -> AccessTokenInfo)? = null
     ) : OAuthAccount {
+
         var persistenceCallback: StatePersistenceCallback? = null
         var accessTokenErrorCalled = false
+        var latestMigrateAuthInfo: ShareableAuthInfo? = null
 
         override fun beginOAuthFlowAsync(scopes: Set<String>, wantsKeys: Boolean): Deferred<String?> {
             return CompletableDeferred("auth://url")
@@ -645,6 +739,11 @@ class FxaAccountManagerTest {
 
         override fun completeOAuthFlowAsync(code: String, state: String): Deferred<Boolean> {
             return CompletableDeferred(true)
+        }
+
+        override fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<Boolean> {
+            latestMigrateAuthInfo = ShareableAuthInfo(sessionToken, kSync, kXCS)
+            return CompletableDeferred(ableToMigrate)
         }
 
         override fun getAccessTokenAsync(singleScope: String): Deferred<AccessTokenInfo?> {
@@ -673,6 +772,11 @@ class FxaAccountManagerTest {
 
         override fun deviceConstellation(): DeviceConstellation {
             return constellation
+        }
+
+        override fun disconnectAsync(): Deferred<Boolean> {
+            fail()
+            return CompletableDeferred(false)
         }
 
         override fun toJSONString(): String {
@@ -705,7 +809,7 @@ class FxaAccountManagerTest {
                 fail()
             }
 
-            override fun onAuthenticated(account: OAuthAccount) {
+            override fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) {
                 fail()
             }
 
@@ -739,7 +843,7 @@ class FxaAccountManagerTest {
         manager.register(accountObserver)
         manager.initAsync().await()
 
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onProfileUpdated(any())
         verify(accountObserver, never()).onLoggedOut()
 
@@ -778,7 +882,7 @@ class FxaAccountManagerTest {
         manager.initAsync().await()
 
         // Make sure that account and profile observers are fired exactly once.
-        verify(accountObserver, times(1)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(1)).onAuthenticated(mockAccount, false)
         verify(accountObserver, times(1)).onProfileUpdated(profile)
         verify(accountObserver, never()).onLoggedOut()
 
@@ -792,14 +896,14 @@ class FxaAccountManagerTest {
         // Make sure 'logoutAsync' clears out state and fires correct observers.
         reset(accountObserver)
         reset(accountStorage)
-        `when`(constellation.destroyCurrentDeviceAsync()).thenReturn(CompletableDeferred(true))
-        verify(constellation, never()).destroyCurrentDeviceAsync()
+        `when`(mockAccount.disconnectAsync()).thenReturn(CompletableDeferred(true))
+        verify(mockAccount, never()).disconnectAsync()
         manager.logoutAsync().await()
 
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onProfileUpdated(any())
         verify(accountObserver, times(1)).onLoggedOut()
-        verify(constellation, times(1)).destroyCurrentDeviceAsync()
+        verify(mockAccount, times(1)).disconnectAsync()
 
         verify(accountStorage, never()).read()
         verify(accountStorage, never()).write(any())
@@ -820,7 +924,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
         assertEquals("auth://url", manager.beginAuthenticationAsync().await())
@@ -835,7 +939,7 @@ class FxaAccountManagerTest {
         verify(accountStorage, times(1)).read()
         verify(accountStorage, never()).clear()
 
-        verify(accountObserver, times(1)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(1)).onAuthenticated(mockAccount, true)
         verify(accountObserver, times(1)).onProfileUpdated(profile)
         verify(accountObserver, never()).onLoggedOut()
 
@@ -854,7 +958,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
         assertEquals("auth://url", manager.beginAuthenticationAsync().await())
@@ -908,7 +1012,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
         assertEquals("auth://url", manager.beginAuthenticationAsync(pairingUrl = "auth://pairing").await())
@@ -923,7 +1027,7 @@ class FxaAccountManagerTest {
         verify(accountStorage, times(1)).read()
         verify(accountStorage, never()).clear()
 
-        verify(accountObserver, times(1)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(1)).onAuthenticated(mockAccount, true)
         verify(accountObserver, times(1)).onProfileUpdated(profile)
         verify(accountObserver, never()).onLoggedOut()
 
@@ -944,7 +1048,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
 
@@ -968,7 +1072,7 @@ class FxaAccountManagerTest {
         verify(accountStorage, times(1)).read()
         verify(accountStorage, never()).clear()
 
-        verify(accountObserver, times(1)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(1)).onAuthenticated(mockAccount, true)
         verify(accountObserver, times(1)).onProfileUpdated(profile)
         verify(accountObserver, never()).onLoggedOut()
 
@@ -989,7 +1093,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
 
@@ -1013,7 +1117,7 @@ class FxaAccountManagerTest {
         verify(accountStorage, times(1)).read()
         verify(accountStorage, never()).clear()
 
-        verify(accountObserver, times(1)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(1)).onAuthenticated(mockAccount, true)
         verify(accountObserver, times(1)).onProfileUpdated(profile)
         verify(accountObserver, never()).onLoggedOut()
 
@@ -1032,7 +1136,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
         assertEquals("auth://url", manager.beginAuthenticationAsync().await())
@@ -1069,7 +1173,7 @@ class FxaAccountManagerTest {
 
         manager.finishAuthenticationAsync("dummyCode", "dummyState").await()
 
-        verify(accountObserver).onAuthenticated(mockAccount)
+        verify(accountObserver).onAuthenticated(mockAccount, true)
         verify(accountObserver, never()).onAuthenticationProblems()
         assertFalse(manager.accountNeedsReauth())
         assertEquals(profile, manager.accountProfile())
@@ -1086,7 +1190,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
         assertEquals("auth://url", manager.beginAuthenticationAsync().await())
@@ -1146,7 +1250,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
 
         reset(accountObserver)
         assertEquals("auth://url", manager.beginAuthenticationAsync().await())
@@ -1158,7 +1262,7 @@ class FxaAccountManagerTest {
         verify(accountStorage, times(1)).read()
         verify(accountStorage, never()).clear()
 
-        verify(accountObserver, times(1)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(1)).onAuthenticated(mockAccount, true)
         verify(accountObserver, never()).onProfileUpdated(any())
         verify(accountObserver, never()).onLoggedOut()
 
@@ -1175,7 +1279,7 @@ class FxaAccountManagerTest {
         manager.updateProfileAsync().await()
 
         verify(accountObserver, times(1)).onProfileUpdated(profile)
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onLoggedOut()
         assertEquals(profile, manager.accountProfile())
     }
@@ -1218,7 +1322,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onAuthenticationProblems()
         verify(mockAccount, never()).checkAuthorizationStatusAsync(any())
         assertFalse(manager.accountNeedsReauth())
@@ -1274,7 +1378,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onAuthenticationProblems()
         verify(mockAccount, never()).checkAuthorizationStatusAsync(any())
         assertFalse(manager.accountNeedsReauth())
@@ -1297,6 +1401,7 @@ class FxaAccountManagerTest {
         val accountStorage = mock<AccountStorage>()
         val mockAccount: OAuthAccount = mock()
         val constellation: DeviceConstellation = mock()
+        val captor = argumentCaptor<Boolean>()
 
         `when`(mockAccount.deviceConstellation()).thenReturn(constellation)
         `when`(constellation.initDeviceAsync(any(), any(), any())).thenReturn(CompletableDeferred(true))
@@ -1339,7 +1444,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onAuthenticationProblems()
         verify(mockAccount, never()).checkAuthorizationStatusAsync(any())
         assertFalse(manager.accountNeedsReauth())
@@ -1356,7 +1461,9 @@ class FxaAccountManagerTest {
         assertEquals(profile, manager.accountProfile())
         verify(accountObserver, never()).onAuthenticationProblems()
         // Once for the initial auth success, then once again after we recover from an auth problem.
-        verify(accountObserver, times(2)).onAuthenticated(mockAccount)
+        verify(accountObserver, times(2)).onAuthenticated(eq(mockAccount), captor.capture())
+        assertTrue(captor.allValues[0])
+        assertFalse(captor.allValues[1])
         // Verify that we went through the recovery flow.
         verify(mockAccount, times(1)).checkAuthorizationStatusAsync(eq("profile"))
         Unit
@@ -1395,7 +1502,7 @@ class FxaAccountManagerTest {
 
         // We start off as logged-out, but the event won't be called (initial default state is assumed).
         verify(accountObserver, never()).onLoggedOut()
-        verify(accountObserver, never()).onAuthenticated(any())
+        verify(accountObserver, never()).onAuthenticated(any(), anyBoolean())
         verify(accountObserver, never()).onAuthenticationProblems()
         assertFalse(manager.accountNeedsReauth())
 

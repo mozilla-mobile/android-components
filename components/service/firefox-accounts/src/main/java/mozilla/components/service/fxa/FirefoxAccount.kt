@@ -137,6 +137,14 @@ class FirefoxAccount internal constructor(
         }
     }
 
+    override fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<Boolean> {
+        return scope.async {
+            handleFxaExceptions(logger, "migrateFromSessionToken") {
+                inner.migrateFromSessionToken(sessionToken, kSync, kXCS)
+            }
+        }
+    }
+
     /**
      * Convenience method to fetch the profile from a cached account by default, but fall back
      * to retrieval from the server.
@@ -227,6 +235,25 @@ class FirefoxAccount internal constructor(
                 null
             }
             // Re-throw all other exceptions.
+        }
+    }
+
+    /**
+     * Reset internal account state and destroy current device record.
+     * Use this when device record is no longer relevant, e.g. while logging out. On success, other
+     * devices will no longer see the current device in their device lists.
+     *
+     * @return A [Deferred] that will be resolved with a success flag once operation is complete.
+     * Failure indicates that we may have failed to destroy current device record. Nothing to do for
+     * the consumer; device record will be cleaned up eventually via TTL.
+     */
+    override fun disconnectAsync(): Deferred<Boolean> {
+        return scope.async {
+            // TODO can this ever throw FxaUnauthorizedException? would that even make sense? or is that a bug?
+            handleFxaExceptions(logger, "disconnect", { false }) {
+                inner.disconnect()
+                true
+            }
         }
     }
 

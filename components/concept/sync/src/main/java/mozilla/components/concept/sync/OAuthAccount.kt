@@ -34,7 +34,9 @@ interface OAuthAccount : AutoCloseable {
     fun checkAuthorizationStatusAsync(singleScope: String): Deferred<Boolean?>
     fun getTokenServerEndpointURL(): String
     fun registerPersistenceCallback(callback: StatePersistenceCallback)
+    fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<Boolean>
     fun deviceConstellation(): DeviceConstellation
+    fun disconnectAsync(): Deferred<Boolean>
     fun toJSONString(): String
 }
 
@@ -55,24 +57,25 @@ interface AccountObserver {
     /**
      * Account just got logged out.
      */
-    fun onLoggedOut()
+    fun onLoggedOut() = Unit
 
     /**
      * Account was successfully authenticated.
      * @param account An authenticated instance of a [OAuthAccount].
+     * @param newAccount True if this is a new account that was authenticated.
      */
-    fun onAuthenticated(account: OAuthAccount)
+    fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) = Unit
 
     /**
      * Account's profile is now available.
      * @param profile A fresh version of account's [Profile].
      */
-    fun onProfileUpdated(profile: Profile)
+    fun onProfileUpdated(profile: Profile) = Unit
 
     /**
      * Account needs to be re-authenticated (e.g. due to a password change).
      */
-    fun onAuthenticationProblems()
+    fun onAuthenticationProblems() = Unit
 }
 
 data class Avatar(

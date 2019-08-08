@@ -15,6 +15,9 @@ permalink: /changelog/
 * **support-test**
   * Fixed [#3893](https://github.com/mozilla-mobile/android-components/issues/3893) Moving WebserverRule to support-test.
 
+* **browser-engine-gecko-beta**
+  * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+
 # 7.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.2...v7.0.0)
@@ -39,7 +42,7 @@ permalink: /changelog/
         // passed-in context allows easily opening new activities for handling urls.
         tabsUseCases.addTab(authUrl)
      }
-     
+
      // ... elsewhere, in the UI code, handling click on button "Sign In":
      components.feature.beginAuthentication(activityContext)
     ```
@@ -69,6 +72,12 @@ permalink: /changelog/
 
 * **service-firefox-accounts**
   * ⚠️ **This is a breaking change**: `AccountObserver.onAuthenticated` now helps observers distinguish when an account is a new authenticated account one with a second `newAccount` boolean parameter.
+
+* **concept-sync**, **service-firefox-accounts**:
+  * ⚠️ **This is a breaking change**: Added `OAuthAccount@disconnectAsync`, which replaced `DeviceConstellation@destroyCurrentDeviceAsync`.
+
+* **lib-crash**
+  * ⚠️ **Known issue**: Sending a crash using the `MozillaSocorroService` with GeckoView 69.0 or 68.0, will lead to a `NoSuchMethodError` when using this particular version of android components. See [#4052](https://github.com/mozilla-mobile/android-components/issues/4052).
 
 # 6.0.2
 

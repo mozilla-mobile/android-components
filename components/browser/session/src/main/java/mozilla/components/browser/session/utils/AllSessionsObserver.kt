@@ -12,13 +12,16 @@ import mozilla.components.browser.session.SessionManager
  * that get added to the [SessionManager] and automatically unsubscribes from [Session] instances that get removed.
  *
  * @property sessionManager the application's session manager
+ * @property sessionObserver observer to register on all sessions
+ * @property includeCustomTabs if true, registers the observer on custom tabs as well.
  */
 class AllSessionsObserver(
     private val sessionManager: SessionManager,
-    private val sessionObserver: Observer
+    private val sessionObserver: Observer,
+    private val includeCustomTabs: Boolean = true
 ) {
-    private val observer = Observer(this)
-    private val registeredSessions: MutableSet<Session> = mutableSetOf()
+    private val observer = SessionManagerObserver(this)
+    private val registeredSessions = mutableSetOf<Session>()
 
     fun start() {
         registerToAllSessions()
@@ -31,7 +34,8 @@ class AllSessionsObserver(
     }
 
     internal fun registerToAllSessions() {
-        sessionManager.all.forEach { session -> registerSession(session) }
+        val all = if (includeCustomTabs) sessionManager.all else sessionManager.sessions
+        all.forEach(::registerSession)
     }
 
     internal fun registerSession(session: Session) {
@@ -49,25 +53,23 @@ class AllSessionsObserver(
     }
 
     internal fun unregisterAllSessions() {
-        registeredSessions.toList().forEach { session ->
-            unregisterSession(session)
-        }
+        registeredSessions.forEach(::unregisterSession)
     }
 
     interface Observer : Session.Observer {
         fun onRegisteredToSession(session: Session) = Unit
         fun onUnregisteredFromSession(session: Session) = Unit
     }
-}
 
-private class Observer(
-    val parent: AllSessionsObserver
-) : SessionManager.Observer {
-    override fun onSessionAdded(session: Session) = parent.registerSession(session)
+    private class SessionManagerObserver(
+        val parent: AllSessionsObserver
+    ) : SessionManager.Observer {
+        override fun onSessionAdded(session: Session) = parent.registerSession(session)
 
-    override fun onSessionRemoved(session: Session) = parent.unregisterSession(session)
+        override fun onSessionRemoved(session: Session) = parent.unregisterSession(session)
 
-    override fun onAllSessionsRemoved() = parent.unregisterAllSessions()
+        override fun onAllSessionsRemoved() = parent.unregisterAllSessions()
 
-    override fun onSessionsRestored() = parent.registerToAllSessions()
+        override fun onSessionsRestored() = parent.registerToAllSessions()
+    }
 }

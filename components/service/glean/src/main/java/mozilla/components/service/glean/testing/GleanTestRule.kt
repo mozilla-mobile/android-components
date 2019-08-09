@@ -5,6 +5,7 @@
 package mozilla.components.service.glean.testing
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.work.testing.WorkManagerTestInitHelper
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.config.Configuration
@@ -28,6 +29,7 @@ import org.junit.runner.Description
  * @param context the application context
  * @param configToUse an optional [Configuration] to initialize the Glean SDK with
  */
+@VisibleForTesting(otherwise = VisibleForTesting.NONE)
 class GleanTestRule(
     val context: Context,
     val configToUse: Configuration = Configuration()

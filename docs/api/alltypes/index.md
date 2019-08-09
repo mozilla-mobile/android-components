@@ -372,7 +372,6 @@
 | [mozilla.components.service.fxa.PersistCallback](../mozilla.components.service.fxa/-persist-callback.md) |  |
 | [mozilla.components.feature.session.PictureInPictureFeature](../mozilla.components.feature.session/-picture-in-picture-feature/index.md) | A simple implementation of Picture-in-picture mode if on a supported platform. |
 | [mozilla.components.service.glean.private.PingType](../mozilla.components.service.glean.private/-ping-type/index.md) | This implements the developer facing API for custom pings. |
-| [mozilla.components.service.glean.scheduler.PingUploadWorker](../mozilla.components.service.glean.scheduler/-ping-upload-worker/index.md) | This class is the worker class used by [WorkManager](#) to handle uploading the ping to the server. |
 | [mozilla.components.support.test.robolectric.shadow.PixelCopyShadow](../mozilla.components.support.test.robolectric.shadow/-pixel-copy-shadow/index.md) | Shadow for [PixelCopy](#) API. |
 | [mozilla.components.feature.webnotifications.Placeholder](../mozilla.components.feature.webnotifications/-placeholder/index.md) |  |
 | [mozilla.components.browser.storage.sync.PlacesBookmarksStorage](../mozilla.components.browser.storage.sync/-places-bookmarks-storage/index.md) | Implementation of the [BookmarksStorage](../mozilla.components.concept.storage/-bookmarks-storage/index.md) which is backed by a Rust Places lib via [PlacesApi](#). |
@@ -605,6 +604,7 @@
 | [mozilla.components.feature.pwa.WebAppUseCases](../mozilla.components.feature.pwa/-web-app-use-cases/index.md) | These use cases allow for adding a web app or web site to the homescreen. |
 | [mozilla.components.concept.engine.webextension.WebExtension](../mozilla.components.concept.engine.webextension/-web-extension/index.md) | Represents a browser extension based on the WebExtension API: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions |
 | [mozilla.components.support.utils.WebURLFinder](../mozilla.components.support.utils/-web-u-r-l-finder/index.md) | Regular expressions used in this class are taken from Android's Patterns.java. We brought them in to standardize URL matching across Android versions, instead of relying on Android version-dependent built-ins that can vary across Android versions. The original code can be found here: http://androidxref.com/8.0.0_r4/xref/frameworks/base/core/java/android/util/Patterns.java |
+| [mozilla.components.support.test.rules.WebserverRule](../mozilla.components.support.test.rules/-webserver-rule/index.md) | A [TestWatcher](#) junit rule that will serve content from assets in the test package. |
 | [mozilla.components.feature.session.WindowFeature](../mozilla.components.feature.session/-window-feature/index.md) | Feature implementation for handling window requests. |
 | [mozilla.components.concept.engine.window.WindowRequest](../mozilla.components.concept.engine.window/-window-request/index.md) | Represents a request to open or close a browser window. |
 | [mozilla.components.service.fxa.sync.WorkManagerSyncDispatcher](../mozilla.components.service.fxa.sync/-work-manager-sync-dispatcher/index.md) |  |

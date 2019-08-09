@@ -4,13 +4,44 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 7.0.0-SNAPSHOT  (In Development)
+# 8.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/66?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v7.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/67?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **support-test**
+  * Fixed [#3893](https://github.com/mozilla-mobile/android-components/issues/3893) Moving WebserverRule to support-test.
+
+* **browser-engine-gecko-beta**
+  * The component now handles situations where the Android system kills the content process (without killing the main app process) in order to reclaim resources. In those situations the component will automatically recover and restore the last known state of those sessions.
+
+* **browser-toolbar**
+  * ⚠️ **This is a breaking change**: The `BrowserToolbar.siteSecurityColor` property has been replaced with the setter `BrowserToolbar.setSiteSecurityColor`.
+  * Added `BrowserToolbar.siteSecurityIcons` to use custom security icons with multiple colors in the toolbar.
+
+* **feature-sendtab**
+  * Added a `SendTabFeature` that observes account device events with optional support for push notifications.
+
+  ```kotlin
+  SendTabFeature(
+    context,
+    accountManager,
+    pushFeature, // optional
+    pushService // optional; if you want the service to also be started/stopped based on account changes.
+    onTabsReceiver = { from, tabs -> /* Do cool things here! */ }
+  )
+  ```
+
+# 7.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v6.0.2...v7.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/66?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v7.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v7.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v7.0.0/buildSrc/src/main/java/Config.kt)
 
 * **browser-menu**
   * ⚠️ **This is a breaking change**: `BrowserMenuHighlightableItem` now has a ripple effect and includes an example of how to pass in a drawable properly to also include a ripple when highlighted
@@ -28,7 +59,7 @@ permalink: /changelog/
         // passed-in context allows easily opening new activities for handling urls.
         tabsUseCases.addTab(authUrl)
      }
-     
+
      // ... elsewhere, in the UI code, handling click on button "Sign In":
      components.feature.beginAuthentication(activityContext)
     ```
@@ -58,6 +89,12 @@ permalink: /changelog/
 
 * **service-firefox-accounts**
   * ⚠️ **This is a breaking change**: `AccountObserver.onAuthenticated` now helps observers distinguish when an account is a new authenticated account one with a second `newAccount` boolean parameter.
+
+* **concept-sync**, **service-firefox-accounts**:
+  * ⚠️ **This is a breaking change**: Added `OAuthAccount@disconnectAsync`, which replaced `DeviceConstellation@destroyCurrentDeviceAsync`.
+
+* **lib-crash**
+  * ⚠️ **Known issue**: Sending a crash using the `MozillaSocorroService` with GeckoView 69.0 or 68.0, will lead to a `NoSuchMethodError` when using this particular version of android components. See [#4052](https://github.com/mozilla-mobile/android-components/issues/4052).
 
 # 6.0.2
 

@@ -6,6 +6,8 @@ package mozilla.components.browser.toolbar
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
@@ -22,9 +24,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.BrowserToolbar.Companion.ACTION_PADDING_DP
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.browser.toolbar.display.TrackingProtectionIconView.Companion.DEFAULT_ICON_OFF_FOR_A_SITE
+import mozilla.components.browser.toolbar.display.TrackingProtectionIconView.Companion.DEFAULT_ICON_ON_NO_TRACKERS_BLOCKED
+import mozilla.components.browser.toolbar.display.TrackingProtectionIconView.Companion.DEFAULT_ICON_ON_TRACKERS_BLOCKED
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
+import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -903,6 +909,23 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `siteSecurityColor setter`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        toolbar.setSiteSecurityColor(Color.RED to Color.BLUE)
+        assertEquals(
+            PorterDuffColorFilter(Color.RED, PorterDuff.Mode.SRC_IN),
+            toolbar.displayToolbar.siteSecurityIconView.drawable.colorFilter
+        )
+
+        toolbar.siteSecure = SiteSecurity.SECURE
+        assertEquals(
+            PorterDuffColorFilter(Color.BLUE, PorterDuff.Mode.SRC_IN),
+            toolbar.displayToolbar.siteSecurityIconView.drawable.colorFilter
+        )
+    }
+
+    @Test
     fun `urlBoxView getter`() {
         val toolbar = BrowserToolbar(testContext)
         assertEquals(toolbar.displayToolbar.urlBoxView, toolbar.urlBoxView)
@@ -993,6 +1016,62 @@ class BrowserToolbarTest {
         toolbar.siteSecure = SiteSecurity.SECURE
 
         verify(toolbar.displayToolbar).setSiteSecurity(SiteSecurity.SECURE)
+    }
+
+    @Test
+    fun `siteTrackingProtection updates the displayToolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.displayToolbar = spy(toolbar.displayToolbar)
+        assertEquals(SiteTrackingProtection.OFF_GLOBALLY, toolbar.siteTrackingProtection)
+
+        toolbar.siteTrackingProtection = SiteTrackingProtection.ON_NO_TRACKERS_BLOCKED
+
+        verify(toolbar.displayToolbar).setTrackingProtectionState(SiteTrackingProtection.ON_NO_TRACKERS_BLOCKED)
+    }
+
+    @Test
+    fun `setOnTrackingProtectionClickedListener will forward events to display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        val displayToolbar = toolbar.displayToolbar
+        var wasClicked = false
+
+        toolbar.setOnTrackingProtectionClickedListener { wasClicked = true }
+        displayToolbar.trackingProtectionIconView.performClick()
+
+        assertTrue(wasClicked)
+
+        toolbar.setOnTrackingProtectionClickedListener(null)
+
+        assertEquals(null, displayToolbar.trackingProtectionIconView.background)
+    }
+
+    @Test
+    fun `setTrackingProtectionIcons will forward to display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.displayToolbar = spy(toolbar.displayToolbar)
+        val drawable1 = testContext.getDrawable(DEFAULT_ICON_ON_NO_TRACKERS_BLOCKED)!!
+        val drawable2 = testContext.getDrawable(DEFAULT_ICON_ON_TRACKERS_BLOCKED)!!
+        val drawable3 = testContext.getDrawable(DEFAULT_ICON_OFF_FOR_A_SITE)!!
+
+        toolbar.displayTrackingProtectionIcon = true
+        toolbar.setTrackingProtectionIcons(drawable1, drawable2, drawable3)
+
+        verify(toolbar.displayToolbar).setTrackingProtectionIcons(drawable1, drawable2, drawable3)
+    }
+
+    @Test
+    fun `separatorColor will forward to display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.displayToolbar = spy(toolbar.displayToolbar)
+
+        toolbar.separatorColor = R.color.photonBlue40
+
+        verify(toolbar.displayToolbar).separatorColor =
+            R.color.photonBlue40
+        assertEquals(
+            R.color.photonBlue40,
+            toolbar.separatorColor
+        )
     }
 
     @Test

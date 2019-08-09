@@ -11,9 +11,12 @@ import mozilla.components.concept.engine.EngineSessionState
 /**
  * Used for linking a [Session] to an [EngineSession] or the [EngineSessionState] to create an [EngineSession] from it.
  * The attached [EngineObserver] is used to update the [Session] whenever the [EngineSession] emits events.
+ *
+ * To ensure atomicity and sane visibility of enclosed values, make sure to synchronize access to
+ * instances of this class if they are to be used in a multi-threaded context.
  */
 internal class EngineSessionHolder {
-    @Volatile var engineSession: EngineSession? = null
-    @Volatile var engineObserver: EngineObserver? = null
-    @Volatile var engineSessionState: EngineSessionState? = null
+    var engineSession: EngineSession? = null
+    var engineObserver: EngineObserver? = null
+    var engineSessionState: EngineSessionState? = null
 }

@@ -22,17 +22,21 @@ class EngineSessionHolderTest {
         val executor = Executors.newScheduledThreadPool(2)
 
         executor.submit {
-            engineSessionHolder.engineObserver = mock(EngineObserver::class.java)
-            engineSessionHolder.engineSession = mock(EngineSession::class.java)
+            synchronized(engineSessionHolder) {
+                engineSessionHolder.engineObserver = mock(EngineObserver::class.java)
+                engineSessionHolder.engineSession = mock(EngineSession::class.java)
+            }
         }
 
         executor.submit {
-            while (engineSessionHolder.engineObserver == null || engineSessionHolder.engineSession == null) { }
-            countDownLatch.countDown()
+            synchronized(engineSessionHolder) {
+                while (engineSessionHolder.engineObserver == null || engineSessionHolder.engineSession == null) {}
+                countDownLatch.countDown()
+            }
         }
 
         // Setting a timeout in case this test fails in the future. As long as
-        // the engine session holder fields are volatile, await will return
+        // the engine session access is synchronized, await will return
         // true immediately, otherwise false after the timeout expired.
         assertTrue(countDownLatch.await(10, TimeUnit.SECONDS))
     }

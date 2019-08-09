@@ -5,6 +5,7 @@
 package mozilla.components.browser.session
 
 import android.graphics.Bitmap
+import androidx.annotation.GuardedBy
 import mozilla.components.browser.session.engine.EngineSessionHolder
 import mozilla.components.browser.session.engine.request.LoadRequestMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestOption
@@ -50,7 +51,10 @@ class Session(
     /**
      * Holder for keeping a reference to an engine session and its observer to update this session
      * object.
+     *
+     * To ensure atomicity and visibility, make sure to synchronize access to `engineSessionHolder`.
      */
+    @GuardedBy("engineSessionHolder")
     internal val engineSessionHolder = EngineSessionHolder()
 
     // For migration purposes every `Session` has a reference to the `BrowserStore` (if used) in order to dispatch

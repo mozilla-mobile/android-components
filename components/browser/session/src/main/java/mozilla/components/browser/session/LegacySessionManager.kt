@@ -80,11 +80,13 @@ class LegacySessionManager(
     }
 
     fun createSessionSnapshot(session: Session): SessionManager.Snapshot.Item {
-        return SessionManager.Snapshot.Item(
-            session,
-            session.engineSessionHolder.engineSession,
-            session.engineSessionHolder.engineSessionState
-        )
+        synchronized(session.engineSessionHolder) {
+            return SessionManager.Snapshot.Item(
+                session,
+                session.engineSessionHolder.engineSession,
+                session.engineSessionHolder.engineSessionState
+            )
+        }
     }
 
     /**
@@ -180,7 +182,9 @@ class LegacySessionManager(
         if (engineSession != null) {
             link(session, engineSession)
         } else if (engineSessionState != null) {
-            session.engineSessionHolder.engineSessionState = engineSessionState
+            synchronized(session.engineSessionHolder) {
+                session.engineSessionHolder.engineSessionState = engineSessionState
+            }
         }
 
         // If session is being added via restore, skip notification and auto-selection.
@@ -269,7 +273,9 @@ class LegacySessionManager(
     /**
      * Gets the linked engine session for the provided session (if it exists).
      */
-    fun getEngineSession(session: Session = selectedSessionOrThrow) = session.engineSessionHolder.engineSession
+    fun getEngineSession(session: Session = selectedSessionOrThrow) = synchronized(session.engineSessionHolder) {
+        session.engineSessionHolder.engineSession
+    }
 
     /**
      * Gets the linked engine session for the provided session and creates it if needed.
@@ -278,9 +284,11 @@ class LegacySessionManager(
         getEngineSession(session)?.let { return it }
 
         return engine.createSession(session.private).apply {
-            session.engineSessionHolder.engineSessionState?.let { state ->
-                restoreState(state)
-                session.engineSessionHolder.engineSessionState = null
+            synchronized(session.engineSessionHolder) {
+                session.engineSessionHolder.engineSessionState?.let { state ->
+                    restoreState(state)
+                    session.engineSessionHolder.engineSessionState = null
+                }
             }
 
             link(session, this)
@@ -290,16 +298,18 @@ class LegacySessionManager(
     fun link(session: Session, engineSession: EngineSession) {
         unlink(session)
 
-        session.engineSessionHolder.apply {
-            this.engineSession = engineSession
-            this.engineObserver = EngineObserver(session).also { observer ->
-                engineSession.register(observer)
-                engineSession.loadUrl(session.url)
+        synchronized(session.engineSessionHolder) {
+            session.engineSessionHolder.apply {
+                this.engineSession = engineSession
+                this.engineObserver = EngineObserver(session).also { observer ->
+                    engineSession.register(observer)
+                    engineSession.loadUrl(session.url)
+                }
             }
         }
     }
 
-    private fun unlink(session: Session) {
+    private fun unlink(session: Session) = synchronized(session.engineSessionHolder) {
         session.engineSessionHolder.engineObserver?.let { observer ->
             session.engineSessionHolder.apply {
                 engineSession?.unregister(observer)

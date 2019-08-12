@@ -2,13 +2,12 @@
 
 # GleanInternalAPI
 
-`open class GleanInternalAPI` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/service/glean/src/main/java/mozilla/components/service/glean/Glean.kt#L42)
+`open class GleanInternalAPI` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/service/glean/src/main/java/mozilla/components/service/glean/Glean.kt#L44)
 
 ### Functions
 
 | Name | Summary |
 |---|---|
-| [enableTestingMode](enable-testing-mode.md) | `fun enableTestingMode(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Should be called from all users of the Glean testing API. |
 | [getUploadEnabled](get-upload-enabled.md) | `fun getUploadEnabled(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Get whether or not Glean is allowed to record and upload data. |
 | [handleBackgroundEvent](handle-background-event.md) | `fun handleBackgroundEvent(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Handle the background event and send the appropriate pings. |
 | [initialize](initialize.md) | `fun initialize(applicationContext: <ERROR CLASS>, configuration: `[`Configuration`](../../mozilla.components.service.glean.config/-configuration/index.md)` = Configuration()): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Initialize Glean. |

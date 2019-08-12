@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.feature.media.MockMedia
 import mozilla.components.feature.media.R
 import mozilla.components.feature.media.state.MediaState
 import mozilla.components.support.test.mock
@@ -31,7 +32,7 @@ class MediaNotificationTest {
             ))
 
         val notification = MediaNotification(testContext)
-            .create(state)
+            .create(state, mock())
 
         assertEquals("https://www.mozilla.org", notification.text)
         assertEquals("Mozilla", notification.title)
@@ -50,7 +51,7 @@ class MediaNotificationTest {
             ))
 
         val notification = MediaNotification(testContext)
-            .create(state)
+            .create(state, mock())
 
         assertEquals("https://www.mozilla.org", notification.text)
         assertEquals("Mozilla", notification.title)
@@ -65,7 +66,7 @@ class MediaNotificationTest {
         val state = MediaState.None
 
         MediaNotification(testContext)
-            .create(state)
+            .create(state, mock())
     }
 
     @Test
@@ -77,23 +78,13 @@ class MediaNotificationTest {
             ))
 
         val notification = MediaNotification(testContext)
-            .create(state)
+            .create(state, mock())
 
         assertEquals("https://www.mozilla.org", notification.text)
         assertEquals("https://www.mozilla.org", notification.title)
 
         assertEquals(R.drawable.mozac_feature_media_playing, notification.iconResource)
     }
-}
-
-internal class MockMedia(
-    initialState: PlaybackState
-) : Media() {
-    init {
-        playbackState = initialState
-    }
-
-    override val controller: Controller = mock()
 }
 
 private val Notification.text: String?

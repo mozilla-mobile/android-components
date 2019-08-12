@@ -2,6 +2,7 @@
 
 [![Task Status](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/badge.svg)](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/latest)
 [![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
+[![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/19637)
 
 _A collection of Android libraries to build browsers or browser-like applications._
 
@@ -130,6 +131,8 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Search**](components/feature/search/README.md) - A component that connects an (concept) engine implementation with the browser search module.
 
+* 🔴 [**SendTab**](components/feature/sendtab/README.md) - A component for sending tabs to other devices with a registered FxA Account.
+
 * ⚪ [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session and storage modules.
 
 * 🔴 [**Sync**](components/feature/sync/README.md) -A component that provides synchronization orchestration for groups of (concept) SyncableStore objects.
@@ -147,6 +150,8 @@ _Combined components to implement feature-specific use cases._
 * ⚪ [**Find In Page**](components/feature/findinpage/README.md) - A component that provides an UI widget for [find in page functionality](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links).
 
 * 🔴 [**Site Permissions**](components/feature/sitepermissions/README.md) - A feature for showing site permission request prompts.
+
+* 🔴 [**Web Notifications**](components/feature/webnotifications/README.md) - A component for displaying web notifications.
 
 ## UI
 

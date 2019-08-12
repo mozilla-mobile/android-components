@@ -22,6 +22,8 @@ class LegacySessionManager(
     val engine: Engine,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
 ) : Observable<SessionManager.Observer> by delegate {
+    // It's important that any access to `values` is synchronized;
+    @GuardedBy("values")
     private val values = mutableListOf<Session>()
 
     @GuardedBy("values")
@@ -140,7 +142,7 @@ class LegacySessionManager(
         addInternal(session, selected, engineSession, parent = parent, viaRestore = false)
     }
 
-    @Suppress("LongParameterList", "ComplexMethod", "LongMethod")
+    @Suppress("LongParameterList", "ComplexMethod")
     private fun addInternal(
         session: Session,
         selected: Boolean = false,
@@ -429,7 +431,6 @@ class LegacySessionManager(
      *
      * Its implementation is synchronized with the behavior in `TabListReducer` of the `browser-state` component.
      */
-    @Suppress("LongMethod") // Yes, this method is pretty long. I hope we can delete it soon.
     private fun findNearbySession(index: Int, predicate: (Session) -> Boolean): Int {
         // Okay, this is a bit stupid and complex. This implementation intends to implement the same behavior we use in
         // BrowserStore - which is operating on a list without custom tabs. Since LegacySessionManager uses a list with
@@ -523,7 +524,9 @@ class LegacySessionManager(
      * Finds and returns the session with the given id. Returns null if no matching session could be
      * found.
      */
-    fun findSessionById(id: String): Session? = values.find { session -> session.id == id }
+    fun findSessionById(id: String): Session? = synchronized(values) {
+        values.find { session -> session.id == id }
+    }
 
     /**
      * Informs this [SessionManager] that the OS is in low memory condition so it

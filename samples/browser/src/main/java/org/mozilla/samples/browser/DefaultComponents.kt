@@ -16,6 +16,7 @@ import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.BrowserMenuCheckbox
 import mozilla.components.browser.menu.item.BrowserMenuDivider
+import mozilla.components.browser.menu.item.BrowserMenuHighlightableItem
 import mozilla.components.browser.menu.item.BrowserMenuImageText
 import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
@@ -29,9 +30,11 @@ import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.customtabs.CustomTabIntentProcessor
 import mozilla.components.feature.intent.TabIntentProcessor
+import mozilla.components.feature.media.MediaFeature
 import mozilla.components.feature.media.RecordingDevicesNotificationFeature
-import mozilla.components.feature.media.notification.MediaNotificationFeature
 import mozilla.components.feature.media.state.MediaStateMachine
+import mozilla.components.feature.pwa.ManifestStorage
+import mozilla.components.feature.pwa.intent.WebAppIntentProcessor
 import mozilla.components.feature.pwa.WebAppUseCases
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.HistoryDelegate
@@ -87,12 +90,11 @@ open class DefaultComponents(private val applicationContext: Context) {
 
             RecordingDevicesNotificationFeature(applicationContext, sessionManager = this)
                 .enable()
-            val stateMachine = MediaStateMachine(sessionManager = this)
 
-            MediaNotificationFeature(applicationContext, stateMachine)
+            MediaFeature(applicationContext)
                 .enable()
 
-            stateMachine.start()
+            MediaStateMachine.start(this)
         }
     }
 
@@ -119,6 +121,9 @@ open class DefaultComponents(private val applicationContext: Context) {
     val customTabIntentProcessor by lazy {
         CustomTabIntentProcessor(sessionManager, sessionUseCases.loadUrl, applicationContext.resources)
     }
+    val webAppIntentProcessor by lazy {
+        WebAppIntentProcessor(sessionManager, sessionUseCases.loadUrl, ManifestStorage(applicationContext))
+    }
 
     // Menu
     val menuBuilder by lazy { BrowserMenuBuilder(menuItems) }
@@ -126,6 +131,12 @@ open class DefaultComponents(private val applicationContext: Context) {
     private val menuItems by lazy {
         val items = mutableListOf(
             menuToolbar,
+                BrowserMenuHighlightableItem("Highlight", R.drawable.mozac_ic_share, android.R.color.black, highlight =
+                BrowserMenuHighlightableItem.Highlight(
+                    R.drawable.mozac_ic_stop, R.drawable.background_with_ripple, android.R.color.holo_green_dark
+                )) {
+                    Toast.makeText(applicationContext, "Highlight", Toast.LENGTH_SHORT).show()
+                },
             BrowserMenuImageText("Share", R.drawable.mozac_ic_share, android.R.color.black) {
                 Toast.makeText(applicationContext, "Share", Toast.LENGTH_SHORT).show()
             },

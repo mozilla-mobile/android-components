@@ -36,6 +36,11 @@ import org.mozilla.samples.browser.downloads.DownloadService
 import org.mozilla.samples.browser.ext.components
 import org.mozilla.samples.browser.integration.FindInPageIntegration
 
+/**
+ * Base fragment extended by [BrowserFragment] and [ExternalAppBrowserFragment].
+ * This class only contains shared code focused on the main browsing content.
+ * UI code specific to the app or to custom tabs can be found in the subclasses.
+ */
 abstract class BaseBrowserFragment : Fragment(), BackHandler {
     private val sessionFeature = ViewBoundFeatureWrapper<SessionFeature>()
     private val toolbarFeature = ViewBoundFeatureWrapper<ToolbarFeature>()
@@ -139,7 +144,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             owner = this,
             view = layout)
 
-        val windowFeature = WindowFeature(components.engine, components.sessionManager)
+        val windowFeature = WindowFeature(components.sessionManager)
 
         sitePermissionsFeature.set(
             feature = SitePermissionsFeature(
@@ -172,7 +177,8 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
                 context = requireContext(),
                 sessionManager = components.sessionManager,
                 sessionId = sessionId,
-                fragmentManager = requireFragmentManager()
+                fragmentManager = requireFragmentManager(),
+                interceptLinkClicks = true
             ),
             owner = this,
             view = layout

@@ -21,7 +21,7 @@ import mozilla.components.browser.toolbar.R
 import mozilla.components.browser.toolbar.facts.emitOpenMenuFact
 
 @Suppress("ViewConstructor") // This view is only instantiated in code
-internal class MenuButton(
+class MenuButton(
     context: Context,
     private val parent: View
 ) : FrameLayout(context) {

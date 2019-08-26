@@ -4,6 +4,7 @@
 
 package mozilla.components.service.fxa
 
+import android.webkit.URLUtil
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,11 +14,13 @@ import kotlinx.coroutines.plus
 import mozilla.appservices.fxaclient.FirefoxAccount as InternalFxAcct
 
 import mozilla.components.concept.sync.AccessTokenInfo
+import mozilla.components.concept.sync.AuthFlowUrl
 import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.StatePersistenceCallback
 import mozilla.components.support.base.log.logger.Logger
+import java.net.URL
 
 typealias PersistCallback = mozilla.appservices.fxaclient.FirefoxAccount.PersistCallback
 
@@ -104,18 +107,24 @@ class FirefoxAccount internal constructor(
      * @param scopes List of OAuth scopes for which the client wants access
      * @return Deferred<String> that resolves to the flow URL when complete
      */
-    override fun beginOAuthFlowAsync(scopes: Set<String>): Deferred<String?> {
+    override fun beginOAuthFlowAsync(scopes: Set<String>): Deferred<AuthFlowUrl?> {
         return scope.async {
             handleFxaExceptions(logger, "begin oauth flow", { null }) {
-                inner.beginOAuthFlow(scopes.toTypedArray())
+                val url = inner.beginOAuthFlow(scopes.toTypedArray())
+                val state = URL(url).queryParam("state")!!
+                AuthFlowUrl(state, url)
+//                AuthFlowUrl(state, "$url&context=oauth_webchannel_v1")
             }
         }
     }
 
-    override fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>): Deferred<String?> {
+    override fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>): Deferred<AuthFlowUrl?> {
         return scope.async {
             handleFxaExceptions(logger, "begin oauth pairing flow", { null }) {
-                inner.beginPairingFlow(pairingUrl, scopes.toTypedArray())
+                val url = inner.beginPairingFlow(pairingUrl, scopes.toTypedArray())
+                val state = URL(url).queryParam("state")!!
+                AuthFlowUrl(state, url)
+//                AuthFlowUrl(state, "$url&context=oauth_webchannel_v1")
             }
         }
     }

@@ -21,12 +21,17 @@ enum class AuthExceptionType(val msg: String) {
 class AuthException(type: AuthExceptionType, cause: Exception? = null) : Throwable(type.msg, cause)
 
 /**
+ * An object that represents a login flow initiated by [OAuthAccount].
+ */
+data class AuthFlowUrl(val state: String, val url: String)
+
+/**
  * Facilitates testing consumers of FirefoxAccount.
  */
 @SuppressWarnings("TooManyFunctions")
 interface OAuthAccount : AutoCloseable {
-    fun beginOAuthFlowAsync(scopes: Set<String>): Deferred<String?>
-    fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>): Deferred<String?>
+    fun beginOAuthFlowAsync(scopes: Set<String>): Deferred<AuthFlowUrl?>
+    fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>): Deferred<AuthFlowUrl?>
     fun getProfileAsync(ignoreCache: Boolean): Deferred<Profile?>
     fun getProfileAsync(): Deferred<Profile?>
     fun completeOAuthFlowAsync(code: String, state: String): Deferred<Boolean>

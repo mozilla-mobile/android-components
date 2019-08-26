@@ -14,8 +14,10 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.webextension.MessageHandler
 import mozilla.components.concept.engine.webextension.Port
 import mozilla.components.concept.engine.webextension.WebExtension
+import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.log.logger.Logger
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.WeakHashMap
 
@@ -25,32 +27,28 @@ import java.util.WeakHashMap
  * needs to be installed prior to use (see [WebChannelViewFeature.install]).
  *
  * @property context a reference to the context.
- * @property engine a reference to the application's browser engine.
- * @property sessionManager a reference to the application's [SessionManager].
+ * @property engine a reference to application's browser engine.
+ * @property sessionManager a reference to application's [SessionManager].
+ * @property accountManager a reference to application's [FxaAccountManager].
  */
 @Suppress("TooManyFunctions")
 class WebChannelFeature(
     private val context: Context,
+    private val customTabSessionId: String?,
     private val engine: Engine,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val accountManager: FxaAccountManager
 ) : SelectionAwareSessionObserver(sessionManager), LifecycleAwareFeature {
 
     override fun start() {
-        observeSelected()
+        // Runs observeSelected (if we're not in a custom tab) or observeFixed (if we are).
+        observeIdOrSelected(customTabSessionId)
 
         registerContentMessageHandler(activeSession)
 
-        if (WebChannelFeature.installedWebExt == null) {
-            WebChannelFeature.install(engine)
+        if (installedWebExt == null) {
+            install(engine)
         }
-    }
-
-    override fun stop() {
-        super.stop()
-    }
-
-    override fun onSessionSelected(session: Session) {
-        super.onSessionSelected(session)
     }
 
     override fun onSessionAdded(session: Session) {
@@ -62,7 +60,8 @@ class WebChannelFeature(
     }
 
     private class WebChannelViewContentMessageHandler(
-        private val engineSession: EngineSession
+        private val engineSession: EngineSession,
+        private val accountManager: FxaAccountManager
     ) : MessageHandler {
         override fun onPortConnected(port: Port) {
             ports[port.engineSession] = port
@@ -82,7 +81,8 @@ class WebChannelFeature(
                 val messageId = messageObj.optString("messageId", "")
                 when (command) {
                     COMMAND_CAN_LINK_ACCOUNT -> sendLinkResponse(messageId, engineSession)
-                    COMMAND_OAUTH_LOGIN -> receiveLogin(messageObj)
+                    COMMAND_STATUS -> sendStatusResponse(messageId, engineSession)
+                    COMMAND_OAUTH_LOGIN -> receiveLogin(accountManager, messageObj)
                 }
             }
         }
@@ -94,7 +94,7 @@ class WebChannelFeature(
         }
 
         val engineSession = sessionManager.getOrCreateEngineSession(session)
-        val messageHandler = WebChannelViewContentMessageHandler(engineSession)
+        val messageHandler = WebChannelViewContentMessageHandler(engineSession, accountManager)
         registerMessageHandler(engineSession, messageHandler)
     }
 
@@ -110,6 +110,7 @@ class WebChannelFeature(
         internal const val CHANNEL_ID = "account_updates"
         internal const val COMMAND_CAN_LINK_ACCOUNT = "fxaccounts:can_link_account"
         internal const val COMMAND_OAUTH_LOGIN = "fxaccounts:oauth_login"
+        internal const val COMMAND_STATUS = "fxaccounts:fxa_status"
 
         @Volatile
         internal var installedWebExt: WebExtension? = null
@@ -151,6 +152,9 @@ class WebChannelFeature(
             val statusData = JSONObject()
             statusData.put("ok", true)
 
+            // TODO don't allow linking if we're logged in already? This is requested after user
+            // entered their credentials.
+
             val statusMessage = JSONObject()
             statusMessage.put("messageId", messageId)
             statusMessage.put("command", COMMAND_CAN_LINK_ACCOUNT)
@@ -163,8 +167,43 @@ class WebChannelFeature(
             sendContentMessage(status, engineSession)
         }
 
-        private fun receiveLogin(messageObj: JSONObject) {
-            logger.info(messageObj.toString())
+        private fun sendStatusResponse(messageId: String, engineSession: EngineSession) {
+            val statusData = JSONObject()
+            val capabilities = JSONObject()
+            val engines = JSONArray()
+            // TODO fill this out from accountManager's syncConfig?
+            engines.put("creditcards")
+            capabilities.put("engines", engines)
+            statusData.put("capabilities", capabilities)
+
+            // For signIn and signUp, this is fine.
+            statusData.put("signedInUser", null)
+
+            // In the future, we'll fill this out. Currently, we don't have a sessionToken exposed.
+//            val signedInUser = JSONObject()
+//            signedInUser.put("email", accountManager.accountProfile()!!.email)
+//            signedInUser.put("uid", accountManager.accountProfile()!!.uid)
+//            signedInUser.put("verified", true)
+//            signedInUser.put("sessionToken", accountManager.accountProfile()!!.)
+
+            val statusMessage = JSONObject()
+            statusMessage.put("messageId", messageId)
+            statusMessage.put("command", COMMAND_STATUS)
+            statusMessage.put("data", statusData)
+
+            val status = JSONObject()
+            status.put("id", CHANNEL_ID)
+            status.put("message", statusMessage)
+
+            sendContentMessage(status, engineSession)
+        }
+
+        private fun receiveLogin(accountManager: FxaAccountManager, messageObj: JSONObject) {
+            val data = messageObj.getJSONObject("data")
+            val code = data.getString("code")
+            val state = data.getString("state")
+
+            accountManager.finishAuthenticationAsync(code, state)
         }
 
         private fun sendContentMessage(msg: Any, engineSession: EngineSession) {

@@ -8,6 +8,7 @@ import mozilla.components.concept.sync.AuthException
 import mozilla.components.concept.sync.AuthExceptionType
 import mozilla.components.service.fxa.manager.authErrorRegistry
 import mozilla.components.support.base.log.logger.Logger
+import java.net.URL
 
 /**
  * Runs a provided lambda, and if that throws non-panic, non-auth FxA exception, runs [handleErrorBlock].
@@ -64,4 +65,17 @@ fun handleFxaExceptions(logger: Logger, operation: String, block: () -> Unit): B
         block()
         true
     })
+}
+
+fun URL.queryParam(param: String): String? {
+    return this.query
+        .split("&")
+        .asSequence()
+        .mapNotNull {
+            val pair = it.split("=")
+            if (pair.size != 2) null else pair[0] to pair[1]
+        }
+        .find {
+            it.first == param
+        }?.second
 }

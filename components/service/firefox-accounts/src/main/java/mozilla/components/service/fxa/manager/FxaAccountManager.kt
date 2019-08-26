@@ -19,6 +19,7 @@ import kotlinx.coroutines.cancel
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthException
 import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.AuthFlowUrl
 import mozilla.components.concept.sync.DeviceEvent
 import mozilla.components.concept.sync.DeviceEventsObserver
 import mozilla.components.concept.sync.OAuthAccount
@@ -34,6 +35,7 @@ import mozilla.components.service.fxa.SharedPrefAccountStorage
 import mozilla.components.service.fxa.SyncAuthInfoCache
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.asSyncAuthInfo
+import mozilla.components.service.fxa.queryParam
 import mozilla.components.service.fxa.sharing.AccountSharing
 import mozilla.components.service.fxa.sharing.ShareableAccount
 import mozilla.components.service.fxa.sync.SyncManager
@@ -46,6 +48,7 @@ import java.io.Closeable
 import java.lang.Exception
 import java.lang.IllegalArgumentException
 import java.lang.ref.WeakReference
+import java.net.URL
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
@@ -72,7 +75,7 @@ private interface OAuthObserver {
      * Account manager is requesting for an OAUTH flow to begin.
      * @param authUrl Starting point for the OAUTH flow.
      */
-    fun onBeginOAuthFlow(authUrl: String)
+    fun onBeginOAuthFlow(authFlowUrl: AuthFlowUrl)
 
     /**
      * Account manager encountered an error during authentication.
@@ -111,6 +114,9 @@ open class FxaAccountManager(
 ) : Closeable, Observable<AccountObserver> by ObserverRegistry() {
     private val logger = Logger("FirefoxAccountStateMachine")
 
+    @Volatile
+    private var latestAuthState: String? = null
+
     // This is used during 'beginAuthenticationAsync' call, which returns a Deferred<String>.
     // 'deferredAuthUrl' is set on this observer and returned, and resolved once state machine goes
     // through its motions. This allows us to keep around only one observer in the registry.
@@ -119,8 +125,8 @@ open class FxaAccountManager(
         @Volatile
         lateinit var deferredAuthUrl: CompletableDeferred<String?>
 
-        override fun onBeginOAuthFlow(authUrl: String) {
-            deferredAuthUrl.complete(authUrl)
+        override fun onBeginOAuthFlow(authFlowUrl: AuthFlowUrl) {
+            deferredAuthUrl.complete(authFlowUrl.url)
         }
 
         override fun onError() {
@@ -410,7 +416,18 @@ open class FxaAccountManager(
     }
 
     fun finishAuthenticationAsync(code: String, state: String): Deferred<Unit> {
-        return processQueueAsync(Event.Authenticated(code, state))
+        return when {
+            latestAuthState == null -> {
+                logger.warn("Trying to finish authentication that was never started.")
+                CompletableDeferred(Unit)
+            }
+            state != latestAuthState -> {
+                logger.warn("Trying to finish authentication for an invalid auth state; ignoring.")
+                CompletableDeferred(Unit)
+            }
+            state == latestAuthState -> processQueueAsync(Event.Authenticated(code, state))
+            else -> throw IllegalStateException("Unexpected finishAuthenticationAsync state")
+        }
     }
 
     fun logoutAsync(): Deferred<Unit> {
@@ -538,12 +555,13 @@ open class FxaAccountManager(
                         }
                     }
                     is Event.Pair -> {
-                        val url = account.beginPairingFlowAsync(via.pairingUrl, scopes).await()
-                        if (url == null) {
+                        val authFlowUrl = account.beginPairingFlowAsync(via.pairingUrl, scopes).await()
+                        if (authFlowUrl == null) {
                             oauthObservers.notifyObservers { onError() }
                             return Event.FailedToAuthenticate
                         }
-                        oauthObservers.notifyObservers { onBeginOAuthFlow(url) }
+                        latestAuthState = authFlowUrl.state
+                        oauthObservers.notifyObservers { onBeginOAuthFlow(authFlowUrl) }
                         null
                     }
                     else -> null
@@ -555,7 +573,13 @@ open class FxaAccountManager(
                         logger.info("Registering persistence callback")
                         account.registerPersistenceCallback(statePersistenceCallback)
 
+                        // TODO do not ignore this failure.
                         logger.info("Completing oauth flow")
+
+                        // Reasons this can fail:
+                        // - network errors
+                        // - unknown auth state
+                        //  -- authenticating via web-content; we didn't beginOAuthFlowAsync
                         account.completeOAuthFlowAsync(via.code, via.state).await()
 
                         logger.info("Registering device constellation observer")
@@ -738,12 +762,13 @@ open class FxaAccountManager(
     }
 
     private suspend fun doAuthenticate(): Event? {
-        val url = account.beginOAuthFlowAsync(scopes).await()
-        if (url == null) {
+        val authFlowUrl = account.beginOAuthFlowAsync(scopes).await()
+        if (authFlowUrl == null) {
             oauthObservers.notifyObservers { onError() }
             return Event.FailedToAuthenticate
         }
-        oauthObservers.notifyObservers { onBeginOAuthFlow(url) }
+        latestAuthState = authFlowUrl.state
+        oauthObservers.notifyObservers { onBeginOAuthFlow(authFlowUrl) }
         return null
     }
 

@@ -16,20 +16,27 @@ internal interface DeclinedEnginesObserver {
 }
 
 /**
- * TODO DOCS
+ * Handles the state related to which engines should be syncable.
+ *
+ * //TODO: define if this class should be internal
  */
 class SyncEngineManager(
     val context: Context
 ) : DeclinedEnginesObserver, Observable<DeclinedEnginesObserver> by ObserverRegistry() {
     companion object {
-        const val SYNC_ENGINES_KEY = "syncEngines"
+         private const val SYNC_ENGINES_KEY = "syncEngines"
     }
 
     init {
         declinedEnginesRegistry.register(this)
     }
 
-    fun getStatus(): Map<Engine, Boolean?> {
+    /**
+     * Returns the status of each engine.
+     * @return A [Map] of [Engine] and [Boolean] that indicates when a given [Engine] is active
+     * to sync. True indicates is active otherwise false.
+     */
+    fun getEnginesStatus(): Map<Engine, Boolean?> {
         val resultMap = mutableMapOf<Engine, Boolean?>()
         Engine.values().forEach {
             // TODO think through changes in the Engine list... default value? initial value?
@@ -46,12 +53,15 @@ class SyncEngineManager(
         return resultMap
     }
 
+    //TODO Should this be public as this could cause that any consumer of this object
+    // can update the status of the engines an alternative could be
+    // that we provide this information through out [FxaAccountManager]
     fun setStatus(engine: Engine, status: Boolean) {
         storage().edit().putBoolean(engine.name, status).apply() // todo consider commit()
     }
 
     fun clear(){
-        storage().edit().clear()
+        storage().edit().clear().apply()
     }
 
     override fun onUpdatedDeclinedEngines(

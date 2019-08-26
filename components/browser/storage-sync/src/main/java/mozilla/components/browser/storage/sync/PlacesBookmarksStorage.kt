@@ -186,7 +186,7 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
     }
 
     /**
-     * TODO
+     * Returns a raw handle used to reference the underneath database
      */
     override fun getHandle(): Long {
         return places.getHandle()

@@ -42,12 +42,6 @@ data class SyncAuthInfo(
     val tokenServerUrl: String
 )
 
-// TODO consider providing a set of known syncable enums...
-// HISTORY
-// BOOKMARKS
-// here or in concept-storage
-// but what about logins? they don't live in
-
 /**
  * Describes a "sync" entry point for a storage layer.
  */

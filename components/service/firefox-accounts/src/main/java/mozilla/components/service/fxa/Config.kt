@@ -42,6 +42,9 @@ data class SyncConfig(
     val syncPeriodInMinutes: Long? = null
 )
 
+/**
+ * Indicate which type of data the you want to sync.
+ */
 enum class Engine {
     History,
     Bookmarks,

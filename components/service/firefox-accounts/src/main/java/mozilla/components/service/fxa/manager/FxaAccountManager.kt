@@ -153,7 +153,7 @@ open class FxaAccountManager(
 
     init {
         authErrorRegistry.register(fxaAuthErrorObserver)
-        SyncEngineManager(context).register(syncEngineObserver)
+        syncEnginesManager.register(syncEngineObserver)
     }
 
     private class FxaStatePersistenceCallback(
@@ -425,8 +425,8 @@ open class FxaAccountManager(
     }
 
     enum class LoginAction {
-        Signin,
-        Signup
+        SIGN_IN,
+        SIGN_UP
     }
 
 
@@ -442,7 +442,7 @@ open class FxaAccountManager(
     /**
      * TODO naming and docs
      */
-    fun authenticated(loginData: LoginData): Deferred<Unit> {
+    fun authenticateAsync(loginData: LoginData): Deferred<Unit> {
         // decide if we want to have a separate event for sign-in/sign-up (separate current "Authenticated"),
         // and let the state machine deal with the `declinedSyncEngines` list,
         // OR

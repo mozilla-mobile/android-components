@@ -383,7 +383,7 @@ class WorkManagerSyncWorker(
 
         // On first sync the native side is expecting an empty map,
         // we are filtering to match this behavior.
-        SyncEngineManager(context).getStatus()
+        SyncEngineManager(context).getEnginesStatus()
                 .filter { (_, value) -> value != null }
                 .forEach {
                     it.key.toNativeEngine() to it.value

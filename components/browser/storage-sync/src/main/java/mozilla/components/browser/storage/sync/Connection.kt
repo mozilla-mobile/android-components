@@ -32,7 +32,7 @@ const val MAX_FAILURE_REASON_LENGTH = 100
  */
 internal interface Connection : Closeable {
     /**
-     * TODO
+     * Returns a raw handle used to reference the underneath database.
      */
     fun getHandle(): Long
 

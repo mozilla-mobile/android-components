@@ -69,6 +69,6 @@ dependencies {
     androidTestImplementation project(':tooling-fetch-tests')
 }
 
-apply from: '../../../components/service/glean/scripts/sdk_generator.gradle'
+apply plugin: 'mozilla.components.service.glean-gradle-plugin'
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

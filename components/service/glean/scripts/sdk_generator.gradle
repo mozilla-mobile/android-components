@@ -2,6 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**********************************************************************
+
+  THIS FILE IS OBSOLETE AND UNMAINTAINED.
+
+  The functionality in this file has moved to a proper Gradle plugin
+  in components/service/glean-gradle-plugin.
+
+  However, this file must remain on the master branch indefinitely so that
+  Glean-using applications can continue to build historical revisions from
+  prior to the existence of the plugin.
+
+**********************************************************************/
+
 /*
  * IMPORTANT DEVELOPER'S NOTE:
  *

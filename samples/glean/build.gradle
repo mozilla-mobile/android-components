@@ -57,4 +57,4 @@ dependencies {
     androidTestImplementation Dependencies.testing_mockwebserver
 }
 
-apply from: '../../components/service/glean/scripts/sdk_generator.gradle'
+apply plugin: 'mozilla.components.service.glean-gradle-plugin'

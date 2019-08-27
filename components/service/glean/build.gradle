@@ -71,4 +71,4 @@ dependencies {
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)
 
-apply from: './scripts/sdk_generator.gradle'
+apply plugin: 'mozilla.components.service.glean-gradle-plugin'

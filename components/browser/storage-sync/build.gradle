@@ -77,4 +77,4 @@ apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)
 
 ext.gleanGenerateMarkdownDocs = true
-apply from: '../../service/glean/scripts/sdk_generator.gradle'
+apply plugin: 'mozilla.components.service.glean-gradle-plugin'

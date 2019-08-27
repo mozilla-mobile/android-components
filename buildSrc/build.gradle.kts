@@ -4,13 +4,25 @@
 
 plugins {
     `kotlin-dsl`
+    java
+    `java-gradle-plugin`
 }
 
 repositories {
     jcenter()
 }
 
+gradlePlugin {
+    plugins {
+        create("gleanPlugins") {
+            id = "mozilla.components.service.glean-gradle-plugin"
+            implementationClass = "GleanPlugin"
+        }
+    }
+}
+
 dependencies {
     compile("com.squareup.okhttp3:okhttp:3.12.1")
     compile("com.squareup.okio:okio:1.17.2@jar")
+    compileOnly(gradleApi())
 }

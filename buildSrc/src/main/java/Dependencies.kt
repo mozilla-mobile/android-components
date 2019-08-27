@@ -31,6 +31,8 @@ object Versions {
 
     const val material = "1.0.0"
 
+    const val amazon_device_messaging = "1.0.1"
+
     object AndroidX {
         const val annotation = "1.0.2"
         const val appcompat = "1.0.0"

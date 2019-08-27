@@ -13,6 +13,8 @@ android {
     defaultConfig {
         minSdkVersion config.minSdkVersion
         targetSdkVersion config.targetSdkVersion
+
+        buildConfigField("String", "AMAZON_DEVICE_MESSAGING_VERSION", "\"" + Versions.amazon_device_messaging + "\"")
     }
 
     buildTypes {
@@ -24,8 +26,8 @@ android {
 }
 
 dependencies {
-    compileOnly files('libs/amazon-device-messaging-1.0.1.jar')
-    testImplementation files('libs/amazon-device-messaging-1.0.1.jar')
+    compileOnly files('libs/amazon-device-messaging-' + Versions.amazon_device_messaging + '.jar')
+    testImplementation files('libs/amazon-device-messaging-' + Versions.amazon_device_messaging + '.jar')
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.androidx_annotation

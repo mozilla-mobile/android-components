@@ -175,10 +175,11 @@ subprocess.check_call([
         }
     }
 
-    void apply(Project project) {
-        // This installs a Miniconda3 environment into the gradle user home directory
-        // so that it will be shared between all libraries that use Glean.  This is
-        // important because it is approximately 300MB in installed size.
+    File installPythonEnvironment(Project project) {
+        // This sets up tasks to install a Miniconda3 environment. It installs
+        // into the gradle user home directory so that it will be shared between
+        // all libraries that use Glean. This is important because it is
+        // approximately 300MB in installed size.
         File condaBootstrapDir = new File(
             project.getGradle().gradleUserHomeDir,
             "glean/bootstrap-${MINICONDA_VERSION}"
@@ -229,7 +230,7 @@ subprocess.check_call([
             pipInstallOptions = "--trusted-host pypi.python.org --no-cache-dir"
 
             // Setup a miniconda environment. conda is used because it works
-            // non-interactively on Windows, unlike the other options
+            // non-interactively on Windows, unlike the standard Python installers
             conda "Miniconda3", "Miniconda3-${MINICONDA_VERSION}", "64", ["glean_parser==${GLEAN_PARSER_VERSION}"]
         }
 
@@ -245,6 +246,10 @@ subprocess.check_call([
             delete condaBootstrapDir
         }
 
+        return condaDir
+    }
+
+    void extractMetricsFromAAR(Project project) {
         // Support for extracting metrics.yaml from artifact files.
 
         // This is how to extract `metrics.yaml` and `pings.yaml` from AAR files: an "artifact transform"
@@ -277,6 +282,12 @@ subprocess.check_call([
                 }
             }
         }
+    }
+
+    void apply(Project project) {
+        File condaDir = installPythonEnvironment(project)
+
+        extractMetricsFromAAR(project)
 
         if (project.android.hasProperty('applicationVariants')) {
             project.android.applicationVariants.all(generateMetricsAPI(project, condaDir))

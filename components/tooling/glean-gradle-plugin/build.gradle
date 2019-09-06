@@ -28,8 +28,8 @@ publishing {
 
                 developers {
                     developer {
-                        name = 'Mozilla Android Components Team'
-                        email = 'android-components@lists.mozilla.org'
+                        name = 'Mozilla Glean Team'
+                        email = 'glean-team@mozilla.com'
                     }
                 }
 

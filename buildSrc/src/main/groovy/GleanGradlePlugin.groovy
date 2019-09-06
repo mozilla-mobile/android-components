@@ -1,1 +1,1 @@
-../../../../components/service/glean-gradle-plugin/src/main/groovy/mozilla/components/service/glean-gradle-plugin/GleanGradlePlugin.groovy
+../../../../components/tooling/glean-gradle-plugin/src/main/groovy/mozilla/components/tooling/glean-gradle-plugin/GleanGradlePlugin.groovy

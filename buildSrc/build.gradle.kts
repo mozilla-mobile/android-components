@@ -15,7 +15,7 @@ repositories {
 gradlePlugin {
     plugins {
         create("gleanPlugins") {
-            id = "mozilla.components.service.glean-gradle-plugin"
+            id = "mozilla.components.tooling.glean-gradle-plugin"
             implementationClass = "GleanPlugin"
         }
     }

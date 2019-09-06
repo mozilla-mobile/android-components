@@ -228,10 +228,6 @@ projects:
     path: components/service/glean
     description: 'A client-side telemetry SDK for collecting metrics and sending them to the Mozilla telemetry service'
     publish: true
-  service-glean-gradle-plugin:
-    path: components/service/glean-gradle-plugin
-    description: 'A Gradle plugin to generate code for Glean metrics'
-    publish: true
   service-pocket:
     path: components/service/pocket
     description: 'A library to communicate with the Pocket API'
@@ -356,3 +352,7 @@ projects:
     path: samples/dataprotect
     description: 'An app demoing how to use the Dataprotect component to load and store encrypted data in SharedPreferences.'
     publish: false
+  tooling-glean-gradle-plugin:
+    path: components/tooling/glean-gradle-plugin
+    description: 'A Gradle plugin to generate code for Glean metrics'
+    publish: true

@@ -26,9 +26,13 @@
  * of android-components rather than tracking snapshots.)
  */
 
-import org.apache.tools.ant.taskdefs.condition.Os
 import groovy.json.JsonOutput
+import java.util.logging.Logger
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.internal.artifacts.ArtifactAttributes
+
+Logger logger = Logger.getLogger("Glean sdk_generator.gradle")
+logger.warning("The Glean sdk_generator.gradle script is deprecated. Use the Glean Gradle plugin instead")
 
 // This installs a Miniconda3 environment into the gradle user home directory
 // so that it will be shared between all libraries that use Glean.  This is

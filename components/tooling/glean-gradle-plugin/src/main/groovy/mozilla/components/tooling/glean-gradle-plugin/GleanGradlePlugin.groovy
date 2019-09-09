@@ -29,10 +29,12 @@ class GleanMetricsYamlTransform extends ArtifactTransform {
 
 class GleanPlugin implements Plugin<Project> {
     // The version of glean_parser to install from PyPI.
-    String GLEAN_PARSER_VERSION = "1.3.0"
+    private String GLEAN_PARSER_VERSION = "1.4.2"
     // The version of Miniconda is explicitly specified.
     // Miniconda3-4.5.12 is known to not work on Windows.
-    String MINICONDA_VERSION = "4.5.11"
+    private String MINICONDA_VERSION = "4.5.11"
+
+    private String TASK_NAME_PREFIX = "generateMetricsSourceFor"
 
     /* This script runs a given Python module as a "main" module, like
      * `python -m module`. However, it first checks that the installed
@@ -70,6 +72,15 @@ subprocess.check_call([
 ] + sys.argv[3:])
 """
 
+    File getPythonCommand(File condaDir) {
+        // Note that the command line is OS dependant: on linux/mac is Miniconda3/bin/python.
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            return new File(condaDir, "python")
+        }
+
+        return new File(condaDir, "bin/python")
+    }
+
     /*
      * Generates the Glean metrics API for a project.
      */
@@ -84,7 +95,7 @@ subprocess.check_call([
             def originalPackageName = buildConfigProvider.get().getBuildConfigPackageName()
 
             def fullNamespace = "${originalPackageName}.GleanMetrics"
-            def generateKotlinAPI = project.task("generateMetricsSourceFor${variant.name.capitalize()}", type: Exec) {
+            def generateKotlinAPI = project.task("${TASK_NAME_PREFIX}${variant.name.capitalize()}", type: Exec) {
                 description = "Generate the Kotlin code for the Metrics API"
 
                 if (project.ext.has("allowMetricsFromAAR")) {
@@ -100,12 +111,7 @@ subprocess.check_call([
                 outputs.dir sourceOutputDir
 
                 workingDir project.rootDir
-                // Note that the command line is OS dependant: on linux/mac is Miniconda3/bin/python.
-                if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-                    commandLine new File(condaDir, "python")
-                } else {
-                    commandLine new File(condaDir, "bin/python")
-                }
+                commandLine getPythonCommand(condaDir)
 
                 def gleanNamespace = "mozilla.components.service.glean"
                 if (project.ext.has("gleanNamespace")) {
@@ -173,6 +179,63 @@ subprocess.check_call([
                 variant.registerJavaGeneratingTask(generateKotlinAPI, new File(sourceOutputDir))
             }
         }
+    }
+
+    private Task generateGleanMetricsDocs
+
+    void generateMarkdownDocs(Project project, File condaDir) {
+        // Generate the Metrics docs, if requested.
+        if (project.ext.has("gleanGenerateMarkdownDocs")) {
+            this.generateGleanMetricsDocs = project.task("generateGleanMetricsDocs", type: Exec) {
+                description = "Generate the Markdown docs for the collected metrics"
+
+                def gleanDocsDirectory = "${project.projectDir}/docs"
+                if (project.ext.has("gleanDocsDirectory")) {
+                    gleanDocsDirectory = project.ext.get("gleanDocsDirectory")
+                }
+
+                outputs.dir gleanDocsDirectory
+                workingDir project.rootDir
+                commandLine getPythonCommand(condaDir)
+
+                args "-c"
+                args runPythonScript
+                args "glean_parser"
+                args GLEAN_PARSER_VERSION
+                args "translate"
+                args "-f"
+                args "markdown"
+                args "-o"
+                args gleanDocsDirectory
+                args "${project.projectDir}/metrics.yaml"
+                args "${project.projectDir}/pings.yaml"
+
+                doFirst {
+                    inputs.files.forEach { file ->
+                        project.logger.lifecycle("Glean SDK - generating docs for ${file.path} in ${gleanDocsDirectory}")
+                    }
+                }
+
+                // Only show the output if something went wrong.
+                ignoreExitValue = true
+                standardOutput = new ByteArrayOutputStream()
+                errorOutput = standardOutput
+                doLast {
+                    if (execResult.exitValue != 0) {
+                        throw new GradleException("Process '${commandLine}' finished with non-zero exit value ${execResult.exitValue}:\n\n${standardOutput.toString()}")
+                    }
+                }
+            }
+
+            // Attach the docs generation task to the code generation task, to make sure
+            // we generate docs, if we're asked for it.
+            project.tasks.whenTaskAdded { task ->
+                if (task.name.startsWith(TASK_NAME_PREFIX)) {
+                    task.dependsOn(this.generateGleanMetricsDocs)
+                }
+            }
+        }
+
     }
 
     File installPythonEnvironment(Project project) {
@@ -288,6 +351,8 @@ subprocess.check_call([
         File condaDir = installPythonEnvironment(project)
 
         extractMetricsFromAAR(project)
+
+        generateMarkdownDocs(project, condaDir)
 
         if (project.android.hasProperty('applicationVariants')) {
             project.android.applicationVariants.all(generateMetricsAPI(project, condaDir))

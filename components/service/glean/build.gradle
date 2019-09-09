@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import groovy.json.JsonOutput
+
 plugins {
     id "com.jetbrains.python.envs" version "0.0.26"
 }
@@ -72,3 +74,17 @@ apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)
 
 apply plugin: 'mozilla.components.tooling.glean-gradle-plugin'
+
+pluginManager.withPlugin('mozilla.components.tools.glean-gradle-plugin') {
+    android {
+        defaultConfig {
+            buildConfigField(
+                "String",
+                "GLEAN_MINICONDA_DIR",
+                // Carefully escape the string here so it will support `\` in
+                // Windows paths correctly.
+                JsonOutput.toJson(ext.gleanCondaDir.path)
+            )
+        }
+    }
+}

@@ -29,7 +29,7 @@ class GleanMetricsYamlTransform extends ArtifactTransform {
 
 class GleanPlugin implements Plugin<Project> {
     // The version of glean_parser to install from PyPI.
-    private String GLEAN_PARSER_VERSION = "1.4.2"
+    private String GLEAN_PARSER_VERSION = "1.5.1"
     // The version of Miniconda is explicitly specified.
     // Miniconda3-4.5.12 is known to not work on Windows.
     private String MINICONDA_VERSION = "4.5.11"

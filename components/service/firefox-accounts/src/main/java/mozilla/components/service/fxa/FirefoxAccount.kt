@@ -185,6 +185,13 @@ class FirefoxAccount internal constructor(
     }
 
     /**
+     * Get the account session token.
+     */
+    fun getSessionToken(): String {
+        return inner.getSessionToken()
+    }
+
+    /**
      * Tries to fetch an access token for the given scope.
      *
      * @param singleScope Single OAuth scope (no spaces) for which the client wants access

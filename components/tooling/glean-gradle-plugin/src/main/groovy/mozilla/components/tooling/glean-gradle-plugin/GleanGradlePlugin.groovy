@@ -252,20 +252,6 @@ subprocess.check_call([
             "Miniconda3"
         )
 
-        // Define the path to the Miniconda3 installation as a buildConfig variable so
-        // that tests that need to run JSON through our JSON schema can do so.
-        project.android {
-            defaultConfig {
-                buildConfigField(
-                    "String",
-                    "GLEAN_MINICONDA_DIR",
-                    // Carefully escape the string here so it will support `\` in
-                    // Windows paths correctly.
-                    JsonOutput.toJson(condaDir.path)
-                )
-            }
-        }
-
         // Even though we are installing the Miniconda environment to the gradle user
         // home directory, the gradle-python-envs plugin is hardcoded to download the
         // installer to the project's build directory. Doing so will fail if the

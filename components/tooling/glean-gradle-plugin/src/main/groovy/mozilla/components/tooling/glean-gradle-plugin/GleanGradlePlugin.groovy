@@ -82,9 +82,9 @@ subprocess.check_call([
     }
 
     /*
-     * Generates the Glean metrics API for a project.
+     * Adds tasks that generates the Glean metrics API for a project.
      */
-    def generateMetricsAPI(Project project, File condaDir) {
+    def setupGenerateMetricsAPITasks(Project project, File condaDir) {
         return { variant ->
             def sourceOutputDir = "${project.buildDir}/generated/source/glean/${variant.dirName}/kotlin"
             // Get the name of the package as if it were to be used in the R or BuildConfig
@@ -183,7 +183,7 @@ subprocess.check_call([
 
     private Task generateGleanMetricsDocs
 
-    void generateMarkdownDocs(Project project, File condaDir) {
+    void setupGenerateMarkdownDocsTasks(Project project, File condaDir) {
         // Generate the Metrics docs, if requested.
         if (project.ext.has("gleanGenerateMarkdownDocs")) {
             this.generateGleanMetricsDocs = project.task("generateGleanMetricsDocs", type: Exec) {
@@ -238,7 +238,7 @@ subprocess.check_call([
 
     }
 
-    File installPythonEnvironment(Project project) {
+    File setupPythonEnvironmentTasks(Project project) {
         // This sets up tasks to install a Miniconda3 environment. It installs
         // into the gradle user home directory so that it will be shared between
         // all libraries that use Glean. This is important because it is
@@ -312,7 +312,7 @@ subprocess.check_call([
         return condaDir
     }
 
-    void extractMetricsFromAAR(Project project) {
+    void setupExtractMetricsFromAARTasks(Project project) {
         // Support for extracting metrics.yaml from artifact files.
 
         // This is how to extract `metrics.yaml` and `pings.yaml` from AAR files: an "artifact transform"
@@ -348,16 +348,16 @@ subprocess.check_call([
     }
 
     void apply(Project project) {
-        File condaDir = installPythonEnvironment(project)
+        File condaDir = setupPythonEnvironmentTasks(project)
 
-        extractMetricsFromAAR(project)
+        setupExtractMetricsFromAARTasks(project)
 
-        generateMarkdownDocs(project, condaDir)
+        setupGenerateMarkdownDocsTasks(project, condaDir)
 
         if (project.android.hasProperty('applicationVariants')) {
-            project.android.applicationVariants.all(generateMetricsAPI(project, condaDir))
+            project.android.applicationVariants.all(setupGenerateMetricsAPITasks(project, condaDir))
         } else {
-            project.android.libraryVariants.all(generateMetricsAPI(project, condaDir))
+            project.android.libraryVariants.all(setupGenerateMetricsAPITasks(project, condaDir))
         }
     }
 }

@@ -17,6 +17,7 @@ import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.utils.EngineVersion
@@ -39,7 +40,7 @@ class GeckoEngine(
     executorProvider: () -> GeckoWebExecutor = { GeckoWebExecutor(runtime) }
 ) : Engine {
     private val executor by lazy { executorProvider.invoke() }
-
+    private val geckoTrackingProtectionStorage: TrackingProtectionExceptionFileStorage
     private val localeUpdater = LocaleSettingUpdater(context, runtime)
 
     init {
@@ -52,6 +53,10 @@ class GeckoEngine(
             @Suppress("TooGenericExceptionThrown")
             throw RuntimeException("GeckoRuntime is shutting down")
         }
+
+        geckoTrackingProtectionStorage = TrackingProtectionExceptionFileStorage(context, runtime)
+        //This will happen async
+        geckoTrackingProtectionStorage.restore()
     }
 
     /**
@@ -84,6 +89,9 @@ class GeckoEngine(
     override fun speculativeConnect(url: String) {
         executor.speculativeConnect(url)
     }
+
+    override val trackingProtectionExceptionStore: TrackingProtectionExceptionStorage =
+        geckoTrackingProtectionStorage
 
     /**
      * See [Engine.installWebExtension].

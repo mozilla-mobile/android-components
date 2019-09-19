@@ -8,7 +8,7 @@ object Versions {
     const val coroutines = "1.3.0"
 
     const val junit = "4.12"
-    const val robolectric = "4.1"
+    const val robolectric = "4.2.1"
     const val mockito = "2.24.5"
     const val maven_ant_tasks = "2.1.3"
 

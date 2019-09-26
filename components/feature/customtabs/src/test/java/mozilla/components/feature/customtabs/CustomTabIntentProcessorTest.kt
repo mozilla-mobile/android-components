@@ -5,6 +5,7 @@
 package mozilla.components.feature.customtabs
 
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,12 +23,15 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
@@ -60,7 +64,7 @@ class CustomTabIntentProcessorTest {
         whenever(intent.dataString).thenReturn("http://mozilla.org")
         whenever(intent.putExtra(any<String>(), any<String>())).thenReturn(intent)
 
-        handler.process(intent)
+        assertTrue(handler.process(intent))
         verify(sessionManager).add(anySession(), eq(false), eq(null), eq(null))
         verify(engineSession).loadUrl("http://mozilla.org", LoadUrlFlags.external())
         verify(intent).putExtra(eq(EXTRA_SESSION_ID), any<String>())
@@ -72,9 +76,52 @@ class CustomTabIntentProcessorTest {
         assertNotNull(customTabSession.customTabConfig)
     }
 
+    @Test
+    fun doNotProcessOtherIntent() = runBlockingTest {
+        val sessionManager: SessionManager = mock()
+        val useCase: SessionUseCases.DefaultLoadUrlUseCase = mock()
+
+        val handler = CustomTabIntentProcessor(sessionManager, useCase, testContext.resources)
+
+        val intent = mock<Intent>()
+        whenever(intent.action).thenReturn(Intent.ACTION_BATTERY_LOW)
+        whenever(intent.hasExtra(CustomTabsIntent.EXTRA_SESSION)).thenReturn(true)
+        whenever(intent.dataString).thenReturn("http://mozilla.org")
+        whenever(intent.putExtra(any<String>(), any<String>())).thenReturn(intent)
+
+        assertFalse(handler.process(intent))
+        verify(sessionManager, never()).add(anySession(), eq(false), eq(null), eq(null))
+        verify(intent, never()).putExtra(eq(EXTRA_SESSION_ID), any<String>())
+    }
+
+    @Test
+    fun doNotProcessCustomTabIntentWhenBrowserUiIsSet() = runBlockingTest {
+        val sessionManager: SessionManager = mock()
+        val useCase: SessionUseCases.DefaultLoadUrlUseCase = mock()
+
+        val handler = CustomTabIntentProcessor(sessionManager, useCase, testContext.resources)
+
+        val intent = mock<Intent>()
+        whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
+        whenever(intent.hasExtra(CustomTabsIntent.EXTRA_SESSION)).thenReturn(true)
+        whenever(intent.dataString).thenReturn("http://mozilla.org")
+        whenever(intent.getBooleanExtra(EXTRA_USER_OPT_OUT_FROM_CUSTOM_TABS, false)).thenReturn(true)
+        whenever(intent.flags).thenReturn(FLAG_ACTIVITY_NEW_TASK)
+        whenever(intent.putExtra(any<String>(), any<String>())).thenReturn(intent)
+
+        assertFalse(handler.process(intent))
+        verify(sessionManager, never()).add(anySession(), eq(false), eq(null), eq(null))
+        verify(intent, never()).putExtra(eq(EXTRA_SESSION_ID), any<String>())
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <T> anySession(): T {
         any<T>()
         return null as T
+    }
+
+    companion object {
+        private const val EXTRA_USER_OPT_OUT_FROM_CUSTOM_TABS =
+            "android.support.customtabs.extra.user_opt_out"
     }
 }

@@ -7,6 +7,7 @@ package mozilla.components.feature.customtabs
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.content.res.Resources
+import androidx.browser.customtabs.CustomTabsIntent.shouldAlwaysUseBrowserUI
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.EngineSession
@@ -34,7 +35,7 @@ class CustomTabIntentProcessor(
         val safeIntent = SafeIntent(intent)
         val url = safeIntent.dataString
 
-        return if (!url.isNullOrEmpty() && matches(intent)) {
+        return if (!url.isNullOrEmpty() && matches(intent) && !shouldAlwaysUseBrowserUI(intent)) {
             val session = Session(url, private = false, source = Session.Source.CUSTOM_TAB)
             session.customTabConfig = createCustomTabConfigFromIntent(intent, resources)
 

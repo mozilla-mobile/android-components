@@ -9,6 +9,7 @@ kind-dependencies:
 
 transforms:
     - taskgraph.transforms.code_review:transforms
+    - ac_taskgraph.transforms.chunk:transforms
     - taskgraph.transforms.task:transforms
 
 jobs:

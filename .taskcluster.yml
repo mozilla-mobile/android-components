@@ -1,6 +1,5 @@
 ---
 version: 1
-reporting: checks-v1
 policy:
     pullRequests: public
 tasks:
@@ -141,7 +140,7 @@ tasks:
                                       kind: cron-task
                       routes:
                           $flatten:
-                              - checks
+                              - statuses
                               - $if: 'level == "3"'
                                 then:
                                     - "tc-treeherder.v2.${project}.${head_sha}"

@@ -12,8 +12,8 @@ transforms:
     - ac_taskgraph.transforms.chunk:transforms
     - taskgraph.transforms.task:transforms
 
-jobs:
-    pr:
-        description: Summary Task
-        run-on-tasks-for: [github-pull-request]
-        worker-type: succeed
+jobs: {}
+    # pr:
+    #     description: Summary Task
+    #     run-on-tasks-for: [github-pull-request]
+    #     worker-type: succeed

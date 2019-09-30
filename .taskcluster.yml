@@ -87,7 +87,10 @@ tasks:
                       $if: 'tasks_for == "cron"'
                       then: '${ownTaskId}'
           in:
-              $if: 'tasks_for in ["github-pull-request", "github-release", "action", "cron"] || tasks_for == "github-push" && head_branch[:10] != "refs/tags/"'
+              $if: >
+                tasks_for in ["github-release", "action", "cron"]
+                || tasks_for == "github-pull-request" && event["action"] in ["opened", "reopened", "edited", "synchronize"]
+                || tasks_for == "github-push" && head_branch[:10] != "refs/tags/" && head_branch != "staging.tmp" && head_branch != "trying.tmp"
               then:
                   $let:
                       level:

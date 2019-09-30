@@ -13,12 +13,7 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 jobs:
-    pr:
-        description: PR Summary Task
-        run-on-tasks-for: [github-pull-request]
-        worker-type: succeed
-
-    push:
-        description: Push Summary Task
-        run-on-tasks-for: [github-push]
+    pr-or-push:
+        description: Summary Task
+        run-on-tasks-for: [github-pull-request, github-push]
         worker-type: succeed

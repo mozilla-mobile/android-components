@@ -4,13 +4,21 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 15.0.0-SNAPSHOT  (In Development)
+# 16.0.0-SNAPSHOT  (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v14.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/75?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v15.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/76?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+# 15.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v14.0.0...v15.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/75?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v15.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v15.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v15.0.0/buildSrc/src/main/java/Config.kt)
 
 * **browser-session**, **browser-state**, **feature-contextmenu**, **feature-downloads**
   * * ⚠️ **This is a breaking change**: Removed the `download` property from `Session`. Downloads can now only be observed on a `BrowserState` from the `browser-state` component. Therefore `ContextMenuUseCases` and `DownloadsUseCases` now require a `BrowserStore` instance.
@@ -21,6 +29,41 @@ permalink: /changelog/
 
 * **feature-customtabs**
   * Added `CustomTabWindowFeature` to handle windows inside custom tabs, PWAs, and TWAs.
+
+* **feature-tab-collections**
+
+  * Behavior change: In a collection List<TabEntity> is now ordered descending by creation date (newest tab in a collection on top)
+* **feature-session**, **engine-gecko-nightly** and **engine-gecko-beta**
+  * Added api to manage the tracking protection exception list, any session added to the list will be ignored and the the current tracking policy will not be applied.
+  ```kotlin
+    val useCase = TrackingProtectionUseCases(sessionManager,engine)
+
+    useCase.addException(session)
+
+    useCase.removeException(session)
+
+    useCase.removeAllExceptions()
+
+    useCase.containsException(session){ contains ->
+        // contains indicates if this session is on the exception list.
+    }
+
+    useCase.fetchExceptions { exceptions ->
+        // exceptions is a list of all the origins that are in the exception list.
+    }
+  ```
+
+* **support-sync-telemetry**
+  * 🆕 New component containing building blocks for sync telemetry.
+
+* **concept-sync**, **services-firefox-accounts**
+  ⚠️ **This is a breaking change**
+  * Internal implementation of sync changed. Most visible change is that clients are now allowed to change which sync engines are enabled and disabled.
+  * `FxaAccountManager#syncNowAsync` takes an instance of a `reason` instead of `startup` boolean flag.
+  * `SyncEnginesStorage` is introduced, allowing applications to read and update enabled/disabled state configured `SyncEngine`s.
+  * `SyncEngine` is no longer an `enum class`, but a `sealed class` instead. e.g. `SyncEngine.HISTORY` is now `SyncEngine.History`.
+  * `DeviceConstellation#setDeviceNameAsync` now takes a `context` in addition to new `name`.
+  * `FxaAuthData` now takes an optional `declinedEngines` set of SyncEngines.
 
 # 14.0.1
 

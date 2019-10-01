@@ -14,6 +14,10 @@ import java.nio.charset.StandardCharsets.UTF_8
  * A connection to another device using the same class. This supports sending a single message at a
  * time in each direction. This does not have internal synchronization. It should be called from the
  * UI thread or externally synchronized.
+ *
+ * @constructor Constructs a new connection, which will call [NearbyConnectionListener.updateState]
+ *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
+ *     other methods are called by the client.
  */
 @UiThread
 class NearbyConnection(
@@ -26,7 +30,13 @@ class NearbyConnection(
     private val PACKAGE_NAME = "mozilla.components.feature.nearby.NearbyConnection"
     private val STRATEGY = Strategy.P2P_STAR
 
-    sealed class ConnectionState(val name: String) {
+    /**
+     * The state of the connection. Changes in state are communicated through
+     * [NearbyConnectionListener.updateState].
+     *
+     * @property name: an English-language name for the state
+     */
+    public sealed class ConnectionState(val name: String) {
         object Isolated : ConnectionState("isolated")
         object Advertising : ConnectionState("advertising")
         object Discovering : ConnectionState("discovering")
@@ -171,6 +181,10 @@ class NearbyConnection(
     }
 
     companion object {
+        /**
+         * The permissions needed by [NearbyConnection]. It is the client's responsibility
+         * to ensure that all are granted before constructing an instance of this class.
+         */
         val PERMISSIONS = arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -181,8 +195,6 @@ class NearbyConnection(
         )
     }
 }
-
-class NearbyConnectionException(message: String) : Exception(message)
 
 /**
  * Interface definition for listening to changes in a [NearbyConnection].

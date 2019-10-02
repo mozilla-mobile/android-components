@@ -8,12 +8,22 @@ import android.Manifest
 import android.content.Context
 import android.util.Log
 import androidx.annotation.UiThread
-import com.google.android.gms.nearby.Nearby
-import com.google.android.gms.nearby.connection.*
-import com.google.android.gms.nearby.connection.PayloadTransferUpdate.Status
-import java.nio.charset.StandardCharsets.UTF_8
 import androidx.appcompat.app.AlertDialog
-
+import com.google.android.gms.nearby.Nearby
+import com.google.android.gms.nearby.connection.AdvertisingOptions
+import com.google.android.gms.nearby.connection.ConnectionInfo
+import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback
+import com.google.android.gms.nearby.connection.ConnectionResolution
+import com.google.android.gms.nearby.connection.ConnectionsClient
+import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo
+import com.google.android.gms.nearby.connection.DiscoveryOptions
+import com.google.android.gms.nearby.connection.EndpointDiscoveryCallback
+import com.google.android.gms.nearby.connection.Payload
+import com.google.android.gms.nearby.connection.PayloadCallback
+import com.google.android.gms.nearby.connection.PayloadTransferUpdate
+import com.google.android.gms.nearby.connection.PayloadTransferUpdate.Status
+import com.google.android.gms.nearby.connection.Strategy
+import java.nio.charset.StandardCharsets.UTF_8
 
 /**
  * A class that can be run on two devices to allow them to connect. This supports sending a single
@@ -31,10 +41,10 @@ import androidx.appcompat.app.AlertDialog
  */
 @UiThread
 class NearbyConnection(
-        private val context: Context,
-        private val name: String,
-        private val authenticate: Boolean,
-        private val listener: NearbyConnectionListener
+    private val context: Context,
+    private val name: String,
+    private val authenticate: Boolean,
+    private val listener: NearbyConnectionListener
 ) {
     // Compile-time constants
     private val TAG = "NearbyConnection"
@@ -52,11 +62,11 @@ class NearbyConnection(
         object Advertising : ConnectionState("advertising")
         object Discovering : ConnectionState("discovering")
         class Authenticating(
-                // sealed classes can't be inner, so we need to pass in the connection
-                private val nearbyConnection: NearbyConnection,
-                val neighborId: String,
-                val neighborName: String,
-                val token: String
+            // sealed classes can't be inner, so we need to pass in the connection
+            private val nearbyConnection: NearbyConnection,
+            val neighborId: String,
+            val neighborName: String,
+            val token: String
         ) : ConnectionState("authenticating") {
             /**
              * Prompts the user to accept or reject the connection to [neighborName] with the
@@ -70,35 +80,38 @@ class NearbyConnection(
              * @param message the message in the AlertDialog
              */
             fun showAuthenticationDialog(
-                    context: Context,
-                    title: String = "Accept connection to $neighborName",
-                    message: String = "Confirm the code matches on both devices: $token")
-            {
+                context: Context,
+                title: String = "Accept connection to $neighborName",
+                message: String = "Confirm the code matches on both devices: $token"
+            ) {
                 AlertDialog.Builder(context)
-                        .setTitle(title)
-                        .setMessage(message)
-                        .setPositiveButton(
-                                "Accept") { _, _ ->
-                            Nearby.getConnectionsClient(context)
-                                    .acceptConnection(neighborId, nearbyConnection.payloadCallback)
-                        }
-                        .setNegativeButton(
-                                android.R.string.cancel) { _, _ ->
-                            Nearby.getConnectionsClient(context).rejectConnection(neighborId)
-                        }
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .show()
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(
+                        "Accept") { _, _ ->
+                        Nearby.getConnectionsClient(context)
+                            .acceptConnection(neighborId, nearbyConnection.payloadCallback)
+                    }
+                    .setNegativeButton(
+                        android.R.string.cancel) { _, _ ->
+                        Nearby.getConnectionsClient(context).rejectConnection(neighborId)
+                    }
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show()
             }
+
             fun accept() {
                 nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
                 nearbyConnection.updateState(ConnectionState.Connecting(neighborId, neighborName))
             }
+
             fun reject() {
                 nearbyConnection.connectionsClient.rejectConnection(neighborId)
                 // This should put us back in advertising or discovering.
                 nearbyConnection.updateState(nearbyConnection.connectionState)
             }
         }
+
         class Connecting(val neighborId: String, val neighborName: String) : ConnectionState("connecting")
         class ReadyToSend(val neighborEndpointId: String) : ConnectionState("ready-to-send")
         class Sending(val neighborEndpointId: String, val payloadId: Long) : ConnectionState("sending")
@@ -130,14 +143,14 @@ class NearbyConnection(
      */
     fun startAdvertising() {
         connectionsClient.startAdvertising(
-                name,
-                PACKAGE_NAME,
-                connectionLifecycleCallback,
-                AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
+            name,
+            PACKAGE_NAME,
+            connectionLifecycleCallback,
+            AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
         ).addOnSuccessListener {
             updateState(ConnectionState.Advertising)
         }.addOnFailureListener {
-            Log.e(TAG, "failed to start advertising: ${it.toString()}")
+            Log.e(TAG, "failed to start advertising: $it")
             updateState(ConnectionState.Failure(it.toString()))
         }
     }
@@ -150,14 +163,14 @@ class NearbyConnection(
      */
     fun startDiscovering() {
         connectionsClient.startDiscovery(
-                PACKAGE_NAME, endpointDiscoveryCallback,
-                DiscoveryOptions.Builder().setStrategy(STRATEGY).build())
-                .addOnSuccessListener {
-                    updateState(ConnectionState.Discovering)
-                }.addOnFailureListener {
-                    Log.e(TAG, "failed to start discovering: ${it.toString()}")
-                    updateState(ConnectionState.Failure(it.toString()))
-                }
+            PACKAGE_NAME, endpointDiscoveryCallback,
+            DiscoveryOptions.Builder().setStrategy(STRATEGY).build())
+            .addOnSuccessListener {
+                updateState(ConnectionState.Discovering)
+            }.addOnFailureListener {
+                Log.e(TAG, "failed to start discovering: $it")
+                updateState(ConnectionState.Failure(it.toString()))
+            }
     }
 
     // Discovery
@@ -178,12 +191,12 @@ class NearbyConnection(
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
             if (authenticate) {
                 updateState(
-                        ConnectionState.Authenticating(
-                                this@NearbyConnection,
-                                endpointId,
-                                connectionInfo.endpointName,
-                                connectionInfo.authenticationToken
-                        )
+                    ConnectionState.Authenticating(
+                        this@NearbyConnection,
+                        endpointId,
+                        connectionInfo.endpointName,
+                        connectionInfo.authenticationToken
+                    )
                 )
             } else {
                 connectionsClient.acceptConnection(endpointId, payloadCallback)
@@ -263,12 +276,12 @@ class NearbyConnection(
          * to ensure that all are granted before constructing an instance of this class.
          */
         val PERMISSIONS: Array<String> = arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.ACCESS_WIFI_STATE,
-                Manifest.permission.CHANGE_WIFI_STATE
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.CHANGE_WIFI_STATE
         )
     }
 }

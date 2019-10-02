@@ -1,4 +1,8 @@
-package mozilla.components.feature.nearby;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package mozilla.components.lib.nearby;
 
 import android.Manifest
 import android.content.Context
@@ -11,9 +15,9 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 
 /**
- * A connection to another device using the same class. This supports sending a single message at a
- * time in each direction. This does not have internal synchronization. It should be called from the
- * UI thread or externally synchronized.
+ * A class that can be run on two devices to allow them to connect. This supports sending a single
+ * message at a time in each direction. This does not have internal synchronization. It should be
+ * called from the UI thread or externally synchronized.
  *
  * @constructor Constructs a new connection, which will call [NearbyConnectionListener.updateState]
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
@@ -185,7 +189,7 @@ class NearbyConnection(
          * The permissions needed by [NearbyConnection]. It is the client's responsibility
          * to ensure that all are granted before constructing an instance of this class.
          */
-        val PERMISSIONS = arrayOf(
+        val PERMISSIONS: Array<String> = arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.BLUETOOTH,

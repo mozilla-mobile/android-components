@@ -4,4 +4,4 @@
   ~  file, You can obtain one at http://mozilla.org/MPL/2.0/.
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="mozilla.components.lib.push.amazon" />
+    package="mozilla.components.lib.nearby" />

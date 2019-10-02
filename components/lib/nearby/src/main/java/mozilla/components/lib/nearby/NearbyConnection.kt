@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.lib.nearby;
+package mozilla.components.lib.nearby
 
 import android.Manifest
 import android.content.Context
@@ -12,6 +12,7 @@ import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate.Status
 import java.nio.charset.StandardCharsets.UTF_8
+import androidx.appcompat.app.AlertDialog
 
 
 /**
@@ -22,11 +23,17 @@ import java.nio.charset.StandardCharsets.UTF_8
  * @constructor Constructs a new connection, which will call [NearbyConnectionListener.updateState]
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
  *     other methods are called by the client.
+ * @param context context needed to initiate connection, used only at start
+ * @param name name shown by this device to other devices
+ * @param authenticate whether to authenticate the connection (true) or make it automatically (false)
+ * @param listener listener to be notified of changes of state and message transmission
+ *
  */
 @UiThread
 class NearbyConnection(
         private val context: Context,
         private val name: String,
+        private val authenticate: Boolean,
         private val listener: NearbyConnectionListener
 ) {
     // Compile-time constants
@@ -44,20 +51,73 @@ class NearbyConnection(
         object Isolated : ConnectionState("isolated")
         object Advertising : ConnectionState("advertising")
         object Discovering : ConnectionState("discovering")
+        class Authenticating(
+                // sealed classes can't be inner, so we need to pass in the connection
+                private val nearbyConnection: NearbyConnection,
+                val neighborId: String,
+                val neighborName: String,
+                val token: String
+        ) : ConnectionState("authenticating") {
+            /**
+             * Prompts the user to accept or reject the connection to [neighborName] with the
+             * given [token]. Specifically, this shows an [androidx.appcompat.app.AlertDialog] with
+             * the given [title] and [message] and calls [accept] or [reject] based on the user's
+             * choice. This method is provided for convenience. Clients can implement their own
+             * dialog or logic.
+             *
+             * @param context the context for the AlertDialog
+             * @param title the title of the AlertDialog
+             * @param message the message in the AlertDialog
+             */
+            fun showAuthenticationDialog(
+                    context: Context,
+                    title: String = "Accept connection to $neighborName",
+                    message: String = "Confirm the code matches on both devices: $token")
+            {
+                AlertDialog.Builder(context)
+                        .setTitle(title)
+                        .setMessage(message)
+                        .setPositiveButton(
+                                "Accept") { _, _ ->
+                            Nearby.getConnectionsClient(context)
+                                    .acceptConnection(neighborId, nearbyConnection.payloadCallback)
+                        }
+                        .setNegativeButton(
+                                android.R.string.cancel) { _, _ ->
+                            Nearby.getConnectionsClient(context).rejectConnection(neighborId)
+                        }
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .show()
+            }
+            fun accept() {
+                nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
+                nearbyConnection.updateState(ConnectionState.Connecting(neighborId, neighborName))
+            }
+            fun reject() {
+                nearbyConnection.connectionsClient.rejectConnection(neighborId)
+                // This should put us back in advertising or discovering.
+                nearbyConnection.updateState(nearbyConnection.connectionState)
+            }
+        }
         class Connecting(val neighborId: String, val neighborName: String) : ConnectionState("connecting")
         class ReadyToSend(val neighborEndpointId: String) : ConnectionState("ready-to-send")
         class Sending(val neighborEndpointId: String, val payloadId: Long) : ConnectionState("sending")
         class Failure(val message: String) : ConnectionState("failure")
     }
 
-    private var connectionState: ConnectionState = ConnectionState.Isolated
     private var connectionsClient: ConnectionsClient = Nearby.getConnectionsClient(context)
+    private lateinit var connectionState: ConnectionState
 
     init {
-        listener.updateState(connectionState)
+        listener.updateState(ConnectionState.Isolated)
     }
 
     private fun updateState(cs: ConnectionState) {
+        if (::connectionState.isInitialized) {
+            Log.e(TAG, "Updating state from ${connectionState.name} to ${cs.name}")
+        } else {
+            Log.e(TAG, "Initializing state to ${cs.name}")
+        }
         connectionState = cs
         listener.updateState(cs)
     }
@@ -65,7 +125,8 @@ class NearbyConnection(
     /**
      * Starts advertising this device. After calling this, the state will be updated to
      * [ConnectionState.Advertising] or [ConnectionState.Failure]. If all goes well, eventually
-     * the state will be updated to [ConnectionState.Connecting].
+     * the state will be updated to [ConnectionState.Authenticating] (if [authenticate] is true)
+     * or [ConnectionState.Connecting].
      */
     fun startAdvertising() {
         connectionsClient.startAdvertising(
@@ -84,7 +145,8 @@ class NearbyConnection(
     /**
      * Starts trying to discover nearby advertising devices. After calling this, the state will
      * be updated to [ConnectionState.Discovering] or [ConnectionState.Failure]. If all goes well,
-     * eventually the state will be updated to [ConnectionState.Connecting].
+     * eventually the state will be updated to [ConnectionState.Authenticating] (if [authenticate]
+     * is true) or [ConnectionState.Connecting].
      */
     fun startDiscovering() {
         connectionsClient.startDiscovery(
@@ -114,8 +176,19 @@ class NearbyConnection(
     // Used within startAdvertising() and startDiscovering() (via endpointDiscoveryCallback)
     private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
-            connectionsClient.acceptConnection(endpointId, payloadCallback)
-            updateState(ConnectionState.Connecting(endpointId, connectionInfo.endpointName))
+            if (authenticate) {
+                updateState(
+                        ConnectionState.Authenticating(
+                                this@NearbyConnection,
+                                endpointId,
+                                connectionInfo.endpointName,
+                                connectionInfo.authenticationToken
+                        )
+                )
+            } else {
+                connectionsClient.acceptConnection(endpointId, payloadCallback)
+                updateState(ConnectionState.Connecting(endpointId, connectionInfo.endpointName))
+            }
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {

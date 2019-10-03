@@ -11,12 +11,14 @@ import mozilla.components.concept.engine.content.blocking.TrackingProtectionExce
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.WebExtension
+import mozilla.components.concept.engine.webnotifications.WebNotification
 import org.json.JSONObject
 import java.lang.UnsupportedOperationException
 
 /**
  * Entry point for interacting with the engine implementation.
  */
+@Suppress("TooManyFunctions")
 interface Engine {
 
     /**
@@ -128,6 +130,34 @@ interface Engine {
         onSuccess: ((WebExtension) -> Unit) = { },
         onError: ((String, Throwable) -> Unit) = { _, _ -> }
     ): Unit = onError(id, UnsupportedOperationException("Web extension support is not available in this engine"))
+
+    /**
+     * This is called when a new notification is created.
+     *
+     * @param notification The WebNotification received.
+     * @param onError (optional) callback invoked if web notification is not supported.
+     * This callback is invoked with an [UnsupportedOperationException] in case the engine doesn't
+     * have web notification support.
+     */
+    fun onCloseNotification(
+        webNotification: WebNotification,
+        onError: ((String, Throwable) -> Unit) = { _, _ -> }
+    ): Unit = onError(webNotification.origin,
+            UnsupportedOperationException("Web notification is not available in this engine"))
+
+    /**
+     * This is called when an existing notification is closed.
+     *
+     * @param notification The WebNotification received.
+     * @param onError (optional) callback invoked if web notification is not supported.
+     * This callback is invoked with an [UnsupportedOperationException] in case the engine doesn't
+     * have web notification support.
+     */
+    fun onShowNotification(
+        webNotification: WebNotification,
+        onError: ((String, Throwable) -> Unit) = { _, _ -> }
+    ): Unit = onError(webNotification.origin,
+            UnsupportedOperationException("Web notification is not available in this engine"))
 
     /**
      * Clears browsing data stored by the engine.

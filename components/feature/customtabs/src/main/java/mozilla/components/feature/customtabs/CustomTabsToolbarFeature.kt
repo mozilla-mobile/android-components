@@ -20,6 +20,7 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.runWithSession
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
+import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.CustomTabMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.toolbar.Toolbar
@@ -33,7 +34,7 @@ import mozilla.components.support.utils.ColorUtils.getReadableTextColor
 /**
  * Initializes and resets the Toolbar for a Custom Tab based on the CustomTabConfig.
  */
-class CustomTabsToolbarFeature(
+open class CustomTabsToolbarFeature(
     private val sessionManager: SessionManager,
     private val toolbar: BrowserToolbar,
     private val sessionId: String? = null,
@@ -49,50 +50,52 @@ class CustomTabsToolbarFeature(
     internal var readableColor = Color.WHITE
 
     override fun start() {
-        if (initialized) {
-            return
-        }
-        initialized = sessionManager.runWithSession(sessionId) {
-            it.register(sessionObserver)
-            initialize(it)
+        if (!initialized) {
+            initialized = sessionManager.runWithSession(sessionId) { session ->
+                session.register(sessionObserver)
+                session.customTabConfig?.let { config ->
+                    initialize(session, config)
+                    true
+                } ?: false
+            }
         }
     }
 
+    /**
+     * Initializes the custom tab toolbar based on the session's [CustomTabConfig].
+     *
+     * Returns true if initialization succeeded.
+     */
     @VisibleForTesting
-    internal fun initialize(session: Session): Boolean {
-        session.customTabConfig?.let { config ->
-            // Don't allow clickable toolbar so a custom tab can't switch to edit mode.
-            toolbar.onUrlClicked = { false }
+    open fun initialize(session: Session, config: CustomTabConfig) {
+        // Don't allow clickable toolbar so a custom tab can't switch to edit mode.
+        toolbar.onUrlClicked = { false }
 
-            // If it's available, hold on to the readable colour for other assets.
-            config.toolbarColor?.let {
-                readableColor = getReadableTextColor(it)
-            }
-
-            // Change the toolbar colour
-            updateToolbarColor(config.toolbarColor, config.navigationBarColor)
-
-            // Add navigation close action
-            if (config.showCloseButton) {
-                addCloseButton(session, config.closeButtonIcon)
-            }
-
-            // Add action button
-            addActionButton(session, config.actionButtonConfig)
-
-            // Show share button
-            if (config.showShareMenuItem) {
-                addShareButton(session)
-            }
-
-            // Add menu items
-            if (config.menuItems.isNotEmpty() || menuBuilder?.items?.isNotEmpty() == true) {
-                addMenuItems(session, config.menuItems, menuItemIndex)
-            }
-
-            return true
+        // If it's available, hold on to the readable colour for other assets.
+        config.toolbarColor?.let {
+            readableColor = getReadableTextColor(it)
         }
-        return false
+
+        // Change the toolbar colour
+        updateToolbarColor(config.toolbarColor, config.navigationBarColor)
+
+        // Add navigation close action
+        if (config.showCloseButton) {
+            addCloseButton(session, config.closeButtonIcon)
+        }
+
+        // Add action button
+        addActionButton(session, config.actionButtonConfig)
+
+        // Show share button
+        if (config.showShareMenuItem) {
+            addShareButton(session)
+        }
+
+        // Add menu items
+        if (config.menuItems.isNotEmpty() || menuBuilder?.items?.isNotEmpty() == true) {
+            addMenuItems(session, config.menuItems, menuItemIndex)
+        }
     }
 
     @VisibleForTesting

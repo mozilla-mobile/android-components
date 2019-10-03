@@ -6,7 +6,6 @@ package mozilla.components.lib.nearby
 
 import android.Manifest
 import android.content.Context
-import android.util.Log
 import androidx.annotation.UiThread
 import androidx.appcompat.app.AlertDialog
 import com.google.android.gms.nearby.Nearby
@@ -23,6 +22,7 @@ import com.google.android.gms.nearby.connection.PayloadCallback
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate.Status
 import com.google.android.gms.nearby.connection.Strategy
+import mozilla.components.support.base.log.logger.Logger
 import java.nio.charset.StandardCharsets.UTF_8
 
 /**
@@ -48,26 +48,25 @@ class NearbyConnection(
 ) {
     // Compile-time constants
     private val TAG = "NearbyConnection"
-    private val PACKAGE_NAME = "mozilla.components.feature.nearby.NearbyConnection"
+    private val PACKAGE_NAME = "mozilla.components.lib.nearby"
     private val STRATEGY = Strategy.P2P_STAR
 
     /**
      * The state of the connection. Changes in state are communicated through
      * [NearbyConnectionListener.updateState].
-     *
-     * @property name: an English-language name for the state
      */
-    public sealed class ConnectionState(val name: String) {
-        object Isolated : ConnectionState("isolated")
-        object Advertising : ConnectionState("advertising")
-        object Discovering : ConnectionState("discovering")
+    public sealed class ConnectionState() {
+        val name = javaClass.simpleName
+        object Isolated : ConnectionState()
+        object Advertising : ConnectionState()
+        object Discovering : ConnectionState()
         class Authenticating(
             // sealed classes can't be inner, so we need to pass in the connection
             private val nearbyConnection: NearbyConnection,
             val neighborId: String,
             val neighborName: String,
             val token: String
-        ) : ConnectionState("authenticating") {
+        ) : ConnectionState() {
             fun accept() {
                 nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
                 nearbyConnection.updateState(ConnectionState.Connecting(neighborId, neighborName))
@@ -78,10 +77,10 @@ class NearbyConnection(
                 nearbyConnection.updateState(nearbyConnection.connectionState)
             }
         }
-        class Connecting(val neighborId: String, val neighborName: String) : ConnectionState("connecting")
-        class ReadyToSend(val neighborEndpointId: String) : ConnectionState("ready-to-send")
-        class Sending(val neighborEndpointId: String, val payloadId: Long) : ConnectionState("sending")
-        class Failure(val message: String) : ConnectionState("failure")
+        class Connecting(val neighborId: String, val neighborName: String) : ConnectionState()
+        class ReadyToSend(val neighborEndpointId: String) : ConnectionState()
+        class Sending(val neighborEndpointId: String, val payloadId: Long) : ConnectionState()
+        class Failure(val message: String) : ConnectionState()
     }
 
     private var connectionsClient: ConnectionsClient = Nearby.getConnectionsClient(context)
@@ -92,11 +91,6 @@ class NearbyConnection(
     }
 
     private fun updateState(cs: ConnectionState) {
-        if (::connectionState.isInitialized) {
-            Log.e(TAG, "Updating state from ${connectionState.name} to ${cs.name}")
-        } else {
-            Log.e(TAG, "Initializing state to ${cs.name}")
-        }
         connectionState = cs
         listener.updateState(cs)
     }
@@ -116,7 +110,7 @@ class NearbyConnection(
         ).addOnSuccessListener {
             updateState(ConnectionState.Advertising)
         }.addOnFailureListener {
-            Log.e(TAG, "failed to start advertising: $it")
+            Logger.error("failed to start advertising: $it")
             updateState(ConnectionState.Failure(it.toString()))
         }
     }
@@ -134,7 +128,7 @@ class NearbyConnection(
             .addOnSuccessListener {
                 updateState(ConnectionState.Discovering)
             }.addOnFailureListener {
-                Log.e(TAG, "failed to start discovering: $it")
+                Logger.error("failed to start discovering: $it")
                 updateState(ConnectionState.Failure(it.toString()))
             }
     }
@@ -147,7 +141,7 @@ class NearbyConnection(
         }
 
         override fun onEndpointLost(endpointId: String) {
-            Log.e(TAG, "Lost endpoint during discovery.")
+            Logger.error("Lost endpoint during discovery")
             updateState(ConnectionState.Discovering)
         }
     }
@@ -174,10 +168,9 @@ class NearbyConnection(
             if (result.status.isSuccess) {
                 connectionsClient.stopDiscovery()
                 connectionsClient.stopAdvertising()
-                // Should we copy the endpoint name from the previous Connecting state?
                 updateState(ConnectionState.ReadyToSend(endpointId))
             } else {
-                Log.e(TAG, "onConnectionResult: connection failed with status ${result.status}")
+                Logger.error("onConnectionResult: connection failed with status ${result.status}")
                 // Could keep trying.
                 updateState(ConnectionState.Failure("onConnectionResult: connection failed with status ${result.status}"))
             }

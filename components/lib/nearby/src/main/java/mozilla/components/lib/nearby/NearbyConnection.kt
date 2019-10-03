@@ -68,50 +68,16 @@ class NearbyConnection(
             val neighborName: String,
             val token: String
         ) : ConnectionState("authenticating") {
-            /**
-             * Prompts the user to accept or reject the connection to [neighborName] with the
-             * given [token]. Specifically, this shows an [androidx.appcompat.app.AlertDialog] with
-             * the given [title] and [message] and calls [accept] or [reject] based on the user's
-             * choice. This method is provided for convenience. Clients can implement their own
-             * dialog or logic.
-             *
-             * @param context the context for the AlertDialog
-             * @param title the title of the AlertDialog
-             * @param message the message in the AlertDialog
-             */
-            fun showAuthenticationDialog(
-                context: Context,
-                title: String = "Accept connection to $neighborName",
-                message: String = "Confirm the code matches on both devices: $token"
-            ) {
-                AlertDialog.Builder(context)
-                    .setTitle(title)
-                    .setMessage(message)
-                    .setPositiveButton(
-                        "Accept") { _, _ ->
-                        Nearby.getConnectionsClient(context)
-                            .acceptConnection(neighborId, nearbyConnection.payloadCallback)
-                    }
-                    .setNegativeButton(
-                        android.R.string.cancel) { _, _ ->
-                        Nearby.getConnectionsClient(context).rejectConnection(neighborId)
-                    }
-                    .setIcon(android.R.drawable.ic_dialog_alert)
-                    .show()
-            }
-
             fun accept() {
                 nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
                 nearbyConnection.updateState(ConnectionState.Connecting(neighborId, neighborName))
             }
-
             fun reject() {
                 nearbyConnection.connectionsClient.rejectConnection(neighborId)
                 // This should put us back in advertising or discovering.
                 nearbyConnection.updateState(nearbyConnection.connectionState)
             }
         }
-
         class Connecting(val neighborId: String, val neighborName: String) : ConnectionState("connecting")
         class ReadyToSend(val neighborEndpointId: String) : ConnectionState("ready-to-send")
         class Sending(val neighborEndpointId: String, val payloadId: Long) : ConnectionState("sending")

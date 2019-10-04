@@ -38,7 +38,6 @@ import java.nio.charset.StandardCharsets.UTF_8
  * @param listener listener to be notified of changes of state and message transmission
  *
  */
-@UiThread
 class NearbyConnection(
     private val context: Context,
     private val name: String,

@@ -334,7 +334,7 @@ projects:
     publish: true
   tooling-detekt:
     path: components/tooling/detekt
-    description: 'Custom Detekt rules.'
+    description: 'Custom Detekt rules for internal use.'
     publish: false
   tooling-lint:
     path: components/tooling/lint

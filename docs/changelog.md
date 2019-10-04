@@ -12,6 +12,15 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **feature-customtabs**
+  * 'CustomTabIntentProcessor' can create private sessions now.
+
+* **browser-session**, **browser-state**, **feature-prompts**
+  *  ⚠️ **This is a breaking change**: The `feature-prompts` component has been migrated to `browser-state` from `browser-session`. Therefore creating a `PromptFeature` requires a `BrowserStore` instance (instead of a `SessionManager` instance). The `promptRequest` property has been removed `Session`. Prompt requests can now only be observed on a `BrowserStore` from the `browser-state` component.
+
+* **tooling-detekt**
+  * Published detekt rules for internal use. Check module documentation for detailed ruleset description.
+
 # 15.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v14.0.0...v15.0.0)

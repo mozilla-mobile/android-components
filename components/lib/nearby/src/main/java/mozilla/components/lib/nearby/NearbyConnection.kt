@@ -7,7 +7,6 @@ package mozilla.components.lib.nearby
 import android.Manifest
 import android.content.Context
 import androidx.annotation.UiThread
-import androidx.appcompat.app.AlertDialog
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -27,8 +26,8 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 /**
  * A class that can be run on two devices to allow them to connect. This supports sending a single
- * message at a time in each direction. This does not have internal synchronization. It should be
- * called from the UI thread or externally synchronized.
+ * message at a time in each direction. It contains internal synchronization and may be accessed
+ * from any thread
  *
  * @constructor Constructs a new connection, which will call [NearbyConnectionListener.updateState]
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
@@ -84,13 +83,17 @@ class NearbyConnection(
     }
 
     private var connectionsClient: ConnectionsClient = Nearby.getConnectionsClient(context)
+
+    // The can be modified in both the main thread and in callbacks. Modification occurs
+    // only in updateState(), which is synchronized.
     private lateinit var connectionState: ConnectionState
 
     init {
         listener.updateState(ConnectionState.Isolated)
     }
 
-    private fun updateState(cs: ConnectionState) {
+    // This method is called from both the main thread and callbacks.
+    @Synchronized private fun updateState(cs: ConnectionState) {
         connectionState = cs
         listener.updateState(cs)
     }
@@ -99,7 +102,8 @@ class NearbyConnection(
      * Starts advertising this device. After calling this, the state will be updated to
      * [ConnectionState.Advertising] or [ConnectionState.Failure]. If all goes well, eventually
      * the state will be updated to [ConnectionState.Authenticating] (if [authenticate] is true)
-     * or [ConnectionState.Connecting].
+     * or [ConnectionState.Connecting]. A client should call either [startAdvertising] or
+     * [startDiscovering] to make a connection, not both.
      */
     fun startAdvertising() {
         connectionsClient.startAdvertising(
@@ -119,7 +123,8 @@ class NearbyConnection(
      * Starts trying to discover nearby advertising devices. After calling this, the state will
      * be updated to [ConnectionState.Discovering] or [ConnectionState.Failure]. If all goes well,
      * eventually the state will be updated to [ConnectionState.Authenticating] (if [authenticate]
-     * is true) or [ConnectionState.Connecting].
+     * is true) or [ConnectionState.Connecting]. A client should call either [startAdvertising] or
+     * [startDiscovering] to make a connection, not both.
      */
     fun startDiscovering() {
         connectionsClient.startDiscovery(

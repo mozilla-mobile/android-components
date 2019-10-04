@@ -716,7 +716,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class Button(
-        imageDrawable: Drawable?,
+        imageDrawable: Drawable,
         contentDescription: String,
         visible: () -> Boolean = { true },
         @DrawableRes background: Int = 0,

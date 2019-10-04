@@ -4,17 +4,15 @@
 
 package mozilla.components.browser.awesomebar.layout
 
+import android.graphics.drawable.BitmapDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.awesomebar.BrowserAwesomeBar
 import mozilla.components.browser.awesomebar.R
 import mozilla.components.browser.awesomebar.widget.FlowLayout
@@ -54,10 +52,6 @@ internal sealed class DefaultSuggestionViewHolder {
                 suggestion.onSuggestionClicked?.invoke()
                 selectionListener.invoke()
             }
-        }
-
-        override fun recycle() {
-            iconLoader.cancel()
         }
 
         companion object {
@@ -104,10 +98,6 @@ internal sealed class DefaultSuggestionViewHolder {
                 }
         }
 
-        override fun recycle() {
-            iconLoader.cancel()
-        }
-
         companion object {
             val LAYOUT_ID = R.layout.mozac_browser_awesomebar_item_chips
         }
@@ -120,29 +110,47 @@ internal sealed class DefaultSuggestionViewHolder {
 internal class IconLoader(
     private val iconView: ImageView
 ) {
-    private val scope = CoroutineScope(Dispatchers.Main)
     @VisibleForTesting
     internal var iconJob: Job? = null
 
     fun load(suggestion: AwesomeBar.Suggestion) {
-        cancel()
-
         val icon = suggestion.icon ?: return
 
-        iconJob = scope.launch {
-            val bitmap = withContext(Dispatchers.IO) {
+        /*
+        Originally we were nulling out the icon and setting it every time.
+        This means that there is a "flicker" since even if the image is the same it must be redrawn.
+        In order to get rid of this flicker, we must make it so a suggestion cannot be served until its icon is ready
+        hence why we're doing a "runBlocking" here instead of launching a scope.
+        This is what desktop does and it seems like a reasonable solution.
+        */
+
+        runBlocking {
+            val bitmap = runBlocking {
                 icon.invoke(iconView.measuredWidth, iconView.measuredHeight)
             }
 
-            if (bitmap != null) {
+            if (iconView.drawable == null) {
                 iconView.setImageBitmap(bitmap)
+                return@runBlocking
+            }
+
+            if (bitmap != null) {
+                val currentDrawable = (iconView.drawable as BitmapDrawable)
+                val newDrawable = BitmapDrawable(iconView.resources, bitmap)
+
+                if (currentDrawable.bitmap == null) {
+                    iconView.setImageBitmap(bitmap)
+                    return@runBlocking
+                }
+
+                if (currentDrawable.constantState?.equals(newDrawable) == true || (currentDrawable.bitmap != null &&
+                        (currentDrawable.bitmap).sameAs(newDrawable.bitmap))) {
+                    // The bitmaps are the same, no need to redraw!
+                } else {
+                    // The bitmaps are different, so do a redraw
+                    iconView.setImageBitmap(bitmap)
+                }
             }
         }
-    }
-
-    fun cancel() {
-        iconView.setImageBitmap(null)
-
-        iconJob?.cancel()
     }
 }

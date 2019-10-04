@@ -16,6 +16,7 @@ import android.widget.ImageButton
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
 import androidx.core.view.forEach
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.isVisible
@@ -252,18 +253,18 @@ class BrowserToolbar @JvmOverloads constructor(
      */
     fun setTrackingProtectionIcons(
         iconOnNoTrackersBlocked: Drawable = requireNotNull(
-            context.getDrawable(
+            ContextCompat.getDrawable(context,
                 TrackingProtectionIconView.DEFAULT_ICON_ON_NO_TRACKERS_BLOCKED
             )
         ),
         iconOnTrackersBlocked: Drawable = requireNotNull(
-            context.getDrawable(
+            ContextCompat.getDrawable(context,
                 TrackingProtectionIconView.DEFAULT_ICON_ON_TRACKERS_BLOCKED
             )
         ),
         iconDisabledForSite: Drawable = requireNotNull(
-            context.getDrawable(
-                TrackingProtectionIconView.DEFAULT_ICON_OFF_FOR_A_SITE
+            ContextCompat.getDrawable(context,
+                    TrackingProtectionIconView.DEFAULT_ICON_OFF_FOR_A_SITE
             )
         )
     ) {
@@ -715,7 +716,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class Button(
-        imageDrawable: Drawable,
+        imageDrawable: Drawable?,
         contentDescription: String,
         visible: () -> Boolean = { true },
         @DrawableRes background: Int = 0,

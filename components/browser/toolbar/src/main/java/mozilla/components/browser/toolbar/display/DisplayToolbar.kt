@@ -131,7 +131,7 @@ internal class DisplayToolbar(
 
     private var siteTrackingProtection = OFF_GLOBALLY
 
-    internal var securityIcon = context.getDrawable(R.drawable.mozac_ic_site_security)
+    internal var securityIcon = ContextCompat.getDrawable(context, R.drawable.mozac_ic_site_security)
         set(value) {
             field = value
             siteSecurityIconView.setImageDrawable(value)

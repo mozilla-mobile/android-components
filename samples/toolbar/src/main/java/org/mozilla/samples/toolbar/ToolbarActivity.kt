@@ -11,6 +11,7 @@ import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -495,7 +496,7 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.invalidateActions()
     }
 
-    private fun Resources.getThemedDrawable(@DrawableRes resId: Int) = getDrawable(resId, theme)
+    private fun Resources.getThemedDrawable(@DrawableRes resId: Int) = ResourcesCompat.getDrawable(this, resId, theme) ?: getDrawable(resId, theme)
 
     companion object {
         private val PROGRESS_RANGE = 0..100

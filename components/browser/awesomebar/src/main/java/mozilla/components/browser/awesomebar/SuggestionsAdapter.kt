@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.awesomebar
 
+import android.service.voice.AlwaysOnHotwordDetector
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.awesomebar.layout.DefaultSuggestionLayout
+import mozilla.components.browser.awesomebar.layout.DefaultSuggestionViewHolder
 import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.layout.SuggestionViewHolder
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -122,6 +124,23 @@ internal class SuggestionsAdapter(
         return suggestions.size
     }
 
+
+    override fun onBindViewHolder(holder: ViewHolderWrapper, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position)
+            return
+        }
+
+        // Update the SuggestionViewHolder in pieces to reduce redrawing unnecessarily
+        (payloads[0] as SuggestionDiffCallback.SuggestionChangePayload).let {
+            val suggestion = suggestions[position]
+
+            if (it.shouldUpdateTitle) { holder.actual.updateTitle(suggestion.title) }
+            if (it.shouldUpdateDescription) { holder.actual.updateDescription(suggestion.description) }
+            if (it.shouldUpdateIcon) { holder.actual.updateIcon(suggestion.icon) }
+        }
+    }
+
     override fun onBindViewHolder(
         holder: ViewHolderWrapper,
         position: Int
@@ -148,6 +167,12 @@ internal class SuggestionDiffCallback(
 
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
         suggestions[oldItemPosition].areContentsTheSame(updatedSuggestions[newItemPosition])
+
+    data class SuggestionChangePayload(
+            val shouldUpdateTitle: Boolean,
+            val shouldUpdateDescription: Boolean,
+            val shouldUpdateIcon: Boolean
+    )
 }
 
 internal class ViewHolderWrapper(

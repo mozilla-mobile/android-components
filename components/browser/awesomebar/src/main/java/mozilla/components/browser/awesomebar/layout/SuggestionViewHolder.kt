@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.awesomebar.layout
 
+import android.graphics.Bitmap
 import android.view.View
 import mozilla.components.concept.awesomebar.AwesomeBar
 
@@ -21,6 +22,12 @@ abstract class SuggestionViewHolder(
      * [selectionListener] function.
      */
     abstract fun bind(suggestion: AwesomeBar.Suggestion, selectionListener: () -> Unit)
+
+
+    // TODO: kdocs
+    abstract fun updateTitle(title: String?)
+    abstract fun updateDescription(description: String?)
+    abstract fun updateIcon(icon: (suspend (width: Int, height: Int) -> Bitmap?)?)
 
     /**
      * Notifies this [SuggestionViewHolder] that it has been recycled. If this holder (or its views) keep references to

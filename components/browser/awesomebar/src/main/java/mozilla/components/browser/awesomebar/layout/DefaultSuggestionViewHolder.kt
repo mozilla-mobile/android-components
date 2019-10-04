@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.awesomebar.layout
 
+import android.graphics.Bitmap
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,6 +29,18 @@ internal sealed class DefaultSuggestionViewHolder {
         private val awesomeBar: BrowserAwesomeBar,
         view: View
     ) : SuggestionViewHolder(view) {
+        override fun updateTitle(title: String?) {
+            titleView.text = title
+        }
+
+        override fun updateDescription(description: String?) {
+            descriptionView.text = description
+        }
+
+        override fun updateIcon(icon: (suspend (width: Int, height: Int) -> Bitmap?)?) {
+            iconLoader.load(icon)
+        }
+
         private val titleView = view.findViewById<TextView>(R.id.mozac_browser_awesomebar_title).apply {
             setTextColor(awesomeBar.styling.titleTextColor)
         }
@@ -124,10 +137,14 @@ internal class IconLoader(
     @VisibleForTesting
     internal var iconJob: Job? = null
 
+    // TODO: Convenience function
     fun load(suggestion: AwesomeBar.Suggestion) {
-        cancel()
-
         val icon = suggestion.icon ?: return
+        load(icon)
+    }
+
+    fun load(icon: (suspend (width: Int, height: Int) -> Bitmap?)) {
+        cancel()
 
         iconJob = scope.launch {
             val bitmap = withContext(Dispatchers.IO) {

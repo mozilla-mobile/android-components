@@ -17,7 +17,8 @@ object DrawableUtils {
      */
     fun loadAndTintDrawable(context: Context, @DrawableRes resourceId: Int, @ColorInt color: Int): Drawable {
         // ResourcesCompat.getDrawable won't return null since it always returns resources.getDrawable anyway
-        val drawable = ResourcesCompat.getDrawable(context.resources, resourceId, context.theme) ?: context.resources.getDrawable(resourceId, context.theme)
+        val drawable = ResourcesCompat.getDrawable(context.resources, resourceId, context.theme)
+            ?: context.resources.getDrawable(resourceId, context.theme)
         val wrapped = DrawableCompat.wrap(drawable.mutate())
         DrawableCompat.setTint(wrapped, color)
         return wrapped

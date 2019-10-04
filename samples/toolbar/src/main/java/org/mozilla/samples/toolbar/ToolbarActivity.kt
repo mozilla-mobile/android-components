@@ -496,7 +496,8 @@ class ToolbarActivity : AppCompatActivity() {
         toolbar.invalidateActions()
     }
 
-    private fun Resources.getThemedDrawable(@DrawableRes resId: Int) = ResourcesCompat.getDrawable(this, resId, theme) ?: getDrawable(resId, theme)
+    private fun Resources.getThemedDrawable(@DrawableRes resId: Int) =
+            ResourcesCompat.getDrawable(this, resId, theme) ?: getDrawable(resId, theme)
 
     companion object {
         private val PROGRESS_RANGE = 0..100

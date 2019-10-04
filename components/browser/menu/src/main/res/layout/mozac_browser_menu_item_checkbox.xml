@@ -3,11 +3,12 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <androidx.appcompat.widget.AppCompatCheckBox xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     style="@style/Mozac.Browser.Menu.Item.Text"
     android:layout_width="match_parent"
     android:layout_height="@dimen/mozac_browser_menu_item_container_layout_height"
     android:button="@null"
-    android:drawableEnd="?android:attr/listChoiceIndicatorMultiple"
+    app:drawableEndCompat="?android:attr/listChoiceIndicatorMultiple"
     android:drawablePadding="12dp"
     android:gravity="center_vertical"
     android:paddingStart="16dp"

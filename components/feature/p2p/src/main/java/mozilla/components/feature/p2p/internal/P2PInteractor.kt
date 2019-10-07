@@ -2,17 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.findinpage.internal
+package mozilla.components.feature.p2p.internal
 
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
-import mozilla.components.feature.findinpage.P2PFeature
-import mozilla.components.feature.findinpage.facts.emitCloseFact
-import mozilla.components.feature.findinpage.facts.emitCommitFact
-import mozilla.components.feature.findinpage.facts.emitNextFact
-import mozilla.components.feature.findinpage.facts.emitPreviousFact
-import mozilla.components.feature.findinpage.view.P2PView
+import mozilla.components.feature.p2p.P2PFeature
+import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.support.ktx.android.view.hideKeyboard
 
 /**
@@ -42,21 +38,21 @@ internal class P2PInteractor(
         engineSession?.findNext(forward = false)
         engineView?.asView()?.clearFocus()
         view.asView().hideKeyboard()
-        emitPreviousFact()
+       // emitPreviousFact()
     }
 
     override fun onNextResult() {
         engineSession?.findNext(forward = true)
         engineView?.asView()?.clearFocus()
         view.asView().hideKeyboard()
-        emitNextFact()
+    //    emitNextFact()
     }
 
     override fun onClose() {
         // We pass this event up to the feature. The feature is responsible for unbinding its sub components and
         // potentially notifying other dependencies.
         feature.unbind()
-        emitCloseFact()
+    //    emitCloseFact()
     }
 
     fun unbind() {
@@ -66,7 +62,7 @@ internal class P2PInteractor(
 
     override fun onFindAll(query: String) {
         engineSession?.findAll(query)
-        emitCommitFact(query)
+   //     emitCommitFact(query)
     }
 
     override fun onClearMatches() {

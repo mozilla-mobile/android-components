@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.findinpage.internal
+package mozilla.components.feature.p2p.internal
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.feature.findinpage.view.FindInPageView
+import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 

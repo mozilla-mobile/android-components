@@ -8,9 +8,9 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
-import mozilla.components.feature.findinpage.internal.P2PInteractor
-import mozilla.components.feature.findinpage.internal.P2PPresenter
-import mozilla.components.feature.findinpage.view.P2PView
+import mozilla.components.feature.p2p.internal.P2PInteractor
+import mozilla.components.feature.p2p.internal.P2PPresenter
+import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 

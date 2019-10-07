@@ -31,7 +31,6 @@ class P2PBar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr), P2PView {
-    private val styling: P2PBarStyling = createStyling(context, attrs, defStyleAttr)
     private val queryEditText: EditText
 
     @VisibleForTesting
@@ -85,69 +84,25 @@ class P2PBar @JvmOverloads constructor(
     override fun displayResult(result: FindResultState) {
         with(result) {
             val ordinal = if (numberOfMatches > 0) activeMatchOrdinal + 1 else activeMatchOrdinal
-            resultsCountTextView.text = String.format(resultFormat, ordinal, numberOfMatches)
-            resultsCountTextView.setTextColorIfNotDefaultValue(
-                if (numberOfMatches > 0) styling.resultCountTextColor else styling.resultNoMatchesTextColor
-            )
+
             val accessibilityLabel = String.format(accessibilityFormat, ordinal, numberOfMatches)
             resultsCountTextView.contentDescription = accessibilityLabel
             announceForAccessibility(accessibilityLabel)
         }
     }
 
-    private fun createStyling(
-        context: Context,
-        attrs: AttributeSet?,
-        defStyleAttr: Int
-    ): P2PBarStyling {
-        val attr = context.obtainStyledAttributes(attrs, R.styleable.P2PBar, defStyleAttr, 0)
-
-        with(attr) {
-            return P2PBarStyling(
-                getColor(
-                    R.styleable.P2PBar_findInPageQueryTextColor,
-                    DEFAULT_VALUE
-                ),
-                getColor(
-                    R.styleable.P2PBar_findInPageQueryHintTextColor,
-                    DEFAULT_VALUE
-                ),
-                getDimensionPixelSize(
-                    R.styleable.P2PBar_findInPageQueryTextSize,
-                    DEFAULT_VALUE
-                ),
-                getColor(
-                    R.styleable.P2PBar_findInPageResultCountTextColor,
-                    DEFAULT_VALUE
-                ),
-                getColor(
-                    R.styleable.P2PBar_findInPageNoMatchesTextColor,
-                    DEFAULT_VALUE
-                ),
-                getDimensionPixelSize(
-                    R.styleable.P2PBar_findInPageResultCountTextSize,
-                    DEFAULT_VALUE
-                ),
-                getColorStateList(R.styleable.P2PBar_findInPageButtonsTint)
-            ).also { recycle() }
-        }
-    }
-
     private fun bindNextButton() {
         val nextButton = findViewById<AppCompatImageButton>(R.id.p2p_next_btn)
-        nextButton.setIconTintIfNotDefaultValue(styling.buttonsTint)
         nextButton.setOnClickListener { listener?.onNextResult() }
     }
 
     private fun bindPreviousButton() {
         val previousButton = findViewById<AppCompatImageButton>(R.id.p2p_prev_btn)
-        previousButton.setIconTintIfNotDefaultValue(styling.buttonsTint)
         previousButton.setOnClickListener { listener?.onPreviousResult() }
     }
 
     private fun bindCloseButton() {
         val closeButton = findViewById<AppCompatImageButton>(R.id.p2p_close_btn)
-        closeButton.setIconTintIfNotDefaultValue(styling.buttonsTint)
         closeButton.setOnClickListener {
             clear()
             listener?.onClose()
@@ -155,15 +110,11 @@ class P2PBar @JvmOverloads constructor(
     }
 
     private fun bindResultsCountView() {
-        resultsCountTextView.setTextSizeIfNotDefaultValue(styling.resultCountTextSize)
-        resultsCountTextView.setTextColorIfNotDefaultValue(styling.resultCountTextColor)
+
     }
 
     private fun bindQueryEditText() {
         with(queryEditText) {
-            setTextSizeIfNotDefaultValue(styling.queryTextSize)
-            setTextColorIfNotDefaultValue(styling.queryTextColor)
-            setHintTextColorIfNotDefaultValue(styling.queryHintTextColor)
 
             addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) = Unit

@@ -16,9 +16,12 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
 import mozilla.components.browser.state.state.content.FindResultState
+import kotlinx.android.synthetic.main.mozac_feature_p2p_view.*
+import kotlinx.android.synthetic.main.mozac_feature_p2p_view.view.*
 import mozilla.components.feature.p2p.R
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.showKeyboard
+
 
 private const val DEFAULT_VALUE = 0
 
@@ -31,111 +34,26 @@ class P2PBar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr), P2PView {
-    private val queryEditText: EditText
-
-    @VisibleForTesting
-    internal val resultsCountTextView: TextView
-
-    @VisibleForTesting
-    internal val resultFormat: String =
-        context.getString(R.string.mozac_feature_p2p_result)
-
-    @VisibleForTesting
-    internal val accessibilityFormat: String =
-        context.getString(R.string.mozac_feature_p2p_accessibility_result)
-
+    // Initialized in P2PInteractor
     override var listener: P2PView.Listener? = null
 
     init {
         inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
 
-        queryEditText = findViewById(R.id.p2p_query_text)
-        resultsCountTextView = findViewById(R.id.p2p_result_text)
-
-        bindQueryEditText()
-        bindResultsCountView()
-        bindPreviousButton()
-        bindNextButton()
-        bindCloseButton()
-    }
-
-    internal fun onQueryChange(newQuery: String) {
-        if (newQuery.isNotBlank()) {
-            listener?.onFindAll(newQuery)
-        } else {
-            resultsCountTextView.text = ""
-            listener?.onClearMatches()
-        }
+        p2pAdvertiseBtn.setOnClickListener { listener?.onAdvertise() }
+        p2pDiscoverBtn.setOnClickListener { listener?.onDiscover() }
     }
 
     override fun focus() {
-        queryEditText.showKeyboard()
     }
 
     override fun clear() {
-        queryEditText.hideKeyboard()
-
-        queryEditText.text = null
-        queryEditText.clearFocus()
-        resultsCountTextView.text = null
-        resultsCountTextView.contentDescription = null
+        p2pAdvertiseBtn.isEnabled = true
+        p2pDiscoverBtn.isEnabled = true
+        p2pStatusText.text = ""
     }
 
     override fun displayResult(result: FindResultState) {
-        with(result) {
-            val ordinal = if (numberOfMatches > 0) activeMatchOrdinal + 1 else activeMatchOrdinal
-
-            val accessibilityLabel = String.format(accessibilityFormat, ordinal, numberOfMatches)
-            resultsCountTextView.contentDescription = accessibilityLabel
-            announceForAccessibility(accessibilityLabel)
-        }
-    }
-
-    private fun bindNextButton() {
-        val nextButton = findViewById<AppCompatImageButton>(R.id.p2p_next_btn)
-        nextButton.setOnClickListener { listener?.onNextResult() }
-    }
-
-    private fun bindPreviousButton() {
-        val previousButton = findViewById<AppCompatImageButton>(R.id.p2p_prev_btn)
-        previousButton.setOnClickListener { listener?.onPreviousResult() }
-    }
-
-    private fun bindCloseButton() {
-        val closeButton = findViewById<AppCompatImageButton>(R.id.p2p_close_btn)
-        closeButton.setOnClickListener {
-            clear()
-            listener?.onClose()
-        }
-    }
-
-    private fun bindResultsCountView() {
-
-    }
-
-    private fun bindQueryEditText() {
-        with(queryEditText) {
-
-            addTextChangedListener(object : TextWatcher {
-                override fun afterTextChanged(s: Editable?) = Unit
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int
-                ) = Unit
-
-                override fun onTextChanged(
-                    newCharacter: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int
-                ) {
-                    val newQuery = newCharacter?.toString() ?: return
-                    onQueryChange(newQuery)
-                }
-            })
-        }
     }
 }
 

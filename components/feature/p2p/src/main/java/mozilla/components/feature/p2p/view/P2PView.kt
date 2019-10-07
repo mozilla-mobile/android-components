@@ -37,10 +37,8 @@ interface P2PView {
     fun asView(): View = (this as View)
 
     interface Listener {
-        fun onPreviousResult()
-        fun onNextResult()
+        fun onAdvertise()
+        fun onDiscover()
         fun onClose()
-        fun onFindAll(query: String)
-        fun onClearMatches()
     }
 }

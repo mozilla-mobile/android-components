@@ -34,16 +34,12 @@ internal class P2PInteractor(
         engineSession = session.engineState.engineSession
     }
 
-    override fun onPreviousResult() {
-        engineSession?.findNext(forward = false)
-        engineView?.asView()?.clearFocus()
-        view.asView().hideKeyboard()
+    override fun onAdvertise() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun onNextResult() {
-        engineSession?.findNext(forward = true)
-        engineView?.asView()?.clearFocus()
-        view.asView().hideKeyboard()
+    override fun onDiscover() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun onClose() {
@@ -55,13 +51,5 @@ internal class P2PInteractor(
     fun unbind() {
         engineSession?.clearFindMatches()
         engineSession = null
-    }
-
-    override fun onFindAll(query: String) {
-        engineSession?.findAll(query)
-    }
-
-    override fun onClearMatches() {
-        engineSession?.clearFindMatches()
     }
 }

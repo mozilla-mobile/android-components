@@ -14,64 +14,24 @@
         tools:background="#ffffffff"
         tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
 
-    <EditText
-            android:id="@+id/p2p_query_text"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="@dimen/mozac_feature_p2p_query_marginStart"
-            android:background="#00000000"
-            android:ems="10"
-            android:gravity="center_vertical"
-            android:hint="@string/mozac_feature_p2p_input"
-            android:inputType="textNoSuggestions"
-            android:lines="1"
-            android:maxLines="1"
-            android:textSize="@dimen/mozac_feature_p2p_query_text_size"
-            app:layout_constraintEnd_toStartOf="@id/p2p_result_text"
-            app:layout_constraintStart_toStartOf="parent"
-            android:importantForAutofill="no"
-            tools:ignore="UnusedAttribute"/>
+    <Button
+        android:id="@+id/p2pAdvertiseBtn"
+        android:layout_width="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/p2p_discover_button"
+        android:text="@string/advertise" />
+
+    <Button
+        android:id="@+id/p2pDiscoverBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/p2p_advertise_btn"
+        android:text="@string/discover" />
 
     <TextView
-            android:id="@+id/p2p_result_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="@dimen/mozac_feature_p2p_result_count_margin_end"
-            android:layout_marginStart="@dimen/mozac_feature_p2p_result_count_margin_start"
-            android:textSize="@dimen/mozac_feature_p2p_result_count_text_size"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/p2p_prev_btn"
-            app:layout_constraintStart_toEndOf="@+id/p2p_query_text"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="10/20"/>
-
-    <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/p2p_prev_btn"
-            style="@style/Mozac.Feature.P2P.Buttons"
-            android:contentDescription="@string/mozac_feature_p2p_previous_result"
-            android:src="@drawable/mozac_ic_arrowhead_up"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/p2p_next_btn"
-            app:layout_constraintStart_toEndOf="@+id/p2p_result_text"
-            app:layout_constraintTop_toTopOf="parent"/>
-
-    <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/p2p_next_btn"
-            style="@style/Mozac.Feature.P2P.Buttons"
-            android:contentDescription="@string/mozac_feature_p2p_next_result"
-            android:src="@drawable/mozac_ic_arrowhead_down"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/p2p_close_btn"
-            app:layout_constraintStart_toEndOf="@+id/p2p_prev_btn"
-            app:layout_constraintTop_toTopOf="parent"/>
-
-    <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/p2p_close_btn"
-            style="@style/Mozac.Feature.P2P.Buttons"
-            android:contentDescription="@string/mozac_feature_p2p_dismiss"
-            android:src="@drawable/mozac_ic_close"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/p2p_next_btn"
-            app:layout_constraintTop_toTopOf="parent"/>
+        android:id="@+id/p2pStatusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toEndOf="@id/p2p_discover_button"
+        android:text="" />
 </merge>

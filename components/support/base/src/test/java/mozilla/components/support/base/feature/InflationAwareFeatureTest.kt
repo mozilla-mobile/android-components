@@ -1,0 +1,104 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package mozilla.components.support.base.feature
+
+import android.view.View
+import android.view.ViewStub
+import mozilla.components.support.test.any
+import mozilla.components.support.test.mock
+import org.junit.Test
+import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
+import java.lang.ref.WeakReference
+
+class InflationAwareFeatureTest {
+    @Test
+    fun `stub inflates if no feature or view exists`() {
+        val stub: ViewStub = mock()
+        val feature: InflationAwareFeature = spy(TestableInflationAwareFeature(stub))
+
+        feature.launch()
+
+        verify(stub).setOnInflateListener(any())
+        verify(stub).inflate()
+    }
+
+    @Test
+    fun `stub immediately launches if the feature is available`() {
+        val stub: ViewStub = mock()
+        val feature: InflationAwareFeature = spy(TestableInflationAwareFeature(stub))
+
+        feature.feature = mock()
+        feature.view = WeakReference(mock())
+
+        feature.launch()
+
+        verify(stub, never()).setOnInflateListener(any())
+        verify(stub, never()).inflate()
+        verify(feature).onLaunch(any(), any())
+    }
+
+    @Test
+    fun `feature calls stop if created`() {
+        val stub: ViewStub = mock()
+        val inflationFeature: InflationAwareFeature = spy(TestableInflationAwareFeature(stub))
+        val innerFeature: LifecycleAwareFeature = mock()
+
+        inflationFeature.stop()
+
+        verify(innerFeature, never()).stop()
+
+        inflationFeature.feature = innerFeature
+
+        inflationFeature.stop()
+
+        verify(innerFeature).stop()
+    }
+
+    @Test
+    fun `start should be delegated to the inner feature`() {
+        val inflationFeature: InflationAwareFeature = spy(TestableInflationAwareFeature(mock()))
+        val innerFeature: LifecycleAwareFeature = mock()
+        inflationFeature.feature = innerFeature
+
+        inflationFeature.start()
+
+        verify(innerFeature).start()
+    }
+
+    @Test
+    fun `if feature has implemented BackHandler invoke it`() {
+        val stub: ViewStub = mock()
+        val inflationFeature: InflationAwareFeature = spy(TestableInflationAwareFeature(stub))
+        val innerFeature: LifecycleAwareFeature = mock()
+        val backHandlerFeature = object : LifecycleAwareFeature, BackHandler {
+            override fun onBackPressed() = true
+
+            override fun start() {}
+
+            override fun stop() {}
+        }
+
+        assert(!inflationFeature.onBackPressed())
+
+        inflationFeature.feature = innerFeature
+
+        assert(!inflationFeature.onBackPressed())
+
+        inflationFeature.feature = backHandlerFeature
+
+        assert(inflationFeature.onBackPressed())
+    }
+}
+
+class TestableInflationAwareFeature(stub: ViewStub) : InflationAwareFeature(stub) {
+    override fun onViewInflated(view: View): LifecycleAwareFeature {
+        return mock()
+    }
+
+    override fun onLaunch(view: View, feature: LifecycleAwareFeature) {
+    }
+}

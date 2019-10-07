@@ -21,6 +21,9 @@ permalink: /changelog/
 * **tooling-detekt**
   * Published detekt rules for internal use. Check module documentation for detailed ruleset description.
 
+* **support-base**
+  * Adds `InflationAwareFeature` to enable lazy inflation of a view needed by a feature.
+
 # 15.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v14.0.0...v15.0.0)

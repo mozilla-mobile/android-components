@@ -96,6 +96,10 @@ projects:
     path: components/feature/downloads
     description: 'Feature implementation for apps that want to use Android downloads manager.'
     publish: true
+  feature-p2p:
+    path: components/feature/p2p
+    description: 'Feature used for peer-to-peer communication.'
+    publish: true
   feature-privatemode:
     path: components/feature/privatemode
     description: 'Features used to enhance private browsing mode.'

@@ -9,17 +9,17 @@ A feature that provides [Find in Page functionality](https://support.mozilla.org
 Use Gradle to download the library from [maven.mozilla.org](https://maven.mozilla.org/) ([Setup repository](../../../README.md#maven-repository)):
 
 ```Groovy
-implementation "org.mozilla.components:feature-findinpage:{latest-version}"
+implementation "org.mozilla.components:feature-p2p:{latest-version}"
 ```
 
 ### Adding feature to application
 
 To use this feature you have to do two things:
 
-**1. Add the `FindInPageBar` widget to you layout:**
+**1. Add the `P2PBar` widget to you layout:**
 
 ```xml
-<mozilla.components.feature.findinpage.view.FindInPageBar
+<mozilla.components.feature.findinpage.view.P2PBar
         android:id="@+id/find_in_page"
         android:layout_width="match_parent"
         android:background="#FFFFFFFF"
@@ -30,52 +30,29 @@ To use this feature you have to do two things:
 
 These are the properties that you can customize of this widget.
 ```xml
-<attr name="findInPageQueryTextColor" format="reference|color"/>
-<attr name="findInPageQueryHintTextColor" format="reference|color"/>
-<attr name="findInPageQueryTextSize" format="dimension"/>
-<attr name="findInPageResultCountTextColor" format="reference|color"/>
-<attr name="findInPageResultCountTextSize" format="dimension"/>
-<attr name="findInPageButtonsTint" format="reference|color"/>
-<attr name="findInPageNoMatchesTextColor" format="reference|color"/>
+<attr name="p2PQueryTextColor" format="reference|color"/>
+<attr name="p2PQueryHintTextColor" format="reference|color"/>
+<attr name="p2PQueryTextSize" format="dimension"/>
+<attr name="p2PResultCountTextColor" format="reference|color"/>
+<attr name="p2PResultCountTextSize" format="dimension"/>
+<attr name="p2PButtonsTint" format="reference|color"/>
+<attr name="p2PNoMatchesTextColor" format="reference|color"/>
 ```
 
-**2. Add the `FindInPageFeature` to your activity/fragment:**
+**2. Add the `P2PFeature` to your activity/fragment:**
 
 ```kotlin
-val findInPageBar = layout.findViewById<FindInPageBar>(R.id.find_in_page)
+val p2PBar = layout.findViewById<P2PBar>(R.id.find_in_page)
 
-val findInPageFeature = FindInPageFeature(
+val p2PFeature = P2PFeature(
     sessionManager,
-    findInPageView
+    p2PView
 ) {
     // Optional: Handle clicking of "close" button.
 }
 
-lifecycle.addObservers(findInPageFeature)
+lifecycle.addObservers(p2PFeature)
 
-// To show "Find in Page" results for a `Session`:
-findInPageFeature.bind(session)
-```
-
-🦊 A practical example of using feature find in page can be found in [Sample Browser](https://github.com/mozilla-mobile/android-components/tree/master/samples/browser).
-
-## Facts
-
-This component emits the following [Facts](../../support/base/README.md#Facts):
-
-| Action | Item     | Extras        | Description                                         |
-|--------|----------|---------------|-----------------------------------------------------|
-| CLICK  | previous |               | The user clicked the previous result button.        |
-| CLICK  | next     |               | The user clicked the next result button.            |
-| CLICK  | close    |               | The user clicked the close button.                  |
-| COMMIT | input    | `inputExtras` | The user committed a query to be found on the page. |
-
-
-#### `inputExtras`
-
-| Key   | Type   | Value                       |
-|-------|--------|-----------------------------|
-| value | String | The query that was searched |
 
 ## License
 

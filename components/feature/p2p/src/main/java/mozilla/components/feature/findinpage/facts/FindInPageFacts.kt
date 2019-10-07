@@ -10,11 +10,11 @@ import mozilla.components.support.base.facts.Fact
 import mozilla.components.support.base.facts.collect
 
 /**
- * Facts emitted for telemetry related to [FindInPageFeature]
+ * Facts emitted for telemetry related to [P2PFeature]
  */
-class FindInPageFacts {
+class P2PFacts {
     /**
-     * Items that specify which portion of the [FindInPageFeature] was interacted with
+     * Items that specify which portion of the [P2PFeature] was interacted with
      */
     object Items {
         const val PREVIOUS = "previous"
@@ -24,14 +24,14 @@ class FindInPageFacts {
     }
 }
 
-private fun emitFindInPageFact(
+private fun emitP2PFact(
     action: Action,
     item: String,
     value: String? = null,
     metadata: Map<String, Any>? = null
 ) {
     Fact(
-        Component.FEATURE_FINDINPAGE,
+        Component.FEATURE_P2P,
         action,
         item,
         value,
@@ -39,8 +39,8 @@ private fun emitFindInPageFact(
     ).collect()
 }
 
-internal fun emitCloseFact() = emitFindInPageFact(Action.CLICK, FindInPageFacts.Items.CLOSE)
-internal fun emitNextFact() = emitFindInPageFact(Action.CLICK, FindInPageFacts.Items.NEXT)
-internal fun emitPreviousFact() = emitFindInPageFact(Action.CLICK, FindInPageFacts.Items.PREVIOUS)
+internal fun emitCloseFact() = emitP2PFact(Action.CLICK, P2PFacts.Items.CLOSE)
+internal fun emitNextFact() = emitP2PFact(Action.CLICK, P2PFacts.Items.NEXT)
+internal fun emitPreviousFact() = emitP2PFact(Action.CLICK, P2PFacts.Items.PREVIOUS)
 internal fun emitCommitFact(value: String) =
-        emitFindInPageFact(Action.COMMIT, FindInPageFacts.Items.INPUT, value)
+        emitP2PFact(Action.COMMIT, P2PFacts.Items.INPUT, value)

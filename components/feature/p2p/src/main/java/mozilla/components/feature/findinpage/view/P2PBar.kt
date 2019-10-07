@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.findinpage.view
+package mozilla.components.feature.p2p.view
 
 import android.content.Context
 import android.content.res.ColorStateList
@@ -16,22 +16,22 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
 import mozilla.components.browser.state.state.content.FindResultState
-import mozilla.components.feature.findinpage.R
+import mozilla.components.feature.p2p.R
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.showKeyboard
 
 private const val DEFAULT_VALUE = 0
 
 /**
- * A customizable "Find in page" bar implementing [FindInPageView].
+ * A customizable "Find in page" bar implementing [P2PView].
  */
 @Suppress("TooManyFunctions")
-class FindInPageBar @JvmOverloads constructor(
+class P2PBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : ConstraintLayout(context, attrs, defStyleAttr), FindInPageView {
-    private val styling: FindInPageBarStyling = createStyling(context, attrs, defStyleAttr)
+) : ConstraintLayout(context, attrs, defStyleAttr), P2PView {
+    private val styling: P2PBarStyling = createStyling(context, attrs, defStyleAttr)
     private val queryEditText: EditText
 
     @VisibleForTesting
@@ -39,19 +39,19 @@ class FindInPageBar @JvmOverloads constructor(
 
     @VisibleForTesting
     internal val resultFormat: String =
-        context.getString(R.string.mozac_feature_findindpage_result)
+        context.getString(R.string.mozac_feature_p2p_result)
 
     @VisibleForTesting
     internal val accessibilityFormat: String =
-        context.getString(R.string.mozac_feature_findindpage_accessibility_result)
+        context.getString(R.string.mozac_feature_p2p_accessibility_result)
 
-    override var listener: FindInPageView.Listener? = null
+    override var listener: P2PView.Listener? = null
 
     init {
-        inflate(getContext(), R.layout.mozac_feature_findinpage_view, this)
+        inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
 
-        queryEditText = findViewById(R.id.find_in_page_query_text)
-        resultsCountTextView = findViewById(R.id.find_in_page_result_text)
+        queryEditText = findViewById(R.id.p2p_query_text)
+        resultsCountTextView = findViewById(R.id.p2p_result_text)
 
         bindQueryEditText()
         bindResultsCountView()
@@ -99,54 +99,54 @@ class FindInPageBar @JvmOverloads constructor(
         context: Context,
         attrs: AttributeSet?,
         defStyleAttr: Int
-    ): FindInPageBarStyling {
-        val attr = context.obtainStyledAttributes(attrs, R.styleable.FindInPageBar, defStyleAttr, 0)
+    ): P2PBarStyling {
+        val attr = context.obtainStyledAttributes(attrs, R.styleable.P2PBar, defStyleAttr, 0)
 
         with(attr) {
-            return FindInPageBarStyling(
+            return P2PBarStyling(
                 getColor(
-                    R.styleable.FindInPageBar_findInPageQueryTextColor,
+                    R.styleable.P2PBar_findInPageQueryTextColor,
                     DEFAULT_VALUE
                 ),
                 getColor(
-                    R.styleable.FindInPageBar_findInPageQueryHintTextColor,
+                    R.styleable.P2PBar_findInPageQueryHintTextColor,
                     DEFAULT_VALUE
                 ),
                 getDimensionPixelSize(
-                    R.styleable.FindInPageBar_findInPageQueryTextSize,
+                    R.styleable.P2PBar_findInPageQueryTextSize,
                     DEFAULT_VALUE
                 ),
                 getColor(
-                    R.styleable.FindInPageBar_findInPageResultCountTextColor,
+                    R.styleable.P2PBar_findInPageResultCountTextColor,
                     DEFAULT_VALUE
                 ),
                 getColor(
-                    R.styleable.FindInPageBar_findInPageNoMatchesTextColor,
+                    R.styleable.P2PBar_findInPageNoMatchesTextColor,
                     DEFAULT_VALUE
                 ),
                 getDimensionPixelSize(
-                    R.styleable.FindInPageBar_findInPageResultCountTextSize,
+                    R.styleable.P2PBar_findInPageResultCountTextSize,
                     DEFAULT_VALUE
                 ),
-                getColorStateList(R.styleable.FindInPageBar_findInPageButtonsTint)
+                getColorStateList(R.styleable.P2PBar_findInPageButtonsTint)
             ).also { recycle() }
         }
     }
 
     private fun bindNextButton() {
-        val nextButton = findViewById<AppCompatImageButton>(R.id.find_in_page_next_btn)
+        val nextButton = findViewById<AppCompatImageButton>(R.id.p2p_next_btn)
         nextButton.setIconTintIfNotDefaultValue(styling.buttonsTint)
         nextButton.setOnClickListener { listener?.onNextResult() }
     }
 
     private fun bindPreviousButton() {
-        val previousButton = findViewById<AppCompatImageButton>(R.id.find_in_page_prev_btn)
+        val previousButton = findViewById<AppCompatImageButton>(R.id.p2p_prev_btn)
         previousButton.setIconTintIfNotDefaultValue(styling.buttonsTint)
         previousButton.setOnClickListener { listener?.onPreviousResult() }
     }
 
     private fun bindCloseButton() {
-        val closeButton = findViewById<AppCompatImageButton>(R.id.find_in_page_close_btn)
+        val closeButton = findViewById<AppCompatImageButton>(R.id.p2p_close_btn)
         closeButton.setIconTintIfNotDefaultValue(styling.buttonsTint)
         closeButton.setOnClickListener {
             clear()
@@ -188,7 +188,7 @@ class FindInPageBar @JvmOverloads constructor(
     }
 }
 
-internal data class FindInPageBarStyling(
+internal data class P2PBarStyling(
     val queryTextColor: Int,
     val queryHintTextColor: Int,
     val queryTextSize: Int,

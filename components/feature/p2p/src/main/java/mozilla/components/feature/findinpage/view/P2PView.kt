@@ -10,7 +10,7 @@ import mozilla.components.browser.state.state.content.FindResultState
 /**
  * An interface for views that can display "find in page" results and related UI controls.
  */
-interface FindInPageView {
+interface P2PView {
     /**
      * Listener to be invoked after the user performs certain actions (e.g. "find next result").
      */
@@ -32,7 +32,7 @@ interface FindInPageView {
     fun clear()
 
     /**
-     * Casts this [FindInPageView] interface to an actual Android [View] object.
+     * Casts this [P2PView] interface to an actual Android [View] object.
      */
     fun asView(): View = (this as View)
 

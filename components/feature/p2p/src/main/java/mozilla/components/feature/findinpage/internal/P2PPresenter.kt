@@ -17,11 +17,11 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 
 /**
  * Presenter that will observe [SessionState] changes and update the view whenever
- * a find result was added.
+ * a p2p result occurs.
  */
-internal class FindInPagePresenter(
+internal class P2PPresenter(
     private val store: BrowserStore,
-    private val view: FindInPageView
+    private val view: P2PView
 ) {
     @Volatile
     internal var session: SessionState? = null

@@ -7,23 +7,23 @@ package mozilla.components.feature.findinpage.internal
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
-import mozilla.components.feature.findinpage.FindInPageFeature
+import mozilla.components.feature.findinpage.P2PFeature
 import mozilla.components.feature.findinpage.facts.emitCloseFact
 import mozilla.components.feature.findinpage.facts.emitCommitFact
 import mozilla.components.feature.findinpage.facts.emitNextFact
 import mozilla.components.feature.findinpage.facts.emitPreviousFact
-import mozilla.components.feature.findinpage.view.FindInPageView
+import mozilla.components.feature.findinpage.view.P2PView
 import mozilla.components.support.ktx.android.view.hideKeyboard
 
 /**
- * Interactor that implements [FindInPageView.Listener] and notifies the engine or feature about actions the user
+ * Interactor that implements [P2PView.Listener] and notifies the engine or feature about actions the user
  * performed (e.g. "find next result").
  */
-internal class FindInPageInteractor(
-    private val feature: FindInPageFeature,
-    private val view: FindInPageView,
+internal class P2PInteractor(
+    private val feature: P2PFeature,
+    private val view: P2PView,
     private val engineView: EngineView?
-) : FindInPageView.Listener {
+) : P2PView.Listener {
     private var engineSession: EngineSession? = null
 
     fun start() {

@@ -4,16 +4,19 @@
 
 package mozilla.components.feature.p2p.internal
 
+import android.os.Build
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
-import mozilla.components.support.ktx.android.view.hideKeyboard
+import mozilla.components.lib.nearby.NearbyConnection
+import mozilla.components.lib.nearby.NearbyConnectionListener
+import mozilla.components.support.base.log.logger.Logger
 
 /**
  * Interactor that implements [P2PView.Listener] and notifies the engine or feature about actions the user
- * performed (e.g. "find next result").
+ * performed (such as receiving a URL from another device).
  */
 internal class P2PInteractor(
     private val feature: P2PFeature,
@@ -21,9 +24,30 @@ internal class P2PInteractor(
     private val engineView: EngineView?
 ) : P2PView.Listener {
     private var engineSession: EngineSession? = null
+    private lateinit var nearbyConnection: NearbyConnection
 
     fun start() {
+        Logger.error("In P2PInteractor.start()")
         view.listener = this
+        nearbyConnection = NearbyConnection(
+            view.asView().context,
+            Build.MODEL,
+            true,
+            object : NearbyConnectionListener {
+                override fun updateState(connectionState: NearbyConnection.ConnectionState) {
+                    Logger.error("In updateState()")
+                    view.updateStatus(connectionState.name)
+                }
+
+                override fun messageDelivered(payloadId: Long) {
+                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                }
+
+                override fun receiveMessage(endpointId: String, message: String) {
+                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                }
+            }
+        )
     }
 
     fun stop() {
@@ -35,11 +59,12 @@ internal class P2PInteractor(
     }
 
     override fun onAdvertise() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        Logger.error("Calling startAdvertising()")
+        nearbyConnection.startAdvertising()
     }
 
     override fun onDiscover() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        nearbyConnection.startDiscovering()
     }
 
     override fun onClose() {

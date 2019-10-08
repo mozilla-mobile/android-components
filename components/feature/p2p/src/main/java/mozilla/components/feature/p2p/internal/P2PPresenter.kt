@@ -29,6 +29,7 @@ internal class P2PPresenter(
     private var scope: CoroutineScope? = null
 
     fun start() {
+        /*
         scope = store.flowScoped { flow ->
             flow.mapNotNull { state -> session?.let { state.findTabOrCustomTab(it.id) } }
                 .ifChanged { it.content.findResults }
@@ -39,6 +40,7 @@ internal class P2PPresenter(
                     }
                 }
         }
+         */
     }
 
     fun stop() {

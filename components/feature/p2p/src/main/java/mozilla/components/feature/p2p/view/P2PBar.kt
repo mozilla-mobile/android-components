@@ -40,8 +40,20 @@ class P2PBar @JvmOverloads constructor(
     init {
         inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
 
-        p2pAdvertiseBtn.setOnClickListener { listener?.onAdvertise() }
-        p2pDiscoverBtn.setOnClickListener { listener?.onDiscover() }
+        p2pAdvertiseBtn.setOnClickListener {
+            listener!!.onAdvertise()
+            p2pAdvertiseBtn.isEnabled = false
+            p2pDiscoverBtn.isEnabled = false
+        }
+        p2pDiscoverBtn.setOnClickListener {
+            listener!!.onDiscover()
+            p2pAdvertiseBtn.isEnabled = false
+            p2pDiscoverBtn.isEnabled = false
+        }
+    }
+
+    override fun updateStatus(status: String) {
+        p2pStatusText.text = status
     }
 
     override fun focus() {
@@ -51,9 +63,6 @@ class P2PBar @JvmOverloads constructor(
         p2pAdvertiseBtn.isEnabled = true
         p2pDiscoverBtn.isEnabled = true
         p2pStatusText.text = ""
-    }
-
-    override fun displayResult(result: FindResultState) {
     }
 }
 

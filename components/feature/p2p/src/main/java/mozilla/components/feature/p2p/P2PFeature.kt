@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.p2p
 
+import android.content.Context
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore

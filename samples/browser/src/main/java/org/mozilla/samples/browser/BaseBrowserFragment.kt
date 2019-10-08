@@ -34,6 +34,7 @@ import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import org.mozilla.samples.browser.downloads.DownloadService
 import org.mozilla.samples.browser.ext.components
 import org.mozilla.samples.browser.integration.FindInPageIntegration
+import org.mozilla.samples.browser.integration.P2PIntegration
 
 /**
  * Base fragment extended by [BrowserFragment] and [ExternalAppBrowserFragment].
@@ -46,6 +47,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
     private val promptFeature = ViewBoundFeatureWrapper<PromptFeature>()
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
+    private val p2PIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
@@ -161,6 +163,11 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
 
         findInPageIntegration.set(
             feature = FindInPageIntegration(components.store, layout.findInPage, layout.engineView),
+            owner = this,
+            view = layout)
+
+        p2PIntegration.set(
+            feature = P2PIntegration(components.store, layout.p2p, layout.engineView),
             owner = this,
             view = layout)
 

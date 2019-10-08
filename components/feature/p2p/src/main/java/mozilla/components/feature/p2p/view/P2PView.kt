@@ -19,7 +19,7 @@ interface P2PView {
     /**
      * Displays the given [FindResultState] state in the view.
      */
-    fun displayResult(result: FindResultState)
+    fun updateStatus(status: String)
 
     /**
      * Requests focus for the input element the user can type their query into.

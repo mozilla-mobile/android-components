@@ -3,25 +3,10 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- String for button for this device to advertise its presence to nearby devices. -->
+    <string name="mozac_feature_p2p_advertise">Advertise</string>
 
-    <!-- Watermark/Hint for the find in page input field. -->
-    <string name="mozac_feature_p2p_input">Find in page</string>
-
-    <!-- String to show the number of results found in the page and the
-    position the user is at. The first argument is the position, the second argument is the total. -->
-    <string name="mozac_feature_p2p_result">%1$d/%2$d</string>
-
-    <!-- String to be read by the accessibility service presenting the number of results found in the page
-    and the position the user is at. The first argument is the position, the second argument is the total. -->
-    <string name="mozac_feature_p2p_accessibility_result" tools:ignore="PluralsCandidate">%1$d out of %2$d</string>
-
-    <!-- String to be read by the accessibility service when focusing the next result button. -->
-    <string name="mozac_feature_p2p_next_result">Find next result</string>
-
-    <!-- String to be read by the accessibility service when focusing the previous result button. -->
-    <string name="mozac_feature_p2p_previous_result">Find previous result</string>
-
-    <!-- String to be read by the accessibility service when focusing the dismiss button in the "find in page" UI. -->
-    <string name="mozac_feature_p2p_dismiss">Dismiss find in page</string>
+    <!-- String for button for this device to discover the presence of nearby devices. -->
+    <string name="mozac_feature_p2p_discover">Discover</string>
 
 </resources>

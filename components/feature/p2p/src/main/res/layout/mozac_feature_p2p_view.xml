@@ -18,20 +18,20 @@
         android:id="@+id/p2pAdvertiseBtn"
         android:layout_width="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/p2p_discover_button"
-        android:text="@string/advertise" />
+        app:layout_constraintEnd_toStartOf="@id/p2pDiscoverBtn"
+        android:text="@string/mozac_feature_p2p_advertise" />
 
     <Button
         android:id="@+id/p2pDiscoverBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/p2p_advertise_btn"
-        android:text="@string/discover" />
+        app:layout_constraintStart_toEndOf="@id/p2pAdvertiseBtn"
+        android:text="@string/mozac_feature_p2p_discover" />
 
     <TextView
         android:id="@+id/p2pStatusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/p2p_discover_button"
+        app:layout_constraintStart_toEndOf="@id/p2pDiscoverBtn"
         android:text="" />
 </merge>

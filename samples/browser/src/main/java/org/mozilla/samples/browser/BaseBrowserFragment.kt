@@ -11,7 +11,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_browser.*
 import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
@@ -20,7 +19,6 @@ import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
-import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
@@ -52,7 +50,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
-    private val p2PIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
+    private val p2pIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
 
     protected val sessionId: String?
         get() = arguments?.getString(SESSION_ID_KEY)
@@ -168,7 +166,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             owner = this,
             view = layout)
 
-        p2PIntegration.set(
+        p2pIntegration.set(
             feature = P2PIntegration(
                 components.store,
                 layout.p2p
@@ -211,7 +209,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.get()
             REQUEST_CODE_PROMPT_PERMISSIONS -> promptFeature.get()
             REQUEST_CODE_APP_PERMISSIONS -> sitePermissionsFeature.get()
-            REQUEST_CODE_P2P_PERMISSIONS -> p2PIntegration.get()!!.feature // Is this too much of a hack?
+            REQUEST_CODE_P2P_PERMISSIONS -> p2pIntegration.get()!!.feature // Is this too much of a hack?
             else -> null
         }
         feature?.onPermissionsResult(permissions, grantResults)

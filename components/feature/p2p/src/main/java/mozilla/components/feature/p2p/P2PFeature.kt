@@ -44,25 +44,15 @@ class P2PFeature(
         requestNeededPermissions()
     }
 
-    private val ungrantedPermissions = NearbyConnection.PERMISSIONS.filter {
+    private var ungrantedPermissions = NearbyConnection.PERMISSIONS.filter {
         ContextCompat.checkSelfPermission(view.asView().context, it) != PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestNeededPermissions() {
-        try {
-            throw Exception("for debugging purposes")
-        } catch (e: java.lang.Exception) {
-            val sw = StringWriter()
-            e.printStackTrace(PrintWriter(sw))
-            Logger.error("Stack trace: ${sw.toString()}")
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ungrantedPermissions.isEmpty()) {
-                Logger.error("All permissions granted already, so no need to request.")
                 onPermissionsGranted()
             } else {
-                Logger.error("Desired permissions: $ungrantedPermissions")
-                Logger.error("About to request permissions")
                 onNeedToRequestPermissions(ungrantedPermissions.toTypedArray())
             }
         } else {
@@ -72,14 +62,10 @@ class P2PFeature(
 
     // PermissionsFeature
     override fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
-        Logger.error("After requesting ${permissions.size} permissions: " +
-            permissions.indices.map { "${permissions[it]}: ${grantResults[it]}"}
-                .joinToString(", "))
         if (ungrantedPermissions.isEmpty()) {
-            Logger.error("All permissions were granted")
             onPermissionsGranted()
         } else {
-            Logger.error("Cannot proceed due to missing permissions")
+            Logger.error("Cannot continue due to missing permissions $ungrantedPermissions")
         }
     }
 

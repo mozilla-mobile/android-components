@@ -5,6 +5,9 @@ package org.mozilla.samples.browser.integration
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import android.view.View
+import androidx.core.app.ActivityCompat
+
+import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
@@ -16,12 +19,13 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 class P2PIntegration(
     private val store: BrowserStore,
     private val view: P2PView,
-    engineView: EngineView
+    engineView: EngineView,
+    private val feature: P2PFeature
 ) : LifecycleAwareFeature, BackHandler {
-    private val feature = P2PFeature(store, view, engineView, ::onClose)
 
     override fun start() {
         feature.start()
+        feature.onClose = ::onClose
         launch = this::launch
     }
 

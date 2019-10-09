@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.fragment.app.Fragment
+import kotlinx.android.synthetic.main.fragment_browser.*
 import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
@@ -19,6 +20,7 @@ import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
+import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
@@ -46,11 +48,12 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     private val toolbarFeature = ViewBoundFeatureWrapper<ToolbarFeature>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
     private val promptFeature = ViewBoundFeatureWrapper<PromptFeature>()
-    private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
-    private val p2PIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
+    private val p2pFeature = ViewBoundFeatureWrapper<P2PFeature>()
+    private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
+    private val p2PIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
 
     protected val sessionId: String?
         get() = arguments?.getString(SESSION_ID_KEY)
@@ -166,10 +169,29 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             owner = this,
             view = layout)
 
-        p2PIntegration.set(
-            feature = P2PIntegration(components.store, layout.p2p, layout.engineView),
+        p2pFeature.set(
+            feature = P2PFeature(
+                components.store,
+                layout.p2p,
+                engineView
+            ) { permissions ->
+                requestPermissions(permissions, REQUEST_CODE_P2P_PERMISSIONS)
+            },
             owner = this,
-            view = layout)
+            view = layout
+        )
+
+        p2PIntegration.set(
+            feature = P2PIntegration(
+                components.store,
+                layout.p2p,
+                engineView,
+                p2pFeature.get()!!),
+            owner = this,
+            view = layout
+        )
+
+
 
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
@@ -203,6 +225,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.get()
             REQUEST_CODE_PROMPT_PERMISSIONS -> promptFeature.get()
             REQUEST_CODE_APP_PERMISSIONS -> sitePermissionsFeature.get()
+            REQUEST_CODE_P2P_PERMISSIONS -> p2pFeature.get()
             else -> null
         }
         feature?.onPermissionsResult(permissions, grantResults)
@@ -219,6 +242,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
         private const val REQUEST_CODE_DOWNLOAD_PERMISSIONS = 1
         private const val REQUEST_CODE_PROMPT_PERMISSIONS = 2
         private const val REQUEST_CODE_APP_PERMISSIONS = 3
+        private const val REQUEST_CODE_P2P_PERMISSIONS = 4
 
         @JvmStatic
         protected fun Bundle.putSessionId(sessionId: String?) {

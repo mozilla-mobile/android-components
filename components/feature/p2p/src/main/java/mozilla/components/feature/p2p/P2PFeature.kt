@@ -6,6 +6,8 @@ package mozilla.components.feature.p2p
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.core.app.ActivityCompat.requestPermissions
+import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
@@ -14,6 +16,8 @@ import mozilla.components.feature.p2p.internal.P2PPresenter
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.base.feature.OnNeedToRequestPermissions
+import mozilla.components.support.base.feature.PermissionsFeature
 
 /**
  * Feature implementation that will keep a [P2PView] in sync with a bound [SessionState].
@@ -22,12 +26,15 @@ class P2PFeature(
     store: BrowserStore,
     view: P2PView,
     engineView: EngineView,
-    private val onClose: (() -> Unit)? = null
-) : LifecycleAwareFeature, BackHandler {
+    override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { }
+) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
     @VisibleForTesting internal var presenter = P2PPresenter(store, view)
     @VisibleForTesting internal var interactor = P2PInteractor(this, view, engineView)
 
+    var onClose: (() -> Unit)? = null
     private var session: SessionState? = null
+
+    //LifeCycleAwareFeature
 
     override fun start() {
         presenter.start()
@@ -50,6 +57,7 @@ class P2PFeature(
         interactor.bind(session)
     }
 
+    // BackHandler
     /**
      * Returns true if the back button press was handled and the feature unbound from a session.
      */
@@ -60,6 +68,11 @@ class P2PFeature(
         } else {
             false
         }
+    }
+
+    // PermissionsFeature
+    override fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     /**

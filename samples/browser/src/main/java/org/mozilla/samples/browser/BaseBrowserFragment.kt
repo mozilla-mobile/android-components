@@ -172,8 +172,8 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
         p2pFeature.set(
             feature = P2PFeature(
                 components.store,
-                layout.p2p,
-                engineView
+                layout.p2p
+           //     engineView
             ) { permissions ->
                 requestPermissions(permissions, REQUEST_CODE_P2P_PERMISSIONS)
             },
@@ -185,7 +185,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             feature = P2PIntegration(
                 components.store,
                 layout.p2p,
-                engineView,
+              //  engineView,
                 p2pFeature.get()!!),
             owner = this,
             view = layout

@@ -20,8 +20,8 @@ import mozilla.components.support.base.log.logger.Logger
  */
 internal class P2PInteractor(
     private val feature: P2PFeature,
-    private val view: P2PView,
-    private val engineView: EngineView?
+    private val view: P2PView
+   // private val engineView: EngineView?
 ) : P2PView.Listener {
     private var engineSession: EngineSession? = null
     private lateinit var nearbyConnection: NearbyConnection

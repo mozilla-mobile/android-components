@@ -4,32 +4,36 @@
 
 package mozilla.components.feature.p2p
 
-import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.annotation.VisibleForTesting
-import androidx.core.app.ActivityCompat.requestPermissions
-import androidx.fragment.app.Fragment
+import androidx.core.content.ContextCompat
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.p2p.internal.P2PInteractor
 import mozilla.components.feature.p2p.internal.P2PPresenter
 import mozilla.components.feature.p2p.view.P2PView
+import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
+import mozilla.components.support.base.log.logger.Logger
+import java.io.PrintWriter
+import java.io.StringWriter
 
 /**
  * Feature implementation that will keep a [P2PView] in sync with a bound [SessionState].
  */
 class P2PFeature(
     store: BrowserStore,
-    view: P2PView,
-    engineView: EngineView,
+    val view: P2PView,
+    //engineView: EngineView,
     override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { }
 ) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
     @VisibleForTesting internal var presenter = P2PPresenter(store, view)
-    @VisibleForTesting internal var interactor = P2PInteractor(this, view, engineView)
+    @VisibleForTesting internal var interactor = P2PInteractor(this, view /*,engineView*/)
 
     var onClose: (() -> Unit)? = null
     private var session: SessionState? = null
@@ -37,6 +41,50 @@ class P2PFeature(
     //LifeCycleAwareFeature
 
     override fun start() {
+        requestNeededPermissions()
+    }
+
+    private val ungrantedPermissions = NearbyConnection.PERMISSIONS.filter {
+        ContextCompat.checkSelfPermission(view.asView().context, it) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestNeededPermissions() {
+        try {
+            throw Exception("for debugging purposes")
+        } catch (e: java.lang.Exception) {
+            val sw = StringWriter()
+            e.printStackTrace(PrintWriter(sw))
+            Logger.error("Stack trace: ${sw.toString()}")
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ungrantedPermissions.isEmpty()) {
+                Logger.error("All permissions granted already, so no need to request.")
+                onPermissionsGranted()
+            } else {
+                Logger.error("Desired permissions: $ungrantedPermissions")
+                Logger.error("About to request permissions")
+                onNeedToRequestPermissions(ungrantedPermissions.toTypedArray())
+            }
+        } else {
+            Logger.error("Cannot continue on pre-Marshmallow device")
+        }
+    }
+
+    // PermissionsFeature
+    override fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
+        Logger.error("After requesting ${permissions.size} permissions: " +
+            permissions.indices.map { "${permissions[it]}: ${grantResults[it]}"}
+                .joinToString(", "))
+        if (ungrantedPermissions.isEmpty()) {
+            Logger.error("All permissions were granted")
+            onPermissionsGranted()
+        } else {
+            Logger.error("Cannot proceed due to missing permissions")
+        }
+    }
+
+    // This is called after all permissions have been granted.
+    private fun onPermissionsGranted() {
         presenter.start()
         interactor.start()
     }
@@ -45,6 +93,7 @@ class P2PFeature(
         presenter.stop()
         interactor.stop()
     }
+
 
     /**
      * Binds this feature to the given [SessionState]. Until unbound the [P2PView] will be
@@ -68,11 +117,6 @@ class P2PFeature(
         } else {
             false
         }
-    }
-
-    // PermissionsFeature
-    override fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     /**

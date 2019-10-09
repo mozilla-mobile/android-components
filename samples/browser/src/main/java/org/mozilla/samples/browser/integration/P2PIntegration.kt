@@ -19,12 +19,13 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 class P2PIntegration(
     private val store: BrowserStore,
     private val view: P2PView,
-    engineView: EngineView,
+    //engineView: EngineView,
     private val feature: P2PFeature
 ) : LifecycleAwareFeature, BackHandler {
 
     override fun start() {
-        feature.start()
+        // Started in BaseBrowserFragment reference to ViewBoundFeatureWrapper
+    //        feature.start()
         feature.onClose = ::onClose
         launch = this::launch
     }

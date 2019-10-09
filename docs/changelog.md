@@ -4,13 +4,39 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 16.0.0-SNAPSHOT  (In Development)
+# 17.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v15.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/76?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v16.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/77?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **feature-contextmenu**
+  * The "Save Image" context menu item will no longer prompt before downloading the image.
+
+* **concept-engine**
+  * Added `WebAppManifest.ShareTarget` data class.
+
+* **lib-crash**
+  * Now supports sending caught exceptions.  Use the 'submitCaughtException()' to send caught exceptions if the underlying crash reporter service supports it.
+  ```Kotlin
+  val job = crashReporter.submitCaughtException(e)
+  ```
+
+# 16.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v15.0.0...v16.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/76?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v16.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v16.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v16.0.0/buildSrc/src/main/java/Config.kt)
+
+* **feature-awesomebar**
+  * ⚠️ **This is a breaking change**: `AwesomeBar.Suggestion` now directly takes a Bitmap for the icon param rather than a Unit.
+
+* **feature-pwa**
+  * ⚠️ **This is a breaking change**: Intent sent from the `WebAppShortcutManager` now require the consumption of the `SHORTCUT_CATEGORY` in your manifest
 
 * **feature-customtabs**
   * 'CustomTabIntentProcessor' can create private sessions now.
@@ -20,6 +46,24 @@ permalink: /changelog/
 
 * **tooling-detekt**
   * Published detekt rules for internal use. Check module documentation for detailed ruleset description.
+
+* **feature-intent**
+  * Added support for NFC tag intents to `TabIntentProcessor`.
+
+* **firefox-accounts**, **service-fretboard**
+  * ⚠️ **This is a breaking change**: Due to migration to WorkManager v2.2.0, some classes like `WorkManagerSyncScheduler` and `WorkManagerSyncDispatcher` now expects a `Context` in their constructors.
+
+* **engine**, **engine-gecko-nightly** and **engine-gecko-beta**
+  * Added `WebExtensionsTabsDelegate` to support `browser.tabs.create()` in web extensions.
+  ```kotlin
+  GeckoEngine(applicationContext, engineSettings).also {
+    it.registerWebExtensionTabDelegate(object : WebExtensionTabDelegate {
+        override fun onNewTab(webExtension: WebExtension?, url: String, engineSession: EngineSession) {
+          sessionManager.add(Session(url), true, engineSession)
+        }
+    })
+  }
+  ```
 
 # 15.0.0
 

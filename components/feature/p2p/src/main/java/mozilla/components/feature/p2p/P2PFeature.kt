@@ -8,9 +8,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.p2p.internal.P2PInteractor
 import mozilla.components.feature.p2p.internal.P2PPresenter
 import mozilla.components.feature.p2p.view.P2PView
@@ -20,8 +20,6 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger
-import java.io.PrintWriter
-import java.io.StringWriter
 
 /**
  * Feature implementation that will keep a [P2PView] in sync with a bound [SessionState].
@@ -29,13 +27,12 @@ import java.io.StringWriter
 class P2PFeature(
     store: BrowserStore,
     val view: P2PView,
-    //engineView: EngineView,
-    override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { }
+    override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
+    private val onClose: (() -> Unit)
 ) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
     @VisibleForTesting internal var presenter = P2PPresenter(store, view)
-    @VisibleForTesting internal var interactor = P2PInteractor(this, view /*,engineView*/)
+    @VisibleForTesting internal var interactor = P2PInteractor(this, view)
 
-    var onClose: (() -> Unit)? = null
     private var session: SessionState? = null
 
     //LifeCycleAwareFeature
@@ -62,7 +59,9 @@ class P2PFeature(
 
     // PermissionsFeature
     override fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
-        if (ungrantedPermissions.isEmpty()) {
+        // Sometimes ungrantedPermissions still shows a recently accepted permission as being not granted,
+        // so we need to check grantResults instead.
+        if (grantResults.all {it == PackageManager.PERMISSION_GRANTED}) {
             onPermissionsGranted()
         } else {
             Logger.error("Cannot continue due to missing permissions $ungrantedPermissions")
@@ -71,8 +70,8 @@ class P2PFeature(
 
     // This is called after all permissions have been granted.
     private fun onPermissionsGranted() {
+        interactor.start() // Must start before presenter because it sets the listener
         presenter.start()
-        interactor.start()
     }
 
     override fun stop() {
@@ -113,6 +112,6 @@ class P2PFeature(
         session = null
         presenter.unbind()
         interactor.unbind()
-        onClose?.invoke()
+        onClose.invoke()
     }
 }

@@ -7,7 +7,6 @@ package mozilla.components.feature.p2p.internal
 import android.os.Build
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.nearby.NearbyConnection
@@ -21,13 +20,12 @@ import mozilla.components.support.base.log.logger.Logger
 internal class P2PInteractor(
     private val feature: P2PFeature,
     private val view: P2PView
-   // private val engineView: EngineView?
 ) : P2PView.Listener {
     private var engineSession: EngineSession? = null
     private lateinit var nearbyConnection: NearbyConnection
 
     fun start() {
-        Logger.error("In P2PInteractor.start()")
+        Logger.error("In P2PInteractor.start(), about to initialize listener")
         view.listener = this
         nearbyConnection = NearbyConnection(
             view.asView().context,

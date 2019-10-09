@@ -31,6 +31,8 @@ interface P2PView {
      */
     fun clear()
 
+    fun enable()
+
     /**
      * Casts this [P2PView] interface to an actual Android [View] object.
      */

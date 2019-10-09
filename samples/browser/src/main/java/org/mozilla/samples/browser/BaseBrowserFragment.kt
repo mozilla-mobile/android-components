@@ -51,7 +51,6 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
-    private val p2pFeature = ViewBoundFeatureWrapper<P2PFeature>()
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val p2PIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
 
@@ -169,29 +168,16 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             owner = this,
             view = layout)
 
-        p2pFeature.set(
-            feature = P2PFeature(
+        p2PIntegration.set(
+            feature = P2PIntegration(
                 components.store,
                 layout.p2p
-           //     engineView
             ) { permissions ->
                 requestPermissions(permissions, REQUEST_CODE_P2P_PERMISSIONS)
             },
             owner = this,
             view = layout
         )
-
-        p2PIntegration.set(
-            feature = P2PIntegration(
-                components.store,
-                layout.p2p,
-              //  engineView,
-                p2pFeature.get()!!),
-            owner = this,
-            view = layout
-        )
-
-
 
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
@@ -225,7 +211,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.get()
             REQUEST_CODE_PROMPT_PERMISSIONS -> promptFeature.get()
             REQUEST_CODE_APP_PERMISSIONS -> sitePermissionsFeature.get()
-            REQUEST_CODE_P2P_PERMISSIONS -> p2pFeature.get()
+            REQUEST_CODE_P2P_PERMISSIONS -> p2PIntegration.get()!!.feature // Is this too much of a hack?
             else -> null
         }
         feature?.onPermissionsResult(permissions, grantResults)

@@ -6,21 +6,13 @@ package mozilla.components.feature.p2p.view
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.TypedValue.COMPLEX_UNIT_PX
-import android.widget.EditText
 import android.widget.TextView
-import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
-import mozilla.components.browser.state.state.content.FindResultState
-import kotlinx.android.synthetic.main.mozac_feature_p2p_view.*
 import kotlinx.android.synthetic.main.mozac_feature_p2p_view.view.*
 import mozilla.components.feature.p2p.R
-import mozilla.components.support.ktx.android.view.hideKeyboard
-import mozilla.components.support.ktx.android.view.showKeyboard
 
 
 private const val DEFAULT_VALUE = 0
@@ -59,9 +51,13 @@ class P2PBar @JvmOverloads constructor(
     override fun focus() {
     }
 
-    override fun clear() {
+    override fun enable() {
         p2pAdvertiseBtn.isEnabled = true
         p2pDiscoverBtn.isEnabled = true
+    }
+
+    override fun clear() {
+        enable()
         p2pStatusText.text = ""
     }
 }

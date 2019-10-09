@@ -5,28 +5,23 @@ package org.mozilla.samples.browser.integration
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import android.view.View
-import androidx.core.app.ActivityCompat
-
-import mozilla.components.support.base.feature.OnNeedToRequestPermissions
+import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 
 class P2PIntegration(
     private val store: BrowserStore,
     private val view: P2PView,
-    //engineView: EngineView,
-    private val feature: P2PFeature
+    private val onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, BackHandler {
-
+    val feature = P2PFeature(store, view, onNeedToRequestPermissions, ::onClose)
     override fun start() {
-        // Started in BaseBrowserFragment reference to ViewBoundFeatureWrapper
-    //        feature.start()
-        feature.onClose = ::onClose
+        feature.start()
         launch = this::launch
     }
 

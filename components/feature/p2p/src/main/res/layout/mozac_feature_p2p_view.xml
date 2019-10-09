@@ -20,6 +20,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/p2pDiscoverBtn"
+        android:enabled="false"
         android:text="@string/mozac_feature_p2p_advertise" />
 
     <Button
@@ -27,6 +28,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toEndOf="@id/p2pAdvertiseBtn"
+        android:enabled="false"
         android:text="@string/mozac_feature_p2p_discover" />
 
     <TextView

@@ -7,22 +7,25 @@ package mozilla.components.feature.downloads.manager
 import android.Manifest.permission.FOREGROUND_SERVICE
 import android.Manifest.permission.INTERNET
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.P
 import android.util.LongSparseArray
 import androidx.core.util.isEmpty
 import androidx.core.util.set
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.ext.isScheme
 import mozilla.components.feature.downloads.ext.putDownloadExtra
+import mozilla.components.lib.state.ext.flowScoped
 import kotlin.random.Random
 import kotlin.reflect.KClass
 
@@ -34,13 +37,13 @@ import kotlin.reflect.KClass
  */
 class FetchDownloadManager<T : AbstractFetchDownloadService>(
     private val applicationContext: Context,
+    private val browserStore: BrowserStore,
     private val service: KClass<T>,
-    private val broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(applicationContext),
     override var onDownloadCompleted: OnDownloadCompleted = noop
-) : BroadcastReceiver(), DownloadManager {
+) : DownloadManager {
 
     private val queuedDownloads = LongSparseArray<DownloadState>()
-    private var isSubscribedReceiver = false
+    private var coroutineScope: CoroutineScope? = null
 
     override val permissions = if (SDK_INT >= P) {
         arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE, FOREGROUND_SERVICE)
@@ -72,7 +75,7 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
         intent.putDownloadExtra(download)
         applicationContext.startService(intent)
 
-        registerBroadcastReceiver()
+        registerStoreObserver()
 
         return downloadID
     }
@@ -81,29 +84,31 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
      * Remove all the listeners.
      */
     override fun unregisterListeners() {
-        if (isSubscribedReceiver) {
-            broadcastManager.unregisterReceiver(this)
-            isSubscribedReceiver = false
+        if (coroutineScope != null) {
+            coroutineScope?.cancel()
+            coroutineScope = null
             queuedDownloads.clear()
         }
     }
 
-    private fun registerBroadcastReceiver() {
-        if (!isSubscribedReceiver) {
-            val filter = IntentFilter(ACTION_DOWNLOAD_COMPLETE)
-            broadcastManager.registerReceiver(this, filter)
-            isSubscribedReceiver = true
+    private fun registerStoreObserver() {
+        coroutineScope?.cancel()
+        coroutineScope = browserStore.flowScoped { flow ->
+            flow.map { it.completedDownloads }
+                    .distinctUntilChanged()
+                    .collect { onReceiveCompletedDownloads(it) }
         }
     }
 
     /**
-     * Invoked when a download is complete. Calls [onDownloadCompleted] and unregisters the
-     * broadcast receiver if there are no more queued downloads.
+     * Finds the completed download in the browser state, then removes it
      */
-    override fun onReceive(context: Context, intent: Intent) {
+    private fun onReceiveCompletedDownloads(completedDownloads: Set<Long>) {
         if (queuedDownloads.isEmpty()) unregisterListeners()
 
-        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+        val downloadID = completedDownloads
+                .find { queuedDownloads.indexOfKey(it) >= 0 } ?: return
+
         val download = queuedDownloads[downloadID]
 
         if (download != null) {

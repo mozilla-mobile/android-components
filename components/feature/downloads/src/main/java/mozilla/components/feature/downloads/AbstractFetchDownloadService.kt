@@ -5,7 +5,6 @@
 package mozilla.components.feature.downloads
 
 import android.annotation.TargetApi
-import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
 import android.content.ContentValues
 import android.content.Context
@@ -19,10 +18,11 @@ import android.provider.MediaStore
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
+import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Header
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_LENGTH
@@ -49,8 +49,8 @@ import java.io.OutputStream
 abstract class AbstractFetchDownloadService : CoroutineService() {
 
     protected abstract val httpClient: Client
-    @VisibleForTesting
-    internal val broadcastManager by lazy { LocalBroadcastManager.getInstance(this) }
+    protected abstract val browserStore: BrowserStore
+
     @VisibleForTesting
     internal val context: Context get() = this
 
@@ -80,7 +80,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         )
 
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-        sendDownloadCompleteBroadcast(downloadID)
+        dispatchDownloadCompletedAction(downloadID)
     }
 
     private suspend fun performDownload(download: DownloadState) = withContext(IO) {
@@ -104,13 +104,10 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     /**
-     * Informs [mozilla.components.feature.downloads.manager.FetchDownloadManager] that a download
-     * has been completed.
+     * Informs [BrowserStore] that a download has been completed.
      */
-    private fun sendDownloadCompleteBroadcast(downloadID: Long) {
-        val intent = Intent(ACTION_DOWNLOAD_COMPLETE)
-        intent.putExtra(EXTRA_DOWNLOAD_ID, downloadID)
-        broadcastManager.sendBroadcast(intent)
+    private fun dispatchDownloadCompletedAction(downloadID: Long) {
+        browserStore.dispatch(DownloadAction.DownloadCompletedAction(downloadID))
     }
 
     /**

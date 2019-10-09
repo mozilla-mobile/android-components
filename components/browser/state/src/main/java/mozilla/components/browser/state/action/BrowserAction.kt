@@ -302,3 +302,13 @@ sealed class EngineAction : BrowserAction() {
         val engineSessionState: EngineSessionState
     ) : EngineAction()
 }
+
+/**
+ * [BrowserAction] implementations relating to update the completed DownloadState inside [BrowserState]
+ */
+sealed class DownloadAction : BrowserAction() {
+    /**
+     * Adds the [downloadId] into the set of completed downloads inside the [BrowserState].
+     */
+    data class DownloadCompletedAction(val downloadId: Long) : DownloadAction()
+}

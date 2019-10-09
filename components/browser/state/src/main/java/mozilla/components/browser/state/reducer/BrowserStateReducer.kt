@@ -11,6 +11,7 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
@@ -32,6 +33,7 @@ internal object BrowserStateReducer {
             is TrackingProtectionAction -> TrackingProtectionStateReducer.reduce(state, action)
             is EngineAction -> EngineStateReducer.reduce(state, action)
             is WebExtensionAction -> WebExtensionReducer.reduce(state, action)
+            is DownloadAction -> DownloadStateReducer.reduce(state, action)
         }
     }
 }

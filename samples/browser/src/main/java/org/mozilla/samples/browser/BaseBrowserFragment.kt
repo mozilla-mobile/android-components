@@ -113,6 +113,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
                 },
                 downloadManager = FetchDownloadManager(
                     requireContext().applicationContext,
+                    components.store,
                     DownloadService::class
                 ),
                 onNeedToRequestPermissions = { permissions ->

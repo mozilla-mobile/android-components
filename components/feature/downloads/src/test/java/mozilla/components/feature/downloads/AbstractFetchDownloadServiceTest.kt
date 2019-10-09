@@ -6,10 +6,11 @@ package mozilla.components.feature.downloads
 
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
 import android.content.Intent
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
@@ -34,7 +35,7 @@ import org.mockito.MockitoAnnotations.initMocks
 class AbstractFetchDownloadServiceTest {
 
     @Mock private lateinit var client: Client
-    @Mock private lateinit var broadcastManager: LocalBroadcastManager
+    @Mock private lateinit var store: BrowserStore
     private lateinit var service: AbstractFetchDownloadService
 
     @Before
@@ -42,8 +43,8 @@ class AbstractFetchDownloadServiceTest {
         initMocks(this)
         service = spy(object : AbstractFetchDownloadService() {
             override val httpClient = client
+            override val browserStore: BrowserStore = store
         })
-        doReturn(broadcastManager).`when`(service).broadcastManager
         doReturn(testContext).`when`(service).context
     }
 
@@ -71,7 +72,7 @@ class AbstractFetchDownloadServiceTest {
         assertEquals(download.url, providedDownload.value.url)
         assertEquals(download.fileName, providedDownload.value.fileName)
 
-        verify(broadcastManager).sendBroadcast(any())
+        verify(store).dispatch(DownloadAction.DownloadCompletedAction(1L))
         Unit
     }
 }

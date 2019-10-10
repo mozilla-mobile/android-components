@@ -19,7 +19,7 @@ class P2PIntegration(
     private val view: P2PView,
     private val onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, BackHandler {
-    val feature = P2PFeature(store, view, onNeedToRequestPermissions, ::onClose)
+    val feature = P2PFeature(view, onNeedToRequestPermissions, ::onClose)
     override fun start() {
         feature.start()
         launch = this::launch

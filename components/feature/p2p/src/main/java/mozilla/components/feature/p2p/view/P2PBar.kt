@@ -22,25 +22,25 @@ private const val DEFAULT_VALUE = 0
 /**
  * A customizable "Find in page" bar implementing [P2PView].
  */
-@Suppress("TooManyFunctions")
 class P2PBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr), P2PView {
-    // Initialized in P2PInteractor
     override var listener: P2PView.Listener? = null
 
     init {
         inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
 
         p2pAdvertiseBtn.setOnClickListener {
-            listener!!.onAdvertise()
+            require(listener != null)
+            listener?.onAdvertise()
             p2pAdvertiseBtn.isEnabled = false
             p2pDiscoverBtn.isEnabled = false
         }
         p2pDiscoverBtn.setOnClickListener {
-            listener!!.onDiscover()
+            require(listener != null)
+            listener?.onDiscover()
             p2pAdvertiseBtn.isEnabled = false
             p2pDiscoverBtn.isEnabled = false
         }
@@ -50,16 +50,27 @@ class P2PBar @JvmOverloads constructor(
         p2pStatusText.text = status
     }
 
+    override fun authenticate(neighborId: String, neighborName: String, token: String) {
+        require(listener != null)
+        AlertDialog.Builder(context)
+            .setTitle("Accept connection to $neighborName")
+            .setMessage("Confirm the code matches on both devices: $token")
+            .setPositiveButton(android.R.string.yes) { _, _ -> listener?.onAccept(token)}
+            .setNegativeButton(android.R.string.no) { _, _ -> listener?.onReject(token)}
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .show()
+    }
+
     override fun focus() {
     }
 
     override fun enable() {
+        require(listener != null)  // We could enforce this by adding a listener argument
         p2pAdvertiseBtn.isEnabled = true
         p2pDiscoverBtn.isEnabled = true
     }
 
     override fun clear() {
-        enable()
         p2pStatusText.text = ""
     }
 }

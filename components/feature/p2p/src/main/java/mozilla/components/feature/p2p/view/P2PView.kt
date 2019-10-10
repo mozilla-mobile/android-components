@@ -22,6 +22,11 @@ interface P2PView {
     fun updateStatus(status: String)
 
     /**
+     * Asks user whether they wish to authenticate using a given token.
+     */
+    fun authenticate(neighborId: String, neighborName: String, token: String)
+
+    /**
      * Requests focus for the input element the user can type their query into.
      */
     fun focus()
@@ -41,6 +46,8 @@ interface P2PView {
     interface Listener {
         fun onAdvertise()
         fun onDiscover()
+        fun onAccept(token: String)
+        fun onReject(token: String)
         fun onClose()
     }
 }

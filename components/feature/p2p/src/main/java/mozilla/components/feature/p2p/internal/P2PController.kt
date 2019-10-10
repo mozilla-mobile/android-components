@@ -10,6 +10,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.nearby.NearbyConnection
+import mozilla.components.lib.nearby.NearbyConnection.ConnectionState
 import mozilla.components.lib.nearby.NearbyConnectionListener
 import mozilla.components.support.base.log.logger.Logger
 
@@ -17,23 +18,32 @@ import mozilla.components.support.base.log.logger.Logger
  * Interactor that implements [P2PView.Listener] and notifies the engine or feature about actions the user
  * performed (such as receiving a URL from another device).
  */
-internal class P2PInteractor(
+internal class P2PController(
     private val feature: P2PFeature,
     private val view: P2PView
 ) : P2PView.Listener {
     private var engineSession: EngineSession? = null
     private lateinit var nearbyConnection: NearbyConnection
+    private var savedConnectionState: ConnectionState.Authenticating? = null
 
     fun start() {
-        Logger.error("In P2PInteractor.start(), about to initialize listener")
+        Logger.error("In P2PController.start(), about to initialize listener")
         view.listener = this
+        view.enable() // the listener must be assigned before calling enable()
         nearbyConnection = NearbyConnection(
             view.asView().context,
             Build.MODEL,
             true,
             object : NearbyConnectionListener {
-                override fun updateState(connectionState: NearbyConnection.ConnectionState) {
+                override fun updateState(connectionState: ConnectionState) {
                     view.updateStatus(connectionState.name)
+                    if (connectionState is ConnectionState.Authenticating) {
+                        // I need to store this state for use in accept() and reject() below.
+                        // Should I make it a map from String (the token) to ConnectionState.Authenticating?
+                        require(savedConnectionState == null)
+                        savedConnectionState = connectionState
+                        view.authenticate(connectionState.neighborId, connectionState.neighborName, connectionState.token)
+                    }
                 }
 
                 override fun messageDelivered(payloadId: Long) {
@@ -48,7 +58,7 @@ internal class P2PInteractor(
     }
 
     fun stop() {
-        view.listener = null
+        // Since I changed listener from Listener? to Listener, I can't null it.
     }
 
     fun bind(session: SessionState) {
@@ -56,12 +66,21 @@ internal class P2PInteractor(
     }
 
     override fun onAdvertise() {
-        Logger.error("Calling startAdvertising()")
         nearbyConnection.startAdvertising()
     }
 
     override fun onDiscover() {
         nearbyConnection.startDiscovering()
+    }
+
+    override fun onAccept(token: String) {
+        savedConnectionState!!.accept()
+        savedConnectionState = null
+    }
+
+    override fun onReject(token: String) {
+        savedConnectionState!!.reject()
+        savedConnectionState = null
     }
 
     override fun onClose() {

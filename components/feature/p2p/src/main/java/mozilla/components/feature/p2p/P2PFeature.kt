@@ -8,11 +8,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.feature.p2p.internal.P2PInteractor
-import mozilla.components.feature.p2p.internal.P2PPresenter
+import mozilla.components.feature.p2p.internal.P2PController
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.support.base.feature.BackHandler
@@ -25,13 +23,11 @@ import mozilla.components.support.base.log.logger.Logger
  * Feature implementation that will keep a [P2PView] in sync with a bound [SessionState].
  */
 class P2PFeature(
-    store: BrowserStore,
     val view: P2PView,
     override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
     private val onClose: (() -> Unit)
 ) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
-    @VisibleForTesting internal var presenter = P2PPresenter(store, view)
-    @VisibleForTesting internal var interactor = P2PInteractor(this, view)
+    @VisibleForTesting internal var controller = P2PController(this, view)
 
     private var session: SessionState? = null
 
@@ -70,13 +66,11 @@ class P2PFeature(
 
     // This is called after all permissions have been granted.
     private fun onPermissionsGranted() {
-        interactor.start() // Must start before presenter because it sets the listener
-        presenter.start()
+        controller.start()
     }
 
     override fun stop() {
-        presenter.stop()
-        interactor.stop()
+        controller.stop()
     }
 
 
@@ -87,8 +81,7 @@ class P2PFeature(
     fun bind(session: SessionState) {
         this.session = session
 
-        presenter.bind(session)
-        interactor.bind(session)
+        controller.bind(session)
     }
 
     // BackHandler
@@ -110,8 +103,7 @@ class P2PFeature(
      */
     fun unbind() {
         session = null
-        presenter.unbind()
-        interactor.unbind()
+        controller.unbind()
         onClose.invoke()
     }
 }

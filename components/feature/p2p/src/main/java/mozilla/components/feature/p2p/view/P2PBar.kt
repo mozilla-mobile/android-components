@@ -14,13 +14,11 @@ import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
 import kotlinx.android.synthetic.main.mozac_feature_p2p_view.view.*
 import mozilla.components.feature.p2p.R
-import mozilla.components.lib.nearby.NearbyConnection.ConnectionState
-
 
 private const val DEFAULT_VALUE = 0
 
 /**
- * A customizable "Find in page" bar implementing [P2PView].
+ * A toolbar for peer-to-peer communication between browsers.
  */
 class P2PBar @JvmOverloads constructor(
     context: Context,
@@ -55,17 +53,14 @@ class P2PBar @JvmOverloads constructor(
         AlertDialog.Builder(context)
             .setTitle("Accept connection to $neighborName")
             .setMessage("Confirm the code matches on both devices: $token")
-            .setPositiveButton(android.R.string.yes) { _, _ -> listener?.onAccept(token)}
-            .setNegativeButton(android.R.string.no) { _, _ -> listener?.onReject(token)}
+            .setPositiveButton(android.R.string.yes) { _, _ -> listener?.onAccept(token) }
+            .setNegativeButton(android.R.string.no) { _, _ -> listener?.onReject(token) }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
     }
 
-    override fun focus() {
-    }
-
     override fun enable() {
-        require(listener != null)  // We could enforce this by adding a listener argument
+        require(listener != null) // We could enforce this by adding a listener argument
         p2pAdvertiseBtn.isEnabled = true
         p2pDiscoverBtn.isEnabled = true
     }

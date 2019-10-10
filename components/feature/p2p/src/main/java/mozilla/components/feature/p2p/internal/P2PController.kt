@@ -15,8 +15,7 @@ import mozilla.components.lib.nearby.NearbyConnectionListener
 import mozilla.components.support.base.log.logger.Logger
 
 /**
- * Interactor that implements [P2PView.Listener] and notifies the engine or feature about actions the user
- * performed (such as receiving a URL from another device).
+ * Controller that mediates between [P2PView] and [NearbyConnection].
  */
 internal class P2PController(
     private val feature: P2PFeature,
@@ -47,23 +46,25 @@ internal class P2PController(
                 }
 
                 override fun messageDelivered(payloadId: Long) {
-                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                    TODO("not implemented")
                 }
 
                 override fun receiveMessage(endpointId: String, message: String) {
-                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                    TODO("not implemented")
                 }
             }
         )
     }
 
     fun stop() {
-        // Since I changed listener from Listener? to Listener, I can't null it.
+        view.listener = null
     }
 
     fun bind(session: SessionState) {
         engineSession = session.engineState.engineSession
     }
+
+    // P2PView.Listener implementation
 
     override fun onAdvertise() {
         nearbyConnection.startAdvertising()

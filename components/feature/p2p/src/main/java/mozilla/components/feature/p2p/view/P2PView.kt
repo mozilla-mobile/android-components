@@ -5,37 +5,44 @@
 package mozilla.components.feature.p2p.view
 
 import android.view.View
-import mozilla.components.browser.state.state.content.FindResultState
 
 /**
- * An interface for views that can display "find in page" results and related UI controls.
+ * An interface for views that can display the peer-to-peer communication toolbar.
  */
 interface P2PView {
     /**
-     * Listener to be invoked after the user performs certain actions (e.g. "find next result").
+     * Listener to be invoked after the user performs certain actions, such as initiating or
+     * accepting a connection.
      */
     var listener: Listener?
 
     /**
-     * Displays the given [FindResultState] state in the view.
+     * Optionally displays the status of the connection. The implementation should not take other
+     * actions based on the status, since the values of the strings could change.
+     *
+     * @param status the current status
      */
     fun updateStatus(status: String)
 
     /**
-     * Asks user whether they wish to authenticate using a given token.
+     * Asks user whether they wish to connection to another device having the specified connection
+     * information. It is highly recommended that the [token] is displayed, since it uniquely
+     * identifies the connection.
+     *
+     * @param neighborId a machine-generated ID uniquely identifying the other device
+     * @param neighborName a human-readable name of the other device
+     * @param token a short string of characters shared between the two devices
      */
     fun authenticate(neighborId: String, neighborName: String, token: String)
-
-    /**
-     * Requests focus for the input element the user can type their query into.
-     */
-    fun focus()
 
     /**
      * Clears the UI state.
      */
     fun clear()
 
+    /**
+     * Enables the buttons. Make sure [listener] is initialized before calling this.
+     */
     fun enable()
 
     /**
@@ -43,11 +50,36 @@ interface P2PView {
      */
     fun asView(): View = (this as View)
 
+    /**
+     * An interface enabling the [P2PView] to make requests of a controller.
+     */
     interface Listener {
+        /**
+         * Handles a request to advertise the device's presence and desire to connect.
+         */
         fun onAdvertise()
+
+        /**
+         * Handles a request to discovery other devices wishing to connect.
+         */
         fun onDiscover()
+
+        /**
+         * Handles a decision to accept the connection specified by the given token. The value
+         * of the token is what was passed to [authenticate].
+         *
+         * @param token a short string uniquely identifying a connection between two devices
+         */
         fun onAccept(token: String)
+
+        /**
+         * Handles a decision to reject the connection specified by the given token. The value
+         * of the token is what was passed to [authenticate].
+         *
+         * @param token a short string uniquely identifying a connection between two devices
+         */
         fun onReject(token: String)
+
         fun onClose()
     }
 }

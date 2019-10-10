@@ -9,7 +9,6 @@ import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import mozilla.components.browser.state.state.SessionState
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.internal.P2PController
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.nearby.NearbyConnection
@@ -20,7 +19,7 @@ import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger
 
 /**
- * Feature implementation that will keep a [P2PView] in sync with a bound [SessionState].
+ * Feature implementation for peer-to-peer communication between browsers.
  */
 class P2PFeature(
     val view: P2PView,
@@ -31,11 +30,17 @@ class P2PFeature(
 
     private var session: SessionState? = null
 
-    //LifeCycleAwareFeature
+    // LifeCycleAwareFeature implementation
 
     override fun start() {
         requestNeededPermissions()
     }
+
+    override fun stop() {
+        controller.stop()
+    }
+
+    // PermissionsFeature implementation
 
     private var ungrantedPermissions = NearbyConnection.PERMISSIONS.filter {
         ContextCompat.checkSelfPermission(view.asView().context, it) != PackageManager.PERMISSION_GRANTED
@@ -53,26 +58,19 @@ class P2PFeature(
         }
     }
 
-    // PermissionsFeature
     override fun onPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
         // Sometimes ungrantedPermissions still shows a recently accepted permission as being not granted,
         // so we need to check grantResults instead.
-        if (grantResults.all {it == PackageManager.PERMISSION_GRANTED}) {
+        if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
             onPermissionsGranted()
         } else {
             Logger.error("Cannot continue due to missing permissions $ungrantedPermissions")
         }
     }
 
-    // This is called after all permissions have been granted.
     private fun onPermissionsGranted() {
         controller.start()
     }
-
-    override fun stop() {
-        controller.stop()
-    }
-
 
     /**
      * Binds this feature to the given [SessionState]. Until unbound the [P2PView] will be
@@ -84,10 +82,7 @@ class P2PFeature(
         controller.bind(session)
     }
 
-    // BackHandler
-    /**
-     * Returns true if the back button press was handled and the feature unbound from a session.
-     */
+    // BackHandler implementation
     override fun onBackPressed(): Boolean {
         return if (session != null) {
             unbind()

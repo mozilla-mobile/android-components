@@ -6,7 +6,6 @@ package mozilla.components.lib.nearby
 
 import android.Manifest
 import android.content.Context
-import androidx.annotation.UiThread
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo

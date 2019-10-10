@@ -5,7 +5,6 @@ package org.mozilla.samples.browser.integration
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import android.view.View
-import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.P2PFeature

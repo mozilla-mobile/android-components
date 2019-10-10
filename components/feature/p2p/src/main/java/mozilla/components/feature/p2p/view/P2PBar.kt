@@ -9,10 +9,12 @@ import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.util.TypedValue.COMPLEX_UNIT_PX
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
 import kotlinx.android.synthetic.main.mozac_feature_p2p_view.view.*
 import mozilla.components.feature.p2p.R
+import mozilla.components.lib.nearby.NearbyConnection.ConnectionState
 
 
 private const val DEFAULT_VALUE = 0

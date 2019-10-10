@@ -33,7 +33,6 @@ internal class P2PInteractor(
             true,
             object : NearbyConnectionListener {
                 override fun updateState(connectionState: NearbyConnection.ConnectionState) {
-                    Logger.error("In updateState()")
                     view.updateStatus(connectionState.name)
                 }
 

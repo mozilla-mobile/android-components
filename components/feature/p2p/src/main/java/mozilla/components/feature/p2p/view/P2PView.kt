@@ -43,12 +43,16 @@ interface P2PView {
     /**
      * Enables the buttons. Make sure [listener] is initialized before calling this.
      */
-    fun enable()
+    fun reset()
 
     /**
      * Casts this [P2PView] interface to an actual Android [View] object.
      */
     fun asView(): View = (this as View)
+
+    fun readyToSend()
+
+    fun displayMessage(neighborId: String, message: String)
 
     /**
      * An interface enabling the [P2PView] to make requests of a controller.
@@ -79,6 +83,8 @@ interface P2PView {
          * @param token a short string uniquely identifying a connection between two devices
          */
         fun onReject(token: String)
+
+        fun onSendURL()
 
         fun onClose()
     }

@@ -8,5 +8,6 @@
 
     <!-- String for button for this device to discover the presence of nearby devices. -->
     <string name="mozac_feature_p2p_discover">Discover</string>
+    <string name="mozac_feature_p2p_send">Send URL</string>
 
 </resources>

@@ -73,12 +73,10 @@ class P2PFeature(
     }
 
     /**
-     * Binds this feature to the given [SessionState]. Until unbound the [P2PView] will be
-     * updated presenting the current "Find in Page" state.
+     * Binds this feature to the given [SessionState].
      */
     fun bind(session: SessionState) {
         this.session = session
-
         controller.bind(session)
     }
 

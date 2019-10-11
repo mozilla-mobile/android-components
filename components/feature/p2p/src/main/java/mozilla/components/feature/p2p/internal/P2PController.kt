@@ -6,7 +6,6 @@ package mozilla.components.feature.p2p.internal
 
 import android.os.Build
 import mozilla.components.browser.state.state.SessionState
-import mozilla.components.concept.engine.EngineSession
 import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.nearby.NearbyConnection
@@ -21,26 +20,23 @@ internal class P2PController(
     private val feature: P2PFeature,
     private val view: P2PView
 ) : P2PView.Listener {
-    private var engineSession: EngineSession? = null
+    private var session: SessionState? = null
     private lateinit var nearbyConnection: NearbyConnection
-    private var savedConnectionState: ConnectionState.Authenticating? = null
+    private var savedConnectionState: ConnectionState? = null
 
     fun start() {
         Logger.error("In P2PController.start(), about to initialize listener")
         view.listener = this
-        view.enable() // the listener must be assigned before calling enable()
+        view.reset() // the listener must be assigned before this call
         nearbyConnection = NearbyConnection(
             view.asView().context,
             Build.MODEL,
             true,
             object : NearbyConnectionListener {
                 override fun updateState(connectionState: ConnectionState) {
+                    savedConnectionState = connectionState
                     view.updateStatus(connectionState.name)
                     if (connectionState is ConnectionState.Authenticating) {
-                        // I need to store this state for use in accept() and reject() below.
-                        // Should I make it a map from String (the token) to ConnectionState.Authenticating?
-                        require(savedConnectionState == null)
-                        savedConnectionState = connectionState
                         view.authenticate(connectionState.neighborId, connectionState.neighborName, connectionState.token)
                     }
                 }
@@ -61,7 +57,7 @@ internal class P2PController(
     }
 
     fun bind(session: SessionState) {
-        engineSession = session.engineState.engineSession
+        this.session = session
     }
 
     // P2PView.Listener implementation
@@ -74,14 +70,28 @@ internal class P2PController(
         nearbyConnection.startDiscovering()
     }
 
+    inline fun <reified T : ConnectionState> cast() =
+        (savedConnectionState as? T).also {
+            if (it == null) {
+                Logger.error("savedConnection was expected to be type ${T::class} but is $savedConnectionState")
+            }
+        }
+
     override fun onAccept(token: String) {
-        savedConnectionState!!.accept()
-        savedConnectionState = null
+        cast<ConnectionState.Authenticating>()?.accept()
     }
 
     override fun onReject(token: String) {
-        savedConnectionState!!.reject()
-        savedConnectionState = null
+        cast<ConnectionState.Authenticating>()?.reject()
+    }
+
+    override fun onSendURL() {
+        if (cast<ConnectionState.ReadyToSend>() != null) {
+            val payloadID = nearbyConnection.sendMessage(session?.content?.url ?: "no URL")
+            if (payloadID == null) {
+                Logger.error("sendMessage() returns null")
+            }
+        }
     }
 
     override fun onClose() {
@@ -91,7 +101,6 @@ internal class P2PController(
     }
 
     fun unbind() {
-        engineSession?.clearFindMatches()
-        engineSession = null
+        session = null
     }
 }

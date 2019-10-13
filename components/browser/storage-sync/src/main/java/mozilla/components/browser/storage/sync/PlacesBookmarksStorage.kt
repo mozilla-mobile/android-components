@@ -5,6 +5,7 @@
 package mozilla.components.browser.storage.sync
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkFolder
 import mozilla.appservices.places.BookmarkItem
@@ -154,7 +155,8 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
         writer.deleteBookmarkNode(guid)
     }
 
-    private fun asBookmarkNode(node: BookmarkTreeNode?): BookmarkNode? {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    fun asBookmarkNode(node: BookmarkTreeNode?): BookmarkNode? {
         return node?.let {
             when (it) {
                 is BookmarkItem -> {

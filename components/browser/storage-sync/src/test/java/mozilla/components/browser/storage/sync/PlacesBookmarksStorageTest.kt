@@ -6,19 +6,26 @@ package mozilla.components.browser.storage.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import mozilla.appservices.places.BookmarkFolder
+import mozilla.appservices.places.BookmarkItem
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.appservices.places.BookmarkSeparator
+import mozilla.appservices.places.BookmarkTreeNode
 import mozilla.appservices.places.BookmarkUpdateInfo
 import mozilla.appservices.places.PlacesReaderConnection
 import mozilla.appservices.places.PlacesWriterConnection
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
+import mozilla.components.concept.sync.SyncAuthInfo
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
@@ -27,15 +34,24 @@ class PlacesBookmarksStorageTest {
     private var conn: Connection? = null
     private var reader: PlacesReaderConnection? = null
     private var writer: PlacesWriterConnection? = null
+    private var authInfo: SyncAuthInfo? = null
 
     private var storage: PlacesBookmarksStorage? = null
 
-    private val newItem = BookmarkNode(BookmarkNodeType.ITEM, "123", "456", null,
+    private val handle: Long = 33L
+    private val newItem = BookmarkNode(BookmarkNodeType.ITEM, "123", "456", 12,
             "Mozilla", "http://www.mozilla.org", null)
-    private val newFolder = BookmarkNode(BookmarkNodeType.FOLDER, "789", "321", null,
+    private val newFolder = BookmarkNode(BookmarkNodeType.FOLDER, "789", "321", 12,
             "Cool Sites", null, listOf())
     private val newSeparator = BookmarkNode(BookmarkNodeType.SEPARATOR, "654", "987",
-            null, null, null, null)
+            12, null, null, null)
+
+    private val newItemTreeNode = BookmarkItem(newItem.guid, 0L, 1L,
+            newItem.parentGuid, newItem.position!!, newItem.url!!, newItem.title!!)
+    private val newFolderTreeNode = BookmarkFolder(newFolder.guid, 0L, 1L,
+            newFolder.parentGuid, newFolder.position!!, newFolder.title!!, mutableListOf("444"), null)
+    private val newSeparatorTreeNode = BookmarkSeparator(newSeparator.guid, 0L, 1L,
+            newSeparator.parentGuid, newSeparator.position!!)
 
     internal class TestablePlacesBookmarksStorage(override val places: Connection) : PlacesBookmarksStorage(testContext)
 
@@ -44,8 +60,11 @@ class PlacesBookmarksStorageTest {
         conn = mock()
         reader = mock()
         writer = mock()
+        authInfo = mock()
+
         `when`(conn!!.reader()).thenReturn(reader)
         `when`(conn!!.writer()).thenReturn(writer)
+
         storage = TestablePlacesBookmarksStorage(conn!!)
     }
 
@@ -264,6 +283,62 @@ class PlacesBookmarksStorageTest {
             storage.deleteNode(newSeparator.guid)
         }
         verify(writer, times(1)).deleteBookmarkNode(newSeparator.guid)
+    }
+
+    @Test
+    fun `sync bookmarks`() {
+        val authInfo = authInfo!!
+        val storage = storage!!
+        val conn = conn!!
+
+        doNothing().`when`(conn).syncBookmarks(authInfo)
+
+        runBlocking {
+            storage.sync(authInfo)
+        }
+        verify(conn, times(1)).syncBookmarks(authInfo)
+    }
+
+    @Test
+    fun `get handle`() {
+        val storage = storage!!
+        val conn = conn!!
+
+        `when`(conn.getHandle()).thenReturn(handle)
+
+        var returnValue = 0L
+        runBlocking {
+            returnValue = storage.getHandle()
+        }
+
+        assertEquals(handle, returnValue)
+        verify(conn, times(1)).getHandle()
+    }
+
+    @Test
+    fun `able to convert tree nodes`() {
+        val storage = storage!!
+
+        var bookmarkNode: BookmarkNode = storage.asBookmarkNode(newItemTreeNode)!!
+        assertBookmarkNodeValues(newItemTreeNode, bookmarkNode)
+        assertEquals(newItemTreeNode.title, bookmarkNode.title)
+        assertEquals(newItemTreeNode.url, bookmarkNode.url)
+
+        bookmarkNode = storage.asBookmarkNode(newFolderTreeNode)!!
+        assertBookmarkNodeValues(newFolderTreeNode, bookmarkNode)
+        assertEquals(newFolderTreeNode.title, bookmarkNode.title)
+        assertEquals(null, bookmarkNode.url)
+
+        bookmarkNode = storage.asBookmarkNode(newSeparatorTreeNode)!!
+        assertBookmarkNodeValues(newSeparatorTreeNode, bookmarkNode)
+        assertEquals(null, bookmarkNode.title)
+        assertEquals(null, bookmarkNode.url)
+    }
+
+    private fun assertBookmarkNodeValues(expectedTreeNode: BookmarkTreeNode, bookmarkNode: BookmarkNode) {
+        assertEquals(expectedTreeNode.guid, bookmarkNode.guid)
+        assertEquals(expectedTreeNode.position, bookmarkNode.position)
+        assertEquals(expectedTreeNode.parentGUID, bookmarkNode.parentGuid)
     }
 
     private fun BookmarkInfo.asBookmarkUpdateInfo(): BookmarkUpdateInfo = BookmarkUpdateInfo(this.parentGuid, this.position, this.title, this.url)

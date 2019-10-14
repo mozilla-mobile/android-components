@@ -24,6 +24,34 @@ permalink: /changelog/
   val job = crashReporter.submitCaughtException(e)
   ```
 
+* **engine**, **engine-gecko-nightly**, **engine-gecko-beta**, **engine-gecko**
+  * ⚠️ **This is a breaking change**: Renamed `WebExtensionTabDelegate` to `WebExtensionDelegate` to handle various web extensions related engine events:
+  ```kotlin
+  GeckoEngine(applicationContext, engineSettings).also {
+    it.registerWebExtensionDelegate(object : WebExtensionDelegate {
+        override fun onNewTab(webExtension: WebExtension?, url: String, engineSession: EngineSession) {
+          sessionManager.add(Session(url), true, engineSession)
+        }
+    })
+  }
+  ```
+  * ⚠️ **This is a breaking change**: Redirect source and target flags are now passed to history tracking delegates. As part of this change, `HistoryTrackingDelegate.onVisited()` receives a new `PageVisit` data class as its second argument, specifying the `visitType` and `redirectSource`. For more details, please see [PR #4268](https://github.com/mozilla-mobile/android-components/pull/4268).
+
+* **support-webextensions**
+  * Added functionality to make sure web extension related events in the engine are reflected in the browser state / store. Instead of attaching a `WebExtensionDelegate` to the engine, and manually reacting to all events, it's now possible to initialize `WebExtensionSupport`, which provides overridable default behaviour for all web extension related engine events:
+  ```kotlin
+  // Makes sure web extension related events (e.g. an extension is installed, or opens a new tab) are dispatched to the browser store.
+  WebExtensionSupport.initialize(components.engine, components.store)
+
+  // If dispatching to the browser store is not desired, all actions / behaviour can be overridden:
+  WebExtensionSupport.initialize(components.engine, components.store, onNewTabOverride = {
+        _, engineSession, url -> components.sessionManager.add(Session(url), true, engineSession)
+  })
+  ```
+
+* **browser-menu**
+   * Fixes background ripple of Switch in BrowserMenuImageSwitch
+
 # 16.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v15.0.0...v16.0.0)

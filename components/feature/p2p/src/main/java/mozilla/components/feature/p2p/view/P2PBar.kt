@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.util.TypedValue.COMPLEX_UNIT_PX
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageButton
@@ -18,7 +19,8 @@ import mozilla.components.feature.p2p.R
 private const val DEFAULT_VALUE = 0
 
 /**
- * A toolbar for peer-to-peer communication between browsers.
+ * A toolbar for peer-to-peer communication between browsers. Setting [listener] causes the
+ * buttons to become active.
  */
 class P2PBar @JvmOverloads constructor(
     context: Context,
@@ -26,6 +28,10 @@ class P2PBar @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr), P2PView {
     override var listener: P2PView.Listener? = null
+      set(value) {
+          field = value
+          clear()
+      }
 
     init {
         inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
@@ -33,20 +39,33 @@ class P2PBar @JvmOverloads constructor(
         p2pAdvertiseBtn.setOnClickListener {
             require(listener != null)
             listener?.onAdvertise()
-            p2pAdvertiseBtn.isEnabled = false
-            p2pDiscoverBtn.isEnabled = false
+            setResetBtn(true)
         }
         p2pDiscoverBtn.setOnClickListener {
             require(listener != null)
             listener?.onDiscover()
-            p2pAdvertiseBtn.isEnabled = false
-            p2pDiscoverBtn.isEnabled = false
+            setResetBtn(true)
         }
         p2pSendBtn.setOnClickListener {
             require(listener != null)
             listener?.onSendUrl()
             p2pSendBtn.isEnabled = false
         }
+        p2pResetBtn.setOnClickListener {
+            require(listener != null)
+            listener?.onReset()
+            clear()
+        }
+    }
+
+    private fun setResetBtn(b: Boolean) {
+        // Either the advertise and discover buttons are visible and enabled, or the reset button is.
+        p2pAdvertiseBtn.isEnabled = !b
+        p2pDiscoverBtn.isEnabled = !b
+        p2pResetBtn.isEnabled = b
+        p2pAdvertiseBtn.visibility = if (b) View.GONE else View.VISIBLE
+        p2pDiscoverBtn.visibility = p2pAdvertiseBtn.visibility
+        p2pResetBtn.visibility = if (b) View.VISIBLE else View.GONE
     }
 
     override fun updateStatus(status: String) {
@@ -64,22 +83,16 @@ class P2PBar @JvmOverloads constructor(
             .show()
     }
 
-    override fun reset() {
-        require(listener != null) // We could enforce this by adding a listener argument
-        p2pAdvertiseBtn.isEnabled = true
-        p2pDiscoverBtn.isEnabled = true
-    }
-
     override fun readyToSend() {
         require(listener != null)
         p2pSendBtn.isEnabled = true
     }
 
-    override fun receiveURL(neighborId: String, message: String) {
+    override fun receiveURL(neighborId: String, url: String) {
         AlertDialog.Builder(context)
             .setTitle("Accept URL from $neighborId")
-            .setMessage("Visit $message")
-            .setPositiveButton(android.R.string.yes) { _, _ ->  listener?.onSetUrl(message) }
+            .setMessage("Visit $url")
+            .setPositiveButton(android.R.string.yes) { _, _ ->  listener?.onSetUrl(url) }
             .setNegativeButton(android.R.string.no) { _, _ ->  }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
@@ -87,6 +100,7 @@ class P2PBar @JvmOverloads constructor(
 
     override fun clear() {
         p2pStatusText.text = ""
+        setResetBtn(false)
     }
 }
 

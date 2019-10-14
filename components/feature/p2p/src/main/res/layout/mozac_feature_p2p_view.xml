@@ -3,46 +3,68 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<merge
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:clickable="true"
-        android:focusable="true"
-        tools:background="#ffffffff"
-        tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:clickable="true"
+    android:focusable="true"
+    tools:background="#ffffffff"
+    tools:parentTag="androidx.constraintlayout.widget.ConstraintLayout">
 
     <Button
         android:id="@+id/p2pAdvertiseBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/p2pDiscoverBtn"
         android:enabled="false"
-        android:text="@string/mozac_feature_p2p_advertise" />
+        android:text="@string/mozac_feature_p2p_advertise"
+        app:layout_constraintEnd_toStartOf="@+id/p2pResetBtn"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteX="34dp" />
 
     <Button
         android:id="@+id/p2pDiscoverBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/p2pAdvertiseBtn"
         android:enabled="false"
-        android:text="@string/mozac_feature_p2p_discover" />
+        android:text="@string/mozac_feature_p2p_discover"
+        app:layout_constraintEnd_toStartOf="@+id/p2pSendBtn"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/p2pResetBtn"
+        tools:layout_editor_absoluteX="165dp" />
+
+    <Button
+        android:id="@+id/p2pResetBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+        android:text="Reset"
+        android:visibility="gone"
+        app:layout_constraintEnd_toStartOf="@+id/p2pDiscoverBtn"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/p2pAdvertiseBtn"
+        tools:layout_editor_absoluteX="131dp" />
 
     <Button
         android:id="@+id/p2pSendBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/p2pDiscoverBtn"
         android:enabled="false"
-        android:text="@string/mozac_feature_p2p_send" />
+        android:text="@string/mozac_feature_p2p_send"
+        app:layout_constraintEnd_toStartOf="@+id/p2pStatusText"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/p2pDiscoverBtn"
+        tools:layout_editor_absoluteX="289dp" />
 
     <TextView
         android:id="@+id/p2pStatusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/p2pSendBtn"
-        android:text="" />
+        android:text=""
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/p2pSendBtn" />
+
 </merge>

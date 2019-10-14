@@ -25,9 +25,10 @@ interface P2PView {
     fun updateStatus(status: String)
 
     /**
-     * Asks user whether they wish to connection to another device having the specified connection
-     * information. It is highly recommended that the [token] is displayed, since it uniquely
-     * identifies the connection.
+     * Handles authentication information about a connection. It is recommended that the view
+     * prompt the user as to whether to connect to another device having the specified connection
+     * information. It is highly recommended that the [token] be displayed, since it uniquely
+     * identifies the connection and cannot be forged.
      *
      * @param neighborId a machine-generated ID uniquely identifying the other device
      * @param neighborName a human-readable name of the other device
@@ -41,18 +42,23 @@ interface P2PView {
     fun clear()
 
     /**
-     * Enables the buttons. Make sure [listener] is initialized before calling this.
-     */
-    fun reset()
-
-    /**
      * Casts this [P2PView] interface to an actual Android [View] object.
      */
     fun asView(): View = (this as View)
 
+    /**
+     * Indicates that data can be sent to the connected device.
+     */
     fun readyToSend()
 
-    fun receiveURL(neighborId: String, message: String)
+    /**
+     * Handles receipt of a URL from the specified neighbor. For example, the view could prompt the
+     * user to accept the URL, upon which [Listener.onSetURL] would be called.
+     *
+     * @param neighborId the endpoint ID of the neighbor
+     * @param url the URL
+     */
+    fun receiveURL(neighborId: String, url: String)
 
     /**
      * An interface enabling the [P2PView] to make requests of a controller.
@@ -97,6 +103,9 @@ interface P2PView {
          */
         fun onSetUrl(url: String)
 
-        fun onClose()
+        /**
+         * Resets the connection to the neighbor.
+         */
+        fun onReset()
     }
 }

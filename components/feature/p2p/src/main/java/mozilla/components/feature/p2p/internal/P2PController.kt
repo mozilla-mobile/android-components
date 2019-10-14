@@ -25,9 +25,7 @@ internal class P2PController(
     private var savedConnectionState: ConnectionState? = null
 
     fun start() {
-        Logger.error("In P2PController.start(), about to initialize listener")
         view.listener = this
-        view.reset() // the listener must be assigned before this call
         nearbyConnection = NearbyConnection(
             view.asView().context,
             Build.MODEL,
@@ -57,6 +55,9 @@ internal class P2PController(
     }
 
     fun stop() {
+        if (::nearbyConnection.isInitialized) {
+            nearbyConnection.disconnect()
+        }
         view.listener = null
     }
 
@@ -102,10 +103,8 @@ internal class P2PController(
         session?.engineState?.engineSession?.loadUrl(url)
     }
 
-    override fun onClose() {
-        // We pass this event up to the feature. The feature is responsible for unbinding its sub components and
-        // potentially notifying other dependencies.
-        feature.unbind()
+    override fun onReset() {
+        nearbyConnection.disconnect()
     }
 
     fun unbind() {

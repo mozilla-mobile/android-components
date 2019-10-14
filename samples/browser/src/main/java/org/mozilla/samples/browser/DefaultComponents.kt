@@ -46,6 +46,7 @@ import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import org.mozilla.samples.browser.integration.FindInPageIntegration
+import org.mozilla.samples.browser.integration.P2PIntegration
 import org.mozilla.samples.browser.request.SampleRequestInterceptor
 import java.util.concurrent.TimeUnit
 
@@ -163,6 +164,9 @@ open class DefaultComponents(private val applicationContext: Context) {
             },
             SimpleBrowserMenuItem("Find In Page") {
                 FindInPageIntegration.launch?.invoke()
+            },
+            SimpleBrowserMenuItem("P2P") {
+                P2PIntegration.launch?.invoke()
             },
             BrowserMenuDivider()
         )

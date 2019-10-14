@@ -177,11 +177,15 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             view = layout
         )
 
+        val p2pFeature = p2pIntegration.get()!!.feature
+        Logger.error("p2pFeature is $p2pFeature")
+
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
             scrollFeature,
             contextMenuFeature,
-            menuUpdaterFeature
+            menuUpdaterFeature,
+            p2pFeature
         )
 
         appLinksFeature.set(

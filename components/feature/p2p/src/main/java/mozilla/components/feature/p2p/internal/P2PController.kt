@@ -36,17 +36,21 @@ internal class P2PController(
                 override fun updateState(connectionState: ConnectionState) {
                     savedConnectionState = connectionState
                     view.updateStatus(connectionState.name)
-                    if (connectionState is ConnectionState.Authenticating) {
-                        view.authenticate(connectionState.neighborId, connectionState.neighborName, connectionState.token)
+                    when (connectionState) {
+                        is ConnectionState.Authenticating -> view.authenticate(
+                            connectionState.neighborId,
+                            connectionState.neighborName,
+                            connectionState.token)
+                        is ConnectionState.ReadyToSend -> view.readyToSend()
                     }
                 }
 
                 override fun messageDelivered(payloadId: Long) {
-                    TODO("not implemented")
+                    // For now, do nothing.
                 }
 
                 override fun receiveMessage(endpointId: String, message: String) {
-                    TODO("not implemented")
+                    view.displayMessage(endpointId, message)
                 }
             }
         )

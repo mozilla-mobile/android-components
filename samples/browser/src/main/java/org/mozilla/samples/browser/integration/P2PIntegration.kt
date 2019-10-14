@@ -12,11 +12,12 @@ import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
+import mozilla.components.support.base.log.logger.Logger
 
 class P2PIntegration(
     private val store: BrowserStore,
     private val view: P2PView,
-    private val onNeedToRequestPermissions: OnNeedToRequestPermissions
+    onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, BackHandler {
     val feature = P2PFeature(view, onNeedToRequestPermissions, ::onClose)
     override fun start() {

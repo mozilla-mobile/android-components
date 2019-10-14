@@ -38,7 +38,7 @@
             android:background="#FFFFFFFF"
             android:elevation="10dp"
             android:padding="4dp"
-            android:visibility="visible"/>
+            android:visibility="gone"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 

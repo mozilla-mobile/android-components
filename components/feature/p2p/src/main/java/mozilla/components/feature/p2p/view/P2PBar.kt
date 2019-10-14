@@ -44,7 +44,7 @@ class P2PBar @JvmOverloads constructor(
         }
         p2pSendBtn.setOnClickListener {
             require(listener != null)
-            listener?.onSendURL()
+            listener?.onSendUrl()
             p2pSendBtn.isEnabled = false
         }
     }
@@ -75,11 +75,11 @@ class P2PBar @JvmOverloads constructor(
         p2pSendBtn.isEnabled = true
     }
 
-    override fun displayMessage(neighborId: String, message: String) {
+    override fun receiveURL(neighborId: String, message: String) {
         AlertDialog.Builder(context)
             .setTitle("Accept URL from $neighborId")
             .setMessage("Visit $message")
-            .setPositiveButton(android.R.string.yes) { _, _ ->  }
+            .setPositiveButton(android.R.string.yes) { _, _ ->  listener?.onSetUrl(message) }
             .setNegativeButton(android.R.string.no) { _, _ ->  }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()

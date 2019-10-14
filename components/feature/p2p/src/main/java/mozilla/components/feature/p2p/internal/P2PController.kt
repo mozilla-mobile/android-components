@@ -50,7 +50,7 @@ internal class P2PController(
                 }
 
                 override fun receiveMessage(endpointId: String, message: String) {
-                    view.displayMessage(endpointId, message)
+                    view.receiveURL(endpointId, message)
                 }
             }
         )
@@ -89,13 +89,17 @@ internal class P2PController(
         cast<ConnectionState.Authenticating>()?.reject()
     }
 
-    override fun onSendURL() {
+    override fun onSendUrl() {
         if (cast<ConnectionState.ReadyToSend>() != null) {
             val payloadID = nearbyConnection.sendMessage(session?.content?.url ?: "no URL")
             if (payloadID == null) {
                 Logger.error("sendMessage() returns null")
             }
         }
+    }
+
+    override fun onSetUrl(url: String) {
+        session?.engineState?.engineSession?.loadUrl(url)
     }
 
     override fun onClose() {

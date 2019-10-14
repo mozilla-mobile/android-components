@@ -52,7 +52,7 @@ interface P2PView {
 
     fun readyToSend()
 
-    fun displayMessage(neighborId: String, message: String)
+    fun receiveURL(neighborId: String, message: String)
 
     /**
      * An interface enabling the [P2PView] to make requests of a controller.
@@ -84,7 +84,18 @@ interface P2PView {
          */
         fun onReject(token: String)
 
-        fun onSendURL()
+        /**
+         * Handles a request to send the current page's URL to the neighbor.
+         */
+        fun onSendUrl()
+
+        /**
+         * Handles a request to set the current page's URL to the given value.
+         * This will typically be one sent from a neighbor.
+         *
+         * @param url the URL
+         */
+        fun onSetUrl(url: String)
 
         fun onClose()
     }

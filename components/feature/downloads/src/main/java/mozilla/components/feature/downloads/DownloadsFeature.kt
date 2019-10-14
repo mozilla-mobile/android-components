@@ -6,6 +6,7 @@ package mozilla.components.feature.downloads
 
 import android.content.Context
 import android.widget.Toast
+import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.fragment.app.FragmentManager
@@ -46,6 +47,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * @property useCases [DownloadsUseCases] instance for consuming processed downloads.
  * @property fragmentManager a reference to a [FragmentManager]. If a fragment
  * manager is provided, a dialog will be shown before every download.
+ * @property: TODO
  * @property dialog a reference to a [DownloadDialogFragment]. If not provided, an
  * instance of [SimpleDownloadDialogFragment] will be used.
  */
@@ -58,6 +60,7 @@ class DownloadsFeature(
     private val downloadManager: DownloadManager = AndroidDownloadManager(applicationContext),
     private val customTabId: String? = null,
     private val fragmentManager: FragmentManager? = null,
+    var promptsStyling: PromptsStyling? = null,
     @VisibleForTesting(otherwise = PRIVATE)
     internal var dialog: DownloadDialogFragment = SimpleDownloadDialogFragment.newInstance()
 ) : LifecycleAwareFeature, PermissionsFeature {
@@ -162,7 +165,10 @@ class DownloadsFeature(
     }
 
     private fun showDialog(tab: SessionState, download: DownloadState) {
+        // TODO: How tf does StylingPrompt work??
         dialog.setDownload(download)
+
+        dialog.feature = this
 
         dialog.onStartDownload = {
             startDownload(download)
@@ -192,4 +198,14 @@ class DownloadsFeature(
         val download = state.content.download ?: return
         block(Pair(state, download))
     }
+
+
+    data class PromptsStyling(
+            val gravity: Int,
+            val shouldWidthMatchParent: Boolean = false,
+            @ColorRes
+            val positiveButtonBackgroundColor: Int? = null,
+            @ColorRes
+            val positiveButtonTextColor: Int? = null
+    )
 }

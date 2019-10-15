@@ -41,6 +41,7 @@ internal class P2PController(
                             connectionState.token)
                         is ConnectionState.ReadyToSend -> view.readyToSend()
                         is ConnectionState.Failure -> view.failure(connectionState.message)
+                        is ConnectionState.Isolated -> view.clear()
                     }
                 }
 
@@ -86,7 +87,6 @@ internal class P2PController(
             if (it == null) {
                 reportError("savedConnection was expected to be type ${T::class} but is $savedConnectionState")
             }
-            it
         }
 
     override fun onAccept(token: String) {

@@ -52,6 +52,13 @@ interface P2PView {
     fun readyToSend()
 
     /**
+     * Indicates that a failure state was entered.
+     *
+     * @param msg a low-level message describing the failure
+     */
+    fun failure(msg: String)
+
+    /**
      * Handles receipt of a URL from the specified neighbor. For example, the view could prompt the
      * user to accept the URL, upon which [Listener.onSetURL] would be called.
      *

@@ -10,6 +10,7 @@ import android.util.AttributeSet
 import android.util.TypedValue.COMPLEX_UNIT_PX
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -95,6 +96,10 @@ class P2PBar @JvmOverloads constructor(
             .setNegativeButton(android.R.string.no) { _, _ ->  }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
+    }
+
+    override fun failure(msg: String) {
+        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
     }
 
     override fun clear() {

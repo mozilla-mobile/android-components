@@ -40,6 +40,7 @@ internal class P2PController(
                             connectionState.neighborName,
                             connectionState.token)
                         is ConnectionState.ReadyToSend -> view.readyToSend()
+                        is ConnectionState.Failure -> view.failure(connectionState.message)
                     }
                 }
 
@@ -75,11 +76,17 @@ internal class P2PController(
         nearbyConnection.startDiscovering()
     }
 
+    private fun reportError(msg: String) {
+        Logger.error(msg)
+        view.failure(msg)
+    }
+
     inline fun <reified T : ConnectionState> cast() =
         (savedConnectionState as? T).also {
             if (it == null) {
-                Logger.error("savedConnection was expected to be type ${T::class} but is $savedConnectionState")
+                reportError("savedConnection was expected to be type ${T::class} but is $savedConnectionState")
             }
+            it
         }
 
     override fun onAccept(token: String) {
@@ -94,7 +101,7 @@ internal class P2PController(
         if (cast<ConnectionState.ReadyToSend>() != null) {
             val payloadID = nearbyConnection.sendMessage(session?.content?.url ?: "no URL")
             if (payloadID == null) {
-                Logger.error("sendMessage() returns null")
+                reportError("Unable to send message: sendMessage() returns null")
             }
         }
     }

@@ -13,12 +13,11 @@
         android:layout_height="32dp"
         android:layout_marginStart="16dp"
         android:scaleType="center"
-        tools:src="@drawable/mozac_feature_download_ic_download"
+        android:src="@drawable/mozac_feature_download_ic_download"
         android:importantForAccessibility="no"
         android:layout_alignParentTop="true"
         android:layout_marginTop="16dp"
-        android:tint="?android:attr/textColorPrimary"
-        tools:tint="#000000"/>
+        android:tint="?android:attr/textColorPrimary"/>
 
     <TextView
         android:id="@+id/title"

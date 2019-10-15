@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.downloads.ext
 
+import android.util.Log
 import androidx.core.net.toUri
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.fetch.Headers
@@ -34,6 +35,13 @@ internal fun DownloadState.withResponse(headers: Headers, stream: InputStream?):
     if (contentType == null) {
         contentType = headers[CONTENT_TYPE]
     }
+
+    var contentLength = this.contentLength
+    if (contentLength == null) {
+        contentLength = headers[CONTENT_LENGTH]?.toLong()
+    }
+
+    Log.d("Sawyer", "contentLength in withResponse: " + headers[CONTENT_LENGTH])
 
     return copy(
         fileName = if (fileName.isNullOrBlank()) {

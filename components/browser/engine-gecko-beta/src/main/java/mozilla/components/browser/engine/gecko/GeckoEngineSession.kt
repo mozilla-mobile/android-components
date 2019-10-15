@@ -5,6 +5,7 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -599,6 +600,7 @@ class GeckoEngineSession(
         }
 
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
+            Log.d("Sawyer", "on external response: " + response.contentLength)
             notifyObservers {
                 onExternalResource(
                         url = response.uri,

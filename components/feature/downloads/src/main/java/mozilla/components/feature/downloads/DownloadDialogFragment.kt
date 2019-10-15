@@ -5,6 +5,7 @@
 package mozilla.components.feature.downloads
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.DialogFragment
 import mozilla.components.browser.state.state.content.DownloadState
@@ -27,6 +28,9 @@ abstract class DownloadDialogFragment : AppCompatDialogFragment() {
 
     var onCancelDownload: () -> Unit = {}
 
+    var contentLength: Long? = null
+
+    // TODO: Remove?
     var feature: DownloadsFeature? = null
 
     /**
@@ -37,6 +41,9 @@ abstract class DownloadDialogFragment : AppCompatDialogFragment() {
         args.putString(KEY_FILE_NAME, download.fileName
             ?: DownloadUtils.guessFileName(null, download.url, download.contentType))
         args.putString(KEY_URL, download.url)
+
+        // TODO: If I don't set contentLength as a variable here, the arguments don't actually have it :(
+        contentLength = download.contentLength ?: -1
         args.putLong(KEY_CONTENT_LENGTH, download.contentLength ?: 0)
         arguments = args
     }

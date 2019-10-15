@@ -27,18 +27,36 @@ internal object DownloadNotification {
     /**
      * Build the notification to be displayed while the download service is active.
      */
-    fun createOngoingDownloadNotification(context: Context): Notification {
+    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?): Notification {
         val channelId = ensureChannelExists(context)
 
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
-            .setContentTitle(context.getString(R.string.mozac_feature_downloads_ongoing_notification_title))
-            .setContentText(context.getString(R.string.mozac_feature_downloads_ongoing_notification_text))
+            .setContentTitle(fileName)
+            .setContentText(fileSize.toString())
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setProgress(1, 0, true)
             .setOngoing(true)
             .build()
+    }
+
+    /**
+     * Build the notification to be displayed while the download service is active.
+     */
+    fun createPausedDownloadNotification(context: Context, fileName: String?): Notification {
+        val channelId = ensureChannelExists(context)
+
+        return NotificationCompat.Builder(context, channelId)
+                // TODO: Set the drawable to be a pause icon
+                .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
+                .setContentTitle(fileName)
+                .setContentText(context.getString(R.string.mozac_feature_downloads_paused_notification_text))
+                .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                .setProgress(1, 0, true)
+                .setOngoing(false)
+                .build()
     }
 
     /**
@@ -53,7 +71,7 @@ internal object DownloadNotification {
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_download)
             .setContentTitle(fileName)
-            .setContentText(context.getString(R.string.mozac_feature_downloads_completed_notification_text))
+            .setContentText(context.getString(R.string.mozac_feature_downloads_completed_notification_text2))
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setContentIntent(PendingIntent.getActivity(context, 0, intent, 0))
             .build()
@@ -68,7 +86,7 @@ internal object DownloadNotification {
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_download)
             .setContentTitle(fileName)
-            .setContentText(context.getString(R.string.mozac_feature_downloads_failed_notification_text))
+            .setContentText(context.getString(R.string.mozac_feature_downloads_failed_notification_text2))
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .build()

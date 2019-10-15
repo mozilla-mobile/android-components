@@ -16,6 +16,7 @@ import android.os.Environment
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
@@ -54,18 +55,15 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     @VisibleForTesting
     internal val context: Context get() = this
 
-    override fun onCreate() {
-        startForeground(
-            NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-            DownloadNotification.createOngoingDownloadNotification(context)
-        )
-        super.onCreate()
-    }
-
     override fun onBind(intent: Intent?): IBinder? = null
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         val download = intent?.getDownloadExtra() ?: return
+
+        startForeground(
+                NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
+                DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength)
+        )
 
         val notification = try {
             performDownload(download)
@@ -96,7 +94,17 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
         val response = httpClient.fetch(request)
 
+        // Download stream
         response.body.useStream { inStream ->
+
+            // Read from the stream
+
+            // File output stream
+
+            val newDownloadState = download.withResponse(response.headers, inStream)
+
+            // TODO: Hide if <= 0L
+            Log.d("Sawyer", "newState: " + newDownloadState.contentLength)
             useFileStream(download.withResponse(response.headers, inStream)) { outStream ->
                 inStream.copyTo(outStream)
             }

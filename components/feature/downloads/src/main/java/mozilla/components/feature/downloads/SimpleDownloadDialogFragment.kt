@@ -8,7 +8,9 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.icu.util.MeasureUnit
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,8 +21,11 @@ import androidx.annotation.StyleRes
 import androidx.annotation.VisibleForTesting
 import kotlinx.android.synthetic.main.mozac_downloads_prompt.*
 import kotlinx.android.synthetic.main.mozac_downloads_prompt.view.*
+import mozilla.components.concept.fetch.Request
 import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_download
 import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_title
+import mozilla.components.feature.downloads.ext.withResponse
+import java.math.BigDecimal
 
 private const val KEY_DIALOG_GRAVITY = "KEY_DIALOG_GRAVITY"
 private const val KEY_DIALOG_WIDTH_MATCH_PARENT = "KEY_DIALOG_WIDTH_MATCH_PARENT"
@@ -120,9 +125,16 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         )
 
         with(requireBundle()) {
-            rootView.title.text = getString(KEY_TITLE_TEXT, "")
+            rootView.title.text = if (getLong(KEY_CONTENT_LENGTH) <= 0L) {
+                // TODO: I'm ignoring the KEY_TITLE_TEXT passed in--is that an issue?
+                 getString(R.string.mozac_feature_downloads_dialog_download)
+            } else {
+                val contentSize = String.format("%.2f", getLong(KEY_CONTENT_LENGTH) / MEGABYTE)
+                getString(getInt(KEY_TITLE_TEXT, R.string.mozac_feature_downloads_dialog_title2), contentSize)
+            }
+
             rootView.filename.text = getString(KEY_FILE_NAME, "")
-            rootView.download_button.text = getString(KEY_DOWNLOAD_TEXT, "")
+            rootView.download_button.text = getString(getInt(KEY_DOWNLOAD_TEXT, R.string.mozac_feature_downloads_dialog_download))
 
             rootView.close_button.setOnClickListener {
                 dismiss()
@@ -133,8 +145,8 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
                 dismiss()
             }
 
-
             // TODO: How does prompt styling work??
+            /*
             feature?.promptsStyling?.apply {
                 putInt(KEY_DIALOG_GRAVITY, gravity)
                 putBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT, shouldWidthMatchParent)
@@ -147,6 +159,8 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
                     putInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, this)
                 }
             }
+
+             */
         }
 
         return rootView
@@ -166,13 +180,12 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         }
     }
 
-
     companion object {
         /**
          * A builder method for creating a [SimpleDownloadDialogFragment]
          */
         fun newInstance(
-            @StringRes dialogTitleText: Int = mozac_feature_downloads_dialog_title,
+            @StringRes dialogTitleText: Int = R.string.mozac_feature_downloads_dialog_title2,
             @StringRes downloadButtonText: Int = mozac_feature_downloads_dialog_download,
             @StyleRes themeResId: Int = 0,
             cancelable: Boolean = false
@@ -180,15 +193,20 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
             val fragment = SimpleDownloadDialogFragment()
             val arguments = fragment.arguments ?: Bundle()
 
+
             with(arguments) {
-                putInt(KEY_TITLE_TEXT, dialogTitleText)
+
+                Log.d("Sawyer", "key url: " + getString(KEY_URL))
+
+                Log.d("Sawyer", "key content len: " + getString(KEY_CONTENT_LENGTH))
 
                 putInt(KEY_DOWNLOAD_TEXT, downloadButtonText)
 
                 putInt(KEY_THEME_ID, themeResId)
 
-                putBoolean(KEY_CANCELABLE, cancelable)
+                putInt(KEY_TITLE_TEXT, dialogTitleText)
 
+                putBoolean(KEY_CANCELABLE, cancelable)
             }
 
             fragment.arguments = arguments
@@ -203,6 +221,8 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         const val KEY_THEME_ID = "KEY_THEME_ID"
 
         const val KEY_CANCELABLE = "KEY_CANCELABLE"
+
+        const val MEGABYTE = 1024.0 * 1024.0
     }
 
     private fun requireBundle(): Bundle {

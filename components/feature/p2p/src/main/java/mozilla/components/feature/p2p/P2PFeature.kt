@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.internal.P2PController
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.lib.nearby.NearbyConnection
@@ -17,16 +18,19 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.feature.tabs.TabsUseCases
 
 /**
  * Feature implementation for peer-to-peer communication between browsers.
  */
 class P2PFeature(
     val view: P2PView,
+    private val store: BrowserStore,
+    private val useCases: TabsUseCases,
     override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
     private val onClose: (() -> Unit)
 ) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
-    @VisibleForTesting internal var controller = P2PController(this, view)
+    @VisibleForTesting internal var controller = P2PController(store, view, useCases)
 
     private var session: SessionState? = null
 
@@ -72,31 +76,9 @@ class P2PFeature(
         controller.start()
     }
 
-    /**
-     * Binds this feature to the given [SessionState].
-     */
-    fun bind(session: SessionState) {
-        this.session = session
-        controller.bind(session)
-    }
-
     // BackHandler implementation
     override fun onBackPressed(): Boolean {
-        return if (session != null) {
-            unbind()
-            true
-        } else {
-            false
-        }
-    }
-
-    /**
-     * Unbinds the feature from a previously bound [SessionState]. The [P2PView] will be
-     * cleared and not be updated to present the "Find in Page" state anymore.
-     */
-    fun unbind() {
-        session = null
-        controller.unbind()
-        onClose.invoke()
+        // Nothing, for now
+        return true
     }
 }

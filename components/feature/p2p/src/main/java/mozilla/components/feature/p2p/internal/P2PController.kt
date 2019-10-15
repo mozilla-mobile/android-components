@@ -5,9 +5,10 @@
 package mozilla.components.feature.p2p.internal
 
 import android.os.Build
-import mozilla.components.browser.state.state.SessionState
-import mozilla.components.feature.p2p.P2PFeature
+import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.view.P2PView
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.lib.nearby.NearbyConnection.ConnectionState
 import mozilla.components.lib.nearby.NearbyConnectionListener
@@ -17,10 +18,10 @@ import mozilla.components.support.base.log.logger.Logger
  * Controller that mediates between [P2PView] and [NearbyConnection].
  */
 internal class P2PController(
-    private val feature: P2PFeature,
-    private val view: P2PView
+    private val store: BrowserStore,
+    private val view: P2PView,
+    private val useCases: TabsUseCases
 ) : P2PView.Listener {
-    private var session: SessionState? = null
     private lateinit var nearbyConnection: NearbyConnection
     private var savedConnectionState: ConnectionState? = null
 
@@ -64,10 +65,6 @@ internal class P2PController(
         view.listener = null
     }
 
-    fun bind(session: SessionState) {
-        this.session = session
-    }
-
     // P2PView.Listener implementation
 
     override fun onAdvertise() {
@@ -101,7 +98,7 @@ internal class P2PController(
 
     override fun onSendUrl() {
         if (cast<ConnectionState.ReadyToSend>() != null) {
-            val payloadID = nearbyConnection.sendMessage(session?.content?.url ?: "no URL")
+            val payloadID = nearbyConnection.sendMessage(store.state.selectedTab?.content?.url ?: "no URL")
             if (payloadID == null) {
                 reportError("Unable to send message: sendMessage() returns null")
             }
@@ -109,14 +106,10 @@ internal class P2PController(
     }
 
     override fun onSetUrl(url: String) {
-        session?.engineState?.engineSession?.loadUrl(url)
+       useCases.addTab(url)
     }
 
     override fun onReset() {
         nearbyConnection.disconnect()
-    }
-
-    fun unbind() {
-        session = null
     }
 }

@@ -5,10 +5,10 @@ package org.mozilla.samples.browser.integration
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import android.view.View
-import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
@@ -16,9 +16,10 @@ import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 class P2PIntegration(
     private val store: BrowserStore,
     private val view: P2PView,
+    private val useCases: TabsUseCases,
     onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, BackHandler {
-    val feature = P2PFeature(view, onNeedToRequestPermissions, ::onClose)
+    val feature = P2PFeature(view, store, useCases, onNeedToRequestPermissions, ::onClose)
     override fun start() {
         feature.start()
         launch = this::launch
@@ -38,10 +39,7 @@ class P2PIntegration(
     }
 
     private fun launch() {
-        val session = store.state.selectedTab ?: return
-
         view.asView().visibility = View.VISIBLE
-        feature.bind(session)
     }
 
     companion object {

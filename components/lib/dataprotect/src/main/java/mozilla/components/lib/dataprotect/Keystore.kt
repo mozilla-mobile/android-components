@@ -5,37 +5,80 @@
 package mozilla.components.lib.dataprotect
 
 import android.annotation.TargetApi
+import android.content.Context
 import android.os.Build
+import android.os.Build.VERSION_CODES.M
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import java.io.FileNotFoundException
+import java.math.BigInteger
 import java.security.GeneralSecurityException
 import java.security.InvalidKeyException
 import java.security.Key
+import java.security.KeyPair
+import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.KeyStoreException
+import java.security.NoSuchAlgorithmException
+import java.security.PrivateKey
+import java.security.SecureRandom
+import java.security.UnrecoverableKeyException
+import java.util.Calendar
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import javax.security.auth.x500.X500Principal
 
-private const val KEYSTORE_TYPE = "AndroidKeyStore"
+private const val PROVIDER_ANDROID = "AndroidKeyStore"
 private const val ENCRYPTED_VERSION = 0x02
+internal const val PROVIDER_BOUNCY_CASTLE = "BC"
 
-internal const val CIPHER_ALG = KeyProperties.KEY_ALGORITHM_AES
-internal const val CIPHER_MOD = KeyProperties.BLOCK_MODE_GCM
-internal const val CIPHER_PAD = KeyProperties.ENCRYPTION_PADDING_NONE
-internal const val CIPHER_KEY_LEN = 256
+internal const val BLOCK_MODE_ECB = "ECB"
+internal const val BLOCK_MODE_GCM = "GCM"
+internal const val KEY_SIZE_AES = 256
+internal const val KEY_SIZE_RSA = 4096
+internal const val KEY_ALGORITHM_AES = "AES"
+internal const val KEY_ALGORITHM_RSA = "RSA"
+
 internal const val CIPHER_TAG_LEN = 128
-internal const val CIPHER_SPEC = "$CIPHER_ALG/$CIPHER_MOD/$CIPHER_PAD"
-
+internal const val ENCRYPTION_PADDING_NONE = "NoPadding"
+internal const val ENCRYPTION_PADDING_RSA_PKCS1 = "PKCS1Padding"
+internal const val CIPHER_SPEC_SYMMETRIC =
+    "$KEY_ALGORITHM_AES/$BLOCK_MODE_GCM/$ENCRYPTION_PADDING_NONE"
+internal const val CIPHER_SPEC_ASYMMETRIC =
+    "$KEY_ALGORITHM_RSA/$BLOCK_MODE_ECB/$ENCRYPTION_PADDING_RSA_PKCS1"
 internal const val CIPHER_NONCE_LEN = 12
+
+// Alias of asymmetric key used for encrypting symmetric keys before writing them to file on Android before M
+internal const val ALIAS_WRAP_KEY = "compat_wrap_key"
+// File name prefix for files that are used for storage of encrypted secrets key on Android before M
+internal const val SECRET_KEY_FILE_NAME_PREFIX = "kf_"
+// Common Name for self-signed certificate that is used for KeyPair generation on Android before M
+internal const val CN = "self-signed"
+
+/**
+ * KeyProvider interface
+ */
+interface KeyProvider {
+    /**
+     * Get [KeyPair] from KeyStore or generate new one if it doesn't exists
+     */
+    fun getOrCreateKeyPair(alias: String): KeyPair
+
+    /**
+     * Get [SecretKey] from KeyStore or generate new one if it doesn't exists
+     */
+    fun getOrCreateSecretKey(alias: String): SecretKey
+}
 
 /**
  * Wraps the critical functions around a Java KeyStore to better facilitate testing
  * and instrumenting.
- *
+ * <23 Implementation modified from https://gist.github.com/alapshin/c82a87d30c4a0cc3015381c454e0ebf2
  */
-@TargetApi(Build.VERSION_CODES.M)
-open class KeyStoreWrapper {
+@Suppress("TooManyFunctions")
+open class KeyStoreWrapper(private val context: Context) : KeyProvider {
     private var keystore: KeyStore? = null
 
     /**
@@ -52,21 +95,149 @@ open class KeyStoreWrapper {
     }
 
     /**
-     * Retrieves the SecretKey for the given label.
-     *
-     * This method queries for a SecretKey with the given label and no passphrase.
-     *
-     * Subclasses override this method if additional properties are needed
-     * to retrieve the key.
-     *
-     * @param label The label to query
-     * @return The key for the given label, or `null` if not present
-     * @throws InvalidKeyException If there is a Key but it is not a SecretKey
-     * @throws NoSuchAlgorithmException If the recovery algorithm is not supported
-     * @throws UnrecoverableKeyException If the key could not be recovered for some reason
+     * Get [KeyPair] from KeyStore or generate new one if it doesn't exists
      */
-    open fun getKeyFor(label: String): Key? =
-            loadKeyStore().getKey(label, null)
+    override fun getOrCreateKeyPair(alias: String): KeyPair {
+        val publicKey = getKeyStore().getCertificate(alias)?.publicKey
+        val privateKey = getKeyStore().getKey(alias, null) as PrivateKey?
+
+        return if (publicKey == null || privateKey == null) {
+            generateKeyPair(alias)
+        } else {
+            return KeyPair(publicKey, privateKey)
+        }
+    }
+
+    /**
+     * Generate new [KeyPair] and store it in KeyStore
+     */
+    @Suppress("Deprecation")
+    private fun generateKeyPair(alias: String): KeyPair {
+        val spec = if (Build.VERSION.SDK_INT < M) {
+            android.security.KeyPairGeneratorSpec.Builder(context)
+                .setAlias(alias)
+                .setSerialNumber(BigInteger.ONE)
+                .setSubject(X500Principal("CN=$CN"))
+                .setStartDate(START_DATE)
+                .setEndDate(END_DATE)
+                .setKeySize(KEY_SIZE_RSA)
+                .build()
+        } else {
+            KeyGenParameterSpec.Builder(
+                alias,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setKeySize(KEY_SIZE_RSA)
+                .setBlockModes(KeyProperties.BLOCK_MODE_ECB)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+                .build()
+        }
+
+        val generator = KeyPairGenerator.getInstance(KEY_ALGORITHM_RSA, PROVIDER_ANDROID).apply {
+            initialize(spec)
+        }
+
+        return generator.generateKeyPair()
+    }
+
+    /**
+     * Get [SecretKey] from KeyStore or generate new one if it doesn't exists
+     */
+    override fun getOrCreateSecretKey(alias: String): SecretKey {
+        val secretKey = if (Build.VERSION.SDK_INT < M) {
+            getSecretKeyV18(alias)
+        } else {
+            getSecretKeyV23(alias)
+        }
+        return secretKey ?: generateSecretKey(alias)
+    }
+
+    /**
+     * Get [SecretKey] on Android before M
+     *
+     * On Android before M KeyStore doesn't support storage of symmetric keys.
+     * This implementation reads encrypted key from file in internal storage, decrypts and returns it.
+     */
+    @Suppress("SwallowedException")
+    private fun getSecretKeyV18(alias: String): SecretKey? {
+        return try {
+            val privateKey = getOrCreateKeyPair(ALIAS_WRAP_KEY).private
+            val cipher = Cipher.getInstance(CIPHER_SPEC_ASYMMETRIC).apply {
+                init(Cipher.UNWRAP_MODE, privateKey)
+            }
+            val wrappedSecretKey =
+                context.openFileInput(SECRET_KEY_FILE_NAME_PREFIX + alias).use { input ->
+                    input.readBytes()
+                }
+            cipher.unwrap(wrappedSecretKey, KEY_ALGORITHM_AES, Cipher.SECRET_KEY) as SecretKey
+        } catch (e: FileNotFoundException) {
+            null // Expected exception if key doesn't exist
+        }
+    }
+
+    /**
+     * Get [SecretKey] from KeyStore on Android M and later
+     */
+    private fun getSecretKeyV23(alias: String): SecretKey? {
+        return getKeyStore().getKey(alias, null) as SecretKey?
+    }
+
+    /**
+     * Generate new [SecretKey] and store it in KeyStore
+     */
+    private fun generateSecretKey(alias: String): SecretKey {
+        return if (Build.VERSION.SDK_INT < M) {
+            generateSecretKeyV18(alias)
+        } else {
+            generateSecretKeyV23(alias)
+        }
+    }
+
+    /**
+     * Generate new [SecretKey] on Android before M
+     *
+     * On Android before M KeyStore doesn't support generation and storage of symmetric keys.
+     * This implementation generates secret key using Bouncy Castle, encrypts it with private key from [KeyPair] and
+     * saves it to file in internal storage.
+     */
+    private fun generateSecretKeyV18(alias: String): SecretKey {
+        val generator = KeyGenerator.getInstance(KEY_ALGORITHM_AES, PROVIDER_BOUNCY_CASTLE).apply {
+            init(KEY_SIZE_AES)
+        }
+        val secretKey = generator.generateKey()
+        val publicKey = getOrCreateKeyPair(ALIAS_WRAP_KEY).public
+        val cipher = Cipher.getInstance(CIPHER_SPEC_ASYMMETRIC).apply {
+            init(Cipher.WRAP_MODE, publicKey)
+        }
+        val wrappedSecretKey = cipher.wrap(secretKey)
+        context.openFileOutput(SECRET_KEY_FILE_NAME_PREFIX + alias, Context.MODE_PRIVATE)
+            .use { output ->
+                output.write(wrappedSecretKey)
+            }
+
+        return secretKey
+    }
+
+    /**
+     * Generate new [SecretKey] and store it in KeyStore on Android M and later
+     */
+    @TargetApi(M)
+    private fun generateSecretKeyV23(alias: String): SecretKey {
+        val spec = KeyGenParameterSpec.Builder(
+            alias,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        )
+            .setKeySize(KEY_SIZE_AES)
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .build()
+
+        val generator = KeyGenerator.getInstance(KEY_ALGORITHM_AES, PROVIDER_ANDROID).apply {
+            init(spec)
+        }
+
+        return generator.generateKey()
+    }
 
     /**
      * Creates a SecretKey for the given label.
@@ -82,15 +253,30 @@ open class KeyStoreWrapper {
      * @throws NoSuchAlgorithmException If the cipher algorithm is not supported
      */
     open fun makeKeyFor(label: String): SecretKey {
-        val spec = KeyGenParameterSpec.Builder(label,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setKeySize(CIPHER_KEY_LEN)
-                .setBlockModes(CIPHER_MOD)
-                .setEncryptionPaddings(CIPHER_PAD)
-                .build()
-        val gen = KeyGenerator.getInstance(CIPHER_ALG, KEYSTORE_TYPE)
-        gen.init(spec)
-        return gen.generateKey()
+        return generateSecretKey(label)
+    }
+
+    /**
+     * Retrieves the SecretKey for the given label.
+     *
+     * This method queries for a SecretKey with the given label and no passphrase.
+     *
+     * Subclasses override this method if additional properties are needed
+     * to retrieve the key.
+     *
+     * @param label The label to query
+     * @return The key for the given label, or `null` if not present
+     * @throws InvalidKeyException If there is a Key but it is not a SecretKey
+     * @throws NoSuchAlgorithmException If the recovery algorithm is not supported
+     * @throws UnrecoverableKeyException If the key could not be recovered for some reason
+     */
+    open fun getKeyFor(label: String): Key? {
+        val secretKey = if (Build.VERSION.SDK_INT < M) {
+            getSecretKeyV18(label)
+        } else {
+            getSecretKeyV23(label)
+        }
+        return secretKey
     }
 
     /**
@@ -114,9 +300,15 @@ open class KeyStoreWrapper {
      * @throws KeyStoreException if the type of store is not supported
      */
     open fun loadKeyStore(): KeyStore {
-        val ks = KeyStore.getInstance(KEYSTORE_TYPE)
+        val ks = KeyStore.getInstance(PROVIDER_ANDROID)
         ks.load(null)
         return ks
+    }
+
+    companion object {
+        val calendar = Calendar.getInstance()
+        val START_DATE = calendar.apply { set(1970, 0, 1) }.time
+        val END_DATE = calendar.apply { set(2048, 0, 1) }.time
     }
 }
 
@@ -138,11 +330,11 @@ open class KeyStoreWrapper {
  * Unless `manual` is `true`, the key is created if not already present in the
  * platform's key storage.
  */
-@TargetApi(Build.VERSION_CODES.M)
 open class Keystore(
+    val context: Context,
     val label: String,
     manual: Boolean = false,
-    internal val wrapper: KeyStoreWrapper = KeyStoreWrapper()
+    internal val wrapper: KeyStoreWrapper = KeyStoreWrapper(context)
 ) {
     init {
         if (!manual and !available()) {
@@ -151,7 +343,7 @@ open class Keystore(
     }
 
     private fun getKey(): SecretKey? =
-            wrapper.getKeyFor(label) as? SecretKey?
+        wrapper.getKeyFor(label) as? SecretKey?
 
     /**
      * Determines if the managed key is available for use.  Consumers can use this to
@@ -239,7 +431,7 @@ open class Keystore(
         }
 
         val iv = encrypted.sliceArray(1..CIPHER_NONCE_LEN)
-        val cdata = encrypted.sliceArray((CIPHER_NONCE_LEN + 1)..encrypted.size - 1)
+        val cdata = encrypted.sliceArray((CIPHER_NONCE_LEN + 1) until encrypted.size)
         val cipher = createDecryptCipher(iv)
         return cipher.doFinal(cdata)
     }
@@ -260,8 +452,10 @@ open class Keystore(
     @Throws(GeneralSecurityException::class)
     open fun createEncryptCipher(): Cipher {
         val key = getKey() ?: throw InvalidKeyException("unknown label: $label")
-        val cipher = Cipher.getInstance(CIPHER_SPEC)
-        cipher.init(Cipher.ENCRYPT_MODE, key)
+        val cipher = Cipher.getInstance(CIPHER_SPEC_SYMMETRIC)
+        val iv = ByteArray(CIPHER_NONCE_LEN)
+        SecureRandom().nextBytes(iv)
+        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(CIPHER_TAG_LEN, iv))
 
         return cipher
     }
@@ -283,7 +477,7 @@ open class Keystore(
     @Throws(GeneralSecurityException::class)
     open fun createDecryptCipher(iv: ByteArray): Cipher {
         val key = getKey() ?: throw InvalidKeyException("unknown label: $label")
-        val cipher = Cipher.getInstance(CIPHER_SPEC)
+        val cipher = Cipher.getInstance(CIPHER_SPEC_SYMMETRIC)
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(CIPHER_TAG_LEN, iv))
 
         return cipher

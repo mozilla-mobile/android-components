@@ -19,7 +19,8 @@ import java.nio.charset.StandardCharsets
 
 class MainActivity : AppCompatActivity() {
     private val logger: Logger = Logger("dataprotect")
-    private val keystore: Keystore = Keystore(KEYSTORE_LABEL)
+    private val keystore: Keystore by lazy { Keystore(context = this, label = KEYSTORE_LABEL) }
+
     @Suppress("MagicNumber")
     private val itemKeys: List<String> = List(5) { "protected item ${it + 1}" }
 

@@ -4,7 +4,9 @@
 
 package mozilla.components.lib.dataprotect
 
+import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Ignore
@@ -23,7 +25,7 @@ import javax.crypto.SecretKey
 private val DEFAULTPASS = "testit!".toCharArray()
 
 /* mock keystore wrapper to deal with intricacies of how Java/Anroid key management work */
-internal class MockStoreWrapper : KeyStoreWrapper() {
+internal class MockStoreWrapper(context: Context) : KeyStoreWrapper(context = context) {
     override fun loadKeyStore(): KeyStore {
         val ks = KeyStore.getInstance("JCEKS")
         ks.load(null)
@@ -31,7 +33,8 @@ internal class MockStoreWrapper : KeyStoreWrapper() {
     }
 
     override fun getKeyFor(label: String): Key? =
-            getKeyStore().getKey(label, DEFAULTPASS)
+        getKeyStore().getKey(label, DEFAULTPASS)
+
     override fun makeKeyFor(label: String): SecretKey {
         val gen = KeyGenerator.getInstance("AES")
         gen.init(256)
@@ -45,7 +48,8 @@ internal class MockStoreWrapper : KeyStoreWrapper() {
 @RunWith(AndroidJUnit4::class)
 class KeystoreTest {
 
-    private var wrapper = MockStoreWrapper()
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private var wrapper = MockStoreWrapper(context)
     private var rng = SecureRandom()
 
     @Before
@@ -55,7 +59,7 @@ class KeystoreTest {
 
     @Test
     fun workingWithLabel() {
-        val keystore = Keystore("test-labels", true, wrapper)
+        val keystore = Keystore(context, "test-labels", true, wrapper)
 
         Assert.assertFalse(keystore.available())
         keystore.generateKey()
@@ -66,7 +70,7 @@ class KeystoreTest {
 
     @Test
     fun createEncryptCipher() {
-        val keystore = Keystore("test-encrypt-ciphers", true, wrapper)
+        val keystore = Keystore(context, "test-encrypt-ciphers", true, wrapper)
 
         Assert.assertFalse(keystore.available())
         var caught = false
@@ -83,13 +87,13 @@ class KeystoreTest {
         keystore.generateKey()
         Assert.assertTrue(keystore.available())
         cipher = keystore.createEncryptCipher()
-        Assert.assertEquals(CIPHER_SPEC, cipher.algorithm)
+        Assert.assertEquals(CIPHER_SPEC_SYMMETRIC, cipher.algorithm)
         Assert.assertNotNull(cipher.iv)
     }
 
     @Test
     fun createDecryptCipher() {
-        val keystore = Keystore("test-decrypt-ciphers", true, wrapper)
+        val keystore = Keystore(context, "test-decrypt-ciphers", true, wrapper)
         val iv = ByteArray(12)
         rng.nextBytes(iv)
 
@@ -108,13 +112,13 @@ class KeystoreTest {
         keystore.generateKey()
         Assert.assertTrue(keystore.available())
         cipher = keystore.createDecryptCipher(iv)
-        Assert.assertEquals(CIPHER_SPEC, cipher.algorithm)
+        Assert.assertEquals(CIPHER_SPEC_SYMMETRIC, cipher.algorithm)
         Assert.assertArrayEquals(iv, cipher.iv)
     }
 
     @Test
     fun testAutoInit() {
-        val keystore = Keystore("test-auto-init", false, wrapper)
+        val keystore = Keystore(context, "test-auto-init", false, wrapper)
 
         Assert.assertTrue(keystore.available())
         Assert.assertFalse(keystore.generateKey())
@@ -129,7 +133,7 @@ class KeystoreTest {
     @Ignore("troubleshooting test-env crypto errors")
     @Test
     fun cryptoRoundTrip() {
-        val keystore = Keystore("test-roundtrip", wrapper = wrapper)
+        val keystore = Keystore(context, "test-roundtrip", wrapper = wrapper)
 
         var input = "classic plaintext 'hello, world'".toByteArray(StandardCharsets.UTF_8)
         var encrypted = keystore.encryptBytes(input)

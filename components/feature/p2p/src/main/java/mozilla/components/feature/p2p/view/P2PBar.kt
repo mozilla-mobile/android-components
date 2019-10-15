@@ -39,12 +39,12 @@ class P2PBar @JvmOverloads constructor(
         p2pAdvertiseBtn.setOnClickListener {
             require(listener != null)
             listener?.onAdvertise()
-            setResetBtn(true)
+            showConnectButtons(false)
         }
         p2pDiscoverBtn.setOnClickListener {
             require(listener != null)
             listener?.onDiscover()
-            setResetBtn(true)
+            showConnectButtons(false)
         }
         p2pSendBtn.setOnClickListener {
             require(listener != null)
@@ -58,14 +58,12 @@ class P2PBar @JvmOverloads constructor(
         }
     }
 
-    private fun setResetBtn(b: Boolean) {
+    private fun showConnectButtons(b: Boolean) {
         // Either the advertise and discover buttons are visible and enabled, or the reset button is.
-        p2pAdvertiseBtn.isEnabled = !b
-        p2pDiscoverBtn.isEnabled = !b
-        p2pResetBtn.isEnabled = b
-        p2pAdvertiseBtn.visibility = if (b) View.GONE else View.VISIBLE
-        p2pDiscoverBtn.visibility = p2pAdvertiseBtn.visibility
-        p2pResetBtn.visibility = if (b) View.VISIBLE else View.GONE
+        val connectButtonVis = if (b) View.VISIBLE else View.GONE
+        p2pAdvertiseBtn.visibility = connectButtonVis
+        p2pDiscoverBtn.visibility = connectButtonVis
+        p2pResetBtn.visibility = if (b) View.GONE else View.VISIBLE
     }
 
     override fun updateStatus(status: String) {
@@ -85,6 +83,7 @@ class P2PBar @JvmOverloads constructor(
 
     override fun readyToSend() {
         require(listener != null)
+        p2pSendBtn.visibility= View.VISIBLE
         p2pSendBtn.isEnabled = true
     }
 
@@ -100,7 +99,8 @@ class P2PBar @JvmOverloads constructor(
 
     override fun clear() {
         p2pStatusText.text = ""
-        setResetBtn(false)
+        showConnectButtons(true)
+        p2pSendBtn.visibility = View.GONE
     }
 }
 

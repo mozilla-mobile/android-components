@@ -31,6 +31,7 @@ internal class P2PController(
             Build.MODEL,
             true,
             object : NearbyConnectionListener {
+                @Synchronized
                 override fun updateState(connectionState: ConnectionState) {
                     savedConnectionState = connectionState
                     view.updateStatus(connectionState.name)
@@ -77,6 +78,7 @@ internal class P2PController(
         nearbyConnection.startDiscovering()
     }
 
+    @Synchronized
     private fun reportError(msg: String) {
         Logger.error(msg)
         view.failure(msg)

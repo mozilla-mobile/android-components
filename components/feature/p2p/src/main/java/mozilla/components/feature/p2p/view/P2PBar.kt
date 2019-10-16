@@ -29,10 +29,10 @@ class P2PBar @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : ConstraintLayout(context, attrs, defStyleAttr), P2PView {
     override var listener: P2PView.Listener? = null
-      set(value) {
-          field = value
-          clear()
-      }
+        set(value) {
+            field = value
+            clear()
+        }
 
     init {
         inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
@@ -84,7 +84,7 @@ class P2PBar @JvmOverloads constructor(
 
     override fun readyToSend() {
         require(listener != null)
-        p2pSendBtn.visibility= View.VISIBLE
+        p2pSendBtn.visibility = View.VISIBLE
         p2pSendBtn.isEnabled = true
     }
 
@@ -92,8 +92,8 @@ class P2PBar @JvmOverloads constructor(
         AlertDialog.Builder(context)
             .setTitle("Accept URL from $neighborId")
             .setMessage("Visit $url")
-            .setPositiveButton(android.R.string.yes) { _, _ ->  listener?.onSetUrl(url) }
-            .setNegativeButton(android.R.string.no) { _, _ ->  }
+            .setPositiveButton(android.R.string.yes) { _, _ -> listener?.onSetUrl(url) }
+            .setNegativeButton(android.R.string.no) { _, _ -> }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
     }

@@ -98,7 +98,8 @@ internal class P2PController(
 
     override fun onSendUrl() {
         if (cast<ConnectionState.ReadyToSend>() != null) {
-            val payloadID = nearbyConnection.sendMessage(store.state.selectedTab?.content?.url ?: "no URL")
+            val payloadID = nearbyConnection.sendMessage(store.state.selectedTab?.content?.url
+                ?: "no URL")
             if (payloadID == null) {
                 reportError("Unable to send message: sendMessage() returns null")
             }
@@ -106,7 +107,7 @@ internal class P2PController(
     }
 
     override fun onSetUrl(url: String) {
-       useCases.addTab(url)
+        useCases.addTab(url)
     }
 
     override fun onReset() {

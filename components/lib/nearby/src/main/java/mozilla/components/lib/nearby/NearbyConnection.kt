@@ -22,6 +22,7 @@ import com.google.android.gms.nearby.connection.PayloadTransferUpdate.Status
 import com.google.android.gms.nearby.connection.Strategy
 import mozilla.components.support.base.log.logger.Logger
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * A class that can be run on two devices to allow them to connect. This supports sending a single
@@ -47,12 +48,17 @@ class NearbyConnection(
     private val PACKAGE_NAME = "mozilla.components.lib.nearby"
     private val STRATEGY = Strategy.P2P_STAR
 
+    // I assume that the number of endpoints encountered during the lifetime of the application
+    // will be small and do not remove them from the map.
+    private val endpointIdsToNames = ConcurrentHashMap<String, String>()
+
     /**
      * The state of the connection. Changes in state are communicated through
      * [NearbyConnectionListener.updateState].
      */
     public sealed class ConnectionState() {
         val name = javaClass.simpleName
+
         object Isolated : ConnectionState()
         object Advertising : ConnectionState()
         object Discovering : ConnectionState()
@@ -67,15 +73,17 @@ class NearbyConnection(
                 nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
                 nearbyConnection.updateState(ConnectionState.Connecting(neighborId, neighborName))
             }
+
             fun reject() {
                 nearbyConnection.connectionsClient.rejectConnection(neighborId)
                 // This should put us back in advertising or discovering.
                 nearbyConnection.updateState(nearbyConnection.connectionState)
             }
         }
+
         class Connecting(val neighborId: String, val neighborName: String) : ConnectionState()
-        class ReadyToSend(val neighborEndpointId: String) : ConnectionState()
-        class Sending(val neighborEndpointId: String, val payloadId: Long) : ConnectionState()
+        class ReadyToSend(val neighborId: String, val neighborName: String?) : ConnectionState()
+        class Sending(val neighborId: String, val neighborName: String?, val payloadId: Long) : ConnectionState()
         class Failure(val message: String) : ConnectionState()
     }
 
@@ -90,7 +98,8 @@ class NearbyConnection(
     }
 
     // This method is called from both the main thread and callbacks.
-    @Synchronized private fun updateState(cs: ConnectionState) {
+    @Synchronized
+    private fun updateState(cs: ConnectionState) {
         connectionState = cs
         listener.updateState(cs)
     }
@@ -148,6 +157,8 @@ class NearbyConnection(
     // Used within startAdvertising() and startDiscovering() (via endpointDiscoveryCallback)
     private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
+            // This is the last time we have access to the endpoint name, so cache it.
+            endpointIdsToNames.put(endpointId, connectionInfo.endpointName)
             if (authenticate) {
                 updateState(
                     ConnectionState.Authenticating(
@@ -167,7 +178,9 @@ class NearbyConnection(
             if (result.status.isSuccess) {
                 connectionsClient.stopDiscovery()
                 connectionsClient.stopAdvertising()
-                updateState(ConnectionState.ReadyToSend(endpointId))
+                updateState(ConnectionState.ReadyToSend(
+                    endpointId,
+                    endpointIdsToNames[endpointId]))
             } else {
                 reportError("onConnectionResult: connection failed with status ${result.status}")
             }
@@ -191,7 +204,9 @@ class NearbyConnection(
                     // Make sure it's reporting on our outgoing message, not an incoming one.
                     if (state.payloadId == update.payloadId) {
                         listener.messageDelivered(update.payloadId)
-                        updateState(ConnectionState.ReadyToSend(endpointId))
+                        updateState(ConnectionState.ReadyToSend(
+                            endpointId,
+                            endpointIdsToNames[endpointId]))
                     }
                 }
             }
@@ -210,8 +225,11 @@ class NearbyConnection(
         val state = connectionState
         if (state is ConnectionState.ReadyToSend) {
             val payload: Payload = Payload.fromBytes(message.toByteArray(UTF_8))
-            connectionsClient.sendPayload(state.neighborEndpointId, payload)
-            updateState(ConnectionState.Sending(state.neighborEndpointId, payload.id))
+            connectionsClient.sendPayload(state.neighborId, payload)
+            updateState(ConnectionState.Sending(
+                state.neighborId,
+                endpointIdsToNames[state.neighborId],
+                payload.id))
             return payload.id
         }
         return null

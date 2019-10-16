@@ -26,6 +26,7 @@ import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,8 +102,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
-        //currentDownload = intent?.getDownloadExtra() ?: return
-        val download = intent?.getDownloadExtra() ?: return
+        currentDownload = intent?.getDownloadExtra() ?: return
+        val download = intent.getDownloadExtra() ?: return
         val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
 
         Log.d("Sawyer", "onStartCommand")
@@ -114,31 +115,56 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                 DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength, pauseIntent)
         )
 
+
+        val notification = try {
+            performDownload(download)
+            DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
+        } catch (e: IOException) {
+            DownloadNotification.createDownloadFailedNotification(context, download.fileName)
+        }
+
+        NotificationManagerCompat.from(context).notify(
+                context,
+                COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+                notification
+        )
+
+        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+        sendDownloadCompleteBroadcast(downloadID)
+
         /*
-        downloadJob = CoroutineScope(IO).launch {
+
+
+        TODO: When I try to put this download behind a job, the first notification fails to send
+        TODO: I think this is because the notification needs to be sent on the main thread...
+        TODO: I need HELP!!
+
+        downloadJob = CoroutineScope(Main).launch {
             Log.d("Sawyer", "starting download job... is null? " + (currentDownload == null))
             currentDownload?.let {
-                val notification = try {
-                    performDownload(it)
-                    DownloadNotification.createDownloadCompletedNotification(context, it.fileName)
-                } catch (e: IOException) {
-                    DownloadNotification.createDownloadFailedNotification(context, it.fileName)
+                CoroutineScope(IO).launch {
+                    val notification = try {
+                        performDownload(it)
+                        DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
+                    } catch (e: IOException) {
+                        DownloadNotification.createDownloadFailedNotification(context, download.fileName)
+                    }
+
+                    NotificationManagerCompat.from(context).notify(
+                            context,
+                            COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+                            notification
+                    )
+
+                    val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+                    sendDownloadCompleteBroadcast(downloadID)
                 }
-
-                NotificationManagerCompat.from(context).notify(
-                        context,
-                        COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
-                        notification
-                )
-
-                val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-                sendDownloadCompleteBroadcast(downloadID)
             }
         }
 
          */
 
-        //downloadJob?.start()
+       // downloadJob?.start()
     }
 
     private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {
@@ -190,7 +216,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         downloadJob?.cancel()
     }
 
-    private suspend fun performDownload(download: DownloadState) = withContext(IO) {
+    private fun performDownload(download: DownloadState) {
         val headers = getHeadersFromDownload(download)
         val request = Request(download.url, headers = headers)
         val response = httpClient.fetch(request)

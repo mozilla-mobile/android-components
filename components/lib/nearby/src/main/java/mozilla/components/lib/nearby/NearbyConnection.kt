@@ -193,7 +193,10 @@ class NearbyConnection(
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            listener.receiveMessage(endpointId, String(payload.asBytes()!!, UTF_8))
+            listener.receiveMessage(
+                endpointId,
+                endpointIdsToNames[endpointId],
+                String(payload.asBytes()!!, UTF_8))
         }
 
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
@@ -280,10 +283,11 @@ interface NearbyConnectionListener {
     /**
      * Called when a message is received from a neighboring device.
      *
-     * @param endpointId the ID of the neighboring device
+     * @param neighborId the ID of the neighboring device
+     * @param neighborName the name of the neighboring device
      * @param message the message
      */
-    fun receiveMessage(endpointId: String, message: String)
+    fun receiveMessage(neighborId: String, neighborName: String?, message: String)
 
     /**
      * Called when a message has been successfully delivered to a neighboring device.

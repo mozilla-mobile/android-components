@@ -44,7 +44,6 @@ class NearbyConnection(
     private val listener: NearbyConnectionListener
 ) {
     // Compile-time constants
-    private val TAG = "NearbyConnection"
     private val PACKAGE_NAME = "mozilla.components.lib.nearby"
     private val STRATEGY = Strategy.P2P_STAR
 
@@ -58,7 +57,7 @@ class NearbyConnection(
         object Advertising : ConnectionState()
         object Discovering : ConnectionState()
         class Authenticating(
-            // sealed classes can't be inner, so we need to pass in the connection
+            // Sealed classes can't be inner, so we need to pass in the connection.
             private val nearbyConnection: NearbyConnection,
             val neighborId: String,
             val neighborName: String,
@@ -82,8 +81,8 @@ class NearbyConnection(
 
     private var connectionsClient: ConnectionsClient = Nearby.getConnectionsClient(context)
 
-    // The can be modified in both the main thread and in callbacks. Modification occurs
-    // only in updateState(), which is synchronized.
+    // The is mutated only in updateState(), which can be called from both the main thread and in
+    // callbacks so is synchronized.
     private lateinit var connectionState: ConnectionState
 
     init {
@@ -171,7 +170,6 @@ class NearbyConnection(
                 updateState(ConnectionState.ReadyToSend(endpointId))
             } else {
                 reportError("onConnectionResult: connection failed with status ${result.status}")
-                // Should we retry? It could be that the other endpoint rejected us.
             }
         }
 

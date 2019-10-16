@@ -120,28 +120,30 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         currentDownload = intent?.getDownloadExtra() ?: return
         val download = intent.getDownloadExtra() ?: return
 
-        displayOngoingDownloadNotification(download)
-
-        val notification = try {
-            performDownload(download)
-            DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
-        } catch (e: IOException) {
-            DownloadNotification.createDownloadFailedNotification(context, download.fileName)
-        }
-
-        NotificationManagerCompat.from(context).notify(
-                context,
-                COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
-                notification
-        )
-
-        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-        sendDownloadCompleteBroadcast(downloadID)
+//
+//        displayOngoingDownloadNotification(download)
+//
+//        val notification = try {
+//            performDownload(download)
+//            DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
+//        } catch (e: IOException) {
+//            DownloadNotification.createDownloadFailedNotification(context, download.fileName)
+//        }
+//
+//        NotificationManagerCompat.from(context).notify(
+//                context,
+//                COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+//                notification
+//        )
+//
+//        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+//        sendDownloadCompleteBroadcast(downloadID)
+//
 
 
         /* ABOVE works, BELOW doesn't*/
 
-        /*
+
 
         // Create a new job and add it, with its downloadState to the map
         val newDownloadJob = CoroutineScope(IO).launch {
@@ -151,9 +153,9 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
             displayOngoingDownloadNotification(download)
 
             val notification = try {
-                Log.d("Sawyer", "performing download")
+                Log.d("Sawyer", "before download")
                 performDownload(download)
-                Log.d("Sawyer", "downloaded")
+                Log.d("Sawyer", "download complete")
                 DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
             } catch (e: IOException) {
                 DownloadNotification.createDownloadFailedNotification(context, download.fileName)
@@ -167,12 +169,16 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
             val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
             sendDownloadCompleteBroadcast(downloadID)
+        }.also { job ->
+            job.invokeOnCompletion {
+                Log.d("Sawyer", "cleaning up MY job")
+                cleanupJob(job)
+            }
         }
 
         //listOfDownloadJobs[newDownloadJob] = download
         downloadJob = newDownloadJob
 
-         */
     }
 
     private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {

@@ -6,6 +6,7 @@ package mozilla.components.feature.downloads
 
 import android.app.Service
 import android.content.Intent
+import android.util.Log
 import androidx.annotation.CallSuper
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PROTECTED
@@ -23,7 +24,6 @@ import kotlinx.coroutines.launch
 abstract class CoroutineService(
     jobDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : Service() {
-
     private val scope = CoroutineScope(jobDispatcher)
     private val runningJobs = mutableSetOf<Job>()
 
@@ -43,12 +43,15 @@ abstract class CoroutineService(
      * Starts a job using [onStartCommand] then stops the service once all jobs are complete.
      */
     final override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // TODO: This is immediately cleaning up the job (but not actually killing the service) because all we're doing in
+        // TODO: onStartCommand is launching an IO thread
         val job = scope.launch { onStartCommand(intent, flags) }
+
         synchronized(runningJobs) {
             runningJobs.add(job)
         }
         // TODO: I bet something is not cleaning up the job here!
-        job.invokeOnCompletion { cleanupJob(job) }
+        //job.invokeOnCompletion { cleanupJob(job) }
         return START_REDELIVER_INTENT
     }
 
@@ -60,10 +63,19 @@ abstract class CoroutineService(
         scope.cancel()
     }
 
-    private fun cleanupJob(job: Job) = synchronized(runningJobs) {
+    fun cleanupJob(job: Job) = synchronized(runningJobs) {
+        // TODO: Figure out how to CLEANLY remove the runningJobs and then do a stopSelf
+        // Currently just doing a stopSelf every time, which is bad because there might still be other downloads running
+
+        Log.d("Sawyer", "cleanupJob")
         runningJobs.remove(job)
+        stopSelf()
+        /*
         if (runningJobs.isEmpty()) {
+            Log.d("Sawyer", "cleanupJob isEmpty")
             stopSelf()
         }
+
+         */
     }
 }

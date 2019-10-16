@@ -29,7 +29,7 @@ data class LabeledMetricType<T>(
     override val name: String,
     override val sendInPings: List<String>,
     val subMetric: T,
-    val labels: Set<String>? = null
+    val labels: List<String>? = null
 ) : CommonMetricData {
 
     private val logger = Logger("glean/LabeledMetricType")

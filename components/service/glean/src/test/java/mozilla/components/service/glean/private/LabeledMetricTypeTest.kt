@@ -123,7 +123,7 @@ class LabeledMetricTypeTest {
             name = "labeled_counter_metric",
             sendInPings = listOf("metrics"),
             subMetric = counterMetric,
-            labels = setOf("foo", "bar", "baz")
+            labels = listOf("foo", "bar", "baz")
         )
 
         CountersStorageEngine.record(labeledCounterMetric["foo"], 1)
@@ -577,7 +577,7 @@ class LabeledMetricTypeTest {
             name = "labeled_counter_metric",
             sendInPings = listOf("metrics"),
             subMetric = counterMetric,
-            labels = setOf("foo", "bar", "baz")
+            labels = listOf("foo", "bar", "baz")
         )
 
         // Increment using a label name first.

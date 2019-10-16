@@ -308,7 +308,22 @@ sealed class EngineAction : BrowserAction() {
  */
 sealed class DownloadAction : BrowserAction() {
     /**
-     * Adds the [downloadId] into the set of completed downloads inside the [BrowserState].
+     * Adds the [download] to the queued downloads action.
      */
-    data class DownloadCompletedAction(val downloadId: Long) : DownloadAction()
+    data class AddDownloadAction(val download: DownloadState): DownloadAction()
+
+    /**
+     * Marks the [download] as started.
+     */
+    data class DownloadStartedAction(val download: DownloadState): DownloadAction()
+
+    /**
+     * Marks the [download] as completed.
+     */
+    data class DownloadCompletedAction(val download: DownloadState) : DownloadAction()
+
+    /**
+     * Marks the [download] as failure
+     */
+    data class DownloadFailedAction(val download: DownloadState): DownloadAction()
 }

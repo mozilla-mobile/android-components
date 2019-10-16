@@ -68,9 +68,12 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         val download = intent?.getDownloadExtra() ?: return
 
         val notification = try {
+            informDownloadStarted(download)
             performDownload(download)
+            informDownloadCompleted(download)
             DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
         } catch (e: IOException) {
+            informDownloadFailure(download)
             DownloadNotification.createDownloadFailedNotification(context, download.fileName)
         }
         NotificationManagerCompat.from(context).notify(
@@ -78,9 +81,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
             notification
         )
-
-        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-        dispatchDownloadCompletedAction(downloadID)
     }
 
     private suspend fun performDownload(download: DownloadState) = withContext(IO) {
@@ -101,13 +101,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                 inStream.copyTo(outStream)
             }
         }
-    }
-
-    /**
-     * Informs [BrowserStore] that a download has been completed.
-     */
-    private fun dispatchDownloadCompletedAction(downloadID: Long) {
-        browserStore.dispatch(DownloadAction.DownloadCompletedAction(downloadID))
     }
 
     /**
@@ -167,6 +160,18 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             uri = download.url.toUri(),
             referer = download.referrerUrl?.toUri()
         )
+    }
+
+    private fun informDownloadStarted(download: DownloadState) {
+        browserStore.dispatch(DownloadAction.DownloadStartedAction(download))
+    }
+
+    private fun informDownloadCompleted(download: DownloadState) {
+        browserStore.dispatch(DownloadAction.DownloadCompletedAction(download))
+    }
+
+    private fun informDownloadFailure(download: DownloadState) {
+        browserStore.dispatch(DownloadAction.DownloadFailedAction(download))
     }
 
     companion object {

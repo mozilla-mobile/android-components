@@ -16,6 +16,7 @@ import java.util.UUID
  * @property contentLength The file size reported by the server.
  * @property userAgent The user agent to be used for the download.
  * @property destinationDirectory The matching destination directory for this type of download.
+ * @property status The current download status of this download.
  * @property referrerUrl The site that linked to this download.
  */
 data class DownloadState(
@@ -27,5 +28,6 @@ data class DownloadState(
     val destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
     val referrerUrl: String? = null,
     val skipConfirmation: Boolean = false,
+    val status: DownloadStatus? = null,
     val id: String = UUID.randomUUID().toString()
 )

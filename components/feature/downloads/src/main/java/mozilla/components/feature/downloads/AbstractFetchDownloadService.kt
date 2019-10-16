@@ -72,16 +72,16 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
-                Log.d("Sawyer", "onReceive weee! " + intent?.action)
-
                 when (intent?.action) {
                     ACTION_PAUSE -> {
                         displayPauseNotification(currentDownload)
-                        pauseDownload(currentDownload)
+                        pauseDownload()
                     }
                     ACTION_RESUME -> {
                         displayOngoingDownloadNotification(currentDownload)
-                        //resumeDownload(currentDownload)
+                        downloadJob = CoroutineScope(IO).launch {
+                            resumeDownload(currentDownload, currentOutStream)
+                        }
                     }
                 }
             }
@@ -101,11 +101,11 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
-        currentDownload = intent?.getDownloadExtra() ?: return
+        //currentDownload = intent?.getDownloadExtra() ?: return
+        val download = intent?.getDownloadExtra() ?: return
         val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
 
-        val download = currentDownload ?: return
-        Log.d("Sawyer", "onStarting")
+        Log.d("Sawyer", "onStartCommand")
 
         // TODO: Register for updates somewhere else?
         registerForUpdates()
@@ -114,27 +114,31 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                 DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength, pauseIntent)
         )
 
+        /*
         downloadJob = CoroutineScope(IO).launch {
+            Log.d("Sawyer", "starting download job... is null? " + (currentDownload == null))
             currentDownload?.let {
-                performDownload(it)
+                val notification = try {
+                    performDownload(it)
+                    DownloadNotification.createDownloadCompletedNotification(context, it.fileName)
+                } catch (e: IOException) {
+                    DownloadNotification.createDownloadFailedNotification(context, it.fileName)
+                }
+
+                NotificationManagerCompat.from(context).notify(
+                        context,
+                        COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+                        notification
+                )
+
+                val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+                sendDownloadCompleteBroadcast(downloadID)
             }
         }
 
-        val notification = try {
-            //performDownload(download)
-            DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
-        } catch (e: IOException) {
-            DownloadNotification.createDownloadFailedNotification(context, download.fileName)
-        }
+         */
 
-        NotificationManagerCompat.from(context).notify(
-            context,
-            COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
-            notification
-        )
-
-        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-        sendDownloadCompleteBroadcast(downloadID)
+        //downloadJob?.start()
     }
 
     private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {
@@ -158,7 +162,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
         // TODO: If foreground service... just notify!
-
         val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
 
         val ongoingDownloadNotification =
@@ -198,7 +201,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             currentDownload = newDownloadState
 
             // TODO: Create the notification, hide the size if <= 0L
-            Log.d("Sawyer", "newState: " + newDownloadState.contentLength)
             useFileStream(newDownloadState) { outStream ->
                 // Write stream, keep track of the bytes copied
                 currentBytesCopied = inStream.copyTo(outStream)

@@ -23,20 +23,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import mozilla.components.support.base.ids.cancel
 
-internal object DownloadNotification: BroadcastReceiver() {
+internal object DownloadNotification {
 
     private const val NOTIFICATION_CHANNEL_ID = "Downloads"
-
-    /**
-     * Responds to [PendingIntent]s fired by the site controls notification.
-     */
-    // TODO: Revert this to what it was before
-    override fun onReceive(context: Context, intent: Intent) {
-        // TODO: Not sure if this is the right place to override onReceive
-
-        // if intent is "pause intent" pause!
-        // if intent is "resume intent" resume!
-    }
 
     /**
      * Build the notification to be displayed while the download service is active.
@@ -44,6 +33,7 @@ internal object DownloadNotification: BroadcastReceiver() {
     fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?, pauseIntent: PendingIntent): Notification {
         val channelId = ensureChannelExists(context)
 
+        Log.d("Sawyer", "create ongoing download notification")
         // TODO: Maybe this?
         // createPendingIntent(ACTION_REFRESH, 2)
 
@@ -52,10 +42,9 @@ internal object DownloadNotification: BroadcastReceiver() {
                 R.drawable.mozac_feature_download_ic_download,
                 context.getString(R.string.mozac_feature_downloads_button_pause),
                 pauseIntent
-               // Pause the notification
         ).build()
 
-        val notif = NotificationCompat.Builder(context, channelId)
+        return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
             .setContentTitle(fileName)
             .setContentText(fileSize.toString())
@@ -65,9 +54,6 @@ internal object DownloadNotification: BroadcastReceiver() {
             .setOngoing(true)
             .addAction(pauseAction)
             .build()
-
-        // TODO: what is the requestCode for these notifs? Need to know so I can overwrite them
-        return notif
     }
 
     /**
@@ -182,6 +168,4 @@ internal object DownloadNotification: BroadcastReceiver() {
 
         return NOTIFICATION_CHANNEL_ID
     }
-
-
 }

@@ -600,7 +600,6 @@ class GeckoEngineSession(
         }
 
         override fun onExternalResponse(session: GeckoSession, response: GeckoSession.WebResponseInfo) {
-            Log.d("Sawyer", "on external response: " + response.contentLength)
             notifyObservers {
                 onExternalResource(
                         url = response.uri,

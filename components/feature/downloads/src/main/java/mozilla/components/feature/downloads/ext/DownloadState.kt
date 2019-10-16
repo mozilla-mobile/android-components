@@ -41,8 +41,6 @@ internal fun DownloadState.withResponse(headers: Headers, stream: InputStream?):
         contentLength = headers[CONTENT_LENGTH]?.toLong()
     }
 
-    Log.d("Sawyer", "contentLength in withResponse: " + headers[CONTENT_LENGTH])
-
     return copy(
         fileName = if (fileName.isNullOrBlank()) {
             DownloadUtils.guessFileName(contentDisposition, url, contentType)

@@ -195,11 +195,6 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
 
 
             with(arguments) {
-
-                Log.d("Sawyer", "key url: " + getString(KEY_URL))
-
-                Log.d("Sawyer", "key content len: " + getString(KEY_CONTENT_LENGTH))
-
                 putInt(KEY_DOWNLOAD_TEXT, downloadButtonText)
 
                 putInt(KEY_THEME_ID, themeResId)

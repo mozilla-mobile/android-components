@@ -6,7 +6,6 @@ package mozilla.components.lib.nearby
 
 import android.Manifest
 import android.content.Context
-import androidx.annotation.UiThread
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -113,8 +112,7 @@ class NearbyConnection(
         ).addOnSuccessListener {
             updateState(ConnectionState.Advertising)
         }.addOnFailureListener {
-            Logger.error("failed to start advertising: $it")
-            updateState(ConnectionState.Failure(it.toString()))
+            reportError("failed to start advertising: $it")
         }
     }
 
@@ -132,8 +130,7 @@ class NearbyConnection(
             .addOnSuccessListener {
                 updateState(ConnectionState.Discovering)
             }.addOnFailureListener {
-                Logger.error("failed to start discovering: $it")
-                updateState(ConnectionState.Failure(it.toString()))
+                reportError("failed to start discovering: $it")
             }
     }
 
@@ -145,7 +142,6 @@ class NearbyConnection(
         }
 
         override fun onEndpointLost(endpointId: String) {
-            Logger.error("Lost endpoint during discovery")
             updateState(ConnectionState.Discovering)
         }
     }
@@ -174,9 +170,8 @@ class NearbyConnection(
                 connectionsClient.stopAdvertising()
                 updateState(ConnectionState.ReadyToSend(endpointId))
             } else {
-                Logger.error("onConnectionResult: connection failed with status ${result.status}")
-                // Could keep trying.
-                updateState(ConnectionState.Failure("onConnectionResult: connection failed with status ${result.status}"))
+                reportError("onConnectionResult: connection failed with status ${result.status}")
+                // Should we retry? It could be that the other endpoint rejected us.
             }
         }
 
@@ -231,6 +226,11 @@ class NearbyConnection(
     fun disconnect() {
         connectionsClient.stopAllEndpoints() // also stops advertising and discovery
         updateState(ConnectionState.Isolated)
+    }
+
+    private fun reportError(msg: String) {
+        Logger.error(msg)
+        updateState(ConnectionState.Failure(msg))
     }
 
     companion object {

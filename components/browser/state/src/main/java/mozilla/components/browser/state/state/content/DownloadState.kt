@@ -5,6 +5,7 @@
 package mozilla.components.browser.state.state.content
 
 import android.os.Environment
+import java.io.OutputStream
 import java.util.UUID
 
 /**
@@ -27,5 +28,7 @@ data class DownloadState(
     val destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
     val referrerUrl: String? = null,
     val skipConfirmation: Boolean = false,
-    val id: String = UUID.randomUUID().toString()
+    val id: String = UUID.randomUUID().toString(),
+    val outputStream: OutputStream? = null,
+    val bytesRead: Long? = null
 )

@@ -26,7 +26,6 @@ import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,7 +54,7 @@ import java.io.OutputStream
  *
  * To use this service, you must create a subclass in your application and it to the manifest.
  */
-abstract class AbstractFetchDownloadService : CoroutineService() {
+abstract class AbstractFetchDownloadService: CoroutineService() {
 
     protected abstract val httpClient: Client
     @VisibleForTesting
@@ -67,15 +66,21 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
     private var downloadJob: Job? = null
 
+    private var listOfDownloadJobs = mutableMapOf<Job, DownloadState>()
+
+    // TODO: remove coroutineService
+    // TODO: maintain a data structure of jobs being downloaded (with their mapped currentOutPUtstream and copied
+
     private var currentOutStream: OutputStream? = null
     private var currentBytesCopied: Long = 0
 
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
+                Log.d("Sawyer", "onReceive")
                 when (intent?.action) {
                     ACTION_PAUSE -> {
-                        displayPauseNotification(currentDownload)
+                        displayPausedNotification(currentDownload)
                         pauseDownload()
                     }
                     ACTION_RESUME -> {
@@ -89,9 +94,19 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        Log.d("Sawyer", "binding")
+    override fun onCreate() {
+        // We must start the foreground service immediately in order to stop Android from killing our service
+        startForeground(
+            NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
+            DownloadNotification.createOngoingDownloadNotification(context, "", 0, null)
+        )
+
         registerForUpdates()
+
+        super.onCreate()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
@@ -104,17 +119,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         currentDownload = intent?.getDownloadExtra() ?: return
         val download = intent.getDownloadExtra() ?: return
-        val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
 
-        Log.d("Sawyer", "onStartCommand")
-
-        // TODO: Register for updates somewhere else?
-        registerForUpdates()
-        startForeground(
-                NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-                DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength, pauseIntent)
-        )
-
+        displayOngoingDownloadNotification(download)
 
         val notification = try {
             performDownload(download)
@@ -132,39 +138,41 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
         sendDownloadCompleteBroadcast(downloadID)
 
+
+        /* ABOVE works, BELOW doesn't*/
+
         /*
 
+        // Create a new job and add it, with its downloadState to the map
+        val newDownloadJob = CoroutineScope(IO).launch {
+            Log.d("Sawyer", "downloadJob for: " + listOfDownloadJobs[downloadJob]?.fileName)
 
-        TODO: When I try to put this download behind a job, the first notification fails to send
-        TODO: I think this is because the notification needs to be sent on the main thread...
-        TODO: I need HELP!!
+            // TODO: Currently this will create a zombie notification that never goes away!
+            displayOngoingDownloadNotification(download)
 
-        downloadJob = CoroutineScope(Main).launch {
-            Log.d("Sawyer", "starting download job... is null? " + (currentDownload == null))
-            currentDownload?.let {
-                CoroutineScope(IO).launch {
-                    val notification = try {
-                        performDownload(it)
-                        DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
-                    } catch (e: IOException) {
-                        DownloadNotification.createDownloadFailedNotification(context, download.fileName)
-                    }
-
-                    NotificationManagerCompat.from(context).notify(
-                            context,
-                            COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
-                            notification
-                    )
-
-                    val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-                    sendDownloadCompleteBroadcast(downloadID)
-                }
+            val notification = try {
+                Log.d("Sawyer", "performing download")
+                performDownload(download)
+                Log.d("Sawyer", "downloaded")
+                DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
+            } catch (e: IOException) {
+                DownloadNotification.createDownloadFailedNotification(context, download.fileName)
             }
+
+            NotificationManagerCompat.from(context).notify(
+                    context,
+                    COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+                    notification
+            )
+
+            val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+            sendDownloadCompleteBroadcast(downloadID)
         }
 
-         */
+        //listOfDownloadJobs[newDownloadJob] = download
+        downloadJob = newDownloadJob
 
-       // downloadJob?.start()
+         */
     }
 
     private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {
@@ -187,9 +195,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
-        // TODO: If foreground service... just notify!
+        Log.d("Sawyer", "display ongoing download notification")
         val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
-
         val ongoingDownloadNotification =
                 DownloadNotification.createOngoingDownloadNotification(context, download?.fileName, download?.contentLength, pauseIntent)
 
@@ -200,7 +207,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         )
     }
 
-    private fun displayPauseNotification(download: DownloadState?) {
+    private fun displayPausedNotification(download: DownloadState?) {
         val resumeIntent = createPendingIntent(ACTION_RESUME, 0)
         val pauseNotification =
                 DownloadNotification.createPausedDownloadNotification(context, download?.fileName, resumeIntent)

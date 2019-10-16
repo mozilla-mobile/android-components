@@ -47,6 +47,7 @@ abstract class CoroutineService(
         synchronized(runningJobs) {
             runningJobs.add(job)
         }
+        // TODO: I bet something is not cleaning up the job here!
         job.invokeOnCompletion { cleanupJob(job) }
         return START_REDELIVER_INTENT
     }

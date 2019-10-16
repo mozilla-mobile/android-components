@@ -30,7 +30,7 @@ internal object DownloadNotification {
     /**
      * Build the notification to be displayed while the download service is active.
      */
-    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?, pauseIntent: PendingIntent): Notification {
+    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?, pauseIntent: PendingIntent?): Notification {
         val channelId = ensureChannelExists(context)
 
         Log.d("Sawyer", "create ongoing download notification")

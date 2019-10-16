@@ -8,6 +8,16 @@
 
     <!-- String for button for this device to discover the presence of nearby devices. -->
     <string name="mozac_feature_p2p_discover">Discover</string>
+
+    <!-- String for button to send URL to neighboring device. -->
     <string name="mozac_feature_p2p_send">Send URL</string>
 
+    <!-- String for title of AlertDialog to open URL received from neighbor; %1$s will be replaced by the neighbor name -->
+    <string name="mozac_feature_p2p_open_url_title">Open URL from %1$s?</string>
+
+    <!-- String for button to open content in new tab -->
+    <string name="mozac_feature_p2p_open_in_new_tab">new tab</string>
+
+    <!-- String for button to open content in current tab -->
+    <string name="mozac_feature_p2p_open_in_current_tab">current tab</string>
 </resources>

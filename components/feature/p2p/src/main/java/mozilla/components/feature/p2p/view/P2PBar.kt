@@ -90,9 +90,13 @@ class P2PBar @JvmOverloads constructor(
 
     override fun receiveURL(neighborId: String, neighborName: String?, url: String) {
         AlertDialog.Builder(context)
-            .setTitle("Accept URL from ${neighborName ?: neighborId}?")
-            .setMessage("Visit $url")
-            .setPositiveButton(android.R.string.yes) { _, _ -> listener?.onSetUrl(url) }
+            .setTitle(context.getString(R.string.mozac_feature_p2p_open_url_title, neighborName
+                ?: neighborId))
+            .setMessage(url)
+            .setPositiveButton(context.getString(R.string.mozac_feature_p2p_open_in_current_tab)) {
+                _, _ -> listener?.onSetUrl(url, newTab = false) }
+            .setNeutralButton(context.getString(R.string.mozac_feature_p2p_open_in_new_tab)) {
+                _, _ -> listener?.onSetUrl(url, newTab = true) }
             .setNegativeButton(android.R.string.no) { _, _ -> }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()

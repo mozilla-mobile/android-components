@@ -12,6 +12,7 @@ import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.internal.P2PController
 import mozilla.components.feature.p2p.view.P2PView
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
@@ -26,11 +27,12 @@ import mozilla.components.feature.tabs.TabsUseCases
 class P2PFeature(
     val view: P2PView,
     private val store: BrowserStore,
-    private val useCases: TabsUseCases,
+    private val tabsUseCases: TabsUseCases,
+    private val sessionUseCases: SessionUseCases,
     override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
     private val onClose: (() -> Unit)
 ) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
-    @VisibleForTesting internal var controller = P2PController(store, view, useCases)
+    @VisibleForTesting internal var controller = P2PController(store, view, tabsUseCases, sessionUseCases)
 
     private var session: SessionState? = null
 

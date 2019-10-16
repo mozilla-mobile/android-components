@@ -107,12 +107,12 @@ interface P2PView {
         fun onSendUrl()
 
         /**
-         * Handles a request to set the current page's URL to the given value.
-         * This will typically be one sent from a neighbor.
+         * Handles a request to load the specified URL. This will typically be one sent from a neighbor.
          *
          * @param url the URL
+         * @param newTab whether to open the URL in a new tab (true) or the current one (false)
          */
-        fun onSetUrl(url: String)
+        fun onSetUrl(url: String, newTab: Boolean = false)
 
         /**
          * Resets the connection to the neighbor.

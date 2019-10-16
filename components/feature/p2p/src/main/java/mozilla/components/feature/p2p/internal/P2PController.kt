@@ -8,6 +8,7 @@ import android.os.Build
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.p2p.view.P2PView
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.lib.nearby.NearbyConnection.ConnectionState
@@ -20,7 +21,8 @@ import mozilla.components.support.base.log.logger.Logger
 internal class P2PController(
     private val store: BrowserStore,
     private val view: P2PView,
-    private val useCases: TabsUseCases
+    private val tabsUseCases: TabsUseCases,
+    private val sessionUseCases: SessionUseCases
 ) : P2PView.Listener {
     private lateinit var nearbyConnection: NearbyConnection
     private var savedConnectionState: ConnectionState? = null
@@ -106,8 +108,12 @@ internal class P2PController(
         }
     }
 
-    override fun onSetUrl(url: String) {
-        useCases.addTab(url)
+    override fun onSetUrl(url: String, newTab: Boolean) {
+        if (newTab) {
+            tabsUseCases.addTab(url)
+        } else {
+            sessionUseCases.loadUrl(url)
+        }
     }
 
     override fun onReset() {

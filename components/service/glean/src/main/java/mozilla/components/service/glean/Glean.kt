@@ -263,8 +263,8 @@ open class GleanInternalAPI internal constructor () {
      * accidentally upload or collect data after the upload has been disabled.
      */
     private fun cancelPingWorkers() {
-        MetricsPingScheduler.cancel()
-        PingUploadWorker.cancel()
+        MetricsPingScheduler.cancel(applicationContext!!)
+        PingUploadWorker.cancel(applicationContext!!)
     }
 
     /**
@@ -283,7 +283,7 @@ open class GleanInternalAPI internal constructor () {
 
         pingStorageEngine.clearPendingPings()
         storageEngineManager.clearAllStores()
-        pingMaker.resetPingSequenceNumbers()
+        pingMaker.resetPingMakerStorage()
 
         // This does not clear the experiments store (which isn't managed by the
         // StorageEngineManager), since doing so would mean we would have to have the
@@ -539,7 +539,7 @@ open class GleanInternalAPI internal constructor () {
                 // Await the serialization tasks. Once the serialization tasks have all completed,
                 // we can then safely enqueue the PingUploadWorker.
                 pingSerializationTasks.joinAll()
-                PingUploadWorker.enqueueWorker()
+                PingUploadWorker.enqueueWorker(applicationContext!!)
             }
         }
     }

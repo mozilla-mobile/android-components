@@ -64,8 +64,11 @@ import mozilla.components.service.glean.private.TimeUnit as GleanTimeUnit
 @RunWith(RobolectricTestRunner::class)
 class GleanTest {
 
+    private val context: Context
+        get() = ApplicationProvider.getApplicationContext()
+
     @get:Rule
-    val gleanRule = GleanTestRule(ApplicationProvider.getApplicationContext())
+    val gleanRule = GleanTestRule(context)
 
     @Test
     fun `disabling upload should disable metrics recording`() {
@@ -136,7 +139,8 @@ class GleanTest {
         ))
 
         // Fake calling the lifecycle observer.
-        val lifecycleRegistry = LifecycleRegistry(mock(LifecycleOwner::class.java))
+        val lifecycleOwner = mock(LifecycleOwner::class.java)
+        val lifecycleRegistry = LifecycleRegistry(lifecycleOwner)
         val gleanLifecycleObserver = GleanLifecycleObserver()
         lifecycleRegistry.addObserver(gleanLifecycleObserver)
 
@@ -149,7 +153,7 @@ class GleanTest {
             lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
 
             // Trigger worker task to upload the pings in the background
-            triggerWorkManager()
+            triggerWorkManager(context)
 
             val requests = mutableMapOf<String, String>()
             for (i in 0..1) {
@@ -270,7 +274,7 @@ class GleanTest {
         runBlocking {
             gleanSpy.handleBackgroundEvent()
         }
-        assertFalse(getWorkerStatus(PingUploadWorker.PING_WORKER_TAG).isEnqueued)
+        assertFalse(getWorkerStatus(context, PingUploadWorker.PING_WORKER_TAG).isEnqueued)
     }
 
     @Test
@@ -280,7 +284,7 @@ class GleanTest {
         runBlocking {
             Glean.handleBackgroundEvent()
         }
-        assertFalse(getWorkerStatus(PingUploadWorker.PING_WORKER_TAG).isEnqueued)
+        assertFalse(getWorkerStatus(context, PingUploadWorker.PING_WORKER_TAG).isEnqueued)
     }
 
     @Test
@@ -520,8 +524,8 @@ class GleanTest {
         // Trigger worker task to upload the pings in the background. We need
         // to wait for the work to be enqueued first, since this test runs
         // asynchronously.
-        waitForEnqueuedWorker(PingUploadWorker.PING_WORKER_TAG)
-        triggerWorkManager()
+        waitForEnqueuedWorker(context, PingUploadWorker.PING_WORKER_TAG)
+        triggerWorkManager(context)
 
         // Validate the received data.
         val request = server.takeRequest(20L, TimeUnit.SECONDS)
@@ -587,18 +591,18 @@ class GleanTest {
 
         // Verify that the workers are enqueued
         assertTrue("PingUploadWorker is enqueued",
-            getWorkerStatus(PingUploadWorker.PING_WORKER_TAG).isEnqueued)
+            getWorkerStatus(context, PingUploadWorker.PING_WORKER_TAG).isEnqueued)
         assertTrue("MetricsPingWorker is enqueued",
-            getWorkerStatus(MetricsPingWorker.TAG).isEnqueued)
+            getWorkerStatus(context, MetricsPingWorker.TAG).isEnqueued)
 
         // Toggle upload enabled to false
         Glean.setUploadEnabled(false)
 
         // Verify workers have been cancelled
         assertFalse("PingUploadWorker is not enqueued",
-            getWorkerStatus(PingUploadWorker.PING_WORKER_TAG).isEnqueued)
+            getWorkerStatus(context, PingUploadWorker.PING_WORKER_TAG).isEnqueued)
         assertFalse("MetricsPingWorker is not enqueued",
-            getWorkerStatus(MetricsPingWorker.TAG).isEnqueued)
+            getWorkerStatus(context, MetricsPingWorker.TAG).isEnqueued)
     }
 
     @Test

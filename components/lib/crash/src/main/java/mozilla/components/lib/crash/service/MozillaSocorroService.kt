@@ -11,10 +11,13 @@ import android.os.Build
 import androidx.annotation.VisibleForTesting
 import mozilla.components.lib.crash.Crash
 import mozilla.components.support.base.log.logger.Logger
+import org.json.JSONException
+import org.json.JSONObject
 import org.mozilla.geckoview.BuildConfig
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.FileReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -26,10 +29,12 @@ import java.net.URL
 import java.nio.channels.Channels
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
+import kotlin.collections.HashMap
 import kotlin.random.Random
 
-private val defaultServerUrl = "https://crash-reports.mozilla.com/submit?" +
+private const val DEFAULT_SERVER_URL = "https://crash-reports.mozilla.com/submit?" +
         "id=${BuildConfig.MOZ_APP_ID}&version=${BuildConfig.MOZILLA_VERSION}&${BuildConfig.MOZ_APP_BUILDID}"
+
 /**
  * A [CrashReporterService] implementation uploading crash reports to crash-stats.mozilla.com.
  *
@@ -43,21 +48,30 @@ private val defaultServerUrl = "https://crash-reports.mozilla.com/submit?" +
 class MozillaSocorroService(
     private val applicationContext: Context,
     private val appName: String,
-    private val serverUrl: String = defaultServerUrl
+    private val serverUrl: String = DEFAULT_SERVER_URL
 ) : CrashReporterService {
     private val logger = Logger("mozac/MozillaSocorroCrashHelperService")
     private val startTime = System.currentTimeMillis()
 
     override fun report(crash: Crash.UncaughtExceptionCrash) {
-        sendReport(crash.throwable, null, null)
+        sendReport(crash.throwable, null, null, false)
     }
 
     override fun report(crash: Crash.NativeCodeCrash) {
-        sendReport(null, crash.minidumpPath, crash.extrasPath)
+        sendReport(null, crash.minidumpPath, crash.extrasPath, false)
+    }
+
+    override fun report(throwable: Throwable) {
+        sendReport(throwable, null, null, true)
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun sendReport(throwable: Throwable?, miniDumpFilePath: String?, extrasFilePath: String?) {
+    internal fun sendReport(
+        throwable: Throwable?,
+        miniDumpFilePath: String?,
+        extrasFilePath: String?,
+        isCaughtException: Boolean
+    ) {
         val serverUrl = URL(serverUrl)
         val boundary = generateBoundary()
         var conn: HttpURLConnection? = null
@@ -69,7 +83,8 @@ class MozillaSocorroService(
             conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
             conn.setRequestProperty("Content-Encoding", "gzip")
 
-            sendCrashData(conn.outputStream, boundary, throwable, miniDumpFilePath, extrasFilePath)
+            sendCrashData(conn.outputStream, boundary, throwable, miniDumpFilePath, extrasFilePath,
+                    isCaughtException)
 
             BufferedReader(InputStreamReader(conn.inputStream)).use {
                 val response = StringBuffer()
@@ -88,12 +103,14 @@ class MozillaSocorroService(
         }
     }
 
+    @Suppress("LongParameterList")
     private fun sendCrashData(
         os: OutputStream,
         boundary: String,
         throwable: Throwable?,
         miniDumpFilePath: String?,
-        extrasFilePath: String?
+        extrasFilePath: String?,
+        isCaughtException: Boolean
     ) {
         val nameSet = mutableSetOf<String>()
         val gzipOs = GZIPOutputStream(os)
@@ -109,7 +126,8 @@ class MozillaSocorroService(
         }
 
         throwable?.let {
-            sendPart(gzipOs, boundary, "JavaStackTrace", getExceptionStackTrace(it), nameSet)
+            sendPart(gzipOs, boundary, "JavaStackTrace", getExceptionStackTrace(it,
+                    isCaughtException), nameSet)
         }
 
         miniDumpFilePath?.let {
@@ -230,7 +248,12 @@ class MozillaSocorroService(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun readExtrasFromFile(file: File): HashMap<String, String> {
+    internal fun jsonUnescape(string: String): String {
+        return string.replace("""\\\\""", "\\").replace("""\n""", "\n").replace("""\t""", "\t")
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun readExtrasFromLegacyFile(file: File): HashMap<String, String> {
         var fileReader: FileReader? = null
         var bufReader: BufferedReader? = null
         var line: String?
@@ -263,12 +286,46 @@ class MozillaSocorroService(
         return map
     }
 
-    private fun getExceptionStackTrace(throwable: Throwable): String {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun readExtrasFromFile(file: File): HashMap<String, String> {
+        var resultMap = HashMap<String, String>()
+        var notJson = false
+
+        try {
+            FileReader(file).use { fileReader ->
+                val input = fileReader.readLines().firstOrNull()
+                        ?: throw JSONException("failed to read json file")
+
+                val jsonObject = JSONObject(input)
+                for (key in jsonObject.keys()) {
+                    resultMap[key] = jsonUnescape(jsonObject.getString(key))
+                }
+            }
+        } catch (e: FileNotFoundException) {
+            Logger.error("failed to find extra file", e)
+        } catch (e: IOException) {
+            Logger.error("failed read the extra file", e)
+        } catch (e: JSONException) {
+            Logger.info("extras file JSON syntax error, trying legacy format")
+            notJson = true
+        }
+
+        if (notJson) {
+            resultMap = readExtrasFromLegacyFile(file)
+        }
+
+        return resultMap
+    }
+
+    private fun getExceptionStackTrace(throwable: Throwable, isCaughtException: Boolean): String {
         val stringWriter = StringWriter()
         val printWriter = PrintWriter(stringWriter)
         throwable.printStackTrace(printWriter)
         printWriter.flush()
 
-        return stringWriter.toString()
+        return when (isCaughtException) {
+            true -> "$INFO_PREFIX $stringWriter"
+            false -> stringWriter.toString()
+        }
     }
 }

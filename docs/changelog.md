@@ -4,13 +4,78 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 16.0.0-SNAPSHOT  (In Development)
+# 18.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v15.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/76?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v17.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/78?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **browser-menu**
+   * Adds the ability to create a BrowserMenuCategory, a menu item that defines a category for other menu items
+
+# 17.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v16.0.0...v17.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/77?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v17.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v17.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v17.0.0/buildSrc/src/main/java/Config.kt)
+
+* **feature-contextmenu**
+  * The "Save Image" context menu item will no longer prompt before downloading the image.
+
+* **concept-engine**
+  * Added `WebAppManifest.ShareTarget` data class.
+
+* **lib-crash**
+  * Now supports sending caught exceptions.  Use the 'submitCaughtException()' to send caught exceptions if the underlying crash reporter service supports it.
+  ```Kotlin
+  val job = crashReporter.submitCaughtException(e)
+  ```
+
+* **engine**, **engine-gecko-nightly**, **engine-gecko-beta**, **engine-gecko**
+  * ⚠️ **This is a breaking change**: Renamed `WebExtensionTabDelegate` to `WebExtensionDelegate` to handle various web extensions related engine events:
+  ```kotlin
+  GeckoEngine(applicationContext, engineSettings).also {
+    it.registerWebExtensionDelegate(object : WebExtensionDelegate {
+        override fun onNewTab(webExtension: WebExtension?, url: String, engineSession: EngineSession) {
+          sessionManager.add(Session(url), true, engineSession)
+        }
+    })
+  }
+  ```
+  * ⚠️ **This is a breaking change**: Redirect source and target flags are now passed to history tracking delegates. As part of this change, `HistoryTrackingDelegate.onVisited()` receives a new `PageVisit` data class as its second argument, specifying the `visitType` and `redirectSource`. For more details, please see [PR #4268](https://github.com/mozilla-mobile/android-components/pull/4268).
+
+* **support-webextensions**
+  * Added functionality to make sure web extension related events in the engine are reflected in the browser state / store. Instead of attaching a `WebExtensionDelegate` to the engine, and manually reacting to all events, it's now possible to initialize `WebExtensionSupport`, which provides overridable default behaviour for all web extension related engine events:
+  ```kotlin
+  // Makes sure web extension related events (e.g. an extension is installed, or opens a new tab) are dispatched to the browser store.
+  WebExtensionSupport.initialize(components.engine, components.store)
+
+  // If dispatching to the browser store is not desired, all actions / behaviour can be overridden:
+  WebExtensionSupport.initialize(components.engine, components.store, onNewTabOverride = {
+        _, engineSession, url -> components.sessionManager.add(Session(url), true, engineSession)
+  })
+  ```
+
+* **browser-menu**
+   * Fixes background ripple of Switch in BrowserMenuImageSwitch
+
+# 16.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v15.0.0...v16.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/76?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v16.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v16.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v16.0.0/buildSrc/src/main/java/Config.kt)
+
+* **feature-awesomebar**
+  * ⚠️ **This is a breaking change**: `AwesomeBar.Suggestion` now directly takes a Bitmap for the icon param rather than a Unit.
+
+* **feature-pwa**
+  * ⚠️ **This is a breaking change**: Intent sent from the `WebAppShortcutManager` now require the consumption of the `SHORTCUT_CATEGORY` in your manifest
 
 * **feature-customtabs**
   * 'CustomTabIntentProcessor' can create private sessions now.
@@ -20,6 +85,24 @@ permalink: /changelog/
 
 * **tooling-detekt**
   * Published detekt rules for internal use. Check module documentation for detailed ruleset description.
+
+* **feature-intent**
+  * Added support for NFC tag intents to `TabIntentProcessor`.
+
+* **firefox-accounts**, **service-fretboard**
+  * ⚠️ **This is a breaking change**: Due to migration to WorkManager v2.2.0, some classes like `WorkManagerSyncScheduler` and `WorkManagerSyncDispatcher` now expects a `Context` in their constructors.
+
+* **engine**, **engine-gecko-nightly** and **engine-gecko-beta**
+  * Added `WebExtensionsTabsDelegate` to support `browser.tabs.create()` in web extensions.
+  ```kotlin
+  GeckoEngine(applicationContext, engineSettings).also {
+    it.registerWebExtensionTabDelegate(object : WebExtensionTabDelegate {
+        override fun onNewTab(webExtension: WebExtension?, url: String, engineSession: EngineSession) {
+          sessionManager.add(Session(url), true, engineSession)
+        }
+    })
+  }
+  ```
 
 # 15.0.0
 

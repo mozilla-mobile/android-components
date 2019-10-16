@@ -25,6 +25,7 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.verifyZeroInteractions
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
+import mozilla.components.concept.engine.webextension.BrowserAction
 
 class EngineSessionTest {
     private val unknownHitResult = HitResult.UNKNOWN("file://foobar")
@@ -36,6 +37,7 @@ class EngineSessionTest {
         val observer = mock(EngineSession.Observer::class.java)
         val emptyBitmap = spy(Bitmap::class.java)
         val permissionRequest = mock(PermissionRequest::class.java)
+        val browserAction = mock(BrowserAction::class.java)
         val windowRequest = mock(WindowRequest::class.java)
         session.register(observer)
 
@@ -51,6 +53,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onSecurityChange(true, "mozilla.org", "issuer") }
         session.notifyInternalObservers { onTrackerBlockingEnabledChange(true) }
         session.notifyInternalObservers { onTrackerBlocked(tracker) }
+        session.notifyInternalObservers { onExcludedOnTrackingProtectionChange(true) }
         session.notifyInternalObservers { onLongPress(unknownHitResult) }
         session.notifyInternalObservers { onDesktopModeChange(true) }
         session.notifyInternalObservers { onFind("search") }
@@ -67,6 +70,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCrash() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
         session.notifyInternalObservers { onProcessKilled() }
+        session.notifyInternalObservers { onBrowserActionChange("extensionId", browserAction) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onLocationChange("https://www.firefox.com")
@@ -76,6 +80,7 @@ class EngineSessionTest {
         verify(observer).onSecurityChange(true, "mozilla.org", "issuer")
         verify(observer).onTrackerBlockingEnabledChange(true)
         verify(observer).onTrackerBlocked(tracker)
+        verify(observer).onExcludedOnTrackingProtectionChange(true)
         verify(observer).onLongPress(unknownHitResult)
         verify(observer).onDesktopModeChange(true)
         verify(observer).onFind("search")
@@ -92,6 +97,7 @@ class EngineSessionTest {
         verify(observer).onCrash()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
         verify(observer).onProcessKilled()
+        verify(observer).onBrowserActionChange("extensionId", browserAction)
         verifyNoMoreInteractions(observer)
     }
 
@@ -648,7 +654,9 @@ class EngineSessionTest {
         defaultObserver.onDesktopModeChange(true)
         defaultObserver.onSecurityChange(true)
         defaultObserver.onTrackerBlocked(mock())
+        defaultObserver.onTrackerLoaded(mock())
         defaultObserver.onTrackerBlockingEnabledChange(true)
+        defaultObserver.onExcludedOnTrackingProtectionChange(true)
         defaultObserver.onFindResult(0, 0, false)
         defaultObserver.onFind("text")
         defaultObserver.onExternalResource("", "")
@@ -665,6 +673,7 @@ class EngineSessionTest {
         defaultObserver.onMediaAdded(mock())
         defaultObserver.onMediaRemoved(mock())
         defaultObserver.onCrash()
+        defaultObserver.onBrowserActionChange("", mock())
     }
 
     @Test

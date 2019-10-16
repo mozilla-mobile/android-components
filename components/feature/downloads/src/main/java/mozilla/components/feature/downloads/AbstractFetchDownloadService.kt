@@ -24,7 +24,10 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.fetch.Client
@@ -32,6 +35,7 @@ import mozilla.components.concept.fetch.Header
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_LENGTH
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
 import mozilla.components.concept.fetch.Headers.Names.REFERRER
+import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.toMutableHeaders
 import mozilla.components.feature.downloads.ext.addCompletedDownload
@@ -58,47 +62,71 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     @VisibleForTesting
     internal val context: Context get() = this
 
-    private var currentDownloadState: DownloadState? = null
+    private var currentDownload: DownloadState? = null
+
+    private var downloadJob: Job? = null
+
+    private var currentOutStream: OutputStream? = null
+    private var currentBytesCopied: Long = 0
 
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
+                Log.d("Sawyer", "onReceive weee! " + intent?.action)
 
                 when (intent?.action) {
-                    ACTION_PAUSE -> { pauseDownload(currentDownloadState)  }
-                    ACTION_RESUME -> { resumeDownload(currentDownloadState) }
+                    ACTION_PAUSE -> {
+                        displayPauseNotification(currentDownload)
+                        pauseDownload(currentDownload)
+                    }
+                    ACTION_RESUME -> {
+                        displayOngoingDownloadNotification(currentDownload)
+                        //resumeDownload(currentDownload)
+                    }
                 }
-
-                Log.d("Sawyer", "onReceive!")
             }
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? {
+        Log.d("Sawyer", "binding")
         registerForUpdates()
         return null
     }
 
     override fun onDestroy() {
+        Log.d("Sawyer", "destroying")
         super.onDestroy()
         unregisterForUpdates()
     }
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
-        val download = intent?.getDownloadExtra() ?: return
+        currentDownload = intent?.getDownloadExtra() ?: return
         val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
 
+        val download = currentDownload ?: return
+        Log.d("Sawyer", "onStarting")
+
+        // TODO: Register for updates somewhere else?
+        registerForUpdates()
         startForeground(
                 NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
                 DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength, pauseIntent)
         )
 
+        downloadJob = CoroutineScope(IO).launch {
+            currentDownload?.let {
+                performDownload(it)
+            }
+        }
+
         val notification = try {
-            performDownload(download)
+            //performDownload(download)
             DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
         } catch (e: IOException) {
             DownloadNotification.createDownloadFailedNotification(context, download.fileName)
         }
+
         NotificationManagerCompat.from(context).notify(
             context,
             COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
@@ -117,8 +145,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
     private fun registerForUpdates() {
         val filter = IntentFilter().apply {
-            addAction("PAUSE")
-            addAction("RESUME")
+            addAction(ACTION_PAUSE)
+            addAction(ACTION_RESUME)
         }
 
         context.registerReceiver(broadcastReceiver, filter)
@@ -128,45 +156,84 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         context.unregisterReceiver(broadcastReceiver)
     }
 
-    private fun pauseDownload(download: DownloadState?)  {
-        // How TF do you pause a download
+    private fun displayOngoingDownloadNotification(download: DownloadState?) {
+        // TODO: If foreground service... just notify!
+
+        val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
+
+        val ongoingDownloadNotification =
+                DownloadNotification.createOngoingDownloadNotification(context, download?.fileName, download?.contentLength, pauseIntent)
+
+        NotificationManagerCompat.from(context).notify(
+                context,
+                ONGOING_DOWNLOAD_NOTIFICATION_TAG,
+                ongoingDownloadNotification
+        )
     }
 
-    private fun resumeDownload(download: DownloadState?)  {
-        // How TF do you resume a download
+    private fun displayPauseNotification(download: DownloadState?) {
+        val resumeIntent = createPendingIntent(ACTION_RESUME, 0)
+        val pauseNotification =
+                DownloadNotification.createPausedDownloadNotification(context, download?.fileName, resumeIntent)
+
+        NotificationManagerCompat.from(context).notify(
+                context,
+                ONGOING_DOWNLOAD_NOTIFICATION_TAG,
+                pauseNotification
+        )
+    }
+
+    private fun pauseDownload()  {
+        downloadJob?.cancel()
     }
 
     private suspend fun performDownload(download: DownloadState) = withContext(IO) {
-        val headers = listOf(
-            CONTENT_TYPE to download.contentType,
-            CONTENT_LENGTH to download.contentLength?.toString(),
-            REFERRER to download.referrerUrl
-        ).mapNotNull { (name, value) ->
-            if (value.isNullOrBlank()) null else Header(name, value)
-        }.toMutableHeaders()
-
+        val headers = getHeadersFromDownload(download)
         val request = Request(download.url, headers = headers)
-
         val response = httpClient.fetch(request)
 
         // Download stream
         response.body.useStream { inStream ->
-
-            // Read from the stream
-
-            // File output stream
-
             val newDownloadState = download.withResponse(response.headers, inStream)
-            currentDownloadState = newDownloadState
+            currentDownload = newDownloadState
 
-
-            Log.d("Sawyer", "newState: " + newDownloadState.contentLength)
             // TODO: Create the notification, hide the size if <= 0L
-            useFileStream(download.withResponse(response.headers, inStream)) { outStream ->
-                inStream.copyTo(outStream)
+            Log.d("Sawyer", "newState: " + newDownloadState.contentLength)
+            useFileStream(newDownloadState) { outStream ->
+                // Write stream, keep track of the bytes copied
+                currentBytesCopied = inStream.copyTo(outStream)
             }
-
         }
+    }
+
+    private suspend fun resumeDownload(downloadState: DownloadState?, outputStream: OutputStream?) = withContext(IO) {
+        // Read from inStream starting out outStream's current byte
+        val download = downloadState ?: return@withContext
+        val currentOutStream = outputStream ?: return@withContext
+
+        val headers = getHeadersFromDownload(download)
+        val request = Request(download.url, headers = headers)
+        val response = httpClient.fetch(request)
+
+        response.body.useStream { inStream ->
+            val newDownloadState = download.withResponse(response.headers, inStream)
+            currentDownload = newDownloadState
+            useFileStream(newDownloadState) {
+                // Resume the stream at the paused position
+                inStream.skip(currentBytesCopied)
+                currentBytesCopied += inStream.copyTo(currentOutStream)
+            }
+        }
+    }
+
+    private fun getHeadersFromDownload(download: DownloadState): MutableHeaders {
+        return listOf(
+                CONTENT_TYPE to download.contentType,
+                CONTENT_LENGTH to download.contentLength?.toString(),
+                REFERRER to download.referrerUrl
+        ).mapNotNull { (name, value) ->
+            if (value.isNullOrBlank()) null else Header(name, value)
+        }.toMutableHeaders()
     }
 
     /**
@@ -239,6 +306,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     companion object {
+        private const val PAUSED_DOWNLOAD_NOTIFICATION_TAG = "PausedDownload"
         private const val ONGOING_DOWNLOAD_NOTIFICATION_TAG = "OngoingDownload"
         private const val COMPLETED_DOWNLOAD_NOTIFICATION_TAG = "CompletedDownload"
         private const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"

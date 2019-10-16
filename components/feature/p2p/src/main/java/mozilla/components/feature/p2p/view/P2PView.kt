@@ -60,12 +60,16 @@ interface P2PView {
 
     /**
      * Handles receipt of a URL from the specified neighbor. For example, the view could prompt the
-     * user to accept the URL, upon which [Listener.onSetURL] would be called.
+     * user to accept the URL, upon which [Listener.onSetUrl] would be called. Only an internal
+     * error would cause `neighborName` to be null. To be robust, a view should use
+     * `neighborName ?: neighborId` as the name of the neighbor.
      *
      * @param neighborId the endpoint ID of the neighbor
+     * @param neighborName the name of the neighbor, which will only be null if there was
+     *     an internal error in the connection library
      * @param url the URL
      */
-    fun receiveURL(neighborId: String, url: String)
+    fun receiveURL(neighborId: String, neighborName: String?, url: String)
 
     /**
      * An interface enabling the [P2PView] to make requests of a controller.

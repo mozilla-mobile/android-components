@@ -51,8 +51,8 @@ internal class P2PController(
                     // For now, do nothing.
                 }
 
-                override fun receiveMessage(endpointId: String, message: String) {
-                    view.receiveURL(endpointId, message)
+                override fun receiveMessage(neighborId: String, neighborName: String?, message: String) {
+                    view.receiveURL(neighborId, neighborName, message)
                 }
             }
         )

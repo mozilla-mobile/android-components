@@ -9,26 +9,51 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_NONE
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 
-internal object DownloadNotification {
+internal object DownloadNotification: BroadcastReceiver() {
 
     private const val NOTIFICATION_CHANNEL_ID = "Downloads"
 
     /**
+     * Responds to [PendingIntent]s fired by the site controls notification.
+     */
+    override fun onReceive(context: Context, intent: Intent) {
+        // TODO: Not sure if this is the right place to override onReceieve
+
+        // if intent is "pause intent" pause!
+        // if intent is "resume intent" resume!
+
+        Log.d("Sawyer", "onReceive!")
+    }
+
+    /**
      * Build the notification to be displayed while the download service is active.
      */
-    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?): Notification {
+    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?, pauseIntent: PendingIntent): Notification {
         val channelId = ensureChannelExists(context)
+
+        // TODO: Maybe this?
+        // createPendingIntent(ACTION_REFRESH, 2)
+
+        val pauseAction =  NotificationCompat.Action.Builder(
+                // TODO: Remove the drawable
+                R.drawable.mozac_feature_download_ic_download,
+                context.getString(R.string.mozac_feature_downloads_button_pause),
+                pauseIntent
+               // Pause the notification
+        ).build()
 
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
@@ -38,6 +63,7 @@ internal object DownloadNotification {
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setProgress(1, 0, true)
             .setOngoing(true)
+            .addAction(pauseAction)
             .build()
     }
 

@@ -7,9 +7,12 @@ package mozilla.components.feature.downloads
 import android.annotation.TargetApi
 import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.Environment
@@ -55,14 +58,39 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     @VisibleForTesting
     internal val context: Context get() = this
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    private var currentDownloadState: DownloadState? = null
+
+    private val broadcastReceiver by lazy {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent?) {
+
+                when (intent?.action) {
+                    ACTION_PAUSE -> { pauseDownload(currentDownloadState)  }
+                    ACTION_RESUME -> { resumeDownload(currentDownloadState) }
+                }
+
+                Log.d("Sawyer", "onReceive!")
+            }
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        registerForUpdates()
+        return null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterForUpdates()
+    }
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         val download = intent?.getDownloadExtra() ?: return
+        val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
 
         startForeground(
                 NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-                DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength)
+                DownloadNotification.createOngoingDownloadNotification(context, download.fileName, download.contentLength, pauseIntent)
         )
 
         val notification = try {
@@ -79,6 +107,33 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
         sendDownloadCompleteBroadcast(downloadID)
+    }
+
+    private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(action)
+        intent.setPackage(applicationContext.packageName)
+        return PendingIntent.getBroadcast(applicationContext, requestCode, intent, 0)
+    }
+
+    private fun registerForUpdates() {
+        val filter = IntentFilter().apply {
+            addAction("PAUSE")
+            addAction("RESUME")
+        }
+
+        context.registerReceiver(broadcastReceiver, filter)
+    }
+
+    private fun unregisterForUpdates() {
+        context.unregisterReceiver(broadcastReceiver)
+    }
+
+    private fun pauseDownload(download: DownloadState?)  {
+        // How TF do you pause a download
+    }
+
+    private fun resumeDownload(download: DownloadState?)  {
+        // How TF do you resume a download
     }
 
     private suspend fun performDownload(download: DownloadState) = withContext(IO) {
@@ -102,12 +157,15 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             // File output stream
 
             val newDownloadState = download.withResponse(response.headers, inStream)
+            currentDownloadState = newDownloadState
 
-            // TODO: Hide if <= 0L
+
             Log.d("Sawyer", "newState: " + newDownloadState.contentLength)
+            // TODO: Create the notification, hide the size if <= 0L
             useFileStream(download.withResponse(response.headers, inStream)) { outStream ->
                 inStream.copyTo(outStream)
             }
+
         }
     }
 
@@ -183,5 +241,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     companion object {
         private const val ONGOING_DOWNLOAD_NOTIFICATION_TAG = "OngoingDownload"
         private const val COMPLETED_DOWNLOAD_NOTIFICATION_TAG = "CompletedDownload"
+        private const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"
+        private const val ACTION_RESUME = "mozilla.components.feature.downloads.RESUME"
     }
 }

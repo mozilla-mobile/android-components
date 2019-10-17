@@ -248,6 +248,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
             outStream.write(data, 0, bytesRead)
         }
+
+        currentBytesCopied = 0
     }
 
     private fun getHeadersFromDownload(download: DownloadState): MutableHeaders {

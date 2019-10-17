@@ -228,11 +228,13 @@ _Supporting components with generic helper code._
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
+* 🔴  [**Nearby**](components/lib/nearby/README.md) - A library simplifying access to the [Google Connections API](https://developers.google.com/nearby/connections/overview) for peer-to-peer networking.
+
 * ⚪ [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
 
-* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
+* 🔴[**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
 
-* 🔴 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
+* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
 
 ## Tooling
 

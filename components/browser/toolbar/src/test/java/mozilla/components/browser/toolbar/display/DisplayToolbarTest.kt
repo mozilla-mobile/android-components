@@ -45,6 +45,7 @@ import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
+@SuppressWarnings("TooManyFunctions", "LargeClass")
 @RunWith(AndroidJUnit4::class)
 class DisplayToolbarTest {
 
@@ -1103,6 +1104,17 @@ class DisplayToolbarTest {
         toolbar.setOnSiteSecurityClickedListener(null)
 
         assertNull(toolbar.displayToolbar.siteSecurityIconView.background)
+    }
+
+    @Test
+    fun `Security icon has proper content description`() {
+        val toolbar = mock(BrowserToolbar::class.java)
+        val displayToolbar = DisplayToolbar(testContext, toolbar)
+        val siteSecurityIconView = displayToolbar.siteSecurityIconView
+
+        assertNotNull(siteSecurityIconView.contentDescription)
+        assertEquals(testContext.getString(R.string.mozac_browser_toolbar_content_description_site_info),
+            siteSecurityIconView.contentDescription)
     }
 
     @Test

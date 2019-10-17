@@ -46,7 +46,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.lang.NullPointerException
 
 /**
  * Service that performs downloads through a fetch [Client] rather than through the native
@@ -243,7 +242,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             val bytesRead = inStream.read(data)
 
             // If bytesRead is -1, there's no data left to read from the stream
-            if ( bytesRead == -1) { break }
+            if (bytesRead == -1) { break }
 
             currentBytesCopied += bytesRead
 

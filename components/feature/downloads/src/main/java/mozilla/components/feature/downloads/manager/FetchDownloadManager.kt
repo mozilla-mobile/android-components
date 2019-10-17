@@ -15,7 +15,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.P
-import android.util.Log
 import android.util.LongSparseArray
 import androidx.core.util.isEmpty
 import androidx.core.util.set
@@ -24,7 +23,6 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.ext.isScheme
 import mozilla.components.feature.downloads.ext.putDownloadExtra
-import kotlin.random.Random
 import kotlin.reflect.KClass
 
 /**

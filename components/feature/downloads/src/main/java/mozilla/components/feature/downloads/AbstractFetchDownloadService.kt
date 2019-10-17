@@ -46,7 +46,9 @@ import mozilla.components.support.base.ids.notify
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.io.OutputStream
+import java.lang.NullPointerException
 
 /**
  * Service that performs downloads through a fetch [Client] rather than through the native
@@ -71,6 +73,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
     // TODO: remove coroutineService
     // TODO: maintain a data structure of jobs being downloaded (with their mapped currentOutPUtstream and copied
 
+    private var currentInStream: InputStream? = null
     private var currentOutStream: OutputStream? = null
     private var currentBytesCopied: Long = 0
 
@@ -80,10 +83,11 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 Log.d("Sawyer", "onReceive")
                 when (intent?.action) {
                     ACTION_PAUSE -> {
-                        displayPausedNotification(currentDownload)
+                        // TODO: for some reason if I don't call this display my other notification sticks around forever?
                         pauseDownload()
                     }
                     ACTION_RESUME -> {
+                        Log.d("Sawyer", "ACTION_RESUME")
                         displayOngoingDownloadNotification(currentDownload)
                         downloadJob = CoroutineScope(IO).launch {
                             resumeDownload(currentDownload, currentOutStream)
@@ -147,36 +151,58 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
         // Create a new job and add it, with its downloadState to the map
         val newDownloadJob = CoroutineScope(IO).launch {
-            Log.d("Sawyer", "downloadJob for: " + listOfDownloadJobs[downloadJob]?.fileName)
+            //Log.d("Sawyer", "downloadJob for: " + listOfDownloadJobs[downloadJob]?.fileName)
 
             // TODO: Currently this will create a zombie notification that never goes away!
             displayOngoingDownloadNotification(download)
 
+            var tag = ""
             val notification = try {
                 Log.d("Sawyer", "before download")
                 performDownload(download)
                 Log.d("Sawyer", "download complete")
                 DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
             } catch (e: IOException) {
-                DownloadNotification.createDownloadFailedNotification(context, download.fileName)
+                Log.d("Sawyer", "e: " + e)
+                if (e.localizedMessage == IO_EXCEPTION_CLOSED) {
+                    // TODO: Make this a bit cleaner
+                    Log.d("Sawyer", "file was CLOSED!")
+                    val resumeIntent = createPendingIntent(ACTION_RESUME, 0)
+                    tag = ONGOING_DOWNLOAD_NOTIFICATION_TAG
+                    DownloadNotification.createPausedDownloadNotification(context, download.fileName, resumeIntent)
+                } else {
+                    tag = COMPLETED_DOWNLOAD_NOTIFICATION_TAG
+                    DownloadNotification.createDownloadFailedNotification(context, download.fileName)
+                }
             }
 
             NotificationManagerCompat.from(context).notify(
                     context,
-                    COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
+                    tag,
                     notification
             )
 
             val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
             sendDownloadCompleteBroadcast(downloadID)
         }.also { job ->
-            job.invokeOnCompletion {
+            job.invokeOnCompletion { cause ->
+                Log.d("Sawyer", "completed job cause: " + cause?.localizedMessage)
+                // If the job is CANCELLED don't clean up
+
+                // If the job is FINISHED do clean up
+
+                // TODO: Since I want to clean up the job on completion and I'm *cancelling* the job,
+                // TODO: I probably need to spawn a new job that has the pauseNotification?
                 Log.d("Sawyer", "cleaning up MY job")
-                cleanupJob(job)
+                //NotificationManagerCompat.from(context).cancelAll()
+                // TODO: Maybe I just want to stop the foreground notification here? Really I just want to swap it....
+                //stopForeground(true)
+                //cleanupJob(job)
             }
         }
 
         //listOfDownloadJobs[newDownloadJob] = download
+        Log.d("Sawyer", "assigning downloadJob")
         downloadJob = newDownloadJob
 
     }
@@ -227,6 +253,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
     private fun pauseDownload()  {
         downloadJob?.cancel()
+        CoroutineScope(IO).launch { cancelDownload() }
     }
 
     private fun performDownload(download: DownloadState) {
@@ -236,33 +263,62 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
         // Download stream
         response.body.useStream { inStream ->
+            currentInStream = inStream
+
             val newDownloadState = download.withResponse(response.headers, inStream)
             currentDownload = newDownloadState
 
             // TODO: Create the notification, hide the size if <= 0L
             useFileStream(newDownloadState) { outStream ->
+                currentOutStream = outStream
                 // Write stream, keep track of the bytes copied
-                currentBytesCopied = inStream.copyTo(outStream)
+                try {
+                    currentBytesCopied = inStream.copyTo(outStream)
+                } catch(e: NullPointerException) {
+                    // TODO: This means the job was cancelled while we were trying to copy
+                    Log.d("Sawyer", "null pointer")
+                }
             }
         }
+    }
+
+    // TODO: How do I make this synchronous so as not to cause a nullpointerexception
+    // I think the other thread is trying to do a `copyTo` while we're closing which causes a crash
+    private fun cancelDownload() {
+        try {
+            currentInStream?.close()
+        } catch (e: NullPointerException) {
+            Log.d("Sawyer", "Cancel null pointer")
+        }
+            //currentOutStream?.close()
+
     }
 
     private suspend fun resumeDownload(downloadState: DownloadState?, outputStream: OutputStream?) = withContext(IO) {
         // Read from inStream starting out outStream's current byte
         val download = downloadState ?: return@withContext
-        val currentOutStream = outputStream ?: return@withContext
+        //val currentOutStream = outputStream ?: return@withContext
+
+        Log.d("Sawy2er2", "outputStream: " + outputStream)
 
         val headers = getHeadersFromDownload(download)
         val request = Request(download.url, headers = headers)
         val response = httpClient.fetch(request)
 
+        // TODO: Why is the currentOutStream closed if I never closed it?
         response.body.useStream { inStream ->
+            inStream.available()
+            currentInStream = inStream
             val newDownloadState = download.withResponse(response.headers, inStream)
             currentDownload = newDownloadState
-            useFileStream(newDownloadState) {
+            useFileStream(newDownloadState) { outStream ->
                 // Resume the stream at the paused position
+                currentBytesCopied = inStream.copyTo(outStream)
+                /*
                 inStream.skip(currentBytesCopied)
-                currentBytesCopied += inStream.copyTo(currentOutStream)
+                currentBytesCopied += inStream.copyTo(outStream)
+
+                 */
             }
         }
     }
@@ -347,6 +403,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
     }
 
     companion object {
+        private const val IO_EXCEPTION_CLOSED = "closed"
         private const val PAUSED_DOWNLOAD_NOTIFICATION_TAG = "PausedDownload"
         private const val ONGOING_DOWNLOAD_NOTIFICATION_TAG = "OngoingDownload"
         private const val COMPLETED_DOWNLOAD_NOTIFICATION_TAG = "CompletedDownload"

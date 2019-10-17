@@ -79,9 +79,9 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
-                Log.d("Sawyer", "onReceive")
                 when (intent?.action) {
                     ACTION_PAUSE -> {
+                        Log.d("Sawyer", "ACTION_PAUSE")
                         downloadIsPaused = true
                         cancelDownload()
                     }
@@ -235,14 +235,26 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             displayOngoingDownloadNotification(currentDownload)
 
             useFileStream(newDownloadState) { outStream ->
+                Log.d("Sawyer", "use file stream!")
                 currentOutStream = outStream
                 // Write stream, keep track of the bytes copied
-                try {
-                    currentBytesCopied = inStream.copyTo(outStream)
-                } catch (e: NullPointerException) {
-                    // TODO: This means the job was cancelled while we were trying to copy
-                    Log.d("Sawyer", "null pointer")
-                }
+
+                   // TODO: Improve this
+                    while (!downloadIsPaused && currentBytesCopied < currentDownload?.contentLength!!) {
+                        val data = ByteArray(chunkSize)
+                        val bytesRead = inStream.read(data)
+
+                        if ( bytesRead == -1) { break }
+
+                        currentBytesCopied += bytesRead
+
+                        Log.d("Sawyer", "bytes read: " + bytesRead)
+                        Log.d("Sawyer", "bytes copied: " + currentBytesCopied)
+                        Log.d("Sawyer", "content length: " + currentDownload?.contentLength!!)
+                        outStream.write(data)
+                    }
+
+               // outStream.close()
             }
         }
     }
@@ -250,29 +262,27 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private suspend fun resumeDownload(downloadState: DownloadState?, outputStream: OutputStream?) = withContext(IO) {
         // Read from inStream starting out outStream's current byte
         val download = downloadState ?: return@withContext
-        // val currentOutStream = outputStream ?: return@withContext
-
-        Log.d("Sawy2er2", "outputStream: " + outputStream)
+        val currentOutStream = outputStream ?: return@withContext
 
         val headers = getHeadersFromDownload(download)
         val request = Request(download.url, headers = headers)
         val response = httpClient.fetch(request)
 
+        Log.d("Sawyer", "inside resumeDownload")
         // TODO: Why is the currentOutStream closed if I never closed it?
         response.body.useStream { inStream ->
             currentInStream = inStream
             val newDownloadState = download.withResponse(response.headers, inStream)
             currentDownload = newDownloadState
-            useFileStream(newDownloadState) { outStream ->
+            useFileStream(newDownloadState) {
                 // Resume the stream at the paused position
-                currentBytesCopied = inStream.copyTo(outStream)
-
+               // currentBytesCopied = inStream.copyTo(outStream)
+                Log.d("Sawyer", "in useFileStream resume")
                 // TODO: I want to resume the download where we left off... but the outStream says it's closed
-                /*
-                inStream.skip(currentBytesCopied)
-                currentBytesCopied += inStream.copyTo(outStream)
 
-                 */
+                inStream.skip(currentBytesCopied)
+                currentBytesCopied += inStream.copyTo(currentOutStream)
+
             }
         }
     }
@@ -322,6 +332,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             put(MediaStore.Downloads.SIZE, download.contentLength)
             put(MediaStore.Downloads.IS_PENDING, 1)
         }
+        Log.d("Sawyer", "in new file stream")
 
         val resolver = applicationContext.contentResolver
         val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
@@ -340,6 +351,27 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private fun useFileStreamLegacy(download: DownloadState, block: (OutputStream) -> Unit) {
         val dir = Environment.getExternalStoragePublicDirectory(download.destinationDirectory)
         val file = File(dir, download.fileName!!)
+/*
+        // TODO: Don't keep the stream around, just "append"
+        //val outputStream = FileOutputStream(file, true)
+
+        val outputStream = FileOutputStream(file)
+
+        // TODO: I *could* open a new outputStream from the file
+        try {
+            block.invoke(outputStream)
+        } finally {
+            if (downloadIsPaused) {
+                Log.d("Sawyer", "paused finally")
+            } else {
+                Log.d("Sawyer", "closed finally")
+                outputStream.close()
+            }
+        }
+
+ */
+
+        // TODO: don't use "use" here, as it will close the file
         FileOutputStream(file).use(block)
 
         addCompletedDownload(
@@ -363,5 +395,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"
         const val ACTION_RESUME = "mozilla.components.feature.downloads.RESUME"
         const val ACTION_CANCEL = "mozilla.components.feature.downloads.CANCEL"
+        const val chunkSize = 4 * 1024
     }
 }

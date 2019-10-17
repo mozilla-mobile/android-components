@@ -102,10 +102,7 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         sheetDialog.window?.apply {
 
             if (dialogGravity != DEFAULT_VALUE) {
-                Log.d("Sawyer", "setting gravity!")
                 setGravity(dialogGravity)
-            } else {
-                Log.d("Sawyer", "not setting gravity!")
             }
 
             if (dialogShouldWidthMatchParent) {

@@ -29,6 +29,10 @@ internal class P2PController(
 
     fun start() {
         view.listener = this
+        if (::nearbyConnection.isInitialized) {
+            return
+        }
+        Logger.error("About to create a nearbyConnection in P2PController")
         nearbyConnection = NearbyConnection(
             view.asView().context,
             Build.MODEL,
@@ -60,11 +64,13 @@ internal class P2PController(
         )
     }
 
-    fun stop() {
+    fun stop() {/*
+        Logger.error("P2PFeature.stop() was called. About to call nearbyConnection.disconnect().")
         if (::nearbyConnection.isInitialized) {
             nearbyConnection.disconnect()
         }
         view.listener = null
+        */
     }
 
     // P2PView.Listener implementation
@@ -98,16 +104,6 @@ internal class P2PController(
         cast<ConnectionState.Authenticating>()?.reject()
     }
 
-    override fun onSendUrl() {
-        if (cast<ConnectionState.ReadyToSend>() != null) {
-            val payloadID = nearbyConnection.sendMessage(store.state.selectedTab?.content?.url
-                ?: "no URL")
-            if (payloadID == null) {
-                reportError("Unable to send message: sendMessage() returns null")
-            }
-        }
-    }
-
     override fun onSetUrl(url: String, newTab: Boolean) {
         if (newTab) {
             tabsUseCases.addTab(url)
@@ -117,6 +113,17 @@ internal class P2PController(
     }
 
     override fun onReset() {
+        Logger.error("About to disconnect from the nearby connection")
         nearbyConnection.disconnect()
+    }
+
+    override fun onSendUrl() {
+        if (cast<ConnectionState.ReadyToSend>() != null) {
+            val payloadID = nearbyConnection.sendMessage(store.state.selectedTab?.content?.url
+                ?: "no URL")
+            if (payloadID == null) {
+                reportError("Unable to send message: sendMessage() returns null")
+            }
+        }
     }
 }

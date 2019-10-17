@@ -43,7 +43,8 @@ class P2PFeature(
     }
 
     override fun stop() {
-        controller.stop()
+        Logger.error("P2PFeature.stop() was called. About to call controller.stop().")
+        //controller.stop()
     }
 
     // PermissionsFeature implementation

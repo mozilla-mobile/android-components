@@ -13,6 +13,7 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
+import mozilla.components.support.base.log.logger.Logger
 
 class P2PIntegration(
     private val store: BrowserStore,
@@ -28,6 +29,7 @@ class P2PIntegration(
     }
 
     override fun stop() {
+        Logger.error("P2PIntegration.stop() was called. About to call feature.stop().")
         feature.stop()
         launch = null
     }

@@ -58,6 +58,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     @CallSuper
     @Suppress("LongMethod")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        Logger.error("In BaseBrowserFragment.onCreateView()")
         val layout = inflater.inflate(R.layout.fragment_browser, container, false)
 
         layout.toolbar.setMenuBuilder(components.menuBuilder)
@@ -180,7 +181,6 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
         )
 
         val p2pFeature = p2pIntegration.get()!!.feature
-        Logger.error("p2pFeature is $p2pFeature")
 
         // Observe the lifecycle for supported features
         lifecycle.addObservers(

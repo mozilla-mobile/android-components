@@ -62,16 +62,12 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     internal val context: Context get() = this
 
     private var currentDownload: DownloadState? = null
-
+    private var currentBytesCopied: Long = 0
     private var downloadJob: Job? = null
-
     private var downloadIsPaused = false
 
     // TODO: Eventually change this to handle a LIST of download jobs with their streams & bytes copied
     private var listOfDownloadJobs = mutableMapOf<Job, DownloadState>()
-
-    private var currentInStream: InputStream? = null
-    private var currentBytesCopied: Long = 0
 
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
@@ -80,7 +76,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                     ACTION_PAUSE -> {
                         Log.d("Sawyer", "ACTION_PAUSE")
                         downloadIsPaused = true
-                        cancelDownload()
+                        downloadJob?.cancel()
                     }
 
                     ACTION_RESUME -> {
@@ -98,7 +94,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                             // TODO: Kill *just* the notification we want, not all of them
                             NotificationManagerCompat.from(context).cancelAll()
                         } else {
-                            cancelDownload()
+                            downloadJob?.cancel()
                         }
                         downloadIsPaused = false
                     }
@@ -160,6 +156,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                     notification
             )
 
+            Log.d("Sawyer", "Download id" + download.id)
             sendDownloadCompleteBroadcast(download.id)
         }.also { job ->
             job.invokeOnCompletion { cause ->
@@ -171,7 +168,9 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                 } else {
                     // Otherwise the download is complete, so end the service
                     Log.d("Sawyer", "job is done")
-                    stopForeground(true)
+                    currentBytesCopied = 0
+                    // TODO: Maybe get rid of "stopSelf"?
+                    stopSelf()
                 }
             }
         }
@@ -205,23 +204,12 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         )
     }
 
-    private fun cancelDownload() {
-        downloadJob?.cancel()
-
-        CoroutineScope(IO).launch {
-            // TODO: Get rid of currentInStream
-            currentInStream?.close()
-        }
-    }
-
     private fun performDownload(download: DownloadState, isResuming: Boolean) {
         val headers = getHeadersFromDownload(download)
         val request = Request(download.url, headers = headers)
         val response = httpClient.fetch(request)
 
         response.body.useStream { inStream ->
-            currentInStream = inStream
-
             val newDownloadState = download.withResponse(response.headers, inStream)
             currentDownload = newDownloadState
 
@@ -248,8 +236,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
             outStream.write(data, 0, bytesRead)
         }
-
-        currentBytesCopied = 0
     }
 
     private fun getHeadersFromDownload(download: DownloadState): MutableHeaders {

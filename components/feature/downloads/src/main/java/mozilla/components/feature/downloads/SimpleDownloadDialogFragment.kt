@@ -8,9 +8,7 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.icu.util.MeasureUnit
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,22 +17,12 @@ import android.widget.LinearLayout
 import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
 import androidx.annotation.VisibleForTesting
-import kotlinx.android.synthetic.main.mozac_downloads_prompt.*
 import kotlinx.android.synthetic.main.mozac_downloads_prompt.view.*
-import mozilla.components.concept.fetch.Request
 import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_download
-import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_title
-import mozilla.components.feature.downloads.ext.withResponse
-import java.math.BigDecimal
+import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_title2
 
 private const val KEY_DIALOG_GRAVITY = "KEY_DIALOG_GRAVITY"
 private const val KEY_DIALOG_WIDTH_MATCH_PARENT = "KEY_DIALOG_WIDTH_MATCH_PARENT"
-private const val KEY_TITLE_ICON = "KEY_TITLE_ICON"
-private const val KEY_POSITIVE_BUTTON_BACKGROUND_COLOR = "KEY_POSITIVE_BUTTON_BACKGROUND_COLOR"
-private const val KEY_POSITIVE_BUTTON_TEXT_COLOR = "KEY_POSITIVE_BUTTON_TEXT_COLOR"
-private const val KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX = "KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX"
-private const val KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX = "KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX"
-private const val KEY_IS_NOTIFICATION_REQUEST = "KEY_IS_NOTIFICATION_REQUEST"
 private const val DEFAULT_VALUE = Int.MAX_VALUE
 
 /**
@@ -127,10 +115,10 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         with(requireBundle()) {
             rootView.title.text = if (getLong(KEY_CONTENT_LENGTH) <= 0L) {
                 // TODO: I'm ignoring the KEY_TITLE_TEXT passed in--is that an issue?
-                 getString(R.string.mozac_feature_downloads_dialog_download)
+                 getString(mozac_feature_downloads_dialog_download)
             } else {
-                val contentSize = String.format("%.2f", getLong(KEY_CONTENT_LENGTH) / MEGABYTE)
-                getString(getInt(KEY_TITLE_TEXT, R.string.mozac_feature_downloads_dialog_title2), contentSize)
+                val contentSize = getLong(KEY_CONTENT_LENGTH).toMegabyteString()
+                getString(getInt(KEY_TITLE_TEXT, mozac_feature_downloads_dialog_title2), contentSize)
             }
 
             rootView.filename.text = getString(KEY_FILE_NAME, "")
@@ -216,8 +204,6 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         const val KEY_THEME_ID = "KEY_THEME_ID"
 
         const val KEY_CANCELABLE = "KEY_CANCELABLE"
-
-        const val MEGABYTE = 1024.0 * 1024.0
     }
 
     private fun requireBundle(): Bundle {

@@ -33,21 +33,19 @@ internal object DownloadNotification {
     fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?, pauseIntent: PendingIntent?): Notification {
         val channelId = ensureChannelExists(context)
 
-        Log.d("Sawyer", "create ongoing download notification")
-        // TODO: Maybe this?
-        // createPendingIntent(ACTION_REFRESH, 2)
-
         val pauseAction =  NotificationCompat.Action.Builder(
                 // TODO: Remove the drawable
-                R.drawable.mozac_feature_download_ic_download,
+                0,
                 context.getString(R.string.mozac_feature_downloads_button_pause),
                 pauseIntent
         ).build()
 
+        val fileSizeText = (fileSize?.toMegabyteString() ?: "")
+
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
             .setContentTitle(fileName)
-            .setContentText(fileSize.toString())
+            .setContentText(fileSizeText)
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setProgress(1, 0, true)

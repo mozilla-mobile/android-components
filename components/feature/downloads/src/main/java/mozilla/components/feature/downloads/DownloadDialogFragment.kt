@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.DialogFragment
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.MEGABYTE
 import mozilla.components.support.utils.DownloadUtils
 
 /**
@@ -63,5 +64,12 @@ abstract class DownloadDialogFragment : AppCompatDialogFragment() {
         const val KEY_URL = "KEY_URL"
 
         const val FRAGMENT_TAG = "SHOULD_DOWNLOAD_PROMPT_DIALOG"
+
+        const val MEGABYTE = 1024.0 * 1024.0
     }
 }
+
+fun Long.toMegabyteString(): String {
+    return String.format("%.2f MB", this / MEGABYTE)
+}
+

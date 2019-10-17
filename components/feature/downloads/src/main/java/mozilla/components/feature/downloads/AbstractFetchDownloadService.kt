@@ -68,11 +68,8 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
     private var downloadJob: Job? = null
 
-    // TODO: Eventually change this to handle a LIST of download jobs
+    // TODO: Eventually change this to handle a LIST of download jobs with their streams & bytes copied
     private var listOfDownloadJobs = mutableMapOf<Job, DownloadState>()
-
-    // TODO: remove coroutineService
-    // TODO: maintain a data structure of jobs being downloaded (with their mapped currentOutPUtstream and copied
 
     private var currentInStream: InputStream? = null
     private var currentOutStream: OutputStream? = null
@@ -83,20 +80,15 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
             override fun onReceive(context: Context, intent: Intent?) {
                 Log.d("Sawyer", "onReceive")
                 when (intent?.action) {
-                    ACTION_PAUSE -> {
-                        pauseDownload()
-                    }
+                    ACTION_PAUSE -> { pauseDownload() }
 
                     ACTION_RESUME -> {
                         Log.d("Sawyer", "ACTION_RESUME")
                         displayOngoingDownloadNotification(currentDownload)
-                        performDownload(currentDownload!!)
-                        /*
+
                         downloadJob = CoroutineScope(IO).launch {
                             resumeDownload(currentDownload, currentOutStream)
                         }
-
-                         */
                     }
                 }
             }
@@ -115,50 +107,18 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         super.onCreate()
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
-
+    override fun onBind(intent: Intent?): IBinder? = null
     override fun onDestroy() {
-        Log.d("Sawyer", "destroying")
-        super.onDestroy()
         unregisterForUpdates()
+        super.onDestroy()
     }
 
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         currentDownload = intent?.getDownloadExtra() ?: return
         val download = intent.getDownloadExtra() ?: return
 
-//
-//        displayOngoingDownloadNotification(download)
-//
-//        val notification = try {
-//            performDownload(download)
-//            DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
-//        } catch (e: IOException) {
-//            DownloadNotification.createDownloadFailedNotification(context, download.fileName)
-//        }
-//
-//        NotificationManagerCompat.from(context).notify(
-//                context,
-//                COMPLETED_DOWNLOAD_NOTIFICATION_TAG,
-//                notification
-//        )
-//
-//        val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-//        sendDownloadCompleteBroadcast(downloadID)
-//
-
-
-        /* ABOVE works, BELOW doesn't*/
-
-
-
         // Create a new job and add it, with its downloadState to the map
         val newDownloadJob = CoroutineScope(IO).launch {
-            //Log.d("Sawyer", "downloadJob for: " + listOfDownloadJobs[downloadJob]?.fileName)
-
-            // TODO: Currently this will create a zombie notification that never goes away!
             displayOngoingDownloadNotification(download)
 
             var tag = ""
@@ -168,10 +128,8 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 Log.d("Sawyer", "download complete")
                 DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
             } catch (e: IOException) {
-                Log.d("Sawyer", "e: " + e)
                 if (e.localizedMessage == IO_EXCEPTION_CLOSED) {
-                    // TODO: Make this a bit cleaner
-                    Log.d("Sawyer", "file was CLOSED!")
+                    // We intentionally closed the stream due it o being paused
                     val resumeIntent = createPendingIntent(ACTION_RESUME, 0)
                     tag = ONGOING_DOWNLOAD_NOTIFICATION_TAG
                     DownloadNotification.createPausedDownloadNotification(context, download.fileName, resumeIntent)
@@ -182,39 +140,25 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
             }
 
             NotificationManagerCompat.from(context).notify(
-                    context,
-                    tag,
-                    notification
+                context,
+                tag,
+                notification
             )
 
             val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
             sendDownloadCompleteBroadcast(downloadID)
         }.also { job ->
             job.invokeOnCompletion { cause ->
-                Log.d("Sawyer", "completed job cause: " + cause?.localizedMessage)
-                // If the job is CANCELLED don't clean up
-
                 if (cause?.localizedMessage == "Job was cancelled") {
                     // If it was cancelled that means the user paused
                 } else {
                     // Otherwise the download is complete, so end the service
                     stopForeground(true)
                 }
-                // If the job is FINISHED do clean up
-
-                // TODO: Since I want to clean up the job on completion and I'm *cancelling* the job,
-                // TODO: I probably need to spawn a new job that has the pauseNotification?
-                //Log.d("Sawyer", "cleaning up MY job")
-                //NotificationManagerCompat.from(context).cancelAll()
-                // TODO: Maybe I just want to stop the foreground notification here? Really I just want to swap it....
-                //stopForeground(true)
-                //cleanupJob(job)
             }
         }
 
-        //listOfDownloadJobs[newDownloadJob] = download
         downloadJob = newDownloadJob
-
     }
 
     private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {
@@ -237,7 +181,6 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
     }
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
-        Log.d("Sawyer", "display ongoing download notification")
         val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
         val ongoingDownloadNotification =
                 DownloadNotification.createOngoingDownloadNotification(context, download?.fileName, download?.contentLength, pauseIntent)
@@ -266,7 +209,8 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
             val newDownloadState = download.withResponse(response.headers, inStream)
             currentDownload = newDownloadState
 
-            // TODO: Create the notification, hide the size if <= 0L
+            displayOngoingDownloadNotification(currentDownload)
+
             useFileStream(newDownloadState) { outStream ->
                 currentOutStream = outStream
                 // Write stream, keep track of the bytes copied

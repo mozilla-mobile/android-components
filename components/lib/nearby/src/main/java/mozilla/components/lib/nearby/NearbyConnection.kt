@@ -262,7 +262,6 @@ class NearbyConnection(
          * to ensure that all are granted before constructing an instance of this class.
          */
         val PERMISSIONS: Array<String> = arrayOf(
-            Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,

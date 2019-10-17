@@ -26,6 +26,8 @@
     <string name="mozac_feature_downloads_button_pause">Pause</string>
     <!-- Button that resumes the download when pressed -->
     <string name="mozac_feature_downloads_button_resume">Resume</string>
+    <!-- Button that cancels the download when pressed -->
+    <string name="mozac_feature_downloads_button_cancel">Cancel</string>
     <!-- Button that opens the downloaded file when pressed -->
     <string name="mozac_feature_downloads_button_open">Open</string>
     <!-- Button that restarts the download after a failed attempt -->

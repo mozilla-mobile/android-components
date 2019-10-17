@@ -99,7 +99,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         // We must start the foreground service immediately in order to stop Android from killing our service
         startForeground(
             NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-            DownloadNotification.createOngoingDownloadNotification(context, "", 0, null)
+            DownloadNotification.createOngoingDownloadNotification(context, "", 0)
         )
 
         registerForUpdates()
@@ -129,10 +129,9 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
             } catch (e: IOException) {
                 if (e.localizedMessage == IO_EXCEPTION_CLOSED) {
-                    // We intentionally closed the stream due it o being paused
-                    val resumeIntent = createPendingIntent(ACTION_RESUME, 0)
+                    // We intentionally closed the stream due to it being paused
                     tag = ONGOING_DOWNLOAD_NOTIFICATION_TAG
-                    DownloadNotification.createPausedDownloadNotification(context, download.fileName, resumeIntent)
+                    DownloadNotification.createPausedDownloadNotification(context, download.fileName)
                 } else {
                     tag = COMPLETED_DOWNLOAD_NOTIFICATION_TAG
                     DownloadNotification.createDownloadFailedNotification(context, download.fileName)
@@ -161,12 +160,6 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         downloadJob = newDownloadJob
     }
 
-    private fun createPendingIntent(action: String, requestCode: Int): PendingIntent {
-        val intent = Intent(action)
-        intent.setPackage(applicationContext.packageName)
-        return PendingIntent.getBroadcast(applicationContext, requestCode, intent, 0)
-    }
-
     private fun registerForUpdates() {
         val filter = IntentFilter().apply {
             addAction(ACTION_PAUSE)
@@ -181,9 +174,12 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
     }
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
-        val pauseIntent = createPendingIntent(ACTION_PAUSE, 0)
         val ongoingDownloadNotification =
-                DownloadNotification.createOngoingDownloadNotification(context, download?.fileName, download?.contentLength, pauseIntent)
+                DownloadNotification.createOngoingDownloadNotification(
+                        context,
+                        download?.fileName,
+                        download?.contentLength
+                )
 
         NotificationManagerCompat.from(context).notify(
                 context,
@@ -345,10 +341,10 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
     companion object {
         private const val IO_EXCEPTION_CLOSED = "closed"
-        private const val PAUSED_DOWNLOAD_NOTIFICATION_TAG = "PausedDownload"
         private const val ONGOING_DOWNLOAD_NOTIFICATION_TAG = "OngoingDownload"
         private const val COMPLETED_DOWNLOAD_NOTIFICATION_TAG = "CompletedDownload"
-        private const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"
-        private const val ACTION_RESUME = "mozilla.components.feature.downloads.RESUME"
+        const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"
+        const val ACTION_RESUME = "mozilla.components.feature.downloads.RESUME"
+        const val ACTION_CANCEL = "mozilla.components.feature.downloads.CANCEL"
     }
 }

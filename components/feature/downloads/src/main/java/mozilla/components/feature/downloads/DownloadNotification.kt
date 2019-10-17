@@ -21,6 +21,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_NONE
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_CANCEL
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_PAUSE
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_RESUME
 import mozilla.components.support.base.ids.cancel
 
 internal object DownloadNotification {
@@ -30,15 +33,8 @@ internal object DownloadNotification {
     /**
      * Build the notification to be displayed while the download service is active.
      */
-    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?, pauseIntent: PendingIntent?): Notification {
+    fun createOngoingDownloadNotification(context: Context, fileName: String?, fileSize: Long?): Notification {
         val channelId = ensureChannelExists(context)
-
-        val pauseAction =  NotificationCompat.Action.Builder(
-                // TODO: Remove the drawable
-                0,
-                context.getString(R.string.mozac_feature_downloads_button_pause),
-                pauseIntent
-        ).build()
 
         val fileSizeText = (fileSize?.toMegabyteString() ?: "")
 
@@ -50,25 +46,17 @@ internal object DownloadNotification {
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setProgress(1, 0, true)
             .setOngoing(true)
-            .addAction(pauseAction)
+            .addAction(getPauseAction(context))
+            .addAction(getCancelAction(context))
             .build()
     }
 
     /**
      * Build the notification to be displayed while the download service is active.
      */
-    fun createPausedDownloadNotification(context: Context, fileName: String?, resumeIntent: PendingIntent): Notification {
+    fun createPausedDownloadNotification(context: Context, fileName: String?): Notification {
         val channelId = ensureChannelExists(context)
 
-        val resumeAction =  NotificationCompat.Action.Builder(
-                // TODO: Remove the drawable
-                R.drawable.mozac_feature_download_ic_download,
-                context.getString(R.string.mozac_feature_downloads_button_resume),
-                resumeIntent
-                // Pause the notification
-        ).build()
-
-        Log.d("Sawyer", "creating paused download notification")
         return NotificationCompat.Builder(context, channelId)
                 // TODO: Set the drawable to be a pause icon
                 .setSmallIcon(R.drawable.mozac_feature_download_ic_download)
@@ -77,7 +65,7 @@ internal object DownloadNotification {
                 .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
                 .setCategory(NotificationCompat.CATEGORY_PROGRESS)
                 .setOngoing(true)
-                .addAction(resumeAction)
+                .addAction(getResumeAction(context))
                 .build()
     }
 
@@ -99,16 +87,21 @@ internal object DownloadNotification {
             .build()
     }
 
+    private fun createCancelIntent() {
+
+    }
+
     /**
      * Build the notification to be displayed when a download fails to finish.
      */
     fun createDownloadFailedNotification(context: Context, fileName: String?): Notification {
         val channelId = ensureChannelExists(context)
 
+        // TODO: Add the try again button?
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_download)
             .setContentTitle(fileName)
-            .setContentText(context.getString(R.string.mozac_feature_downloads_failed_notification_text2))
+            .setContentText(context.getString( R.string.mozac_feature_downloads_failed_notification_text2))
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .build()
@@ -138,14 +131,6 @@ internal object DownloadNotification {
         }
     }
 
-    fun cancelNotifications(context: Context) {
-        Log.d("Sawyer", "cancelling all notifs")
-
-        NotificationManagerCompat.from(context).cancelAll()
-        //NotificationManagerCompat.from(context)
-        //        .cancel(context, NOTIFICATION_CHANNEL_ID)
-    }
-
     /**
      * Make sure a notification channel for download notification exists.
      *
@@ -165,5 +150,41 @@ internal object DownloadNotification {
         }
 
         return NOTIFICATION_CHANNEL_ID
+    }
+
+    private fun getPauseAction(context: Context): NotificationCompat.Action {
+        val pauseIntent = createPendingIntent(context, ACTION_PAUSE, 0)
+
+        return NotificationCompat.Action.Builder(
+            0,
+            context.getString(R.string.mozac_feature_downloads_button_pause),
+            pauseIntent
+        ).build()
+    }
+
+    private fun getResumeAction(context: Context): NotificationCompat.Action {
+        val resumeIntent = createPendingIntent(context, ACTION_RESUME, 0)
+
+        return NotificationCompat.Action.Builder(
+            0,
+            context.getString(R.string.mozac_feature_downloads_button_resume),
+            resumeIntent
+        ).build()
+    }
+
+    private fun getCancelAction(context: Context): NotificationCompat.Action {
+        val cancelIntent = createPendingIntent(context, ACTION_CANCEL, 0)
+
+        return NotificationCompat.Action.Builder(
+            0,
+            context.getString(R.string.mozac_feature_downloads_button_cancel),
+            cancelIntent
+        ).build()
+    }
+
+    private fun createPendingIntent(context: Context, action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(action)
+        intent.setPackage(context.applicationContext.packageName)
+        return PendingIntent.getBroadcast(context.applicationContext, requestCode, intent, 0)
     }
 }

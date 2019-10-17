@@ -27,6 +27,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.webextension.BrowserAction
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
+import kotlin.random.Random
 
 /**
  * [EngineSession.Observer] implementation responsible to update the state of a [Session] from the events coming out of

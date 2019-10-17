@@ -15,6 +15,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.P
+import android.util.Log
 import android.util.LongSparseArray
 import androidx.core.util.isEmpty
 import androidx.core.util.set
@@ -64,17 +65,15 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
 
         validatePermissionGranted(applicationContext)
 
-        val downloadID = Random.nextLong()
-        queuedDownloads[downloadID] = download
+        queuedDownloads[download.id] = download
 
         val intent = Intent(applicationContext, service.java)
-        intent.putExtra(EXTRA_DOWNLOAD_ID, downloadID)
         intent.putDownloadExtra(download)
         applicationContext.startService(intent)
 
         registerBroadcastReceiver()
 
-        return downloadID
+        return download.id
     }
 
     /**

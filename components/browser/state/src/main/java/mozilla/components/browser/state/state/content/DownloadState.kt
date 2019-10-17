@@ -7,6 +7,7 @@ package mozilla.components.browser.state.state.content
 import android.os.Environment
 import java.io.OutputStream
 import java.util.UUID
+import kotlin.random.Random
 
 /**
  * Value type that represents a download request.
@@ -20,15 +21,15 @@ import java.util.UUID
  * @property referrerUrl The site that linked to this download.
  */
 data class DownloadState(
-    val url: String,
-    val fileName: String? = null,
-    val contentType: String? = null,
-    val contentLength: Long? = null,
-    val userAgent: String? = null,
-    val destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
-    val referrerUrl: String? = null,
-    val skipConfirmation: Boolean = false,
-    val id: String = UUID.randomUUID().toString(),
-    val outputStream: OutputStream? = null,
-    val bytesRead: Long? = null
+        val url: String,
+        val fileName: String? = null,
+        val contentType: String? = null,
+        val contentLength: Long? = null,
+        val userAgent: String? = null,
+        val destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
+        val referrerUrl: String? = null,
+        val skipConfirmation: Boolean = false,
+        val id: Long = Random.nextLong(),
+        val outputStream: OutputStream? = null,
+        val bytesRead: Long? = null
 )

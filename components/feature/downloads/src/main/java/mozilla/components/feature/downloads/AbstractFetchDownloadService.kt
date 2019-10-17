@@ -90,7 +90,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
                         downloadIsPaused = false
                         // TODO: Where should we store the download ID?
-                        downloadJob = startDownloadJob(currentDownload!!, 0, true)
+                        downloadJob = startDownloadJob(currentDownload!!, true)
                     }
 
                     ACTION_CANCEL -> {
@@ -129,15 +129,14 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         currentDownload = intent?.getDownloadExtra() ?: return
         val download = intent.getDownloadExtra() ?: return
-        val downloadId = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
 
         // TODO: the job needs to also include sending a notification on completion for resume.
         // Create a new job and add it, with its downloadState to the map
-        val newDownloadJob = startDownloadJob(download, downloadId, false)
+        val newDownloadJob = startDownloadJob(download, false)
         downloadJob = newDownloadJob
     }
 
-    private fun startDownloadJob(download: DownloadState, downloadId: Long, isResuming: Boolean): Job {
+    private fun startDownloadJob(download: DownloadState, isResuming: Boolean): Job {
         return CoroutineScope(IO).launch {
             displayOngoingDownloadNotification(download)
 
@@ -162,7 +161,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                     notification
             )
 
-            sendDownloadCompleteBroadcast(downloadId)
+            sendDownloadCompleteBroadcast(download.id)
         }.also { job ->
             job.invokeOnCompletion { cause ->
                 if (cause?.localizedMessage == "Job was cancelled" && downloadIsPaused) {
@@ -211,6 +210,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         downloadJob?.cancel()
 
         CoroutineScope(IO).launch {
+            // TODO: Get rid of currentInStream
             currentInStream?.close()
         }
     }
@@ -297,6 +297,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             put(MediaStore.Downloads.SIZE, download.contentLength)
             put(MediaStore.Downloads.IS_PENDING, 1)
         }
+        // TODO: How do we handle the Q version...?
         Log.d("Sawyer", "in new file stream, append: " + append)
 
         val resolver = applicationContext.contentResolver
@@ -316,8 +317,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private fun useFileStreamLegacy(download: DownloadState, append: Boolean, block: (OutputStream) -> Unit) {
         val dir = Environment.getExternalStoragePublicDirectory(download.destinationDirectory)
         val file = File(dir, download.fileName!!)
-
-        // TODO: don't use "use" here, as it will close the file
         FileOutputStream(file, append).use(block)
 
         addCompletedDownload(
@@ -335,7 +334,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     companion object {
-        private const val IO_EXCEPTION_CLOSED = "closed"
         private const val ONGOING_DOWNLOAD_NOTIFICATION_TAG = "OngoingDownload"
         private const val COMPLETED_DOWNLOAD_NOTIFICATION_TAG = "CompletedDownload"
         const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"

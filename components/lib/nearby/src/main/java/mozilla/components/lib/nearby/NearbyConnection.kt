@@ -53,7 +53,7 @@ class NearbyConnection(
     var listener: NearbyConnectionListener? = null
         set(value) {
             field = value
-            value?.updateState(connectionState ?: ConnectionState.Isolated)
+            value?.updateState(if (::connectionState.isInitialized) connectionState else ConnectionState.Isolated)
         }
 
     // I assume that the number of endpoints encountered during the lifetime of the application

@@ -32,7 +32,6 @@ class P2PBar @JvmOverloads constructor(
     override var listener: P2PView.Listener? = null
 
     init {
-        Logger.error("Recreating P2Bar")
         inflate(getContext(), R.layout.mozac_feature_p2p_view, this)
 
         p2pAdvertiseBtn.setOnClickListener {
@@ -84,6 +83,7 @@ class P2PBar @JvmOverloads constructor(
         require(listener != null)
         p2pSendBtn.visibility = View.VISIBLE
         p2pSendBtn.isEnabled = true
+        showConnectButtons(false)
     }
 
     override fun receiveURL(neighborId: String, neighborName: String?, url: String) {
@@ -105,7 +105,6 @@ class P2PBar @JvmOverloads constructor(
     }
 
     override fun clear() {
-        p2pStatusText.text = ""
         showConnectButtons(true)
         p2pSendBtn.visibility = View.GONE
     }

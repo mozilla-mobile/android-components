@@ -100,7 +100,6 @@ internal class P2PController(
     }
 
     override fun onReset() {
-        Logger.error("About to disconnect from the nearby connection")
         nearbyConnection.disconnect()
     }
 

@@ -9,13 +9,11 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_NONE
@@ -24,7 +22,6 @@ import androidx.core.content.getSystemService
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_CANCEL
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_PAUSE
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_RESUME
-import mozilla.components.support.base.ids.cancel
 
 internal object DownloadNotification {
 
@@ -66,6 +63,7 @@ internal object DownloadNotification {
                 .setCategory(NotificationCompat.CATEGORY_PROGRESS)
                 .setOngoing(true)
                 .addAction(getResumeAction(context))
+                .addAction(getCancelAction(context))
                 .build()
     }
 
@@ -87,10 +85,6 @@ internal object DownloadNotification {
             .build()
     }
 
-    private fun createCancelIntent() {
-
-    }
-
     /**
      * Build the notification to be displayed when a download fails to finish.
      */
@@ -101,7 +95,7 @@ internal object DownloadNotification {
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_download)
             .setContentTitle(fileName)
-            .setContentText(context.getString( R.string.mozac_feature_downloads_failed_notification_text2))
+            .setContentText(context.getString(R.string.mozac_feature_downloads_failed_notification_text2))
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .build()

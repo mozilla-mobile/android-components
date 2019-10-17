@@ -181,7 +181,6 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
             val fragment = SimpleDownloadDialogFragment()
             val arguments = fragment.arguments ?: Bundle()
 
-
             with(arguments) {
                 putInt(KEY_DOWNLOAD_TEXT, downloadButtonText)
 

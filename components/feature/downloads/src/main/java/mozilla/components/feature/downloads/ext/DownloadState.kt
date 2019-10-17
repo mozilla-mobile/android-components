@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.downloads.ext
 
-import android.util.Log
 import androidx.core.net.toUri
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.fetch.Headers

@@ -5,9 +5,7 @@
 package mozilla.components.feature.downloads
 
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatDialogFragment
-import androidx.fragment.app.DialogFragment
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.MEGABYTE
 import mozilla.components.support.utils.DownloadUtils
@@ -72,4 +70,3 @@ abstract class DownloadDialogFragment : AppCompatDialogFragment() {
 fun Long.toMegabyteString(): String {
     return String.format("%.2f MB", this / MEGABYTE)
 }
-

@@ -7,7 +7,6 @@ package mozilla.components.feature.downloads
 import android.annotation.TargetApi
 import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
@@ -56,7 +55,7 @@ import java.lang.NullPointerException
  *
  * To use this service, you must create a subclass in your application and it to the manifest.
  */
-abstract class AbstractFetchDownloadService: CoroutineService() {
+abstract class AbstractFetchDownloadService : CoroutineService() {
 
     protected abstract val httpClient: Client
     @VisibleForTesting
@@ -67,6 +66,8 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
     private var currentDownload: DownloadState? = null
 
     private var downloadJob: Job? = null
+
+    private var downloadIsPaused = false
 
     // TODO: Eventually change this to handle a LIST of download jobs with their streams & bytes copied
     private var listOfDownloadJobs = mutableMapOf<Job, DownloadState>()
@@ -80,7 +81,10 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
             override fun onReceive(context: Context, intent: Intent?) {
                 Log.d("Sawyer", "onReceive")
                 when (intent?.action) {
-                    ACTION_PAUSE -> { pauseDownload() }
+                    ACTION_PAUSE -> {
+                        downloadIsPaused = true
+                        cancelDownload()
+                    }
 
                     ACTION_RESUME -> {
                         Log.d("Sawyer", "ACTION_RESUME")
@@ -88,6 +92,16 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
                         downloadJob = CoroutineScope(IO).launch {
                             resumeDownload(currentDownload, currentOutStream)
+                        }
+                    }
+
+                    ACTION_CANCEL -> {
+                        Log.d("Sawyer", "ACTION_CANCEL")
+                        if (downloadIsPaused) {
+                            // TODO: Kill *just* the notification we want, not all of them
+                            NotificationManagerCompat.from(context).cancelAll()
+                        } else {
+                            cancelDownload()
                         }
                     }
                 }
@@ -148,10 +162,14 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
             sendDownloadCompleteBroadcast(downloadID)
         }.also { job ->
             job.invokeOnCompletion { cause ->
-                if (cause?.localizedMessage == "Job was cancelled") {
+                if (cause?.localizedMessage == "Job was cancelled" && downloadIsPaused) {
                     // If it was cancelled that means the user paused
+                    // It could ALSO mean the user pressed the cancel button, though :\
+                    // Need to distinguish between these two and stopForeground if necessary
+                    Log.d("Sawyer", "job was paused")
                 } else {
                     // Otherwise the download is complete, so end the service
+                    Log.d("Sawyer", "job is done")
                     stopForeground(true)
                 }
             }
@@ -164,6 +182,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         val filter = IntentFilter().apply {
             addAction(ACTION_PAUSE)
             addAction(ACTION_RESUME)
+            addAction(ACTION_CANCEL)
         }
 
         context.registerReceiver(broadcastReceiver, filter)
@@ -174,23 +193,31 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
     }
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
-        val ongoingDownloadNotification =
-                DownloadNotification.createOngoingDownloadNotification(
-                        context,
-                        download?.fileName,
-                        download?.contentLength
-                )
+        val ongoingDownloadNotification = DownloadNotification.createOngoingDownloadNotification(
+            context,
+            download?.fileName,
+            download?.contentLength
+        )
 
         NotificationManagerCompat.from(context).notify(
-                context,
-                ONGOING_DOWNLOAD_NOTIFICATION_TAG,
-                ongoingDownloadNotification
+            context,
+            ONGOING_DOWNLOAD_NOTIFICATION_TAG,
+            ongoingDownloadNotification
         )
     }
 
-    private fun pauseDownload()  {
+    private fun cancelDownload() {
         downloadJob?.cancel()
-        CoroutineScope(IO).launch { cancelDownload() }
+
+        CoroutineScope(IO).launch {
+            // TODO: How do I make this synchronous so as not to cause a nullpointerexception
+            // I think the other thread is trying to do a `copyTo` while we're closing which causes a crash
+            try {
+                currentInStream?.close()
+            } catch (e: NullPointerException) {
+                Log.d("Sawyer", "Cancel null pointer")
+            }
+        }
     }
 
     private fun performDownload(download: DownloadState) {
@@ -212,7 +239,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 // Write stream, keep track of the bytes copied
                 try {
                     currentBytesCopied = inStream.copyTo(outStream)
-                } catch(e: NullPointerException) {
+                } catch (e: NullPointerException) {
                     // TODO: This means the job was cancelled while we were trying to copy
                     Log.d("Sawyer", "null pointer")
                 }
@@ -220,20 +247,10 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         }
     }
 
-    // TODO: How do I make this synchronous so as not to cause a nullpointerexception
-    // I think the other thread is trying to do a `copyTo` while we're closing which causes a crash
-    private fun cancelDownload() {
-        try {
-            currentInStream?.close()
-        } catch (e: NullPointerException) {
-            Log.d("Sawyer", "Cancel null pointer")
-        }
-    }
-
     private suspend fun resumeDownload(downloadState: DownloadState?, outputStream: OutputStream?) = withContext(IO) {
         // Read from inStream starting out outStream's current byte
         val download = downloadState ?: return@withContext
-        //val currentOutStream = outputStream ?: return@withContext
+        // val currentOutStream = outputStream ?: return@withContext
 
         Log.d("Sawy2er2", "outputStream: " + outputStream)
 

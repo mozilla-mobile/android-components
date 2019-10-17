@@ -4,10 +4,7 @@
 
 package mozilla.components.feature.downloads
 
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
@@ -202,13 +199,12 @@ class DownloadsFeature(
         block(Pair(state, download))
     }
 
-
     data class PromptsStyling(
-            val gravity: Int,
-            val shouldWidthMatchParent: Boolean = false,
-            @ColorRes
-            val positiveButtonBackgroundColor: Int? = null,
-            @ColorRes
-            val positiveButtonTextColor: Int? = null
+        val gravity: Int,
+        val shouldWidthMatchParent: Boolean = false,
+        @ColorRes
+        val positiveButtonBackgroundColor: Int? = null,
+        @ColorRes
+        val positiveButtonTextColor: Int? = null
     )
 }

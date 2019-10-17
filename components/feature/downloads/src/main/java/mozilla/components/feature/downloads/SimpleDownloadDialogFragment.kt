@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,10 +18,15 @@ import android.widget.LinearLayout
 import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
+import kotlinx.android.synthetic.main.mozac_downloads_prompt.*
 import kotlinx.android.synthetic.main.mozac_downloads_prompt.view.*
+import kotlinx.android.synthetic.main.mozac_downloads_prompt.view.download_button
 import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_download
 import mozilla.components.feature.downloads.R.string.mozac_feature_downloads_dialog_title2
 
+private const val KEY_POSITIVE_BUTTON_BACKGROUND_COLOR = "KEY_POSITIVE_BUTTON_BACKGROUND_COLOR"
+private const val KEY_POSITIVE_BUTTON_TEXT_COLOR = "KEY_POSITIVE_BUTTON_TEXT_COLOR"
 private const val KEY_DIALOG_GRAVITY = "KEY_DIALOG_GRAVITY"
 private const val KEY_DIALOG_WIDTH_MATCH_PARENT = "KEY_DIALOG_WIDTH_MATCH_PARENT"
 private const val DEFAULT_VALUE = Int.MAX_VALUE
@@ -45,6 +51,11 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         safeArguments.getInt(KEY_DIALOG_GRAVITY, DEFAULT_VALUE)
     internal val dialogShouldWidthMatchParent: Boolean get() =
         safeArguments.getBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT)
+
+    internal val positiveButtonBackgroundColor get() =
+        safeArguments.getInt(KEY_POSITIVE_BUTTON_BACKGROUND_COLOR, DEFAULT_VALUE)
+    internal val positiveButtonTextColor get() =
+        safeArguments.getInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, DEFAULT_VALUE)
 
     /*
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -91,7 +102,10 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         sheetDialog.window?.apply {
 
             if (dialogGravity != DEFAULT_VALUE) {
+                Log.d("Sawyer", "setting gravity!")
                 setGravity(dialogGravity)
+            } else {
+                Log.d("Sawyer", "not setting gravity!")
             }
 
             if (dialogShouldWidthMatchParent) {
@@ -121,6 +135,16 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
                 getString(getInt(KEY_TITLE_TEXT, mozac_feature_downloads_dialog_title2), contentSize)
             }
 
+            if (positiveButtonBackgroundColor != DEFAULT_VALUE) {
+                val backgroundTintList = ContextCompat.getColorStateList(requireContext(), positiveButtonBackgroundColor)
+                rootView.download_button.backgroundTintList = backgroundTintList
+            }
+
+            if (positiveButtonTextColor != DEFAULT_VALUE) {
+                val color = ContextCompat.getColor(requireContext(), positiveButtonTextColor)
+                rootView.download_button.setTextColor(color)
+            }
+
             rootView.filename.text = getString(KEY_FILE_NAME, "")
             rootView.download_button.text = getString(getInt(KEY_DOWNLOAD_TEXT, R.string.mozac_feature_downloads_dialog_download))
 
@@ -132,23 +156,6 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
                 onStartDownload()
                 dismiss()
             }
-
-            // TODO: How does prompt styling work??
-            /*
-            feature?.promptsStyling?.apply {
-                putInt(KEY_DIALOG_GRAVITY, gravity)
-                putBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT, shouldWidthMatchParent)
-
-                positiveButtonBackgroundColor?.apply {
-                    putInt(KEY_POSITIVE_BUTTON_BACKGROUND_COLOR, this)
-                }
-
-                positiveButtonTextColor?.apply {
-                    putInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, this)
-                }
-            }
-
-             */
         }
 
         return rootView
@@ -176,12 +183,14 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
             @StringRes dialogTitleText: Int = R.string.mozac_feature_downloads_dialog_title2,
             @StringRes downloadButtonText: Int = mozac_feature_downloads_dialog_download,
             @StyleRes themeResId: Int = 0,
-            cancelable: Boolean = false
+            cancelable: Boolean = false,
+            promptsStyling: DownloadsFeature.PromptsStyling? = null
         ): SimpleDownloadDialogFragment {
             val fragment = SimpleDownloadDialogFragment()
             val arguments = fragment.arguments ?: Bundle()
 
             with(arguments) {
+
                 putInt(KEY_DOWNLOAD_TEXT, downloadButtonText)
 
                 putInt(KEY_THEME_ID, themeResId)
@@ -189,6 +198,19 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
                 putInt(KEY_TITLE_TEXT, dialogTitleText)
 
                 putBoolean(KEY_CANCELABLE, cancelable)
+
+                promptsStyling?.apply {
+                    putInt(KEY_DIALOG_GRAVITY, gravity)
+                    putBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT, shouldWidthMatchParent)
+
+                    positiveButtonBackgroundColor?.apply {
+                        putInt(KEY_POSITIVE_BUTTON_BACKGROUND_COLOR, this)
+                    }
+
+                    positiveButtonTextColor?.apply {
+                        putInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, this)
+                    }
+                }
             }
 
             fragment.arguments = arguments

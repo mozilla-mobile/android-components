@@ -5,6 +5,7 @@
 package mozilla.components.feature.downloads
 
 import android.content.Context
+import android.view.Gravity
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
@@ -52,17 +53,24 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * instance of [SimpleDownloadDialogFragment] will be used.
  */
 class DownloadsFeature(
-    private val applicationContext: Context,
-    private val store: BrowserStore,
-    private val useCases: DownloadsUseCases,
-    override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { },
-    onDownloadCompleted: OnDownloadCompleted = noop,
-    private val downloadManager: DownloadManager = AndroidDownloadManager(applicationContext),
-    private val customTabId: String? = null,
-    private val fragmentManager: FragmentManager? = null,
-    var promptsStyling: PromptsStyling? = null,
-    @VisibleForTesting(otherwise = PRIVATE)
-    internal var dialog: DownloadDialogFragment = SimpleDownloadDialogFragment.newInstance()
+        private val applicationContext: Context,
+        private val store: BrowserStore,
+        private val useCases: DownloadsUseCases,
+        override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { },
+        onDownloadCompleted: OnDownloadCompleted = noop,
+        private val downloadManager: DownloadManager = AndroidDownloadManager(applicationContext),
+        private val customTabId: String? = null,
+        private val fragmentManager: FragmentManager? = null,
+        // TODO: Change this prompt style to be null, this is just for testing purposes
+        var promptsStyling: PromptsStyling? = PromptsStyling(Gravity.BOTTOM,
+                true,
+                android.R.color.holo_blue_dark,
+                android.R.color.white
+        ),
+        @VisibleForTesting(otherwise = PRIVATE)
+    internal var dialog: DownloadDialogFragment = SimpleDownloadDialogFragment.newInstance(
+            promptsStyling = promptsStyling
+    )
 ) : LifecycleAwareFeature, PermissionsFeature {
 
     var onDownloadCompleted: OnDownloadCompleted
@@ -165,10 +173,7 @@ class DownloadsFeature(
     }
 
     private fun showDialog(tab: SessionState, download: DownloadState) {
-        // TODO: How tf does StylingPrompt work??
         dialog.setDownload(download)
-
-        dialog.feature = this
 
         dialog.onStartDownload = {
             startDownload(download)

@@ -78,6 +78,7 @@ dependencies {
     implementation project(':browser-storage-memory')
 
     implementation project(':lib-fetch-httpurlconnection')
+    implementation project(':lib-nearby')
 
     implementation project(':feature-awesomebar')
     implementation project(':feature-app-links')

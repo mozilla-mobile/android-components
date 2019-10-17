@@ -171,6 +171,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             feature = P2PIntegration(
                 store = components.store,
                 view = layout.p2p,
+                thunk = { -> components.nearbyConnection },
                 tabsUseCases = components.tabsUseCases,
                 sessionUseCases = components.sessionUseCases
             ) { permissions ->

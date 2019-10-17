@@ -6,6 +6,7 @@ package mozilla.components.lib.nearby
 
 import android.Manifest
 import android.content.Context
+import android.os.Build
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -35,18 +36,25 @@ import java.util.concurrent.ConcurrentHashMap
  * @param context context needed to initiate connection, used only at start
  * @param name name shown by this device to other devices
  * @param authenticate whether to authenticate the connection (true) or make it automatically (false)
- * @param listener listener to be notified of changes of state and message transmission
- *
  */
 class NearbyConnection(
     private val context: Context,
-    private val name: String,
-    private val authenticate: Boolean,
-    private val listener: NearbyConnectionListener
+    private val name: String = Build.MODEL,
+    private val authenticate: Boolean = true
 ) {
     // Compile-time constants
     private val PACKAGE_NAME = "mozilla.components.lib.nearby"
     private val STRATEGY = Strategy.P2P_STAR
+
+    /**
+     * Listener to be notified of changes of status and message transmission. When this
+     * is set, its [NearbyConnectionListener.updateState] method is immediately called.
+     */
+    var listener: NearbyConnectionListener? = null
+        set(value) {
+            field = value
+            value?.updateState(connectionState ?: ConnectionState.Isolated)
+        }
 
     // I assume that the number of endpoints encountered during the lifetime of the application
     // will be small and do not remove them from the map.
@@ -71,7 +79,7 @@ class NearbyConnection(
         ) : ConnectionState() {
             fun accept() {
                 nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
-                nearbyConnection.updateState(ConnectionState.Connecting(neighborId, neighborName))
+                nearbyConnection.updateState(Connecting(neighborId, neighborName))
             }
 
             fun reject() {
@@ -93,15 +101,11 @@ class NearbyConnection(
     // callbacks so is synchronized.
     private lateinit var connectionState: ConnectionState
 
-    init {
-        listener.updateState(ConnectionState.Isolated)
-    }
-
     // This method is called from both the main thread and callbacks.
     @Synchronized
     private fun updateState(cs: ConnectionState) {
         connectionState = cs
-        listener.updateState(cs)
+        listener?.updateState(cs)
     }
 
     /**
@@ -193,7 +197,7 @@ class NearbyConnection(
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            listener.receiveMessage(
+            listener?.receiveMessage(
                 endpointId,
                 endpointIdsToNames[endpointId],
                 String(payload.asBytes()!!, UTF_8))
@@ -206,7 +210,7 @@ class NearbyConnection(
                 if (state is ConnectionState.Sending) {
                     // Make sure it's reporting on our outgoing message, not an incoming one.
                     if (state.payloadId == update.payloadId) {
-                        listener.messageDelivered(update.payloadId)
+                        listener?.messageDelivered(update.payloadId)
                         updateState(ConnectionState.ReadyToSend(
                             endpointId,
                             endpointIdsToNames[endpointId]))

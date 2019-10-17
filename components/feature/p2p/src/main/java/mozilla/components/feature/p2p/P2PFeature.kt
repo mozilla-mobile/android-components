@@ -27,12 +27,13 @@ import mozilla.components.feature.tabs.TabsUseCases
 class P2PFeature(
     val view: P2PView,
     private val store: BrowserStore,
+    private val thunk: () -> NearbyConnection,
     private val tabsUseCases: TabsUseCases,
     private val sessionUseCases: SessionUseCases,
     override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
     private val onClose: (() -> Unit)
 ) : LifecycleAwareFeature, BackHandler, PermissionsFeature {
-    @VisibleForTesting internal var controller = P2PController(store, view, tabsUseCases, sessionUseCases)
+    @VisibleForTesting internal var controller = P2PController(store, thunk, view, tabsUseCases, sessionUseCases)
 
     private var session: SessionState? = null
 
@@ -43,8 +44,7 @@ class P2PFeature(
     }
 
     override fun stop() {
-        Logger.error("P2PFeature.stop() was called. About to call controller.stop().")
-        //controller.stop()
+        controller.stop()
     }
 
     // PermissionsFeature implementation

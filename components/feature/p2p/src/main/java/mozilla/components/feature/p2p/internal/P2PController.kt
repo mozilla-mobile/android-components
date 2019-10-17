@@ -20,6 +20,7 @@ import mozilla.components.support.base.log.logger.Logger
  */
 internal class P2PController(
     private val store: BrowserStore,
+    private val thunk: () -> NearbyConnection,
     private val view: P2PView,
     private val tabsUseCases: TabsUseCases,
     private val sessionUseCases: SessionUseCases
@@ -29,14 +30,8 @@ internal class P2PController(
 
     fun start() {
         view.listener = this
-        if (::nearbyConnection.isInitialized) {
-            return
-        }
-        Logger.error("About to create a nearbyConnection in P2PController")
-        nearbyConnection = NearbyConnection(
-            view.asView().context,
-            Build.MODEL,
-            true,
+        nearbyConnection = thunk()
+        nearbyConnection.listener =
             object : NearbyConnectionListener {
                 @Synchronized
                 override fun updateState(connectionState: ConnectionState) {
@@ -61,17 +56,9 @@ internal class P2PController(
                     view.receiveURL(neighborId, neighborName, message)
                 }
             }
-        )
     }
 
-    fun stop() {/*
-        Logger.error("P2PFeature.stop() was called. About to call nearbyConnection.disconnect().")
-        if (::nearbyConnection.isInitialized) {
-            nearbyConnection.disconnect()
-        }
-        view.listener = null
-        */
-    }
+    fun stop() {}
 
     // P2PView.Listener implementation
 

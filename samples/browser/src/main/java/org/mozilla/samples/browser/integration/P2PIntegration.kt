@@ -10,6 +10,7 @@ import mozilla.components.feature.p2p.P2PFeature
 import mozilla.components.feature.p2p.view.P2PView
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.support.base.feature.BackHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
@@ -18,18 +19,26 @@ import mozilla.components.support.base.log.logger.Logger
 class P2PIntegration(
     private val store: BrowserStore,
     private val view: P2PView,
+    private val thunk: () -> NearbyConnection,
     private val tabsUseCases: TabsUseCases,
     private val sessionUseCases: SessionUseCases,
     onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, BackHandler {
-    val feature = P2PFeature(view, store, tabsUseCases, sessionUseCases, onNeedToRequestPermissions, ::onClose)
+    val feature = P2PFeature(
+        view,
+        store,
+        thunk,
+        tabsUseCases,
+        sessionUseCases,
+        onNeedToRequestPermissions,
+        ::onClose
+    )
     override fun start() {
         feature.start()
         launch = this::launch
     }
 
     override fun stop() {
-        Logger.error("P2PIntegration.stop() was called. About to call feature.stop().")
         feature.stop()
         launch = null
     }

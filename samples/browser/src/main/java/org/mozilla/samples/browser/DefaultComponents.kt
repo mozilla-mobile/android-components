@@ -45,6 +45,7 @@ import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+import mozilla.components.lib.nearby.NearbyConnection
 import org.mozilla.samples.browser.integration.FindInPageIntegration
 import org.mozilla.samples.browser.integration.P2PIntegration
 import org.mozilla.samples.browser.request.SampleRequestInterceptor
@@ -120,6 +121,11 @@ open class DefaultComponents(private val applicationContext: Context) {
     val defaultSearchUseCase by lazy { { searchTerms: String -> searchUseCases.defaultSearch.invoke(searchTerms) } }
 
     val webAppUseCases by lazy { WebAppUseCases(applicationContext, sessionManager, client) }
+
+    // P2P communication
+    val nearbyConnection by lazy {
+        NearbyConnection(applicationContext)
+    }
 
     // Intent
     val tabIntentProcessor by lazy {

@@ -68,6 +68,7 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
     private var downloadJob: Job? = null
 
+    // TODO: Eventually change this to handle a LIST of download jobs
     private var listOfDownloadJobs = mutableMapOf<Job, DownloadState>()
 
     // TODO: remove coroutineService
@@ -83,15 +84,19 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 Log.d("Sawyer", "onReceive")
                 when (intent?.action) {
                     ACTION_PAUSE -> {
-                        // TODO: for some reason if I don't call this display my other notification sticks around forever?
                         pauseDownload()
                     }
+
                     ACTION_RESUME -> {
                         Log.d("Sawyer", "ACTION_RESUME")
                         displayOngoingDownloadNotification(currentDownload)
+                        performDownload(currentDownload!!)
+                        /*
                         downloadJob = CoroutineScope(IO).launch {
                             resumeDownload(currentDownload, currentOutStream)
                         }
+
+                         */
                     }
                 }
             }
@@ -189,11 +194,17 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 Log.d("Sawyer", "completed job cause: " + cause?.localizedMessage)
                 // If the job is CANCELLED don't clean up
 
+                if (cause?.localizedMessage == "Job was cancelled") {
+                    // If it was cancelled that means the user paused
+                } else {
+                    // Otherwise the download is complete, so end the service
+                    stopForeground(true)
+                }
                 // If the job is FINISHED do clean up
 
                 // TODO: Since I want to clean up the job on completion and I'm *cancelling* the job,
                 // TODO: I probably need to spawn a new job that has the pauseNotification?
-                Log.d("Sawyer", "cleaning up MY job")
+                //Log.d("Sawyer", "cleaning up MY job")
                 //NotificationManagerCompat.from(context).cancelAll()
                 // TODO: Maybe I just want to stop the foreground notification here? Really I just want to swap it....
                 //stopForeground(true)
@@ -202,7 +213,6 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         }
 
         //listOfDownloadJobs[newDownloadJob] = download
-        Log.d("Sawyer", "assigning downloadJob")
         downloadJob = newDownloadJob
 
     }
@@ -236,18 +246,6 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
                 context,
                 ONGOING_DOWNLOAD_NOTIFICATION_TAG,
                 ongoingDownloadNotification
-        )
-    }
-
-    private fun displayPausedNotification(download: DownloadState?) {
-        val resumeIntent = createPendingIntent(ACTION_RESUME, 0)
-        val pauseNotification =
-                DownloadNotification.createPausedDownloadNotification(context, download?.fileName, resumeIntent)
-
-        NotificationManagerCompat.from(context).notify(
-                context,
-                ONGOING_DOWNLOAD_NOTIFICATION_TAG,
-                pauseNotification
         )
     }
 
@@ -290,8 +288,6 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
         } catch (e: NullPointerException) {
             Log.d("Sawyer", "Cancel null pointer")
         }
-            //currentOutStream?.close()
-
     }
 
     private suspend fun resumeDownload(downloadState: DownloadState?, outputStream: OutputStream?) = withContext(IO) {
@@ -307,13 +303,14 @@ abstract class AbstractFetchDownloadService: CoroutineService() {
 
         // TODO: Why is the currentOutStream closed if I never closed it?
         response.body.useStream { inStream ->
-            inStream.available()
             currentInStream = inStream
             val newDownloadState = download.withResponse(response.headers, inStream)
             currentDownload = newDownloadState
             useFileStream(newDownloadState) { outStream ->
                 // Resume the stream at the paused position
                 currentBytesCopied = inStream.copyTo(outStream)
+
+                // TODO: I want to resume the download where we left off... but the outStream says it's closed
                 /*
                 inStream.skip(currentBytesCopied)
                 currentBytesCopied += inStream.copyTo(outStream)

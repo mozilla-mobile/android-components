@@ -21,6 +21,13 @@ permalink: /changelog/
 * **engine-gecko-nightly**
    * Implements the setting `forceUserScalableContent`.
 
+* **lib-nearby**
+  * 🆕 New component for communicating directly between two devices
+  using Google Nearby API.
+
+* **sample-nearby-chat**
+  * 🆕 New sample program demonstrating use of `lib-nearby`.
+
 # 17.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v16.0.0...v17.0.0)

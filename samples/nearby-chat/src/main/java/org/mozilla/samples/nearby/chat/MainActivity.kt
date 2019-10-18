@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (grantResults.any {it == PackageManager.PERMISSION_DENIED}) {
+        if (grantResults.any { it == PackageManager.PERMISSION_DENIED }) {
             statusText.text = getString(R.string.mozac_samples_nearby_chat_permissions_denied)
             init()
         }
@@ -112,8 +112,8 @@ class MainActivity : AppCompatActivity() {
                         AlertDialog.Builder(this@MainActivity)
                             .setTitle(getString(R.string.mozac_samples_nearby_chat_accept_connection, auth.neighborName))
                             .setMessage(getString(R.string.mozac_samples_nearby_chat_confirm_token, auth.token))
-                            .setPositiveButton(android.R.string.yes) { _, _ -> auth.accept()}
-                            .setNegativeButton(android.R.string.no) { _, _ -> auth.reject()}
+                            .setPositiveButton(android.R.string.yes) { _, _ -> auth.accept() }
+                            .setNegativeButton(android.R.string.no) { _, _ -> auth.reject() }
                             .setIcon(android.R.drawable.ic_dialog_alert)
                             .show()
                     }

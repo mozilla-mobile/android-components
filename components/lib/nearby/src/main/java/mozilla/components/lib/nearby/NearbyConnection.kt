@@ -42,10 +42,6 @@ class NearbyConnection(
     private val name: String = Build.MODEL,
     private val authenticate: Boolean = true
 ) {
-    // Compile-time constants
-    private val PACKAGE_NAME = "mozilla.components.lib.nearby"
-    private val STRATEGY = Strategy.P2P_STAR
-
     /**
      * Listener to be notified of changes of status and message transmission. When this
      * is set, its [NearbyConnectionListener.updateState] method is immediately called.
@@ -64,24 +60,57 @@ class NearbyConnection(
      * The state of the connection. Changes in state are communicated through
      * [NearbyConnectionListener.updateState].
      */
-    public sealed class ConnectionState() {
+    public sealed class ConnectionState {
         val name = javaClass.simpleName
 
+        /**
+         * There is no connection to another device and no attempt to connect.
+         */
         object Isolated : ConnectionState()
+
+        /**
+         * This device is advertising its presence.
+         */
         object Advertising : ConnectionState()
+
+        /**
+         * This device is trying to discover devices that are advertising.
+         */
         object Discovering : ConnectionState()
+
+        /**
+         * This device is in the process of authenticating with a neighboring device.
+         */
         class Authenticating(
             // Sealed classes can't be inner, so we need to pass in the connection.
             private val nearbyConnection: NearbyConnection,
+            /**
+             * The ID of the neighbor, which is not meant for human readability.
+             */
             val neighborId: String,
+
+            /**
+             * The human readable name of the neighbor.
+             */
             val neighborName: String,
+
+            /**
+             * A short unique token of printable characters shared by both sides of the
+             * pending connection.
+             */
             val token: String
         ) : ConnectionState() {
+            /**
+             * Accepts the connection to the neighbor.
+             */
             fun accept() {
                 nearbyConnection.connectionsClient.acceptConnection(neighborId, nearbyConnection.payloadCallback)
                 nearbyConnection.updateState(Connecting(neighborId, neighborName))
             }
 
+            /**
+             * Rejects the connection to the neighbor.
+             */
             fun reject() {
                 nearbyConnection.connectionsClient.rejectConnection(neighborId)
                 // This should put us back in advertising or discovering.
@@ -89,9 +118,29 @@ class NearbyConnection(
             }
         }
 
+        /**
+         * The connection has been successfully authenticated (or authentication is disabled).
+         * Unless an error occurs, the next state will be [ReadyToSend].
+         */
         class Connecting(val neighborId: String, val neighborName: String) : ConnectionState()
+
+        /**
+         * A connection has been made to a neighbor and this device may send a message.
+         * This state is followed by [Sending] or [Failure].
+         */
         class ReadyToSend(val neighborId: String, val neighborName: String?) : ConnectionState()
+
+        /**
+         * A message is being sent from this device. This state is followed by [ReadyToSend] or
+         * [Failure].
+         */
         class Sending(val neighborId: String, val neighborName: String?, val payloadId: Long) : ConnectionState()
+
+        /**
+         * A failure has occurred.
+         *
+         * @param message an error message describing the failure
+         */
         class Failure(val message: String) : ConnectionState()
     }
 
@@ -204,18 +253,13 @@ class NearbyConnection(
         }
 
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
-            if (update.status == Status.SUCCESS) {
-                // Make local variable so compiler knows it won't be changed by another thread.
-                val state = connectionState
-                if (state is ConnectionState.Sending) {
-                    // Make sure it's reporting on our outgoing message, not an incoming one.
-                    if (state.payloadId == update.payloadId) {
-                        listener?.messageDelivered(update.payloadId)
-                        updateState(ConnectionState.ReadyToSend(
-                            endpointId,
-                            endpointIdsToNames[endpointId]))
-                    }
-                }
+            // Make sure it's reporting on our outgoing message, not an incoming one.
+            if (update.status == Status.SUCCESS &&
+                (connectionState as? ConnectionState.Sending)?.payloadId == update.payloadId) {
+                listener?.messageDelivered(update.payloadId)
+                updateState(ConnectionState.ReadyToSend(
+                    endpointId,
+                    endpointIdsToNames[endpointId]))
             }
         }
     }
@@ -257,6 +301,9 @@ class NearbyConnection(
     }
 
     companion object {
+        private const val PACKAGE_NAME = "mozilla.components.lib.nearby"
+        private val STRATEGY = Strategy.P2P_STAR
+
         /**
          * The permissions needed by [NearbyConnection]. It is the client's responsibility
          * to ensure that all are granted before constructing an instance of this class.

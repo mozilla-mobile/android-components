@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package org.mozilla.samples.nearby.chat
 
 import android.content.pm.PackageManager
@@ -105,13 +109,18 @@ class MainActivity : AppCompatActivity() {
             object : NearbyConnectionListener {
                 override fun updateState(connectionState: ConnectionState) {
                     state = connectionState
-                    statusText.text = if (statusText.text.isEmpty()) state.name else "${statusText.text} -> ${state.name}"
-                    textInputLayout.visibility = if (state is ConnectionState.ReadyToSend) View.VISIBLE else View.INVISIBLE
+                    statusText.text =
+                        if (statusText.text.isEmpty()) state.name else "${statusText.text} -> ${state.name}"
+                    textInputLayout.visibility =
+                        if (state is ConnectionState.ReadyToSend) View.VISIBLE else View.INVISIBLE
                     if (state is ConnectionState.Authenticating) {
                         val auth = state as ConnectionState.Authenticating
                         AlertDialog.Builder(this@MainActivity)
-                            .setTitle(getString(R.string.mozac_samples_nearby_chat_accept_connection, auth.neighborName))
-                            .setMessage(getString(R.string.mozac_samples_nearby_chat_confirm_token, auth.token))
+                            .setTitle(
+                                getString(R.string.mozac_samples_nearby_chat_accept_connection,
+                                    auth.neighborName))
+                            .setMessage(getString(R.string.mozac_samples_nearby_chat_confirm_token,
+                                auth.token))
                             .setPositiveButton(android.R.string.yes) { _, _ -> auth.accept() }
                             .setNegativeButton(android.R.string.no) { _, _ -> auth.reject() }
                             .setIcon(android.R.drawable.ic_dialog_alert)

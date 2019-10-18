@@ -10,7 +10,7 @@ android {
     compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        applicationId "org.mozilla.samples.sync"
+        applicationId "org.mozilla.samples.nearby.chat"
         minSdkVersion config.minSdkVersion
         targetSdkVersion config.targetSdkVersion
         versionCode 1
@@ -36,13 +36,10 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-storage')
-    implementation project(':browser-storage-sync')
-    implementation project(':service-firefox-accounts')
-    implementation project(':support-rustlog')
-    implementation project(':support-rusthttp')
-    implementation project(':lib-fetch-httpurlconnection')
+    implementation project(':lib-nearby')
+    implementation project(':support-base')
 
+    implementation Dependencies.google_material
     implementation Dependencies.kotlin_reflect
     implementation Dependencies.androidx_recyclerview
     implementation Dependencies.androidx_appcompat

@@ -37,11 +37,6 @@ android {
 
 dependencies {
     implementation project(':lib-nearby')
-    implementation project(':support-base')
-
+    implementation project(':support-base')  // for logging
     implementation Dependencies.google_material
-    implementation Dependencies.kotlin_reflect
-    implementation Dependencies.androidx_recyclerview
-    implementation Dependencies.androidx_appcompat
-    implementation Dependencies.androidx_constraintlayout
 }

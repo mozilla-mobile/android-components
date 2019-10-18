@@ -191,15 +191,27 @@ class ReaderView {
     const readingTimeMinsSlow = Math.ceil(length / charactersPerMinuteLow);
     const readingTimeMinsFast  = Math.ceil(length / charactersPerMinuteHigh);
 
-    // TODO remove moment.js: https://github.com/mozilla-mobile/android-components/issues/2923
-    // We only want to show minutes and not have it converted to hours.
-    moment.relativeTimeThreshold('m', Number.MAX_SAFE_INTEGER);
-
-    if (readingTimeMinsSlow == readingTimeMinsFast) {
-      return moment.duration(readingTimeMinsFast, 'minutes').locale(lang).humanize();
+    // Construct a localized and "humanized" reading time in minutes.
+    // If we have both a fast and slow reading time we'll show both e.g.
+    // "2 - 4 minutes", otherwise we'll just show "4 minutes".
+    try {
+      var parts = new Intl.RelativeTimeFormat(lang).formatToParts(readingTimeMinsSlow, 'minute');
+      if (parts.length == 3) {
+        // No need to use part[0] which represents the literal "in".
+        var readingTime = parts[1].value; // reading time in minutes
+        var minutesLiteral = parts[2].value; // localized singular or plural literal of 'minute'
+        var readingTimeString = `${readingTime} ${minutesLiteral}`;
+        if (readingTimeMinsSlow != readingTimeMinsFast) {
+          readingTimeString = `${readingTimeMinsFast} - ${readingTimeString}`;
+        }
+        return readingTimeString;
+      }
+    }
+    catch(error) {
+      console.error(`Failed to format reading time: ${error}`);
     }
 
-    return `${readingTimeMinsFast} - ${moment.duration(readingTimeMinsSlow, 'minutes').locale(lang).humanize()}`;
+    return "";
   }
 
   /**

@@ -296,3 +296,61 @@ To check your style, run:
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/
+    
+    
+   #aboat android components
+   
+   There are some necessary building blocks that an Android application consists of. These loosely coupled components are bound by the application manifest file which contains description of each component and how they interact. The manifest file also contains the app’s metadata, its hardware configuration and platform requirements, external libraries and required permissions.
+
+There are the following main components of an android app:-
+
+Activities-
+Activities are said to be the presentation layer of our applications. The UI of our application is build around one or more extensions of the Activity class. By using Fragments and Views, activities set the layout and display the output and also respond to the users actions.
+An activity is implemented as a subclass of class Activity.
+
+
+
+ 
+
+filter_none
+edit
+play_arrow
+
+brightness_4
+public class MainActivity extends Activity { 
+} 
+Services-
+These are like invisible workers of our app. These components run at backend, updating your data sources and Activities, triggering Notification and also broadcast Intents. They also perform some tasks when applications are not active. A service can be used as a subclass of class Service:
+
+filter_none
+edit
+play_arrow
+
+brightness_4
+public class ServiceName extends Service { 
+} 
+Content Providers-
+It is used to manage and persist the application data also typically interact with SQL database. They are also responsible for sharing the data beyond the application boundaries. The Content Providers of a particular application can be configured to allow access from other applications, and the Content Providers exposed by other applications can also be configured.
+A content provider should be a sub class of the class ContentProvider.
+
+filter_none
+edit
+play_arrow
+
+brightness_4
+public class contentProviderName extends  ContentProvider { 
+   public void onCreate(){} 
+} 
+Intents-
+It is a powerful inter-application message-passing framework. They are extensively used throughout Android. Intents can be used to start and stop Activities and Services, to broadcast messages system-wide or to an explicit Activity, Service or Broadcast Receiver or to request an action be performed on a particular piece of data.
+
+Broadcast Receivers-
+They are known to be intent listeners as they enable your application to listen the Intents that satisfy the matching criteria specified by us. Broadcast Receivers make our application to react to any received Intent thereby making them perfect for creating event driven applications.
+
+Widgets-
+These are the small visual application components that you can find on the home screen of the devices. They are special variation of Broadcast Receivers that allow us to create dynamic, interactive application components for users to embed on their Home Screen.
+
+Notifications-
+Notifications are the application alerts that are used to draw user’s attention to some particular app event without stealing focus or interrupting the current Activity of the user. They are generally used to grab user’s attention when the application is not visible or active, particularly from within a Service or Broadcast Receiver. Examples: E-mail popups, Messenger popups etc.
+    
+    

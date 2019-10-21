@@ -40,6 +40,7 @@ import mozilla.components.feature.downloads.ext.addCompletedDownload
 import mozilla.components.feature.downloads.ext.getDownloadExtra
 import mozilla.components.feature.downloads.ext.withResponse
 import mozilla.components.support.base.ids.NotificationIds
+import mozilla.components.support.base.ids.cancel
 import mozilla.components.support.base.ids.notify
 import java.io.File
 import java.io.FileOutputStream
@@ -62,14 +63,15 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     @VisibleForTesting
     internal val context: Context get() = this
 
-    // TODO: Eventually change this to handle a LIST of download jobs with their streams & bytes copied
     private var listOfDownloadJobs = mutableMapOf<Long, DownloadJobState>()
 
+    // TODO: Can this be simplified/refactored?
     data class DownloadJobState(
             var job: Job? = null,
             var state: DownloadState,
             var currentBytesCopied: Long = 0,
             var isPaused: Boolean = false,
+            var isCancelled: Boolean = false,
             var foregroundServiceId: Int = 0
      )
 
@@ -82,10 +84,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                 when (intent.action) {
                     ACTION_PAUSE -> {
                         Log.d("Sawyer", "ACTION_PAUSE: " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
-
-                        Log.d("Sawyer", "isPaused: " + currentDownloadJobState.isPaused)
                         currentDownloadJobState.isPaused = true
-                        Log.d("Sawyer", "isPaused NOW: " + listOfDownloadJobs[downloadId]?.isPaused)
                         currentDownloadJobState.job?.cancel()
                     }
 
@@ -99,44 +98,28 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                     }
 
                     ACTION_CANCEL -> {
-                        // TODO: Fix broken behavior
-                        Log.d("Sawyer", "ACTION_CANCEL " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
-                        if (currentDownloadJobState.isPaused) {
-                            Log.d("Sawyer", "cancelAll")
-                            // TODO: Kill *just* the notification we want, not all of them
-                            NotificationManagerCompat.from(context).cancelAll()
-                        } else {
-                            currentDownloadJobState.job?.cancel()
-                        }
-                        //                         downloadIsPaused = false
+                        Log.d("Sawyer", "ACTION_CANCEL: " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
+
+                        // We must set isCancelled here so `copyInChunks` knows to break out of its loop and cancel the operation
+                        currentDownloadJobState.isCancelled = true
+                        currentDownloadJobState.job?.cancel()
+                        NotificationManagerCompat.from(context).cancel(context, currentDownloadJobState.foregroundServiceId.toString())
                     }
                 }
             }
         }
     }
 
-    override fun onCreate() {
-        Log.d("Sawyer", "onCreate")
-
-
-        registerForUpdates()
-
-        super.onCreate()
-    }
+    // TODO: Do I really need to startForeground immediately? This causes double notifs to appear
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onDestroy() {
-        unregisterForUpdates()
-        super.onDestroy()
-    }
-
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         val download = intent?.getDownloadExtra() ?: return
+        registerForUpdates()
 
-        Log.d("Sawyer", "onStartCommand")
+        // TODO: Is there a problem with using a random int for the foregroundServiceId? Could this cause collisions?
         val foregroundServiceId = Random.nextInt()
-        // We must start the foreground service immediately in order to stop Android from killing our service
 
         // Create a new job and add it, with its downloadState to the map
         listOfDownloadJobs[download.id] = DownloadJobState(
@@ -151,15 +134,19 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             var tag: String
             val notification = try {
                 performDownload(download, isResuming)
+
+                if (listOfDownloadJobs[download.id]?.isCancelled == true) { return@launch }
+
                 if (listOfDownloadJobs[download.id]?.isPaused == true) {
-                    tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString() ?: ""
+                    tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString()!!
                     DownloadNotification.createPausedDownloadNotification(context, download)
                 } else {
-                    tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString() ?: ""
+                    tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString()!!
                     DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
                 }
             } catch (e: IOException) {
-                tag = COMPLETED_DOWNLOAD_NOTIFICATION_TAG
+                // TODO: Test failed notification download
+                tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString()!!
                 DownloadNotification.createDownloadFailedNotification(context, download.fileName)
             }
 
@@ -170,20 +157,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             )
 
             sendDownloadCompleteBroadcast(download.id)
-        }.also { job ->
-            job.invokeOnCompletion { cause ->
-                if (cause?.localizedMessage == "Job was cancelled" && listOfDownloadJobs[download.id]?.isPaused == true) {
-                    // If it was cancelled that means the user paused
-                    // It could ALSO mean the user pressed the cancel button, though :\
-                    // Need to distinguish between these two and stopForeground if necessary
-                    Log.d("Sawyer", "job was paused")
-                } else {
-                    // Otherwise the download is complete, so end the service
-                    Log.d("Sawyer", "job is done: " + download.id)
-                    // TODO: Maybe get rid of "stopSelf"?
-                    stopSelf()
-                }
-            }
         }
     }
 
@@ -197,6 +170,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         context.registerReceiver(broadcastReceiver, filter)
     }
 
+    // TODO: Do I need to unregister?
     private fun unregisterForUpdates() {
         context.unregisterReceiver(broadcastReceiver)
     }
@@ -242,7 +216,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private fun copyInChunks(downloadJobState: DownloadJobState, inStream: InputStream, outStream: OutputStream) {
         // To ensure that we copy all files (even ones that don't have fileSize, we must NOT check < fileSize
 
-        while (!downloadJobState.isPaused) {
+        // TODO: It may have a passed in copy of downloadJobState so this may not work...
+        while (!downloadJobState.isPaused && !downloadJobState.isCancelled) {
             val data = ByteArray(chunkSize)
             val bytesRead = inStream.read(data)
 

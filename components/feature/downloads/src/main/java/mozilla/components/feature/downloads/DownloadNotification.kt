@@ -25,6 +25,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_CANCEL
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_PAUSE
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_RESUME
+import kotlin.random.Random
 
 internal object DownloadNotification {
 
@@ -39,7 +40,6 @@ internal object DownloadNotification {
 
         val fileSizeText = (downloadState?.contentLength?.toMegabyteString() ?: "")
 
-        Log.d("Sawyer", "Creating ongoing with id: " + downloadState?.id)
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
             .setContentTitle(downloadState?.fileName)
@@ -193,6 +193,8 @@ internal object DownloadNotification {
         bundleExtra.putLong(EXTRA_DOWNLOAD_ID, downloadStateId)
         intent.putExtras(bundleExtra)
 
-        return PendingIntent.getBroadcast(context.applicationContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        // Need distinct PendingIntent objects: https://developer.android.com/reference/android/app/PendingIntent.html
+        // TODO: Might need to "save" the bundle data somehow when the notification is created... it only seems to persist the most recent intent's bundle data
+        return PendingIntent.getBroadcast(context.applicationContext, Random.nextInt(), intent, 0)
     }
 }

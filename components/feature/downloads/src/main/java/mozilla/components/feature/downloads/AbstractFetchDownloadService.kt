@@ -67,36 +67,51 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private var downloadIsPaused = false
 
     // TODO: Eventually change this to handle a LIST of download jobs with their streams & bytes copied
-    private var listOfDownloadJobs = mutableMapOf<Job, DownloadState>()
+    private var listOfDownloadJobs = mutableMapOf<Long, DownloadJobState>()
+
+    data class DownloadJobState(
+            var job: Job,
+            var state: DownloadState
+            var isPaused: Boolean
+    )
+
+
+    // Need the job
+    // Need the ID (use as key)
+    // Need the state (use as value)
 
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
-                when (intent?.action) {
+                val downloadId =  intent?.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID) ?: return
+
+                when (intent.action) {
                     ACTION_PAUSE -> {
-                        Log.d("Sawyer", "ACTION_PAUSE")
-                        downloadIsPaused = true
+                        listOfDownloadJobs[downloadId]?.isPaused = false
                         downloadJob?.cancel()
                     }
 
                     ACTION_RESUME -> {
-                        Log.d("Sawyer", "ACTION_RESUME")
+                        val downloadId =  intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID) ?: return
+                        Log.d("Sawyer", "ACTION_RESUME: " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
+
                         displayOngoingDownloadNotification(currentDownload)
 
-                        downloadIsPaused = false
-                        // TODO: Where should we store the download ID?
-                        downloadJob = startDownloadJob(currentDownload!!, true)
+                        listOfDownloadJobs[downloadId]?.job = startDownloadJob(currentDownload!!, true)
+                        listOfDownloadJobs[downloadId]?.isPaused = false
                     }
 
                     ACTION_CANCEL -> {
-                        Log.d("Sawyer", "ACTION_CANCEL")
+                        // TODO: Fix broken behavior
+                        Log.d("Sawyer", "ACTION_CANCEL " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
                         if (downloadIsPaused) {
+                            Log.d("Sawyer", "cancelAll")
                             // TODO: Kill *just* the notification we want, not all of them
                             NotificationManagerCompat.from(context).cancelAll()
                         } else {
                             downloadJob?.cancel()
                         }
-                        downloadIsPaused = false
+                        //                         downloadIsPaused = false
                     }
                 }
             }
@@ -107,7 +122,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         // We must start the foreground service immediately in order to stop Android from killing our service
         startForeground(
             NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-            DownloadNotification.createOngoingDownloadNotification(context, "", 0)
+            DownloadNotification.createOngoingDownloadNotification(context, null)
         )
 
         registerForUpdates()
@@ -125,9 +140,9 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         currentDownload = intent?.getDownloadExtra() ?: return
         val download = intent.getDownloadExtra() ?: return
 
-        // TODO: the job needs to also include sending a notification on completion for resume.
         // Create a new job and add it, with its downloadState to the map
         val newDownloadJob = startDownloadJob(download, false)
+        listOfDownloadJobs[newDownloadJob] = download
         downloadJob = newDownloadJob
     }
 
@@ -140,7 +155,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                 performDownload(download, isResuming)
                 if (downloadIsPaused) {
                     tag = ONGOING_DOWNLOAD_NOTIFICATION_TAG
-                    DownloadNotification.createPausedDownloadNotification(context, download.fileName)
+                    DownloadNotification.createPausedDownloadNotification(context, download)
                 } else {
                     tag = COMPLETED_DOWNLOAD_NOTIFICATION_TAG
                     DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
@@ -156,7 +171,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                     notification
             )
 
-            Log.d("Sawyer", "Download id" + download.id)
             sendDownloadCompleteBroadcast(download.id)
         }.also { job ->
             job.invokeOnCompletion { cause ->
@@ -193,8 +207,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
         val ongoingDownloadNotification = DownloadNotification.createOngoingDownloadNotification(
             context,
-            download?.fileName,
-            download?.contentLength
+            download
         )
 
         NotificationManagerCompat.from(context).notify(

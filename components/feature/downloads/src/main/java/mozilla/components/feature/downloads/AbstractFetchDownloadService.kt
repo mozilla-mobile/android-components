@@ -46,6 +46,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import kotlin.random.Random
 
 /**
  * Service that performs downloads through a fetch [Client] rather than through the native
@@ -68,8 +69,9 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             var job: Job? = null,
             var state: DownloadState,
             var currentBytesCopied: Long = 0,
-            var isPaused: Boolean = false
-    )
+            var isPaused: Boolean = false,
+            var foregroundServiceId: Int = 0
+     )
 
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
@@ -114,12 +116,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     override fun onCreate() {
-        // We must start the foreground service immediately in order to stop Android from killing our service
         Log.d("Sawyer", "onCreate")
-        startForeground(
-            NotificationIds.getIdForTag(context, ONGOING_DOWNLOAD_NOTIFICATION_TAG),
-            DownloadNotification.createOngoingDownloadNotification(context, null)
-        )
+
 
         registerForUpdates()
 
@@ -136,26 +134,28 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     override suspend fun onStartCommand(intent: Intent?, flags: Int) {
         val download = intent?.getDownloadExtra() ?: return
 
+        Log.d("Sawyer", "onStartCommand")
+        val foregroundServiceId = Random.nextInt()
+        // We must start the foreground service immediately in order to stop Android from killing our service
+
         // Create a new job and add it, with its downloadState to the map
         listOfDownloadJobs[download.id] = DownloadJobState(
                 job = startDownloadJob(download, false),
-                state = download
+                state = download,
+                foregroundServiceId = foregroundServiceId
         )
     }
 
     private fun startDownloadJob(download: DownloadState, isResuming: Boolean): Job {
         return CoroutineScope(IO).launch {
-            // If the job is JUST starting, start a new foregroundService.
-            displayOngoingDownloadNotification(download)
-
             var tag: String
             val notification = try {
                 performDownload(download, isResuming)
                 if (listOfDownloadJobs[download.id]?.isPaused == true) {
-                    tag = ONGOING_DOWNLOAD_NOTIFICATION_TAG
+                    tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString() ?: ""
                     DownloadNotification.createPausedDownloadNotification(context, download)
                 } else {
-                    tag = COMPLETED_DOWNLOAD_NOTIFICATION_TAG
+                    tag = listOfDownloadJobs[download.id]?.foregroundServiceId?.toString() ?: ""
                     DownloadNotification.createDownloadCompletedNotification(context, download.fileName)
                 }
             } catch (e: IOException) {
@@ -202,14 +202,17 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
+        //listOfDownloadJobs[download?.id]?.foregroundServiceId?.toString() ?: return
+
         val ongoingDownloadNotification = DownloadNotification.createOngoingDownloadNotification(
             context,
             download
         )
 
+        Log.d("Sawyer", "displayOngoing with id: " + download?.id)
         NotificationManagerCompat.from(context).notify(
             context,
-            ONGOING_DOWNLOAD_NOTIFICATION_TAG,
+            listOfDownloadJobs[download?.id]?.foregroundServiceId?.toString() ?: "",
             ongoingDownloadNotification
         )
     }
@@ -219,6 +222,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         val request = Request(download.url, headers = headers)
         val response = httpClient.fetch(request)
 
+        Log.d("Sawyer", "performDownload: " + download.id)
         response.body.useStream { inStream ->
             val newDownloadState = download.withResponse(response.headers, inStream)
             listOfDownloadJobs[download.id]?.state = newDownloadState

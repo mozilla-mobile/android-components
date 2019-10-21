@@ -39,7 +39,6 @@ import mozilla.components.concept.fetch.toMutableHeaders
 import mozilla.components.feature.downloads.ext.addCompletedDownload
 import mozilla.components.feature.downloads.ext.getDownloadExtra
 import mozilla.components.feature.downloads.ext.withResponse
-import mozilla.components.support.base.ids.NotificationIds
 import mozilla.components.support.base.ids.cancel
 import mozilla.components.support.base.ids.notify
 import java.io.File
@@ -67,30 +66,27 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
 
     // TODO: Can this be simplified/refactored?
     data class DownloadJobState(
-            var job: Job? = null,
-            var state: DownloadState,
-            var currentBytesCopied: Long = 0,
-            var isPaused: Boolean = false,
-            var isCancelled: Boolean = false,
-            var foregroundServiceId: Int = 0
-     )
+        var job: Job? = null,
+        var state: DownloadState,
+        var currentBytesCopied: Long = 0,
+        var isPaused: Boolean = false,
+        var isCancelled: Boolean = false,
+        var foregroundServiceId: Int = 0
+    )
 
     private val broadcastReceiver by lazy {
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent?) {
-                val downloadId =  intent?.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID) ?: return
+                val downloadId = intent?.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID) ?: return
                 val currentDownloadJobState = listOfDownloadJobs[downloadId] ?: return
 
                 when (intent.action) {
                     ACTION_PAUSE -> {
-                        Log.d("Sawyer", "ACTION_PAUSE: " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
                         currentDownloadJobState.isPaused = true
                         currentDownloadJobState.job?.cancel()
                     }
 
                     ACTION_RESUME -> {
-                        Log.d("Sawyer", "ACTION_RESUME: " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
-
                         displayOngoingDownloadNotification(currentDownloadJobState.state)
 
                         currentDownloadJobState.job = startDownloadJob(currentDownloadJobState.state, true)
@@ -98,8 +94,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
                     }
 
                     ACTION_CANCEL -> {
-                        Log.d("Sawyer", "ACTION_CANCEL: " + intent.extras?.getLong(DownloadNotification.EXTRA_DOWNLOAD_ID))
-
                         // We must set isCancelled here so `copyInChunks` knows to break out of its loop and cancel the operation
                         currentDownloadJobState.isCancelled = true
                         currentDownloadJobState.job?.cancel()
@@ -111,6 +105,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     // TODO: Do I really need to startForeground immediately? This causes double notifs to appear
+    // TODO: cc @NotWoods
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -176,14 +171,11 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     }
 
     private fun displayOngoingDownloadNotification(download: DownloadState?) {
-        //listOfDownloadJobs[download?.id]?.foregroundServiceId?.toString() ?: return
-
         val ongoingDownloadNotification = DownloadNotification.createOngoingDownloadNotification(
             context,
             download
         )
 
-        Log.d("Sawyer", "displayOngoing with id: " + download?.id)
         NotificationManagerCompat.from(context).notify(
             context,
             listOfDownloadJobs[download?.id]?.foregroundServiceId?.toString() ?: "",
@@ -196,7 +188,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         val request = Request(download.url, headers = headers)
         val response = httpClient.fetch(request)
 
-        Log.d("Sawyer", "performDownload: " + download.id)
         response.body.useStream { inStream ->
             val newDownloadState = download.withResponse(response.headers, inStream)
             listOfDownloadJobs[download.id]?.state = newDownloadState

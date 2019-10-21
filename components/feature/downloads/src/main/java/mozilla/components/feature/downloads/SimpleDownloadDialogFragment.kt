@@ -56,38 +56,6 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
     internal val positiveButtonTextColor get() =
         safeArguments.getInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, DEFAULT_VALUE)
 
-    /*
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        fun getBuilder(themeID: Int): AlertDialog.Builder {
-            val context = testingContext ?: requireContext()
-            return if (themeID == 0) AlertDialog.Builder(context) else AlertDialog.Builder(context, themeID)
-        }
-
-        return with(requireBundle()) {
-            val fileName = getString(KEY_FILE_NAME, "")
-            val dialogTitleText = getInt(KEY_TITLE_TEXT, mozac_feature_downloads_dialog_title)
-            val positiveButtonText = getInt(KEY_DOWNLOAD_TEXT, mozac_feature_downloads_dialog_download)
-            val negativeButtonText = getInt(KEY_NEGATIVE_TEXT, mozac_feature_downloads_dialog_cancel)
-            val themeResId = getInt(KEY_THEME_ID, 0)
-            val cancelable = getBoolean(KEY_CANCELABLE, false)
-
-            getBuilder(themeResId)
-                .setTitle(dialogTitleText)
-                .setMessage(fileName)
-                .setPositiveButton(positiveButtonText) { _, _ ->
-                    onStartDownload()
-                }
-                .setNegativeButton(negativeButtonText) { _, _ ->
-                    onCancelDownload()
-                    dismiss()
-                }
-                .setOnCancelListener { onCancelDownload() }
-                .setCancelable(cancelable)
-                .create()
-        }
-    }
-     */
-
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // TODO: Do I even need these separate container/dialog things?
         val sheetDialog = Dialog(requireContext())
@@ -125,7 +93,7 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         with(requireBundle()) {
             rootView.title.text = if (getLong(KEY_CONTENT_LENGTH) <= 0L) {
                 // TODO: I'm ignoring the KEY_TITLE_TEXT passed in--is that an issue?
-                 getString(mozac_feature_downloads_dialog_download)
+                getString(mozac_feature_downloads_dialog_download)
             } else {
                 val contentSize = getLong(KEY_CONTENT_LENGTH).toMegabyteString()
                 getString(getInt(KEY_TITLE_TEXT, mozac_feature_downloads_dialog_title2), contentSize)

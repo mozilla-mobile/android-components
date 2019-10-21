@@ -30,5 +30,6 @@ data class DownloadState(
     val skipConfirmation: Boolean = false,
     val id: Long = Random.nextLong(),
     val outputStream: OutputStream? = null,
-    val bytesRead: Long? = null
+    // TODO: Remove these extra vars!
+    var bytesRead: Long? = null
 )

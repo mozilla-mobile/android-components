@@ -7,6 +7,7 @@ package mozilla.components.feature.downloads
 import android.annotation.TargetApi
 import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
+import android.app.Notification
 import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
@@ -20,6 +21,7 @@ import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.VisibleForTesting
+import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -71,7 +73,8 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         var currentBytesCopied: Long = 0,
         var isPaused: Boolean = false,
         var isCancelled: Boolean = false,
-        var foregroundServiceId: Int = 0
+        var foregroundServiceId: Int = 0,
+        var notificationBuilder: NotificationCompat.Builder? = null
     )
 
     private val broadcastReceiver by lazy {
@@ -176,10 +179,12 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             download
         )
 
+        listOfDownloadJobs[download?.id]?.notificationBuilder = ongoingDownloadNotification
+
         NotificationManagerCompat.from(context).notify(
             context,
             listOfDownloadJobs[download?.id]?.foregroundServiceId?.toString() ?: "",
-            ongoingDownloadNotification
+            ongoingDownloadNotification.build()
         )
     }
 
@@ -189,6 +194,7 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         val response = httpClient.fetch(request)
 
         response.body.useStream { inStream ->
+            inStream.available()
             val newDownloadState = download.withResponse(response.headers, inStream)
             listOfDownloadJobs[download.id]?.state = newDownloadState
 
@@ -206,8 +212,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
     // TODO: Can't "copy in chunks" for files without a contentLength
     private fun copyInChunks(downloadJobState: DownloadJobState, inStream: InputStream, outStream: OutputStream) {
         // To ensure that we copy all files (even ones that don't have fileSize, we must NOT check < fileSize
-
-        // TODO: It may have a passed in copy of downloadJobState so this may not work...
         while (!downloadJobState.isPaused && !downloadJobState.isCancelled) {
             val data = ByteArray(chunkSize)
             val bytesRead = inStream.read(data)
@@ -218,6 +222,20 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
             downloadJobState.currentBytesCopied += bytesRead
 
             outStream.write(data, 0, bytesRead)
+
+            // TODO: Is this an acceptable way to handle this edge case?
+            // Update the progress of the notification only if it's not towards the very end
+            // If it is, then it's likely this notification will override the "completed" notification
+            if (downloadJobState.currentBytesCopied.toInt() / downloadJobState.state.contentLength?.toInt()!! < .95) {
+                downloadJobState.notificationBuilder
+                        ?.setProgress(downloadJobState.state.contentLength?.toInt()!!, downloadJobState.currentBytesCopied.toInt(), false)
+
+                NotificationManagerCompat.from(context).notify(
+                        context,
+                        downloadJobState.foregroundServiceId.toString(),
+                        downloadJobState.notificationBuilder!!.build()
+                )
+            }
         }
     }
 
@@ -309,6 +327,6 @@ abstract class AbstractFetchDownloadService : CoroutineService() {
         const val ACTION_PAUSE = "mozilla.components.feature.downloads.PAUSE"
         const val ACTION_RESUME = "mozilla.components.feature.downloads.RESUME"
         const val ACTION_CANCEL = "mozilla.components.feature.downloads.CANCEL"
-        const val chunkSize = 4 * 1024
+        const val chunkSize = 8 * 1024 // Quarter of a megabyte
     }
 }

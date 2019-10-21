@@ -34,7 +34,7 @@ internal object DownloadNotification {
     /**
      * Build the notification to be displayed while the download service is active.
      */
-    fun createOngoingDownloadNotification(context: Context, downloadState: DownloadState?): Notification {
+    fun createOngoingDownloadNotification(context: Context, downloadState: DownloadState?): NotificationCompat.Builder {
         val channelId = ensureChannelExists(context)
 
         val fileSizeText = (downloadState?.contentLength?.toMegabyteString() ?: "")
@@ -45,11 +45,10 @@ internal object DownloadNotification {
             .setContentText(fileSizeText)
             .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setProgress(1, 0, true)
+            .setProgress(1, 0, false)
             .setOngoing(true)
             .addAction(getPauseAction(context, downloadState?.id ?: -1))
             .addAction(getCancelAction(context, downloadState?.id ?: -1))
-            .build()
     }
 
     /**

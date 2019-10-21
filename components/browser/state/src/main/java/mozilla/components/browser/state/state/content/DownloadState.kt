@@ -18,6 +18,7 @@ import kotlin.random.Random
  * @property userAgent The user agent to be used for the download.
  * @property destinationDirectory The matching destination directory for this type of download.
  * @property referrerUrl The site that linked to this download.
+ * @property id The unique identifier for this download.
  */
 data class DownloadState(
     val url: String,
@@ -28,8 +29,5 @@ data class DownloadState(
     val destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
     val referrerUrl: String? = null,
     val skipConfirmation: Boolean = false,
-    val id: Long = Random.nextLong(),
-    val outputStream: OutputStream? = null,
-    // TODO: Remove these extra vars!
-    var bytesRead: Long? = null
+    val id: Long = Random.nextLong()
 )

@@ -6,8 +6,6 @@ package mozilla.components.support.ktx.java.io
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.nio.charset.Charset
-import kotlin.text.Charsets.UTF_8
 
 class InputStreamKtTest {
     private fun testReadAll(s: String) {

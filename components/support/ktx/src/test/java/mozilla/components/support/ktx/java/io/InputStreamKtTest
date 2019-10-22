@@ -1,0 +1,28 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package mozilla.components.support.ktx.java.io
+
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.nio.charset.Charset
+import kotlin.text.Charsets.UTF_16
+import kotlin.text.Charsets.UTF_8
+
+@RunWith(AndroidJUnit4::class)
+class InputStreamKtTest {
+
+    private fun testReadAll(s: String, charset: Charset) {
+        return assertEquals(s, s.byteInputStream(charset).readAll())
+    }
+
+    @Test
+    fun readAll() {
+        testReadAll("", UTF_8)
+        testReadAll("hello", UTF_8)
+    }
+}

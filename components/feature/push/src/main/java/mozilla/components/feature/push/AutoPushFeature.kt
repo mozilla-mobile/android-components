@@ -109,7 +109,7 @@ class AutoPushFeature(
     override fun shutdown() {
         service.stop()
 
-        DeliveryManager.with(connection) {
+        DeliverManager.runWithInitialized(connection) {
             scope.launch {
                 // TODO replace with unsubscribeAll API when available
                 PushType.values().forEach { type ->
@@ -145,7 +145,7 @@ class AutoPushFeature(
     override fun onMessageReceived(message: EncryptedPushMessage) {
         scope.launchAndTry {
             val type = DeliveryManager.serviceForChannelId(message.channelId)
-            DeliveryManager.with(connection) {
+            DeliverManager.runWithInitialized(connection) {
                 logger.info("New push message decrypted.")
                 val decrypted = decrypt(
                     channelId = message.channelId,
@@ -198,7 +198,7 @@ class AutoPushFeature(
      * Notifies observers about the subscription information for the push type if available.
      */
     fun subscribeForType(type: PushType) {
-        DeliveryManager.with(connection) {
+        DeliverManager.runWithInitialized(connection) {
             scope.launchAndTry {
                 val sub = subscribe(type.toChannelId()).toPushSubscription()
                 subscriptionObservers.notifyObservers { onSubscriptionAvailable(sub) }
@@ -215,7 +215,7 @@ class AutoPushFeature(
      * [0]: https://github.com/mozilla-mobile/android-components/issues/3859
      */
     fun unsubscribeForType(type: PushType) {
-        DeliveryManager.with(connection) {
+        DeliverManager.runWithInitialized(connection) {
             scope.launchAndTry {
                 unsubscribe(type.toChannelId())
             }
@@ -226,7 +226,7 @@ class AutoPushFeature(
      * Returns all subscription for the push type if available.
      */
     fun subscribeAll() {
-        DeliveryManager.with(connection) {
+        DeliverManager.runWithInitialized(connection) {
             scope.launchAndTry {
                 PushType.values().forEach { type ->
                     val sub = subscribe(type.toChannelId()).toPushSubscription()

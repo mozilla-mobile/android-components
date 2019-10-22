@@ -55,6 +55,7 @@ Snapshots are build daily from the `master` branch and published on [snapshots.m
 # API Reference
 
 The API reference docs are available at [mozac.org/api/](https://mozac.org/api/).
+The Web API's are available at [https://developer.chrome.com/apps/api_other]
 
 # Components
 

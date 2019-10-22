@@ -17,6 +17,7 @@ permalink: /changelog/
 
 * **support-ktx**
   * Adds `InputStream.ReadAll()` to get all of the text from an `InputStream`.
+
 # 18.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v17.0.0...v18.0.0)

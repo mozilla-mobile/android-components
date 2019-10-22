@@ -10,13 +10,13 @@ import java.nio.charset.Charset
 import kotlin.text.Charsets.UTF_8
 
 class InputStreamKtTest {
-    private fun testReadAll(s: String, charset: Charset) {
-        return assertEquals(s, s.byteInputStream(charset).readAll())
+    private fun testReadAll(s: String) {
+        return assertEquals(s, s.byteInputStream(Charsets.UTF_8).readAll())
     }
 
     @Test
     fun readAll() {
-        testReadAll("", UTF_8)
-        testReadAll("hello", UTF_8)
+        testReadAll("")
+        testReadAll("hello")
     }
 }

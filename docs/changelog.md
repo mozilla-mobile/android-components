@@ -15,6 +15,8 @@ permalink: /changelog/
 * **browser-toolbar**
   * ⚠️ **This is a breaking change**: Refactored the internals to use `ConstraintLayout`. As part of this change the public API was simplified and unused methods/properties have been removed.
 
+* **support-ktx**
+  * Adds `InputStream.ReadAll()` to get all of the text from an `InputStream`.
 # 18.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v17.0.0...v18.0.0)

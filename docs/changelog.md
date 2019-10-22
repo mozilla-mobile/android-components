@@ -16,7 +16,7 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Refactored the internals to use `ConstraintLayout`. As part of this change the public API was simplified and unused methods/properties have been removed.
 
 * **support-ktx**
-  * Adds `InputStream.ReadAll()` to get all of the text from an `InputStream`.
+  * Adds `InputStream.readAll()` to get all of the text from an `InputStream`.
 
 # 18.0.0
 

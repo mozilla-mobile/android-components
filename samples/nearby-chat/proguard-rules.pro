@@ -19,6 +19,3 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-# https://stackoverflow.com/a/51011781/631051
--keep class androidx.core.app.CoreComponentFactory { *; }

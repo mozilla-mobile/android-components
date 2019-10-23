@@ -24,6 +24,8 @@ import com.google.android.gms.nearby.connection.Strategy
 import mozilla.components.support.base.log.logger.Logger
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.concurrent.ConcurrentHashMap
+import mozilla.components.support.base.observer.Observable
+import mozilla.components.support.base.observer.ObserverRegistry
 
 /**
  * A class that can be run on two devices to allow them to connect. This supports sending a single
@@ -38,17 +40,14 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class NearbyConnection(
     private val context: Context,
+    private val observer: NearbyConnectionObserver,
     private val name: String = Build.MODEL
-) {
-    /**
-     * Listener to be notified of changes of status and message transmission. When this
-     * is set, its [NearbyConnectionListener.updateState] method is immediately called.
-     */
-    var listener: NearbyConnectionListener? = null
-        set(value) {
-            field = value
-            value?.updateState(if (::connectionState.isInitialized) connectionState else ConnectionState.Isolated)
-        }
+) : Observable<NearbyConnectionObserver> by ObserverRegistry() {
+
+    init {
+        register(observer) // TODO: Add LifecycleOwner
+        updateState(ConnectionState.Isolated)
+    }
 
     // I assume that the number of endpoints encountered during the lifetime of the application
     // will be small and do not remove them from the map.
@@ -56,7 +55,7 @@ class NearbyConnection(
 
     /**
      * The state of the connection. Changes in state are communicated through
-     * [NearbyConnectionListener.updateState].
+     * [updateState].
      */
     public sealed class ConnectionState {
         val name = javaClass.simpleName
@@ -152,7 +151,7 @@ class NearbyConnection(
     @Synchronized
     private fun updateState(cs: ConnectionState) {
         connectionState = cs
-        listener?.updateState(cs)
+        notifyObservers { onStateUpdated(cs) }
     }
 
     /**
@@ -239,17 +238,19 @@ class NearbyConnection(
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
-            listener?.receiveMessage(
-                endpointId,
-                endpointIdsToNames[endpointId],
-                payload.asBytes()?.let { String(it, UTF_8) } ?: "")
+            notifyObservers {
+                onMessageReceived(
+                    endpointId,
+                    endpointIdsToNames[endpointId],
+                    payload.asBytes()?.let { String(it, UTF_8) } ?: "")
+            }
         }
 
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
             // Make sure it's reporting on our outgoing message, not an incoming one.
             if (update.status == Status.SUCCESS &&
                 (connectionState as? ConnectionState.Sending)?.payloadId == update.payloadId) {
-                listener?.messageDelivered(update.payloadId)
+                notifyObservers { onMessageDelivered(update.payloadId) }
                 updateState(ConnectionState.ReadyToSend(
                     endpointId,
                     endpointIdsToNames[endpointId]))
@@ -314,16 +315,16 @@ class NearbyConnection(
 }
 
 /**
- * Interface definition for listening to changes in a [NearbyConnection].
+ * Interface definition for observing changes in a [NearbyConnection].
  */
-interface NearbyConnectionListener {
+interface NearbyConnectionObserver {
     /**
      * Called whenever the connection's state is set. In the absence of failures, the
      * new state should differ from the prior state, but that is not guaranteed.
      *
      * @param connectionState the current state
      */
-    fun updateState(connectionState: NearbyConnection.ConnectionState)
+    fun onStateUpdated(connectionState: NearbyConnection.ConnectionState)
 
     /**
      * Called when a message is received from a neighboring device.
@@ -332,10 +333,10 @@ interface NearbyConnectionListener {
      * @param neighborName the name of the neighboring device
      * @param message the message
      */
-    fun receiveMessage(neighborId: String, neighborName: String?, message: String)
+    fun onMessageReceived(neighborId: String, neighborName: String?, message: String)
 
     /**
      * Called when a message has been successfully delivered to a neighboring device.
      */
-    fun messageDelivered(payloadId: Long)
+    fun onMessageDelivered(payloadId: Long)
 }

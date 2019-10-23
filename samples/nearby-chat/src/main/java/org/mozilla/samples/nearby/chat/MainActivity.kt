@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.lib.nearby.NearbyConnection.ConnectionState
-import mozilla.components.lib.nearby.NearbyConnectionListener
+import mozilla.components.lib.nearby.NearbyConnectionObserver
 import mozilla.components.support.base.log.logger.Logger
 
 class MainActivity : AppCompatActivity() {
@@ -104,10 +104,9 @@ class MainActivity : AppCompatActivity() {
     // Called after permissions first granted or reset button pressed
     private fun init() {
         // Can't do in onCreate because context not ready.
-        connection = NearbyConnection(this)
-        connection.listener =
-            object : NearbyConnectionListener {
-                override fun updateState(connectionState: ConnectionState) {
+        connection = NearbyConnection(this,
+            object : NearbyConnectionObserver {
+                override fun onStateUpdated(connectionState: ConnectionState) {
                     state = connectionState
                     statusText.text =
                         if (statusText.text.isEmpty()) state.name else "${statusText.text} -> ${state.name}"
@@ -128,21 +127,21 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                override fun receiveMessage(neighborId: String, neighborName: String?, message: String) {
+                override fun onMessageReceived(neighborId: String, neighborName: String?, message: String) {
                     incomingMessageText.text = getString(
                         R.string.mozac_samples_nearby_chat_message_received,
                         neighborName ?: neighborId,
                         message)
                 }
 
-                override fun messageDelivered(payloadId: Long) {
+                override fun onMessageDelivered(payloadId: Long) {
                     Toast.makeText(
                         this@MainActivity,
                         getString(R.string.mozac_samples_nearby_chat_message_delivered),
                         Toast.LENGTH_LONG
                     ).show()
                 }
-            }
+            })
         enableConnectionButtons()
         resetButton.isEnabled = true
     }

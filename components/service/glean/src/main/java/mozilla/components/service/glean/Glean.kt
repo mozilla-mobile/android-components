@@ -496,7 +496,8 @@ open class GleanInternalAPI internal constructor () {
     /**
      * Handle the background event and send the appropriate pings.
      */
-    internal fun handleBackgroundEvent() {
+    @Suppress("EXPERIMENTAL_API_USAGE")
+    internal fun handleBackgroundEvent() = Dispatchers.API.launch {
         // Schedule the baseline and event pings
         sendPings(listOf(Pings.baseline, Pings.events))
     }

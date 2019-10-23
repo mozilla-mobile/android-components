@@ -32,7 +32,7 @@ import mozilla.components.support.base.observer.ObserverRegistry
  * message at a time in each direction. It contains internal synchronization and may be accessed
  * from any thread
  *
- * @constructor Constructs a new connection, which will call [NearbyConnectionListener.updateState]
+ * @constructor Constructs a new connection, which will call [NearbyConnectionObserver.onStateUpdated]
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
  *     other methods are called by the client.
  * @param context context needed to initiate connection, used only at start
@@ -54,8 +54,8 @@ class NearbyConnection(
     private val endpointIdsToNames = ConcurrentHashMap<String, String>()
 
     /**
-     * The state of the connection. Changes in state are communicated through
-     * [updateState].
+     * The state of the connection. Changes in state are communicated to the client through
+     * [NearbyConnectionObserver.onStateUpdated].
      */
     public sealed class ConnectionState {
         val name = javaClass.simpleName

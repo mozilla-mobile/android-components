@@ -281,7 +281,9 @@ class NearbyConnection(
 
     /**
      * Breaks any connections to neighboring devices. This also stops advertising and
-     * discovering. The state will be updated to [ConnectionState.Isolated].
+     * discovering. The state will be updated to [ConnectionState.Isolated]. It is
+     * important to call this when thex connection is no longer needed because of
+     * a [leak in the GATT client](http://bit.ly/33VP1gn).
      */
     fun disconnect() {
         connectionsClient.stopAllEndpoints() // also stops advertising and discovery

@@ -242,7 +242,7 @@ class NearbyConnection(
             listener?.receiveMessage(
                 endpointId,
                 endpointIdsToNames[endpointId],
-                String(payload.asBytes()!!, UTF_8))
+                payload.asBytes()?.let { String(it, UTF_8) } ?: "")
         }
 
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {

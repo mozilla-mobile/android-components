@@ -35,12 +35,10 @@ import java.util.concurrent.ConcurrentHashMap
  *     other methods are called by the client.
  * @param context context needed to initiate connection, used only at start
  * @param name name shown by this device to other devices
- * @param authenticate whether to authenticate the connection (true) or make it automatically (false)
  */
 class NearbyConnection(
     private val context: Context,
-    private val name: String = Build.MODEL,
-    private val authenticate: Boolean = true
+    private val name: String = Build.MODEL
 ) {
     /**
      * Listener to be notified of changes of status and message transmission. When this
@@ -212,19 +210,14 @@ class NearbyConnection(
         override fun onConnectionInitiated(endpointId: String, connectionInfo: ConnectionInfo) {
             // This is the last time we have access to the endpoint name, so cache it.
             endpointIdsToNames.put(endpointId, connectionInfo.endpointName)
-            if (authenticate) {
-                updateState(
-                    ConnectionState.Authenticating(
-                        this@NearbyConnection,
-                        endpointId,
-                        connectionInfo.endpointName,
-                        connectionInfo.authenticationToken
-                    )
+            updateState(
+                ConnectionState.Authenticating(
+                    this@NearbyConnection,
+                    endpointId,
+                    connectionInfo.endpointName,
+                    connectionInfo.authenticationToken
                 )
-            } else {
-                connectionsClient.acceptConnection(endpointId, payloadCallback)
-                updateState(ConnectionState.Connecting(endpointId, connectionInfo.endpointName))
-            }
+            )
         }
 
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {

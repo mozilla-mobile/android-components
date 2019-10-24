@@ -18,10 +18,17 @@
         android:layout_centerInParent="true" />
 
     <ImageView
+        android:id="@+id/qr_reticle"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:scaleType="fitXY"
+        android:layout_centerInParent="true"
+        android:contentDescription="@string/mozac_feature_qr_scanner"
+        android:src="@drawable/qr_reticle" />
+
+    <mozilla.components.feature.qr.CustomOverlay
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerInParent="true"
-        android:contentDescription="@string/mozac_feature_qr_scanner"
-        android:src="@drawable/qr_cam_focus" />
-
+        android:gravity="center" />
 </RelativeLayout>

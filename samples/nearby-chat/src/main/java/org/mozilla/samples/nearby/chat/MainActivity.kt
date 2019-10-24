@@ -141,7 +141,8 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
-            })
+            },
+            owner = this)
         enableConnectionButtons()
         resetButton.isEnabled = true
     }

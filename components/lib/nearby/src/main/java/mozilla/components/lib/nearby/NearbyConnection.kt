@@ -35,13 +35,18 @@ import mozilla.components.support.base.observer.ObserverRegistry
  * @constructor Constructs a new connection, which will call [NearbyConnectionObserver.onStateUpdated]
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
  *     other methods are called by the client.
- * @property context context needed to initiate connection, used only at start
- * @property name name shown by this device to other devices
+ * @param connectionsClient the underlying client
+ * @param name a human-readable name for this device
  */
 class NearbyConnection(
-    private val context: Context,
+    private val connectionsClient: ConnectionsClient,
     private val name: String = Build.MODEL
 ) : Observable<NearbyConnectionObserver> by ObserverRegistry() {
+    /**
+     * Another constructor
+     */
+    constructor(context: Context, name: String = Build.MODEL) : this(Nearby.getConnectionsClient(context), name)
+
     // I assume that the number of endpoints encountered during the lifetime of the application
     // will be small and do not remove them from the map.
     private val endpointIdsToNames = ConcurrentHashMap<String, String>()
@@ -149,11 +154,14 @@ class NearbyConnection(
         class Failure(val message: String) : ConnectionState()
     }
 
-    private var connectionsClient: ConnectionsClient = Nearby.getConnectionsClient(context)
-
     // The is mutated only in updateState(), which can be called from both the main thread and in
     // callbacks so is synchronized.
     private var connectionState: ConnectionState = ConnectionState.Isolated
+
+    override fun register(observer: NearbyConnectionObserver) {
+        delegate.register(observer)
+        observer.onStateUpdated(connectionState)
+    }
 
     // This method is called from both the main thread and callbacks.
     @Synchronized

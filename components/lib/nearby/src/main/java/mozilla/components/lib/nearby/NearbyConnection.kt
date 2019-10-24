@@ -7,6 +7,7 @@ package mozilla.components.lib.nearby
 import android.Manifest
 import android.content.Context
 import android.os.Build
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -36,16 +37,26 @@ import mozilla.components.support.base.observer.ObserverRegistry
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
  *     other methods are called by the client.
  * @param context context needed to initiate connection, used only at start
+ * @param observer the observer
  * @param name name shown by this device to other devices
+ * @param owner the lifecycle owner the provided observer is bound to
+ * @param autoPause whether or not the observer should automatically be paused/resumed with the
+ *   bound lifecycle.
  */
 class NearbyConnection(
     private val context: Context,
-    private val observer: NearbyConnectionObserver,
-    private val name: String = Build.MODEL
+    observer: NearbyConnectionObserver,
+    private val name: String = Build.MODEL,
+    owner: LifecycleOwner? = null,
+    autoPause: Boolean = false
 ) : Observable<NearbyConnectionObserver> by ObserverRegistry() {
 
     init {
-        register(observer) // TODO: Add LifecycleOwner
+        if (owner == null) {
+            register(observer)
+        } else {
+            register(observer, owner, autoPause)
+        }
         updateState(ConnectionState.Isolated)
     }
 
@@ -58,7 +69,11 @@ class NearbyConnection(
      * [NearbyConnectionObserver.onStateUpdated].
      */
     public sealed class ConnectionState {
-        val name = javaClass.simpleName
+        /**
+         * The name of the state, which is the same as the name of the concrete class
+         * (e.g., "Isolated" for [Isolated]).
+         */
+        val name: String = javaClass.simpleName
 
         /**
          * There is no connection to another device and no attempt to connect.

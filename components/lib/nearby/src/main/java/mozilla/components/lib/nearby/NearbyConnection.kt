@@ -37,29 +37,12 @@ import mozilla.components.support.base.observer.ObserverRegistry
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
  *     other methods are called by the client.
  * @property context context needed to initiate connection, used only at start
- * @param observer the observer
  * @property name name shown by this device to other devices
- * @param owner the lifecycle owner the provided observer is bound to
- * @param autoPause whether or not the observer should automatically be paused/resumed with the
- *   bound lifecycle
  */
 class NearbyConnection(
     private val context: Context,
-    observer: NearbyConnectionObserver,
-    private val name: String = Build.MODEL,
-    owner: LifecycleOwner? = null,
-    autoPause: Boolean = false
+    private val name: String = Build.MODEL
 ) : Observable<NearbyConnectionObserver> by ObserverRegistry() {
-
-    init {
-        if (owner == null) {
-            register(observer)
-        } else {
-            register(observer, owner, autoPause)
-        }
-        updateState(ConnectionState.Isolated)
-    }
-
     // I assume that the number of endpoints encountered during the lifetime of the application
     // will be small and do not remove them from the map.
     private val endpointIdsToNames = ConcurrentHashMap<String, String>()
@@ -171,7 +154,7 @@ class NearbyConnection(
 
     // The is mutated only in updateState(), which can be called from both the main thread and in
     // callbacks so is synchronized.
-    private lateinit var connectionState: ConnectionState
+    private var connectionState: ConnectionState = ConnectionState.Isolated
 
     // This method is called from both the main thread and callbacks.
     @Synchronized

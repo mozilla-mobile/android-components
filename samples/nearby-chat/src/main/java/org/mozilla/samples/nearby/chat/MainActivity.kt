@@ -104,45 +104,8 @@ class MainActivity : AppCompatActivity() {
     // Called after permissions first granted or reset button pressed
     private fun init() {
         // Can't do in onCreate because context not ready.
-        connection = NearbyConnection(this,
-            object : NearbyConnectionObserver {
-                override fun onStateUpdated(connectionState: ConnectionState) {
-                    state = connectionState
-                    statusText.text =
-                        if (statusText.text.isEmpty()) state.name else "${statusText.text} -> ${state.name}"
-                    textInputLayout.visibility =
-                        if (state is ConnectionState.ReadyToSend) View.VISIBLE else View.INVISIBLE
-                    if (state is ConnectionState.Authenticating) {
-                        val auth = state as ConnectionState.Authenticating
-                        AlertDialog.Builder(this@MainActivity)
-                            .setTitle(
-                                getString(R.string.mozac_samples_nearby_chat_accept_connection,
-                                    auth.neighborName))
-                            .setMessage(getString(R.string.mozac_samples_nearby_chat_confirm_token,
-                                auth.token))
-                            .setPositiveButton(android.R.string.yes) { _, _ -> auth.accept() }
-                            .setNegativeButton(android.R.string.no) { _, _ -> auth.reject() }
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .show()
-                    }
-                }
-
-                override fun onMessageReceived(neighborId: String, neighborName: String?, message: String) {
-                    incomingMessageText.text = getString(
-                        R.string.mozac_samples_nearby_chat_message_received,
-                        neighborName ?: neighborId,
-                        message)
-                }
-
-                override fun onMessageDelivered(payloadId: Long) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.mozac_samples_nearby_chat_message_delivered),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            },
-            owner = this)
+        connection = NearbyConnection(this)
+        connection.register(ObserverForChat(), this)
         enableConnectionButtons()
         resetButton.isEnabled = true
     }
@@ -155,5 +118,44 @@ class MainActivity : AppCompatActivity() {
     private fun enableConnectionButtons() {
         advertiseButton.isEnabled = true
         discoverButton.isEnabled = true
+    }
+
+
+    private inner class ObserverForChat: NearbyConnectionObserver {
+        override fun onStateUpdated(connectionState: ConnectionState) {
+            state = connectionState
+            statusText.text =
+                if (statusText.text.isEmpty()) state.name else "${statusText.text} -> ${state.name}"
+            textInputLayout.visibility =
+                if (state is ConnectionState.ReadyToSend) View.VISIBLE else View.INVISIBLE
+            if (state is ConnectionState.Authenticating) {
+                val auth = state as ConnectionState.Authenticating
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(
+                        getString(R.string.mozac_samples_nearby_chat_accept_connection,
+                            auth.neighborName))
+                    .setMessage(getString(R.string.mozac_samples_nearby_chat_confirm_token,
+                        auth.token))
+                    .setPositiveButton(android.R.string.yes) { _, _ -> auth.accept() }
+                    .setNegativeButton(android.R.string.no) { _, _ -> auth.reject() }
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show()
+            }
+        }
+
+        override fun onMessageReceived(neighborId: String, neighborName: String?, message: String) {
+            incomingMessageText.text = getString(
+                R.string.mozac_samples_nearby_chat_message_received,
+                neighborName ?: neighborId,
+                message)
+        }
+
+        override fun onMessageDelivered(payloadId: Long) {
+            Toast.makeText(
+                this@MainActivity,
+                getString(R.string.mozac_samples_nearby_chat_message_delivered),
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 }

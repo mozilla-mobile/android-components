@@ -31,17 +31,17 @@ import mozilla.components.support.base.observer.ObserverRegistry
 /**
  * A class that can be run on two devices to allow them to connect. This supports sending a single
  * message at a time in each direction. It contains internal synchronization and may be accessed
- * from any thread
+ * from any thread.
  *
  * @constructor Constructs a new connection, which will call [NearbyConnectionObserver.onStateUpdated]
  *     with an argument of type [ConnectionState.Isolated]. No further action will be taken unless
  *     other methods are called by the client.
- * @param context context needed to initiate connection, used only at start
+ * @property context context needed to initiate connection, used only at start
  * @param observer the observer
- * @param name name shown by this device to other devices
+ * @property name name shown by this device to other devices
  * @param owner the lifecycle owner the provided observer is bound to
  * @param autoPause whether or not the observer should automatically be paused/resumed with the
- *   bound lifecycle.
+ *   bound lifecycle
  */
 class NearbyConnection(
     private val context: Context,
@@ -133,18 +133,29 @@ class NearbyConnection(
         /**
          * The connection has been successfully authenticated (or authentication is disabled).
          * Unless an error occurs, the next state will be [ReadyToSend].
+         *
+         * @param neighborId the neighbor's ID, which is not meant for human readability
+         * @param neighborName the neighbor's human-readable name
          */
         class Connecting(val neighborId: String, val neighborName: String) : ConnectionState()
 
         /**
          * A connection has been made to a neighbor and this device may send a message.
          * This state is followed by [Sending] or [Failure].
+         *
+         * @param neighborId the neighbor's ID, which is not meant for human readability
+         * @param neighborName the neighbor's human-readable name
          */
         class ReadyToSend(val neighborId: String, val neighborName: String?) : ConnectionState()
 
         /**
          * A message is being sent from this device. This state is followed by [ReadyToSend] or
          * [Failure].
+         *
+         * @param neighborId the neighbor's ID, which is not meant for human readability
+         * @param neighborName the neighbor's human-readable name
+         * @param payloadId the ID of the message that was sent, which will appear again
+         *   in [NearbyConnectionObserver.onMessageDelivered]
          */
         class Sending(val neighborId: String, val neighborName: String?, val payloadId: Long) : ConnectionState()
 
@@ -172,9 +183,9 @@ class NearbyConnection(
     /**
      * Starts advertising this device. After calling this, the state will be updated to
      * [ConnectionState.Advertising] or [ConnectionState.Failure]. If all goes well, eventually
-     * the state will be updated to [ConnectionState.Authenticating] (if [authenticate] is true)
-     * or [ConnectionState.Connecting]. A client should call either [startAdvertising] or
-     * [startDiscovering] to make a connection, not both.
+     * the state will be updated to [ConnectionState.Authenticating]. A client should call either
+     * [startAdvertising] or [startDiscovering] to make a connection, not both. To initiate a
+     * connection, one device must call [startAdvertising] and the other [startDiscovering].
      */
     fun startAdvertising() {
         connectionsClient.startAdvertising(
@@ -192,9 +203,10 @@ class NearbyConnection(
     /**
      * Starts trying to discover nearby advertising devices. After calling this, the state will
      * be updated to [ConnectionState.Discovering] or [ConnectionState.Failure]. If all goes well,
-     * eventually the state will be updated to [ConnectionState.Authenticating] (if [authenticate]
-     * is true) or [ConnectionState.Connecting]. A client should call either [startAdvertising] or
-     * [startDiscovering] to make a connection, not both.
+     * eventually the state will be updated to [ConnectionState.Authenticating]. A client should
+     * call either [startAdvertising] or [startDiscovering] to make a connection, not both. To
+     * initiate a connection, one device must call [startAdvertising] and the other
+     * [startDiscovering].
      */
     fun startDiscovering() {
         connectionsClient.startDiscovery(
@@ -279,7 +291,7 @@ class NearbyConnection(
      *
      * @param message the message to send
      * @return an id that will be later passed back through
-     *   [NearbyConnectionListener.messageDelivered], or null if the message could not be sent
+     *   [NearbyConnectionObserver.onMessageDelivered], or null if the message could not be sent
      */
     fun sendMessage(message: String): Long? {
         val state = connectionState
@@ -298,7 +310,7 @@ class NearbyConnection(
     /**
      * Breaks any connections to neighboring devices. This also stops advertising and
      * discovering. The state will be updated to [ConnectionState.Isolated]. It is
-     * important to call this when thex connection is no longer needed because of
+     * important to call this when the connection is no longer needed because of
      * a [leak in the GATT client](http://bit.ly/33VP1gn).
      */
     fun disconnect() {

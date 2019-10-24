@@ -158,10 +158,12 @@ class NearbyConnection(
     // callbacks so is synchronized.
     private var connectionState: ConnectionState = ConnectionState.Isolated
 
+    /*
     override fun register(observer: NearbyConnectionObserver) {
         delegate.register(observer)
         observer.onStateUpdated(connectionState)
     }
+     */
 
     // This method is called from both the main thread and callbacks.
     @Synchronized

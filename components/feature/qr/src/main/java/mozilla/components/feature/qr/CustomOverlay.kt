@@ -24,11 +24,18 @@ import android.widget.LinearLayout
  * @property windowFrame a reference to a [Bitmap], used to create the window frame.
  * @property activity a reference to an [Activity], used to refer the child views of
  * calling parent view.
- *
+ * @property ALPHA defines the opacity of the background.
+ * @property RADIUS defines the radius of the rectangle corners.
  */
+
 class CustomOverlay : LinearLayout {
     private var windowFrame: Bitmap? = null
     private lateinit var activity: Activity
+
+    companion object {
+        const val RADIUS = 30.0f
+        const val ALPHA = 170
+    }
 
     constructor(context: Context) : super(context)
 
@@ -76,12 +83,17 @@ class CustomOverlay : LinearLayout {
         val outerRectangle = RectF(0f, 0f, width.toFloat(), height.toFloat())
 
         var paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = Color.argb(170, 0, 0, 0)
+        paint.color = Color.argb(ALPHA, 0, 0, 0)
         osCanvas.drawRect(outerRectangle, paint)
 
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_OUT)
-        val innerRectangle = RectF(loc[0].toFloat(), (loc[1] - topOffset).toFloat(), (width - (width - right)).toFloat(), (height - (height - bottom)).toFloat())
-        osCanvas.drawRoundRect(innerRectangle, 30.0f, 30.0f, paint)
+        val innerRectangle = RectF(
+                loc[0].toFloat(),
+                (loc[1] - topOffset).toFloat(),
+                (width - (width - right)).toFloat(),
+                (height - (height - bottom)).toFloat()
+        )
+        osCanvas.drawRoundRect(innerRectangle, Companion.RADIUS, Companion.RADIUS, paint)
     }
 
     override fun isInEditMode(): Boolean { return true }

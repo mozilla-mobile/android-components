@@ -221,7 +221,7 @@ class GeckoEngineSessionTest {
         val mockedRuntime = mock<GeckoRuntime>()
         val mockedContentBlockingController = mock<ContentBlockingController>()
         val engineSession = GeckoEngineSession(mockedRuntime,
-            geckoSessionProvider = geckoSessionProvider)
+                geckoSessionProvider = geckoSessionProvider)
 
         var observedUrl = ""
         var observedCanGoBack = false
@@ -373,14 +373,21 @@ class GeckoEngineSessionTest {
 
     @Test
     fun loadUrl() {
-        val engineSession = GeckoEngineSession(mock(),
-                geckoSessionProvider = geckoSessionProvider)
+        val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
+        val parentEngineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
 
         engineSession.loadUrl("http://mozilla.org")
-        verify(geckoSession).loadUri("http://mozilla.org", GeckoSession.LOAD_FLAGS_NONE)
+        verify(geckoSession).loadUri("http://mozilla.org", null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE)
 
-        engineSession.loadUrl("http://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
-        verify(geckoSession).loadUri("http://www.mozilla.org", GeckoSession.LOAD_FLAGS_EXTERNAL)
+        engineSession.loadUrl("http://www.mozilla.org", flags = LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+        verify(geckoSession).loadUri("http://www.mozilla.org", null as GeckoSession?, GeckoSession.LOAD_FLAGS_EXTERNAL)
+
+        engineSession.loadUrl("http://www.mozilla.org", parent = parentEngineSession)
+        verify(geckoSession).loadUri(
+            "http://www.mozilla.org",
+            parentEngineSession.geckoSession,
+            GeckoSession.LOAD_FLAGS_NONE
+        )
     }
 
     @Test
@@ -515,7 +522,7 @@ class GeckoEngineSessionTest {
         val mockedRuntime = mock<GeckoRuntime>()
         val mockedContentBlockingController = mock<ContentBlockingController>()
         val engineSession = GeckoEngineSession(mockedRuntime,
-            geckoSessionProvider = geckoSessionProvider)
+                geckoSessionProvider = geckoSessionProvider)
 
         var observedUrl = ""
         engineSession.register(object : EngineSession.Observer {
@@ -1187,7 +1194,7 @@ class GeckoEngineSessionTest {
         navigationDelegate.value.onLoadRequest(geckoSession, mockLoadRequest("sample:about"))
 
         assertEquals("sample:about", interceptorCalledWithUri)
-        verify(geckoSession).loadUri("https://mozilla.org", GeckoSession.LOAD_FLAGS_NONE)
+        verify(geckoSession).loadUri("https://mozilla.org", null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE)
     }
 
     @Test
@@ -1452,10 +1459,8 @@ class GeckoEngineSessionTest {
         val defaultSettings =
             DefaultSettings(trackingProtectionPolicy = TrackingProtectionPolicy.recommended())
 
-        GeckoEngineSession(
-            runtime, geckoSessionProvider = geckoSessionProvider,
-            privateMode = false, defaultSettings = defaultSettings
-        )
+        GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider,
+            privateMode = false, defaultSettings = defaultSettings)
 
         verify(geckoSession.settings).useTrackingProtection = false
     }
@@ -1901,7 +1906,7 @@ class GeckoEngineSessionTest {
 
         // loadUrl(url: String)
         engineSession.loadUrl(fakeUrl)
-        verify(geckoSession).loadUri(fakeUrl, GeckoSession.LOAD_FLAGS_NONE)
+        verify(geckoSession).loadUri(fakeUrl, null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE)
         fakePageLoad(false)
 
         // subsequent page loads _are_ from web content

@@ -96,9 +96,9 @@ class GeckoEngineSession(
     /**
      * See [EngineSession.loadUrl]
      */
-    override fun loadUrl(url: String, flags: LoadUrlFlags) {
+    override fun loadUrl(url: String, parent: EngineSession?, flags: LoadUrlFlags) {
         requestFromWebContent = false
-        geckoSession.loadUri(url, flags.value)
+        geckoSession.loadUri(url, (parent as? GeckoEngineSession)?.geckoSession, flags.value)
     }
 
     /**
@@ -184,10 +184,10 @@ class GeckoEngineSession(
         val shouldBlockContent =
             policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
+        geckoSession.settings.useTrackingProtection = shouldBlockContent
         if (!enabled) {
             disableTrackingProtectionOnGecko()
         }
-        geckoSession.settings.useTrackingProtection = shouldBlockContent
         notifyObservers { onTrackerBlockingEnabledChange(enabled) }
     }
 
@@ -337,7 +337,6 @@ class GeckoEngineSession(
                 return
             }
             initialLoad = false
-
             isIgnoredForTrackingProtection { ignored ->
                 notifyObservers {
                     onExcludedOnTrackingProtectionChange(ignored)

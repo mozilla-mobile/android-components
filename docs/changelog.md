@@ -4,22 +4,60 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 18.0.0-SNAPSHOT (In Development)
+# 19.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v17.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/78?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v18.0.0...v19.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/79?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **browser-toolbar**
+  * ⚠️ **This is a breaking change**: Refactored the internals to use `ConstraintLayout`. As part of this change the public API was simplified and unused methods/properties have been removed.
+
+* **feature-accounts**
+  * Add new `FxaPushSupportFeature` for some underlying support when connecting push and fxa accounts together.
+
+* **browser-state**
+  * Added `externalAppType` to `CustomTabConfig` to indicate how the session is being used.
+
+* **service-glean**
+   * The Rust implementation of the Glean SDK is now being used.
+   * ⚠️ **This is a breaking change**: the `GleanDebugActivity` is no longer exposed from service-glean. Users need to use the one in `mozilla.telemetry.glean.debug.GleanDebugActivity` from the `adb` command line.
+   
+* **lib-push-firebase**
+   * Fixes a potential bug where we receive a message for another push service that we cannot process.
+
+* **feature-privatemode**
+  * Added new feature for private browsing mode.
+  * Added `SecureWindowFeature` to prevent screenshots in private browsing mode.
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * **Merge day!**
+    * `browser-engine-gecko-release`: GeckoView 71.0
+    * `browser-engine-gecko-beta`: GeckoView 71.0
+    * `browser-engine-gecko-nightly`: GeckoView 72.0
+
+# 18.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v17.0.0...v18.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/78?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v18.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v18.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v18.0.0/buildSrc/src/main/java/Config.kt)
+
 * **browser-menu**
-   * Adds the ability to create a BrowserMenuCategory, a menu item that defines a category for other menu items
+  * Adds the ability to create a BrowserMenuCategory, a menu item that defines a category for other menu items
 
 * **concept-engine**
-   * Adds the setting `forceUserScalableContent`.
+  * Adds the setting `forceUserScalableContent`.
 
 * **engine-gecko-nightly**
-   * Implements the setting `forceUserScalableContent`.
+  * Implements the setting `forceUserScalableContent`.
+
+* **feature-prompts**
+  * Deprecated `PromptFeature` constructor that has parameters for both `Activity` and `Fragment`. Use the constructors that just take either one instead.
+  * Changed `sessionId` parameter name to `customTabId`.
 
 * **lib-nearby**
   * 🆕 New component for communicating directly between two devices
@@ -140,6 +178,7 @@ permalink: /changelog/
   * Behavior change: In a collection List<TabEntity> is now ordered descending by creation date (newest tab in a collection on top)
 * **feature-session**, **engine-gecko-nightly** and **engine-gecko-beta**
   * Added api to manage the tracking protection exception list, any session added to the list will be ignored and the the current tracking policy will not be applied.
+
   ```kotlin
     val useCase = TrackingProtectionUseCases(sessionManager,engine)
 
@@ -196,6 +235,7 @@ permalink: /changelog/
 
 * **feature-session**, **engine-gecko-nightly** and **engine-gecko-beta**
   * Added a way to exposes the same amount of trackers as Firefox desktop has in it tracking protection panel via TrackingProtectionUseCases.
+
   ```kotlin
     val useCase = TrackingProtectionUseCases(sessionManager,engine)
     useCase.fetchTrackingLogs(

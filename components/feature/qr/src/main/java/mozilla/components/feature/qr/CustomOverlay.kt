@@ -6,13 +6,7 @@ package mozilla.components.feature.qr
 
 import android.app.Activity
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.RectF
+import android.graphics.*
 import android.util.AttributeSet
 import android.util.DisplayMetrics
 import android.widget.ImageView
@@ -28,22 +22,19 @@ import android.widget.LinearLayout
  * @property RADIUS defines the radius of the rectangle corners.
  */
 
-class CustomOverlay : LinearLayout {
+class CustomOverlay @JvmOverloads constructor (
+        context: Context,
+        attrs: AttributeSet? = null,
+        defStyleAttr: Int = 0
+) : LinearLayout(context, attrs, defStyleAttr) {
+
     private var windowFrame: Bitmap? = null
-    private lateinit var activity: Activity
+    private val activity = context as Activity
 
     companion object {
         const val RADIUS = 30.0f
         const val ALPHA = 170
     }
-
-    constructor(context: Context) : super(context)
-
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
-        activity = context as Activity
-    }
-
-    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
 
     /**
      * This is called before the canvas is drawn. Initializes the windowFrame only once
@@ -52,15 +43,14 @@ class CustomOverlay : LinearLayout {
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
 
-        if (windowFrame == null) {
-            createWindowFrame()
-        }
+        windowFrame ?: createWindowFrame()
+
         canvas.drawBitmap(windowFrame!!, 0f, 0f, null)
     }
 
-    override fun isEnabled(): Boolean { return false }
+    override fun isEnabled() = false
 
-    override fun isClickable(): Boolean { return false }
+    override fun isClickable() = false
 
     /**
      * This function creates the windows frame around our R.id.qr_reticle ImageView
@@ -80,9 +70,9 @@ class CustomOverlay : LinearLayout {
         windowFrame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val osCanvas = Canvas(windowFrame!!)
 
-        val outerRectangle = RectF(0f, 0f, width.toFloat(), height.toFloat())
+        val outerRectangle = Rect(0, 0, width, height)
 
-        var paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.color = Color.argb(ALPHA, 0, 0, 0)
         osCanvas.drawRect(outerRectangle, paint)
 
@@ -93,7 +83,7 @@ class CustomOverlay : LinearLayout {
                 (width - (width - right)).toFloat(),
                 (height - (height - bottom)).toFloat()
         )
-        osCanvas.drawRoundRect(innerRectangle, Companion.RADIUS, Companion.RADIUS, paint)
+        osCanvas.drawRoundRect(innerRectangle, RADIUS, RADIUS, paint)
     }
 
     override fun isInEditMode(): Boolean { return true }

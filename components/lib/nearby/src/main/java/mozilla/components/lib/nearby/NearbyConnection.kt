@@ -40,8 +40,9 @@ import mozilla.components.support.base.observer.ObserverRegistry
  */
 class NearbyConnection(
     private val connectionsClient: ConnectionsClient,
-    private val name: String = Build.MODEL
-) : Observable<NearbyConnectionObserver> by ObserverRegistry() {
+    private val name: String = Build.MODEL,
+    private val delegate: ObserverRegistry<NearbyConnectionObserver> = ObserverRegistry()
+) : Observable<NearbyConnectionObserver> by delegate {
     /**
      * Another constructor
      */
@@ -158,12 +159,10 @@ class NearbyConnection(
     // callbacks so is synchronized.
     private var connectionState: ConnectionState = ConnectionState.Isolated
 
-    /*
     override fun register(observer: NearbyConnectionObserver) {
         delegate.register(observer)
         observer.onStateUpdated(connectionState)
     }
-     */
 
     // This method is called from both the main thread and callbacks.
     @Synchronized

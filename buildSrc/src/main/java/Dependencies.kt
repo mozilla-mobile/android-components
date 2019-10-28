@@ -5,7 +5,7 @@
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
     const val kotlin = "1.3.50"
-    const val coroutines = "1.3.0"
+    const val coroutines = "1.3.2"
 
     const val junit = "4.12"
     const val robolectric = "4.1"
@@ -27,9 +27,12 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "1.6.3"
 
-    const val mozilla_appservices = "0.40.0"
+    const val mozilla_appservices = "0.42.0"
+
+    const val mozilla_glean = "19.0.0"
 
     const val material = "1.0.0"
+    const val nearby = "17.0.0"
 
     object AndroidX {
         const val annotation = "1.1.0"
@@ -48,7 +51,7 @@ object Versions {
         const val palette = "1.0.0"
         const val lifecycle = "2.1.0"
         const val media = "1.1.0"
-        const val work = "2.0.1"
+        const val work = "2.2.0"
         const val arch_core_testing = "2.1.0"
         const val uiautomator = "2.2.0"
         const val localbroadcastmanager = "1.0.0"
@@ -105,6 +108,7 @@ object Dependencies {
     const val androidx_localbroadcastmanager = "androidx.localbroadcastmanager:localbroadcastmanager:${Versions.AndroidX.localbroadcastmanager}"
 
     const val google_material = "com.google.android.material:material:${Versions.material}"
+    const val google_nearby = "com.google.android.gms:play-services-nearby:${Versions.nearby}"
 
     const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
@@ -119,6 +123,8 @@ object Dependencies {
     const val tools_detekt_test = "io.gitlab.arturbosch.detekt:detekt-test:${Versions.detekt}"
 
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
+
+    const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-forUnitTests:${Versions.mozilla_glean}"
 
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"

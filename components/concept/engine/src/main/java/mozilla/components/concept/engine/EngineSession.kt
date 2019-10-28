@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.webextension.BrowserAction
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -41,6 +42,10 @@ abstract class EngineSession(
         fun onTrackerBlockingEnabledChange(enabled: Boolean) = Unit
         fun onTrackerBlocked(tracker: Tracker) = Unit
         fun onTrackerLoaded(tracker: Tracker) = Unit
+        /**
+         * Event to notifies when this [EngineSession] should be [excluded] on tracking protection .
+         */
+        fun onExcludedOnTrackingProtectionChange(excluded: Boolean) = Unit
         fun onLongPress(hitResult: HitResult) = Unit
         fun onDesktopModeChange(enabled: Boolean) = Unit
         fun onFind(text: String) = Unit
@@ -55,6 +60,10 @@ abstract class EngineSession(
         fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
+        /**
+         * Event to notify that a web extension browser action has changed.
+         */
+        fun onBrowserActionChange(webExtensionId: String, action: BrowserAction) = Unit
         fun onWebAppManifestLoaded(manifest: WebAppManifest) = Unit
         fun onCrash() = Unit
         fun onProcessKilled() = Unit
@@ -361,9 +370,11 @@ abstract class EngineSession(
      * Loads the given URL.
      *
      * @param url the url to load.
+     * @param parent the parent (referring) [EngineSession] i.e. the session that
+     * triggered creating this one.
      * @param flags the [LoadUrlFlags] to use when loading the provider url.
      */
-    abstract fun loadUrl(url: String, flags: LoadUrlFlags = LoadUrlFlags.none())
+    abstract fun loadUrl(url: String, parent: EngineSession? = null, flags: LoadUrlFlags = LoadUrlFlags.none())
 
     /**
      * Loads the data with the given mimeType.

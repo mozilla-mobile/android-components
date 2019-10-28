@@ -158,13 +158,6 @@ class LegacySessionManager(
 
         if (parent != null) {
             val parentIndex = values.indexOf(parent)
-
-            if (parentIndex == -1) {
-                throw IllegalArgumentException("The parent does not exist")
-            }
-
-            session.parentId = parent.id
-
             values.add(parentIndex + 1, session)
         } else {
             if (viaRestore) {
@@ -290,7 +283,10 @@ class LegacySessionManager(
     }
 
     fun link(session: Session, engineSession: EngineSession) {
-        engineSessionLinker.link(session, engineSession)
+        val parent = values.find { it.id == session.parentId }?.let {
+            this.getEngineSession(it)
+        }
+        engineSessionLinker.link(session, engineSession, parent)
     }
 
     private fun unlink(session: Session) {
@@ -309,15 +305,17 @@ class LegacySessionManager(
             return
         }
 
+        val selectedBeforeRemove = selectedSession
+
         values.removeAt(indexToRemove)
 
         unlink(session)
 
-        val selectionUpdated = recalculateSelectionIndex(
-                indexToRemove,
-                selectParentIfExists,
-                session.private,
-                session.parentId
+        recalculateSelectionIndex(
+            indexToRemove,
+            selectParentIfExists,
+            session.private,
+            session.parentId
         )
 
         values.filter { it.parentId == session.id }
@@ -325,7 +323,7 @@ class LegacySessionManager(
 
         notifyObservers { onSessionRemoved(session) }
 
-        if (selectionUpdated && selectedIndex != NO_SELECTION) {
+        if (selectedBeforeRemove != selectedSession && selectedIndex != NO_SELECTION) {
             notifyObservers { onSessionSelected(selectedSessionOrThrow) }
         }
     }
@@ -340,7 +338,7 @@ class LegacySessionManager(
         selectParentIfExists: Boolean,
         private: Boolean,
         parentId: String?
-    ): Boolean {
+    ) {
         // Recalculate selection
         var newSelectedIndex = when {
             // All items have been removed
@@ -368,13 +366,7 @@ class LegacySessionManager(
                 if (selectParentIfExists) indexToRemove else newSelectedIndex)
         }
 
-        val selectionUpdated = newSelectedIndex != selectedIndex
-
-        if (selectionUpdated) {
-            selectedIndex = newSelectedIndex
-        }
-
-        return selectionUpdated
+        selectedIndex = newSelectedIndex
     }
 
     private fun newSelection(

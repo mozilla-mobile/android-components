@@ -60,7 +60,7 @@ internal class ExperimentsUpdater(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun scheduleUpdates() {
-        WorkManager.getInstance().enqueueUniquePeriodicWork(
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             TAG,
             // We rely on REPLACE behavior to run immediately and then schedule the next update per
             // the specified interval.  KEEP behavior does not run immediately and it is desired to
@@ -142,7 +142,7 @@ internal class ExperimentsUpdater(
         // Live example: https://firefox.settings.services.mozilla.com/v1/buckets/fennec/collections/experiments/records
         // There are different base URIs to use:
         const val KINTO_ENDPOINT_DEV = "https://kinto.dev.mozaws.net/v1"
-        const val KINTO_ENDPOINT_STAGING = "https://settings-writer.stage.mozaws.net/v1"
+        const val KINTO_ENDPOINT_STAGING = "https://settings.stage.mozaws.net/v1"
         const val KINTO_ENDPOINT_PROD = "https://firefox.settings.services.mozilla.com/v1"
 
         private const val EXPERIMENTS_BUCKET_NAME = "main"

@@ -45,4 +45,6 @@ dependencies {
 
     implementation Dependencies.kotlin_reflect
     implementation Dependencies.androidx_recyclerview
+    implementation Dependencies.androidx_appcompat
+    implementation Dependencies.androidx_constraintlayout
 }

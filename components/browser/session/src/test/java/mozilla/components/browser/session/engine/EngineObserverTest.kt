@@ -9,6 +9,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.engine.request.LoadRequestOption
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
@@ -19,9 +21,12 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.webextension.BrowserAction
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -66,7 +71,7 @@ class EngineObserverTest {
                 notifyObservers { onLoadingStateChange(true) }
                 notifyObservers { onNavigationStateChange(true, true) }
             }
-            override fun loadUrl(url: String, flags: LoadUrlFlags) {
+            override fun loadUrl(url: String, parent: EngineSession?, flags: LoadUrlFlags) {
                 notifyObservers { onLocationChange(url) }
                 notifyObservers { onProgress(100) }
                 notifyObservers { onLoadingStateChange(true) }
@@ -108,7 +113,7 @@ class EngineObserverTest {
             override fun saveState(): EngineSessionState = mock()
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun recoverFromCrash(): Boolean { return false }
-            override fun loadUrl(url: String, flags: LoadUrlFlags) {
+            override fun loadUrl(url: String, parent: EngineSession?, flags: LoadUrlFlags) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
                 } else {
@@ -146,7 +151,7 @@ class EngineObserverTest {
 
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun saveState(): EngineSessionState = mock()
-            override fun loadUrl(url: String, flags: LoadUrlFlags) {}
+            override fun loadUrl(url: String, parent: EngineSession?, flags: LoadUrlFlags) {}
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
@@ -171,6 +176,42 @@ class EngineObserverTest {
 
         observer.onTrackerBlocked(tracker2)
         assertEquals(listOf(tracker1, tracker2), session.trackersBlocked)
+    }
+
+    @Test
+    fun engineSessionObserverExcludedOnTrackingProtection() {
+        val session = Session("")
+        val store = mock(BrowserStore::class.java)
+        val observer = EngineObserver(session, store)
+
+        whenever(store.dispatch(any())).thenReturn(mock())
+        observer.onExcludedOnTrackingProtectionChange(true)
+
+        verify(store).dispatch(
+            TrackingProtectionAction.ToggleExclusionListAction(
+                session.id,
+                true
+            )
+        )
+    }
+
+    @Test
+    fun engineSessionObserverOnBrowserActionChange() {
+        val session = Session("")
+        val store = mock(BrowserStore::class.java)
+        val browserAction = BrowserAction("", true, mock(), "", "", 0, 0) {}
+        val observer = EngineObserver(session, store)
+
+        whenever(store.dispatch(any())).thenReturn(mock())
+        observer.onBrowserActionChange("extensionId", browserAction)
+
+        verify(store).dispatch(
+            WebExtensionAction.UpdateTabBrowserAction(
+                session.id,
+                "extensionId",
+                browserAction
+            )
+        )
     }
 
     @Test

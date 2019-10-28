@@ -30,13 +30,21 @@ Before you attempt to make a contribution please read the [Community Participati
 # Maven repository
 
 All components are getting published on [maven.mozilla.org](https://maven.mozilla.org/).
-To use them, you need to add the following to your projects top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
+To use them, you need to add the following to your project's top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
 
 ```groovy
 repositories {
     maven {
        url "https://maven.mozilla.org/maven2"
     }
+}
+```
+
+Each module that uses a component needs to specify it in its build file, in the `dependencies` block.  For example, to use the `Base` component (in the `support`) collection, you need:
+
+```groovy
+dependencies {
+    implementation 'org.mozilla.components:support-base:+'
 }
 ```
 
@@ -220,11 +228,13 @@ _Supporting components with generic helper code._
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
+* 🔴  [**Nearby**](components/lib/nearby/README.md) - A library simplifying access to the [Google Connections API](https://developers.google.com/nearby/connections/overview) for peer-to-peer networking.
+
 * ⚪ [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
 
-* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
+* 🔴[**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
 
-* 🔴 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
+* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
 
 ## Tooling
 
@@ -246,11 +256,13 @@ _Sample apps using various components._
 
 * [**Firefox Sync - Logins**](samples/sync-logins) - A simple app demoing Firefox Sync (Logins) integration.
 
-* [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component.
-
 * [**DataProtect**](samples/dataprotect) - An app demoing how to use the [**Dataprotect**](components/lib/dataprotect/README.md) component to load and store encrypted data in `SharedPreferences`.
 
 * [**Glean**](samples/glean) - An app demoing how to use the [**Glean**](components/service/glean/README.md) library to collect and send telemetry data.
+
+* [**Nearby Chat**](samples/nearby-chat) - An app demoing how to use the [**Nearby**](components/lib/nearby/README.md) library for peer-to-peer communication between devices.
+
+* [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component. 
 
 # Building #
 
@@ -273,6 +285,40 @@ If the environment variable `JAVA_HOME` is not defined, you will need to set it.
 5. Restart Android Studio.
 
 Once the environment variable is set, you can import the project into Android Studio with the default wizard options.
+
+# Coding Standards #
+
+## Style ##
+We follow the style enforced by [ktlint](https://ktlint.github.io/) and [detekt](https://arturbosch.github.io/detekt/). See [how to configure Android Studio appropriately](https://github.com/pinterest/ktlint#option-1-recommended).
+
+To check your style, run:
+
+```
+./gradlew ktlint
+./gradlew detekt
+```
+
+## Documentation ##
+We use `README.md` files and [Dokka](https://github.com/Kotlin/dokka), which you can generate with:
+
+```
+./gradlew dokka                          # Generate dokka for the entire repo
+./gradlew :browser-icons:dokka           # Generate dokka for a specified module
+```
+
+If you fix a bug or change an API, you should update [docs/changelog.md](https://github.com/mozilla-mobile/android-components/blob/master/docs/changelog.md).
+
+## Testing ##
+You are expected to both add tests for code that you write and make sure that your changes do not
+cause existing tests to fail. You may find these command lines helpful:
+
+```
+./gradlew test                            # Run all tests
+./gradlew :support-ktx:testdebugunittest  # Run unit tests for a specified module
+```
+
+## Accessibility ##
+If your code has user-facing changes, follow [Android accessibility best practices](https://github.com/mozilla-mobile/shared-docs/blob/master/android/accessibility_guide.md).
 
 # License
 

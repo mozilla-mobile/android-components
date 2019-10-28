@@ -25,6 +25,8 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
@@ -53,6 +55,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
+import org.mozilla.geckoview.ContentBlockingController
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
@@ -136,6 +139,35 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun isIgnoredForTrackingProtection() {
+        val mockedRuntime = mock<GeckoRuntime>()
+        val mockedContentBlockingController = mock<ContentBlockingController>()
+        var geckoResult = GeckoResult<Boolean?>()
+        val session = GeckoEngineSession(mockedRuntime, geckoSessionProvider = geckoSessionProvider)
+        var wasExecuted = false
+
+        whenever(mockedRuntime.contentBlockingController).thenReturn(mockedContentBlockingController)
+        whenever(mockedContentBlockingController.checkException(any())).thenReturn(geckoResult)
+
+        session.isIgnoredForTrackingProtection {
+            wasExecuted = it
+        }
+
+        geckoResult.complete(true)
+        assertTrue(wasExecuted)
+
+        geckoResult = GeckoResult()
+        whenever(mockedContentBlockingController.checkException(any())).thenReturn(geckoResult)
+
+        session.isIgnoredForTrackingProtection {
+            wasExecuted = it
+        }
+
+        geckoResult.complete(null)
+        assertFalse(wasExecuted)
+    }
+
+    @Test
     fun progressDelegateNotifiesObservers() {
         val engineSession = GeckoEngineSession(mock(),
                 geckoSessionProvider = geckoSessionProvider)
@@ -185,7 +217,10 @@ class GeckoEngineSessionTest {
 
     @Test
     fun navigationDelegateNotifiesObservers() {
-        val engineSession = GeckoEngineSession(mock(),
+        val geckoResult = GeckoResult<Boolean?>()
+        val mockedRuntime = mock<GeckoRuntime>()
+        val mockedContentBlockingController = mock<ContentBlockingController>()
+        val engineSession = GeckoEngineSession(mockedRuntime,
                 geckoSessionProvider = geckoSessionProvider)
 
         var observedUrl = ""
@@ -199,10 +234,16 @@ class GeckoEngineSessionTest {
             }
         })
 
+        whenever(mockedRuntime.contentBlockingController).thenReturn(mockedContentBlockingController)
+        whenever(mockedContentBlockingController.checkException(any())).thenReturn(geckoResult)
+
         captureDelegates()
+
+        geckoResult.complete(true)
 
         navigationDelegate.value.onLocationChange(mock(), "http://mozilla.org")
         assertEquals("http://mozilla.org", observedUrl)
+        verify(mockedContentBlockingController).checkException(any())
 
         navigationDelegate.value.onCanGoBack(mock(), true)
         assertEquals(true, observedCanGoBack)
@@ -332,14 +373,21 @@ class GeckoEngineSessionTest {
 
     @Test
     fun loadUrl() {
-        val engineSession = GeckoEngineSession(mock(),
-                geckoSessionProvider = geckoSessionProvider)
+        val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
+        val parentEngineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
 
         engineSession.loadUrl("http://mozilla.org")
-        verify(geckoSession).loadUri("http://mozilla.org", GeckoSession.LOAD_FLAGS_NONE)
+        verify(geckoSession).loadUri("http://mozilla.org", null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE)
 
-        engineSession.loadUrl("http://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
-        verify(geckoSession).loadUri("http://www.mozilla.org", GeckoSession.LOAD_FLAGS_EXTERNAL)
+        engineSession.loadUrl("http://www.mozilla.org", flags = LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+        verify(geckoSession).loadUri("http://www.mozilla.org", null as GeckoSession?, GeckoSession.LOAD_FLAGS_EXTERNAL)
+
+        engineSession.loadUrl("http://www.mozilla.org", parent = parentEngineSession)
+        verify(geckoSession).loadUri(
+            "http://www.mozilla.org",
+            parentEngineSession.geckoSession,
+            GeckoSession.LOAD_FLAGS_NONE
+        )
     }
 
     @Test
@@ -470,7 +518,10 @@ class GeckoEngineSessionTest {
 
     @Test
     fun navigationDelegateIgnoresInitialLoadOfAboutBlank() {
-        val engineSession = GeckoEngineSession(mock(),
+        val geckoResult = GeckoResult<Boolean?>()
+        val mockedRuntime = mock<GeckoRuntime>()
+        val mockedContentBlockingController = mock<ContentBlockingController>()
+        val engineSession = GeckoEngineSession(mockedRuntime,
                 geckoSessionProvider = geckoSessionProvider)
 
         var observedUrl = ""
@@ -478,7 +529,12 @@ class GeckoEngineSessionTest {
             override fun onLocationChange(url: String) { observedUrl = url }
         })
 
+        whenever(mockedRuntime.contentBlockingController).thenReturn(mockedContentBlockingController)
+        whenever(mockedContentBlockingController.checkException(any())).thenReturn(geckoResult)
+
         captureDelegates()
+
+        geckoResult.complete(true)
 
         navigationDelegate.value.onLocationChange(mock(), "about:blank")
         assertEquals("", observedUrl)
@@ -488,6 +544,7 @@ class GeckoEngineSessionTest {
 
         navigationDelegate.value.onLocationChange(mock(), "https://www.mozilla.org")
         assertEquals("https://www.mozilla.org", observedUrl)
+        verify(mockedContentBlockingController).checkException(any())
 
         navigationDelegate.value.onLocationChange(mock(), "about:blank")
         assertEquals("about:blank", observedUrl)
@@ -612,7 +669,7 @@ class GeckoEngineSessionTest {
 
         historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com", null, GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
             engineSession.job.children.forEach { it.join() }
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(VisitType.LINK))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE)))
     }
 
     @Test
@@ -629,7 +686,7 @@ class GeckoEngineSessionTest {
 
         historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com", "https://www.mozilla.com", GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
             engineSession.job.children.forEach { it.join() }
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(VisitType.RELOAD))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE)))
     }
 
     @Test
@@ -649,7 +706,7 @@ class GeckoEngineSessionTest {
 
             engineSession.job.children.forEach { it.join() }
             verify(historyTrackingDelegate).shouldStoreUri("https://www.mozilla.com/allowed")
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/allowed"), eq(VisitType.LINK))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/allowed"), eq(PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE)))
 
         historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com/not-allowed", null, GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
 
@@ -680,7 +737,7 @@ class GeckoEngineSessionTest {
         )
 
             engineSession.job.children.forEach { it.join() }
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/tempredirect"), eq(VisitType.REDIRECT_TEMPORARY))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/tempredirect"), eq(PageVisit(VisitType.LINK, RedirectSource.TEMPORARY)))
 
         historyDelegate.value.onVisited(
                 geckoSession,
@@ -691,7 +748,7 @@ class GeckoEngineSessionTest {
         )
 
             engineSession.job.children.forEach { it.join() }
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/permredirect"), eq(VisitType.REDIRECT_PERMANENT))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/permredirect"), eq(PageVisit(VisitType.LINK, RedirectSource.PERMANENT)))
 
         // Visits below are targets of redirects, not redirects themselves.
         // Check that they're mapped to "link".
@@ -704,18 +761,18 @@ class GeckoEngineSessionTest {
         )
 
             engineSession.job.children.forEach { it.join() }
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targettemp"), eq(VisitType.LINK))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targettemp"), eq(PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE)))
 
         historyDelegate.value.onVisited(
                 geckoSession,
                 "https://www.mozilla.com/targetperm",
                 null,
                 GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL
-                        or GeckoSession.HistoryDelegate.VISIT_REDIRECT_TEMPORARY
+                        or GeckoSession.HistoryDelegate.VISIT_REDIRECT_PERMANENT
         )
 
             engineSession.job.children.forEach { it.join() }
-            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targetperm"), eq(VisitType.LINK))
+            verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targetperm"), eq(PageVisit(VisitType.REDIRECT_PERMANENT, RedirectSource.NOT_A_SOURCE)))
     }
 
     @Test
@@ -1137,7 +1194,7 @@ class GeckoEngineSessionTest {
         navigationDelegate.value.onLoadRequest(geckoSession, mockLoadRequest("sample:about"))
 
         assertEquals("sample:about", interceptorCalledWithUri)
-        verify(geckoSession).loadUri("https://mozilla.org", GeckoSession.LOAD_FLAGS_NONE)
+        verify(geckoSession).loadUri("https://mozilla.org", null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE)
     }
 
     @Test
@@ -1402,10 +1459,8 @@ class GeckoEngineSessionTest {
         val defaultSettings =
             DefaultSettings(trackingProtectionPolicy = TrackingProtectionPolicy.recommended())
 
-        GeckoEngineSession(
-            runtime, geckoSessionProvider = geckoSessionProvider,
-            privateMode = false, defaultSettings = defaultSettings
-        )
+        GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider,
+            privateMode = false, defaultSettings = defaultSettings)
 
         verify(geckoSession.settings).useTrackingProtection = false
     }
@@ -1851,7 +1906,7 @@ class GeckoEngineSessionTest {
 
         // loadUrl(url: String)
         engineSession.loadUrl(fakeUrl)
-        verify(geckoSession).loadUri(fakeUrl, GeckoSession.LOAD_FLAGS_NONE)
+        verify(geckoSession).loadUri(fakeUrl, null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE)
         fakePageLoad(false)
 
         // subsequent page loads _are_ from web content

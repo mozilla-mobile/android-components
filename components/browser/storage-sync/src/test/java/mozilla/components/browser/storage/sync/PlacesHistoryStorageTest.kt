@@ -11,6 +11,8 @@ import mozilla.appservices.places.PlacesException
 import mozilla.appservices.places.PlacesReaderConnection
 import mozilla.appservices.places.PlacesWriterConnection
 import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.concept.sync.SyncAuthInfo
 import mozilla.components.concept.sync.SyncStatus
@@ -24,6 +26,7 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class PlacesHistoryStorageTest {
@@ -43,15 +46,15 @@ class PlacesHistoryStorageTest {
 
     @Test
     fun `storage allows recording and querying visits of different types`() = runBlocking {
-        history.recordVisit("http://www.firefox.com/1", VisitType.LINK)
-        history.recordVisit("http://www.firefox.com/2", VisitType.RELOAD)
-        history.recordVisit("http://www.firefox.com/3", VisitType.TYPED)
-        history.recordVisit("http://www.firefox.com/4", VisitType.REDIRECT_TEMPORARY)
-        history.recordVisit("http://www.firefox.com/5", VisitType.REDIRECT_PERMANENT)
-        history.recordVisit("http://www.firefox.com/6", VisitType.FRAMED_LINK)
-        history.recordVisit("http://www.firefox.com/7", VisitType.EMBED)
-        history.recordVisit("http://www.firefox.com/8", VisitType.BOOKMARK)
-        history.recordVisit("http://www.firefox.com/9", VisitType.DOWNLOAD)
+        history.recordVisit("http://www.firefox.com/1", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/2", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/3", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/4", PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/5", PageVisit(VisitType.REDIRECT_PERMANENT, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/6", PageVisit(VisitType.FRAMED_LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/7", PageVisit(VisitType.EMBED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/8", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com/9", PageVisit(VisitType.DOWNLOAD, RedirectSource.NOT_A_SOURCE))
 
         val recordedVisits = history.getDetailedVisits(0)
         assertEquals(9, recordedVisits.size)
@@ -126,7 +129,7 @@ class PlacesHistoryStorageTest {
 
     @Test
     fun `storage passes through recordObservation calls`() = runBlocking {
-        history.recordVisit("http://www.mozilla.org", VisitType.LINK)
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("http://www.mozilla.org", PageObservation(title = "Mozilla"))
 
         val recordedVisits = history.getDetailedVisits(0)
@@ -136,12 +139,12 @@ class PlacesHistoryStorageTest {
 
     @Test
     fun `store can be used to query detailed visit information`() = runBlocking {
-        history.recordVisit("http://www.mozilla.org", VisitType.LINK)
-        history.recordVisit("http://www.mozilla.org", VisitType.RELOAD)
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("http://www.mozilla.org", PageObservation("Mozilla"))
-        history.recordVisit("http://www.firefox.com", VisitType.LINK)
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
 
-        history.recordVisit("http://www.firefox.com", VisitType.REDIRECT_TEMPORARY)
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE))
 
         val visits = history.getDetailedVisits(0, excludeTypes = listOf(VisitType.REDIRECT_TEMPORARY))
         assertEquals(3, visits.size)
@@ -167,21 +170,21 @@ class PlacesHistoryStorageTest {
         assertEquals(0, history.getVisited().size)
 
         // Regular visits are tracked.
-        history.recordVisit("https://www.mozilla.org", VisitType.LINK)
+        history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         assertEquals(listOf("https://www.mozilla.org/"), history.getVisited())
 
         // Multiple visits can be tracked, results ordered by "URL's first seen first".
-        history.recordVisit("https://www.firefox.com", VisitType.LINK)
+        history.recordVisit("https://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         assertEquals(listOf("https://www.mozilla.org/", "https://www.firefox.com/"), history.getVisited())
 
         // Visits marked as reloads can be tracked.
-        history.recordVisit("https://www.firefox.com", VisitType.RELOAD)
+        history.recordVisit("https://www.firefox.com", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
         assertEquals(listOf("https://www.mozilla.org/", "https://www.firefox.com/"), history.getVisited())
 
         // Visited urls are certainly a set.
-        history.recordVisit("https://www.firefox.com", VisitType.LINK)
-        history.recordVisit("https://www.mozilla.org", VisitType.LINK)
-        history.recordVisit("https://www.wikipedia.org", VisitType.LINK)
+        history.recordVisit("https://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("https://www.wikipedia.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         assertEquals(
                 listOf("https://www.mozilla.org/", "https://www.firefox.com/", "https://www.wikipedia.org/"),
                 history.getVisited()
@@ -193,7 +196,7 @@ class PlacesHistoryStorageTest {
         assertEquals(0, history.getVisited(listOf()).size)
 
         // Regular visits are tracked
-        history.recordVisit("https://www.mozilla.org", VisitType.LINK)
+        history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         assertEquals(listOf(true), history.getVisited(listOf("https://www.mozilla.org")))
 
         // Duplicate requests are handled.
@@ -205,16 +208,16 @@ class PlacesHistoryStorageTest {
         assertEquals(listOf(false, true), history.getVisited(listOf("https://www.unknown.com", "https://www.mozilla.org")))
 
         // Multiple visits can be tracked. Reloads can be tracked.
-        history.recordVisit("https://www.firefox.com", VisitType.LINK)
-        history.recordVisit("https://www.mozilla.org", VisitType.RELOAD)
-        history.recordVisit("https://www.wikipedia.org", VisitType.LINK)
+        history.recordVisit("https://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("https://www.wikipedia.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         assertEquals(listOf(true, true, false, true), history.getVisited(listOf("https://www.firefox.com", "https://www.wikipedia.org", "https://www.unknown.com", "https://www.mozilla.org")))
     }
 
     @Test
     fun `store can be used to track page meta information - title changes`() = runBlocking {
         // Title changes are recorded.
-        history.recordVisit("https://www.wikipedia.org", VisitType.TYPED)
+        history.recordVisit("https://www.wikipedia.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("https://www.wikipedia.org", PageObservation("Wikipedia"))
         var recorded = history.getDetailedVisits(0)
         assertEquals(1, recorded.size)
@@ -226,9 +229,9 @@ class PlacesHistoryStorageTest {
         assertEquals("Википедия", recorded[0].title)
 
         // Titles for different pages are recorded.
-        history.recordVisit("https://www.firefox.com", VisitType.TYPED)
+        history.recordVisit("https://www.firefox.com", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("https://www.firefox.com", PageObservation("Firefox"))
-        history.recordVisit("https://www.mozilla.org", VisitType.TYPED)
+        history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("https://www.mozilla.org", PageObservation("Мозилла"))
         recorded = history.getDetailedVisits(0)
         assertEquals(3, recorded.size)
@@ -241,13 +244,13 @@ class PlacesHistoryStorageTest {
     fun `store can provide suggestions`() = runBlocking {
         assertEquals(0, history.getSuggestions("Mozilla", 100).size)
 
-        history.recordVisit("http://www.firefox.com", VisitType.LINK)
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         val search = history.getSuggestions("Mozilla", 100)
         assertEquals(0, search.size)
 
-        history.recordVisit("http://www.wikipedia.org", VisitType.LINK)
-        history.recordVisit("http://www.mozilla.org", VisitType.LINK)
-        history.recordVisit("http://www.moscow.ru", VisitType.LINK)
+        history.recordVisit("http://www.wikipedia.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.moscow.ru", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("http://www.mozilla.org", PageObservation("Mozilla"))
         history.recordObservation("http://www.firefox.com", PageObservation("Mozilla Firefox"))
         history.recordObservation("http://www.moscow.ru", PageObservation("Moscow City"))
@@ -291,21 +294,21 @@ class PlacesHistoryStorageTest {
     fun `store can provide autocomplete suggestions`() = runBlocking {
         assertNull(history.getAutocompleteSuggestion("moz"))
 
-        history.recordVisit("http://www.mozilla.org", VisitType.LINK)
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         var res = history.getAutocompleteSuggestion("moz")!!
         assertEquals("mozilla.org/", res.text)
         assertEquals("http://www.mozilla.org/", res.url)
         assertEquals("placesHistory", res.source)
         assertEquals(1, res.totalItems)
 
-        history.recordVisit("http://firefox.com", VisitType.LINK)
+        history.recordVisit("http://firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         res = history.getAutocompleteSuggestion("firefox")!!
         assertEquals("firefox.com/", res.text)
         assertEquals("http://firefox.com/", res.url)
         assertEquals("placesHistory", res.source)
         assertEquals(1, res.totalItems)
 
-        history.recordVisit("https://en.wikipedia.org/wiki/Mozilla", VisitType.LINK)
+        history.recordVisit("https://en.wikipedia.org/wiki/Mozilla", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         res = history.getAutocompleteSuggestion("en")!!
         assertEquals("en.wikipedia.org/", res.text)
         assertEquals("https://en.wikipedia.org/", res.url)
@@ -325,20 +328,20 @@ class PlacesHistoryStorageTest {
     fun `store ignores url parse exceptions during record operations`() = runBlocking {
         // These aren't valid URIs, and if we're not explicitly ignoring exceptions from the underlying
         // storage layer, these calls will throw.
-        history.recordVisit("mozilla.org", VisitType.LINK)
+        history.recordVisit("mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("mozilla.org", PageObservation("mozilla"))
     }
 
     @Test
     fun `store can delete everything`() = runBlocking {
-        history.recordVisit("http://www.mozilla.org", VisitType.TYPED)
-        history.recordVisit("http://www.mozilla.org", VisitType.DOWNLOAD)
-        history.recordVisit("http://www.mozilla.org", VisitType.BOOKMARK)
-        history.recordVisit("http://www.mozilla.org", VisitType.RELOAD)
-        history.recordVisit("http://www.firefox.com", VisitType.EMBED)
-        history.recordVisit("http://www.firefox.com", VisitType.REDIRECT_PERMANENT)
-        history.recordVisit("http://www.firefox.com", VisitType.REDIRECT_TEMPORARY)
-        history.recordVisit("http://www.firefox.com", VisitType.LINK)
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.DOWNLOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.EMBED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.REDIRECT_PERMANENT, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
 
         history.recordObservation("http://www.firefox.com", PageObservation("Firefox"))
 
@@ -351,14 +354,14 @@ class PlacesHistoryStorageTest {
 
     @Test
     fun `store can delete by url`() = runBlocking {
-        history.recordVisit("http://www.mozilla.org", VisitType.TYPED)
-        history.recordVisit("http://www.mozilla.org", VisitType.DOWNLOAD)
-        history.recordVisit("http://www.mozilla.org", VisitType.BOOKMARK)
-        history.recordVisit("http://www.mozilla.org", VisitType.RELOAD)
-        history.recordVisit("http://www.firefox.com", VisitType.EMBED)
-        history.recordVisit("http://www.firefox.com", VisitType.REDIRECT_PERMANENT)
-        history.recordVisit("http://www.firefox.com", VisitType.REDIRECT_TEMPORARY)
-        history.recordVisit("http://www.firefox.com", VisitType.LINK)
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.DOWNLOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.EMBED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.REDIRECT_PERMANENT, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
 
         history.recordObservation("http://www.firefox.com", PageObservation("Firefox"))
 
@@ -375,9 +378,9 @@ class PlacesHistoryStorageTest {
 
     @Test
     fun `store can delete by 'since'`() = runBlocking {
-        history.recordVisit("http://www.mozilla.org", VisitType.TYPED)
-        history.recordVisit("http://www.mozilla.org", VisitType.DOWNLOAD)
-        history.recordVisit("http://www.mozilla.org", VisitType.BOOKMARK)
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.DOWNLOAD, RedirectSource.NOT_A_SOURCE))
+        history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
 
         history.deleteVisitsSince(0)
         val visits = history.getVisited()
@@ -387,11 +390,11 @@ class PlacesHistoryStorageTest {
     @Test
     fun `store can delete by 'range'`() {
         runBlocking {
-            history.recordVisit("http://www.mozilla.org/1", VisitType.TYPED)
+            history.recordVisit("http://www.mozilla.org/1", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
             Thread.sleep(10)
-            history.recordVisit("http://www.mozilla.org/2", VisitType.DOWNLOAD)
+            history.recordVisit("http://www.mozilla.org/2", PageVisit(VisitType.DOWNLOAD, RedirectSource.NOT_A_SOURCE))
             Thread.sleep(10)
-            history.recordVisit("http://www.mozilla.org/3", VisitType.BOOKMARK)
+            history.recordVisit("http://www.mozilla.org/3", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
         }
 
         val ts = runBlocking {
@@ -416,11 +419,11 @@ class PlacesHistoryStorageTest {
     @Test
     fun `store can delete visit by 'url' and 'timestamp'`() {
         runBlocking {
-            history.recordVisit("http://www.mozilla.org/1", VisitType.TYPED)
+            history.recordVisit("http://www.mozilla.org/1", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
             Thread.sleep(10)
-            history.recordVisit("http://www.mozilla.org/2", VisitType.DOWNLOAD)
+            history.recordVisit("http://www.mozilla.org/2", PageVisit(VisitType.DOWNLOAD, RedirectSource.NOT_A_SOURCE))
             Thread.sleep(10)
-            history.recordVisit("http://www.mozilla.org/3", VisitType.BOOKMARK)
+            history.recordVisit("http://www.mozilla.org/3", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
         }
 
         val ts = runBlocking {
@@ -464,7 +467,7 @@ class PlacesHistoryStorageTest {
     fun `can run prune on the store`() = runBlocking {
         // Empty.
         history.prune()
-        history.recordVisit("http://www.mozilla.org/1", VisitType.TYPED)
+        history.recordVisit("http://www.mozilla.org/1", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
         // Non-empty.
         history.prune()
     }
@@ -506,6 +509,14 @@ class PlacesHistoryStorageTest {
                 return 0L
             }
 
+            override fun importVisitsFromFennec(dbPath: String) {
+                fail()
+            }
+
+            override fun importBookmarksFromFennec(dbPath: String) {
+                fail()
+            }
+
             override fun close() {
                 fail()
             }
@@ -543,6 +554,14 @@ class PlacesHistoryStorageTest {
                 return 0L
             }
 
+            override fun importVisitsFromFennec(dbPath: String) {
+                fail()
+            }
+
+            override fun importBookmarksFromFennec(dbPath: String) {
+                fail()
+            }
+
             override fun close() {
                 fail()
             }
@@ -578,6 +597,14 @@ class PlacesHistoryStorageTest {
             override fun getHandle(): Long {
                 fail()
                 return 0L
+            }
+
+            override fun importVisitsFromFennec(dbPath: String) {
+                fail()
+            }
+
+            override fun importBookmarksFromFennec(dbPath: String) {
+                fail()
             }
 
             override fun close() {
@@ -621,6 +648,14 @@ class PlacesHistoryStorageTest {
                 return 0L
             }
 
+            override fun importVisitsFromFennec(dbPath: String) {
+                fail()
+            }
+
+            override fun importBookmarksFromFennec(dbPath: String) {
+                fail()
+            }
+
             override fun close() {
                 fail()
             }
@@ -629,4 +664,94 @@ class PlacesHistoryStorageTest {
         storage.sync(SyncAuthInfo("kid", "token", 123L, "key", "serverUrl"))
         fail()
     }
+
+    @Test
+    fun `history import v0 empty`() {
+        // Doesn't have a schema or a set user_version pragma.
+        val path = getTestPath("databases/empty-v0.db").absolutePath
+        try {
+            history.importFromFennec(path)
+            fail("Expected v0 database to be unsupported")
+        } catch (e: PlacesException) {
+            // This is a little brittle, but the places library doesn't have a proper error type for this.
+            assertEquals("Database version 0 is not supported", e.message)
+        }
+    }
+
+    @Test
+    fun `history import v38 populated`() {
+        // Fennec v38 schema populated with data.
+        val path = getTestPath("databases/populated-v38.db").absolutePath
+        try {
+            history.importFromFennec(path)
+            fail("Expected v38 database to be unsupported")
+        } catch (e: PlacesException) {
+            // This is a little brittle, but the places library doesn't have a proper error type for this.
+            assertEquals("Database version 38 is not supported", e.message)
+        }
+    }
+
+    @Test
+    fun `history import v39 populated`() = runBlocking {
+        val path = getTestPath("databases/populated-v39.db").absolutePath
+        var visits = history.getDetailedVisits(0, Long.MAX_VALUE)
+        assertEquals(0, visits.size)
+        history.importFromFennec(path)
+
+        visits = history.getDetailedVisits(0, Long.MAX_VALUE)
+        assertEquals(6, visits.size)
+
+        assertEquals(listOf(false, true, true, true, true, true, true), history.reader.getVisited(listOf(
+            "files:///",
+            "https://news.ycombinator.com/",
+            "https://news.ycombinator.com/item?id=21224209",
+            "https://mobile.twitter.com/random_walker/status/1182635589604171776",
+            "https://www.mozilla.org/en-US/",
+            "https://www.mozilla.org/en-US/firefox/accounts/",
+            "https://mobile.reuters.com/"
+        )))
+
+        with(visits[0]) {
+            assertEquals("Hacker News", this.title)
+            assertEquals("https://news.ycombinator.com/", this.url)
+            assertEquals(1570822280639, this.visitTime)
+            assertEquals(VisitType.LINK, this.visitType)
+        }
+        with(visits[1]) {
+            assertEquals("Why Enterprise Software Sucks | Hacker News", this.title)
+            assertEquals("https://news.ycombinator.com/item?id=21224209", this.url)
+            assertEquals(1570822283117, this.visitTime)
+            assertEquals(VisitType.LINK, this.visitType)
+        }
+        with(visits[2]) {
+            assertEquals("Arvind Narayanan on Twitter: \"My university just announced that it’s dumping Blackboard, and there was much rejoicing. Why is Blackboard universally reviled? There’s a standard story of why \"enterprise software\" sucks. If you’ll bear with me, I think this is best appreciated by talking about… baby clothes!\" / Twitter", this.title)
+            assertEquals("https://mobile.twitter.com/random_walker/status/1182635589604171776", this.url)
+            assertEquals(1570822287349, this.visitTime)
+            assertEquals(VisitType.LINK, this.visitType)
+        }
+        with(visits[3]) {
+            assertEquals("Internet for people, not profit — Mozilla", this.title)
+            assertEquals("https://www.mozilla.org/en-US/", this.url)
+            assertEquals(1570830201733, this.visitTime)
+            assertEquals(VisitType.LINK, this.visitType)
+        }
+        with(visits[4]) {
+            assertEquals("There is a way to protect your privacy. Join Firefox.", this.title)
+            assertEquals("https://www.mozilla.org/en-US/firefox/accounts/", this.url)
+            assertEquals(1570830207742, this.visitTime)
+            assertEquals(VisitType.LINK, this.visitType)
+        }
+        with(visits[5]) {
+            assertEquals("", this.title)
+            assertEquals("https://mobile.reuters.com/", this.url)
+            assertEquals(1570830217562, this.visitTime)
+            assertEquals(VisitType.LINK, this.visitType)
+        }
+    }
+}
+
+fun getTestPath(path: String): File {
+    return PlacesHistoryStorage::class.java.classLoader!!
+        .getResource(path).file
+        .let { File(it) }
 }

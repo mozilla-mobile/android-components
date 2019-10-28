@@ -11,6 +11,7 @@ import mozilla.components.concept.engine.content.blocking.TrackingProtectionExce
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.WebExtension
+import mozilla.components.concept.engine.webextension.WebExtensionDelegate
 import org.json.JSONObject
 import java.lang.UnsupportedOperationException
 
@@ -128,6 +129,16 @@ interface Engine {
         onSuccess: ((WebExtension) -> Unit) = { },
         onError: ((String, Throwable) -> Unit) = { _, _ -> }
     ): Unit = onError(id, UnsupportedOperationException("Web extension support is not available in this engine"))
+
+    /**
+     * Registers a [WebExtensionDelegate] to be notified of engine events
+     * related to web extensions
+     *
+     * @param webExtensionDelegate callback to be invoked for web extension events.
+     */
+    fun registerWebExtensionDelegate(
+        webExtensionDelegate: WebExtensionDelegate
+    ): Unit = throw UnsupportedOperationException("Web extension support is not available in this engine")
 
     /**
      * Clears browsing data stored by the engine.

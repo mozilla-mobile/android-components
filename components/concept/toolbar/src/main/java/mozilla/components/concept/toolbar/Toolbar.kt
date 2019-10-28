@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
@@ -98,6 +99,12 @@ interface Toolbar {
      * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action
      */
     fun addBrowserAction(action: Action)
+
+    /**
+     * Declare that the actions (navigation actions, browser actions, page actions) have changed and
+     * should be updated if needed.
+     */
+    fun invalidateActions()
 
     /**
      * Adds an action to be displayed on the right side of the URL in display mode.
@@ -240,6 +247,7 @@ interface Toolbar {
         override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also { imageButton ->
             view = WeakReference(imageButton)
 
+            imageButton.scaleType = ImageView.ScaleType.CENTER
             imageButton.setOnClickListener { toggle() }
             imageButton.isSelected = selected
 

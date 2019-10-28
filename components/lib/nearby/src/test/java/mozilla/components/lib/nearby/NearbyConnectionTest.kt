@@ -84,7 +84,7 @@ class NearbyConnectionTest {
     @Test
     fun `Should enter discovering state if startDiscovery() fails`() {
         val client = Mockito.mock(ConnectionsClient::class.java)
-        `when`(client.startDiscovery(anyString(),any(), any()))
+        `when`(client.startDiscovery(anyString(), any(), any()))
             .thenReturn(VoidTask.FAILURE)
         val nearbyConnection = NearbyConnection(client, DEVICE_NAME)
         nearbyConnection.register(stateWatchingObserver)

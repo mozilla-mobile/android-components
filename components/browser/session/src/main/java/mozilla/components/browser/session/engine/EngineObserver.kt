@@ -6,6 +6,7 @@ package mozilla.components.browser.session.engine
 
 import android.graphics.Bitmap
 import android.os.Environment
+import android.util.Log
 import androidx.core.net.toUri
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.engine.request.LoadRequestMetadata
@@ -155,6 +156,7 @@ internal class EngineObserver(
             Environment.DIRECTORY_DOWNLOADS
         )
 
+        Log.d("Sawyer", "onExternalResource")
         store?.dispatch(ContentAction.UpdateDownloadAction(
             session.id,
             download

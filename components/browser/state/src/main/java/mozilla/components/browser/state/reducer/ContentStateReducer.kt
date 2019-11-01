@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.state.reducer
 
+import android.util.Log
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
@@ -47,6 +48,7 @@ internal object ContentStateReducer {
                 it.copy(thumbnail = action.thumbnail)
             }
             is ContentAction.UpdateDownloadAction -> updateContentState(state, action.sessionId) {
+                Log.d("Sawyer", "updateDownloadAction: ${action.download}")
                 it.copy(download = action.download)
             }
             is ContentAction.ConsumeDownloadAction -> updateContentState(state, action.sessionId) {

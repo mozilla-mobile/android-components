@@ -6,6 +6,7 @@ package mozilla.components.feature.downloads
 
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
@@ -90,12 +91,20 @@ class DownloadsFeature(
             dialog = it
         }
 
+        Log.d("Sawyer", "start")
+
         scope = store.flowScoped { flow ->
             flow.mapNotNull { state -> state.findCustomTabOrSelectedTab(customTabId) }
-                .ifChanged { it.content.download }
+                .ifChanged { it.content.download?.id }
                 .collect { state ->
+                    // We must copy the download so we don't trigger a change by setting the name
                     val download = state.content.download
+
                     if (download != null) {
+                        // TODO: I bet the ID's are different and that's what's triggering a change
+                        Log.d("Sawyer", "downloadID: ${download.id}")
+                        processDownload(state, download)
+                        /*
                         // Update the file name to ensure it doesn't collide with one already on disk]
                         val downloadWithUniqueName = download.fileName?.let {
                             download.copy(fileName = uniqueFileName(
@@ -105,7 +114,11 @@ class DownloadsFeature(
                         } ?: download
 
                         processDownload(state, downloadWithUniqueName)
+
+                         */
                     }
+
+
                 }
         }
     }
@@ -123,6 +136,8 @@ class DownloadsFeature(
      * Notifies the [DownloadManager] that a new download must be processed.
      */
     private fun processDownload(tab: SessionState, download: DownloadState): Boolean {
+        Log.d("Sawyer", "processDownload")
+
         return if (applicationContext.isPermissionGranted(downloadManager.permissions.asIterable())) {
 
             if (fragmentManager != null && !download.skipConfirmation) {

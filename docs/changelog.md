@@ -12,6 +12,10 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **lib-nearby**
+  * 🆕 New component for communicating directly between two devices
+  using Google Nearby API.
+
 # 20.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v19.0.0...v20.0.0)
@@ -134,10 +138,6 @@ permalink: /changelog/
 * **feature-prompts**
   * Deprecated `PromptFeature` constructor that has parameters for both `Activity` and `Fragment`. Use the constructors that just take either one instead.
   * Changed `sessionId` parameter name to `customTabId`.
-
-* **lib-nearby**
-  * 🆕 New component for communicating directly between two devices
-  using Google Nearby API.
 
 * **sample-nearby-chat**
   * 🆕 New sample program demonstrating use of `lib-nearby`.

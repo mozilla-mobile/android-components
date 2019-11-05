@@ -8,6 +8,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.feature.awesomebar.R
@@ -35,19 +36,23 @@ class ClipboardSuggestionProvider(
     override fun onInputStarted(): List<AwesomeBar.Suggestion> = createClipboardSuggestion()
 
     override suspend fun onInputChanged(text: String) =
-            if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) createClipboardSuggestion() else emptyList()
+        if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) createClipboardSuggestion() else emptyList()
 
     private fun createClipboardSuggestion(): List<AwesomeBar.Suggestion> {
         val url = getTextFromClipboard(clipboardManager)?.let {
             findUrl(it)
         } ?: return emptyList()
 
+        val clipboardIcon = context.getDrawable(R.drawable.mozac_ic_search)?.apply {
+            setTint(ContextCompat.getColor(context, android.R.color.black))
+        }
+
         return listOf(AwesomeBar.Suggestion(
             provider = this,
             id = url,
             description = url,
             flags = setOf(AwesomeBar.Suggestion.Flag.CLIPBOARD),
-            icon = icon ?: context.getDrawable(R.drawable.mozac_ic_search)?.toBitmap(),
+            icon = icon ?: clipboardIcon?.toBitmap(),
             title = title,
             onSuggestionClicked = {
                 loadUrlUseCase.invoke(url)

@@ -2,7 +2,7 @@
 
 # PushType
 
-`enum class PushType` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/push/src/main/java/mozilla/components/feature/push/AutoPushFeature.kt#L295)
+`enum class PushType` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/push/src/main/java/mozilla/components/feature/push/AutoPushFeature.kt#L360)
 
 The different kind of message types that a [EncryptedPushMessage](../../mozilla.components.concept.push/-encrypted-push-message/index.md) can be:
 
@@ -21,3 +21,9 @@ The different kind of message types that a [EncryptedPushMessage](../../mozilla.
 | Name | Summary |
 |---|---|
 | [toChannelId](to-channel-id.md) | `fun toChannelId(): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Retrieve a channel ID from the PushType. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

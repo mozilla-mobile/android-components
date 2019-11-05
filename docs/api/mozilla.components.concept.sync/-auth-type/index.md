@@ -2,7 +2,7 @@
 
 # AuthType
 
-`sealed class AuthType` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/sync/src/main/java/mozilla/components/concept/sync/OAuthAccount.kt#L63)
+`sealed class AuthType` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/sync/src/main/java/mozilla/components/concept/sync/OAuthAccount.kt#L202)
 
 ### Types
 
@@ -15,6 +15,12 @@
 | [Shared](-shared.md) | `object Shared : `[`AuthType`](./index.md)<br>Account created via a shared account state from another app. |
 | [Signin](-signin.md) | `object Signin : `[`AuthType`](./index.md)<br>Account created in response to a sign-in. |
 | [Signup](-signup.md) | `object Signup : `[`AuthType`](./index.md)<br>Account created in response to a sign-up. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

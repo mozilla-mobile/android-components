@@ -5,6 +5,7 @@
 package org.mozilla.samples.browser
 
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.memory.InMemoryHistoryStorage
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
+import mozilla.components.feature.addons.amo.AddOnsCollectionsProvider
 import mozilla.components.feature.contextmenu.ContextMenuUseCases
 import mozilla.components.feature.customtabs.CustomTabIntentProcessor
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
@@ -44,11 +46,14 @@ import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.feature.webnotifications.WebNotificationFeature
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+import org.mozilla.samples.browser.addons.AddOnsActivity
 import org.mozilla.samples.browser.integration.FindInPageIntegration
 import org.mozilla.samples.browser.request.SampleRequestInterceptor
 import java.util.concurrent.TimeUnit
 
+@Suppress("LargeClass")
 open class DefaultComponents(private val applicationContext: Context) {
 
     // Engine Settings
@@ -101,8 +106,13 @@ open class DefaultComponents(private val applicationContext: Context) {
                 .enable()
 
             MediaStateMachine.start(this)
+
+            WebNotificationFeature(applicationContext, engine, icons, R.drawable.ic_notification,
+                BrowserActivity::class.java)
         }
     }
+
+    val addOnsProvider by lazy { AddOnsCollectionsProvider(client = client) }
 
     val sessionUseCases by lazy { SessionUseCases(sessionManager) }
 
@@ -160,6 +170,11 @@ open class DefaultComponents(private val applicationContext: Context) {
             },
             SimpleBrowserMenuItem("Settings") {
                 Toast.makeText(applicationContext, "Settings", Toast.LENGTH_SHORT).show()
+            },
+            SimpleBrowserMenuItem("Add-ons") {
+                val intent = Intent(applicationContext, AddOnsActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                applicationContext.startActivity(intent)
             },
             SimpleBrowserMenuItem("Find In Page") {
                 FindInPageIntegration.launch?.invoke()

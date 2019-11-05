@@ -2,7 +2,7 @@
 
 # TabListAction
 
-`sealed class TabListAction : `[`BrowserAction`](../-browser-action.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/state/src/main/java/mozilla/components/browser/state/action/BrowserAction.kt#L46)
+`sealed class TabListAction : `[`BrowserAction`](../-browser-action.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/state/src/main/java/mozilla/components/browser/state/action/BrowserAction.kt#L47)
 
 [BrowserAction](../-browser-action.md) implementations related to updating the list of [TabSessionState](../../mozilla.components.browser.state.state/-tab-session-state/index.md) inside [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md).
 
@@ -18,6 +18,12 @@
 | [RemoveTabAction](-remove-tab-action/index.md) | `data class RemoveTabAction : `[`TabListAction`](./index.md)<br>Removes the [TabSessionState](../../mozilla.components.browser.state.state/-tab-session-state/index.md) with the given [tabId](-remove-tab-action/tab-id.md) from the list of sessions. |
 | [RestoreAction](-restore-action/index.md) | `data class RestoreAction : `[`TabListAction`](./index.md)<br>Restores state from a (partial) previous state. |
 | [SelectTabAction](-select-tab-action/index.md) | `data class SelectTabAction : `[`TabListAction`](./index.md)<br>Marks the [TabSessionState](../../mozilla.components.browser.state.state/-tab-session-state/index.md) with the given [tabId](-select-tab-action/tab-id.md) as selected tab. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

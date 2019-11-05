@@ -21,9 +21,9 @@ import androidx.core.util.set
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD_STATUS
 import mozilla.components.feature.downloads.ext.isScheme
 import mozilla.components.feature.downloads.ext.putDownloadExtra
-import kotlin.random.Random
 import kotlin.reflect.KClass
 
 /**
@@ -64,17 +64,15 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
 
         validatePermissionGranted(applicationContext)
 
-        val downloadID = Random.nextLong()
-        queuedDownloads[downloadID] = download
+        queuedDownloads[download.id] = download
 
         val intent = Intent(applicationContext, service.java)
-        intent.putExtra(EXTRA_DOWNLOAD_ID, downloadID)
         intent.putDownloadExtra(download)
         applicationContext.startService(intent)
 
         registerBroadcastReceiver()
 
-        return downloadID
+        return download.id
     }
 
     /**
@@ -104,10 +102,12 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
         if (queuedDownloads.isEmpty()) unregisterListeners()
 
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
+        val downloadStatus = intent.getSerializableExtra(EXTRA_DOWNLOAD_STATUS)
+            as AbstractFetchDownloadService.DownloadJobStatus
         val download = queuedDownloads[downloadID]
 
         if (download != null) {
-            onDownloadCompleted(download, downloadID)
+            onDownloadCompleted(download, downloadID, downloadStatus)
             queuedDownloads.remove(downloadID)
         }
 

@@ -6,6 +6,7 @@ package mozilla.components.feature.push
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +15,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import mozilla.appservices.push.CommunicationError
+import mozilla.appservices.push.CommunicationServerError
 import mozilla.appservices.push.SubscriptionResponse
 import mozilla.components.concept.push.Bus
 import mozilla.components.concept.push.EncryptedPushMessage
@@ -61,7 +64,7 @@ import mozilla.appservices.push.PushError as RustPushError
  * </code>
  *
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class AutoPushFeature(
     private val context: Context,
     private val service: PushService,
@@ -82,6 +85,9 @@ class AutoPushFeature(
     // The preference that stores new registration tokens.
     private val prefToken: String?
         get() = preferences(context).getString(PREF_TOKEN, null)
+    private var prefLastVerified: Long
+        get() = preferences(context).getLong(LAST_VERIFIED, System.currentTimeMillis())
+        set(value) = preferences(context).edit().putLong(LAST_VERIFIED, value).apply()
 
     internal var job: Job = SupervisorJob()
     private val scope = CoroutineScope(coroutineContext) + job
@@ -98,19 +104,25 @@ class AutoPushFeature(
     }
 
     /**
-     * Starts the push service provided.
+     * Starts the push feature and initialization work needed.
      */
-    override fun initialize() { service.start(context) }
+    override fun initialize() {
+        // Starts the push feature.
+        service.start(context)
+
+        // Starts verification of push subscription endpoints.
+        tryVerifySubscriptions()
+    }
 
     /**
-     * Un-subscribes from all push message channels and stops the push service.
+     * Un-subscribes from all push message channels, stops the push service, and stops periodic verifications.
      * This should only be done on an account logout or app data deletion.
      */
     override fun shutdown() {
         service.stop()
 
         DeliveryManager.with(connection) {
-            scope.launch {
+            job = scope.launch {
                 // TODO replace with unsubscribeAll API when available
                 PushType.values().forEach { type ->
                     unsubscribe(type.toChannelId())
@@ -118,6 +130,9 @@ class AutoPushFeature(
                 job.cancel()
             }
         }
+
+        // Reset the push subscription check.
+        prefLastVerified = 0L
     }
 
     /**
@@ -125,7 +140,7 @@ class AutoPushFeature(
      * each push type and notifies the subscribers.
      */
     override fun onNewToken(newToken: String) {
-        scope.launchAndTry {
+        job = scope.launchAndTry {
             logger.info("Received a new registration token from push service.")
 
             connection.updateToken(newToken)
@@ -143,7 +158,7 @@ class AutoPushFeature(
      * New encrypted messages received from a supported push messaging service.
      */
     override fun onMessageReceived(message: EncryptedPushMessage) {
-        scope.launchAndTry {
+        job = scope.launchAndTry {
             val type = DeliveryManager.serviceForChannelId(message.channelId)
             DeliveryManager.with(connection) {
                 logger.info("New push message decrypted.")
@@ -199,7 +214,7 @@ class AutoPushFeature(
      */
     fun subscribeForType(type: PushType) {
         DeliveryManager.with(connection) {
-            scope.launchAndTry {
+            job = scope.launchAndTry {
                 val sub = subscribe(type.toChannelId()).toPushSubscription()
                 subscriptionObservers.notifyObservers { onSubscriptionAvailable(sub) }
             }
@@ -216,7 +231,7 @@ class AutoPushFeature(
      */
     fun unsubscribeForType(type: PushType) {
         DeliveryManager.with(connection) {
-            scope.launchAndTry {
+            job = scope.launchAndTry {
                 unsubscribe(type.toChannelId())
             }
         }
@@ -227,7 +242,7 @@ class AutoPushFeature(
      */
     fun subscribeAll() {
         DeliveryManager.with(connection) {
-            scope.launchAndTry {
+            job = scope.launchAndTry {
                 PushType.values().forEach { type ->
                     val sub = subscribe(type.toChannelId()).toPushSubscription()
                     subscriptionObservers.notifyObservers { onSubscriptionAvailable(sub) }
@@ -239,11 +254,6 @@ class AutoPushFeature(
     /**
      * Deletes the registration token locally so that it forces the service to get a new one the
      * next time hits it's messaging server.
-     *
-     * Implementation notes: This shouldn't need to be used unless we're certain. When we introduce
-     * [a polling service][0] to check if endpoints are expired, we would invoke this.
-     *
-     * [0]: https://github.com/mozilla-mobile/android-components/issues/3173
      */
     override fun renewRegistration() {
         logger.warn("Forcing registration renewal by deleting our (cached) token.")
@@ -259,14 +269,42 @@ class AutoPushFeature(
         service.start(context)
     }
 
-    private fun CoroutineScope.launchAndTry(block: suspend CoroutineScope.() -> Unit) {
-        job = launch {
-            try {
-                block()
-            } catch (e: RustPushError) {
-                onError(PushError.Rust(e.toString()))
+    /**
+     * Verifies status (active, expired) of the push subscriptions and then notifies observers.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun verifyActiveSubscriptions() {
+        DeliveryManager.with(connection) {
+            job = scope.launchAndTry {
+                val notifyObservers = connection.verifyConnection()
+
+                if (notifyObservers) {
+                    logger.info("Subscriptions have changed; notifying observers..")
+
+                    PushType.values().forEach { type ->
+                        val sub = subscribe(type.toChannelId()).toPushSubscription()
+                        subscriptionObservers.notifyObservers { onSubscriptionAvailable(sub) }
+                    }
+                }
             }
         }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun tryVerifySubscriptions() {
+        logger.info("Checking validity of push subscriptions.")
+
+        if (shouldVerifyNow()) {
+            verifyActiveSubscriptions()
+
+            prefLastVerified = System.currentTimeMillis()
+        }
+    }
+
+    private fun CoroutineScope.launchAndTry(block: suspend CoroutineScope.() -> Unit): Job {
+        return launchAndTry(block, { e ->
+            onError(PushError.Rust(e.toString()))
+        })
     }
 
     private fun saveToken(context: Context, value: String) {
@@ -280,10 +318,37 @@ class AutoPushFeature(
     private fun preferences(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
 
+    /**
+     * We should verify if it's been [PERIODIC_INTERVAL_MILLISECONDS] since our last attempt (successful or not).
+     */
+    private fun shouldVerifyNow(): Boolean {
+        return (System.currentTimeMillis() - prefLastVerified) >= PERIODIC_INTERVAL_MILLISECONDS
+    }
+
     companion object {
         internal const val PREFERENCE_NAME = "mozac_feature_push"
         internal const val PREF_TOKEN = "token"
         internal const val DB_NAME = "push.sqlite"
+
+        internal const val LAST_VERIFIED = "last_verified_push_connection"
+        internal const val PERIODIC_INTERVAL_MILLISECONDS = 24 * 60 * 60 * 1000L // 24 hours
+    }
+}
+
+internal fun CoroutineScope.launchAndTry(
+    block: suspend CoroutineScope.() -> Unit,
+    errorBlock: (Exception) -> Unit
+): Job {
+    return launch {
+        try {
+            block()
+        } catch (e: RustPushError) {
+            if (e !is CommunicationServerError && e !is CommunicationError) {
+                throw e
+            }
+
+            errorBlock(e)
+        }
     }
 }
 

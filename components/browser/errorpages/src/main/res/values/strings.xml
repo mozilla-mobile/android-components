@@ -158,17 +158,11 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_unknown_host_title">Address Not Found</string>
-    <!-- In the example, the two URLs in markup do not need to be translated. -->
-    <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
-      <p>The browser could not find the host server for the provided address.</p>
-      <ul>
-        <li>Check the address for typing errors such as
-          <strong>ww</strong>.example.com instead of
-          <strong>www</strong>.example.com.</li>
-        <li>If you are unable to load any pages, check your device’s data or Wi-Fi connection.</li>
-      </ul>
-    ]]></string>
+    <string name="mozac_browser_errorpages_unknown_host_title2">No internet connection</string>
+    <!-- The main body text of this error page. It will be shown bebneat the title -->
+    <string name="mozac_browser_errorpages_unknown_host_message2">Check your network connection or try reloading the page in a few moments.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_unknown_host_button">Reload</string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Invalid Address</string>

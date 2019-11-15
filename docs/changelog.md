@@ -34,6 +34,9 @@ permalink: /changelog/
   
 * **sample-nearby-chat**
   * 🆕 New sample program demonstrating use of `lib-nearby`.
+  
+* **browser-errorpages**
+  * Copy change for ERROR_UNKNOWN_HOST error pages
 
 # 21.0.0
 

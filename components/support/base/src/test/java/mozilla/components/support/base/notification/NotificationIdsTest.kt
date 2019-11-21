@@ -39,6 +39,17 @@ class NotificationIdsTest {
     }
 
     @Test
+    fun `Returns incrementing ids`() {
+        NotificationIds.now = { 0 }
+
+        val testId = NotificationIds.getNextIdForTag(testContext, "mozilla.test")
+        assertTrue(testId > 0)
+        assertTrue(testId > 1000)
+        assertEquals(testId + 1, NotificationIds.getNextIdForTag(testContext, "mozilla.test"))
+        assertEquals(testId + 2, NotificationIds.getNextIdForTag(testContext, "mozilla.test"))
+    }
+
+    @Test
     fun `Clears unused ids`() {
         NotificationIds.now = { 0 }
 

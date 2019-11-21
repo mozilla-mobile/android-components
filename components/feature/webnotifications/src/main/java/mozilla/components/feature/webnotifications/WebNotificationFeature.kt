@@ -19,11 +19,13 @@ import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.webnotifications.WebNotification
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
+import mozilla.components.support.base.ids.NotificationIds
 import mozilla.components.support.base.log.logger.Logger
 import java.lang.UnsupportedOperationException
 
 private const val NOTIFICATION_CHANNEL_ID = "mozac.feature.webnotifications.generic.channel"
-private const val NOTIFICATION_TAG_ID = "mozac.feature.webnotifications.generic.tag"
+private const val NOTIFICATION_TAG_ID = "mozac.feature.webnotifications.generic.notification.tag"
+private const val PENDING_INTENT_TAG_ID = "mozac.feature.webnotifications.generic.pendingintent.tag"
 
 /**
  * Feature implementation for configuring and displaying web notifications to the user.
@@ -49,8 +51,6 @@ class WebNotificationFeature(
     private val activityClass: Class<out Activity>?
 ) : WebNotificationDelegate {
     private val logger = Logger("WebNotificationFeature")
-    private var pendingRequestId = 0
-    private var notificationId = 0
     private val notificationIdMap = HashMap<String, Int>()
     private val notificationManager = context.getSystemService<NotificationManager>()
     private val nativeNotificationBridge = NativeNotificationBridge(browserIcons, smallIcon)
@@ -70,13 +70,13 @@ class WebNotificationFeature(
             notificationManager?.cancel(NOTIFICATION_TAG_ID, it)
         }
 
-        pendingRequestId++
-        notificationId++
+        val notificationId = NotificationIds.getNextIdForTag(context, NOTIFICATION_TAG_ID)
+        val pendingIntentId = NotificationIds.getNextIdForTag(context, PENDING_INTENT_TAG_ID)
         notificationIdMap[webNotification.tag] = notificationId
 
         GlobalScope.launch(Dispatchers.IO) {
             val notification = nativeNotificationBridge.convertToAndroidNotification(
-                webNotification, context, NOTIFICATION_CHANNEL_ID, activityClass, pendingRequestId)
+                webNotification, context, NOTIFICATION_CHANNEL_ID, activityClass, pendingIntentId)
             notificationManager?.notify(NOTIFICATION_TAG_ID, notificationId, notification)
         }
     }

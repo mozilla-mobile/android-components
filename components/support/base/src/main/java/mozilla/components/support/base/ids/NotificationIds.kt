@@ -29,6 +29,11 @@ object NotificationIds {
      */
     fun getIdForTag(context: Context, tag: String): Int = ids.getIdForTag(context, tag)
 
+    /**
+     * Get the next available unique notification ID for the provided unique tag.
+     */
+    fun getNextIdForTag(context: Context, tag: String): Int = ids.getNextIdForTag(context, tag)
+
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var now: () -> Long
         get() = ids.now

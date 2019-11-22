@@ -5,7 +5,6 @@
 package mozilla.components.feature.downloads
 
 import android.content.Context
-import android.os.Environment
 import android.widget.Toast
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
@@ -22,8 +21,8 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.FRAGMENT_TAG
 import mozilla.components.feature.downloads.manager.AndroidDownloadManager
 import mozilla.components.feature.downloads.manager.DownloadManager
-import mozilla.components.feature.downloads.manager.OnDownloadCompleted
 import mozilla.components.feature.downloads.manager.noop
+import mozilla.components.feature.downloads.manager.onDownloadStopped
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
@@ -31,7 +30,6 @@ import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
-import java.io.File
 
 /**
  * Feature implementation to provide download functionality for the selected
@@ -42,7 +40,7 @@ import java.io.File
  * @property onNeedToRequestPermissions a callback invoked when permissions
  * need to be requested before a download can be performed. Once the request
  * is completed, [onPermissionsResult] needs to be invoked.
- * @property onDownloadCompleted a callback invoked when a download is completed.
+ * @property onDownloadStopped a callback invoked when a download is paused or completed.
  * @property downloadManager a reference to the [DownloadManager] which is
  * responsible for performing the downloads.
  * @property store a reference to the application's [BrowserStore].
@@ -59,7 +57,7 @@ class DownloadsFeature(
     private val store: BrowserStore,
     private val useCases: DownloadsUseCases,
     override var onNeedToRequestPermissions: OnNeedToRequestPermissions = { },
-    onDownloadCompleted: OnDownloadCompleted = noop,
+    onDownloadStopped: onDownloadStopped = noop,
     private val downloadManager: DownloadManager = AndroidDownloadManager(applicationContext),
     private val customTabId: String? = null,
     private val fragmentManager: FragmentManager? = null,
@@ -70,12 +68,12 @@ class DownloadsFeature(
     )
 ) : LifecycleAwareFeature, PermissionsFeature {
 
-    var onDownloadCompleted: OnDownloadCompleted
-        get() = downloadManager.onDownloadCompleted
-        set(value) { downloadManager.onDownloadCompleted = value }
+    var onDownloadStopped: onDownloadStopped
+        get() = downloadManager.onDownloadStopped
+        set(value) { downloadManager.onDownloadStopped = value }
 
     init {
-        this.onDownloadCompleted = onDownloadCompleted
+        this.onDownloadStopped = onDownloadStopped
     }
 
     private var scope: CoroutineScope? = null
@@ -96,15 +94,7 @@ class DownloadsFeature(
                 .collect { state ->
                     val download = state.content.download
                     if (download != null) {
-                        // Update the file name to ensure it doesn't collide with one already on disk]
-                        val downloadWithUniqueName = download.fileName?.let {
-                            download.copy(fileName = uniqueFileName(
-                                Environment.getExternalStoragePublicDirectory(download.destinationDirectory),
-                                it
-                            ))
-                        } ?: download
-
-                        processDownload(state, downloadWithUniqueName)
+                        processDownload(state, download)
                     }
                 }
         }
@@ -218,24 +208,6 @@ class DownloadsFeature(
         val state = store.state.findCustomTabOrSelectedTab(customTabId) ?: return
         val download = state.content.download ?: return
         block(Pair(state, download))
-    }
-
-    /**
-     * Checks if the file exists so as not to overwrite one already in downloads
-     */
-    private fun uniqueFileName(directory: File, fileName: String): String {
-        val fileExtension = fileName.substringAfterLast(".")
-        val baseFileName = fileName.replace(fileExtension, "")
-
-        var potentialFileName = File(directory, fileName)
-        var copyVersionNumber = 1
-
-        while (potentialFileName.exists()) {
-            potentialFileName = File(directory, "$baseFileName($copyVersionNumber).$fileExtension")
-            copyVersionNumber += 1
-        }
-
-        return potentialFileName.name
     }
 
     /**

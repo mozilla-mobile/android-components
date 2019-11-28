@@ -6,6 +6,7 @@ package mozilla.components.browser.toolbar.display
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
@@ -45,19 +46,25 @@ internal class MenuButton @JvmOverloads constructor(
         isClickable = true
         isFocusable = true
 
+        var lastClickTime: Long = 0
         setOnClickListener {
-            if (menu == null) {
-                menu = menuBuilder?.build(context)
-                val endAlwaysVisible = menuBuilder?.endOfMenuAlwaysVisible ?: false
-                menu?.show(
-                    anchor = this,
-                    orientation = BrowserMenu.determineMenuOrientation(parent as View?),
-                    endOfMenuAlwaysVisible = endAlwaysVisible
-                ) { menu = null }
+            // Throttle fast clicks which would otherwise lead to unexpected behavior.
+            if (hasClickThrottleDurationPassed(lastClickTime)) {
+                if (menu == null) {
+                    menu = menuBuilder?.build(context)
+                    val endAlwaysVisible = menuBuilder?.endOfMenuAlwaysVisible ?: false
+                    menu?.show(
+                        anchor = this,
+                        orientation = BrowserMenu.determineMenuOrientation(parent as View?),
+                        endOfMenuAlwaysVisible = endAlwaysVisible
+                    ) { menu = null }
 
-                emitOpenMenuFact(menuBuilder?.extras)
-            } else {
-                menu?.dismiss()
+                    emitOpenMenuFact(menuBuilder?.extras)
+                } else {
+                    menu?.dismiss()
+                }
+
+                lastClickTime = now()
             }
         }
 
@@ -143,4 +150,14 @@ internal class MenuButton @JvmOverloads constructor(
                 visibility = View.GONE
             }
         }
+
+    private fun hasClickThrottleDurationPassed(lastClickTime: Long): Boolean {
+        return now() - lastClickTime >= MENU_CLICK_THROTTLE_DURATION
+    }
+
+    private fun now() = SystemClock.elapsedRealtime()
+
+    private companion object {
+        const val MENU_CLICK_THROTTLE_DURATION = 500
+    }
 }

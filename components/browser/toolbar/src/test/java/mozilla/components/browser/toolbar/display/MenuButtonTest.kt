@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
 import android.graphics.drawable.Drawable
+import android.os.SystemClock
 import android.view.View
 import android.widget.ImageView
 import androidx.annotation.ColorInt
@@ -82,6 +83,9 @@ class MenuButtonTest {
     @Test
     fun `changing menu builder dismisses old menu`() {
         menuButton.menuBuilder = menuBuilder
+        // Need to have at least 500ms passed
+        SystemClock.setCurrentTimeMillis(500)
+
         menuButton.performClick()
 
         verify(menu).show(eq(menuButton), any(), anyBoolean(), any())
@@ -93,12 +97,29 @@ class MenuButtonTest {
     @Test
     fun `trying to open a new menu when we already have one will dismiss the current`() {
         menuButton.menuBuilder = menuBuilder
+        // Need to have at least 500ms passed
+        SystemClock.setCurrentTimeMillis(500)
+
+        menuButton.performClick()
+        // Need another 500ms to have passed between the clicks
+        SystemClock.setCurrentTimeMillis(1_000)
+        menuButton.performClick()
+
+        verify(menu, times(1)).show(eq(menuButton), any(), anyBoolean(), any())
+        verify(menu, times(1)).dismiss()
+    }
+
+    @Test
+    fun `menu button clicks should be throttled`() {
+        menuButton.menuBuilder = menuBuilder
+        // Need to have at least 500ms passed
+        SystemClock.setCurrentTimeMillis(500)
 
         menuButton.performClick()
         menuButton.performClick()
 
         verify(menu, times(1)).show(eq(menuButton), any(), anyBoolean(), any())
-        verify(menu, times(1)).dismiss()
+        verify(menu, times(0)).dismiss()
     }
 
     @Test

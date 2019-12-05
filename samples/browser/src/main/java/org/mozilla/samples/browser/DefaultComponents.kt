@@ -54,8 +54,10 @@ import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.webnotifications.WebNotificationFeature
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+import mozilla.components.lib.nearby.NearbyConnection
 import org.mozilla.samples.browser.addons.AddonsActivity
 import org.mozilla.samples.browser.integration.FindInPageIntegration
+import org.mozilla.samples.browser.integration.P2PIntegration
 import org.mozilla.samples.browser.request.SampleRequestInterceptor
 import java.util.concurrent.TimeUnit
 
@@ -122,8 +124,10 @@ open class DefaultComponents(private val applicationContext: Context) {
 
             MediaStateMachine.start(this)
 
-            WebNotificationFeature(applicationContext, engine, icons, R.drawable.ic_notification,
-                BrowserActivity::class.java)
+            WebNotificationFeature(
+                applicationContext, engine, icons, R.drawable.ic_notification,
+                BrowserActivity::class.java
+            )
         }
     }
 
@@ -142,13 +146,42 @@ open class DefaultComponents(private val applicationContext: Context) {
         }
     }
 
-    val searchUseCases by lazy { SearchUseCases(applicationContext, searchEngineManager, sessionManager) }
-    val defaultSearchUseCase by lazy { { searchTerms: String -> searchUseCases.defaultSearch.invoke(searchTerms) } }
+    val searchUseCases by lazy {
+        SearchUseCases(
+            applicationContext,
+            searchEngineManager,
+            sessionManager
+        )
+    }
+    val defaultSearchUseCase by lazy {
+        { searchTerms: String ->
+            searchUseCases.defaultSearch.invoke(
+                searchTerms
+            )
+        }
+    }
     val appLinksUseCases by lazy { AppLinksUseCases(applicationContext) }
 
     val webAppManifestStorage by lazy { ManifestStorage(applicationContext) }
-    val webAppShortcutManager by lazy { WebAppShortcutManager(applicationContext, client, webAppManifestStorage) }
-    val webAppUseCases by lazy { WebAppUseCases(applicationContext, sessionManager, webAppShortcutManager) }
+    val webAppShortcutManager by lazy {
+        WebAppShortcutManager(
+            applicationContext,
+            client,
+            webAppManifestStorage
+        )
+    }
+    val webAppUseCases by lazy {
+        WebAppUseCases(
+            applicationContext,
+            sessionManager,
+            webAppShortcutManager
+        )
+    }
+
+    // P2P communication
+    val nearbyConnection by lazy {
+        NearbyConnection(applicationContext)
+    }
 
     // Intent
     val tabIntentProcessor by lazy {
@@ -165,7 +198,11 @@ open class DefaultComponents(private val applicationContext: Context) {
                 null,
                 customTabsStore
             ),
-            CustomTabIntentProcessor(sessionManager, sessionUseCases.loadUrl, applicationContext.resources)
+            CustomTabIntentProcessor(
+                sessionManager,
+                sessionUseCases.loadUrl,
+                applicationContext.resources
+            )
         )
     }
 
@@ -175,9 +212,13 @@ open class DefaultComponents(private val applicationContext: Context) {
     private val menuItems by lazy {
         val items = mutableListOf(
             menuToolbar,
-            BrowserMenuHighlightableItem("No Highlight", R.drawable.mozac_ic_share, android.R.color.black,
+            BrowserMenuHighlightableItem(
+                "No Highlight", R.drawable.mozac_ic_share, android.R.color.black,
                 highlight = BrowserMenuHighlight.LowPriority(
-                    notificationTint = ContextCompat.getColor(applicationContext, android.R.color.holo_green_dark),
+                    notificationTint = ContextCompat.getColor(
+                        applicationContext,
+                        android.R.color.holo_green_dark
+                    ),
                     label = "Highlight"
                 )
             ) {
@@ -197,6 +238,9 @@ open class DefaultComponents(private val applicationContext: Context) {
             SimpleBrowserMenuItem("Find In Page") {
                 FindInPageIntegration.launch?.invoke()
             },
+            SimpleBrowserMenuItem("P2P") {
+                P2PIntegration.launch?.invoke()
+            },
             BrowserMenuDivider()
         )
 
@@ -206,7 +250,8 @@ open class DefaultComponents(private val applicationContext: Context) {
                     webAppUseCases.addToHomescreen()
                 }
             }.apply {
-                visible = { webAppUseCases.isPinningSupported() && sessionManager.selectedSession != null }
+                visible =
+                    { webAppUseCases.isPinningSupported() && sessionManager.selectedSession != null }
             }
         )
 
@@ -252,27 +297,28 @@ open class DefaultComponents(private val applicationContext: Context) {
 
     private val menuToolbar by lazy {
         val forward = BrowserMenuItemToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
-                iconTintColorResource = R.color.photonBlue90,
-                contentDescription = "Forward",
-                isEnabled = { sessionManager.selectedSession?.canGoForward == true }
+            mozilla.components.ui.icons.R.drawable.mozac_ic_forward,
+            iconTintColorResource = R.color.photonBlue90,
+            contentDescription = "Forward",
+            isEnabled = { sessionManager.selectedSession?.canGoForward == true }
         ) {
             sessionUseCases.goForward()
         }
 
         val refresh = BrowserMenuItemToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
-                iconTintColorResource = R.color.photonBlue90,
-                contentDescription = "Refresh",
-                isEnabled = { sessionManager.selectedSession?.loading != true }
+            mozilla.components.ui.icons.R.drawable.mozac_ic_refresh,
+            iconTintColorResource = R.color.photonBlue90,
+            contentDescription = "Refresh",
+            isEnabled = { sessionManager.selectedSession?.loading != true }
         ) {
             sessionUseCases.reload()
         }
 
         val stop = BrowserMenuItemToolbar.Button(
-                mozilla.components.ui.icons.R.drawable.mozac_ic_stop,
-                iconTintColorResource = R.color.photonBlue90,
-                contentDescription = "Stop") {
+            mozilla.components.ui.icons.R.drawable.mozac_ic_stop,
+            iconTintColorResource = R.color.photonBlue90,
+            contentDescription = "Stop"
+        ) {
             sessionUseCases.stopLoading()
         }
 
@@ -285,5 +331,10 @@ open class DefaultComponents(private val applicationContext: Context) {
 
     val tabsUseCases: TabsUseCases by lazy { TabsUseCases(sessionManager) }
     val downloadsUseCases: DownloadsUseCases by lazy { DownloadsUseCases(store) }
-    val contextMenuUseCases: ContextMenuUseCases by lazy { ContextMenuUseCases(sessionManager, store) }
+    val contextMenuUseCases: ContextMenuUseCases by lazy {
+        ContextMenuUseCases(
+            sessionManager,
+            store
+        )
+    }
 }

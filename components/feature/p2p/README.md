@@ -38,7 +38,7 @@ The four boxes on the left represent Kotlin classes.
 The class `P2PFeature` launches `P2PController`, which controls the view `P2PBar` and is the sole
 point of communication with the class `NearbyConnection` in [`lib-nearby`](../../lib/nearby/README.md).
 When a request is made to send a web page, `P2PController` sends a 
-(`Port`)[https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/Port] 
+[`Port`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/Port) 
 message to the web extension `p2p.js` requesting that HTML for the page. This extension consists of 
 a small amount of original code (`p2p-base.js`), [`freeze-dry`](https://github.com/WebMemex/freeze-dry), and
 the libraries on which it depends. These Javascript files are combined into a single file `p2p.js` by

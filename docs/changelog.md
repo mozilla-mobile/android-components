@@ -14,6 +14,9 @@ permalink: /changelog/
 
 * **feature-remotetabs**
   * Add new `RemoteTabsFeature` to view tabs from other synced devices and upload our own.
+  
+* **feature-p2p**
+  * Add new `P2PFeature` to send URLs and web pages through peer-to-peer networking.
 
 # 24.0.0
 

@@ -62,7 +62,13 @@ class FirefoxAccountsAuthFeature(
     }
 
     val interceptor = object : RequestInterceptor {
-        override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+        override fun onLoadRequest(
+            engineSession: EngineSession,
+            privateMode: Boolean,
+            currentUrl: String?,
+            uri: String,
+            hasUserGesture: Boolean
+        ): RequestInterceptor.InterceptionResponse? {
             if (uri.startsWith(redirectUrl)) {
                 val parsedUri = Uri.parse(uri)
                 val code = parsedUri.getQueryParameter("code")

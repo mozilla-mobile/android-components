@@ -1155,7 +1155,13 @@ class GeckoEngineSessionTest {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                privateMode: Boolean,
+                currentUrl: String?,
+                uri: String,
+                hasUserGesture: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
             }
@@ -1179,7 +1185,13 @@ class GeckoEngineSessionTest {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                privateMode: Boolean,
+                currentUrl: String?,
+                uri: String,
+                hasUserGesture: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return RequestInterceptor.InterceptionResponse.Url("https://mozilla.org")
             }
@@ -1217,7 +1229,13 @@ class GeckoEngineSessionTest {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                privateMode: Boolean,
+                currentUrl: String?,
+                uri: String,
+                hasUserGesture: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return null
             }
@@ -1860,8 +1878,7 @@ class GeckoEngineSessionTest {
             override fun onLoadRequest(
                 url: String,
                 triggeredByRedirect: Boolean,
-                triggeredByWebContent: Boolean,
-                shouldLoadUri: (Boolean, String) -> Unit
+                triggeredByWebContent: Boolean
             ) {
                 observedTriggeredByRedirect = triggeredByRedirect
                 observedUrl = url
@@ -1897,8 +1914,7 @@ class GeckoEngineSessionTest {
             override fun onLoadRequest(
                 url: String,
                 triggeredByRedirect: Boolean,
-                triggeredByWebContent: Boolean,
-                shouldLoadUri: (Boolean, String) -> Unit
+                triggeredByWebContent: Boolean
             ) {
                 observedTriggeredByWebContent = triggeredByWebContent
                 observedUrl = url
@@ -1979,7 +1995,13 @@ class GeckoEngineSessionTest {
     @Test
     fun `onLoadRequest will not notify observers if request was intercepted`() {
         val defaultSettings = DefaultSettings(requestInterceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                privateMode: Boolean,
+                currentUrl: String?,
+                uri: String,
+                hasUserGesture: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
             }
         })
@@ -1996,7 +2018,7 @@ class GeckoEngineSessionTest {
         navigationDelegate.value.onLoadRequest(
             mock(), mockLoadRequest(fakeUri, triggeredByRedirect = true))
 
-        verify(observer, never()).onLoadRequest(eq(fakeUri), anyBoolean(), anyBoolean(), any())
+        verify(observer, never()).onLoadRequest(eq(fakeUri), anyBoolean(), anyBoolean())
     }
 
     @Test

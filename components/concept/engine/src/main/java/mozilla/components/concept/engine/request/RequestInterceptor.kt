@@ -4,6 +4,8 @@
 
 package mozilla.components.concept.engine.request
 
+import android.content.Context
+import android.content.Intent
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 
@@ -22,6 +24,7 @@ interface RequestInterceptor {
         ) : InterceptionResponse()
 
         data class Url(val url: String) : InterceptionResponse()
+        data class AppIntent(val context: Context, val appIntent: Intent) : InterceptionResponse()
     }
 
     /**
@@ -38,12 +41,22 @@ interface RequestInterceptor {
      * A request to open an URI. This is called before each page load to allow
      * providing custom behavior.
      *
-     * @param session The engine session that initiated the callback.
+     * @param engineSession The engine session that initiated the callback.
+     * @param privateMode If the engine session is private then true, else false.
+     * @param url The the current URL of the engine session.
+     * @param uri The the URI of the request.
+     * @param hasUserGesture If the request if triggered by the user then true, else false.
      * @return An [InterceptionResponse] object containing alternative content
      * or an alternative URL. Null if the original request should continue to
      * be loaded.
      */
-    fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? = null
+    fun onLoadRequest(
+        engineSession: EngineSession,
+        privateMode: Boolean,
+        currentUrl: String?,
+        uri: String,
+        hasUserGesture: Boolean
+    ): InterceptionResponse? = null
 
     /**
      * A request that the engine wasn't able to handle that resulted in an error.

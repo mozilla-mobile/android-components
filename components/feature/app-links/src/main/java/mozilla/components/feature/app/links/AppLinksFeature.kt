@@ -10,12 +10,8 @@ import android.content.Intent
 import android.net.Uri
 import android.webkit.URLUtil
 import androidx.annotation.VisibleForTesting
-import androidx.fragment.app.FragmentManager
-import mozilla.components.browser.session.SelectionAwareSessionObserver
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
-import mozilla.components.feature.app.links.RedirectDialogFragment.Companion.FRAGMENT_TAG
-import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 
 /**
@@ -28,22 +24,19 @@ import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
  *
  * It provides use cases to detect and open links openable in third party non-browser apps.
  *
- * It requires: a [Context], and a [FragmentManager].
+ * It requires: a [Context].
  *
  * A [Boolean] flag is provided at construction to allow the feature and use cases to be landed without
  * adjoining UI. The UI will be activated in https://github.com/mozilla-mobile/android-components/issues/2974
  * and https://github.com/mozilla-mobile/android-components/issues/2975.
  *
  * @param context Context the feature is associated with.
- * @param sessionManager Provides access to a centralized registry of all active sessions.
- * @param sessionId the session ID to observe.
  * @param interceptLinkClicks If {true} then intercept link clicks.
  * @param alwaysAllowedSchemes List of schemes that will always be allowed to be opened in a third-party
  * app even if [interceptLinkClicks] is `false`.
  * @param alwaysDeniedSchemes List of schemes that will never be opened in a third-party app even if
  * [interceptLinkClicks] is `true`.
  * @param fragmentManager FragmentManager for interacting with fragments.
- * @param dialog The dialog for redirect.
  * @param launchInApp If {true} then launch app links in third party app(s). Default to false because
  * of security concerns.
  * @param useCases These use cases allow for the detection of, and opening of links that other apps
@@ -51,136 +44,77 @@ import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
  */
 class AppLinksFeature(
     private val context: Context,
-    private val sessionManager: SessionManager,
-    private val sessionId: String? = null,
     private val interceptLinkClicks: Boolean = false,
     private val alwaysAllowedSchemes: Set<String> = setOf("mailto", "market", "sms", "tel"),
     private val alwaysDeniedSchemes: Set<String> = setOf("javascript", "about"),
-    private val fragmentManager: FragmentManager? = null,
-    private var dialog: RedirectDialogFragment = SimpleRedirectDialogFragment.newInstance(),
     private val launchInApp: () -> Boolean = { false },
     private val useCases: AppLinksUseCases = AppLinksUseCases(context, launchInApp)
-) : LifecycleAwareFeature {
+) {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val observer: SelectionAwareSessionObserver = object : SelectionAwareSessionObserver(sessionManager) {
+    val interceptor = object : RequestInterceptor {
         override fun onLoadRequest(
-            session: Session,
-            url: String,
-            triggeredByRedirect: Boolean,
-            triggeredByWebContent: Boolean
-        ): Boolean {
-            return handleLoadRequest(session, url, triggeredByWebContent)
-        }
-    }
+            engineSession: EngineSession,
+            privateMode: Boolean,
+            currentUrl: String?,
+            uri: String,
+            hasUserGesture: Boolean
+        ): RequestInterceptor.InterceptionResponse? {
+            // If request not from user gesture or if we're already on the site,
+            // and we're clicking around then let's not go to an external app.
+            if (!hasUserGesture || uri.hostname() == currentUrl?.hostname()) {
+                return null
+            }
 
-    /**
-     * Starts observing app links on the selected session.
-     */
-    override fun start() {
-        if (interceptLinkClicks || alwaysAllowedSchemes.isNotEmpty()) {
-            observer.observeIdOrSelected(sessionId)
-        }
-        findPreviousDialogFragment()?.let {
-            reAttachOnConfirmRedirectListener(it)
-        }
-    }
+            val redirect = useCases.interceptedAppLinkRedirect(uri)
+            if (redirect.isRedirect()) {
+                return handleRedirect(redirect, privateMode)
+            }
 
-    override fun stop() {
-        if (interceptLinkClicks || alwaysAllowedSchemes.isNotEmpty()) {
-            observer.stop()
+            return null
         }
-    }
-
-    @SuppressWarnings("ReturnCount")
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun handleLoadRequest(
-        session: Session,
-        url: String,
-        triggeredByWebContent: Boolean
-    ): Boolean {
-        if (!triggeredByWebContent) {
-            return false
-        }
-
-        // If we're already on the site, and we're clicking around then
-        // let's not go to an external app.
-        if (url.hostname() == session.url.hostname()) {
-            return false
-        }
-
-        val redirect = useCases.interceptedAppLinkRedirect(url)
-
-        if (redirect.isRedirect()) {
-            return handleRedirect(redirect, session)
-        }
-
-        return false
     }
 
     @SuppressWarnings("ReturnCount")
     @SuppressLint("MissingPermission")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun handleRedirect(redirect: AppLinkRedirect, session: Session): Boolean {
+    internal fun handleRedirect(
+        redirect: AppLinkRedirect,
+        privateMode: Boolean
+    ): RequestInterceptor.InterceptionResponse? {
         if (!redirect.hasExternalApp()) {
-            if (redirect.marketplaceIntent != null) {
-                useCases.openMarketplaceIntent(redirect)
-                return true
+            redirect.marketplaceIntent?.let {
+                return RequestInterceptor.InterceptionResponse.AppIntent(context, it)
             }
 
-            return handleFallback(redirect, session)
+            return handleFallback(redirect)
         }
 
         redirect.appIntent?.data?.scheme?.let { scheme ->
             if ((!interceptLinkClicks && !alwaysAllowedSchemes.contains(scheme)) ||
                 alwaysDeniedSchemes.contains(scheme)) {
-                return false
+                return null
             }
         }
 
-        val doOpenApp = {
-            useCases.openAppLink(redirect)
+        if (!privateMode) {
+            redirect.appIntent?.let {
+                return RequestInterceptor.InterceptionResponse.AppIntent(context, it)
+            }
         }
 
-        if (!session.private || fragmentManager == null) {
-            doOpenApp()
-            return true
-        }
-
-        dialog.setAppLinkRedirect(redirect)
-        dialog.onConfirmRedirect = doOpenApp
-
-        if (!isAlreadyADialogCreated()) {
-            dialog.show(fragmentManager, FRAGMENT_TAG)
-        }
-
-        return true
+        return null
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun handleFallback(redirect: AppLinkRedirect, session: Session): Boolean {
+    internal fun handleFallback(
+        redirect: AppLinkRedirect
+    ): RequestInterceptor.InterceptionResponse? {
         redirect.fallbackUrl?.let {
-            val engineSession = sessionManager.getOrCreateEngineSession(session)
-            engineSession.loadUrl(it)
-            return true
+            return RequestInterceptor.InterceptionResponse.Url(it)
         }
 
-        return false
-    }
-
-    private fun isAlreadyADialogCreated(): Boolean {
-        return findPreviousDialogFragment() != null
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun reAttachOnConfirmRedirectListener(previousDialog: RedirectDialogFragment?) {
-        previousDialog?.apply {
-            this@AppLinksFeature.dialog = this
-        }
-    }
-
-    private fun findPreviousDialogFragment(): RedirectDialogFragment? {
-        return fragmentManager?.findFragmentByTag(FRAGMENT_TAG) as? RedirectDialogFragment
+        return null
     }
 
     private fun String.hostname() =

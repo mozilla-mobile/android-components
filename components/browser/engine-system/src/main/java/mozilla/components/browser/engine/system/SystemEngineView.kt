@@ -6,7 +6,9 @@ package mozilla.components.browser.engine.system
 
 import android.annotation.TargetApi
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -59,6 +61,7 @@ import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.view.getRectWithViewLocation
 import mozilla.components.support.utils.DownloadUtils
 
@@ -185,7 +188,7 @@ class SystemEngineView @JvmOverloads constructor(
             }
         }
 
-        @Suppress("ReturnCount", "NestedBlockDepth")
+        @Suppress("ReturnCount", "NestedBlockDepth", "LongMethod")
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
             if (session?.webFontsEnabled == false && UrlMatcher.isWebFont(request.url)) {
                 return WebResourceResponse(null, null, null)
@@ -234,13 +237,22 @@ class SystemEngineView @JvmOverloads constructor(
             session?.let { session ->
                 session.settings.requestInterceptor?.let { interceptor ->
                     interceptor.onLoadRequest(
-                        session, request.url.toString()
+                        session, false, session.currentUrl, request.url.toString(), request.hasGesture()
                     )?.apply {
                         return when (this) {
                             is InterceptionResponse.Content ->
                                 WebResourceResponse(mimeType, encoding, data.byteInputStream())
                             is InterceptionResponse.Url -> {
                                 view.post { view.loadUrl(url) }
+                                super.shouldInterceptRequest(view, request)
+                            }
+                            is InterceptionResponse.AppIntent -> {
+                                appIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                try {
+                                    context.startActivity(appIntent)
+                                } catch (e: ActivityNotFoundException) {
+                                    Logger.error("failed to start third party app activity", e)
+                                }
                                 super.shouldInterceptRequest(view, request)
                             }
                         }
@@ -251,7 +263,7 @@ class SystemEngineView @JvmOverloads constructor(
             if (request.isForMainFrame) {
                 session?.let {
                     it.notifyObservers {
-                        onLoadRequest(request.url.toString(), request.hasGesture(), true, { _: Boolean, _: String -> })
+                        onLoadRequest(request.url.toString(), request.hasGesture(), true)
                     }
                 }
             }

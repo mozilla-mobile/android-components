@@ -5,6 +5,8 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,6 +31,7 @@ import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isGeoLocation
@@ -355,35 +358,28 @@ class GeckoEngineSession(
 
             val response = settings.requestInterceptor?.onLoadRequest(
                 this@GeckoEngineSession,
-                request.uri
+                this@GeckoEngineSession.privateMode,
+                this@GeckoEngineSession.currentUrl,
+                request.uri,
+                request.hasUserGesture
             )?.apply {
                 when (this) {
                     is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
                     is InterceptionResponse.Url -> loadUrl(url)
+                    is InterceptionResponse.AppIntent -> {
+                        appIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        try {
+                            context.startActivity(appIntent)
+                        } catch (e: ActivityNotFoundException) {
+                            Logger.error("failed to start third party app activity", e)
+                        }
+                    }
                 }
             }
 
             return if (response != null) {
                 GeckoResult.fromValue(AllowOrDeny.DENY)
-            } else if (!isObserved()) {
-                GeckoResult.fromValue(AllowOrDeny.ALLOW)
             } else {
-                val geckoResult: GeckoResult<AllowOrDeny> = GeckoResult()
-                var completedBy: String? = null
-                val allowOrDeny: (Boolean, String) -> Unit = { shouldAllow, newCaller ->
-
-                    /* Debugging code for Android-components/issues/5127, will remove */
-                    if (completedBy != null) {
-                        throw IllegalStateException("GeckoResult already completed by $completedBy, " +
-                            "new caller is $newCaller")
-                    }
-
-                    val result = if (shouldAllow) AllowOrDeny.ALLOW else AllowOrDeny.DENY
-                    geckoResult.complete(result)
-                    /* Debugging code for Android-components/issues/5127, will remove */
-                    completedBy = newCaller
-                }
-
                 notifyObservers {
                     // Unlike the name LoadRequest.isRedirect may imply this flag is not about http redirects. The flag
                     // is "True if and only if the request was triggered by an HTTP redirect."
@@ -391,12 +387,11 @@ class GeckoEngineSession(
                     onLoadRequest(
                         url = request.uri,
                         triggeredByRedirect = request.isRedirect,
-                        triggeredByWebContent = request.hasUserGesture,
-                        shouldLoadUri = allowOrDeny
+                        triggeredByWebContent = request.hasUserGesture
                     )
                 }
 
-                geckoResult
+                GeckoResult.fromValue(AllowOrDeny.ALLOW)
             }
         }
 

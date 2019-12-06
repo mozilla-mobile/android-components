@@ -11,12 +11,20 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.engine.request.RequestInterceptor.ErrorResponse
+import org.mozilla.samples.browser.ext.components
 
 class SampleRequestInterceptor(val context: Context) : RequestInterceptor {
-    override fun onLoadRequest(session: EngineSession, uri: String): InterceptionResponse? {
+    override fun onLoadRequest(
+        engineSession: EngineSession,
+        privateMode: Boolean,
+        currentUrl: String?,
+        uri: String,
+        hasUserGesture: Boolean
+    ): InterceptionResponse? {
         return when (uri) {
             "sample:about" -> InterceptionResponse.Content("<h1>I am the sample browser</h1>")
-            else -> null
+            else -> context.components.appLinksFeature.interceptor.onLoadRequest(
+                engineSession, privateMode, currentUrl, uri, hasUserGesture)
         }
     }
 

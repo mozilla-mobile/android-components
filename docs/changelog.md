@@ -15,6 +15,14 @@ permalink: /changelog/
 * **feature-remotetabs**
   * Add new `RemoteTabsFeature` to view tabs from other synced devices and upload our own.
 
+* **feature-app-links**
+  * ⚠️ **This is a breaking change**:
+  * Feature now works with RequestInterceptor.
+  ```Kotlin
+  // add this call in the RequestInterceptor
+  context.components.appLinksFeature.interceptor.onLoadRequest(engineSession, privateMode, currentUrl, uri, hasUserGesture)
+  ```
+
 # 24.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v23.0.0...v24.0.0)

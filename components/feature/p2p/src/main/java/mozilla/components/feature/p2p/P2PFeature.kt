@@ -46,7 +46,7 @@ class P2PFeature(
     @VisibleForTesting
     internal var controller: P2PController? = null
     @VisibleForTesting
-    internal lateinit var extensionController: WebExtensionController
+    internal var extensionController: WebExtensionController? = null
 
     // LifeCycleAwareFeature implementation
 
@@ -102,7 +102,7 @@ class P2PFeature(
 
         extensionController = WebExtensionController(P2P_EXTENSION_ID, P2P_EXTENSION_URL)
         registerP2PContentMessageHandler()
-        extensionController.install(engine)
+        extensionController?.install(engine)
 
         controller =
             P2PController(store, thunk, view, tabsUseCases, sessionUseCases, P2PFeatureSender(), onClose)
@@ -117,7 +117,7 @@ class P2PFeature(
 
         val engineSession = sessionManager.getOrCreateEngineSession(session)
         val messageHandler = P2PContentMessageHandler(session)
-        extensionController.registerContentMessageHandler(engineSession, messageHandler)
+        extensionController?.registerContentMessageHandler(engineSession, messageHandler)
     }
 
     private inner class P2PContentMessageHandler(
@@ -146,7 +146,7 @@ class P2PFeature(
 
         private fun sendMessage(json: JSONObject) {
             activeSession?.let {
-                extensionController.sendContentMessage(
+                extensionController?.sendContentMessage(
                     json,
                     sessionManager.getOrCreateEngineSession(it)
                 )
@@ -156,12 +156,15 @@ class P2PFeature(
 
     @VisibleForTesting
     companion object {
-        private const val P2P_EXTENSION_ID = "mozacP2P"
-        private const val P2P_EXTENSION_URL = "resource://android/assets/extensions/p2p/"
+        @VisibleForTesting
+        internal const val P2P_EXTENSION_ID = "mozacP2P"
+        @VisibleForTesting
+        internal const val P2P_EXTENSION_URL = "resource://android/assets/extensions/p2p/"
 
         // Write incoming pages to file system and loadUrl() to display them.
         // Surprisingly, that is faster than passing the page to loadData().
-        private val LOCAL_PERMISSIONS: Array<String> = arrayOf(
+        @VisibleForTesting
+        internal val LOCAL_PERMISSIONS: Array<String> = arrayOf(
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
         )

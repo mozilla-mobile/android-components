@@ -17,7 +17,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.webextension.MessageHandler
 import mozilla.components.concept.engine.webextension.Port
 import mozilla.components.feature.p2p.internal.P2PController
-import mozilla.components.feature.p2p.view.P2PView
+import mozilla.components.feature.p2p.view.P2PBar
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.nearby.NearbyConnection
@@ -32,7 +32,7 @@ import org.json.JSONObject
  * Feature implementation for peer-to-peer communication between browsers.
  */
 class P2PFeature(
-    private val view: P2PView,
+    private val view: P2PBar,
     private val store: BrowserStore,
     private val engine: Engine,
     private val thunk: () -> NearbyConnection,

@@ -10,6 +10,7 @@ import android.view.View
 /**
  * An interface for views that can display the peer-to-peer communication toolbar.
  */
+@Suppress("TooManyFunctions")
 interface P2PView {
     /**
      * Listener to be invoked after the user performs certain actions, such as initiating or
@@ -78,6 +79,14 @@ interface P2PView {
      * @param msg a low-level message describing the failure
      */
     fun failure(msg: String)
+
+    /**
+     * Indicates that the requested send operation is complete. The view may optionally display
+     * the specified string.
+     *
+     * @param resid the resource if of a string confirming that the requested send was completed
+     */
+    fun reportSendComplete(resid: Int)
 
     /**
      * Handles receipt of a URL from the specified neighbor. For example, the view could prompt the

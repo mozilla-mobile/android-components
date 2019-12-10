@@ -72,4 +72,9 @@
     <!-- String to be displayed when there was a failure in communicating with or connecting to a neighboring device. -->
     <string name="mozac_feature_p2p_failure">Failure</string>
 
+    <!-- String to be displayed when a url has been sent to a neighboring device. -->
+    <string name="mozac_feature_p2p_url_sent">URL sent</string>
+
+    <!-- String to be displayed when a page has been sent to a neighboring device. -->
+    <string name="mozac_feature_p2p_page_sent">Page sent</string>
 </resources>

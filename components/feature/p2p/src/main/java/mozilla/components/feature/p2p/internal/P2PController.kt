@@ -34,6 +34,7 @@ internal class P2PController(
     private val onClose: (() -> Unit)
 ) : P2PView.Listener {
     private val logger = Logger("P2PController")
+    private val outgoingMessages = mutableMapOf<Long, Char>()
 
     private val observer = object : NearbyConnectionObserver {
         @Synchronized
@@ -55,7 +56,8 @@ internal class P2PController(
         }
 
         private fun updateState(connectionState: ConnectionState) {
-            view.updateStatus(when (connectionState) {
+            view.updateStatus(
+                when (connectionState) {
                     is ConnectionState.Isolated -> R.string.mozac_feature_p2p_isolated
                     is ConnectionState.Advertising -> R.string.mozac_feature_p2p_advertising
                     is ConnectionState.Discovering -> R.string.mozac_feature_p2p_discovering
@@ -72,16 +74,29 @@ internal class P2PController(
         }
 
         override fun onMessageDelivered(payloadId: Long) {
-            // For now, do nothing.
+            outgoingMessages.get(payloadId)?.let {
+                view.reportSendComplete(
+                    if (it == URL_INDICATOR) {
+                        R.string.mozac_feature_p2p_url_sent
+                    } else {
+                        R.string.mozac_feature_p2p_page_sent
+                    }
+                )
+                // Is it better to remove entries for delivered messages from the map
+                // or to leave them in (which is more functional-style)?
+                outgoingMessages.remove(payloadId)
+            } ?: run {
+                logger.error("Sent message id was not recognized")
+            }
         }
 
         override fun onMessageReceived(neighborId: String, neighborName: String?, message: String) {
             if (message.length > 1) {
                 when (message[0]) {
-                    MESSAGE_PREFIX_FOR_HTML -> view.receivePage(
+                    HTML_INDICATOR -> view.receivePage(
                         neighborId, neighborName, message.substring(1)
                     )
-                    MESSAGE_PREFIX_FOR_URL -> view.receiveUrl(
+                    URL_INDICATOR -> view.receiveUrl(
                         neighborId, neighborName, message.substring(1)
                     )
                     else -> reportError("Cannot parse incoming message $message")
@@ -160,34 +175,28 @@ internal class P2PController(
         nearbyConnection?.disconnect()
     }
 
-    override fun onSendUrl() {
-        if (cast<ConnectionState.ReadyToSend>() != null) {
-            // Because packaging a page takes a long time, we have a status string indicating that
-            // the page is being packaged up. Unlike the other calls to view.updateStatus(), this
-            // does not correspond to a change in NearbyConnection.ConnectionState.
-            view.updateStatus(R.string.mozac_feature_p2p_packaging)
-            store.state.selectedTab?.content?.url?.let {
-                if (nearbyConnection?.sendMessage("$MESSAGE_PREFIX_FOR_URL$it") == null) {
-                    reportError("Unable to send message: sendMessage() returns null")
-                }
-            } ?: run {
-                reportError("Unable to get URL to send")
-            }
-        }
-    }
-
     override fun onSendPage() {
         if (cast<ConnectionState.ReadyToSend>() != null) {
             sender.requestHtml()
         }
     }
 
-    fun onPageReadyToSend(page: String) {
+    private fun sendMessage(indicator: Char, message: String) {
         if (cast<ConnectionState.ReadyToSend>() != null) {
-            if (nearbyConnection?.sendMessage("$MESSAGE_PREFIX_FOR_HTML$page") == null) {
-                reportError("Unable to send message: sendMessage() returns null")
+            when (val messageId = nearbyConnection?.sendMessage("$indicator$message")) {
+                null -> reportError("Unable to send message: sendMessage() returns null")
+                else -> outgoingMessages.put(messageId, indicator)
             }
-            return
+        }
+    }
+
+    fun onPageReadyToSend(page: String) {
+        sendMessage(HTML_INDICATOR, page)
+    }
+
+    override fun onSendUrl() {
+        store.state.selectedTab?.content?.url?.let {
+            sendMessage(URL_INDICATOR, it)
         }
     }
 
@@ -209,8 +218,9 @@ internal class P2PController(
     }
 
     companion object {
-        const val MESSAGE_PREFIX_FOR_URL = 'U'
-        const val MESSAGE_PREFIX_FOR_HTML = 'H'
+        // Used for message headers and for hash table outgoingMessages
+        const val URL_INDICATOR = 'U'
+        const val HTML_INDICATOR = 'H'
 
         private var savedConnectionState: ConnectionState? = null
         private var nearbyConnection: NearbyConnection? = null

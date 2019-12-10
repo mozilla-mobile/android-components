@@ -161,8 +161,16 @@ class P2PBar @JvmOverloads constructor(
             .show()
     }
 
-    override fun failure(msg: String) {
+    private fun showToast(msg: String) {
         Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+    }
+
+    override fun failure(msg: String) {
+        showToast(msg)
+    }
+
+    override fun reportSendComplete(resid: Int) {
+        showToast(context.getString(resid))
     }
 
     override fun clear() {

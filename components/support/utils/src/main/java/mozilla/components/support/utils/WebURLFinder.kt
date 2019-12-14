@@ -192,6 +192,11 @@ class WebURLFinder {
                         "|(?:yachts|yamaxun|yandex|yodobashi|yoga|yokohama|youtube|y[et])" +
                         "|(?:zara|zip|zone|zuerich|z[amw]))")
 
+        /**
+         * Reserved top level DNS Names for special use (defined in RFC 6761 and 6762)
+         */
+        private const val SPECIAL_DOMAINS = "(?:local|test|example|invalid|localhost)"
+
         private const val IP_ADDRESS = (
                 "((25[0-5]|2[0-4][0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9])\\.(25[0-5]|2[0-4]" +
                         "[0-9]|[0-1][0-9]{2}|[1-9][0-9]|[1-9]|0)\\.(25[0-5]|2[0-4][0-9]|[0-1]" +
@@ -245,7 +250,7 @@ class WebURLFinder {
         /**
          * Regular expression that matches known TLDs and punycode TLDs
          */
-        private const val STRICT_TLD = "(?:$IANA_TOP_LEVEL_DOMAINS|$PUNYCODE_TLD)"
+        private const val STRICT_TLD = "(?:$IANA_TOP_LEVEL_DOMAINS|$SPECIAL_DOMAINS|$PUNYCODE_TLD)"
 
         /**
          * RFC 1035 Section 2.3.4 limits the labels to a maximum 63 octets.

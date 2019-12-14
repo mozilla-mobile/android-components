@@ -44,6 +44,8 @@ class URLStringUtilsTest {
         assertTrue(isURLLike("https://mozilla-mobile.com"))
 
         assertTrue(isURLLike("link.info"))
+        assertTrue(isURLLike("link.local"))
+        assertTrue(isURLLike("link.xn--e1a4c"))
         assertFalse(isURLLike("link.unknown"))
 
         assertFalse(isURLLike("mozilla"))

@@ -1,0 +1,18 @@
+<SearchPlugin xmlns="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>Cliqz</ShortName>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image height="16" width="16">data:image/png;base64,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</Image>
+  <Url type="application/x-suggestions+json" method="GET"
+      template="https://beta.cliqz.com/api/opensearch_suggest">
+    <Param name="q" value="{searchTerms}"/>
+  </Url>
+  <Url type="text/html" template="https://beta.cliqz.com/search" method="GET" rel="searchform">
+    <Param name="q" value="{searchTerms}"/>
+    <Param name="client" value="firefox-android"/>
+  </Url>
+  <Url type="application/x-moz-tabletsearch" method="GET"
+      template="https://beta.cliqz.com/">
+    <Param name="q" value="{searchTerms}" />
+  </Url>
+  <SearchForm>https://beta.cliqz.com</SearchForm>
+</SearchPlugin>

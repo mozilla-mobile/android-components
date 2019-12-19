@@ -84,7 +84,9 @@ abstract class AbstractCustomTabsService : CustomTabsService() {
         return true
     }
 
-    override fun extraCommand(commandName: String, args: Bundle?): Bundle? = null
+    override fun extraCommand(commandName: String, args: Bundle?): Bundle? {
+        return null
+    }
 
     override fun mayLaunchUrl(
         sessionToken: CustomTabsSessionToken,

@@ -7,12 +7,15 @@ package mozilla.components.browser.engine.gecko
 import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
+import android.view.MotionEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
@@ -167,5 +170,17 @@ class GeckoEngineViewTest {
         engineView.observer.onCrash()
 
         verify(geckoView).setSession(geckoSession)
+    }
+
+    @Test
+    fun `dispatchTouchEvent will call touchCallback before super`() {
+        val engineView = GeckoEngineView(context)
+        val motionEvent = mock<MotionEvent>()
+
+        assertFalse(engineView.dispatchTouchEvent(motionEvent))
+
+        engineView.setOnTouchCallback { true }
+
+        assertTrue(engineView.dispatchTouchEvent(motionEvent))
     }
 }

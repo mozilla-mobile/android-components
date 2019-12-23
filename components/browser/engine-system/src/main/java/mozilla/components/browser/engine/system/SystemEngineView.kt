@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Message
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.PixelCopy
 import android.view.View
 import android.webkit.CookieManager
@@ -736,6 +737,16 @@ class SystemEngineView @JvmOverloads constructor(
             credentialsPair = user to pass
         }
         return credentialsPair
+    }
+
+    private var touchCallback: (MotionEvent?) -> Boolean = { false }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return if (touchCallback(ev)) true else super.dispatchTouchEvent(ev)
+    }
+
+    override fun setOnTouchCallback(callback: (MotionEvent?) -> Boolean) {
+        touchCallback = callback
     }
 
     companion object {

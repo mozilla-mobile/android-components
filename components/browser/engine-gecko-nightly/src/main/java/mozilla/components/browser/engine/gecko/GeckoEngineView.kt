@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.ViewCompat
@@ -155,6 +156,16 @@ class GeckoEngineView @JvmOverloads constructor(
 
     override fun setDynamicToolbarMaxHeight(height: Int) {
         currentGeckoView.setDynamicToolbarMaxHeight(height)
+    }
+
+    private var touchCallback: (MotionEvent?) -> Boolean = { false }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return if (touchCallback(ev)) true else super.dispatchTouchEvent(ev)
+    }
+
+    override fun setOnTouchCallback(callback: (MotionEvent?) -> Boolean) {
+        touchCallback = callback
     }
 
     override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) {

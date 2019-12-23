@@ -5,6 +5,7 @@
 package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
+import android.view.MotionEvent
 import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.OnLifecycleEvent
@@ -113,6 +114,13 @@ interface EngineView {
      * @param height The maximum possible height of the toolbar.
      */
     fun setDynamicToolbarMaxHeight(height: Int)
+
+    /**
+     * Allows the client application to listen to touch events inside the EngineView.
+     *
+     * @param callback A callback to call on every MotionEvent to decide if it proceeds
+     */
+    fun setOnTouchCallback(callback: ((MotionEvent?) -> Boolean))
 }
 
 /**

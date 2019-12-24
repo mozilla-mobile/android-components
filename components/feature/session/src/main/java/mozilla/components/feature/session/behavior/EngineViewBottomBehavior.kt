@@ -39,12 +39,12 @@ class EngineViewBottomBehavior(
     }
 
     /**
-     * Apply vertical clipping to [EngineView]. This requires [EngineViewBottomBehavior] to be set
-     * in/on the [EngineView] or its parent. Must be a direct descending child of [CoordinatorLayout].
+     * Apply dynamic toolbar max height to [EngineView]. This requires [EngineViewBottomBehavior] to be set
+     * in/on the [EngineView] or its parent.
      */
     override fun onDependentViewChanged(parent: CoordinatorLayout, child: View, dependency: View): Boolean {
         val engineView = child.findViewInHierarchy { it is EngineView } as EngineView?
-        engineView?.setVerticalClipping(-dependency.translationY.toInt())
+        engineView?.setDynamicToolbarMaxHeight(dependency.height - dependency.translationY.toInt())
         return true
     }
 }

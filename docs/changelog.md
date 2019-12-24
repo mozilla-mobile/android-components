@@ -42,6 +42,9 @@ permalink: /changelog/
 * **browser-menu**
   * Added `BrowserMenuHighlightableSwitch` to represent a highlightable item with a toggle switch.
 
+* **feature-session**
+  * Added setDynamicToolbarMaxHeight to EngineViewBottomBehavior.
+
 # 26.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v25.0.0...v26.0.0)

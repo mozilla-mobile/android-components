@@ -36,7 +36,7 @@ class EngineViewBottomBehaviorTest {
 
         doReturn(42f).`when`(toolbar).translationY
         behavior.onDependentViewChanged(mock(), engineView.asView(), toolbar)
-        verify(engineView).setVerticalClipping(-42)
+        verify(engineView).setDynamicToolbarMaxHeight(100 - 42)
     }
 
     @Test

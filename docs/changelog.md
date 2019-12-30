@@ -41,6 +41,9 @@ permalink: /changelog/
 
 * **browser-menu**
   * Added `BrowserMenuHighlightableSwitch` to represent a highlightable item with a toggle switch.
+  
+* **feature-readerview**
+  * ReaderViewControlsBar now inflates lazily, only when asked to be shown.
 
 # 26.0.0
 

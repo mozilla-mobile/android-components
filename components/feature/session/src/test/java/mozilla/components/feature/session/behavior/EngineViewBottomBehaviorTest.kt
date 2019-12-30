@@ -6,6 +6,7 @@ package mozilla.components.feature.session.behavior
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
@@ -66,6 +67,8 @@ class FakeEngineView(context: Context) : TextView(context), EngineView {
     override fun setVerticalClipping(clippingHeight: Int) {}
 
     override fun setDynamicToolbarMaxHeight(height: Int) {}
+
+    override fun setOnTouchCallback(callback: (MotionEvent?) -> Boolean) {}
 
     override fun release() {}
 }

@@ -6,6 +6,7 @@ package mozilla.components.feature.session
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -95,6 +96,7 @@ class SwipeRefreshFeatureTest {
         override fun canScrollVerticallyUp() = scrollY > 0
         override fun setVerticalClipping(clippingHeight: Int) {}
         override fun setDynamicToolbarMaxHeight(height: Int) {}
+        override fun setOnTouchCallback(callback: (MotionEvent?) -> Boolean) {}
         override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
         override fun clearSelection() {}
         override fun render(session: EngineSession) {}

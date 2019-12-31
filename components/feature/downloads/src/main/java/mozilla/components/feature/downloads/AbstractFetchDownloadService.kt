@@ -21,6 +21,7 @@ import android.os.Environment
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
@@ -201,6 +202,7 @@ abstract class AbstractFetchDownloadService : Service() {
     override fun onDestroy() {
         super.onDestroy()
 
+        Log.d("Sawyer", "onDestroy")
         downloadJobs.values.forEach {
             it.job?.cancel()
         }

@@ -61,15 +61,15 @@ class MozillaSocorroService(
     private val startTime = System.currentTimeMillis()
 
     override fun report(crash: Crash.UncaughtExceptionCrash) {
-        sendReport(crash.throwable, null, null, false)
+        sendReport(crash.throwable, null, null, isFatal = true, isCaughtException = false)
     }
 
     override fun report(crash: Crash.NativeCodeCrash) {
-        sendReport(null, crash.minidumpPath, crash.extrasPath, false)
+        sendReport(null, crash.minidumpPath, crash.extrasPath, isFatal = crash.isFatal, isCaughtException = false)
     }
 
     override fun report(throwable: Throwable) {
-        sendReport(throwable, null, null, true)
+        sendReport(throwable, null, null, isFatal = false, isCaughtException = true)
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -77,6 +77,7 @@ class MozillaSocorroService(
         throwable: Throwable?,
         miniDumpFilePath: String?,
         extrasFilePath: String?,
+        isFatal: Boolean,
         isCaughtException: Boolean
     ) {
         val url = URL(serverUrl)
@@ -91,7 +92,7 @@ class MozillaSocorroService(
             conn.setRequestProperty("Content-Encoding", "gzip")
 
             sendCrashData(conn.outputStream, boundary, throwable, miniDumpFilePath, extrasFilePath,
-                    isCaughtException)
+                    isFatal, isCaughtException)
 
             BufferedReader(InputStreamReader(conn.inputStream)).use {
                 val response = StringBuffer()
@@ -117,6 +118,7 @@ class MozillaSocorroService(
         throwable: Throwable?,
         miniDumpFilePath: String?,
         extrasFilePath: String?,
+        isFatal: Boolean,
         isCaughtException: Boolean
     ) {
         val nameSet = mutableSetOf<String>()
@@ -137,7 +139,7 @@ class MozillaSocorroService(
         }
 
         if (throwable?.stackTrace?.isEmpty() == false) {
-            sendPart(gzipOs, boundary, "JavaStackTrace", getExceptionStackTrace(throwable,
+            sendPart(gzipOs, boundary, "JavaStackTrace", getExceptionStackTrace(throwable, isFatal,
                 isCaughtException), nameSet)
         }
 
@@ -328,15 +330,20 @@ class MozillaSocorroService(
         return resultMap
     }
 
-    private fun getExceptionStackTrace(throwable: Throwable, isCaughtException: Boolean): String {
+    private fun getExceptionStackTrace(
+        throwable: Throwable,
+        isFatal: Boolean,
+        isCaughtException: Boolean
+    ): String {
         val stringWriter = StringWriter()
         val printWriter = PrintWriter(stringWriter)
         throwable.printStackTrace(printWriter)
         printWriter.flush()
 
-        return when (isCaughtException) {
-            true -> "$INFO_PREFIX $stringWriter"
-            false -> stringWriter.toString()
+        return when {
+            isFatal -> "$FATAL_PREFIX $stringWriter"
+            isCaughtException -> "$INFO_PREFIX $stringWriter"
+            else -> "$NONFATAL_PREFIX $stringWriter"
         }
     }
 }

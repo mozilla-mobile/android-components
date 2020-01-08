@@ -7,6 +7,8 @@ package mozilla.components.lib.crash.service
 import mozilla.components.lib.crash.Crash
 
 internal const val INFO_PREFIX = "[INFO]"
+internal const val FATAL_PREFIX = "[FATAL]"
+internal const val NONFATAL_PREFIX = "[NONFATAL]"
 
 /**
  * Interface to be implemented by external services that accept crash reports.

@@ -34,13 +34,13 @@ class MozillaSocorroServiceTest {
             testContext,
             "Test App"
         ))
-        doNothing().`when`(service).sendReport(any(), any(), any(), anyBoolean())
+        doNothing().`when`(service).sendReport(any(), any(), any(), anyBoolean(), anyBoolean())
 
         val crash = Crash.NativeCodeCrash("", true, "", false, arrayListOf())
         service.report(crash)
 
         verify(service).report(crash)
-        verify(service).sendReport(null, crash.minidumpPath, crash.extrasPath, false)
+        verify(service).sendReport(null, crash.minidumpPath, crash.extrasPath, false, false)
     }
 
     @Test
@@ -49,13 +49,13 @@ class MozillaSocorroServiceTest {
             testContext,
             "Test App"
         ))
-        doNothing().`when`(service).sendReport(any(), any(), any(), anyBoolean())
+        doNothing().`when`(service).sendReport(any(), any(), any(), anyBoolean(), anyBoolean())
 
         val crash = Crash.UncaughtExceptionCrash(RuntimeException("Test"), arrayListOf())
         service.report(crash)
 
         verify(service).report(crash)
-        verify(service).sendReport(crash.throwable, null, null, false)
+        verify(service).sendReport(crash.throwable, null, null, true, false)
     }
 
     @Test
@@ -64,13 +64,13 @@ class MozillaSocorroServiceTest {
                 testContext,
                 "Test App"
         ))
-        doNothing().`when`(service).sendReport(any(), any(), any(), anyBoolean())
+        doNothing().`when`(service).sendReport(any(), any(), any(), anyBoolean(), anyBoolean())
 
         val throwable = RuntimeException("Test")
         service.report(throwable)
 
         verify(service).report(throwable)
-        verify(service).sendReport(throwable, null, null, true)
+        verify(service).sendReport(throwable, null, null, false, true)
     }
 
     @Test
@@ -96,7 +96,7 @@ class MozillaSocorroServiceTest {
         val bufferedReader = BufferedReader(reader)
         var request = bufferedReader.readText()
 
-        assert(request.contains("name=JavaStackTrace\r\n\r\njava.lang.RuntimeException: Test"))
+        assert(request.contains("name=JavaStackTrace\r\n\r\n$FATAL_PREFIX java.lang.RuntimeException: Test"))
         assert(request.contains("name=Android_ProcessName\r\n\r\nmozilla.components.lib.crash.test"))
         assert(request.contains("name=ProductID\r\n\r\n{aa3c5121-dab2-40e2-81ca-7ea25febc110}"))
         assert(request.contains("name=Vendor\r\n\r\nMozilla"))
@@ -106,7 +106,7 @@ class MozillaSocorroServiceTest {
         assertFalse(request.contains("name=Notes\r\n\r\n$CAUGHT_EXCEPTION_NOTE"))
 
         verify(service).report(crash)
-        verify(service).sendReport(crash.throwable, null, null, false)
+        verify(service).sendReport(crash.throwable, null, null, true, false)
     }
 
     @Test
@@ -141,7 +141,7 @@ class MozillaSocorroServiceTest {
         assert(request.contains("name=Notes\r\n\r\n$CAUGHT_EXCEPTION_NOTE"))
 
         verify(service).report(throwable)
-        verify(service).sendReport(throwable, null, null, true)
+        verify(service).sendReport(throwable, null, null, false, true)
     }
 
     @Test
@@ -182,7 +182,7 @@ class MozillaSocorroServiceTest {
         assert(request.contains("name=Notes\r\n\r\n$CAUGHT_EXCEPTION_NOTE"))
 
         verify(service).report(throwable)
-        verify(service).sendReport(throwable, null, null, true)
+        verify(service).sendReport(throwable, null, null, false, true)
     }
 
     @Test
@@ -224,7 +224,7 @@ class MozillaSocorroServiceTest {
         assert(request.contains("name=Notes\r\n\r\n$CAUGHT_EXCEPTION_NOTE"))
 
         verify(service).report(throwable)
-        verify(service).sendReport(throwable, null, null, true)
+        verify(service).sendReport(throwable, null, null, false, true)
     }
 
     @Test
@@ -245,7 +245,7 @@ class MozillaSocorroServiceTest {
 
         mockWebServer.shutdown()
         verify(service).report(crash)
-        verify(service).sendReport(crash.throwable, null, null, false)
+        verify(service).sendReport(crash.throwable, null, null, true, false)
     }
 
     @Test
@@ -265,7 +265,7 @@ class MozillaSocorroServiceTest {
         mockWebServer.shutdown()
 
         verify(service).report(crash)
-        verify(service).sendReport(null, crash.minidumpPath, crash.extrasPath, false)
+        verify(service).sendReport(null, crash.minidumpPath, crash.extrasPath, false, false)
     }
 
     @Test

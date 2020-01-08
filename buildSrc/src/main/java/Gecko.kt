@@ -11,7 +11,7 @@ internal object GeckoVersions {
     /**
      * GeckoView Beta Version.
      */
-    const val beta_version = "71.0.20191125115111"
+    const val beta_version = "71.0.20200108003105"
 
     /**
      * GeckoView Release Version.
@@ -22,6 +22,14 @@ internal object GeckoVersions {
 @Suppress("MaxLineLength")
 object Gecko {
     const val geckoview_nightly = "org.mozilla.geckoview:geckoview-nightly:${GeckoVersions.nightly_version}"
-    const val geckoview_beta = "org.mozilla.geckoview:geckoview-beta:${GeckoVersions.beta_version}"
+
+    // On this release branch (releases/24.0.0) we are updating GeckoView from 71.0.20191125115111 to
+    // 71.0.20200108003105 for a Fenix dot release. Since we are already past the 71 Beta cycle we
+    // will have to switch to a release version here (geckoview-beta -> geckoview) if we want this
+    // component (browser-engine-gecko-beta) to continue using GeckoView 71. The other option,
+    // changing the release version here from 70 to 71, uplifting all required changes for that
+    // and switching Fenix in the release branch to use the release component (browser-engine-gecko)
+    // seems to be a way to big and risky change in comparison.
+    const val geckoview_beta = "org.mozilla.geckoview:geckoview:${GeckoVersions.beta_version}"
     const val geckoview_release = "org.mozilla.geckoview:geckoview:${GeckoVersions.release_version}"
 }

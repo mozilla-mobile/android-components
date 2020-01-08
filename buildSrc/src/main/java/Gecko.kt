@@ -12,7 +12,7 @@ internal object GeckoVersions {
     /**
      * GeckoView Beta Version.
      */
-    const val beta_version = "72.0.20191230122537"
+    const val beta_version = "72.0.20200107212822"
 
     /**
      * GeckoView Release Version.
@@ -23,6 +23,9 @@ internal object GeckoVersions {
 @Suppress("MaxLineLength")
 object Gecko {
     const val geckoview_nightly = "org.mozilla.geckoview:geckoview-nightly:${GeckoVersions.nightly_version}"
-    const val geckoview_beta = "org.mozilla.geckoview:geckoview-beta:${GeckoVersions.beta_version}"
+
+    // Release branch only: Updating from 72.0.20191230122537 to 72.0.20200107212822 requires us to
+    // switch from geckoview-beta to geckoview.
+    const val geckoview_beta = "org.mozilla.geckoview:geckoview:${GeckoVersions.beta_version}"
     const val geckoview_release = "org.mozilla.geckoview:geckoview:${GeckoVersions.release_version}"
 }

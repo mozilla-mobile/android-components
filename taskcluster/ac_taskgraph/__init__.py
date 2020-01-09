@@ -40,6 +40,10 @@ def _fill_treeherder_groups(graph_config):
 
 
 def get_decision_parameters(graph_config, parameters):
+    # XXX HARDCODE VALUES FOR THE SAKE OF TESTING. DO NOT LAND.
+    parameters["tasks_for"] = "cron"
+    parameters["target_tasks_method"] = "snapshot"
+
     parameters["head_tag"] = os.environ.get("MOBILE_HEAD_TAG", "")
 
     if parameters["tasks_for"] == "github-release":

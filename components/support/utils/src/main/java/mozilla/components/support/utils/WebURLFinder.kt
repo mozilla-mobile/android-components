@@ -204,6 +204,24 @@ class WebURLFinder {
         private const val PORT_NUMBER = "\\:\\d{1,5}"
 
         /**
+         * Regular expression to match IPv6 addresses, with optional zone identifier.
+         *
+         * Taken from:
+         * https://nbviewer.jupyter.org/github/rasbt/python_reference/blob/master/tutorials/useful_regex.ipynb#Ipv6
+         */
+        private const val IPV6_ADDRESS = (
+                "\\[" +
+                        "((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))" +
+                        "|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})|:))" +
+                        "|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})|:))" +
+                        "|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:))" +
+                        "|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:))" +
+                        "|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:))" +
+                        "|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:))" +
+                        "|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}))|:)))" +
+                        "(%.+)?\\]")
+
+        /**
          * Valid UCS characters defined in RFC 3987. Excludes space characters.
          */
         private const val UCS_CHAR = "[" +
@@ -261,12 +279,12 @@ class WebURLFinder {
          * Regular expression that matches domain names using either [.STRICT_HOST_NAME] or
          * [.IP_ADDRESS]
          */
-        private const val STRICT_DOMAIN_NAME = ("(?:$STRICT_HOST_NAME|$IP_ADDRESS)")
+        private const val STRICT_DOMAIN_NAME = ("(?:$STRICT_HOST_NAME|$IP_ADDRESS|$IPV6_ADDRESS)")
 
         /**
          * Regular expression that matches domain names without a TLD
          */
-        private const val RELAXED_DOMAIN_NAME = "(?:(?:$IRI_LABEL(?:\\.(?=\\S))?)+|$IP_ADDRESS)"
+        private const val RELAXED_DOMAIN_NAME = "(?:(?:$IRI_LABEL(?:\\.(?=\\S))?)+|$IP_ADDRESS|$IPV6_ADDRESS)"
 
         /**
          * Regular expression to match strings that do not start with a supported protocol. The TLDs

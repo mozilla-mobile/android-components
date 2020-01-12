@@ -45,6 +45,8 @@ class URLStringUtilsTest {
         assertTrue(isURLLikeStrict("http://mozilla"))
         assertTrue(isURLLikeStrict("http://192.168.255.255"))
         assertTrue(isURLLikeStrict("192.167.255.255"))
+        assertTrue(isURLLikeStrict("http://[fe80::1%eth0]"))
+        assertTrue(isURLLikeStrict("[2001:500:88:200::8]"))
         assertTrue(isURLLikeStrict("about:crashcontent"))
         assertTrue(isURLLikeStrict(" about:crashcontent "))
         assertTrue(isURLLikeStrict("sample:about "))
@@ -84,6 +86,8 @@ class URLStringUtilsTest {
         assertTrue(isURLLike("file://////////////home//user/myfile.html"))
         assertTrue(isURLLike("file://C:\\Users\\user\\myfile.html"))
         assertTrue(isURLLike("http://192.168.255.255"))
+        assertTrue(isURLLike("http://[fe80::1%eth0]"))
+        assertTrue(isURLLike("http://[::1]:8080"))
 
         assertTrue(isURLLike("link.unknown"))
 
@@ -113,6 +117,8 @@ class URLStringUtilsTest {
         assertFalse(isSearchTerm("file://////////////home//user/myfile.html"))
         assertFalse(isSearchTerm("file://C:\\Users\\user\\myfile.html"))
         assertFalse(isSearchTerm("http://192.168.255.255"))
+        assertFalse(isSearchTerm("http://[fe80::1%eth0]"))
+        assertFalse(isSearchTerm("http://[::1]:8080"))
         // Per https://bugs.chromium.org/p/chromium/issues/detail?id=31405, ICANN will accept
         // purely numeric gTLDs.
         assertFalse(isSearchTerm("3.14.2019"))

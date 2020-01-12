@@ -71,7 +71,7 @@ object URLStringUtils {
         // valid URL,
         // file:///home/user/myfile.html
         // is considered a search term; it is clearly a URL.
-        Pattern.compile("^\\s*\\w+(://[/]*|:|\\.)\\w+\\S*\\s*$", flags)
+        Pattern.compile("^\\s*\\w+(://[/]*|:|\\.)\\[?[\\w:]+\\S*\\s*$", flags)
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

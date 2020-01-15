@@ -5,6 +5,7 @@
 package mozilla.components.feature.syncedtabs
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.state.action.TabListAction
@@ -128,7 +129,7 @@ class SyncedTabsFeatureTest {
     }
 
     @Test
-    fun `syncClients returns clients if the account is set and constellation state is set too`() {
+    fun `syncClients returns clients if the account is set and constellation state is set too`() = runBlocking {
         val feature = spy(SyncedTabsFeature(accountManager, store, tabsStorage))
         val account: OAuthAccount = mock()
         val constellation: DeviceConstellation = mock()
@@ -151,18 +152,34 @@ class SyncedTabsFeatureTest {
     }
 
     @Test
-    fun `syncClients returns null if the account is set but constellation state is null`() {
+    fun `syncClients refreshes the devices list if constellation state is not set yet`() = runBlocking {
         val feature = spy(SyncedTabsFeature(accountManager, store, tabsStorage))
         val account: OAuthAccount = mock()
         val constellation: DeviceConstellation = mock()
+        val state: ConstellationState = mock()
         whenever(accountManager.authenticatedAccount()).thenReturn(account)
         whenever(account.deviceConstellation()).thenReturn(constellation)
-        whenever(constellation.state()).thenReturn(null)
-        assertEquals(null, feature.syncClients())
+        // First call to state will return `null`, then `refreshDevicesAsync` "sets" the state.
+        whenever(constellation.state()).thenReturn(null, state)
+        whenever(constellation.refreshDevicesAsync()).thenReturn(CompletableDeferred(true))
+
+        val otherDevices = listOf(Device(
+            id = "client2",
+            displayName = "Bar Client",
+            deviceType = DeviceType.MOBILE,
+            isCurrentDevice = false,
+            lastAccessTime = null,
+            capabilities = listOf(),
+            subscriptionExpired = false,
+            subscription = null
+        ))
+        whenever(state.otherDevices).thenReturn(otherDevices)
+
+        assertEquals(otherDevices, feature.syncClients())
     }
 
     @Test
-    fun `syncClients returns null if the account is null`() {
+    fun `syncClients returns null if the account is null`() = runBlocking {
         val feature = spy(SyncedTabsFeature(accountManager, store, tabsStorage))
         whenever(accountManager.authenticatedAccount()).thenReturn(null)
         assertEquals(null, feature.syncClients())

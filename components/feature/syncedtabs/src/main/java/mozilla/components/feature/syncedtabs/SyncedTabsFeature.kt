@@ -72,11 +72,15 @@ class SyncedTabsFeature(
     }
 
     /**
-     * List of synced devices.
+     * List of synced devices. If they haven't been fetched yet, we'll do it.
      */
     @VisibleForTesting
-    internal fun syncClients(): List<Device>? {
+    internal suspend fun syncClients(): List<Device>? {
         accountManager.withConstellation { constellation ->
+            constellation.state()?.let {
+                return it.otherDevices
+            }
+            constellation.refreshDevicesAsync().await()
             return constellation.state()?.otherDevices
         }
         return null

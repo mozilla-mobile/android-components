@@ -23,7 +23,15 @@ import mozilla.components.browser.toolbar.R
 import mozilla.components.browser.toolbar.facts.emitOpenMenuFact
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 
-internal class MenuButton @JvmOverloads constructor(
+/**
+ * A `three-dot` button used for expanding menus.
+ *
+ * In most use cases, this should not be used directly by consumers. Instead, prefer to let this be
+ * created and managed by a [DisplayToolbar] where possible.
+ *
+ * This should be invalidated whenever its highlightable state may have changed.
+ */
+class MenuButton @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0

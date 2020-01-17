@@ -53,6 +53,8 @@ permalink: /changelog/
       launchFromInterceptor = true
   )
   ```
+* **support-locale**
+    * Added `updateBaseConfiguration` method to `LocaleManager`, allowing new locale to be set also on appContext
 
 * **concept-storage**
   * Added classes related to login autofill

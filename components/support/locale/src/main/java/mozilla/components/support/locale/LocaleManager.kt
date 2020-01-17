@@ -77,6 +77,18 @@ object LocaleManager {
         return ConfigurationCompat.getLocales(config).get(0)
     }
 
+    /**
+     * Update the locale for the configuration of the app context's resources
+     */
+    @Suppress("DEPRECATION")
+    fun updateBaseConfiguration(context: Context, locale: Locale) {
+        val resources = context.applicationContext.resources
+        val config = resources.configuration
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+        resources.updateConfiguration(config, resources.displayMetrics)
+    }
+
     internal fun updateResources(baseContext: Context): Context {
         val locale = getCurrentLocale(baseContext)
         return if (locale != null) {

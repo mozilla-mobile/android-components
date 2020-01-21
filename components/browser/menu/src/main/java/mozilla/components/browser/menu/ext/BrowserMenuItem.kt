@@ -13,7 +13,6 @@ import mozilla.components.browser.menu.HighlightableMenuItem
  */
 @Suppress("Deprecation")
 fun List<BrowserMenuItem>.getHighlight() = asSequence()
-    .filter { it.visible() }
     .mapNotNull { it as? HighlightableMenuItem }
     .filter { it.isHighlighted() }
     .map { it.highlight }

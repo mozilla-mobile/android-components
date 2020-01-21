@@ -83,4 +83,18 @@ class MenuButtonTest {
         assertEquals(highlight, highlightMenuBuilder.items.getHighlight())
         verify(menuButtonInternal).setHighlight(highlight)
     }
+
+    @Test
+    fun `visibility should be ignored when getting highlight effect`() {
+        val highlight = BrowserMenuHighlight.LowPriority(Color.YELLOW)
+        val browserMenuHighlightableItem = spy(BrowserMenuHighlightableItem(
+            label = "Test",
+            startImageResource = 0,
+            highlight = highlight,
+            isHighlighted = { true }
+        ))
+        val browserMenuHighItemList = listOf(browserMenuHighlightableItem)
+        browserMenuHighItemList.getHighlight()
+        verify(browserMenuHighlightableItem, never()).visible
+    }
 }

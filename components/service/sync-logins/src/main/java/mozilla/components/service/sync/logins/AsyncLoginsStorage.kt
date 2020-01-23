@@ -110,11 +110,17 @@ typealias RequestFailedException = mozilla.appservices.logins.RequestFailedExcep
 interface AsyncLoginsStorage : AutoCloseable {
     /** Locks the logins storage.
      *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
+     *
      * @rejectsWith [MismatchedLockException] if we're already locked
      */
     fun lock(): Deferred<Unit>
 
     /** Unlocks the logins storage using the provided key.
+     *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
      *
      * @rejectsWith [InvalidKeyException] if the encryption key is wrong, or the db is corrupt
      * @rejectsWith [MismatchedLockException] if we're already unlocked
@@ -128,6 +134,9 @@ interface AsyncLoginsStorage : AutoCloseable {
      * This is equivalent to calling unlock() after hex-encoding the bytes (lower
      * case hexadecimal characters are used).
      *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
+     *
      * @rejectsWith [InvalidKeyException] if the encryption key is wrong, or the db is corrupt
      * @rejectsWith [MismatchedLockException] if the database is already unlocked
      * @rejectsWith [LoginsStorageException] if the storage is locked, and on unexpected
@@ -135,7 +144,12 @@ interface AsyncLoginsStorage : AutoCloseable {
      */
     fun unlock(encryptionKey: ByteArray): Deferred<Unit>
 
-    /** Returns `true` if the storage is locked, false otherwise. */
+    /**
+     * Returns `true` if the storage is locked, false otherwise.
+     *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
+     */
     fun isLocked(): Boolean
 
     /**
@@ -248,6 +262,9 @@ interface AsyncLoginsStorage : AutoCloseable {
      * Equivalent to `unlock(encryptionKey)`, but does not throw in the case
      * that the database is already unlocked.
      *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
+     *
      * @rejectsWith [InvalidKeyException] if the encryption key is wrong, or the db is corrupt
      * @rejectsWith [LoginsStorageException] if there was some other error opening the database
      */
@@ -257,6 +274,9 @@ interface AsyncLoginsStorage : AutoCloseable {
      * Equivalent to `unlock(encryptionKey)`, but does not throw in the case
      * that the database is already unlocked.
      *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
+     *
      * @rejectsWith [InvalidKeyException] if the encryption key is wrong, or the db is corrupt
      * @rejectsWith [LoginsStorageException] if there was some other error opening the database
      */
@@ -265,6 +285,9 @@ interface AsyncLoginsStorage : AutoCloseable {
     /**
      * Equivalent to `lock()`, but does not throw in the case that
      * the database is already unlocked. Never rejects.
+     *
+     * WARNING: locking and unlocking manually can create concurrency bugs. Prefer [withUnlocked]
+     * for a thread safe alternative.
      */
     fun ensureLocked(): Deferred<Unit>
 
@@ -309,8 +332,11 @@ interface AsyncLoginsStorage : AutoCloseable {
      * Run some [block] which operates over an unlocked instance of [AsyncLoginsStorage].
      * Database is locked once [block] is done.
      *
+     * This method is thread safe.
+     *
      * @throws [InvalidKeyException] if the provided [key] isn't valid.
      */
+    @Synchronized
     suspend fun <T> withUnlocked(
         key: () -> Deferred<String>,
         block: suspend (AsyncLoginsStorage) -> T
@@ -477,8 +503,11 @@ data class SyncableLoginsStore(
      * Run some [block] which operates over an unlocked instance of [AsyncLoginsStorage].
      * Database is locked once [block] is done.
      *
+     * This method is thread safe.
+     *
      * @throws [InvalidKeyException] if the provided [key] isn't valid.
      */
+    @Synchronized
     suspend fun <T> withUnlocked(block: suspend (AsyncLoginsStorage) -> T): T {
         return store.withUnlocked(key, block)
     }

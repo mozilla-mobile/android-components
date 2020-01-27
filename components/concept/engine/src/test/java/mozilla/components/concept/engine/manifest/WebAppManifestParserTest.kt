@@ -46,7 +46,7 @@ class WebAppManifestParserTest {
         assertEquals(WebAppManifest.TextDirection.AUTO, manifest.dir)
         assertNull(manifest.lang)
         assertEquals(WebAppManifest.Orientation.ANY, manifest.orientation)
-        assertNull(manifest.scope)
+        assertEquals(manifest.startUrl, manifest.scope)
         assertNull(manifest.themeColor)
 
         assertEquals(6, manifest.icons.size)
@@ -194,7 +194,7 @@ class WebAppManifestParserTest {
         assertEquals(WebAppManifest.TextDirection.AUTO, manifest.dir)
         assertNull(manifest.lang)
         assertEquals(WebAppManifest.Orientation.ANY, manifest.orientation)
-        assertNull(manifest.scope)
+        assertEquals(manifest.startUrl, manifest.scope)
         assertNull(manifest.themeColor)
 
         assertEquals(0, manifest.icons.size)
@@ -217,7 +217,7 @@ class WebAppManifestParserTest {
         assertEquals(WebAppManifest.TextDirection.AUTO, manifest.dir)
         assertNull(manifest.lang)
         assertEquals(WebAppManifest.Orientation.ANY, manifest.orientation)
-        assertNull(manifest.scope)
+        assertEquals(manifest.startUrl, manifest.scope)
         assertNull(manifest.themeColor)
 
         assertEquals(0, manifest.icons.size)
@@ -315,7 +315,7 @@ class WebAppManifestParserTest {
         assertEquals(Color.WHITE, manifest.backgroundColor)
         assertEquals(WebAppManifest.TextDirection.AUTO, manifest.dir)
         assertEquals(WebAppManifest.Orientation.ANY, manifest.orientation)
-        assertNull(manifest.scope)
+        assertEquals(manifest.startUrl, manifest.scope)
         assertEquals(rgb(247, 143, 33), manifest.themeColor)
 
         assertEquals(1, manifest.icons.size)
@@ -551,11 +551,16 @@ class WebAppManifestParserTest {
 
     @Test
     fun `Serializing minimal manifest`() {
-        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
+        val manifest = WebAppManifest(
+            name = "Mozilla",
+            startUrl = "https://mozilla.org",
+            scope = "/"
+        )
         val json = WebAppManifestParser().serialize(manifest)
 
         assertEquals("Mozilla", json.getString("name"))
         assertEquals("https://mozilla.org", json.getString("start_url"))
+        assertEquals("/", json.getString("scope"))
     }
 
     @Test

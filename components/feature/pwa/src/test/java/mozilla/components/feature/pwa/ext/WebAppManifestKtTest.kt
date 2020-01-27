@@ -20,14 +20,15 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class WebAppManifestKtTest {
 
-    private val demoManifest = WebAppManifest(name = "Demo", startUrl = "https://mozilla.com")
+    private val demoManifest = WebAppManifest(name = "Demo", startUrl = "https://mozilla.com", scope = "/")
     private val demoIcon = WebAppManifest.Icon(src = "https://mozilla.com/example.png")
 
     @Test
     fun `should use name as label`() {
         val taskDescription = WebAppManifest(
             name = "Demo",
-            startUrl = "https://example.com"
+            startUrl = "https://example.com",
+            scope = "/"
         ).toTaskDescription(null)
         assertEquals("Demo", taskDescription.label)
         assertNull(taskDescription.icon)
@@ -39,6 +40,7 @@ class WebAppManifestKtTest {
         val taskDescription = WebAppManifest(
             name = "My App",
             startUrl = "https://example.com",
+            scope = "/",
             themeColor = rgb(255, 0, 255)
         ).toTaskDescription(null)
         assertEquals("My App", taskDescription.label)
@@ -51,6 +53,7 @@ class WebAppManifestKtTest {
         val config = WebAppManifest(
             name = "My App",
             startUrl = "https://example.com",
+            scope = "/",
             themeColor = rgb(255, 0, 255),
             backgroundColor = rgb(230, 230, 230)
         ).toCustomTabConfig()
@@ -72,13 +75,6 @@ class WebAppManifestKtTest {
             display = WebAppManifest.DisplayMode.STANDALONE
         ).getTrustedScope()
         assertEquals("https://example.com/".toUri(), scope)
-
-        val fallbackToStartUrl = WebAppManifest(
-            name = "My App",
-            startUrl = "https://example.com/pwa",
-            display = WebAppManifest.DisplayMode.STANDALONE
-        ).getTrustedScope()
-        assertEquals("https://example.com/pwa".toUri(), fallbackToStartUrl)
     }
 
     @Test
@@ -94,6 +90,7 @@ class WebAppManifestKtTest {
         val fallbackToStartUrl = WebAppManifest(
             name = "My App",
             startUrl = "https://example.com/pwa",
+            scope = "https://example.com/",
             display = WebAppManifest.DisplayMode.MINIMAL_UI
         ).getTrustedScope()
         assertNull(fallbackToStartUrl)

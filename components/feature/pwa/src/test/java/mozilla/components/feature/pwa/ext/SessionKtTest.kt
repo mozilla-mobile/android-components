@@ -17,6 +17,7 @@ class SessionKtTest {
     private val demoManifest = WebAppManifest(
         name = "Demo",
         startUrl = "https://mozilla.com",
+        scope = "/",
         display = WebAppManifest.DisplayMode.STANDALONE
     )
     private val demoIcon = WebAppManifest.Icon(src = "https://mozilla.com/example.png")

@@ -39,6 +39,12 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class EngineObserverTest {
 
+    private val mozillaManifest = WebAppManifest(
+        name = "Mozilla",
+        startUrl = "https://www.mozilla.org",
+        scope = "https://www.mozilla.org/hello/"
+    )
+
     @Test
     fun engineSessionObserver() {
         val session = Session("")
@@ -256,12 +262,11 @@ class EngineObserverTest {
     @Test
     fun engineObserverClearsWebAppManifestIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org")
-        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
 
         val observer = EngineObserver(session)
-        observer.onWebAppManifestLoaded(manifest)
+        observer.onWebAppManifestLoaded(mozillaManifest)
 
-        assertEquals(manifest, session.webAppManifest)
+        assertEquals(mozillaManifest, session.webAppManifest)
 
         observer.onLocationChange("https://getpocket.com")
 
@@ -271,34 +276,28 @@ class EngineObserverTest {
     @Test
     fun engineObserverDoesNotClearWebAppManifestIfNewPageInStartUrlScope() {
         val session = Session("https://www.mozilla.org")
-        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://www.mozilla.org")
 
         val observer = EngineObserver(session)
-        observer.onWebAppManifestLoaded(manifest)
+        observer.onWebAppManifestLoaded(mozillaManifest)
 
-        assertEquals(manifest, session.webAppManifest)
+        assertEquals(mozillaManifest, session.webAppManifest)
 
         observer.onLocationChange("https://www.mozilla.org/hello.html")
 
-        assertEquals(manifest, session.webAppManifest)
+        assertEquals(mozillaManifest, session.webAppManifest)
     }
 
     @Test
     fun engineObserverDoesNotClearWebAppManifestIfNewPageInScope() {
         val session = Session("https://www.mozilla.org/hello/page1.html")
-        val manifest = WebAppManifest(
-            name = "Mozilla",
-            startUrl = "https://www.mozilla.org",
-            scope = "https://www.mozilla.org/hello/"
-        )
 
         val observer = EngineObserver(session)
-        observer.onWebAppManifestLoaded(manifest)
+        observer.onWebAppManifestLoaded(mozillaManifest)
 
-        assertEquals(manifest, session.webAppManifest)
+        assertEquals(mozillaManifest, session.webAppManifest)
 
         observer.onLocationChange("https://www.mozilla.org/hello/page2.html")
-        assertEquals(manifest, session.webAppManifest)
+        assertEquals(mozillaManifest, session.webAppManifest)
 
         observer.onLocationChange("https://www.mozilla.org/hello.html")
         assertNull(session.webAppManifest)
@@ -375,7 +374,8 @@ class EngineObserverTest {
         val observer = EngineObserver(session)
         val manifest = WebAppManifest(
             name = "Minimal",
-            startUrl = "/"
+            startUrl = "/",
+            scope = "/"
         )
 
         observer.onWebAppManifestLoaded(manifest)

@@ -2,6 +2,7 @@
   "name": "Squoosh",
   "short_name": "Squoosh",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",

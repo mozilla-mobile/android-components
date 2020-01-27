@@ -14,10 +14,10 @@ import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
 import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.UnsupportedSettingException
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -292,10 +292,12 @@ class GeckoEngineSessionTest {
         val json = JSONObject().apply {
             put("name", "Minimal")
             put("start_url", "/")
+            put("scope", "/")
         }
         val manifest = WebAppManifest(
             name = "Minimal",
-            startUrl = "/"
+            startUrl = "/",
+            scope = "/"
         )
 
         captureDelegates()

@@ -22,16 +22,18 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class WebAppLauncherActivityTest {
 
+    private val baseManifest = WebAppManifest(
+        name = "Test",
+        startUrl = "https://www.mozilla.org",
+        scope = "https://www.mozilla.org/"
+    )
+
     @Test
     fun `DisplayMode-Browser launches browser`() {
         val activity = spy(WebAppLauncherActivity())
         doNothing().`when`(activity).launchBrowser(any())
 
-        val manifest = WebAppManifest(
-            name = "Test",
-            startUrl = "https://www.mozilla.org",
-            display = WebAppManifest.DisplayMode.BROWSER
-        )
+        val manifest = baseManifest.copy(display = WebAppManifest.DisplayMode.BROWSER)
 
         activity.routeManifest(manifest.startUrl.toUri(), manifest)
 
@@ -43,11 +45,7 @@ class WebAppLauncherActivityTest {
         val activity = spy(WebAppLauncherActivity())
         doNothing().`when`(activity).launchWebAppShell("https://www.mozilla.org".toUri())
 
-        val manifest = WebAppManifest(
-            name = "Test",
-            startUrl = "https://www.mozilla.org",
-            display = WebAppManifest.DisplayMode.MINIMAL_UI
-        )
+        val manifest = baseManifest.copy(display = WebAppManifest.DisplayMode.MINIMAL_UI)
 
         activity.routeManifest(manifest.startUrl.toUri(), manifest)
 
@@ -59,11 +57,7 @@ class WebAppLauncherActivityTest {
         val activity = spy(WebAppLauncherActivity())
         doNothing().`when`(activity).launchWebAppShell("https://www.mozilla.org".toUri())
 
-        val manifest = WebAppManifest(
-            name = "Test",
-            startUrl = "https://www.mozilla.org",
-            display = WebAppManifest.DisplayMode.FULLSCREEN
-        )
+        val manifest = baseManifest.copy(display = WebAppManifest.DisplayMode.FULLSCREEN)
 
         activity.routeManifest(manifest.startUrl.toUri(), manifest)
 
@@ -75,11 +69,7 @@ class WebAppLauncherActivityTest {
         val activity = spy(WebAppLauncherActivity())
         doNothing().`when`(activity).launchWebAppShell("https://www.mozilla.org".toUri())
 
-        val manifest = WebAppManifest(
-            name = "Test",
-            startUrl = "https://www.mozilla.org",
-            display = WebAppManifest.DisplayMode.STANDALONE
-        )
+        val manifest = baseManifest.copy(display = WebAppManifest.DisplayMode.STANDALONE)
 
         activity.routeManifest(manifest.startUrl.toUri(), manifest)
 
@@ -92,11 +82,7 @@ class WebAppLauncherActivityTest {
         doReturn("test").`when`(activity).packageName
         doNothing().`when`(activity).startActivity(any())
 
-        val manifest = WebAppManifest(
-            name = "Test",
-            startUrl = "https://www.mozilla.org",
-            display = WebAppManifest.DisplayMode.BROWSER
-        )
+        val manifest = baseManifest.copy(display = WebAppManifest.DisplayMode.BROWSER)
 
         activity.launchBrowser(manifest.startUrl.toUri())
 

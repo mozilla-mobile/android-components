@@ -47,6 +47,7 @@ class WebAppActivityFeatureTest {
         val basicManifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://mozilla.com",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE
         )
         WebAppActivityFeature(activity, icons, basicManifest).onResume()
@@ -64,6 +65,7 @@ class WebAppActivityFeatureTest {
         val manifest = WebAppManifest(
             name = "Test Manifest",
             startUrl = "/",
+            scope = "/",
             orientation = WebAppManifest.Orientation.LANDSCAPE
         )
 
@@ -77,7 +79,8 @@ class WebAppActivityFeatureTest {
     fun `sets task description`() {
         val manifest = WebAppManifest(
             name = "Test Manifest",
-            startUrl = "/"
+            startUrl = "/",
+            scope = "/"
         )
         val icon = Icon(mock(), source = Icon.Source.GENERATOR)
         `when`(icons.loadIcon(any())).thenReturn(CompletableDeferred(icon))

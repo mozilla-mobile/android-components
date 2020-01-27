@@ -76,6 +76,7 @@ class WebAppShortcutManagerTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(WebAppManifest.Icon(
                 src = "https://example.com/icon.png",
@@ -102,6 +103,7 @@ class WebAppShortcutManagerTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE,
             icons = emptyList() // no icons
         )
@@ -121,6 +123,7 @@ class WebAppShortcutManagerTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(WebAppManifest.Icon(
                 src = "https://example.com/icon.png",
@@ -159,6 +162,7 @@ class WebAppShortcutManagerTest {
         session.webAppManifest = WebAppManifest(
             name = "Mozilla",
             shortName = "Moz",
+            scope = "/",
             startUrl = "https://mozilla.org"
         )
         val shortcut = manager.buildBasicShortcut(context, session)
@@ -171,7 +175,7 @@ class WebAppShortcutManagerTest {
         setSdkInt(Build.VERSION_CODES.O)
         val session = Session("https://mozilla.org")
         session.title = "Internet for people, not profit — Mozilla"
-        session.webAppManifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
+        session.webAppManifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org", scope = "/")
         val shortcut = manager.buildBasicShortcut(context, session)
 
         assertEquals("Mozilla", shortcut.shortLabel)
@@ -202,7 +206,7 @@ class WebAppShortcutManagerTest {
 
     @Test
     fun `updateShortcuts no-op`() = runBlockingTest {
-        val manifests = listOf(WebAppManifest(name = "Demo", startUrl = "https://example.com"))
+        val manifests = listOf(WebAppManifest(name = "Demo", startUrl = "https://example.com", scope = "/"))
         doReturn(null).`when`(manager).buildWebAppShortcut(context, manifests[0])
 
         manager.updateShortcuts(context, manifests)
@@ -217,7 +221,7 @@ class WebAppShortcutManagerTest {
     @Test
     fun `updateShortcuts updates list of existing shortcuts`() = runBlockingTest {
         setSdkInt(Build.VERSION_CODES.N_MR1)
-        val manifests = listOf(WebAppManifest(name = "Demo", startUrl = "https://example.com"))
+        val manifests = listOf(WebAppManifest(name = "Demo", startUrl = "https://example.com", scope = "/"))
         val shortcutCompat: ShortcutInfoCompat = mock()
         val shortcut: ShortcutInfo = mock()
         doReturn(shortcutCompat).`when`(manager).buildWebAppShortcut(context, manifests[0])
@@ -229,7 +233,7 @@ class WebAppShortcutManagerTest {
 
     @Test
     fun `buildWebAppShortcut builds shortcut and saves manifest`() = runBlockingTest {
-        val manifest = WebAppManifest(name = "Demo", startUrl = "https://example.com")
+        val manifest = WebAppManifest(name = "Demo", startUrl = "https://example.com", scope = "/")
         doReturn(mock<IconCompat>()).`when`(manager).buildIconFromManifest(manifest)
 
         val shortcut = manager.buildWebAppShortcut(context, manifest)!!
@@ -246,7 +250,7 @@ class WebAppShortcutManagerTest {
 
     @Test
     fun `buildWebAppShortcut builds shortcut with short name`() = runBlockingTest {
-        val manifest = WebAppManifest(name = "Demo Demo", shortName = "DD", startUrl = "https://example.com")
+        val manifest = WebAppManifest(name = "Demo Demo", shortName = "DD", startUrl = "https://example.com", scope = "/")
         doReturn(mock<IconCompat>()).`when`(manager).buildIconFromManifest(manifest)
 
         val shortcut = manager.buildWebAppShortcut(context, manifest)!!

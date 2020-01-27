@@ -350,6 +350,7 @@ class SessionTest {
             name = "HackerWeb",
             description = "A simply readable Hacker News app.",
             startUrl = ".",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(
                 WebAppManifest.Icon(

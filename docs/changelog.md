@@ -39,6 +39,9 @@ permalink: /changelog/
   * Added ability load all manifests that apply to a certain url.
   * Added ability to track if an PWA is actively used.
 
+* **concept-engine**
+  * ⚠️ **This is a breaking change**: `WebAppManifest.scope` is now not nullable.
+
 # 28.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v27.0.0...v28.0.0)
@@ -108,7 +111,7 @@ permalink: /changelog/
   * `PromptFeature` now accepts a false by default `isSaveLoginEnabled` lambda to be invoked before showing prompts. If true, users
     will be prompted to save their information after logging in to a website.
   * Prompts will now be closed automatically when pages have mostly loaded
-  
+
 * **service-sync-logins**
   * Added `GeckoLoginStorageDelegate`. This can be attached to a GeckoEngine, where it will be used
   to save user login credentials.

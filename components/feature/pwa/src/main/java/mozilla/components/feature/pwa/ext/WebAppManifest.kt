@@ -74,7 +74,7 @@ fun WebAppManifest.toCustomTabConfig(): CustomTabConfig {
 fun WebAppManifest.getTrustedScope(): Uri? {
     return when (display) {
         WebAppManifest.DisplayMode.FULLSCREEN,
-        WebAppManifest.DisplayMode.STANDALONE -> (scope ?: startUrl).toUri()
+        WebAppManifest.DisplayMode.STANDALONE -> scope.toUri()
 
         WebAppManifest.DisplayMode.MINIMAL_UI,
         WebAppManifest.DisplayMode.BROWSER -> null

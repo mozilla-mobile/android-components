@@ -49,6 +49,7 @@ import mozilla.components.concept.engine.manifest.WebAppManifest.ExternalApplica
 data class WebAppManifest(
     val name: String,
     val startUrl: String,
+    val scope: String,
     val shortName: String? = null,
     val display: DisplayMode = DisplayMode.BROWSER,
     @ColorInt val backgroundColor: Int? = null,
@@ -57,7 +58,6 @@ data class WebAppManifest(
     val dir: TextDirection = TextDirection.AUTO,
     val lang: String? = null,
     val orientation: Orientation = Orientation.ANY,
-    val scope: String? = null,
     @ColorInt val themeColor: Int? = null,
     val relatedApplications: List<ExternalApplicationResource> = emptyList(),
     val preferRelatedApplications: Boolean = false,

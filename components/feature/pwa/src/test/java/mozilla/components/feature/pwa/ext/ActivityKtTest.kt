@@ -13,16 +13,19 @@ import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.verify
 
 class ActivityKtTest {
+
+    private val baseManifest = WebAppManifest(
+        name = "Test Manifest",
+        startUrl = "/",
+        scope = "/"
+    )
+
     @Test
     fun `applyOrientation calls setRequestedOrientation for every value`() {
         WebAppManifest.Orientation.values().forEach { orientation ->
             val activity: Activity = mock()
             activity.applyOrientation(
-                WebAppManifest(
-                    name = "Test Manifest",
-                    startUrl = "/",
-                    orientation = orientation
-                )
+                baseManifest.copy(orientation = orientation)
             )
             verify(activity).requestedOrientation = anyInt()
         }
@@ -32,28 +35,19 @@ class ActivityKtTest {
     fun `applyOrientation applies common orientations`() {
         run {
             val activity: Activity = mock()
-            activity.applyOrientation(WebAppManifest(
-                name = "Test Manifest",
-                startUrl = "/",
-                orientation = WebAppManifest.Orientation.ANY))
+            activity.applyOrientation(baseManifest.copy(orientation = WebAppManifest.Orientation.ANY))
             verify(activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         }
 
         run {
             val activity: Activity = mock()
-            activity.applyOrientation(WebAppManifest(
-                name = "Test Manifest",
-                startUrl = "/",
-                orientation = WebAppManifest.Orientation.PORTRAIT))
+            activity.applyOrientation(baseManifest.copy(orientation = WebAppManifest.Orientation.PORTRAIT))
             verify(activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
         }
 
         run {
             val activity: Activity = mock()
-            activity.applyOrientation(WebAppManifest(
-                name = "Test Manifest",
-                startUrl = "/",
-                orientation = WebAppManifest.Orientation.LANDSCAPE))
+            activity.applyOrientation(baseManifest.copy(orientation = WebAppManifest.Orientation.LANDSCAPE))
             verify(activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
         }
 

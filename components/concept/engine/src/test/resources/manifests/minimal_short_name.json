@@ -1,4 +1,5 @@
 {
   "short_name": "Minimal with Short Name",
-  "start_url": "/"
+  "start_url": "/",
+  "scope": "/"
 }

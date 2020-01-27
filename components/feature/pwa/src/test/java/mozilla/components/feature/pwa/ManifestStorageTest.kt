@@ -17,8 +17,8 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
@@ -30,6 +30,13 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class ManifestStorageTest {
+
+    private val firefoxManifest = WebAppManifest(
+        name = "Firefox",
+        startUrl = "https://firefox.com",
+        scope = "/"
+    )
+
     @Test
     fun `load returns null if entry does not exist`() = runBlocking {
         val storage = spy(ManifestStorage(testContext))
@@ -42,7 +49,11 @@ class ManifestStorageTest {
         val storage = spy(ManifestStorage(testContext))
         val dao = mockDatabase(storage)
 
-        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
+        val manifest = WebAppManifest(
+            name = "Mozilla",
+            startUrl = "https://mozilla.org",
+            scope = "/"
+        )
         whenever(dao.getManifest("https://mozilla.org"))
             .thenReturn(ManifestEntity(manifest))
 
@@ -53,9 +64,8 @@ class ManifestStorageTest {
     fun `save saves the manifest as JSON`() = runBlocking {
         val storage = spy(ManifestStorage(testContext))
         val dao = mockDatabase(storage)
-        val manifest = WebAppManifest(name = "Firefox", startUrl = "https://firefox.com")
 
-        storage.saveManifest(manifest)
+        storage.saveManifest(firefoxManifest)
         verify(dao).insertManifest(any())
         Unit
     }
@@ -64,16 +74,15 @@ class ManifestStorageTest {
     fun `update replaces the manifest as JSON`() = runBlocking {
         val storage = spy(ManifestStorage(testContext))
         val dao = mockDatabase(storage)
-        val manifest = WebAppManifest(name = "Firefox", startUrl = "https://firefox.com")
         val existing = ManifestEntity(
-            manifest = manifest,
+            manifest = firefoxManifest,
             createdAt = 0,
             updatedAt = 0
         )
 
         `when`(dao.getManifest("https://firefox.com")).thenReturn(existing)
 
-        storage.updateManifest(manifest)
+        storage.updateManifest(firefoxManifest)
         verify(dao).updateManifest(any())
         Unit
     }
@@ -82,11 +91,10 @@ class ManifestStorageTest {
     fun `update does not replace non-existed manifest`() = runBlocking {
         val storage = spy(ManifestStorage(testContext))
         val dao = mockDatabase(storage)
-        val manifest = WebAppManifest(name = "Firefox", startUrl = "https://firefox.com")
 
         `when`(dao.getManifest("https://firefox.com")).thenReturn(null)
 
-        storage.updateManifest(manifest)
+        storage.updateManifest(firefoxManifest)
         verify(dao, never()).updateManifest(any())
         Unit
     }
@@ -122,7 +130,7 @@ class ManifestStorageTest {
     fun `updateManifestUsedAt updates usedAt to current timestamp`() = runBlocking {
         val storage = spy(ManifestStorage(testContext))
         val dao = mockDatabase(storage)
-        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
+        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org", scope = "/")
         val entity = ManifestEntity(manifest, usedAt = 0)
 
         val entityCaptor = ArgumentCaptor.forClass(ManifestEntity::class.java)

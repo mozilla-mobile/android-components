@@ -65,7 +65,8 @@ class WebAppIntentProcessorTest {
 
         val manifest = WebAppManifest(
             name = "Test Manifest",
-            startUrl = "https://mozilla.com"
+            startUrl = "https://mozilla.com",
+            scope = "https://mozilla.com/"
         )
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)
 
@@ -85,7 +86,8 @@ class WebAppIntentProcessorTest {
 
         val manifest = WebAppManifest(
             name = "Test Manifest",
-            startUrl = "https://mozilla.com"
+            startUrl = "https://mozilla.com",
+            scope = "https://mozilla.com/"
         )
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)
 

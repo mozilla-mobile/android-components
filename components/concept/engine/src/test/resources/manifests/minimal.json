@@ -1,4 +1,5 @@
 {
   "name": "Minimal",
-  "start_url": "/"
+  "start_url": "/",
+  "scope": "/"
 }

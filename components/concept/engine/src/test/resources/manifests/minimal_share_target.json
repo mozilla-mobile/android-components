@@ -1,6 +1,7 @@
 {
   "name": "Minimal",
   "start_url": "/",
+  "scope": "/",
   "share_target": {
     "action": "/share-target",
     "params": {

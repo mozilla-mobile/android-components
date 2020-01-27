@@ -14,9 +14,9 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.fetch.Client
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
@@ -43,6 +43,7 @@ class WebAppUseCasesTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(WebAppManifest.Icon(
                     src = "https://example.com/icon.png",
@@ -70,6 +71,7 @@ class WebAppUseCasesTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            scope = "/",
             display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(WebAppManifest.Icon(
                 src = "https://example.com/icon.png",

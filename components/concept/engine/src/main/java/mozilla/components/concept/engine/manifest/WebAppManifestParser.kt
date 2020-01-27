@@ -44,6 +44,16 @@ class WebAppManifestParser {
     /**
      * Parses the provided JSON and returns a [WebAppManifest] (wrapped in [Result.Success] if parsing was successful.
      * Otherwise [Result.Failure].
+     *
+     * Gecko performs some initial parsing on the Web App Manifest, so the [JSONObject] we work with
+     * does not match what was originally provided by the website. Gecko:
+     * - Changes relative URLs to be absolute
+     * - Changes some space-separated strings into arrays (purpose, sizes)
+     * - Changes colors to follow Android format (#AARRGGBB)
+     * - Removes invalid enum values (ie display: halfscreen)
+     * - Ensures display, dir, start_url, and scope always have a value
+     * - Trims most strings (name, short_name, ...)
+     * See See https://searchfox.org/mozilla-central/source/dom/manifest/ManifestProcessor.jsm
      */
     fun parse(json: JSONObject): Result {
         return try {
@@ -59,7 +69,7 @@ class WebAppManifestParser {
                 backgroundColor = parseColor(json.tryGetString("background_color")),
                 description = json.tryGetString("description"),
                 icons = parseIcons(json),
-                scope = json.tryGetString("scope"),
+                scope = json.getString("scope"),
                 themeColor = parseColor(json.tryGetString("theme_color")),
                 dir = parseTextDirection(json),
                 lang = json.tryGetString("lang"),

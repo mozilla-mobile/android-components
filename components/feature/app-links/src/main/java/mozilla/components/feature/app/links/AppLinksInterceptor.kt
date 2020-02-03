@@ -39,7 +39,7 @@ import mozilla.components.concept.engine.request.RequestInterceptor
  * have registered to open.
  * @param launchFromInterceptor If {true} then the interceptor will launch the link in third-party apps if available.
  */
-class AppLinksInterceptor(
+class AppLinksInterceptor @JvmOverloads constructor(
     private val context: Context,
     private val interceptLinkClicks: Boolean = false,
     private val alwaysAllowedSchemes: Set<String> = setOf("mailto", "market", "sms", "tel"),

@@ -31,7 +31,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
  * @param useCases These use cases allow for the detection of, and opening of links that other apps
  * have registered to open.
  **/
-class AppLinksFeature(
+class AppLinksFeature @JvmOverloads constructor(
     private val context: Context,
     private val sessionManager: SessionManager,
     private val sessionId: String? = null,

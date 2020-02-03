@@ -38,7 +38,7 @@ internal const val APP_LINKS_CACHE_INTERVAL = 30 * 1000L // 30 seconds
  * @param browserPackageNames Set of browser package names installed.
  * @param unguessableWebUrl URL is not likely to be opened by a native app but will fallback to a browser.
  */
-class AppLinksUseCases(
+class AppLinksUseCases @JvmOverloads constructor(
     private val context: Context,
     private val launchInApp: () -> Boolean = { false },
     browserPackageNames: Set<String>? = null,
@@ -192,7 +192,7 @@ class AppLinksUseCases(
     class OpenAppLinkRedirect internal constructor(
         private val context: Context
     ) {
-        operator fun invoke(appIntent: Intent?, failedToLaunchAction: () -> Unit = {}) {
+        @JvmOverloads operator fun invoke(appIntent: Intent?, failedToLaunchAction: () -> Unit = {}) {
             appIntent?.let {
                 try {
                     context.startActivity(it)

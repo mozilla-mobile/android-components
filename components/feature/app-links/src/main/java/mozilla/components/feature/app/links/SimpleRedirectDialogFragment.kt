@@ -57,7 +57,7 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
         /**
          * A builder method for creating a [SimpleRedirectDialogFragment]
          */
-        fun newInstance(
+        @JvmOverloads fun newInstance(
             @StringRes dialogTitleText: Int = R.string.mozac_feature_applinks_confirm_dialog_title,
             @StringRes positiveButtonText: Int = R.string.mozac_feature_applinks_confirm_dialog_confirm,
             @StringRes negativeButtonText: Int = R.string.mozac_feature_applinks_confirm_dialog_deny,

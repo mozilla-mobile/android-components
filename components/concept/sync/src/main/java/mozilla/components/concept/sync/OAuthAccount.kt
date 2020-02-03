@@ -31,7 +31,10 @@ enum class AccessType(val msg: String) {
 /**
  * An exception which may happen while obtaining auth information using [OAuthAccount].
  */
-class AuthException(type: AuthExceptionType, cause: Exception? = null) : Throwable(type.msg, cause)
+class AuthException @JvmOverloads constructor(
+    type: AuthExceptionType,
+    cause: Exception? = null
+) : Throwable(type.msg, cause)
 
 /**
  * An object that represents a login flow initiated by [OAuthAccount].

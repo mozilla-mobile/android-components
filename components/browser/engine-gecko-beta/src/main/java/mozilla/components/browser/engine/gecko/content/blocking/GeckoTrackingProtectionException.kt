@@ -11,5 +11,7 @@ import mozilla.components.concept.engine.content.blocking.TrackingProtectionExce
  * @property url The url of the site to be ignored.
  * @property principal Internal gecko identifier of an URI.
  */
-data class GeckoTrackingProtectionException(override val url: String, val principal: String = "") :
-    TrackingProtectionException
+data class GeckoTrackingProtectionException @JvmOverloads constructor(
+    override val url: String,
+    val principal: String = ""
+) : TrackingProtectionException

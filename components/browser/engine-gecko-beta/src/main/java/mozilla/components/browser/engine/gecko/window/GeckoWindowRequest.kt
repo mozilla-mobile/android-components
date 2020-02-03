@@ -11,7 +11,7 @@ import mozilla.components.concept.engine.window.WindowRequest
 /**
  * Gecko-based implementation of [WindowRequest].
  */
-class GeckoWindowRequest(
+class GeckoWindowRequest @JvmOverloads constructor(
     override val url: String = "",
     private val engineSession: GeckoEngineSession,
     override val type: WindowRequest.Type = WindowRequest.Type.OPEN

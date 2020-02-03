@@ -27,7 +27,7 @@ import org.mozilla.geckoview.WebExtension.Action as GeckoNativeWebExtensionActio
  * Gecko-based implementation of [WebExtension], wrapping the native web
  * extension object provided by GeckoView.
  */
-class GeckoWebExtension(
+class GeckoWebExtension @JvmOverloads constructor(
     id: String,
     url: String,
     webExtensionController: WebExtensionController,
@@ -52,7 +52,7 @@ class GeckoWebExtension(
      * was opened for. Ports connected from background scripts will
      * have a null session.
      */
-    data class PortId(val name: String, val session: EngineSession? = null)
+    data class PortId @JvmOverloads constructor(val name: String, val session: EngineSession? = null)
 
     /**
      * See [WebExtension.registerBackgroundMessageHandler].

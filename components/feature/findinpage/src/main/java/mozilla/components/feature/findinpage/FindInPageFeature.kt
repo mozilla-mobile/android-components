@@ -17,7 +17,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 /**
  * Feature implementation that will keep a [FindInPageView] in sync with a bound [SessionState].
  */
-class FindInPageFeature(
+class FindInPageFeature @JvmOverloads constructor(
     store: BrowserStore,
     view: FindInPageView,
     engineView: EngineView,

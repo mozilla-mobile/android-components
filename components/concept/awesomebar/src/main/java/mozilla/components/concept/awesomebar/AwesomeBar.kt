@@ -79,7 +79,7 @@ interface AwesomeBar {
      * @property score A score used to rank suggestions of this provider against each other. A suggestion with a higher
      * score will be shown on top of suggestions with a lower score.
      */
-    data class Suggestion(
+    data class Suggestion @JvmOverloads constructor(
         val provider: SuggestionProvider,
         val id: String = UUID.randomUUID().toString(),
         val title: String? = null,

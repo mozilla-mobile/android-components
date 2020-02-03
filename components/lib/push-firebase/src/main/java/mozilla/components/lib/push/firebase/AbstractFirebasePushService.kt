@@ -25,7 +25,7 @@ import kotlin.coroutines.CoroutineContext
 /**
  * A Firebase Cloud Messaging implementation of the [PushService] for Android devices that support Google Play Services.
  */
-abstract class AbstractFirebasePushService(
+abstract class AbstractFirebasePushService @JvmOverloads constructor(
     internal val coroutineContext: CoroutineContext = Dispatchers.IO
 ) : FirebaseMessagingService(), PushService {
 

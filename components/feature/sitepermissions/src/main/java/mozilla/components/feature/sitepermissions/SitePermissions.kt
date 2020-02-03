@@ -13,7 +13,7 @@ import mozilla.components.feature.sitepermissions.SitePermissionsStorage.Permiss
  * A site permissions and its state.
  */
 @Parcelize
-data class SitePermissions(
+data class SitePermissions @JvmOverloads constructor(
     val origin: String,
     val location: Status = NO_DECISION,
     val notification: Status = NO_DECISION,

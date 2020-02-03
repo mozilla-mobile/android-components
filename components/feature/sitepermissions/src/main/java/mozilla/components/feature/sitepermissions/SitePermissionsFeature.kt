@@ -62,7 +62,7 @@ internal const val FRAGMENT_TAG = "mozac_feature_sitepermissions_prompt_dialog"
  **/
 
 @Suppress("TooManyFunctions", "LargeClass")
-class SitePermissionsFeature(
+class SitePermissionsFeature @JvmOverloads constructor(
     private val context: Context,
     private val sessionManager: SessionManager,
     private var sessionId: String? = null,
@@ -492,7 +492,7 @@ class SitePermissionsFeature(
         }
     }
 
-    data class PromptsStyling(
+    data class PromptsStyling @JvmOverloads constructor(
         val gravity: Int,
         val shouldWidthMatchParent: Boolean = false,
         @ColorRes
@@ -504,7 +504,7 @@ class SitePermissionsFeature(
     /**
      * Customization options for feature request dialog
      */
-    data class DialogConfig(
+    data class DialogConfig @JvmOverloads constructor(
         /** Use **true** to pre-select "Do not ask again" checkbox. */
         val shouldPreselectDoNotAskAgain: Boolean = false
     ) {

@@ -47,7 +47,7 @@ enum class FxaCapability {
  * @property accountManager a reference to application's [FxaAccountManager].
  * @property fxaCapabilities a set of [FxaCapability] that client supports.
  */
-class FxaWebChannelFeature(
+class FxaWebChannelFeature @JvmOverloads constructor(
     private val context: Context,
     private val customTabSessionId: String?,
     private val engine: Engine,

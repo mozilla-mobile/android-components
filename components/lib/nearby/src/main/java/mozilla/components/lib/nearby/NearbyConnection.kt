@@ -71,7 +71,7 @@ internal fun String.toPayload(): Payload {
  * @param name a human-readable name for this device
  */
 @Suppress("TooManyFunctions")
-class NearbyConnection(
+class NearbyConnection @JvmOverloads constructor(
     private val connectionsClient: ConnectionsClient,
     private val name: String = Build.MODEL,
     private val delegate: ObserverRegistry<NearbyConnectionObserver> = ObserverRegistry()
@@ -79,7 +79,7 @@ class NearbyConnection(
     /**
      * Another constructor
      */
-    constructor(context: Context, name: String = Build.MODEL) : this(
+    @JvmOverloads constructor(context: Context, name: String = Build.MODEL) : this(
         Nearby.getConnectionsClient(
             context
         ), name

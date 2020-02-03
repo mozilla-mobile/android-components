@@ -23,7 +23,7 @@ import kotlinx.coroutines.async
  * https://publicsuffix.org/
  * https://github.com/publicsuffix/list
  */
-class PublicSuffixList(
+class PublicSuffixList @JvmOverloads constructor(
     context: Context,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val scope: CoroutineScope = CoroutineScope(dispatcher)

@@ -17,7 +17,7 @@ import mozilla.components.browser.session.SessionManager
  * this (optional) lambda will be invoked to create a [Session]. The default implementation creates a [Session] and adds
  * it to the [SessionManager].
  */
-class SearchUseCases(
+class SearchUseCases @JvmOverloads constructor(
     context: Context,
     searchEngineManager: SearchEngineManager,
     sessionManager: SessionManager,
@@ -50,7 +50,7 @@ class SearchUseCases(
          * is provided.
          * @param searchEngine Search Engine to use, or the default search engine if none is provided
          */
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             searchTerms: String,
             session: Session? = sessionManager.selectedSession,
             searchEngine: SearchEngine? = null
@@ -92,7 +92,7 @@ class SearchUseCases(
          * @param source the source of the new session.
          * @param searchEngine Search Engine to use, or the default search engine if none is provided
          */
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             searchTerms: String,
             source: Session.Source,
             selected: Boolean = true,

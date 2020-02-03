@@ -338,7 +338,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param padding a custom [Padding] for this Button.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
-    open class Button(
+    open class Button @JvmOverloads constructor(
         imageDrawable: Drawable,
         contentDescription: String,
         visible: () -> Boolean = { true },
@@ -361,7 +361,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param padding a custom [Padding] for this Button.
      * @param listener Callback that will be invoked whenever the checked state changes.
      */
-    open class ToggleButton(
+    open class ToggleButton @JvmOverloads constructor(
         image: Drawable,
         imageSelected: Drawable,
         contentDescription: String,
@@ -395,7 +395,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param background A custom (stateful) background drawable resource to be used.
      * @param listener Callback that will be invoked whenever the checked state changes.
      */
-    open class TwoStateButton(
+    open class TwoStateButton @JvmOverloads constructor(
         private val enabledImage: Drawable,
         private val enabledContentDescription: String,
         private val disabledImage: Drawable,
@@ -438,7 +438,7 @@ class BrowserToolbar @JvmOverloads constructor(
  * Wraps [filter] execution in a coroutine context, cancelling prior executions on every invocation.
  * [coroutineContext] must be of type that doesn't propagate cancellation of its children upwards.
  */
-class AsyncFilterListener(
+class AsyncFilterListener @JvmOverloads constructor(
     private val urlView: AutocompleteView,
     override val coroutineContext: CoroutineContext,
     private val filter: suspend (String, AutocompleteDelegate) -> Unit,
@@ -459,7 +459,7 @@ class AsyncFilterListener(
  * An autocomplete delegate which is aware of its parent scope (to check for cancellations).
  * Responsible for processing autocompletion results and discarding stale results when [urlView] moved on.
  */
-private class AsyncAutocompleteDelegate(
+private class AsyncAutocompleteDelegate @JvmOverloads constructor(
     private val urlView: AutocompleteView,
     private val parentScope: CoroutineScope,
     override val coroutineContext: CoroutineContext,

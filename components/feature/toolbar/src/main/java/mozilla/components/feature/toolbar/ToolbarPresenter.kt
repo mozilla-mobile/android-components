@@ -23,7 +23,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * the state of the selected session.
  */
 @Suppress("TooManyFunctions")
-class ToolbarPresenter(
+class ToolbarPresenter @JvmOverloads constructor(
     private val toolbar: Toolbar,
     private val store: BrowserStore,
     private val customTabId: String? = null,

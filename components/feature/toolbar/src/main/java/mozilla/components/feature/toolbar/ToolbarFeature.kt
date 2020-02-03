@@ -21,7 +21,7 @@ typealias SearchUseCase = (String) -> Unit
 /**
  * Feature implementation for connecting a toolbar implementation with the session module.
  */
-class ToolbarFeature(
+class ToolbarFeature @JvmOverloads constructor(
     private val toolbar: Toolbar,
     store: BrowserStore,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
@@ -64,7 +64,7 @@ class ToolbarFeature(
      * @property urlColor Optional text color used for the URL.
      * @property renderStyle Sealed class that controls the style of the url to be displayed
      */
-    data class UrlRenderConfiguration(
+    data class UrlRenderConfiguration @JvmOverloads constructor(
         internal val publicSuffixList: PublicSuffixList,
         @ColorInt internal val registrableDomainColor: Int,
         @ColorInt internal val urlColor: Int? = null,

@@ -12,7 +12,7 @@ import mozilla.components.support.ktx.kotlin.toNormalizedUrl
 /**
  * Connects a toolbar instance to the browser engine via use cases
  */
-class ToolbarInteractor(
+class ToolbarInteractor @JvmOverloads constructor(
     private val toolbar: Toolbar,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val searchUseCase: SearchUseCase? = null

@@ -28,7 +28,7 @@ import mozilla.components.support.ktx.android.content.res.resolveAttribute
  * @param action Associated [WebExtensionBrowserAction]
  * @param listener Callback that will be invoked whenever the button is pressed
  */
-open class WebExtensionToolbarAction(
+open class WebExtensionToolbarAction @JvmOverloads constructor(
     internal var action: WebExtensionBrowserAction,
     internal val padding: Padding? = null,
     internal val iconJobDispatcher: CoroutineDispatcher,

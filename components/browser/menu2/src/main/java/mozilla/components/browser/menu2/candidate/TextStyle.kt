@@ -16,7 +16,7 @@ import androidx.annotation.IntDef
  * @param size: The size of the text.
  * @param color: The color to apply to the text.
  */
-data class TextStyle(
+data class TextStyle @JvmOverloads constructor(
     @Dimension(unit = Dimension.PX) val size: Float? = null,
     @ColorInt val color: Int? = null,
     @TypefaceStyle val textStyle: Int = Typeface.NORMAL,

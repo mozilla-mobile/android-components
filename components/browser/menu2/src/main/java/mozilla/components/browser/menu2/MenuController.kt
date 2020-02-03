@@ -8,7 +8,7 @@ package mozilla.components.browser.menu2
  * Controls a popup menu composed of MenuCandidate objects.
  * @param visibleSide Sets the menu to open with either the start or end visible.
  */
-class MenuController(
+class MenuController @JvmOverloads constructor(
     private val visibleSide: Side = Side.START
 )
 

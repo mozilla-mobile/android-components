@@ -12,7 +12,7 @@ package mozilla.components.browser.menu2.candidate
  * @property containerStyle Styling to apply to the container.
  * @property onClick Click listener called when this menu option is clicked.
  */
-data class SmallMenuCandidate(
+data class SmallMenuCandidate @JvmOverloads constructor(
     val contentDescription: String,
     val icon: DrawableMenuIcon,
     val containerStyle: ContainerStyle = ContainerStyle(),

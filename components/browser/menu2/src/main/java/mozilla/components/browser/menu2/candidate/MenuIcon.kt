@@ -22,13 +22,13 @@ sealed class MenuIcon
  * @property tint Tint to apply to the drawable.
  * @property effect Effects to apply to the icon.
  */
-data class DrawableMenuIcon(
+data class DrawableMenuIcon @JvmOverloads constructor(
     override val drawable: Drawable?,
     @ColorInt override val tint: Int? = null,
     val effect: MenuIconEffect? = null
 ) : MenuIcon(), MenuIconWithDrawable {
 
-    constructor(
+    @JvmOverloads constructor(
         context: Context,
         @DrawableRes resource: Int,
         @ColorInt tint: Int? = null,
@@ -43,13 +43,13 @@ data class DrawableMenuIcon(
  * @property tint Tint to apply to the drawable.
  * @property onClick Click listener called when this menu option is clicked.
  */
-data class DrawableButtonMenuIcon(
+data class DrawableButtonMenuIcon @JvmOverloads constructor(
     override val drawable: Drawable?,
     @ColorInt override val tint: Int? = null,
     val onClick: () -> Unit = {}
 ) : MenuIcon(), MenuIconWithDrawable {
 
-    constructor(
+    @JvmOverloads constructor(
         context: Context,
         @DrawableRes resource: Int,
         @ColorInt tint: Int? = null,
@@ -64,7 +64,7 @@ data class DrawableButtonMenuIcon(
  * @property backgroundTint Color to show behind text.
  * @property textStyle Styling to apply to the text.
  */
-data class TextMenuIcon(
+data class TextMenuIcon @JvmOverloads constructor(
     val text: String,
     @ColorInt val backgroundTint: Int? = null,
     val textStyle: TextStyle = TextStyle()

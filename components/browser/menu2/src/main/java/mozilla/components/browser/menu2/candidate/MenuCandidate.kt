@@ -22,7 +22,7 @@ sealed class MenuCandidate {
  * @property effect Effects to apply to the option.
  * @property onClick Click listener called when this menu option is clicked.
  */
-data class TextMenuCandidate(
+data class TextMenuCandidate @JvmOverloads constructor(
     val text: String,
     val start: MenuIcon? = null,
     val end: MenuIcon? = null,
@@ -40,7 +40,7 @@ data class TextMenuCandidate(
  * @property textStyle Styling to apply to the text.
  * @property containerStyle Styling to apply to the container.
  */
-data class DecorativeTextMenuCandidate(
+data class DecorativeTextMenuCandidate @JvmOverloads constructor(
     val text: String,
     val height: Int? = null,
     val textStyle: TextStyle = TextStyle(),
@@ -58,7 +58,7 @@ data class DecorativeTextMenuCandidate(
  * @property effect Effects to apply to the option.
  * @property onCheckedChange Listener called when this menu option is checked or unchecked.
  */
-data class CompoundMenuCandidate(
+data class CompoundMenuCandidate @JvmOverloads constructor(
     val text: String,
     val isChecked: Boolean,
     val start: MenuIcon? = null,
@@ -84,7 +84,7 @@ data class CompoundMenuCandidate(
  * @property items Small menu options to display.
  * @property containerStyle Styling to apply to the container.
  */
-data class RowMenuCandidate(
+data class RowMenuCandidate @JvmOverloads constructor(
     val items: List<SmallMenuCandidate>,
     override val containerStyle: ContainerStyle = ContainerStyle()
 ) : MenuCandidate()
@@ -94,6 +94,6 @@ data class RowMenuCandidate(
  *
  * @property containerStyle Styling to apply to the divider.
  */
-data class DividerMenuCandidate(
+data class DividerMenuCandidate @JvmOverloads constructor(
     override val containerStyle: ContainerStyle = ContainerStyle()
 ) : MenuCandidate()

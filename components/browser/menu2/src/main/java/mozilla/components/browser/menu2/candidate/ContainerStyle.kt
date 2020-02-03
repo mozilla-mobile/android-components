@@ -10,7 +10,7 @@ package mozilla.components.browser.menu2.candidate
  * @property isVisible When false, the option will not be displayed.
  * @property isEnabled When false, the option will be greyed out and disabled.
  */
-data class ContainerStyle(
+data class ContainerStyle @JvmOverloads constructor(
     val isVisible: Boolean = true,
     val isEnabled: Boolean = true
 )

@@ -12,7 +12,7 @@ import mozilla.components.concept.toolbar.Toolbar
  * Feature implementation for connecting a tabs tray implementation with a toolbar implementation.
  */
 
-class TabsToolbarFeature(
+class TabsToolbarFeature @JvmOverloads constructor(
     toolbar: Toolbar,
     sessionManager: SessionManager,
     sessionId: String? = null,

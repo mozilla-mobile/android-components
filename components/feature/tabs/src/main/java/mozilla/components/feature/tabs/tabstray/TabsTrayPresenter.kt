@@ -14,7 +14,7 @@ import mozilla.components.concept.tabstray.TabsTray
  * Presenter implementation for a tabs tray implementation in order to update the tabs tray whenever
  * the state of the session manager changes.
  */
-class TabsTrayPresenter(
+class TabsTrayPresenter @JvmOverloads constructor(
     private val tabsTray: TabsTray,
     private val sessionManager: SessionManager,
     private val closeTabsTray: () -> Unit,

@@ -90,7 +90,7 @@ class TabsUseCases(
          * @param engineSession (optional) engine session to use for this tab.
          */
         @Suppress("LongParameterList")
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             url: String,
             selectTab: Boolean = true,
             startLoading: Boolean = true,
@@ -138,7 +138,7 @@ class TabsUseCases(
          * @param engineSession (optional) engine session to use for this tab.
          */
         @Suppress("LongParameterList")
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             url: String,
             selectTab: Boolean = true,
             startLoading: Boolean = true,

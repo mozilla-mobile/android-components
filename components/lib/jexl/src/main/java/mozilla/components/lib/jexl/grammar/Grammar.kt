@@ -133,7 +133,7 @@ class Grammar {
     )
 }
 
-data class GrammarElement(
+data class GrammarElement @JvmOverloads constructor(
     val type: Token.Type,
     val precedence: Int = 0,
     val evaluate: ((JexlValue, JexlValue) -> JexlValue)? = null

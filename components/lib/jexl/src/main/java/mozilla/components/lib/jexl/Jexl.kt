@@ -16,7 +16,7 @@ import mozilla.components.lib.jexl.parser.ParserException
 import mozilla.components.lib.jexl.value.JexlUndefined
 import mozilla.components.lib.jexl.value.JexlValue
 
-class Jexl(
+class Jexl @JvmOverloads constructor(
     private val grammar: Grammar = Grammar()
 ) {
     private val lexer: Lexer = Lexer(grammar)
@@ -46,7 +46,7 @@ class Jexl(
      */
     @Throws(JexlException::class)
     @Suppress("ThrowsCount")
-    fun evaluate(expression: String, context: JexlContext = JexlContext()): JexlValue {
+    @JvmOverloads fun evaluate(expression: String, context: JexlContext = JexlContext()): JexlValue {
         val parser = Parser(grammar)
         val evaluator = Evaluator(context, grammar, transforms)
 
@@ -70,7 +70,7 @@ class Jexl(
      * value can be provided that will be returned in the expression does not return a boolean
      * result.
      */
-    fun evaluateBooleanExpression(
+    @JvmOverloads fun evaluateBooleanExpression(
         expression: String,
         context: JexlContext = JexlContext(),
         defaultValue: Boolean? = null
@@ -96,7 +96,7 @@ class Jexl(
 /**
  * Generic exception thrown when evaluating an expression failed.
  */
-class JexlException(
+class JexlException @JvmOverloads constructor(
     cause: Exception? = null,
     message: String? = null
 ) : Exception(message, cause)

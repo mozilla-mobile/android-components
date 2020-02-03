@@ -124,7 +124,7 @@ class PromptFeature private constructor(
     @VisibleForTesting(otherwise = PRIVATE)
     internal var activePrompt: WeakReference<PromptDialogFragment>? = null
 
-    constructor(
+    @JvmOverloads constructor(
         activity: Activity,
         store: BrowserStore,
         customTabId: String? = null,
@@ -144,7 +144,7 @@ class PromptFeature private constructor(
         onNeedToRequestPermissions = onNeedToRequestPermissions
     )
 
-    constructor(
+    @JvmOverloads constructor(
         fragment: Fragment,
         store: BrowserStore,
         customTabId: String? = null,

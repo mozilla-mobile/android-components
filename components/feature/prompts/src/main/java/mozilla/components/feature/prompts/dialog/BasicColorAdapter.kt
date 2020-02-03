@@ -33,7 +33,7 @@ import mozilla.components.support.utils.ColorUtils
  * @property contentDescription accessibility description of this color.
  * @property selected if true, this is the color that will be set when the dialog is closed.
  */
-data class ColorItem(
+data class ColorItem @JvmOverloads constructor(
     @ColorInt val color: Int,
     val contentDescription: String,
     val selected: Boolean = false

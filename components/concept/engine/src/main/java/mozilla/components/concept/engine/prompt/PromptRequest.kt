@@ -119,7 +119,8 @@ sealed class PromptRequest {
      * @property onMultipleFilesSelected callback to notify that the user has selected multiple files.
      * @property onDismiss callback to notify that the user has canceled the file selection.
      */
-    data class File @JvmOverloads constructor(
+    // TODO: Remove the secondary constructor and add `@JvmOverloads` to the primary constructor.
+    data class File (
         val mimeTypes: Array<out String>,
         val isMultipleFilesSelection: Boolean = false,
         val captureMode: FacingMode = FacingMode.NONE,
@@ -127,6 +128,25 @@ sealed class PromptRequest {
         val onMultipleFilesSelected: (Context, Array<Uri>) -> Unit,
         val onDismiss: () -> Unit
     ) : PromptRequest() {
+
+        /**
+         * @deprecated Use the new primary constructor.
+         */
+        constructor(
+                mimeTypes: Array<out String>,
+                isMultipleFilesSelection: Boolean,
+                onSingleFileSelected: (Context, Uri) -> Unit,
+                onMultipleFilesSelected: (Context, Array<Uri>) -> Unit,
+                onDismiss: () -> Unit
+        ) : this(
+                mimeTypes,
+                isMultipleFilesSelection,
+                FacingMode.NONE,
+                onSingleFileSelected,
+                onMultipleFilesSelected,
+                onDismiss
+        )
+
         enum class FacingMode {
             NONE, ANY, FRONT_CAMERA, BACK_CAMERA
         }

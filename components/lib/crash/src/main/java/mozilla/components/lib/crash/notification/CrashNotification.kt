@@ -64,7 +64,10 @@ internal class CrashNotification(
          * services launching activities in Q+. On those system we may need to show a notification for the given [crash]
          * and launch the reporter from the notification.
          */
-        fun shouldShowNotificationInsteadOfPrompt(crash: Crash, sdkLevel: Int = Build.VERSION.SDK_INT): Boolean {
+        @JvmOverloads fun shouldShowNotificationInsteadOfPrompt(
+            crash: Crash,
+            sdkLevel: Int = Build.VERSION.SDK_INT
+        ): Boolean {
             return when {
                 // We can always launch an activity from a background service pre Android Q.
                 sdkLevel < NOTIFICATION_SDK_LEVEL -> false

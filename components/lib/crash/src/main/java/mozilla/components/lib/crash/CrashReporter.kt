@@ -47,7 +47,7 @@ import mozilla.components.support.base.log.logger.Logger
  *                            happened. This gives the app the opportunity to show an in-app confirmation UI before
  *                            sending a crash report. See component README for details.
  */
-class CrashReporter(
+class CrashReporter @JvmOverloads constructor(
     private val services: List<CrashReporterService>,
     private val shouldPrompt: Prompt = Prompt.NEVER,
     var enabled: Boolean = true,
@@ -80,7 +80,7 @@ class CrashReporter(
     /**
      * Submit a crash report to all registered services.
      */
-    fun submitReport(crash: Crash, then: () -> Unit = {}): Job {
+    @JvmOverloads fun submitReport(crash: Crash, then: () -> Unit = {}): Job {
         return scope.launch {
             services.forEach { service ->
                 when (crash) {
@@ -202,7 +202,7 @@ class CrashReporter(
     /**
      * Configuration for the crash reporter prompt.
      */
-    data class PromptConfiguration(
+    data class PromptConfiguration @JvmOverloads constructor(
         internal val appName: String = "App",
         internal val organizationName: String = "Mozilla",
         internal val message: String? = null,

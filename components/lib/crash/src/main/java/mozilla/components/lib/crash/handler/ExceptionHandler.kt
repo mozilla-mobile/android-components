@@ -12,7 +12,7 @@ import mozilla.components.lib.crash.CrashReporter
 /**
  * [Thread.UncaughtExceptionHandler] implementation that forwards crashes to the [CrashReporter] instance.
  */
-class ExceptionHandler(
+class ExceptionHandler @JvmOverloads constructor(
     private val context: Context,
     private val crashReporter: CrashReporter,
     private val defaultExceptionHandler: Thread.UncaughtExceptionHandler? = null

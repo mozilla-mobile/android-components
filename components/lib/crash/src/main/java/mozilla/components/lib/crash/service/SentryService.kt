@@ -30,7 +30,7 @@ import mozilla.components.lib.crash.Crash
  * @param tags A list of additional tags that will be sent together with crash reports.
  * @param environment An optional, environment name string or null to set none
  */
-class SentryService(
+class SentryService @JvmOverloads constructor(
     context: Context,
     dsn: String,
     tags: Map<String, String> = emptyMap(),

@@ -48,7 +48,7 @@ internal const val CAUGHT_EXCEPTION_NOTE = "This is a caught exception, not a re
  *                app added to the whitelist.
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class MozillaSocorroService(
+class MozillaSocorroService @JvmOverloads constructor(
     private val applicationContext: Context,
     private val appName: String,
     private val appId: String = MOZILLA_PRODUCT_ID,

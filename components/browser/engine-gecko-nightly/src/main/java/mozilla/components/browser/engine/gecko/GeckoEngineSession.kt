@@ -49,7 +49,7 @@ import kotlin.coroutines.CoroutineContext
  * Gecko-based EngineSession implementation.
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class GeckoEngineSession(
+class GeckoEngineSession @JvmOverloads constructor(
     private val runtime: GeckoRuntime,
     private val privateMode: Boolean = false,
     private val defaultSettings: Settings? = null,
@@ -788,7 +788,12 @@ class GeckoEngineSession(
     }
 
     @Suppress("ComplexMethod")
-    fun handleLongClick(elementSrc: String?, elementType: Int, uri: String? = null, title: String? = null): HitResult? {
+    @JvmOverloads fun handleLongClick(
+        elementSrc: String?,
+        elementType: Int,
+        uri: String? = null,
+        title: String? = null
+    ): HitResult? {
         return when (elementType) {
             GeckoSession.ContentDelegate.ContextElement.TYPE_AUDIO ->
                 elementSrc?.let {

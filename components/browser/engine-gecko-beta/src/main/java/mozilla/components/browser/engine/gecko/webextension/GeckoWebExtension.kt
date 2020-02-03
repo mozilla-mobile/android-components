@@ -274,7 +274,7 @@ class GeckoWebExtension @JvmOverloads constructor(
 /**
  * Gecko-based implementation of [Port], wrapping the native port provided by GeckoView.
  */
-class GeckoPort(
+class GeckoPort @JvmOverloads constructor(
     internal val nativePort: GeckoNativeWebExtension.Port,
     engineSession: EngineSession? = null
 ) : Port(engineSession) {

@@ -25,7 +25,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * in [RemoteTabsStorage].
  */
 @ExperimentalCoroutinesApi
-class SyncedTabsFeature(
+class SyncedTabsFeature @JvmOverloads constructor(
     private val accountManager: FxaAccountManager,
     private val store: BrowserStore,
     private val tabsStorage: RemoteTabsStorage = RemoteTabsStorage()

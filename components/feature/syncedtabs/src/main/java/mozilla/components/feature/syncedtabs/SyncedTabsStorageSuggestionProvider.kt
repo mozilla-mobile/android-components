@@ -17,7 +17,7 @@ import java.util.UUID
  * based on [SyncedTabsFeature].
  */
 @ExperimentalCoroutinesApi
-class SyncedTabsStorageSuggestionProvider(
+class SyncedTabsStorageSuggestionProvider @JvmOverloads constructor(
     private val syncedTabs: SyncedTabsFeature,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icons: BrowserIcons? = null

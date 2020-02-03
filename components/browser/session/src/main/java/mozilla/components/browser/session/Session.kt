@@ -50,7 +50,7 @@ import kotlin.properties.Delegates
  * Value type that represents the state of a browser session. Changes can be observed.
  */
 @Suppress("TooManyFunctions")
-class Session(
+class Session @JvmOverloads constructor(
     initialUrl: String,
     val private: Boolean = false,
     val source: Source = Source.NONE,
@@ -120,7 +120,11 @@ class Session(
      * @property host domain for which the SSL certificate was issued.
      * @property issuer name of the certificate authority who issued the SSL certificate.
      */
-    data class SecurityInfo(val secure: Boolean = false, val host: String = "", val issuer: String = "")
+    data class SecurityInfo @JvmOverloads constructor(
+        val secure: Boolean = false,
+        val host: String = "",
+        val issuer: String = ""
+    )
 
     /**
      * Represents the origin of a session to describe how and why it was created.

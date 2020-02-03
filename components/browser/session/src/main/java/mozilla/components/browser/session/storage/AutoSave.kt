@@ -43,7 +43,7 @@ class AutoSave(
      * @param interval The interval in which the state should be saved to disk.
      * @param unit The time unit of the [interval] parameter.
      */
-    fun periodicallyInForeground(
+    @JvmOverloads fun periodicallyInForeground(
         interval: Long = 300,
         unit: TimeUnit = TimeUnit.SECONDS,
         scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(),
@@ -63,7 +63,7 @@ class AutoSave(
     /**
      * Saves the state automatically when the app goes to the background.
      */
-    fun whenGoingToBackground(
+    @JvmOverloads fun whenGoingToBackground(
         lifecycle: Lifecycle = ProcessLifecycleOwner.get().lifecycle
     ): AutoSave {
         lifecycle.addObserver(AutoSaveBackground(this))

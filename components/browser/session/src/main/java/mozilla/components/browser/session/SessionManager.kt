@@ -25,7 +25,7 @@ import java.lang.IllegalArgumentException
  * This class provides access to a centralized registry of all active sessions.
  */
 @Suppress("TooManyFunctions")
-class SessionManager(
+class SessionManager @JvmOverloads constructor(
     val engine: Engine,
     private val store: BrowserStore? = null,
     private val delegate: LegacySessionManager = LegacySessionManager(engine, EngineSessionLinker(store))
@@ -126,7 +126,7 @@ class SessionManager(
     /**
      * Adds the provided session.
      */
-    fun add(
+    @JvmOverloads fun add(
         session: Session,
         selected: Boolean = false,
         engineSession: EngineSession? = null,
@@ -199,7 +199,7 @@ class SessionManager(
      * @param snapshot A [Snapshot] which may be produced by [createSnapshot].
      * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
-    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
+    @JvmOverloads fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
         // Add store to each Session so that it can dispatch actions whenever it changes.
         snapshot.sessions.forEach { it.session.store = store }
 
@@ -238,19 +238,19 @@ class SessionManager(
     /**
      * Gets the linked engine session for the provided session (if it exists).
      */
-    fun getEngineSession(session: Session = selectedSessionOrThrow) = delegate.getEngineSession(session)
+    @JvmOverloads fun getEngineSession(session: Session = selectedSessionOrThrow) = delegate.getEngineSession(session)
 
     /**
      * Gets the linked engine session for the provided session and creates it if needed.
      */
-    fun getOrCreateEngineSession(session: Session = selectedSessionOrThrow): EngineSession {
+    @JvmOverloads fun getOrCreateEngineSession(session: Session = selectedSessionOrThrow): EngineSession {
         return delegate.getOrCreateEngineSession(session)
     }
 
     /**
      * Removes the provided session. If no session is provided then the selected session is removed.
      */
-    fun remove(
+    @JvmOverloads fun remove(
         session: Session = selectedSessionOrThrow,
         selectParentIfExists: Boolean = false
     ) {

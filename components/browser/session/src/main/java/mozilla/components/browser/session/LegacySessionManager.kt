@@ -17,7 +17,7 @@ import kotlin.math.min
  * This class provides access to a centralized registry of all active sessions.
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class LegacySessionManager(
+class LegacySessionManager @JvmOverloads constructor(
     val engine: Engine,
     private val engineSessionLinker: SessionManager.EngineSessionLinker,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
@@ -133,7 +133,7 @@ class LegacySessionManager(
     /**
      * Adds the provided session.
      */
-    fun add(
+    @JvmOverloads fun add(
         session: Session,
         selected: Boolean = false,
         engineSession: EngineSession? = null,
@@ -232,7 +232,10 @@ class LegacySessionManager(
      * @param snapshot A [SessionManager.Snapshot] which may be produced by [createSnapshot].
      * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
-    fun restore(snapshot: SessionManager.Snapshot, updateSelection: Boolean = true) = synchronized(values) {
+    @JvmOverloads fun restore(
+        snapshot: SessionManager.Snapshot,
+        updateSelection: Boolean = true
+    ) = synchronized(values) {
         if (snapshot.sessions.isEmpty()) {
             return
         }
@@ -264,12 +267,14 @@ class LegacySessionManager(
     /**
      * Gets the linked engine session for the provided session (if it exists).
      */
-    fun getEngineSession(session: Session = selectedSessionOrThrow) = session.engineSessionHolder.engineSession
+    @JvmOverloads fun getEngineSession(
+        session: Session = selectedSessionOrThrow
+    ) = session.engineSessionHolder.engineSession
 
     /**
      * Gets the linked engine session for the provided session and creates it if needed.
      */
-    fun getOrCreateEngineSession(session: Session = selectedSessionOrThrow): EngineSession {
+    @JvmOverloads fun getOrCreateEngineSession(session: Session = selectedSessionOrThrow): EngineSession {
         getEngineSession(session)?.let { return it }
 
         return engine.createSession(session.private).apply {
@@ -301,7 +306,7 @@ class LegacySessionManager(
     /**
      * Removes the provided session. If no session is provided then the selected session is removed.
      */
-    fun remove(
+    @JvmOverloads fun remove(
         session: Session = selectedSessionOrThrow,
         selectParentIfExists: Boolean = false
     ) = synchronized(values) {

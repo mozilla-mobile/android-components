@@ -26,7 +26,7 @@ private const val VERSION = 1
  * this to false is useful for features that do not have or rely on a parent/child relationship between tabs, esp.
  * if it can't be guaranteed that the parent tab is still available when the child tabs are restored.
  */
-class SnapshotSerializer(
+class SnapshotSerializer @JvmOverloads constructor(
     private val restoreSessionIds: Boolean = true,
     private val restoreParentIds: Boolean = true
 ) {

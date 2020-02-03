@@ -73,7 +73,7 @@ class SessionStorage(
      * Starts configuring automatic saving of the state.
      */
     @CheckResult
-    fun autoSave(
+    @JvmOverloads fun autoSave(
         sessionManager: SessionManager,
         interval: Long = AutoSave.DEFAULT_INTERVAL_MILLISECONDS,
         unit: TimeUnit = TimeUnit.MILLISECONDS

@@ -20,7 +20,10 @@ import mozilla.components.feature.pwa.db.ManifestEntity
  * @param usedAtTimeout a timeout in milliseconds after which the storage will consider a manifest
  *                      as unused. By default this is 30 days.
  */
-class ManifestStorage(context: Context, private val usedAtTimeout: Long = DEFAULT_TIMEOUT) {
+class ManifestStorage @JvmOverloads constructor(
+    context: Context,
+    private val usedAtTimeout: Long = DEFAULT_TIMEOUT
+) {
 
     @VisibleForTesting
     internal var manifestDao = lazy { ManifestDatabase.get(context).manifestDao() }

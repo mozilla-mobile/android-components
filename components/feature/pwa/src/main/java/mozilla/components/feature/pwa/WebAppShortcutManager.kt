@@ -49,7 +49,7 @@ const val SHORTCUT_CATEGORY = mozilla.components.feature.customtabs.SHORTCUT_CAT
  * @param supportWebApps If true, Progressive Web Apps will be pinnable.
  * If false, all web sites will be bookmark shortcuts even if they have a manifest.
  */
-class WebAppShortcutManager(
+class WebAppShortcutManager @JvmOverloads constructor(
     context: Context,
     httpClient: Client,
     private val storage: ManifestStorage,
@@ -67,7 +67,7 @@ class WebAppShortcutManager(
      * @param session The session to create the shortcut for.
      * @param overrideShortcutName (optional) The name of the shortcut. Ignored for PWAs.
      */
-    suspend fun requestPinShortcut(
+    @JvmOverloads suspend fun requestPinShortcut(
         context: Context,
         session: Session,
         overrideShortcutName: String? = null
@@ -105,7 +105,7 @@ class WebAppShortcutManager(
      * Create a new basic pinned website shortcut using info from the session.
      * Consuming `SHORTCUT_CATEGORY` in `AndroidManifest` is required for the package to be launched
      */
-    suspend fun buildBasicShortcut(
+    @JvmOverloads suspend fun buildBasicShortcut(
         context: Context,
         session: Session,
         overrideShortcutName: String? = null
@@ -204,7 +204,10 @@ class WebAppShortcutManager(
      * @param url url that is covered by the scope of a web app installed by the user
      * @param currentTime the curent time in milliseconds
      */
-    suspend fun getWebAppInstallState(url: String, currentTime: Long = System.currentTimeMillis()): WebAppInstallState {
+    @JvmOverloads suspend fun getWebAppInstallState(
+        url: String,
+        currentTime: Long = System.currentTimeMillis()
+    ): WebAppInstallState {
         if (storage.hasRecentManifest(url, currentTime = currentTime)) {
             return WebAppInstallState.Installed
         }

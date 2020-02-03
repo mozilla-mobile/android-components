@@ -25,7 +25,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
  * Scopes correspond to [WebAppManifest.scope]. They can be a path (PWA) or just an origin (TWA).
  * @param onToolbarVisibilityChange Called when the toolbar is changed to be visible or hidden.
  */
-class WebAppHideToolbarFeature(
+class WebAppHideToolbarFeature @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val toolbar: View,
     private val sessionId: String,

@@ -67,7 +67,7 @@ class WebAppUseCases(
          * @param overrideBasicShortcutName (optional) Custom label used if the current session
          * is NOT a Progressive Web App
          */
-        suspend operator fun invoke(overrideBasicShortcutName: String? = null) {
+        @JvmOverloads suspend operator fun invoke(overrideBasicShortcutName: String? = null) {
             val session = sessionManager.selectedSession ?: return
             shortcutManager.requestPinShortcut(applicationContext, session, overrideBasicShortcutName)
         }
@@ -92,7 +92,7 @@ class WebAppUseCases(
         /**
          * @param currentTime the current time against which manifest usage timeouts will be validated
          */
-        suspend operator fun invoke(
+        @JvmOverloads suspend operator fun invoke(
             currentTime: Long = System.currentTimeMillis()
         ): WebAppShortcutManager.WebAppInstallState? {
             val session = sessionManager.selectedSession ?: return null

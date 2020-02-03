@@ -30,7 +30,7 @@ typealias OnScanResult = (result: String) -> Unit
  * is completed, [onPermissionsResult] needs to be invoked. This feature
  * will request [android.Manifest.permission.CAMERA].
  */
-class QrFeature(
+class QrFeature @JvmOverloads constructor(
     private val context: Context,
     private val fragmentManager: FragmentManager,
     private val onScanResult: OnScanResult = { },
@@ -70,7 +70,7 @@ class QrFeature(
      * @return true if the scanner was started or false if permissions still
      * need to be requested.
      */
-    fun scan(containerViewId: Int = android.R.id.content): Boolean {
+    @JvmOverloads fun scan(containerViewId: Int = android.R.id.content): Boolean {
         this.containerViewId = containerViewId
 
         return if (context.isPermissionGranted(CAMERA)) {

@@ -34,7 +34,7 @@ import org.json.JSONObject
  * identifier corresponds to the search plugin XML file name (e.g. duckduckgo -> duckduckgo.xml).
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class AssetsSearchEngineProvider(
+class AssetsSearchEngineProvider @JvmOverloads constructor(
     private val localizationProvider: SearchLocalizationProvider,
     private val filters: List<SearchEngineFilter> = emptyList(),
     private val additionalIdentifiers: List<String> = emptyList()

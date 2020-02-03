@@ -13,7 +13,7 @@ package mozilla.components.browser.search.provider.localization
  * (United States), "FR" (France), "029" (Caribbean)
  * @property region
  */
-data class SearchLocalization(
+data class SearchLocalization @JvmOverloads constructor(
     val language: String,
     val country: String,
     val region: String? = null

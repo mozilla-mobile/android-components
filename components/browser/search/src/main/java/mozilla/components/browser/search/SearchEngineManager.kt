@@ -25,7 +25,7 @@ import kotlin.coroutines.CoroutineContext
  * This class provides access to a centralized registry of search engines.
  */
 @Suppress("TooManyFunctions")
-class SearchEngineManager(
+class SearchEngineManager @JvmOverloads constructor(
     private val providers: List<SearchEngineProvider> = listOf(
             AssetsSearchEngineProvider(LocaleSearchLocalizationProvider())),
     coroutineContext: CoroutineContext = Dispatchers.IO
@@ -105,7 +105,7 @@ class SearchEngineManager(
      * a matching search engine was loaded then this search engine will be returned instead.
      */
     @Synchronized
-    fun getDefaultSearchEngine(context: Context, name: String = EMPTY): SearchEngine {
+    @JvmOverloads fun getDefaultSearchEngine(context: Context, name: String = EMPTY): SearchEngine {
         val searchEngineList = getSearchEngineList(context)
         val providedDefault = getProvidedDefaultSearchEngine(context)
 
@@ -125,7 +125,7 @@ class SearchEngineManager(
      * Optionally a name can be passed to this method (e.g. from the user's preferences). If
      * a matching search engine was loaded then this search engine will be returned instead.
      */
-    suspend fun getDefaultSearchEngineAsync(context: Context, name: String = EMPTY): SearchEngine {
+    @JvmOverloads suspend fun getDefaultSearchEngineAsync(context: Context, name: String = EMPTY): SearchEngine {
         val searchEngineList = getSearchEngineListAsync(context)
         val providedDefault = getProvidedDefaultSearchEngineAsync(context)
 

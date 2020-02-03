@@ -16,7 +16,7 @@ import mozilla.components.concept.engine.content.blocking.Tracker
  * @property ignoredOnTrackingProtection Whether tracking protection should be enabled or not for
  * this [SessionState]
  */
-data class TrackingProtectionState(
+data class TrackingProtectionState @JvmOverloads constructor(
     val enabled: Boolean = false,
     val blockedTrackers: List<Tracker> = emptyList(),
     val loadedTrackers: List<Tracker> = emptyList(),

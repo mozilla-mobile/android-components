@@ -17,7 +17,7 @@ import java.lang.IllegalArgumentException
  *
  * The only way to change the [BrowserState] inside [BrowserStore] is to dispatch an [Action] on it.
  */
-class BrowserStore(
+class BrowserStore @JvmOverloads constructor(
     initialState: BrowserState = BrowserState()
 ) : Store<BrowserState, BrowserAction>(
     initialState,

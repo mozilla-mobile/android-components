@@ -11,7 +11,7 @@ package mozilla.components.browser.state.state
  * be displayed in a reader view.
  * @property active whether or not reader view is active.
  */
-data class ReaderState(
+data class ReaderState @JvmOverloads constructor(
     val readerable: Boolean = false,
     val active: Boolean = false
 )

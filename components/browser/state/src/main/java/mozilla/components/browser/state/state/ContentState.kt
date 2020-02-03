@@ -32,7 +32,7 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property findResults the list of results of the latest "find in page" operation.
  * @property windowRequest the last received [WindowRequest].
  */
-data class ContentState(
+data class ContentState @JvmOverloads constructor(
     val url: String,
     val private: Boolean = false,
     val title: String = "",

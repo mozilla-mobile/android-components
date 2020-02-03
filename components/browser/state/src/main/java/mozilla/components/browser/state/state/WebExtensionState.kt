@@ -22,7 +22,7 @@ import mozilla.components.concept.engine.webextension.WebExtensionPageAction
  * the browser action popup.
  * @property popupSession The [EngineSession] displaying the browser or page action popup.
  */
-data class WebExtensionState(
+data class WebExtensionState @JvmOverloads constructor(
     val id: String,
     val url: String? = null,
     val name: String? = null,

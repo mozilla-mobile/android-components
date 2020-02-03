@@ -16,7 +16,7 @@ import mozilla.components.lib.state.State
  * The extensions here represent the default values for all [BrowserState.extensions] and can
  * be overridden per [SessionState].
  */
-data class BrowserState(
+data class BrowserState @JvmOverloads constructor(
     val tabs: List<TabSessionState> = emptyList(),
     val selectedTabId: String? = null,
     val customTabs: List<CustomTabSessionState> = emptyList(),

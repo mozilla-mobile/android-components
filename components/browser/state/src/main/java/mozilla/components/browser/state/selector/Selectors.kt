@@ -55,7 +55,7 @@ fun BrowserState.findTabOrCustomTab(tabId: String): SessionState? {
  * @param customTabId An optional ID of a custom tab. If not provided or null then the selected tab will be returned.
  * @return The custom tab with the provided ID or the selected tav if no id was provided.
  */
-fun BrowserState.findCustomTabOrSelectedTab(customTabId: String? = null): SessionState? {
+@JvmOverloads fun BrowserState.findCustomTabOrSelectedTab(customTabId: String? = null): SessionState? {
     return if (customTabId != null) {
         findCustomTab(customTabId)
     } else {

@@ -29,7 +29,7 @@ import java.util.UUID
  * @property sessionToken The token associated with the custom tab.
  * @property externalAppType How this custom tab is being displayed.
  */
-data class CustomTabConfig(
+data class CustomTabConfig @JvmOverloads constructor(
     val id: String = UUID.randomUUID().toString(),
     @ColorInt val toolbarColor: Int? = null,
     val closeButtonIcon: Bitmap? = null,
@@ -63,7 +63,7 @@ enum class ExternalAppType {
     TRUSTED_WEB_ACTIVITY
 }
 
-data class CustomTabActionButtonConfig(
+data class CustomTabActionButtonConfig @JvmOverloads constructor(
     val description: String,
     val icon: Bitmap,
     val pendingIntent: PendingIntent,

@@ -12,7 +12,7 @@ package mozilla.components.browser.state.state
  * @property host domain for which the SSL certificate was issued.
  * @property issuer name of the certificate authority who issued the SSL certificate.
  */
-data class SecurityInfoState(
+data class SecurityInfoState @JvmOverloads constructor(
     val secure: Boolean = false,
     val host: String = "",
     val issuer: String = ""

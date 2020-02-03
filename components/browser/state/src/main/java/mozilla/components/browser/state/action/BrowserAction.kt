@@ -53,7 +53,10 @@ sealed class TabListAction : BrowserAction() {
      * @property tab the [TabSessionState] to add
      * @property select whether or not to the tab should be selected.
      */
-    data class AddTabAction(val tab: TabSessionState, val select: Boolean = false) : TabListAction()
+    data class AddTabAction @JvmOverloads constructor(
+        val tab: TabSessionState,
+        val select: Boolean = false
+    ) : TabListAction()
 
     /**
      * Adds multiple [TabSessionState] objects to the [BrowserState.tabs] list.
@@ -74,7 +77,10 @@ sealed class TabListAction : BrowserAction() {
      * @property selectParentIfExists whether or not a parent tab should be
      * selected if one exists, defaults to true.
      */
-    data class RemoveTabAction(val tabId: String, val selectParentIfExists: Boolean = true) : TabListAction()
+    data class RemoveTabAction @JvmOverloads constructor(
+        val tabId: String,
+        val selectParentIfExists: Boolean = true
+    ) : TabListAction()
 
     /**
      * Restores state from a (partial) previous state.
@@ -82,7 +88,10 @@ sealed class TabListAction : BrowserAction() {
      * @property tabs the [TabSessionState]s to restore.
      * @property selectedTabId the ID of the tab to select.
      */
-    data class RestoreAction(val tabs: List<TabSessionState>, val selectedTabId: String? = null) : TabListAction()
+    data class RestoreAction @JvmOverloads constructor(
+        val tabs: List<TabSessionState>,
+        val selectedTabId: String? = null
+    ) : TabListAction()
 
     /**
      * Removes both private and normal [TabSessionState]s.
@@ -307,7 +316,7 @@ sealed class WebExtensionAction : BrowserAction() {
     /**
      * Keeps track of the last session used to display an extension action popup.
      */
-    data class UpdatePopupSessionAction(
+    data class UpdatePopupSessionAction @JvmOverloads constructor(
         val extensionId: String,
         val popupSessionId: String? = null,
         val popupSession: EngineSession? = null

@@ -25,7 +25,7 @@ import kotlin.random.Random
  */
 @Suppress("Deprecation")
 @Parcelize
-data class DownloadState(
+data class DownloadState @JvmOverloads constructor(
     val url: String,
     val fileName: String? = null,
     val contentType: String? = null,

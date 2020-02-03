@@ -20,7 +20,7 @@ import java.util.UUID
  * that contains the overridden values for this tab.
  * @property readerState the [ReaderState] of this tab.
  */
-data class TabSessionState(
+data class TabSessionState @JvmOverloads constructor(
     override val id: String = UUID.randomUUID().toString(),
     override val content: ContentState,
     override val trackingProtection: TrackingProtectionState = TrackingProtectionState(),
@@ -34,7 +34,7 @@ data class TabSessionState(
  * Convenient function for creating a tab.
  */
 @Suppress("LongParameterList")
-fun createTab(
+@JvmOverloads fun createTab(
     url: String,
     private: Boolean = false,
     id: String = UUID.randomUUID().toString(),

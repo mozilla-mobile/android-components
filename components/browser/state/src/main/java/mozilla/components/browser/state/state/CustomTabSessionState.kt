@@ -16,7 +16,7 @@ import java.util.UUID
  * @property extensionState a map of web extension ids and extensions, that contains the overridden
  * values for this tab.
  */
-data class CustomTabSessionState(
+data class CustomTabSessionState @JvmOverloads constructor(
     override val id: String = UUID.randomUUID().toString(),
     override val content: ContentState,
     override val trackingProtection: TrackingProtectionState = TrackingProtectionState(),
@@ -25,7 +25,7 @@ data class CustomTabSessionState(
     override val extensionState: Map<String, WebExtensionState> = emptyMap()
 ) : SessionState
 
-fun createCustomTab(
+@JvmOverloads fun createCustomTab(
     url: String,
     id: String = UUID.randomUUID().toString(),
     config: CustomTabConfig = CustomTabConfig()

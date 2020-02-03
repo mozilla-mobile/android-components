@@ -33,7 +33,7 @@ import mozilla.components.support.utils.WebURLFinder
  * open URLs in the currently selected tab.
  * @property isPrivate Whether a processed intent should open a new tab as private
  */
-class TabIntentProcessor(
+class TabIntentProcessor @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val newTabSearchUseCase: SearchUseCases.NewTabSearchUseCase,

@@ -20,7 +20,7 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property triggeredByUser whether or not the request was triggered by the user, defaults to false.
  * @property resultMsg the message to send to the new WebView, may be null.
  */
-class SystemWindowRequest(
+class SystemWindowRequest @JvmOverloads constructor(
     private val webView: WebView,
     private val newEngineSession: EngineSession? = null,
     private val newWebView: WebView? = null,

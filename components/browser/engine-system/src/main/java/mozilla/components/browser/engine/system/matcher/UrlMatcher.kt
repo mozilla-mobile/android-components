@@ -176,7 +176,7 @@ class UrlMatcher {
          * @param overrides array of resource ID to JSON files containing black list overrides
          * @param whiteListFile resource ID to a JSON file containing the white list
          */
-        fun createMatcher(
+        @JvmOverloads fun createMatcher(
             context: Context,
             @RawRes blackListFile: Int,
             overrides: IntArray?,
@@ -192,7 +192,7 @@ class UrlMatcher {
          * @param overrides array of resource ID to JSON files containing black list overrides
          * @param whiteListFile resource ID to a JSON file containing the white list
          */
-        fun createMatcher(
+        @JvmOverloads fun createMatcher(
             resources: Resources,
             @RawRes blackListFile: Int,
             overrides: IntArray?,
@@ -212,7 +212,7 @@ class UrlMatcher {
          * @param overrides array of resource ID to JSON files containing black list overrides
          * @param white resource ID to a JSON file containing the white list
          */
-        fun createMatcher(
+        @JvmOverloads fun createMatcher(
             black: Reader,
             overrides: List<Reader>?,
             white: Reader,

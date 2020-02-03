@@ -24,7 +24,7 @@ import java.lang.IllegalStateException
 /**
  * WebView-based implementation of the Engine interface.
  */
-class SystemEngine(
+class SystemEngine @JvmOverloads constructor(
     private val context: Context,
     private val defaultSettings: Settings = DefaultSettings()
 ) : Engine {

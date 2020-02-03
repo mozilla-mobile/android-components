@@ -51,7 +51,7 @@ import java.util.WeakHashMap
  * Gecko-based implementation of Engine interface.
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class GeckoEngine(
+class GeckoEngine @JvmOverloads constructor(
     context: Context,
     private val defaultSettings: Settings? = null,
     private val runtime: GeckoRuntime = GeckoRuntime.getDefault(context),

@@ -30,7 +30,7 @@ import mozilla.components.support.base.log.logger.Logger
  * paused/resumed with the bound lifecycle.
  * @param onTabsReceived the callback invoked with new tab(s) are received.
  */
-class SendTabFeature(
+class SendTabFeature @JvmOverloads constructor(
     accountManager: FxaAccountManager,
     owner: LifecycleOwner = ProcessLifecycleOwner.get(),
     autoPause: Boolean = false,

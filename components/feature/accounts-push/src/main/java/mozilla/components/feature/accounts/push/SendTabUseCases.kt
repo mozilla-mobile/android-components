@@ -31,7 +31,7 @@ import kotlin.coroutines.CoroutineContext
  * By default, we want to do this on the IO dispatcher since it involves making network requests to
  * the Sync servers.
  */
-class SendTabUseCases(
+class SendTabUseCases @JvmOverloads constructor(
     accountManager: FxaAccountManager,
     coroutineContext: CoroutineContext = Dispatchers.IO
 ) {

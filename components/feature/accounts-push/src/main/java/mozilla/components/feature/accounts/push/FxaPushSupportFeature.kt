@@ -43,7 +43,7 @@ internal const val LAST_VERIFIED = "last_verified_push_subscription"
  * @param autoPause whether to stop notifying the observer during onPause lifecycle events.
  * Defaults to false so that observers are always notified.
  */
-class FxaPushSupportFeature(
+class FxaPushSupportFeature @JvmOverloads constructor(
     context: Context,
     accountManager: FxaAccountManager,
     pushFeature: AutoPushFeature,

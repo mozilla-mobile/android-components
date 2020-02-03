@@ -25,7 +25,7 @@ typealias RequestBuilder = okhttp3.Request.Builder
 /**
  * [Client] implementation using OkHttp.
  */
-class OkHttpClient(
+class OkHttpClient @JvmOverloads constructor(
     private val client: OkHttpClient = OkHttpClient(),
     private val context: Context? = null
 ) : Client() {

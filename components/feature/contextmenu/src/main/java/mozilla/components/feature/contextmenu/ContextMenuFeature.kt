@@ -44,7 +44,7 @@ internal const val FRAGMENT_TAG = "mozac_feature_contextmenu_dialog"
  * @param customTabId Optional id of a custom tab. Instead of showing context menus for the currently
  * selected tab this feature will show only context menus for this custom tab if an id is provided.
  */
-class ContextMenuFeature(
+class ContextMenuFeature @JvmOverloads constructor(
     private val fragmentManager: FragmentManager,
     private val store: BrowserStore,
     private val candidates: List<ContextMenuCandidate>,

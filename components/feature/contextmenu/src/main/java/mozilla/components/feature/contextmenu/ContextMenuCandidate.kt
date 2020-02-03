@@ -37,7 +37,7 @@ data class ContextMenuCandidate(
          *
          * Use this list if you do not intend to customize the context menu items to be displayed.
          */
-        fun defaultCandidates(
+        @JvmOverloads fun defaultCandidates(
             context: Context,
             tabsUseCases: TabsUseCases,
             contextMenuUseCases: ContextMenuUseCases,
@@ -56,7 +56,7 @@ data class ContextMenuCandidate(
         /**
          * Context Menu item: "Open Link in New Tab".
          */
-        fun createOpenInNewTabCandidate(
+        @JvmOverloads fun createOpenInNewTabCandidate(
             context: Context,
             tabsUseCases: TabsUseCases,
             snackBarParentView: View,
@@ -83,7 +83,7 @@ data class ContextMenuCandidate(
         /**
          * Context Menu item: "Open Link in Private Tab".
          */
-        fun createOpenInPrivateTabCandidate(
+        @JvmOverloads fun createOpenInPrivateTabCandidate(
             context: Context,
             tabsUseCases: TabsUseCases,
             snackBarParentView: View,
@@ -133,7 +133,7 @@ data class ContextMenuCandidate(
         /**
          * Context Menu item: "Open Image in New Tab".
          */
-        fun createOpenImageInNewTabCandidate(
+        @JvmOverloads fun createOpenImageInNewTabCandidate(
             context: Context,
             tabsUseCases: TabsUseCases,
             snackBarParentView: View,
@@ -208,7 +208,7 @@ data class ContextMenuCandidate(
         /**
          * Context Menu item: "Copy Link".
          */
-        fun createCopyLinkCandidate(
+        @JvmOverloads fun createCopyLinkCandidate(
             context: Context,
             snackBarParentView: View,
             snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate()
@@ -232,7 +232,7 @@ data class ContextMenuCandidate(
         /**
          * Context Menu item: "Copy Image Location".
          */
-        fun createCopyImageLocationCandidate(
+        @JvmOverloads fun createCopyImageLocationCandidate(
             context: Context,
             snackBarParentView: View,
             snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate()

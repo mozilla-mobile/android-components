@@ -28,7 +28,7 @@ import kotlin.math.abs
  * [IconGenerator] implementation that will generate an icon with a background color, rounded corners and a letter
  * representing the URL.
  */
-class DefaultIconGenerator(
+class DefaultIconGenerator @JvmOverloads constructor(
     @DimenRes private val cornerRadiusDimen: Int? = R.dimen.mozac_browser_icons_generator_default_corner_radius,
     @ColorRes private val textColorRes: Int = R.color.mozac_browser_icons_generator_default_text_color,
     @ArrayRes private val backgroundColorsRes: Int = R.array.mozac_browser_icons_photon_palette

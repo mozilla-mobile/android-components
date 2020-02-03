@@ -31,7 +31,7 @@ suspend fun <T> GeckoResult<T>.await() = suspendCoroutine<T?> { continuation ->
  * Create a GeckoResult from a co-routine.
  */
 @Suppress("TooGenericExceptionCaught")
-fun <T> CoroutineScope.launchGeckoResult(
+@JvmOverloads fun <T> CoroutineScope.launchGeckoResult(
     context: CoroutineContext = EmptyCoroutineContext,
     start: CoroutineStart = CoroutineStart.DEFAULT,
     block: suspend CoroutineScope.() -> T

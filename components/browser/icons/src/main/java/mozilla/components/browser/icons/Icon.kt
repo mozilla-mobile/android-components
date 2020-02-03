@@ -14,7 +14,7 @@ import android.graphics.Bitmap
  * @property source The source of the icon.
  * @property maskable True if the icon represents as full-bleed icon that can be cropped to other shapes.
  */
-data class Icon(
+data class Icon @JvmOverloads constructor(
     val bitmap: Bitmap,
     val color: Int? = null,
     val source: Source,

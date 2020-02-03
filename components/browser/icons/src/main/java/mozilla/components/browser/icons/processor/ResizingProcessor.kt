@@ -15,7 +15,7 @@ import kotlin.math.roundToInt
 /**
  * [IconProcessor] implementation for resizing the loaded icon based on the target size.
  */
-class ResizingProcessor(
+class ResizingProcessor @JvmOverloads constructor(
     private val discardSmallIcons: Boolean = true
 ) : IconProcessor {
 

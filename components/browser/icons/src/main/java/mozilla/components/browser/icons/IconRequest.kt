@@ -16,7 +16,7 @@ import mozilla.components.concept.engine.manifest.Size as HtmlSize
  * @property resources An optional list of icon resources to load the icon from.
  * @property color The suggested dominant color of the icon.
  */
-data class IconRequest(
+data class IconRequest @JvmOverloads constructor(
     val url: String,
     val size: Size = Size.DEFAULT,
     val resources: List<Resource> = emptyList(),
@@ -44,7 +44,7 @@ data class IconRequest(
      * @param mimeType Optional MIME type of this icon resource (if known).
      * @param maskable True if the icon represents as full-bleed icon that can be cropped to other shapes.
      */
-    data class Resource(
+    data class Resource @JvmOverloads constructor(
         val url: String,
         val type: Type,
         val sizes: List<HtmlSize> = emptyList(),

@@ -149,7 +149,7 @@ class BrowserIcons(
      * @param placeholder [Drawable] to display while icon is loading.
      * @param error [Drawable] to display if loading fails.
      */
-    fun loadIntoView(
+    @JvmOverloads fun loadIntoView(
         view: ImageView,
         request: IconRequest,
         placeholder: Drawable? = null,

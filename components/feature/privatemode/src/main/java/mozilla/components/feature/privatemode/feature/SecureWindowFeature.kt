@@ -25,7 +25,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * @param isSecure Returns true if the session should have [FLAG_SECURE] set.
  * Can be overriden to customize when the secure flag is set.
  */
-class SecureWindowFeature(
+class SecureWindowFeature @JvmOverloads constructor(
     private val window: Window,
     private val store: BrowserStore,
     private val customTabId: String? = null,

@@ -22,7 +22,7 @@ import java.lang.reflect.Modifier.PRIVATE
  * @param initialState The initial value the checkbox should have.
  * @param listener Callback to be invoked when this menu item is checked.
  */
-abstract class BrowserMenuCompoundButton(
+abstract class BrowserMenuCompoundButton @JvmOverloads constructor(
     @VisibleForTesting(otherwise = PRIVATE)
     val label: String,
     private val initialState: () -> Boolean = { false },

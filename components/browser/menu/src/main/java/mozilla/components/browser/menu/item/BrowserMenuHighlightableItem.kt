@@ -35,7 +35,7 @@ private val defaultHighlight = BrowserMenuHighlightableItem.Highlight(0, 0, 0, 0
  * @param isHighlighted Whether or not to display the highlight
  * @param listener Callback to be invoked when this menu item is clicked.
  */
-class BrowserMenuHighlightableItem(
+class BrowserMenuHighlightableItem @JvmOverloads constructor(
     private val label: String,
     @DrawableRes private val startImageResource: Int,
     @ColorRes private val iconTintColorResource: Int = NO_ID,
@@ -53,7 +53,7 @@ class BrowserMenuHighlightableItem(
 
     @Deprecated("Use the new constructor")
     @Suppress("Deprecation") // Constructor uses old highlight type
-    constructor(
+    @JvmOverloads constructor(
         label: String,
         @DrawableRes
         imageResource: Int,
@@ -176,7 +176,7 @@ class BrowserMenuHighlightableItem(
      */
     @Deprecated("Replace with BrowserMenuHighlight.LowPriority or BrowserMenuHighlight.HighPriority")
     @Suppress("Deprecation")
-    class Highlight(
+    class Highlight @JvmOverloads constructor(
         @DrawableRes startImageResource: Int = NO_ID,
         @DrawableRes endImageResource: Int = NO_ID,
         @DrawableRes backgroundResource: Int,

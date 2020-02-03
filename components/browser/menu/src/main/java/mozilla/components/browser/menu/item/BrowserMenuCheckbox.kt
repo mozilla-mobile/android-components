@@ -15,7 +15,7 @@ import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
  * @param initialState The initial value the checkbox should have.
  * @param listener Callback to be invoked when this menu item is checked.
  */
-class BrowserMenuCheckbox(
+class BrowserMenuCheckbox @JvmOverloads constructor(
     label: String,
     initialState: () -> Boolean = { false },
     listener: (Boolean) -> Unit

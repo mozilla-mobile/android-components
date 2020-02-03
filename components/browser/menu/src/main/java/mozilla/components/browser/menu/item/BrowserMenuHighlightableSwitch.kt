@@ -27,7 +27,7 @@ import mozilla.components.browser.menu2.candidate.LowPriorityHighlightEffect
  * @param initialState The initial value the checkbox should have.
  * @param listener Callback to be invoked when this menu item is checked.
  */
-class BrowserMenuHighlightableSwitch(
+class BrowserMenuHighlightableSwitch @JvmOverloads constructor(
     label: String,
     @DrawableRes private val startImageResource: Int,
     @ColorRes private val iconTintColorResource: Int = NO_ID,

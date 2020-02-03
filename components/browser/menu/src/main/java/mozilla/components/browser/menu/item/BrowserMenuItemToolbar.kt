@@ -78,7 +78,7 @@ class BrowserMenuItemToolbar(
      * @param isEnabled Lambda to return true/false to indicate if this button should be enabled or disabled.
      * @param listener Callback to be invoked when the button is pressed.
      */
-    open class Button(
+    open class Button @JvmOverloads constructor(
         @DrawableRes val imageResource: Int,
         val contentDescription: String,
         @ColorRes val iconTintColorResource: Int = NO_ID,
@@ -124,7 +124,7 @@ class BrowserMenuItemToolbar(
      * @param disableInSecondaryState Optional boolean to disable the button when in secondary state.
      * @param listener Callback to be invoked when the button is pressed.
      */
-    open class TwoStateButton(
+    open class TwoStateButton @JvmOverloads constructor(
         @DrawableRes val primaryImageResource: Int,
         val primaryContentDescription: String,
         @ColorRes val primaryImageTintResource: Int = NO_ID,

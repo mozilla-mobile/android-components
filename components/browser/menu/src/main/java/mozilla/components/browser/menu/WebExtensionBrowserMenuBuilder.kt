@@ -16,7 +16,7 @@ import mozilla.components.browser.state.store.BrowserStore
  * @param appendExtensionActionAtStart true if web extensions appear at the top (start) of the menu,
  * false if web extensions appear at the bottom of the menu. Default to false (bottom).
  */
-class WebExtensionBrowserMenuBuilder(
+class WebExtensionBrowserMenuBuilder @JvmOverloads constructor(
     items: List<BrowserMenuItem>,
     extras: Map<String, Any> = emptyMap(),
     endOfMenuAlwaysVisible: Boolean = false,

@@ -26,7 +26,7 @@ import mozilla.components.browser.menu2.candidate.TextStyle
  * @param textColorResource: The color resource to apply to the text.
  * @param listener Callback to be invoked when this menu item is clicked.
  */
-class SimpleBrowserMenuItem(
+class SimpleBrowserMenuItem @JvmOverloads constructor(
     private val label: String,
     private val textSize: Float = NO_ID.toFloat(),
     @ColorRes

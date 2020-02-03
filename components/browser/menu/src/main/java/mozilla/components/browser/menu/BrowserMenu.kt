@@ -41,7 +41,7 @@ open class BrowserMenu internal constructor(
      *  the top of the menu is always visible.
      */
     @SuppressLint("InflateParams")
-    open fun show(
+    @JvmOverloads open fun show(
         anchor: View,
         orientation: Orientation = DOWN,
         endOfMenuAlwaysVisible: Boolean = false,

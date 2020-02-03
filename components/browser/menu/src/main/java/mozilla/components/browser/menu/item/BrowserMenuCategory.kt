@@ -28,7 +28,7 @@ import mozilla.components.browser.menu2.candidate.TypefaceStyle
  * @param textStyle: The style to apply to the text.
  * @param textAlignment The alignment of text
  */
-class BrowserMenuCategory(
+class BrowserMenuCategory @JvmOverloads constructor(
     internal val label: String,
     private val textSize: Float = NO_ID.toFloat(),
     @ColorRes

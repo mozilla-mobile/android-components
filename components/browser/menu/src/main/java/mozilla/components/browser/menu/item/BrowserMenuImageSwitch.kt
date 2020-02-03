@@ -24,7 +24,7 @@ import java.lang.reflect.Modifier
  * @param initialState The initial value the checkbox should have.
  * @param listener Callback to be invoked when this menu item is checked.
  */
-class BrowserMenuImageSwitch(
+class BrowserMenuImageSwitch @JvmOverloads constructor(
     @VisibleForTesting(otherwise = Modifier.PRIVATE)
     @DrawableRes
     val imageResource: Int,

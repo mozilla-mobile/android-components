@@ -206,7 +206,7 @@ interface Toolbar {
      * @param padding A optional custom padding.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
-    open class ActionButton(
+    open class ActionButton @JvmOverloads constructor(
         val imageDrawable: Drawable? = null,
         val contentDescription: String,
         override val visible: () -> Boolean = { true },
@@ -247,7 +247,7 @@ interface Toolbar {
      * @param padding A optional custom padding.
      * @param listener Callback that will be invoked whenever the checked state changes.
      */
-    open class ActionToggleButton(
+    open class ActionToggleButton @JvmOverloads constructor(
         internal val imageDrawable: Drawable,
         internal val imageSelectedDrawable: Drawable,
         private val contentDescription: String,
@@ -285,7 +285,7 @@ interface Toolbar {
          *
          * @param notifyListener If true (default) the listener will be notified about the state change.
          */
-        fun toggle(notifyListener: Boolean = true) {
+        @JvmOverloads fun toggle(notifyListener: Boolean = true) {
             setSelected(!selected, notifyListener)
         }
 
@@ -295,7 +295,7 @@ interface Toolbar {
          * @param selected The new selected state
          * @param notifyListener If true (default) the listener will be notified about a state change.
          */
-        fun setSelected(selected: Boolean, notifyListener: Boolean = true) {
+        @JvmOverloads fun setSelected(selected: Boolean, notifyListener: Boolean = true) {
             if (this.selected == selected) {
                 // Nothing to do here.
                 return
@@ -337,7 +337,7 @@ interface Toolbar {
      * @param desiredWidth The desired width in density independent pixels for this action.
      * @param padding A optional custom padding.
      */
-    open class ActionSpace(
+    open class ActionSpace @JvmOverloads constructor(
         private val desiredWidth: Int,
         private val padding: Padding? = null
     ) : Action {
@@ -358,7 +358,7 @@ interface Toolbar {
      *                           accessibility.
      * @param padding A optional custom padding.
      */
-    open class ActionImage(
+    open class ActionImage @JvmOverloads constructor(
         private val imageDrawable: Drawable,
         private val contentDescription: String? = null,
         private val padding: Padding? = null

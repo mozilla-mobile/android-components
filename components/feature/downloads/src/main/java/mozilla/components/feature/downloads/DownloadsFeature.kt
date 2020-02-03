@@ -52,7 +52,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * instance of [SimpleDownloadDialogFragment] will be used.
  */
 @Suppress("TooManyFunctions")
-class DownloadsFeature(
+class DownloadsFeature @JvmOverloads constructor(
     private val applicationContext: Context,
     private val store: BrowserStore,
     private val useCases: DownloadsUseCases,
@@ -213,7 +213,7 @@ class DownloadsFeature(
     /**
      * Styling for the download dialog prompt
      */
-    data class PromptsStyling(
+    data class PromptsStyling @JvmOverloads constructor(
         val gravity: Int,
         val shouldWidthMatchParent: Boolean = false,
         @ColorRes

@@ -149,7 +149,7 @@ class SimpleDownloadDialogFragment : DownloadDialogFragment() {
         /**
          * A builder method for creating a [SimpleDownloadDialogFragment]
          */
-        fun newInstance(
+        @JvmOverloads fun newInstance(
             @StringRes dialogTitleText: Int = R.string.mozac_feature_downloads_dialog_title2,
             @StringRes downloadButtonText: Int = R.string.mozac_feature_downloads_dialog_download,
             @StyleRes themeResId: Int = 0,

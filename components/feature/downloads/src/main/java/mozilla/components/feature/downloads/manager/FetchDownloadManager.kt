@@ -32,7 +32,7 @@ import kotlin.reflect.KClass
  * @property applicationContext a reference to [Context] applicationContext.
  * @property service The subclass of [AbstractFetchDownloadService] to use.
  */
-class FetchDownloadManager<T : AbstractFetchDownloadService>(
+class FetchDownloadManager<T : AbstractFetchDownloadService> @JvmOverloads constructor(
     private val applicationContext: Context,
     private val service: KClass<T>,
     private val broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(applicationContext),

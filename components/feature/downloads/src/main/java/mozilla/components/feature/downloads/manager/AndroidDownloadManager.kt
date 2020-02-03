@@ -34,7 +34,7 @@ typealias SystemRequest = android.app.DownloadManager.Request
  *
  * @property applicationContext a reference to [Context] applicationContext.
  */
-class AndroidDownloadManager(
+class AndroidDownloadManager @JvmOverloads constructor(
     private val applicationContext: Context,
     override var onDownloadStopped: onDownloadStopped = noop
 ) : BroadcastReceiver(), DownloadManager {

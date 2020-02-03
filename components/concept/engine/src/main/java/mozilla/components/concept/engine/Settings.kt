@@ -179,7 +179,7 @@ abstract class Settings {
 /**
  * [Settings] implementation used to set defaults for [Engine] and [EngineSession].
  */
-data class DefaultSettings(
+data class DefaultSettings @JvmOverloads constructor(
     override var javascriptEnabled: Boolean = true,
     override var domStorageEnabled: Boolean = true,
     override var webFontsEnabled: Boolean = true,
@@ -226,4 +226,6 @@ class UnsupportedSetting<T> {
 /**
  * Exception thrown by default if a setting is not supported by an engine or session.
  */
-class UnsupportedSettingException(message: String = "Setting not supported by this engine") : RuntimeException(message)
+class UnsupportedSettingException @JvmOverloads constructor(
+    message: String = "Setting not supported by this engine"
+) : RuntimeException(message)

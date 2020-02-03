@@ -57,30 +57,31 @@ interface PermissionRequest {
  * @property id an optional native engine-specific ID of this permission.
  * @property desc an optional description of what this permission type is for.
  */
+@Suppress("MaxLineLength")
 sealed class Permission {
     abstract val id: String?
     abstract val desc: String?
 
-    data class ContentAudioCapture(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentAudioMicrophone(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentAudioOther(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentGeoLocation(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentNotification(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentAudioCapture @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentAudioMicrophone @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentAudioOther @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentGeoLocation @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentNotification @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
     data class ContentProtectedMediaId(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoCamera(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoCapture(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoScreen(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoOther(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoCamera @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoCapture @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoScreen @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoOther @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
 
-    data class AppCamera(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class AppAudio(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class AppLocationCoarse(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class AppLocationFine(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class AppCamera @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class AppAudio @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class AppLocationCoarse @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class AppLocationFine @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
 
-    data class Generic(override val id: String?, override val desc: String? = "") : Permission()
+    data class Generic @JvmOverloads constructor(override val id: String?, override val desc: String? = "") : Permission()
 
     // Removed in GeckoView 68.0:
-    data class ContentVideoApplication(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoBrowser(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoWindow(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoApplication @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoBrowser @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentVideoWindow @JvmOverloads constructor(override val id: String? = "", override val desc: String? = "") : Permission()
 }

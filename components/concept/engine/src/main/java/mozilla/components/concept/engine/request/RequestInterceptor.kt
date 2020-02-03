@@ -16,7 +16,7 @@ interface RequestInterceptor {
      * An alternative response for an intercepted request.
      */
     sealed class InterceptionResponse {
-        data class Content(
+        data class Content @JvmOverloads constructor(
             val data: String,
             val mimeType: String = "text/html",
             val encoding: String = "UTF-8"
@@ -34,7 +34,7 @@ interface RequestInterceptor {
         /**
          * Used to load from data with base URL
          */
-        data class Content(
+        data class Content @JvmOverloads constructor(
             val data: String,
             val url: String? = null,
             val mimeType: String = "text/html",

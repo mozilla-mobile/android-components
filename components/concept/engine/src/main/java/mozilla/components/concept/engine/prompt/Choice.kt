@@ -17,7 +17,7 @@ import android.os.Parcelable
  * @property isASeparator Indicating if the item should be a menu separator (only valid for menus).
  * @property children Sub-items in a group, or null if not a group.
  */
-data class Choice(
+data class Choice @JvmOverloads constructor(
     val id: String,
     var enable: Boolean = true,
     var label: String,

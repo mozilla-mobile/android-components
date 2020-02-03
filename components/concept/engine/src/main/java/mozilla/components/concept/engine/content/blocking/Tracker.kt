@@ -13,7 +13,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.
  * @property trackingCategories The anti-tracking category types of the blocked resource.
  * @property cookiePolicies The cookie types of the blocked resource.
  */
-class Tracker(
+class Tracker @JvmOverloads constructor(
     val url: String,
     val trackingCategories: List<TrackingCategory> = emptyList(),
     val cookiePolicies: List<CookiePolicy> = emptyList()

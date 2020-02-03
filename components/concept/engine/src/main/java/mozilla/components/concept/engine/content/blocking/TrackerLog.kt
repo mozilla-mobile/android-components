@@ -12,7 +12,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.
  * @property loadedCategories A list of tracking categories loaded for this tracker.
  * @property blockedCategories A list of tracking categories blocked for this tracker.
  */
-data class TrackerLog(
+data class TrackerLog @JvmOverloads constructor(
     val url: String,
     val loadedCategories: List<TrackingCategory> = emptyList(),
     val blockedCategories: List<TrackingCategory> = emptyList(),

@@ -15,7 +15,7 @@ import kotlinx.android.parcel.Parcelize
  * @property url URL for the share request.
  */
 @Parcelize
-data class ShareData(
+data class ShareData @JvmOverloads constructor(
     val title: String? = null,
     val text: String? = null,
     val url: String? = null

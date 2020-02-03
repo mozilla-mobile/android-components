@@ -13,7 +13,7 @@ package mozilla.components.concept.engine.utils
  * @param metadata Additional and optional metadata appended to the version number, e.g. for a version number of
  * "68.0a1" [metadata] will contain "a1".
  */
-data class EngineVersion(
+data class EngineVersion @JvmOverloads constructor(
     val major: Int,
     val minor: Int,
     val patch: Long,
@@ -37,7 +37,7 @@ data class EngineVersion(
      * Returns true if this version number equals or is higher than the provided [major], [minor], [patch] version
      * numbers.
      */
-    fun isAtLeast(major: Int, minor: Int = 0, patch: Long = 0): Boolean {
+    @JvmOverloads fun isAtLeast(major: Int, minor: Int = 0, patch: Long = 0): Boolean {
         return when {
             this.major > major -> true
             this.major < major -> false

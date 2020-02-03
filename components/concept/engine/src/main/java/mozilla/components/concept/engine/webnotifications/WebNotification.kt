@@ -17,7 +17,7 @@ package mozilla.components.concept.engine.webnotifications
  * @property requireInteraction Preference flag that indicates the notification should remain.
  * @property timestamp Time when the notification was created.
  */
-data class WebNotification(
+data class WebNotification @JvmOverloads constructor(
     val title: String?,
     val tag: String,
     val body: String?,

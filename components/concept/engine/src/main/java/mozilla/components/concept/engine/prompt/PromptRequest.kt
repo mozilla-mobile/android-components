@@ -45,7 +45,7 @@ sealed class PromptRequest {
      * @property onDismiss callback to let the page know the user dismissed the dialog.
      * @property onConfirm tells the web page if it should continue showing alerts or not.
      */
-    data class Alert(
+    data class Alert @JvmOverloads constructor(
         val title: String,
         val message: String,
         val hasShownManyDialogs: Boolean = false,
@@ -76,7 +76,7 @@ sealed class PromptRequest {
      * @property onDismiss callback to let the page know the user dismissed the dialog.
      * @property onConfirm tells the web page if it should continue showing alerts or not.
      */
-    data class TextPrompt(
+    data class TextPrompt @JvmOverloads constructor(
         val title: String,
         val inputLabel: String,
         val inputValue: String,
@@ -95,7 +95,7 @@ sealed class PromptRequest {
      * @property onConfirm callback that is called when the date is selected.
      * @property onClear callback that is called when the user requests the picker to be clear up.
      */
-    class TimeSelection(
+    class TimeSelection @JvmOverloads constructor(
         val title: String,
         val initialDate: java.util.Date,
         val minimumDate: java.util.Date?,
@@ -119,7 +119,7 @@ sealed class PromptRequest {
      * @property onMultipleFilesSelected callback to notify that the user has selected multiple files.
      * @property onDismiss callback to notify that the user has canceled the file selection.
      */
-    data class File(
+    data class File @JvmOverloads constructor(
         val mimeTypes: Array<out String>,
         val isMultipleFilesSelection: Boolean = false,
         val captureMode: FacingMode = FacingMode.NONE,
@@ -127,25 +127,6 @@ sealed class PromptRequest {
         val onMultipleFilesSelected: (Context, Array<Uri>) -> Unit,
         val onDismiss: () -> Unit
     ) : PromptRequest() {
-
-        /**
-         * @deprecated Use the new primary constructor.
-         */
-        constructor(
-            mimeTypes: Array<out String>,
-            isMultipleFilesSelection: Boolean,
-            onSingleFileSelected: (Context, Uri) -> Unit,
-            onMultipleFilesSelected: (Context, Array<Uri>) -> Unit,
-            onDismiss: () -> Unit
-        ) : this(
-            mimeTypes,
-            isMultipleFilesSelection,
-            FacingMode.NONE,
-            onSingleFileSelected,
-            onMultipleFilesSelected,
-            onDismiss
-        )
-
         enum class FacingMode {
             NONE, ANY, FRONT_CAMERA, BACK_CAMERA
         }
@@ -168,7 +149,7 @@ sealed class PromptRequest {
      * @property onConfirm callback to indicate the user want to start the authentication flow.
      * @property onDismiss callback to indicate the user dismissed this request.
      */
-    data class Authentication(
+    data class Authentication @JvmOverloads constructor(
         val title: String,
         val message: String,
         val userName: String,
@@ -235,7 +216,7 @@ sealed class PromptRequest {
      * @property onConfirmNeutralButton callback to notify that the user has clicked the neutral button.
      * @property onDismiss callback to notify that the user has canceled the dialog.
      */
-    data class Confirm(
+    data class Confirm @JvmOverloads constructor(
         val title: String,
         val message: String,
         val hasShownManyDialogs: Boolean = false,

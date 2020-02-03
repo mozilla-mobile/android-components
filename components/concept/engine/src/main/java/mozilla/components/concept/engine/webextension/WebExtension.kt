@@ -229,7 +229,7 @@ interface MessageHandler {
  * Represents a port for exchanging messages:
  * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/Port
  */
-abstract class Port(val engineSession: EngineSession? = null) {
+abstract class Port @JvmOverloads constructor(val engineSession: EngineSession? = null) {
 
     /**
      * Sends a message to this port.

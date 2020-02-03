@@ -11,7 +11,7 @@ import kotlin.properties.Delegates
 /**
  * Value type that represents a media element that is present on the currently displayed page in a session.
  */
-abstract class Media(
+abstract class Media @JvmOverloads constructor(
     delegate: Observable<Observer> = ObserverRegistry()
 ) : Observable<Media.Observer> by delegate {
     /**
@@ -177,7 +177,7 @@ abstract class Media(
      *
      * @property duration Indicates the duration of the media in seconds.
      */
-    data class Metadata(
+    data class Metadata @JvmOverloads constructor(
         val duration: Double = -1.0
     )
 

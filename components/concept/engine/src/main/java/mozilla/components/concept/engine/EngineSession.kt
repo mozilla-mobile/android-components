@@ -26,7 +26,7 @@ import mozilla.components.support.base.observer.ObserverRegistry
  * In browsers usually a session corresponds to a tab.
  */
 @Suppress("TooManyFunctions")
-abstract class EngineSession(
+abstract class EngineSession @JvmOverloads constructor(
     private val delegate: Observable<EngineSession.Observer> = ObserverRegistry()
 ) : Observable<EngineSession.Observer> by delegate {
     /**
@@ -482,7 +482,7 @@ abstract class EngineSession(
      * @param onSuccess (optional) callback invoked if the data was cleared successfully.
      * @param onError (optional) callback invoked if clearing the data caused an exception.
      */
-    open fun clearData(
+    @JvmOverloads open fun clearData(
         data: Engine.BrowsingData = Engine.BrowsingData.all(),
         host: String? = null,
         onSuccess: (() -> Unit) = { },

@@ -46,7 +46,7 @@ import mozilla.components.concept.engine.manifest.WebAppManifest.ExternalApplica
  * @property relatedApplications List of native applications related to the web app.
  * @property preferRelatedApplications If true, related applications should be preferred over the web app.
  */
-data class WebAppManifest(
+data class WebAppManifest @JvmOverloads constructor(
     val name: String,
     val startUrl: String,
     val shortName: String? = null,
@@ -102,7 +102,7 @@ data class WebAppManifest(
      * @property purpose Defines the purposes of the image, for example that the image is intended to serve some special
      * purpose in the context of the host OS (i.e., for better integration).
      */
-    data class Icon(
+    data class Icon @JvmOverloads constructor(
         val src: String,
         val sizes: List<Size> = emptyList(),
         val type: String? = null,
@@ -175,7 +175,7 @@ data class WebAppManifest(
      * @property minVersion The minimum version of an application related to this web app.
      * @property fingerprints [Fingerprint] objects used for verifying the application.
      */
-    data class ExternalApplicationResource(
+    data class ExternalApplicationResource @JvmOverloads constructor(
         val platform: String,
         val url: String? = null,
         val id: String? = null,
@@ -202,7 +202,7 @@ data class WebAppManifest(
      * @property encType MIME type to specify how the params are encoded.
      * @property params Specifies what query parameters correspond to share data.
      */
-    data class ShareTarget(
+    data class ShareTarget @JvmOverloads constructor(
         val action: String,
         val method: RequestMethod = RequestMethod.GET,
         val encType: EncodingType = EncodingType.URL_ENCODED,
@@ -217,7 +217,7 @@ data class WebAppManifest(
          * @property url Name of the query parameter used for a URL referring to a shared resource.
          * @property files Form fields used to share files.
          */
-        data class Params(
+        data class Params @JvmOverloads constructor(
             val title: String? = null,
             val text: String? = null,
             val url: String? = null,

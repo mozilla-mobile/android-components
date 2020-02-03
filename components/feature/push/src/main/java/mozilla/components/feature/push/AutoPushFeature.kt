@@ -74,7 +74,7 @@ import mozilla.appservices.push.PushError as RustPushError
  *
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class AutoPushFeature(
+class AutoPushFeature @JvmOverloads constructor(
     private val context: Context,
     private val service: PushService,
     config: PushConfig,
@@ -200,7 +200,7 @@ class AutoPushFeature(
      * @param autoPause whether to stop notifying the observer during onPause lifecycle events.
      * Defaults to false so that subscriptions are always delivered to observers.
      */
-    fun registerForSubscriptions(
+    @JvmOverloads fun registerForSubscriptions(
         observer: PushSubscriptionObserver,
         owner: LifecycleOwner = ProcessLifecycleOwner.get(),
         autoPause: Boolean = false
@@ -215,7 +215,7 @@ class AutoPushFeature(
      * @param autoPause whether to stop notifying the observer during onPause lifecycle events.
      * Defaults to false so that messages are always delivered to observers.
      */
-    fun registerForPushMessages(
+    @JvmOverloads fun registerForPushMessages(
         type: PushType,
         observer: Bus.Observer<PushType, String>,
         owner: LifecycleOwner = ProcessLifecycleOwner.get(),
@@ -462,7 +462,7 @@ data class AutoPushSubscription(
  * @param protocol The socket protocol to use when communicating with the server.
  * @param serviceType The push services that the AutoPush server supports.
  */
-data class PushConfig(
+data class PushConfig @JvmOverloads constructor(
     val senderId: String,
     val serverHost: String = "updates.push.services.mozilla.com",
     val protocol: Protocol = Protocol.HTTPS,

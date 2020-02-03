@@ -18,7 +18,7 @@ object ErrorPages {
      * Load and generate error page for the given error type and html/css resources.
      * Encoded in Base64 & does NOT support loading images
      */
-    fun createErrorPage(
+    @JvmOverloads fun createErrorPage(
         context: Context,
         errorType: ErrorType,
         uri: String? = null,
@@ -66,7 +66,7 @@ object ErrorPages {
     /**
      * Provides an encoded URL for an error page. Supports displaying images
      */
-    fun createUrlEncodedErrorPage(
+    @JvmOverloads fun createUrlEncodedErrorPage(
         context: Context,
         errorType: ErrorType,
         uri: String? = null,

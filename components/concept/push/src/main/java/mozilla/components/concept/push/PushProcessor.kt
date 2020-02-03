@@ -68,7 +68,7 @@ interface PushProcessor {
 /**
  * A push message holds the information needed to pass the message on to the appropriate receiver.
  */
-data class EncryptedPushMessage(
+data class EncryptedPushMessage @JvmOverloads constructor(
     val channelId: String,
     val body: String,
     val encoding: String,
@@ -82,7 +82,7 @@ data class EncryptedPushMessage(
          *
          * Note: We have use the invoke operator since secondary constructors don't work with nullable primitive types.
          */
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             channelId: String,
             body: String,
             encoding: String,
@@ -101,7 +101,7 @@ sealed class PushError(override val message: String) : Exception() {
     /**
      * @property cause Original exception from Rust code.
      */
-    data class Rust(
+    data class Rust @JvmOverloads constructor(
         override val cause: Throwable?,
         override val message: String = cause?.message.orEmpty()
     ) : PushError(message)

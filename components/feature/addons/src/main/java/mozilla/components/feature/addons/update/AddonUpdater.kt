@@ -118,7 +118,7 @@ interface AddonUpdater {
  * to one day.
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class DefaultAddonUpdater(
+class DefaultAddonUpdater @JvmOverloads constructor(
     private val applicationContext: Context,
     private val frequency: Frequency = Frequency(1, TimeUnit.DAYS)
 ) : AddonUpdater {

@@ -32,7 +32,7 @@ import kotlinx.android.parcel.Parcelize
  * the [Addon] is not installed.
  */
 @Parcelize
-data class Addon(
+data class Addon @JvmOverloads constructor(
     val id: String,
     val authors: List<Author> = emptyList(),
     val categories: List<String> = emptyList(),
@@ -91,7 +91,7 @@ data class Addon(
      * options page (options_ui in the extension's manifest).
      */
     @Parcelize
-    data class InstalledState(
+    data class InstalledState @JvmOverloads constructor(
         val id: String,
         val version: String,
         val optionsPageUrl: String,

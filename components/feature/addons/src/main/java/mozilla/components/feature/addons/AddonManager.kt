@@ -78,7 +78,7 @@ class AddonManager(
      * providing access to the [Addon] object.
      * @param onError (optional) callback invoked if there was an error installing the addon.
      */
-    fun installAddon(
+    @JvmOverloads fun installAddon(
         addon: Addon,
         onSuccess: ((Addon) -> Unit) = { },
         onError: ((String, Throwable) -> Unit) = { _, _ -> }
@@ -102,7 +102,7 @@ class AddonManager(
      * @param onSuccess (optional) callback invoked if the addon was uninstalled successfully.
      * @param onError (optional) callback invoked if there was an error uninstalling the addon.
      */
-    fun uninstallAddon(
+    @JvmOverloads fun uninstallAddon(
         addon: Addon,
         onSuccess: (() -> Unit) = { },
         onError: ((String, Throwable) -> Unit) = { _, _ -> }
@@ -130,7 +130,7 @@ class AddonManager(
      * @param onSuccess (optional) callback invoked with the enabled [Addon].
      * @param onError (optional) callback invoked if there was an error enabling
      */
-    fun enableAddon(
+    @JvmOverloads fun enableAddon(
         addon: Addon,
         onSuccess: ((Addon) -> Unit) = { },
         onError: ((Throwable) -> Unit) = { }
@@ -158,7 +158,7 @@ class AddonManager(
      * @param onSuccess (optional) callback invoked with the enabled [Addon].
      * @param onError (optional) callback invoked if there was an error enabling
      */
-    fun disableAddon(
+    @JvmOverloads fun disableAddon(
         addon: Addon,
         onSuccess: ((Addon) -> Unit) = { },
         onError: ((Throwable) -> Unit) = { }

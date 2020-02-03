@@ -43,7 +43,7 @@ internal const val MINUTE_IN_MS = 60 * 1000
  * should remain valid. Defaults to -1, meaning no cache is being used by default.
  * @property client A reference of [Client] for interacting with the AMO HTTP api.
  */
-class AddonCollectionProvider(
+class AddonCollectionProvider @JvmOverloads constructor(
     private val context: Context,
     private val client: Client,
     private val serverURL: String = DEFAULT_SERVER_URL,

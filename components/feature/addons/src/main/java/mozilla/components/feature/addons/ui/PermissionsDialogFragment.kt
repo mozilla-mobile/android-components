@@ -202,7 +202,7 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
          * @param onPositiveButtonClicked A lambda called when the allow button is clicked.
          * @param onNegativeButtonClicked A lambda called when the deny button is clicked.
          */
-        fun newInstance(
+        @JvmOverloads fun newInstance(
             addon: Addon,
             promptsStyling: PromptsStyling? = PromptsStyling(
                 gravity = Gravity.BOTTOM,
@@ -242,7 +242,7 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
     /**
      * Styling for the permissions dialog.
      */
-    data class PromptsStyling(
+    data class PromptsStyling @JvmOverloads constructor(
         val gravity: Int,
         val shouldWidthMatchParent: Boolean = false,
         @ColorRes

@@ -23,7 +23,7 @@ import java.util.UUID
 /**
  * A storage implementation that saves snapshots of tabs / sessions in named collections.
  */
-class TabCollectionStorage(
+class TabCollectionStorage @JvmOverloads constructor(
     context: Context,
     private val sessionManager: SessionManager,
     private val filesDir: File = context.filesDir
@@ -33,7 +33,7 @@ class TabCollectionStorage(
     /**
      * Creates a new [TabCollection] and save the state of the given [Session]s in it.
      */
-    fun createCollection(title: String, sessions: List<Session> = emptyList()) {
+    @JvmOverloads fun createCollection(title: String, sessions: List<Session> = emptyList()) {
         val entity = TabCollectionEntity(
             title = title,
             updatedAt = System.currentTimeMillis(),
@@ -112,7 +112,7 @@ class TabCollectionStorage(
      *
      * @param limit (Optional) Maximum number of [TabCollection] instances that should be returned.
      */
-    fun getCollections(limit: Int = 20): LiveData<List<TabCollection>> {
+    @JvmOverloads fun getCollections(limit: Int = 20): LiveData<List<TabCollection>> {
         limit.hashCode()
         return Transformations.map(
             database.value.tabCollectionDao().getTabCollections(limit)

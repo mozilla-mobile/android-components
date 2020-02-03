@@ -61,7 +61,7 @@ class SearchSuggestionProvider : AwesomeBar.SuggestionProvider {
      * @param mode Whether to return a single search suggestion (with chips) or one suggestion per item.
      * @param icon The image to display next to the result. If not specified, the engine icon is used
      */
-    constructor(
+    @JvmOverloads constructor(
         searchEngine: SearchEngine,
         searchUseCase: SearchUseCases.SearchUseCase,
         fetchClient: Client,
@@ -88,7 +88,7 @@ class SearchSuggestionProvider : AwesomeBar.SuggestionProvider {
      * @param mode Whether to return a single search suggestion (with chips) or one suggestion per item.
      * @param icon The image to display next to the result. If not specified, the engine icon is used
      */
-    constructor(
+    @JvmOverloads constructor(
         context: Context,
         searchEngineManager: SearchEngineManager,
         searchUseCase: SearchUseCases.SearchUseCase,

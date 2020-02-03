@@ -21,7 +21,7 @@ private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
  * An [AwesomeBar.SuggestionProvider] implementation that returns a suggestions for an URL in the clipboard (if there's
  * any).
  */
-class ClipboardSuggestionProvider(
+class ClipboardSuggestionProvider @JvmOverloads constructor(
     private val context: Context,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icon: Bitmap? = null,

@@ -26,7 +26,7 @@ import mozilla.components.feature.tabs.TabsUseCases
 /**
  * Connects an [AwesomeBar] with a [Toolbar] and allows adding multiple [AwesomeBar.SuggestionProvider] implementations.
  */
-class AwesomeBarFeature(
+class AwesomeBarFeature @JvmOverloads constructor(
     private val awesomeBar: AwesomeBar,
     private val toolbar: Toolbar,
     private val engineView: EngineView? = null,
@@ -61,7 +61,7 @@ class AwesomeBarFeature(
     /**
      * Adds a [AwesomeBar.SuggestionProvider] for search engine suggestions to the [AwesomeBar].
      */
-    fun addSearchProvider(
+    @JvmOverloads fun addSearchProvider(
         searchEngine: SearchEngine,
         searchUseCase: SearchUseCases.SearchUseCase,
         fetchClient: Client,
@@ -79,7 +79,7 @@ class AwesomeBarFeature(
      * search engine using the provided [SearchEngineManager].
      */
     @Suppress("LongParameterList")
-    fun addSearchProvider(
+    @JvmOverloads fun addSearchProvider(
         context: Context,
         searchEngineManager: SearchEngineManager,
         searchUseCase: SearchUseCases.SearchUseCase,

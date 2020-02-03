@@ -18,7 +18,7 @@ internal const val HISTORY_SUGGESTION_LIMIT = 20
  * A [AwesomeBar.SuggestionProvider] implementation that provides suggestions based on the browsing
  * history stored in the [HistoryStorage].
  */
-class HistoryStorageSuggestionProvider(
+class HistoryStorageSuggestionProvider @JvmOverloads constructor(
     private val historyStorage: HistoryStorage,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icons: BrowserIcons? = null

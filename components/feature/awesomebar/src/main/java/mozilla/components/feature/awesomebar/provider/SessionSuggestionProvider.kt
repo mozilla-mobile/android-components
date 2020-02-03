@@ -18,7 +18,7 @@ import java.util.UUID
  * A [AwesomeBar.SuggestionProvider] implementation that provides suggestions based on the sessions in the
  * [SessionManager] (Open tabs).
  */
-class SessionSuggestionProvider(
+class SessionSuggestionProvider @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val selectTabUseCase: TabsUseCases.SelectTabUseCase,
     private val icons: BrowserIcons? = null,

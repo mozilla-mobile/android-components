@@ -18,7 +18,7 @@ private const val BOOKMARKS_SUGGESTION_LIMIT = 20
  * A [AwesomeBar.SuggestionProvider] implementation that provides suggestions based on the bookmarks
  * stored in the [BookmarksStorage].
  */
-class BookmarksStorageSuggestionProvider(
+class BookmarksStorageSuggestionProvider @JvmOverloads constructor(
     private val bookmarksStorage: BookmarksStorage,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icons: BrowserIcons? = null

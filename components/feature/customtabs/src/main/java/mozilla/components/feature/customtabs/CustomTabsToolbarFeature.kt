@@ -43,7 +43,7 @@ import mozilla.components.support.utils.ColorUtils.getReadableTextColor
  * @param closeListener Invoked when the close button is pressed.
  */
 @Suppress("LargeClass")
-class CustomTabsToolbarFeature(
+class CustomTabsToolbarFeature @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val toolbar: BrowserToolbar,
     private val sessionId: String? = null,

@@ -19,7 +19,7 @@ import mozilla.components.support.utils.toSafeIntent
 /**
  * Processor for intents which trigger actions related to custom tabs.
  */
-class CustomTabIntentProcessor(
+class CustomTabIntentProcessor @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val resources: Resources,

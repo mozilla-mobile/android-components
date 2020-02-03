@@ -13,7 +13,7 @@ import mozilla.components.lib.state.State
  * Value type that represents the custom tabs state
  * accessible from both the service and activity.
  */
-data class CustomTabsServiceState(
+data class CustomTabsServiceState @JvmOverloads constructor(
     val tabs: Map<CustomTabsSessionToken, CustomTabState> = emptyMap()
 ) : State
 
@@ -27,7 +27,7 @@ data class CustomTabsServiceState(
  * @property creatorPackageName Package name of the app that created the custom tab.
  * @property relationships Map of origin and relationship type to current verification state.
  */
-data class CustomTabState(
+data class CustomTabState @JvmOverloads constructor(
     val creatorPackageName: String? = null,
     val relationships: Map<OriginRelationPair, VerificationStatus> = emptyMap()
 )

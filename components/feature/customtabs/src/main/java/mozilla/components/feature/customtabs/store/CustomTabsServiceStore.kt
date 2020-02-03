@@ -6,7 +6,7 @@ package mozilla.components.feature.customtabs.store
 
 import mozilla.components.lib.state.Store
 
-class CustomTabsServiceStore(
+class CustomTabsServiceStore @JvmOverloads constructor(
     initialState: CustomTabsServiceState = CustomTabsServiceState()
 ) : Store<CustomTabsServiceState, CustomTabsAction>(
     initialState,

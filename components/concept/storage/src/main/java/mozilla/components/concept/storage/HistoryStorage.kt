@@ -189,7 +189,7 @@ enum class VisitType(val type: Int) {
  *  this [SearchResult] against others.
  * @property title An optional title of the page.
  */
-data class SearchResult(
+data class SearchResult @JvmOverloads constructor(
     val id: String,
     val url: String,
     val score: Int,

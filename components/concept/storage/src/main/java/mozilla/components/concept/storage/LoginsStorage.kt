@@ -12,7 +12,7 @@ import kotlinx.coroutines.Deferred
  * Note that much of this information can be partial (e.g., a user might save a password with a
  * blank username).
  */
-data class Login(
+data class Login @JvmOverloads constructor(
     /**
      * The unique identifier for this login entry.
      */

@@ -11,7 +11,7 @@ import java.security.GeneralSecurityException
  * is not otherwise covered by an existing sub-class to `GeneralSecurityException`.
  *
  */
-class KeystoreException(
+class KeystoreException @JvmOverloads constructor(
     message: String? = null,
     cause: Throwable? = null
 ) : GeneralSecurityException(message, cause)

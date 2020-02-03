@@ -142,7 +142,7 @@ open class KeyStoreWrapper {
  * platform's key storage.
  */
 @TargetApi(M)
-open class Keystore(
+open class Keystore @JvmOverloads constructor(
     val label: String,
     manual: Boolean = false,
     internal val wrapper: KeyStoreWrapper = KeyStoreWrapper()

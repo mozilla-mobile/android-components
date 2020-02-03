@@ -16,7 +16,7 @@ import mozilla.components.support.base.observer.ObserverRegistry
  * RecyclerView adapter implementation to display a list/grid of tabs.
  */
 @Suppress("TooManyFunctions")
-class TabsAdapter(
+class TabsAdapter @JvmOverloads constructor(
     delegate: Observable<TabsTray.Observer> = ObserverRegistry()
 ) : RecyclerView.Adapter<TabViewHolder>(),
     TabsTray,

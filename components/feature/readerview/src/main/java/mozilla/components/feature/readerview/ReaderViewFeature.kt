@@ -43,7 +43,7 @@ typealias OnReaderViewAvailableChange = (available: Boolean) -> Unit
  * changes.
  */
 @Suppress("TooManyFunctions")
-class ReaderViewFeature(
+class ReaderViewFeature @JvmOverloads constructor(
     private val context: Context,
     private val engine: Engine,
     private val sessionManager: SessionManager,

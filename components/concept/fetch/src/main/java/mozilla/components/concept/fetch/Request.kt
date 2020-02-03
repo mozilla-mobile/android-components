@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit
  * @see [Headers.Names]
  * @see [Headers.Values]
  */
-data class Request(
+data class Request @JvmOverloads constructor(
     val url: String,
     val method: Method = Method.GET,
     val headers: MutableHeaders? = MutableHeaders(),

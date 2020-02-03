@@ -54,7 +54,7 @@ data class Response(
      * which will be used for decoding the body. If not specified, or if the
      * charset can't be found, UTF-8 will be used for decoding.
      */
-    open class Body(
+    open class Body @JvmOverloads constructor(
         private val stream: InputStream,
         contentType: String? = null
     ) : Closeable, AutoCloseable {
@@ -91,7 +91,7 @@ data class Response(
          * @param block a function to consume the buffered reader.
          *
          */
-        fun <R> useBufferedReader(charset: Charset? = null, block: (BufferedReader) -> R): R = use {
+        @JvmOverloads fun <R> useBufferedReader(charset: Charset? = null, block: (BufferedReader) -> R): R = use {
             block(stream.bufferedReader(charset ?: this.charset))
         }
 
@@ -104,7 +104,7 @@ data class Response(
          * the charset provided in the response content-type header will be used. If the header
          * is missing or the charset not supported, UTF-8 will be used.
          */
-        fun string(charset: Charset? = null): String = useBufferedReader(charset) { it.readText() }
+        @JvmOverloads fun string(charset: Charset? = null): String = useBufferedReader(charset) { it.readText() }
 
         /**
          * Closes this [Body] and releases any system resources associated with it.

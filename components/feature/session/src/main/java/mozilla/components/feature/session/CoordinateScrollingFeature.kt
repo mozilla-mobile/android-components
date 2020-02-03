@@ -22,7 +22,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
  *
  * A use case could be collapsing a toolbar every time that the user scrolls.
  */
-class CoordinateScrollingFeature(
+class CoordinateScrollingFeature @JvmOverloads constructor(
     sessionManager: SessionManager,
     private val engineView: EngineView,
     private val view: View,

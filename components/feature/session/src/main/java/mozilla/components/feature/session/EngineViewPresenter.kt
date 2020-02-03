@@ -11,7 +11,7 @@ import mozilla.components.concept.engine.EngineView
 /**
  * Presenter implementation for EngineView.
  */
-class EngineViewPresenter(
+class EngineViewPresenter @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val engineView: EngineView,
     private val sessionId: String? = null

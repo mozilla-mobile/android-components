@@ -13,7 +13,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 /**
  * Feature implementation for handling fullscreen mode (exiting and back button presses).
  */
-open class FullScreenFeature(
+open class FullScreenFeature @JvmOverloads constructor(
     sessionManager: SessionManager,
     private val sessionUseCases: SessionUseCases,
     private val sessionId: String? = null,

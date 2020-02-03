@@ -17,7 +17,7 @@ import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
  * this (optional) lambda will be invoked to create a [Session]. The default implementation creates a [Session] and adds
  * it to the [SessionManager].
  */
-class SessionUseCases(
+class SessionUseCases @JvmOverloads constructor(
     sessionManager: SessionManager,
     onNoSession: (String) -> Session = { url ->
         Session(url).apply { sessionManager.add(this) }
@@ -57,7 +57,7 @@ class SessionUseCases(
          * @param session the session for which the URL should be loaded.
          * @param flags The [LoadUrlFlags] to use when loading the provided url.
          */
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             url: String,
             session: Session? = sessionManager.selectedSession,
             flags: LoadUrlFlags = LoadUrlFlags.none()
@@ -75,7 +75,7 @@ class SessionUseCases(
          * Loads the provided data based on the mime type using the provided session (or the
          * currently selected session if none is provided).
          */
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             data: String,
             mimeType: String,
             encoding: String = "UTF-8",
@@ -95,7 +95,7 @@ class SessionUseCases(
          *
          * @param session the session for which reload should be triggered.
          */
-        operator fun invoke(session: Session? = sessionManager.selectedSession) {
+        @JvmOverloads operator fun invoke(session: Session? = sessionManager.selectedSession) {
             if (session != null) {
                 sessionManager.getOrCreateEngineSession(session).reload()
             }
@@ -110,7 +110,7 @@ class SessionUseCases(
          *
          * @param session the session for which loading should be stopped.
          */
-        operator fun invoke(session: Session? = sessionManager.selectedSession) {
+        @JvmOverloads operator fun invoke(session: Session? = sessionManager.selectedSession) {
             if (session != null) {
                 sessionManager.getOrCreateEngineSession(session).stopLoading()
             }
@@ -123,7 +123,7 @@ class SessionUseCases(
         /**
          * Navigates back in the history of the currently selected session
          */
-        operator fun invoke(session: Session? = sessionManager.selectedSession) {
+        @JvmOverloads operator fun invoke(session: Session? = sessionManager.selectedSession) {
             if (session != null) {
                 sessionManager.getOrCreateEngineSession(session).goBack()
             }
@@ -136,7 +136,7 @@ class SessionUseCases(
         /**
          * Navigates forward in the history of the currently selected session
          */
-        operator fun invoke(session: Session? = sessionManager.selectedSession) {
+        @JvmOverloads operator fun invoke(session: Session? = sessionManager.selectedSession) {
             if (session != null) {
                 sessionManager.getOrCreateEngineSession(session).goForward()
             }
@@ -149,7 +149,7 @@ class SessionUseCases(
         /**
          * Requests the desktop version of the current session and reloads the page.
          */
-        operator fun invoke(enable: Boolean, session: Session? = sessionManager.selectedSession) {
+        @JvmOverloads operator fun invoke(enable: Boolean, session: Session? = sessionManager.selectedSession) {
             if (session != null) {
                 sessionManager.getOrCreateEngineSession(session).toggleDesktopMode(enable, true)
             }
@@ -162,7 +162,7 @@ class SessionUseCases(
         /**
          * Exits fullscreen mode of the current session.
          */
-        operator fun invoke(session: Session? = sessionManager.selectedSession) {
+        @JvmOverloads operator fun invoke(session: Session? = sessionManager.selectedSession) {
             if (session != null) {
                 sessionManager.getOrCreateEngineSession(session).exitFullScreenMode()
             }
@@ -175,7 +175,7 @@ class SessionUseCases(
         /**
          * Clears all user data sources available.
          */
-        operator fun invoke(
+        @JvmOverloads operator fun invoke(
             session: Session? = sessionManager.selectedSession,
             data: BrowsingData = BrowsingData.all()
         ) {

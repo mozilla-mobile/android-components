@@ -17,7 +17,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
  *
  * @param swipeRefreshLayout Reference to SwipeRefreshLayout that has an [EngineView] as its child.
  */
-class SwipeRefreshFeature(
+class SwipeRefreshFeature @JvmOverloads constructor(
     sessionManager: SessionManager,
     private val reloadUrlUseCase: SessionUseCases.ReloadUrlUseCase,
     private val swipeRefreshLayout: SwipeRefreshLayout,

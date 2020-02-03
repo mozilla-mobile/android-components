@@ -12,7 +12,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 /**
  * Feature implementation for connecting the engine module with the session module.
  */
-class SessionFeature(
+class SessionFeature @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val goBackUseCase: SessionUseCases.GoBackUseCase,
     private val engineView: EngineView,

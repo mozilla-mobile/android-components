@@ -19,7 +19,7 @@ import mozilla.components.browser.session.SessionManager
  * doesn't support this.
  * @param pipChanged a change listener that allows the calling app to perform changes based on PIP mode.
  */
-class PictureInPictureFeature(
+class PictureInPictureFeature @JvmOverloads constructor(
     private val sessionManager: SessionManager,
     private val activity: Activity,
     private val pipChanged: ((Boolean) -> Unit?)? = null

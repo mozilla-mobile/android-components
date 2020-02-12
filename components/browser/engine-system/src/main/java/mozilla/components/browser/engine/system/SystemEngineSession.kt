@@ -170,6 +170,22 @@ class SystemEngineSession(
     }
 
     /**
+     * See [EngineSession.requestClose]
+     */
+    override fun requestClose(reason: RequestCloseReason) {
+        // Noop. This object cannot be reopened, and so will not be closed until it is no longer
+        // needed. See [close]
+    }
+
+    /**
+     * See [EngineSession.ensureOpen].
+     */
+    override fun ensureOpen(sessionState: EngineSessionState?) {
+        // Noop. This object cannot be reopened, and so will not be closed until it is no longer
+        // needed. See [close]
+    }
+
+    /**
      * See [EngineSession.clearData]
      */
     @Suppress("TooGenericExceptionCaught")

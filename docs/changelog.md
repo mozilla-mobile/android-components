@@ -51,6 +51,12 @@ permalink: /changelog/
     * The version of `glean_parser` has been upgraded to 1.17.3
     * Collections performed before initialization (preinit tasks) are now dispatched off
       the main thread during initialization.
+      
+* **browser-session**
+  * Basic memory management added to `SessionManager`
+    * Whenever `SessionManager#onLowMemory` is called, all `EngineSessions` except for the currently selected one will be closed to save memory.
+    * Whenever a new session is selected, if the max number of open sessions is already open, the LRU one will be closed.
+    * Closed `EngineSessions` have their state stored, and will be reloaded when they are reopened.
 
 # 31.0.0
 

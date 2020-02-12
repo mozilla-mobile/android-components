@@ -75,6 +75,8 @@ class EngineObserverTest {
                 notifyObservers { onLoadingStateChange(true) }
                 notifyObservers { onNavigationStateChange(true, true) }
             }
+            override fun requestClose(reason: RequestCloseReason) {}
+            override fun ensureOpen(sessionState: EngineSessionState?) {}
         }
         engineSession.register(EngineObserver(session))
 
@@ -118,6 +120,8 @@ class EngineObserverTest {
                     notifyObservers { onSecurityChange(false) }
                 }
             }
+            override fun requestClose(reason: RequestCloseReason) {}
+            override fun ensureOpen(sessionState: EngineSessionState?) {}
         }
         engineSession.register(EngineObserver(session))
 
@@ -156,6 +160,8 @@ class EngineObserverTest {
             override fun clearFindMatches() {}
             override fun exitFullScreenMode() {}
             override fun recoverFromCrash(): Boolean { return false }
+            override fun requestClose(reason: RequestCloseReason) {}
+            override fun ensureOpen(sessionState: EngineSessionState?) {}
         }
         val observer = EngineObserver(session)
         engineSession.register(observer)

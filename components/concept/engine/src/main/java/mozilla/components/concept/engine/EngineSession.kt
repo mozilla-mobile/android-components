@@ -391,6 +391,13 @@ abstract class EngineSession(
     }
 
     /**
+     * Indicates why [requestClose] was called.
+     */
+    enum class RequestCloseReason {
+        LowMemory
+    }
+
+    /**
      * Loads the given URL.
      *
      * @param url the url to load.
@@ -536,4 +543,19 @@ abstract class EngineSession(
      */
     @CallSuper
     open fun close() = delegate.unregisterObservers()
+
+    /**
+     * Request that the session be closed. This may be ignored by the session.
+     *
+     * @param [reason] why this window should be closed.
+     */
+    abstract fun requestClose(reason: RequestCloseReason)
+
+    /**
+     * Open a closed session. This will ready it so that it can be viewed by a user.
+     *
+     * @param [sessionState] saved state that should be restored. If null, the session will reopen
+     * to about:blank
+     */
+    abstract fun ensureOpen(sessionState: EngineSessionState?)
 }

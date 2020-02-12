@@ -323,6 +323,24 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.requestClose]
+     */
+    override fun requestClose(reason: RequestCloseReason) {
+        close()
+    }
+
+    /**
+     * See [EngineSession.ensureOpen].
+     */
+    override fun ensureOpen(sessionState: EngineSessionState?) {
+        if (!geckoSession.isOpen) {
+            job = Job()
+            geckoSession.open(runtime)
+            if (sessionState != null) restoreState(sessionState)
+        }
+    }
+
+    /**
      * NavigationDelegate implementation for forwarding callbacks to observers of the session.
      */
     @Suppress("ComplexMethod")

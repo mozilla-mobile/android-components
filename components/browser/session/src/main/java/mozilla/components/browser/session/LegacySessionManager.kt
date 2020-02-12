@@ -5,29 +5,55 @@
 package mozilla.components.browser.session
 
 import androidx.annotation.GuardedBy
+import androidx.annotation.VisibleForTesting
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import java.util.ArrayDeque
 import kotlin.math.max
 import kotlin.math.min
+
+private const val MAX_OPEN_SESSIONS = 6
 
 /**
  * This class provides access to a centralized registry of all active sessions.
  */
 @Suppress("TooManyFunctions", "LargeClass")
-class LegacySessionManager(
+open class LegacySessionManager(
     val engine: Engine,
     private val engineSessionLinker: SessionManager.EngineSessionLinker,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
 ) : Observable<SessionManager.Observer> by delegate {
     // It's important that any access to `values` is synchronized;
     @GuardedBy("values")
-    private val values = mutableListOf<Session>()
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val values = mutableListOf<Session>()
 
     @GuardedBy("values")
     private var selectedIndex: Int = NO_SELECTION
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal open val maxOpenSessions = MAX_OPEN_SESSIONS
+
+    /**
+     * Contains state saved from closed sessions. These will be visible on the tab list, but will
+     * need to load after being selected.
+     *
+     * [savedState].size + [openSessions].size == [values].size will always be true.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val savedState = mutableMapOf<String, EngineSessionState>()
+
+    /**
+     * Keeps track of the IDs all open sessions. These will not need to load after being selected
+     * from the tab list.
+     *
+     * [savedState].size + [openSessions].size == [values].size will always be true.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val openSessions = ArrayDeque<String>()
 
     /**
      * Returns the number of session including CustomTab sessions.
@@ -497,6 +523,10 @@ class LegacySessionManager(
             "Value to select is not in list"
         }
 
+        manageOpenSessions(selectedSessionId = session.id, trimDownTo = maxOpenSessions)
+
+        getEngineSession(session)?.ensureOpen(savedState[session.id])
+
         selectedSession?.let {
             getEngineSession(it)?.markActiveForWebExtensions(false)
         }
@@ -505,6 +535,43 @@ class LegacySessionManager(
 
         getEngineSession(session)?.markActiveForWebExtensions(true)
         notifyObservers { onSessionSelected(session) }
+    }
+
+    private fun manageOpenSessions(
+        selectedSessionId: String? = null,
+        trimDownTo: Int
+    ) {
+        // We will always have at least 1 session (the selected one)
+        require(trimDownTo >= 1)
+
+        fun bringSelectedSessionToFront() {
+            if (selectedSessionId != null) {
+                openSessions.remove(selectedSessionId)
+                openSessions.addFirst(selectedSessionId)
+            }
+        }
+        fun closeEngineSession(id: String) {
+            val engineSession = synchronized(values) {
+                values.firstOrNull { it.id == id }
+                    ?.engineSessionHolder?.engineSession
+            }
+
+            if (engineSession != null) {
+                val state = engineSession.saveState()
+                engineSession.requestClose(EngineSession.RequestCloseReason.LowMemory)
+
+                savedState[id] = state
+            }
+        }
+        fun trimFromBack() {
+            while (openSessions.size > trimDownTo) {
+                val sessionToClose = openSessions.pollLast() ?: break
+                closeEngineSession(sessionToClose)
+            }
+        }
+
+        bringSelectedSessionToFront()
+        trimFromBack()
     }
 
     /**
@@ -520,13 +587,14 @@ class LegacySessionManager(
      * can reduce its allocated objects.
      */
     fun onLowMemory() {
-        // Removing the all the thumbnails except for the selected session to
+        // Removing thumbnails and closing EngineSesions for all Sessions except the selected one to
         // reduce memory consumption.
         sessions.forEach {
             if (it != selectedSession) {
                 it.thumbnail = null
             }
         }
+        manageOpenSessions(trimDownTo = 1)
     }
 
     companion object {

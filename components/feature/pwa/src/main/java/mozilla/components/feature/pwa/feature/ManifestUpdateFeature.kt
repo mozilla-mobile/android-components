@@ -7,8 +7,8 @@ package mozilla.components.feature.pwa.feature
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import mozilla.components.browser.session.Session
@@ -64,7 +64,7 @@ class ManifestUpdateFeature(
     }
 
     override fun start() {
-        scope = MainScope()
+        scope = CoroutineScope(Dispatchers.IO)
         sessionManager.findSessionById(sessionId)?.register(this)
         updateUsageJob?.cancel()
 

@@ -7,6 +7,7 @@ package mozilla.components.browser.awesomebar.layout
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.MarginLayoutParams
 import android.widget.ImageView
 import android.widget.TextView
 import mozilla.components.browser.awesomebar.BrowserAwesomeBar
@@ -42,6 +43,10 @@ internal sealed class DefaultSuggestionViewHolder {
             } else {
                 descriptionView.visibility = View.VISIBLE
                 descriptionView.text = suggestion.description
+
+                val titleParams = titleView.layoutParams as MarginLayoutParams
+                titleParams.setMargins(0, 0, 0, 0)
+                titleView.requestLayout()
             }
 
             view.setOnClickListener {

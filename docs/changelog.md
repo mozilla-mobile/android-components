@@ -25,6 +25,8 @@ permalink: /changelog/
       * Labels in labeled metrics now have a correct, and slightly stricter, regular expression.
         See [label format](https://mozilla.github.io/glean/user/metrics/index.html#label-format) for more information.
 
+* **services-firefox-accounts**
+  * Adds an optional `tokenServerUrl` to `SyncConfig` to support self-hosted sync. 
 
 # 32.0.0
 

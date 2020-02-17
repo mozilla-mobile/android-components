@@ -47,10 +47,12 @@ data class DeviceConfig(
  * @property supportedEngines A set of supported sync engines, exposed via [GlobalSyncableStoreProvider].
  * @property syncPeriodInMinutes Optional, how frequently periodic sync should happen. If this is `null`,
  * periodic syncing will be disabled.
+ * @property tokenServerUrl Optional, override default tokenServerUrl to support self-hosted sync storage.
  */
 data class SyncConfig(
     val supportedEngines: Set<SyncEngine>,
-    val syncPeriodInMinutes: Long? = null
+    val syncPeriodInMinutes: Long? = null,
+    val tokenServerUrl: String? = null
 )
 
 /**

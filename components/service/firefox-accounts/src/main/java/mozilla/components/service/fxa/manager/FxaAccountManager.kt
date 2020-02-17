@@ -908,10 +908,16 @@ open class FxaAccountManager(
             return
         }
 
+        var tokenServerUrl = syncConfig?.tokenServerUrl
+        if (tokenServerUrl == null) {
+            tokenServerUrl = account.getTokenServerEndpointURL()
+        }
+
+        logger.info("caching tokenServerUrl: $tokenServerUrl")
         // NB: this call will inform authErrorRegistry in case an auth error is encountered.
         account.getAccessTokenAsync(SCOPE_SYNC).await()?.let {
             SyncAuthInfoCache(context).setToCache(
-                it.asSyncAuthInfo(account.getTokenServerEndpointURL())
+                it.asSyncAuthInfo(tokenServerUrl)
             )
         }
     }

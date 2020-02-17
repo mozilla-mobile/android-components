@@ -373,6 +373,62 @@ class FxaAccountManagerTest {
     }
 
     @Test
+    fun `updating sync config with optional tokenServerUrl`() = runBlocking {
+        val accountStorage: AccountStorage = mock()
+        val profile = Profile("testUid", "test@example.com", null, "Test Profile")
+        val constellation: DeviceConstellation = mockDeviceConstellation()
+
+        val syncAccessTokenExpiresAt = System.currentTimeMillis() + 10 * 60 * 1000L
+        val account = StatePersistenceTestableAccount(profile, constellation, tokenServerEndpointUrl = "https://some.server.com/test") {
+            AccessTokenInfo(
+                SCOPE_SYNC,
+                "arda",
+                OAuthScopedKey("kty-test", SCOPE_SYNC, "kid-test", "k-test"),
+                syncAccessTokenExpiresAt
+            )
+        }
+
+        // With a sync config including a tokenServerUrl this time
+        var latestSyncManager: TestSyncManager? = null
+        val syncConfig = SyncConfig(setOf(SyncEngine.History), syncPeriodInMinutes = 120L, tokenServerUrl = "https://different.server.com/test")
+        val manager = object : TestableFxaAccountManager(
+            context = testContext,
+            config = ServerConfig.release("dummyId", "http://auth-url/redirect"),
+            storage = accountStorage,
+            capabilities = setOf(DeviceCapability.SEND_TAB),
+            syncConfig = syncConfig,
+            coroutineContext = this@runBlocking.coroutineContext,
+            block = { account }
+        ) {
+            override fun createSyncManager(config: SyncConfig): SyncManager {
+                return TestSyncManager(config).also { latestSyncManager = it }
+            }
+        }
+
+        `when`(constellation.ensureCapabilitiesAsync(any())).thenReturn(CompletableDeferred(true))
+        // We have an account at the start.
+        `when`(accountStorage.read()).thenReturn(account)
+
+        val syncStatusObserver = TestSyncStatusObserver()
+        val lifecycleOwner: LifecycleOwner = mock()
+        val lifecycle: Lifecycle = mock()
+        `when`(lifecycle.currentState).thenReturn(Lifecycle.State.STARTED)
+        `when`(lifecycleOwner.lifecycle).thenReturn(lifecycle)
+        manager.registerForSyncEvents(syncStatusObserver, lifecycleOwner, true)
+        manager.initAsync().await()
+
+        // Make sure that tokenServerUrl was cached correctly.
+        assertFalse(SyncAuthInfoCache(testContext).expired())
+        val cachedAuthInfo = SyncAuthInfoCache(testContext).getCached()
+        assertNotNull(cachedAuthInfo)
+        assertEquals("https://different.server.com/test", cachedAuthInfo!!.tokenServerUrl)
+
+        // Can trigger syncs.
+        manager.syncNowAsync(SyncReason.User).await()
+        verify(latestSyncManager!!.dispatcher.inner, times(1)).syncNow(SyncReason.User, debounce = false)
+    }
+
+    @Test
     fun `migrating an account via copyAccountAsync - creating a new session token`() = runBlocking {
         // We'll test three scenarios:
         // - hitting a network issue during migration

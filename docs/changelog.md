@@ -38,6 +38,9 @@ permalink: /changelog/
 
 * **feature-contextmenu**
   * ⚠️ **This is a breaking change**: `customTabId` is renamed to `tabId`.
+  
+* **browser-menu**
+  * Emit fact on the web extension id when a web extension menu item is clicked.
 
 # 33.0.0
 

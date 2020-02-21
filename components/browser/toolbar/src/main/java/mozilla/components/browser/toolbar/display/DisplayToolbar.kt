@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.util.TypedValue
 import android.view.View
 import android.view.accessibility.AccessibilityEvent
@@ -25,6 +26,8 @@ import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
 import mozilla.components.browser.toolbar.internal.ActionContainer
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
+import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 
 /**
  * Sub-component of the browser toolbar responsible for displaying the URL and related controls ("display mode").
@@ -321,7 +324,9 @@ class DisplayToolbar internal constructor(
     var onUrlClicked: () -> Boolean
         get() = views.origin.onUrlClicked
         set(value) {
+            url = longUrl
             views.origin.onUrlClicked = value
+            updateIndicatorVisibility()
         }
 
     /**
@@ -435,9 +440,16 @@ class DisplayToolbar internal constructor(
     internal var url: CharSequence
         get() = views.origin.url
         set(value) {
-            views.origin.url = value
+            views.origin.url = Uri.parse(value.toString()).hostWithoutCommonPrefixes.toString()
             updateIndicatorVisibility()
         }
+
+    internal var longUrl: CharSequence
+        get() =  views.origin.url
+        set(value) {
+            views.origin.url = value
+        }
+
 
     /**
      * Sets the site's security icon as secure if true, else the regular globe.

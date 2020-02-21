@@ -444,6 +444,9 @@ class DisplayToolbar internal constructor(
             updateIndicatorVisibility()
         }
 
+    /**
+     * Preserves the original URL
+     */
     internal var longUrl: CharSequence
         get() =  views.origin.url
         set(value) {

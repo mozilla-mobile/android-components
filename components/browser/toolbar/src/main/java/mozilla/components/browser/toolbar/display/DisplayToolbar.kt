@@ -27,7 +27,6 @@ import mozilla.components.browser.toolbar.R
 import mozilla.components.browser.toolbar.internal.ActionContainer
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
-import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 
 /**
  * Sub-component of the browser toolbar responsible for displaying the URL and related controls ("display mode").
@@ -448,12 +447,11 @@ class DisplayToolbar internal constructor(
      * Preserves the original URL
      */
     internal var longUrl: CharSequence
-        get() =  views.origin.url
+        get() = views.origin.url
         set(value) {
             views.origin.url = value
         }
-
-
+    
     /**
      * Sets the site's security icon as secure if true, else the regular globe.
      */

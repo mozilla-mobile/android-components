@@ -49,6 +49,23 @@ class SessionFeatureTest {
     }
 
     @Test
+    fun `handleBackPressed deletes searchTerms`() {
+        val session = Session("https://www.mozilla.org")
+        whenever(sessionManager.selectedSession).thenReturn(session)
+        whenever(sessionManager.selectedSessionOrThrow).thenReturn(session)
+
+        val engineSession = mock<EngineSession>()
+        whenever(sessionManager.getOrCreateEngineSession(session)).thenReturn(engineSession)
+
+        val feature = SessionFeature(sessionManager, sessionUseCases, engineView)
+
+        session.canGoBack = true
+        session.searchTerms = "user search terms"
+        feature.onBackPressed()
+        assertTrue(session.searchTerms == "")
+    }
+
+    @Test
     fun `handleBackPressed uses sessionId`() {
         val session = Session("https://www.mozilla.org")
         val sessionAlt = Session("https://firefox.com")

@@ -51,6 +51,7 @@ class SessionFeature(
             engineView.clearSelection()
             return true
         } else if (session?.canGoBack == true) {
+            session.searchTerms = ""
             goBackUseCase(session)
             return true
         }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginStorageDelegate
+import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.support.base.log.logger.Logger
 
@@ -79,67 +80,23 @@ class GeckoLoginStorageDelegate(
     @Synchronized
     override fun onLoginSave(login: Login) {
         scope.launch {
-            val existingLogin = login.guid?.let { loginStorage.get(it) }
-
-            when (getPersistenceOperation(login, existingLogin)) {
-                Operation.UPDATE -> {
-                    existingLogin?.let { loginStorage.update(it.mergeWithLogin(login)) }
-                }
-                Operation.CREATE -> {
+            val validationDelegate = DefaultLoginValidationDelegate(loginStorage)
+            val validateDeferred = validationDelegate.validateCanPersist(login)
+            when (validateDeferred.await()) {
+                is LoginValidationDelegate.Result.CanBeCreated -> {
                     // If an existing Login was autofilled, we want to clear its guid to
                     // avoid updating its record
                     loginStorage.add(login.copy(guid = null))
                 }
+                is LoginValidationDelegate.Result.CanBeUpdated -> {
+                    loginStorage.update(login)
+                }
+                else -> {
+                    // We can't save or update for some reason
+                }
             }
         }
     }
-
-    /**
-     * Returns whether an existing login record should be UPDATED or a new one [CREATE]d, based
-     * on the saved [Login] and new [Login].
-     */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    fun getPersistenceOperation(newLogin: Login, savedLogin: Login?): Operation = when {
-        newLogin.guid.isNullOrEmpty() || savedLogin == null -> Operation.CREATE
-        newLogin.guid != savedLogin.guid -> {
-            logger.debug(
-                "getPersistenceOperation called with a non-null `savedLogin` with" +
-                        " a guid that does not match `newLogin`. This is unexpected. Falling back to create " +
-                        "new login."
-            )
-            Operation.CREATE
-        }
-        // This means a password was saved for this site with a blank username. Update that record
-        savedLogin.username.isEmpty() -> Operation.UPDATE
-        newLogin.username != savedLogin.username -> Operation.CREATE
-        else -> Operation.UPDATE
-    }
-}
-
-/**
- * Will use values from [this] if they are 1) non-null and 2) non-empty.  Otherwise, will fall
- * back to values from [this].
- */
-@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-fun Login.mergeWithLogin(login: Login): Login {
-    infix fun String?.orUseExisting(other: String?) =
-        if (this?.isNotEmpty() == true) this else other
-
-    infix fun String?.orUseExisting(other: String) = if (this?.isNotEmpty() == true) this else other
-
-    val origin = login.origin orUseExisting origin
-    val username = login.username orUseExisting username
-    val password = login.password orUseExisting password
-    val httpRealm = login.httpRealm orUseExisting httpRealm
-    val formActionOrigin = login.formActionOrigin orUseExisting formActionOrigin
-
-    return copy(
-        origin = origin,
-        username = username,
-        password = password,
-        httpRealm = httpRealm,
-        formActionOrigin = formActionOrigin
-    )
 }
 
 /**

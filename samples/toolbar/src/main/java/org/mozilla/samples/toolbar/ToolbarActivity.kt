@@ -26,15 +26,15 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.browser.domains.autocomplete.CustomDomainsProvider
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
-import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
-import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.browser.menu.item.BrowserMenuDivider
 import mozilla.components.browser.menu.item.BrowserMenuImageText
 import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.concept.menu.Menu
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
@@ -239,14 +239,14 @@ class ToolbarActivity : AppCompatActivity() {
         // Create a custom "menu item" implementation that resembles Focus' global content blocking switch.
         // //////////////////////////////////////////////////////////////////////////////////////////
 
-        val blocking = object : BrowserMenuItem {
+        val blocking = object : MenuItem {
             // Always display this item. This lambda is executed when the user clicks on the menu
             // button to determine whether this item should be shown.
             override val visible = { true }
 
             override fun getLayoutResource() = R.layout.focus_blocking_switch
 
-            override fun bind(menu: BrowserMenu, view: View) {
+            override fun bind(menu: Menu, view: View) {
                 // Nothing to do here.
             }
         }

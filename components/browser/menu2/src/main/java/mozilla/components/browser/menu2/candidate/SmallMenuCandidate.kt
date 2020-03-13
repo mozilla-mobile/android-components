@@ -4,6 +4,8 @@
 
 package mozilla.components.browser.menu2.candidate
 
+import mozilla.components.concept.menu.candidate.ContainerStyle
+
 /**
  * Small icon button menu option. Can only be used with [RowMenuCandidate].
  *

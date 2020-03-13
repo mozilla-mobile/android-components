@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation project(':concept-engine')
+    implementation project(':concept-menu')
     implementation project(':browser-toolbar')
     implementation project(':browser-menu')
     implementation project(':browser-domains')

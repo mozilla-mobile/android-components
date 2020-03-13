@@ -4,12 +4,8 @@
 
 package mozilla.components.browser.menu2.candidate
 
-/**
- * Menu option data classes to be shown in the browser menu.
- */
-sealed class MenuCandidate {
-    abstract val containerStyle: ContainerStyle
-}
+import mozilla.components.concept.menu.candidate.ContainerStyle
+import mozilla.components.concept.menu.candidate.MenuCandidate
 
 /**
  * Interactive menu option that displays some text.
@@ -30,7 +26,7 @@ data class TextMenuCandidate(
     override val containerStyle: ContainerStyle = ContainerStyle(),
     val effect: MenuCandidateEffect? = null,
     val onClick: () -> Unit = {}
-) : MenuCandidate()
+) : MenuCandidate
 
 /**
  * Menu option that displays static text.
@@ -45,7 +41,7 @@ data class DecorativeTextMenuCandidate(
     val height: Int? = null,
     val textStyle: TextStyle = TextStyle(),
     override val containerStyle: ContainerStyle = ContainerStyle()
-) : MenuCandidate()
+) : MenuCandidate
 
 /**
  * Menu option that shows a switch or checkbox.
@@ -67,7 +63,7 @@ data class CompoundMenuCandidate(
     override val containerStyle: ContainerStyle = ContainerStyle(),
     val effect: MenuCandidateEffect? = null,
     val onCheckedChange: (Boolean) -> Unit
-) : MenuCandidate() {
+) : MenuCandidate {
 
     /**
      * Compound button types to display with the compound menu option.
@@ -87,7 +83,7 @@ data class CompoundMenuCandidate(
 data class RowMenuCandidate(
     val items: List<SmallMenuCandidate>,
     override val containerStyle: ContainerStyle = ContainerStyle()
-) : MenuCandidate()
+) : MenuCandidate
 
 /**
  * Menu option to display a horizontal divider.
@@ -96,4 +92,4 @@ data class RowMenuCandidate(
  */
 data class DividerMenuCandidate(
     override val containerStyle: ContainerStyle = ContainerStyle()
-) : MenuCandidate()
+) : MenuCandidate

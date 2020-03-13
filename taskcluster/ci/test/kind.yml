@@ -18,7 +18,7 @@ jobs:
             # TODO Generate APKs in a build task instead
             gradlew: ['clean', 'assembleGeckoNightly', 'assembleAndroidTest']
             post-gradlew:
-                - ['automation/taskcluster/androidTest/ui-test.sh', 'glean', 'arm', '1']
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'browser', 'arm', '1']
             secrets:
                 - name: project/mobile/android-components/firebase
                   key: firebaseToken

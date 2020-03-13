@@ -27,7 +27,7 @@ jobs:
             using: gradlew
             use-caches: false
         # Enabling pull request for debugging
-        run-on-tasks-for: [github-pull-request, github-push]
+        run-on-tasks-for: [github-push]
         treeherder:
             kind: test
             platform: 'ui-test/opt'

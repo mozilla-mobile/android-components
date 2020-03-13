@@ -211,6 +211,10 @@ class BrowserToolbar @JvmOverloads constructor(
         this.urlCommitListener = listener
     }
 
+    override fun setOnUrlClicked(listener: () -> Boolean) {
+        display.onUrlClicked = listener
+    }
+
     /**
      * Declare that the actions (navigation actions, browser actions, page actions) have changed and
      * should be updated if needed.

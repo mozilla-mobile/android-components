@@ -94,6 +94,14 @@ interface Toolbar {
     fun setOnUrlCommitListener(listener: (String) -> Boolean)
 
     /**
+     * Registers the given function to be invoked whenever the URL in display mode was clicked.
+     *
+     * If the function returns `true` then the toolbar will switch to editing mode, else `false` will not switch
+     * to editing mode.
+     */
+    fun setOnUrlClicked(listener: () -> Boolean)
+
+    /**
      * Registers the given function to be invoked when users changes text in the toolbar.
      *
      * @param filter A function which will perform autocompletion and send results to [AutocompleteDelegate].

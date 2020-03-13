@@ -315,6 +315,21 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `toolbar will stay in display mode if URL clicked listener returns false`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.setOnUrlClicked { false }
+        toolbar.displayMode()
+
+        assertTrue(toolbar.edit.rootView.isGone)
+        assertTrue(toolbar.display.rootView.isVisible)
+
+        toolbar.performClick()
+
+        assertTrue(toolbar.edit.rootView.isGone)
+        assertTrue(toolbar.display.rootView.isVisible)
+    }
+
+    @Test
     fun `add browser action will be forwarded to display toolbar`() {
         val toolbar = BrowserToolbar(testContext)
         val display: DisplayToolbar = mock()

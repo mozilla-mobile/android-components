@@ -115,6 +115,13 @@ class BrowserToolbar @JvmOverloads constructor(
             }
         }
 
+    override var colors: Toolbar.Colors = Toolbar.Colors(display.colors, edit.colors)
+        set(value) {
+            field = value
+            display.colors = value.display
+            edit.colors = value.edit
+        }
+
     override var private: Boolean
         get() = edit.private
         set(value) { edit.private = value }

@@ -11,7 +11,6 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
-import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -56,25 +55,6 @@ class EditToolbar internal constructor(
     internal val rootView: View
 ) {
     private val logger = Logger("EditToolbar")
-
-    /**
-     * Data class holding the customizable colors in "edit mode".
-     *
-     * @property clear Color tint used for the "cancel" icon to leave "edit mode".
-     * @property icon Color tint of the icon displayed in front of the URL.
-     * @property hint Text color of the hint shown when the URL field is empty.
-     * @property text Text color of the URL.
-     * @property suggestionBackground The background color used for autocomplete suggestions.
-     * @property suggestionForeground The foreground color used for autocomplete suggestions.
-     */
-    data class Colors(
-        @ColorInt val clear: Int,
-        @ColorInt val icon: Int?,
-        @ColorInt val hint: Int,
-        @ColorInt val text: Int,
-        @ColorInt val suggestionBackground: Int,
-        @ColorInt val suggestionForeground: Int?
-    )
 
     private val autocompleteDispatcher = SupervisorJob() +
         Executors.newFixedThreadPool(AUTOCOMPLETE_QUERY_THREADS).asCoroutineDispatcher() +
@@ -122,7 +102,7 @@ class EditToolbar internal constructor(
     /**
      * Customizable colors in "edit mode".
      */
-    var colors: Colors = Colors(
+    var colors: Toolbar.EditColors = Toolbar.EditColors(
         clear = ContextCompat.getColor(context, R.color.photonWhite),
         icon = null,
         hint = views.url.currentHintTextColor,
@@ -135,8 +115,8 @@ class EditToolbar internal constructor(
 
         views.clear.setColorFilter(value.clear)
 
-        if (value.icon != null) {
-            views.icon.setColorFilter(value.icon)
+        value.icon?.let { color ->
+            views.icon.setColorFilter(color)
         }
 
         views.url.setHintTextColor(value.hint)

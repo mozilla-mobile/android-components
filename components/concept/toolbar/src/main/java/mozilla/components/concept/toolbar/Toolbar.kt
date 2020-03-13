@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import androidx.annotation.ColorInt
 import androidx.annotation.Dimension
 import androidx.annotation.Dimension.DP
 import androidx.annotation.DrawableRes
@@ -51,6 +52,11 @@ interface Toolbar {
      * Sets/Gets the site tracking protection state to be displayed on the toolbar.
      */
     var siteTrackingProtection: SiteTrackingProtection
+
+    /**
+     * Sets/Gets the colors for "display mode" and "edit mode".
+     */
+    var colors: Colors
 
     /**
      * Displays the currently used search terms as part of this Toolbar.
@@ -408,4 +414,59 @@ interface Toolbar {
          */
         OFF_GLOBALLY,
     }
+
+    /**
+     * Data class holding the customizable colors for "display mode" and "edit mode".
+     *
+     * @property display The colors for the "display mode", see [DisplayColors].
+     * @property edit The colors for the "edit mode", see [EditColors].
+     */
+    data class Colors(var display: DisplayColors, var edit: EditColors)
+
+    /**
+     * Data class holding the customizable colors in "display mode".
+     *
+     * @property securityIconSecure Color tint for the "secure connection" icon (lock).
+     * @property securityIconInsecure Color tint for the "insecure connection" icon (broken lock).
+     * @property emptyIcon Color tint for the icon shown when the URL is empty.
+     * @property menu Color tint for the menu icon.
+     * @property hint Text color of the hint shown when the URL is empty.
+     * @property title Text color of the website title.
+     * @property text Text color of the URL.
+     * @property trackingProtection Color tint for the tracking protection icons.
+     * @property separator Color tint for the separator shown between indicators.
+     *
+     * Set/Get the site security icon colours. It uses a pair of color integers which represent the
+     * insecure and secure colours respectively.
+     */
+    data class DisplayColors(
+        @ColorInt val securityIconSecure: Int,
+        @ColorInt val securityIconInsecure: Int,
+        @ColorInt val emptyIcon: Int,
+        @ColorInt val menu: Int,
+        @ColorInt val hint: Int,
+        @ColorInt val title: Int,
+        @ColorInt val text: Int,
+        @ColorInt val trackingProtection: Int?,
+        @ColorInt val separator: Int
+    )
+
+    /**
+     * Data class holding the customizable colors in "edit mode".
+     *
+     * @property clear Color tint used for the "cancel" icon to leave "edit mode".
+     * @property icon Color tint of the icon displayed in front of the URL.
+     * @property hint Text color of the hint shown when the URL field is empty.
+     * @property text Text color of the URL.
+     * @property suggestionBackground The background color used for autocomplete suggestions.
+     * @property suggestionForeground The foreground color used for autocomplete suggestions.
+     */
+    data class EditColors(
+        @ColorInt val clear: Int,
+        @ColorInt val icon: Int?,
+        @ColorInt val hint: Int,
+        @ColorInt val text: Int,
+        @ColorInt val suggestionBackground: Int,
+        @ColorInt val suggestionForeground: Int?
+    )
 }

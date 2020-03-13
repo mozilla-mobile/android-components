@@ -80,34 +80,6 @@ class DisplayToolbar internal constructor(
     }
 
     /**
-     * Data class holding the customizable colors in "display mode".
-     *
-     * @property securityIconSecure Color tint for the "secure connection" icon (lock).
-     * @property securityIconInsecure Color tint for the "insecure connection" icon (broken lock).
-     * @property emptyIcon Color tint for the icon shown when the URL is empty.
-     * @property menu Color tint for the menu icon.
-     * @property hint Text color of the hint shown when the URL is empty.
-     * @property title Text color of the website title.
-     * @property text Text color of the URL.
-     * @property trackingProtection Color tint for the tracking protection icons.
-     * @property separator Color tint for the separator shown between indicators.
-     *
-     * Set/Get the site security icon colours. It uses a pair of color integers which represent the
-     * insecure and secure colours respectively.
-     */
-    data class Colors(
-        @ColorInt val securityIconSecure: Int,
-        @ColorInt val securityIconInsecure: Int,
-        @ColorInt val emptyIcon: Int,
-        @ColorInt val menu: Int,
-        @ColorInt val hint: Int,
-        @ColorInt val title: Int,
-        @ColorInt val text: Int,
-        @ColorInt val trackingProtection: Int?,
-        @ColorInt val separator: Int
-    )
-
-    /**
      * Data class holding the customizable icons in "display mode".
      *
      * @property emptyIcon An icon that is shown in front of the URL if the URL is empty.
@@ -167,7 +139,7 @@ class DisplayToolbar internal constructor(
     /**
      * Customizable colors in "display mode".
      */
-    var colors: Colors = Colors(
+    var colors: Toolbar.DisplayColors = Toolbar.DisplayColors(
         securityIconSecure = ContextCompat.getColor(context, R.color.photonWhite),
         securityIconInsecure = ContextCompat.getColor(context, R.color.photonWhite),
         emptyIcon = ContextCompat.getColor(context, R.color.photonWhite),
@@ -189,8 +161,8 @@ class DisplayToolbar internal constructor(
         views.origin.textColor = value.text
         views.separator.setColorFilter(value.separator)
 
-        if (value.trackingProtection != null) {
-            views.trackingProtectionIndicator.setColorFilter(value.trackingProtection)
+        value.trackingProtection?.let { color ->
+            views.trackingProtectionIndicator.setColorFilter(color)
         }
     }
 

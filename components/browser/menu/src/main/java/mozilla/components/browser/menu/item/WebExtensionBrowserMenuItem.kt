@@ -14,15 +14,15 @@ import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import mozilla.components.browser.menu.BrowserMenu
-import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.browser.menu.R
-import mozilla.components.browser.menu2.candidate.ContainerStyle
 import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
 import mozilla.components.browser.menu2.candidate.TextMenuCandidate
 import mozilla.components.browser.menu2.candidate.TextMenuIcon
 import mozilla.components.browser.menu2.candidate.TextStyle
 import mozilla.components.concept.engine.webextension.Action
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.candidate.ContainerStyle
 import mozilla.components.support.base.log.Log
 
 /**
@@ -34,13 +34,13 @@ import mozilla.components.support.base.log.Log
 class WebExtensionBrowserMenuItem(
     internal var action: Action,
     internal val listener: () -> Unit
-) : BrowserMenuItem {
+) : MenuItem {
     override var visible: () -> Boolean = { true }
 
     override fun getLayoutResource() = R.layout.mozac_browser_menu_web_extension
 
     @Suppress("TooGenericExceptionCaught")
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         val imageView = view.findViewById<ImageView>(R.id.action_image)
         val labelView = view.findViewById<TextView>(R.id.action_label)
         val badgeView = view.findViewById<TextView>(R.id.badge_text)

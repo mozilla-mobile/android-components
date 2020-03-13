@@ -20,8 +20,10 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.widget.PopupWindowCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import mozilla.components.browser.menu.BrowserMenu.Orientation.DOWN
-import mozilla.components.browser.menu.BrowserMenu.Orientation.UP
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.Menu.Orientation
+import mozilla.components.concept.menu.Menu.Orientation.DOWN
+import mozilla.components.concept.menu.Menu.Orientation.UP
 import mozilla.components.support.ktx.android.view.isRTL
 import mozilla.components.support.ktx.android.view.onNextGlobalLayout
 
@@ -30,22 +32,19 @@ import mozilla.components.support.ktx.android.view.onNextGlobalLayout
  */
 open class BrowserMenu internal constructor(
     internal val adapter: BrowserMenuAdapter
-) {
+) : Menu {
     protected var currentPopup: PopupWindow? = null
     private var menuList: RecyclerView? = null
 
     /**
-     * @param anchor the view on which to pin the popup window.
-     * @param orientation the preferred orientation to show the popup window.
-     * @param endOfMenuAlwaysVisible when is set to true makes sure the bottom of the menu is always visible otherwise,
-     *  the top of the menu is always visible.
+     * See [Menu.show].
      */
     @SuppressLint("InflateParams")
-    open fun show(
+    override fun show(
         anchor: View,
-        orientation: Orientation = DOWN,
-        endOfMenuAlwaysVisible: Boolean = false,
-        onDismiss: () -> Unit = {}
+        orientation: Orientation,
+        endOfMenuAlwaysVisible: Boolean,
+        onDismiss: () -> Unit
     ): PopupWindow {
         val view = LayoutInflater.from(anchor.context).inflate(R.layout.mozac_browser_menu, null)
 
@@ -109,11 +108,17 @@ open class BrowserMenu internal constructor(
         }
     }
 
-    fun dismiss() {
+    /**
+     * See [Menu.dismiss].
+     */
+    override fun dismiss() {
         currentPopup?.dismiss()
     }
 
-    fun invalidate() {
+    /**
+     * See [Menu.invalidate].
+     */
+    override fun invalidate() {
         menuList?.let { adapter.invalidate(it) }
     }
 
@@ -138,18 +143,13 @@ open class BrowserMenu internal constructor(
             }
         }
     }
-
-    enum class Orientation {
-        UP,
-        DOWN
-    }
 }
 
 @VisibleForTesting
 internal fun PopupWindow.displayPopup(
     containerView: View,
     anchor: View,
-    preferredOrientation: BrowserMenu.Orientation
+    preferredOrientation: Orientation
 ) {
     // Measure menu
     val spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)

@@ -13,6 +13,8 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.WebExtensionBrowserAction
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -50,7 +52,7 @@ class WebExtensionBrowserMenuBuilderTest {
 
         val builder =
             WebExtensionBrowserMenuBuilder(
-                listOf(mockMenuItem(), mockMenuItem()),
+                mutableListOf(mockMenuItem(), mockMenuItem()),
                 store = store,
                 appendExtensionActionAtStart = true)
 
@@ -99,7 +101,7 @@ class WebExtensionBrowserMenuBuilderTest {
 
         val builder =
             WebExtensionBrowserMenuBuilder(
-                listOf(mockMenuItem(), mockMenuItem()),
+                mutableListOf(mockMenuItem(), mockMenuItem()),
                 store = store,
                 appendExtensionActionAtStart = false
             )
@@ -122,11 +124,11 @@ class WebExtensionBrowserMenuBuilderTest {
         assertEquals("browser_action", (menuItem as WebExtensionBrowserMenuItem).action.title)
     }
 
-    private fun mockMenuItem() = object : BrowserMenuItem {
+    private fun mockMenuItem() = object : MenuItem {
         override val visible: () -> Boolean = { true }
 
         override fun getLayoutResource() = R.layout.mozac_browser_menu_item_simple
 
-        override fun bind(menu: BrowserMenu, view: View) {}
+        override fun bind(menu: Menu, view: View) {}
     }
 }

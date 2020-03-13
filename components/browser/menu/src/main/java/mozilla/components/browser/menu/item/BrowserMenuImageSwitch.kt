@@ -10,10 +10,10 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.SwitchCompat
-import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.R
 import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
 import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
+import mozilla.components.concept.menu.Menu
 import java.lang.reflect.Modifier
 
 /**
@@ -34,7 +34,7 @@ class BrowserMenuImageSwitch(
 ) : BrowserMenuCompoundButton(label, initialState, listener) {
     override fun getLayoutResource(): Int = R.layout.mozac_browser_menu_item_image_switch
 
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         super.bind(menu, view.findViewById<SwitchCompat>(R.id.switch_widget))
         bindImage(view)
     }

@@ -9,13 +9,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.concept.menu.MenuItem
 
 /**
  * Adapter implementation used by the browser menu to display menu items in a RecyclerView.
  */
 internal class BrowserMenuAdapter(
     context: Context,
-    items: List<BrowserMenuItem>
+    items: List<MenuItem>
 ) : RecyclerView.Adapter<BrowserMenuItemViewHolder>() {
     var menu: BrowserMenu? = null
 

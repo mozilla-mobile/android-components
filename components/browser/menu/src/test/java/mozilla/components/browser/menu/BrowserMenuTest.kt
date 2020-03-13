@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
+import mozilla.components.concept.menu.Menu
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -181,7 +182,7 @@ class BrowserMenuTest {
     @Test
     fun `determineMenuOrientation returns Orientation-DOWN by default`() {
         assertEquals(
-            BrowserMenu.Orientation.DOWN,
+            Menu.Orientation.DOWN,
             BrowserMenu.determineMenuOrientation(mock())
         )
     }
@@ -195,7 +196,7 @@ class BrowserMenuTest {
         view.layoutParams = params
 
         assertEquals(
-            BrowserMenu.Orientation.UP,
+            Menu.Orientation.UP,
             BrowserMenu.determineMenuOrientation(view)
         )
     }
@@ -209,7 +210,7 @@ class BrowserMenuTest {
         view.layoutParams = params
 
         assertEquals(
-            BrowserMenu.Orientation.DOWN,
+            Menu.Orientation.DOWN,
             BrowserMenu.determineMenuOrientation(view)
         )
     }
@@ -225,7 +226,7 @@ class BrowserMenuTest {
         doReturn(11).`when`(menuContentView).measuredHeight
         doReturn(-10).`when`(anchor).height
 
-        popupWindow.displayPopup(menuContentView, anchor, BrowserMenu.Orientation.DOWN)
+        popupWindow.displayPopup(menuContentView, anchor, Menu.Orientation.DOWN)
 
         assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuTop)
         verify(popupWindow).showAsDropDown(anchor, 0, 10)
@@ -242,7 +243,7 @@ class BrowserMenuTest {
         doReturn(11).`when`(menuContentView).measuredHeight
         doReturn(-10).`when`(anchor).height
 
-        popupWindow.displayPopup(menuContentView, anchor, BrowserMenu.Orientation.UP)
+        popupWindow.displayPopup(menuContentView, anchor, Menu.Orientation.UP)
 
         assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuTop)
         verify(popupWindow).showAsDropDown(anchor, 0, 10)
@@ -262,7 +263,7 @@ class BrowserMenuTest {
         // Makes the content of the menu smaller than the availableHeightToTop
         doReturn(9).`when`(containerView).measuredHeight
 
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.UP)
+        popupWindow.displayPopup(containerView, anchor, Menu.Orientation.UP)
 
         assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
         verify(popupWindow).showAsDropDown(anchor, 0, -9)
@@ -283,7 +284,7 @@ class BrowserMenuTest {
         // Makes the content of the menu smaller than the availableHeightToTop
         doReturn(contentHeight).`when`(containerView).measuredHeight
 
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.DOWN)
+        popupWindow.displayPopup(containerView, anchor, Menu.Orientation.DOWN)
 
         assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
         verify(popupWindow).showAsDropDown(anchor, 0, -contentHeight)
@@ -305,7 +306,7 @@ class BrowserMenuTest {
         // Makes the content of the menu smaller than the availableHeightToTop
         doReturn(contentHeight).`when`(containerView).measuredHeight
 
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.UP)
+        popupWindow.displayPopup(containerView, anchor, Menu.Orientation.UP)
 
         assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
         verify(popupWindow).showAsDropDown(anchor, 0, screenHeight - contentHeight)
@@ -318,7 +319,7 @@ class BrowserMenuTest {
         val popupWindow = spy(PopupWindow())
         doReturn(Int.MAX_VALUE).`when`(containerView).measuredHeight
 
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.DOWN)
+        popupWindow.displayPopup(containerView, anchor, Menu.Orientation.DOWN)
         verify(popupWindow).showAtLocation(anchor, Gravity.START or Gravity.TOP, 0, 0)
     }
 

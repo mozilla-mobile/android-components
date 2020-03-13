@@ -5,14 +5,14 @@
 package mozilla.components.browser.menu.ext
 
 import mozilla.components.browser.menu.BrowserMenuHighlight
-import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.browser.menu.HighlightableMenuItem
 
 /**
  * Get the highlight effect present in the list of menu items, if any.
  */
 @Suppress("Deprecation")
-fun List<BrowserMenuItem>.getHighlight() = asSequence()
+fun List<MenuItem>.getHighlight() = asSequence()
     .filter { it.visible() }
     .mapNotNull { it as? HighlightableMenuItem }
     .filter { it.isHighlighted() }

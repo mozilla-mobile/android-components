@@ -8,9 +8,12 @@ import android.view.View
 import android.widget.ImageButton
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -19,7 +22,7 @@ class BrowserMenuBuilderTest {
 
     @Test
     fun `items are forwarded from builder to menu`() {
-        val builder = BrowserMenuBuilder(listOf(mockMenuItem(), mockMenuItem()))
+        val builder = BrowserMenuBuilder(mutableListOf(mockMenuItem(), mockMenuItem()))
 
         val menu = builder.build(testContext)
 
@@ -34,11 +37,50 @@ class BrowserMenuBuilderTest {
         assertEquals(2, recyclerAdapter.itemCount)
     }
 
-    private fun mockMenuItem() = object : BrowserMenuItem {
+    @Test
+    fun `menu item added appended if index too large`() {
+        val builder = BrowserMenuBuilder(mutableListOf(mockMenuItem(), mockMenuItem()))
+
+        builder.addAllMenus(4, listOf(mockMenuItem(1234)))
+
+        assertEquals(3, builder.items.size)
+        assertEquals(1234, builder.items[2].getLayoutResource())
+    }
+
+    @Test
+    fun `menu item added appended if index too small`() {
+        val builder = BrowserMenuBuilder(mutableListOf(mockMenuItem(), mockMenuItem()))
+
+        builder.addAllMenus(-4, listOf(mockMenuItem(4567)))
+
+        assertEquals(3, builder.items.size)
+        assertEquals(4567, builder.items[0].getLayoutResource())
+    }
+
+    @Test
+    fun `menu item added with empty menu`() {
+        val builder = BrowserMenuBuilder(mutableListOf())
+
+        builder.addAllMenus(4, listOf(mockMenuItem(4567)))
+
+        assertEquals(1, builder.items.size)
+        assertEquals(4567, builder.items[0].getLayoutResource())
+    }
+
+    @Test
+    fun `menu facts added`() {
+        val builder = BrowserMenuBuilder(mutableListOf(mockMenuItem(), mockMenuItem()))
+
+        builder.addFactExtra("customtab", true)
+
+        assertTrue(builder.extras["customtab"] as Boolean)
+    }
+
+    private fun mockMenuItem(layoutRes: Int = R.layout.mozac_browser_menu_item_simple) = object : MenuItem {
         override val visible: () -> Boolean = { true }
 
-        override fun getLayoutResource() = R.layout.mozac_browser_menu_item_simple
+        override fun getLayoutResource() = layoutRes
 
-        override fun bind(menu: BrowserMenu, view: View) {}
+        override fun bind(menu: Menu, view: View) {}
     }
 }

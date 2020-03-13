@@ -12,13 +12,13 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.isVisible
-import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuHighlight
 import mozilla.components.browser.menu.HighlightableMenuItem
 import mozilla.components.browser.menu.R
 import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
 import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
 import mozilla.components.browser.menu2.candidate.LowPriorityHighlightEffect
+import mozilla.components.concept.menu.Menu
 
 /**
  * A browser menu switch that can show a highlighted icon.
@@ -42,7 +42,7 @@ class BrowserMenuHighlightableSwitch(
 
     override fun getLayoutResource(): Int = R.layout.mozac_browser_menu_highlightable_switch
 
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         super.bind(menu, view.findViewById<SwitchCompat>(R.id.switch_widget))
         setTints(view)
 

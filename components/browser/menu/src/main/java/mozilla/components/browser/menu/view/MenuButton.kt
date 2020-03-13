@@ -14,10 +14,11 @@ import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import mozilla.components.browser.menu.BrowserMenu
-import mozilla.components.browser.menu.BrowserMenu.Orientation
-import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.BrowserMenuHighlight
 import mozilla.components.browser.menu.R
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.Menu.Orientation
+import mozilla.components.concept.menu.MenuBuilder
 
 /**
  * A `three-dot` button used for expanding menus.
@@ -46,14 +47,14 @@ class MenuButton @JvmOverloads constructor(
         BrowserMenu.determineMenuOrientation(parent as? View?)
     }
 
-    var menuBuilder: BrowserMenuBuilder? = null
+    var menuBuilder: MenuBuilder? = null
         set(value) {
             field = value
             menu?.dismiss()
             if (value == null) menu = null
         }
 
-    @VisibleForTesting internal var menu: BrowserMenu? = null
+    @VisibleForTesting internal var menu: Menu? = null
 
     private val menuIcon: ImageView
     private val highlightView: ImageView

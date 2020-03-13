@@ -7,6 +7,7 @@ package mozilla.components.browser.menu
 import android.content.Context
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.menu.MenuItem
 
 /**
  * Browser menu builder with web extension support. It allows [WebExtensionBrowserMenu] to add
@@ -17,8 +18,8 @@ import mozilla.components.browser.state.store.BrowserStore
  * false if web extensions appear at the bottom of the menu. Default to false (bottom).
  */
 class WebExtensionBrowserMenuBuilder(
-    items: List<BrowserMenuItem>,
-    extras: Map<String, Any> = emptyMap(),
+    items: MutableList<MenuItem>,
+    extras: MutableMap<String, Any> = mutableMapOf(),
     endOfMenuAlwaysVisible: Boolean = false,
     private val store: BrowserStore,
     private val appendExtensionActionAtStart: Boolean = false

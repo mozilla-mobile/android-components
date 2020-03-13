@@ -7,6 +7,8 @@ package mozilla.components.browser.menu
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
@@ -120,7 +122,7 @@ class BrowserMenuAdapterTest {
         assertEquals(6, adapter.interactiveCount)
     }
 
-    private fun List<BrowserMenuItem>.assertTrueForOne(predicate: (BrowserMenuItem) -> Boolean) {
+    private fun List<MenuItem>.assertTrueForOne(predicate: (MenuItem) -> Boolean) {
         for (item in this) {
             if (predicate(item)) {
                 return
@@ -129,7 +131,7 @@ class BrowserMenuAdapterTest {
         fail("Predicate false for all items")
     }
 
-    private fun List<BrowserMenuItem>.assertTrueForAll(predicate: (BrowserMenuItem) -> Boolean) {
+    private fun List<MenuItem>.assertTrueForAll(predicate: (MenuItem) -> Boolean) {
         for (item in this) {
             if (!predicate(item)) {
                 fail("Predicate not true for all items")
@@ -141,15 +143,15 @@ class BrowserMenuAdapterTest {
         layout: Int = 0,
         visible: () -> Boolean = { true },
         interactiveCount: () -> Int = { 1 }
-    ): BrowserMenuItem {
-        return object : BrowserMenuItem {
+    ): MenuItem {
+        return object : MenuItem {
             override val visible = visible
 
             override val interactiveCount = interactiveCount
 
             override fun getLayoutResource() = layout
 
-            override fun bind(menu: BrowserMenu, view: View) {}
+            override fun bind(menu: Menu, view: View) {}
 
             override fun invalidate(view: View) {}
         }

@@ -13,13 +13,13 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.content.ContextCompat.getColor
-import mozilla.components.browser.menu.BrowserMenu
-import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.browser.menu.R
-import mozilla.components.browser.menu2.candidate.ContainerStyle
 import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
 import mozilla.components.browser.menu2.candidate.RowMenuCandidate
 import mozilla.components.browser.menu2.candidate.SmallMenuCandidate
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.candidate.ContainerStyle
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 
 /**
@@ -27,14 +27,14 @@ import mozilla.components.support.ktx.android.content.res.resolveAttribute
  */
 class BrowserMenuItemToolbar(
     private val items: List<Button>
-) : BrowserMenuItem {
+) : MenuItem {
     override var visible: () -> Boolean = { true }
 
     override val interactiveCount: () -> Int = { items.size }
 
     override fun getLayoutResource() = R.layout.mozac_browser_menu_item_toolbar
 
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         val layout = view as LinearLayout
         layout.removeAllViews()
 

@@ -9,14 +9,14 @@ import android.view.View
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat.getColor
-import mozilla.components.browser.menu.BrowserMenu
-import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.browser.menu.R
-import mozilla.components.browser.menu2.candidate.ContainerStyle
 import mozilla.components.browser.menu2.candidate.DecorativeTextMenuCandidate
-import mozilla.components.browser.menu2.candidate.MenuCandidate
 import mozilla.components.browser.menu2.candidate.TextMenuCandidate
 import mozilla.components.browser.menu2.candidate.TextStyle
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.candidate.ContainerStyle
+import mozilla.components.concept.menu.candidate.MenuCandidate
 
 /**
  * A simple browser menu item displaying text.
@@ -32,12 +32,12 @@ class SimpleBrowserMenuItem(
     @ColorRes
     private val textColorResource: Int = NO_ID,
     private val listener: (() -> Unit)? = null
-) : BrowserMenuItem {
+) : MenuItem {
     override var visible: () -> Boolean = { true }
 
     override fun getLayoutResource() = R.layout.mozac_browser_menu_item_simple
 
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         val textView = view as TextView
         textView.text = label
 

@@ -17,6 +17,8 @@ import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.Action
+import mozilla.components.concept.menu.Menu.Orientation
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 
@@ -68,8 +70,8 @@ class WebExtensionBrowserMenu internal constructor(
         internal fun getOrUpdateWebExtensionMenuItems(
             state: BrowserState,
             tab: SessionState? = null
-        ): List<BrowserMenuItem> {
-            val menuItems = ArrayList<BrowserMenuItem>()
+        ): List<MenuItem> {
+            val menuItems = ArrayList<MenuItem>()
             val extensions = state.extensions.values.toList()
             extensions.filter { it.enabled }.sortedBy { it.name }
                 .forEach { extension ->
@@ -100,7 +102,7 @@ class WebExtensionBrowserMenu internal constructor(
             extension: WebExtensionState,
             globalAction: Action,
             tabAction: Action?,
-            menuItems: ArrayList<BrowserMenuItem>,
+            menuItems: ArrayList<MenuItem>,
             isPageAction: Boolean = false
         ): Boolean {
             val actionMap = if (isPageAction) webExtensionPageActions else webExtensionBrowserActions

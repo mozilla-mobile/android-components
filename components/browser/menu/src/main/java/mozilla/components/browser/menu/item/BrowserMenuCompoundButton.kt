@@ -8,15 +8,15 @@ import android.content.Context
 import android.view.View
 import android.widget.CompoundButton
 import androidx.annotation.VisibleForTesting
-import mozilla.components.browser.menu.BrowserMenu
-import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.concept.menu.MenuItem
 import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
-import mozilla.components.browser.menu2.candidate.ContainerStyle
+import mozilla.components.concept.menu.Menu
+import mozilla.components.concept.menu.candidate.ContainerStyle
 import java.lang.reflect.Modifier.PRIVATE
 
 /**
  * A browser menu compound button. A basic sub-class would only have to provide a layout resource to
- * satisfy [BrowserMenuItem.getLayoutResource] which contains a [View] that inherits from [CompoundButton].
+ * satisfy [MenuItem.getLayoutResource] which contains a [View] that inherits from [CompoundButton].
  *
  * @param label The visible label of this menu item.
  * @param initialState The initial value the checkbox should have.
@@ -27,10 +27,10 @@ abstract class BrowserMenuCompoundButton(
     val label: String,
     private val initialState: () -> Boolean = { false },
     private val listener: (Boolean) -> Unit
-) : BrowserMenuItem {
+) : MenuItem {
     override var visible: () -> Boolean = { true }
 
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         (view as CompoundButton).apply {
             text = label
             isChecked = initialState()

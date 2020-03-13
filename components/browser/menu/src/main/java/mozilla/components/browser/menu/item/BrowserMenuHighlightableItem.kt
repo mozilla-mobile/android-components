@@ -11,7 +11,6 @@ import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageView
-import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuHighlight
 import mozilla.components.browser.menu.HighlightableMenuItem
 import mozilla.components.browser.menu.R
@@ -19,6 +18,7 @@ import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
 import mozilla.components.browser.menu2.candidate.HighPriorityHighlightEffect
 import mozilla.components.browser.menu2.candidate.LowPriorityHighlightEffect
 import mozilla.components.browser.menu2.candidate.TextMenuCandidate
+import mozilla.components.concept.menu.Menu
 
 @Suppress("Deprecation")
 private val defaultHighlight = BrowserMenuHighlightableItem.Highlight(0, 0, 0, 0)
@@ -77,7 +77,7 @@ class BrowserMenuHighlightableItem(
 
     override fun getLayoutResource() = R.layout.mozac_browser_menu_highlightable_item
 
-    override fun bind(menu: BrowserMenu, view: View) {
+    override fun bind(menu: Menu, view: View) {
         super.bind(menu, view)
 
         val endImageView = view.findViewById<AppCompatImageView>(R.id.end_image)

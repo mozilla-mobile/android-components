@@ -14,15 +14,13 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
-import mozilla.components.browser.menu.BrowserMenuBuilder
-import mozilla.components.browser.menu.BrowserMenuItem
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.runWithSession
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
 import mozilla.components.browser.state.state.CustomTabMenuItem
-import mozilla.components.browser.toolbar.BrowserToolbar
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.customtabs.feature.CustomTabSessionTitleObserver
 import mozilla.components.support.base.feature.LifecycleAwareFeature
@@ -45,9 +43,9 @@ import mozilla.components.support.utils.ColorUtils.getReadableTextColor
 @Suppress("LargeClass")
 class CustomTabsToolbarFeature(
     private val sessionManager: SessionManager,
-    private val toolbar: BrowserToolbar,
+    private val toolbar: Toolbar,
     private val sessionId: String? = null,
-    private val menuBuilder: BrowserMenuBuilder? = null,
+    private val menuBuilder: MenuBuilder? = null,
     private val menuItemIndex: Int = menuBuilder?.items?.size ?: 0,
     private val window: Window? = null,
     private val shareListener: (() -> Unit)? = null,
@@ -55,7 +53,7 @@ class CustomTabsToolbarFeature(
 ) : LifecycleAwareFeature, UserInteractionHandler {
 
     private val sessionObserver = CustomTabSessionTitleObserver(toolbar)
-    private val context get() = toolbar.context
+    private val context get() = toolbar.asView().context
     internal var initialized = false
     internal var readableColor = Color.WHITE
 
@@ -86,7 +84,7 @@ class CustomTabsToolbarFeature(
         val config = session.customTabConfig ?: return false
 
         // Don't allow clickable toolbar so a custom tab can't switch to edit mode.
-        toolbar.display.onUrlClicked = { false }
+        toolbar.setOnUrlClicked { false }
 
         // If it's available, hold on to the readable colour for other assets.
         config.toolbarColor?.let {
@@ -120,16 +118,16 @@ class CustomTabsToolbarFeature(
     @VisibleForTesting
     internal fun updateToolbarColor(@ColorInt toolbarColor: Int?, @ColorInt navigationBarColor: Int?) {
         toolbarColor?.let { color ->
-            toolbar.setBackgroundColor(color)
+            toolbar.asView().setBackgroundColor(color)
 
-            toolbar.display.colors = toolbar.display.colors.copy(
+            toolbar.colors = toolbar.colors.copy(display = toolbar.colors.display.copy(
                 text = readableColor,
                 title = readableColor,
                 securityIconSecure = readableColor,
                 securityIconInsecure = readableColor,
                 trackingProtection = readableColor,
                 menu = readableColor
-            )
+            ))
 
             window?.setStatusBarTheme(color)
         }
@@ -214,26 +212,17 @@ class CustomTabsToolbarFeature(
         menuItems: List<CustomTabMenuItem>,
         index: Int
     ) {
-        menuItems.map { item ->
+        val items = menuItems.map { item ->
             SimpleBrowserMenuItem(item.name) {
                 item.pendingIntent.sendWithSession(session)
             }
-        }.also { items ->
-            val combinedItems = menuBuilder?.let { builder ->
-                val newMenuItemList = mutableListOf<BrowserMenuItem>()
-                val insertIndex = index.coerceIn(0, builder.items.size)
+        }
 
-                newMenuItemList.apply {
-                    addAll(builder.items)
-                    addAll(insertIndex, items)
-                }
-            } ?: items
+        menuBuilder?.let { builder ->
+            builder.addAllMenus(index, items)
+            builder.addFactExtra("customTab", true)
 
-            val combinedExtras = menuBuilder?.let { builder ->
-                builder.extras + Pair("customTab", true)
-            }
-
-            toolbar.display.menuBuilder = BrowserMenuBuilder(combinedItems, combinedExtras.orEmpty())
+            toolbar.addMenu(builder)
         }
     }
 

@@ -6,6 +6,7 @@ package mozilla.components.feature.customtabs.feature
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.test.ThrowProperty
@@ -68,11 +69,13 @@ class CustomTabSessionTitleObserverTest {
         override var private: Boolean by ThrowProperty()
         override var siteSecure: Toolbar.SiteSecurity by ThrowProperty()
         override var siteTrackingProtection: Toolbar.SiteTrackingProtection by ThrowProperty()
+        override var colors: Toolbar.Colors by ThrowProperty()
         override fun setSearchTerms(searchTerms: String) = Unit
         override fun displayProgress(progress: Int) = Unit
         override fun onBackPressed(): Boolean = false
         override fun onStop() = Unit
         override fun setOnUrlCommitListener(listener: (String) -> Boolean) = Unit
+        override fun setOnUrlClicked(listener: () -> Boolean) = Unit
         override fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit) = Unit
         override fun addBrowserAction(action: Toolbar.Action) = Unit
         override fun removeBrowserAction(action: Toolbar.Action) = Unit
@@ -81,6 +84,7 @@ class CustomTabSessionTitleObserverTest {
         override fun removePageAction(action: Toolbar.Action) = Unit
         override fun addNavigationAction(action: Toolbar.Action) = Unit
         override fun addEditAction(action: Toolbar.Action) = Unit
+        override fun addMenu(menuBuilder: MenuBuilder) = Unit
         override fun setOnEditListener(listener: Toolbar.OnEditListener) = Unit
         override fun displayMode() = Unit
         override fun editMode() = Unit

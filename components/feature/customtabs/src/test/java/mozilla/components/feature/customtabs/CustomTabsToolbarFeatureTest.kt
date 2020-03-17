@@ -14,7 +14,6 @@ import android.widget.ImageButton
 import androidx.core.view.forEach
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenuBuilder
-import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
@@ -24,6 +23,7 @@ import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -343,7 +343,7 @@ class CustomTabsToolbarFeatureTest {
         val customTabConfig: CustomTabConfig = mock()
         `when`(session.customTabConfig).thenReturn(customTabConfig)
         `when`(customTabConfig.menuItems).thenReturn(emptyList())
-        `when`(menuBuilder.items).thenReturn(listOf(mock(), mock()))
+        `when`(menuBuilder.items).thenReturn(mutableListOf(mock(), mock()))
 
         val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", menuBuilder) {})
 
@@ -373,7 +373,7 @@ class CustomTabsToolbarFeatureTest {
         feature.initialize(session)
 
         // With only builder and items.
-        `when`(menuBuilder.items).thenReturn(listOf())
+        `when`(menuBuilder.items).thenReturn(mutableListOf())
 
         feature.initialize(session)
 
@@ -388,39 +388,6 @@ class CustomTabsToolbarFeatureTest {
     }
 
     @Test
-    fun `menu items added WITHOUT current items`() {
-        val session: Session = mock()
-        val toolbar = spy(BrowserToolbar(testContext))
-        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "") {})
-        val customTabConfig: CustomTabConfig = mock()
-
-        `when`(session.customTabConfig).thenReturn(customTabConfig)
-        `when`(customTabConfig.menuItems).thenReturn(emptyList())
-
-        feature.addMenuItems(session, listOf(CustomTabMenuItem("Share", mock())), 0)
-
-        val menuBuilder = toolbar.display.menuBuilder
-        assertEquals(1, menuBuilder!!.items.size)
-    }
-
-    @Test
-    fun `menu items added WITH current items`() {
-        val session: Session = mock()
-        val toolbar = spy(BrowserToolbar(testContext))
-        val builder: BrowserMenuBuilder = mock()
-        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", builder) {})
-        val customTabConfig: CustomTabConfig = mock()
-        `when`(session.customTabConfig).thenReturn(customTabConfig)
-        `when`(customTabConfig.menuItems).thenReturn(emptyList())
-        `when`(builder.items).thenReturn(listOf(mock(), mock()))
-
-        feature.addMenuItems(session, listOf(CustomTabMenuItem("Share", mock())), 0)
-
-        val menuBuilder = toolbar.display.menuBuilder!!
-        assertEquals(3, menuBuilder.items.size)
-    }
-
-    @Test
     fun `menu item added at specified index`() {
         val session: Session = mock()
         val toolbar = spy(BrowserToolbar(testContext))
@@ -429,52 +396,12 @@ class CustomTabsToolbarFeatureTest {
         val customTabConfig: CustomTabConfig = mock()
         `when`(session.customTabConfig).thenReturn(customTabConfig)
         `when`(customTabConfig.menuItems).thenReturn(emptyList())
-        `when`(builder.items).thenReturn(listOf(mock(), mock()))
+        `when`(builder.items).thenReturn(mutableListOf(mock(), mock()))
 
         feature.addMenuItems(session, listOf(CustomTabMenuItem("Share", mock())), 1)
 
-        val menuBuilder = toolbar.display.menuBuilder!!
-
-        assertEquals(3, menuBuilder.items.size)
-        assertTrue(menuBuilder.items[1] is SimpleBrowserMenuItem)
-    }
-
-    @Test
-    fun `menu item added appended if index too large`() {
-        val session: Session = mock()
-        val toolbar = spy(BrowserToolbar(testContext))
-        val builder: BrowserMenuBuilder = mock()
-        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", builder) {})
-        val customTabConfig: CustomTabConfig = mock()
-        `when`(session.customTabConfig).thenReturn(customTabConfig)
-        `when`(customTabConfig.menuItems).thenReturn(emptyList())
-        `when`(builder.items).thenReturn(listOf(mock(), mock()))
-
-        feature.addMenuItems(session, listOf(CustomTabMenuItem("Share", mock())), 4)
-
-        val menuBuilder = toolbar.display.menuBuilder!!
-
-        assertEquals(3, menuBuilder.items.size)
-        assertTrue(menuBuilder.items[2] is SimpleBrowserMenuItem)
-    }
-
-    @Test
-    fun `menu item added appended if index too small`() {
-        val session: Session = mock()
-        val toolbar = spy(BrowserToolbar(testContext))
-        val builder: BrowserMenuBuilder = mock()
-        val feature = spy(CustomTabsToolbarFeature(mock(), toolbar, "", builder) {})
-        val customTabConfig: CustomTabConfig = mock()
-        `when`(session.customTabConfig).thenReturn(customTabConfig)
-        `when`(customTabConfig.menuItems).thenReturn(emptyList())
-        `when`(builder.items).thenReturn(listOf(mock(), mock()))
-
-        feature.addMenuItems(session, listOf(CustomTabMenuItem("Share", mock())), -4)
-
-        val menuBuilder = toolbar.display.menuBuilder!!
-
-        assertEquals(3, menuBuilder.items.size)
-        assertTrue(menuBuilder.items[0] is SimpleBrowserMenuItem)
+        verify(builder).addAllMenus(eq(1), any())
+        verify(builder).addFactExtra("customTab", true)
     }
 
     @Test

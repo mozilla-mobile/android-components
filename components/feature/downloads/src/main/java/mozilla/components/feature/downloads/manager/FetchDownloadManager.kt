@@ -16,14 +16,14 @@ import android.content.IntentFilter
 import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.P
 import android.util.LongSparseArray
-import androidx.core.util.isEmpty
 import androidx.core.util.set
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import mozilla.components.browser.session.Download
+import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD_STATUS
 import mozilla.components.feature.downloads.ext.isScheme
 import mozilla.components.feature.downloads.ext.putDownloadExtra
-import kotlin.random.Random
 import kotlin.reflect.KClass
 
 /**
@@ -36,10 +36,10 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
     private val applicationContext: Context,
     private val service: KClass<T>,
     private val broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(applicationContext),
-    override var onDownloadCompleted: OnDownloadCompleted = noop
+    override var onDownloadStopped: onDownloadStopped = noop
 ) : BroadcastReceiver(), DownloadManager {
 
-    private val queuedDownloads = LongSparseArray<Download>()
+    private val queuedDownloads = LongSparseArray<DownloadState>()
     private var isSubscribedReceiver = false
 
     override val permissions = if (SDK_INT >= P) {
@@ -54,7 +54,7 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
      * @param cookie any additional cookie to add as part of the download request.
      * @return the id reference of the scheduled download.
      */
-    override fun download(download: Download, cookie: String): Long? {
+    override fun download(download: DownloadState, cookie: String): Long? {
         if (!download.isScheme(listOf("http", "https"))) {
             // We are ignoring everything that is not http or https. This is a limitation of
             // GeckoView: https://bugzilla.mozilla.org/show_bug.cgi?id=1501735 and
@@ -64,17 +64,25 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
 
         validatePermissionGranted(applicationContext)
 
-        val downloadID = Random.nextLong()
-        queuedDownloads[downloadID] = download
+        queuedDownloads[download.id] = download
 
         val intent = Intent(applicationContext, service.java)
-        intent.putExtra(EXTRA_DOWNLOAD_ID, downloadID)
         intent.putDownloadExtra(download)
         applicationContext.startService(intent)
 
         registerBroadcastReceiver()
 
-        return downloadID
+        return download.id
+    }
+
+    override fun tryAgain(downloadId: Long) {
+        val download = queuedDownloads[downloadId]
+
+        val intent = Intent(applicationContext, service.java)
+        intent.putDownloadExtra(download)
+        applicationContext.startService(intent)
+
+        registerBroadcastReceiver()
     }
 
     /**
@@ -97,20 +105,17 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
     }
 
     /**
-     * Invoked when a download is complete. Calls [onDownloadCompleted] and unregisters the
+     * Invoked when a download is complete. Calls [onDownloadStopped] and unregisters the
      * broadcast receiver if there are no more queued downloads.
      */
     override fun onReceive(context: Context, intent: Intent) {
-        if (queuedDownloads.isEmpty()) unregisterListeners()
-
+        val download = intent.getParcelableExtra<DownloadState>(EXTRA_DOWNLOAD)
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
-        val download = queuedDownloads[downloadID]
+        val downloadStatus = intent.getSerializableExtra(EXTRA_DOWNLOAD_STATUS)
+            as AbstractFetchDownloadService.DownloadJobStatus
 
         if (download != null) {
-            onDownloadCompleted(download, downloadID)
-            queuedDownloads.remove(downloadID)
+            onDownloadStopped(download, downloadID, downloadStatus)
         }
-
-        if (queuedDownloads.isEmpty()) unregisterListeners()
     }
 }

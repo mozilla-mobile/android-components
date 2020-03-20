@@ -1,21 +1,19 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.lib.push.amazon
 
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.annotation.VisibleForTesting
 import com.amazon.device.messaging.ADM
 import com.amazon.device.messaging.ADMMessageHandlerBase
 import mozilla.components.concept.push.EncryptedPushMessage
 import mozilla.components.concept.push.PushError
 import mozilla.components.concept.push.PushProcessor
 import mozilla.components.concept.push.PushService
-import androidx.annotation.VisibleForTesting
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -28,8 +26,12 @@ abstract class AbstractAmazonPushService : ADMMessageHandlerBase("AbstractAmazon
 
     override fun start(context: Context) {
         adm = ADM(context)
-        if (adm.registrationId == null) {
+
+        val registrationId = adm.registrationId
+        if (registrationId == null) {
             adm.startRegister()
+        } else {
+            PushProcessor.requireInstance.onNewToken(registrationId)
         }
     }
 
@@ -39,7 +41,7 @@ abstract class AbstractAmazonPushService : ADMMessageHandlerBase("AbstractAmazon
     }
 
     override fun onRegistrationError(errorId: String) {
-        PushError.Registration("registration failed: $errorId")
+        PushProcessor.requireInstance.onError(PushError.Registration("registration failed: $errorId"))
     }
 
     override fun onUnregistered(registrationId: String) {
@@ -50,28 +52,57 @@ abstract class AbstractAmazonPushService : ADMMessageHandlerBase("AbstractAmazon
         adm.startUnregister()
     }
 
+    @SuppressWarnings("TooGenericExceptionCaught")
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     public override fun onMessage(intent: Intent) {
         intent.extras?.let {
-            try {
-                val message = EncryptedPushMessage(
+            val message = try {
+                EncryptedPushMessage(
                     channelId = it.getStringWithException("chid"),
                     body = it.getStringWithException("body"),
                     encoding = it.getStringWithException("con"),
                     salt = it.getString("enc"),
                     cryptoKey = it.getString("cryptokey")
                 )
-                PushProcessor.requireInstance.onMessageReceived(message)
             } catch (e: NoSuchElementException) {
                 PushProcessor.requireInstance.onError(
                     PushError.MalformedMessage("parsing encrypted message failed: $e")
                 )
+                return
+            }
+
+            // In case of any errors, let the PushProcessor handle this exception. Instead of crashing
+            // here, just drop the message on the floor. This is fine, since we don't really need to
+            // "recover" from a bad incoming message.
+            // PushProcessor will submit relevant issues via a CrashReporter as appropriate.
+            try {
+                PushProcessor.requireInstance.onMessageReceived(message)
+            } catch (e: IllegalStateException) {
+                // Re-throw 'requireInstance' exceptions.
+                throw(e)
+            } catch (e: Exception) {
+                PushProcessor.requireInstance.onError(PushError.Rust(e))
             }
         }
     }
 
     override fun stop() {
         stopSelf()
+    }
+
+    override fun isServiceAvailable(context: Context): Boolean {
+        // This is a strange API: the ADM SDK may exist on the device if it's an Amazon device, but we
+        // also need to check if it's a *supported* Amazon device then.
+        // We create a temporary instance of the ADM class, if it's available so that we can call `isSupported`.
+        // This is the recommended approach as per the docs:
+        // https://developer.amazon.com/docs/adm/integrate-your-app.html#gracefully-degrade-if-adm-is-unavailable
+        return try {
+            Class.forName("com.amazon.device.messaging.ADM")
+            ADM(context).isSupported
+        } catch (e: ClassNotFoundException) {
+            logger.warn("ADM is not available on this device.")
+            false
+        }
     }
 
     private fun Bundle.getStringWithException(key: String): String {

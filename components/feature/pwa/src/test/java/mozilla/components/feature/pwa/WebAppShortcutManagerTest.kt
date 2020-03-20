@@ -24,6 +24,7 @@ import mozilla.components.feature.pwa.WebAppLauncherActivity.Companion.ACTION_PW
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -59,11 +60,12 @@ class WebAppShortcutManagerTest {
         initMocks(this)
         context = spy(testContext)
 
-        `when`(context.packageManager).thenReturn(packageManager)
-        `when`(context.getSystemService(ShortcutManager::class.java)).thenReturn(shortcutManager)
+        doReturn(packageManager).`when`(context).packageManager
+        doReturn(shortcutManager).`when`(context).getSystemService(ShortcutManager::class.java)
+        doReturn("").`when`(context).getString(R.string.mozac_feature_pwa_default_shortcut_label)
 
         manager = spy(WebAppShortcutManager(context, httpClient, storage))
-        `when`(manager.icons).thenReturn(icons)
+        doReturn(icons).`when`(manager).icons
     }
 
     @After
@@ -74,6 +76,7 @@ class WebAppShortcutManagerTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(WebAppManifest.Icon(
                 src = "https://example.com/icon.png",
                 sizes = listOf(Size(192, 192))
@@ -94,31 +97,12 @@ class WebAppShortcutManagerTest {
     }
 
     @Test
-    fun `requestPinShortcut won't pin if null shortcut is built`() = runBlockingTest {
-        setSdkInt(Build.VERSION_CODES.O)
-        val manifest = WebAppManifest(
-            name = "Demo",
-            startUrl = "https://example.com",
-            icons = listOf(WebAppManifest.Icon(
-                src = "https://example.com/icon.png",
-                sizes = listOf(Size(192, 192))
-            ))
-        )
-        val session = buildInstallableSession(manifest)
-        `when`(shortcutManager.isRequestPinShortcutSupported).thenReturn(true)
-        doReturn(null).`when`(manager).buildWebAppShortcut(context, manifest)
-
-        manager.requestPinShortcut(context, session)
-        verify(manager).buildWebAppShortcut(context, manifest)
-        verify(shortcutManager, never()).requestPinShortcut(any(), any())
-    }
-
-    @Test
     fun `requestPinShortcut won't make a PWA icon if the session is not installable`() = runBlockingTest {
         setSdkInt(Build.VERSION_CODES.O)
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            display = WebAppManifest.DisplayMode.STANDALONE,
             icons = emptyList() // no icons
         )
         val session = buildInstallableSession(manifest)
@@ -137,6 +121,7 @@ class WebAppShortcutManagerTest {
         val manifest = WebAppManifest(
             name = "Demo",
             startUrl = "https://example.com",
+            display = WebAppManifest.DisplayMode.STANDALONE,
             icons = listOf(WebAppManifest.Icon(
                 src = "https://example.com/icon.png",
                 sizes = listOf(Size(192, 192))
@@ -164,6 +149,55 @@ class WebAppShortcutManagerTest {
         manager.requestPinShortcut(context, session)
         verify(manager).buildBasicShortcut(context, session)
         verify(shortcutManager).requestPinShortcut(any(), any())
+    }
+
+    @Test
+    fun `buildBasicShortcut uses manifest short name as label by default`() = runBlockingTest {
+        setSdkInt(Build.VERSION_CODES.O)
+        val session = Session("https://mozilla.org")
+        session.title = "Internet for people, not profit — Mozilla"
+        session.webAppManifest = WebAppManifest(
+            name = "Mozilla",
+            shortName = "Moz",
+            startUrl = "https://mozilla.org"
+        )
+        val shortcut = manager.buildBasicShortcut(context, session)
+
+        assertEquals("Moz", shortcut.shortLabel)
+    }
+
+    @Test
+    fun `buildBasicShortcut uses manifest name as label by default`() = runBlockingTest {
+        setSdkInt(Build.VERSION_CODES.O)
+        val session = Session("https://mozilla.org")
+        session.title = "Internet for people, not profit — Mozilla"
+        session.webAppManifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
+        val shortcut = manager.buildBasicShortcut(context, session)
+
+        assertEquals("Mozilla", shortcut.shortLabel)
+    }
+
+    @Test
+    fun `buildBasicShortcut uses session title as label if there is no manifest`() = runBlockingTest {
+        setSdkInt(Build.VERSION_CODES.O)
+        val expectedTitle = "Internet for people, not profit — Mozilla"
+        val session = Session("https://mozilla.org")
+        session.title = expectedTitle
+        val shortcut = manager.buildBasicShortcut(context, session)
+
+        assertEquals(expectedTitle, shortcut.shortLabel)
+    }
+
+    @Test
+    fun `buildBasicShortcut can create a shortcut with a custom name`() = runBlockingTest {
+        setSdkInt(Build.VERSION_CODES.O)
+        val title = "Internet for people, not profit — Mozilla"
+        val expectedName = "Mozilla"
+        val session = Session("https://mozilla.org")
+        session.title = title
+        val shortcut = manager.buildBasicShortcut(context, session, expectedName)
+
+        assertEquals(expectedName, shortcut.shortLabel)
     }
 
     @Test
@@ -267,6 +301,36 @@ class WebAppShortcutManagerTest {
         verify(shortcutManager).disableShortcuts(domains, message)
     }
 
+    @Test
+    fun `checking unknown url returns uninstalled state`() = runBlockingTest {
+        setSdkInt(Build.VERSION_CODES.N_MR1)
+
+        val url = "https://mozilla.org"
+        val currentTime = System.currentTimeMillis()
+
+        whenever(storage.hasRecentManifest(url, currentTime))
+                .thenReturn(false)
+
+        val installState = manager.getWebAppInstallState(url, currentTime)
+
+        assertEquals(WebAppShortcutManager.WebAppInstallState.NotInstalled, installState)
+    }
+
+    @Test
+    fun `checking a known url returns installed state`() = runBlockingTest {
+        setSdkInt(Build.VERSION_CODES.N_MR1)
+
+        val url = "https://mozilla.org/pwa/"
+        val currentTime = System.currentTimeMillis()
+
+        whenever(storage.hasRecentManifest(url, currentTime))
+                .thenReturn(true)
+
+        val installState = manager.getWebAppInstallState(url, currentTime)
+
+        assertEquals(WebAppShortcutManager.WebAppInstallState.Installed, installState)
+    }
+
     private fun setSdkInt(sdkVersion: Int) {
         setStaticField(Build.VERSION::SDK_INT.javaField, sdkVersion)
     }
@@ -274,6 +338,7 @@ class WebAppShortcutManagerTest {
     private fun buildInstallableSession(manifest: WebAppManifest): Session {
         val session: Session = mock()
         `when`(session.webAppManifest).thenReturn(manifest)
+        `when`(session.url).thenReturn(manifest.startUrl)
         `when`(session.securityInfo).thenReturn(Session.SecurityInfo(secure = true))
         return session
     }

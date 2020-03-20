@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.OnLifecycleEvent
+import mozilla.components.concept.engine.selection.SelectionActionDelegate
 
 /**
  * View component that renders web content.
@@ -71,6 +72,12 @@ interface EngineView {
     fun onDestroy() = Unit
 
     /**
+     * Check if [EngineView] can clear the selection.
+     * true if can and false otherwise.
+     */
+    fun canClearSelection(): Boolean = false
+
+    /**
      * Check if [EngineView] can be scrolled vertically up.
      * true if can and false otherwise.
      */
@@ -89,12 +96,29 @@ interface EngineView {
     fun captureThumbnail(onFinish: (Bitmap?) -> Unit)
 
     /**
+     * Clears the current selection if possible.
+     */
+    fun clearSelection() = Unit
+
+    /**
      * Updates the amount of vertical space that is clipped or visibly obscured in the bottom portion of the view.
      * Tells the [EngineView] where to put bottom fixed elements so they are fully visible.
      *
      * @param clippingHeight The height of the bottom clipped space in screen pixels.
      */
     fun setVerticalClipping(clippingHeight: Int)
+
+    /**
+     * Sets the maximum height of the dynamic toolbar(s).
+     *
+     * @param height The maximum possible height of the toolbar.
+     */
+    fun setDynamicToolbarMaxHeight(height: Int)
+
+    /**
+     * A delegate that will handle interactions with text selection context menus.
+     */
+    var selectionActionDelegate: SelectionActionDelegate?
 }
 
 /**

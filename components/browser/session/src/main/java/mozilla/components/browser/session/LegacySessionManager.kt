@@ -5,7 +5,6 @@
 package mozilla.components.browser.session
 
 import androidx.annotation.GuardedBy
-import mozilla.components.browser.session.engine.EngineObserver
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
@@ -20,6 +19,7 @@ import kotlin.math.min
 @Suppress("TooManyFunctions", "LargeClass")
 class LegacySessionManager(
     val engine: Engine,
+    private val engineSessionLinker: SessionManager.EngineSessionLinker,
     delegate: Observable<SessionManager.Observer> = ObserverRegistry()
 ) : Observable<SessionManager.Observer> by delegate {
     // It's important that any access to `values` is synchronized;
@@ -158,13 +158,6 @@ class LegacySessionManager(
 
         if (parent != null) {
             val parentIndex = values.indexOf(parent)
-
-            if (parentIndex == -1) {
-                throw IllegalArgumentException("The parent does not exist")
-            }
-
-            session.parentId = parent.id
-
             values.add(parentIndex + 1, session)
         } else {
             if (viaRestore) {
@@ -236,7 +229,7 @@ class LegacySessionManager(
      * - once snapshot has been restored, and appropriate session has been selected, onSessionsRestored
      *   notification will fire.
      *
-     * @param snapshot A [Snapshot] which may be produced by [createSnapshot].
+     * @param snapshot A [SessionManager.Snapshot] which may be produced by [createSnapshot].
      * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
     fun restore(snapshot: SessionManager.Snapshot, updateSelection: Boolean = true) = synchronized(values) {
@@ -280,37 +273,30 @@ class LegacySessionManager(
         getEngineSession(session)?.let { return it }
 
         return engine.createSession(session.private).apply {
+            var restored = false
             session.engineSessionHolder.engineSessionState?.let { state ->
-                restoreState(state)
+                restored = restoreState(state)
                 session.engineSessionHolder.engineSessionState = null
             }
 
-            link(session, this)
+            link(session, this, restored)
         }
     }
 
-    fun link(session: Session, engineSession: EngineSession) {
-        unlink(session)
+    private fun link(session: Session, engineSession: EngineSession, restored: Boolean = false) {
+        val parent = values.find { it.id == session.parentId }?.let {
+            this.getEngineSession(it)
+        }
+        engineSessionLinker.link(session, engineSession, parent, restored)
 
-        session.engineSessionHolder.apply {
-            this.engineSession = engineSession
-            this.engineObserver = EngineObserver(session).also { observer ->
-                engineSession.register(observer)
-                engineSession.loadUrl(session.url)
-            }
+        if (session == selectedSession) {
+            engineSession.markActiveForWebExtensions(true)
         }
     }
 
     private fun unlink(session: Session) {
-        session.engineSessionHolder.engineObserver?.let { observer ->
-            session.engineSessionHolder.apply {
-                engineSession?.unregister(observer)
-                engineSession?.close()
-                engineSession = null
-                engineSessionState = null
-                engineObserver = null
-            }
-        }
+        getEngineSession(session)?.markActiveForWebExtensions(false)
+        engineSessionLinker.unlink(session)
     }
 
     /**
@@ -325,15 +311,17 @@ class LegacySessionManager(
             return
         }
 
+        val selectedBeforeRemove = selectedSession
+
         values.removeAt(indexToRemove)
 
         unlink(session)
 
-        val selectionUpdated = recalculateSelectionIndex(
-                indexToRemove,
-                selectParentIfExists,
-                session.private,
-                session.parentId
+        recalculateSelectionIndex(
+            indexToRemove,
+            selectParentIfExists,
+            session.private,
+            session.parentId
         )
 
         values.filter { it.parentId == session.id }
@@ -341,7 +329,8 @@ class LegacySessionManager(
 
         notifyObservers { onSessionRemoved(session) }
 
-        if (selectionUpdated && selectedIndex != NO_SELECTION) {
+        if (selectedBeforeRemove != selectedSession && selectedIndex != NO_SELECTION) {
+            getEngineSession(selectedSessionOrThrow)?.markActiveForWebExtensions(true)
             notifyObservers { onSessionSelected(selectedSessionOrThrow) }
         }
     }
@@ -356,7 +345,7 @@ class LegacySessionManager(
         selectParentIfExists: Boolean,
         private: Boolean,
         parentId: String?
-    ): Boolean {
+    ) {
         // Recalculate selection
         var newSelectedIndex = when {
             // All items have been removed
@@ -384,13 +373,7 @@ class LegacySessionManager(
                 if (selectParentIfExists) indexToRemove else newSelectedIndex)
         }
 
-        val selectionUpdated = newSelectedIndex != selectedIndex
-
-        if (selectionUpdated) {
-            selectedIndex = newSelectedIndex
-        }
-
-        return selectionUpdated
+        selectedIndex = newSelectedIndex
     }
 
     private fun newSelection(
@@ -515,8 +498,13 @@ class LegacySessionManager(
             "Value to select is not in list"
         }
 
+        selectedSession?.let {
+            getEngineSession(it)?.markActiveForWebExtensions(false)
+        }
+
         selectedIndex = index
 
+        getEngineSession(session)?.markActiveForWebExtensions(true)
         notifyObservers { onSessionSelected(session) }
     }
 
@@ -526,20 +514,6 @@ class LegacySessionManager(
      */
     fun findSessionById(id: String): Session? = synchronized(values) {
         values.find { session -> session.id == id }
-    }
-
-    /**
-     * Informs this [SessionManager] that the OS is in low memory condition so it
-     * can reduce its allocated objects.
-     */
-    fun onLowMemory() {
-        // Removing the all the thumbnails except for the selected session to
-        // reduce memory consumption.
-        sessions.forEach {
-            if (it != selectedSession) {
-                it.thumbnail = null
-            }
-        }
     }
 
     companion object {

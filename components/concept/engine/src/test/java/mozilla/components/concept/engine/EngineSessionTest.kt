@@ -23,6 +23,9 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.verifyZeroInteractions
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
+import java.lang.reflect.Modifier
 
 class EngineSessionTest {
     private val unknownHitResult = HitResult.UNKNOWN("file://foobar")
@@ -49,6 +52,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onSecurityChange(true, "mozilla.org", "issuer") }
         session.notifyInternalObservers { onTrackerBlockingEnabledChange(true) }
         session.notifyInternalObservers { onTrackerBlocked(tracker) }
+        session.notifyInternalObservers { onExcludedOnTrackingProtectionChange(true) }
         session.notifyInternalObservers { onLongPress(unknownHitResult) }
         session.notifyInternalObservers { onDesktopModeChange(true) }
         session.notifyInternalObservers { onFind("search") }
@@ -58,12 +62,12 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
         session.notifyInternalObservers { onMediaAdded(mediaAdded) }
         session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onCrash() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
+        session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null) }
         session.notifyInternalObservers { onProcessKilled() }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
@@ -74,6 +78,7 @@ class EngineSessionTest {
         verify(observer).onSecurityChange(true, "mozilla.org", "issuer")
         verify(observer).onTrackerBlockingEnabledChange(true)
         verify(observer).onTrackerBlocked(tracker)
+        verify(observer).onExcludedOnTrackingProtectionChange(true)
         verify(observer).onLongPress(unknownHitResult)
         verify(observer).onDesktopModeChange(true)
         verify(observer).onFind("search")
@@ -83,12 +88,12 @@ class EngineSessionTest {
         verify(observer).onAppPermissionRequest(permissionRequest)
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
-        verify(observer).onOpenWindowRequest(windowRequest)
-        verify(observer).onCloseWindowRequest(windowRequest)
+        verify(observer).onWindowRequest(windowRequest)
         verify(observer).onMediaAdded(mediaAdded)
         verify(observer).onMediaRemoved(mediaRemoved)
         verify(observer).onCrash()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
+        verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null)
         verify(observer).onProcessKilled()
         verifyNoMoreInteractions(observer)
     }
@@ -122,10 +127,10 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
         session.notifyInternalObservers { onCrash() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
+        session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null) }
         session.unregister(observer)
 
         val mediaAdded: Media = mock()
@@ -146,12 +151,12 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(otherPermissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(otherWindowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(otherWindowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
         session.notifyInternalObservers { onMediaAdded(mediaAdded) }
         session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onCrash() }
-        session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", false, true) }
+        session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
+        session.notifyInternalObservers { onLaunchIntentRequest("https://www.firefox.com", null) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -168,10 +173,10 @@ class EngineSessionTest {
         verify(observer).onAppPermissionRequest(permissionRequest)
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
-        verify(observer).onOpenWindowRequest(windowRequest)
-        verify(observer).onCloseWindowRequest(windowRequest)
+        verify(observer).onWindowRequest(windowRequest)
         verify(observer).onCrash()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
+        verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -187,11 +192,11 @@ class EngineSessionTest {
         verify(observer, never()).onAppPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(otherPermissionRequest)
-        verify(observer, never()).onOpenWindowRequest(otherWindowRequest)
-        verify(observer, never()).onCloseWindowRequest(otherWindowRequest)
+        verify(observer, never()).onWindowRequest(otherWindowRequest)
         verify(observer, never()).onMediaAdded(mediaAdded)
         verify(observer, never()).onMediaRemoved(mediaRemoved)
         verify(observer, never()).onLoadRequest("https://www.mozilla.org", false, true)
+        verify(observer, never()).onLaunchIntentRequest("https://www.firefox.com", null)
         verifyNoMoreInteractions(observer)
     }
 
@@ -226,8 +231,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
 
         session.unregisterObservers()
 
@@ -246,8 +250,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(otherPermissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(otherWindowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(otherWindowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -264,8 +267,7 @@ class EngineSessionTest {
         verify(observer).onAppPermissionRequest(permissionRequest)
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
-        verify(observer).onOpenWindowRequest(windowRequest)
-        verify(observer).onCloseWindowRequest(windowRequest)
+        verify(observer).onWindowRequest(windowRequest)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -281,8 +283,7 @@ class EngineSessionTest {
         verify(observer, never()).onAppPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(otherPermissionRequest)
-        verify(observer, never()).onOpenWindowRequest(otherWindowRequest)
-        verify(observer, never()).onCloseWindowRequest(otherWindowRequest)
+        verify(observer, never()).onWindowRequest(otherWindowRequest)
         verify(otherObserver, never()).onLocationChange("https://www.firefox.com")
         verify(otherObserver, never()).onProgress(100)
         verify(otherObserver, never()).onLoadingStateChange(false)
@@ -298,8 +299,7 @@ class EngineSessionTest {
         verify(otherObserver, never()).onAppPermissionRequest(otherPermissionRequest)
         verify(otherObserver, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(otherObserver, never()).onCancelContentPermissionRequest(otherPermissionRequest)
-        verify(otherObserver, never()).onOpenWindowRequest(otherWindowRequest)
-        verify(otherObserver, never()).onCloseWindowRequest(otherWindowRequest)
+        verify(otherObserver, never()).onWindowRequest(otherWindowRequest)
     }
 
     @Test
@@ -331,8 +331,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
 
         session.close()
 
@@ -351,8 +350,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(otherPermissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(otherWindowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(otherWindowRequest) }
+        session.notifyInternalObservers { onWindowRequest(otherWindowRequest) }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -369,8 +367,7 @@ class EngineSessionTest {
         verify(observer).onAppPermissionRequest(permissionRequest)
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
-        verify(observer).onOpenWindowRequest(windowRequest)
-        verify(observer).onCloseWindowRequest(windowRequest)
+        verify(observer).onWindowRequest(windowRequest)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -386,8 +383,7 @@ class EngineSessionTest {
         verify(observer, never()).onAppPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(otherPermissionRequest)
-        verify(observer, never()).onOpenWindowRequest(otherWindowRequest)
-        verify(observer, never()).onCloseWindowRequest(otherWindowRequest)
+        verify(observer, never()).onWindowRequest(otherWindowRequest)
         verifyNoMoreInteractions(observer)
     }
 
@@ -418,8 +414,7 @@ class EngineSessionTest {
         otherSession.notifyInternalObservers { onContentPermissionRequest(permissionRequest) }
         otherSession.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         otherSession.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
-        otherSession.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
-        otherSession.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
+        otherSession.notifyInternalObservers { onWindowRequest(windowRequest) }
         verify(observer, never()).onLocationChange("https://www.mozilla.org")
         verify(observer, never()).onProgress(25)
         verify(observer, never()).onLoadingStateChange(true)
@@ -435,8 +430,7 @@ class EngineSessionTest {
         verify(observer, never()).onAppPermissionRequest(permissionRequest)
         verify(observer, never()).onContentPermissionRequest(permissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(permissionRequest)
-        verify(observer, never()).onOpenWindowRequest(windowRequest)
-        verify(observer, never()).onCloseWindowRequest(windowRequest)
+        verify(observer, never()).onWindowRequest(windowRequest)
 
         session.notifyInternalObservers { onLocationChange("https://www.mozilla.org") }
         session.notifyInternalObservers { onProgress(25) }
@@ -453,8 +447,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
-        session.notifyInternalObservers { onOpenWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onCloseWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onWindowRequest(windowRequest) }
         verify(observer, times(1)).onLocationChange("https://www.mozilla.org")
         verify(observer, times(1)).onProgress(25)
         verify(observer, times(1)).onLoadingStateChange(true)
@@ -470,8 +463,7 @@ class EngineSessionTest {
         verify(observer, times(1)).onAppPermissionRequest(permissionRequest)
         verify(observer, times(1)).onContentPermissionRequest(permissionRequest)
         verify(observer, times(1)).onCancelContentPermissionRequest(permissionRequest)
-        verify(observer, times(1)).onOpenWindowRequest(windowRequest)
-        verify(observer, times(1)).onCloseWindowRequest(windowRequest)
+        verify(observer, times(1)).onWindowRequest(windowRequest)
         verifyNoMoreInteractions(observer)
     }
 
@@ -543,40 +535,59 @@ class EngineSessionTest {
 
     @Test
     fun `tracking protection policies have correct categories`() {
-        assertEquals(TrackingProtectionPolicy.RECOMMENDED, TrackingProtectionPolicy.recommended().categories)
-        assertEquals(TrackingProtectionPolicy.ALL, TrackingProtectionPolicy.all().categories)
-        assertEquals(TrackingProtectionPolicy.NONE, TrackingProtectionPolicy.none().categories)
-        assertTrue(TrackingProtectionPolicy.all().contains(
-            TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD).categories))
-        assertTrue(TrackingProtectionPolicy.all().contains(
-            TrackingProtectionPolicy.select(TrackingProtectionPolicy.ANALYTICS).categories))
-        assertTrue(TrackingProtectionPolicy.all().contains(
-            TrackingProtectionPolicy.select(TrackingProtectionPolicy.CONTENT).categories))
-        assertTrue(TrackingProtectionPolicy.all().contains(
-            TrackingProtectionPolicy.select(TrackingProtectionPolicy.TEST).categories))
-        assertTrue(TrackingProtectionPolicy.all().contains(
-            TrackingProtectionPolicy.select(TrackingProtectionPolicy.SOCIAL).categories))
 
-        assertTrue(TrackingProtectionPolicy.all().contains(
-            TrackingProtectionPolicy.select(TrackingProtectionPolicy.SAFE_BROWSING_ALL).categories))
+        assertEquals(TrackingProtectionPolicy.RECOMMENDED, TrackingProtectionPolicy.recommended())
 
-        val policy = TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.ANALYTICS)
-        assertTrue(policy.contains(TrackingProtectionPolicy.AD))
-        assertTrue(policy.contains(TrackingProtectionPolicy.ANALYTICS))
-        assertFalse(policy.contains(TrackingProtectionPolicy.SOCIAL))
-        assertFalse(policy.contains(TrackingProtectionPolicy.CONTENT))
-        assertFalse(policy.contains(TrackingProtectionPolicy.TEST))
-        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_ALL))
-        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_HARMFUL))
-        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_MALWARE))
-        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_PHISHING))
-        assertFalse(policy.contains(TrackingProtectionPolicy.SAFE_BROWSING_UNWANTED))
+        val strictPolicy = TrackingProtectionPolicy.strict()
+
+        assertEquals(
+            strictPolicy.trackingCategories.sumBy { it.id },
+            TrackingCategory.STRICT.id
+        )
+
+        assertEquals(strictPolicy.cookiePolicy.id, CookiePolicy.ACCEPT_NON_TRACKERS.id)
+
+        val nonePolicy = TrackingProtectionPolicy.none()
+
+        assertEquals(
+            nonePolicy.trackingCategories.sumBy { it.id },
+            TrackingCategory.NONE.id
+        )
+
+        assertEquals(nonePolicy.cookiePolicy.id, CookiePolicy.ACCEPT_ALL.id)
+
+        val newPolicy = TrackingProtectionPolicy.select(
+            trackingCategories = arrayOf(
+                TrackingCategory.AD,
+                TrackingCategory.SOCIAL,
+                TrackingCategory.ANALYTICS,
+                TrackingCategory.CONTENT,
+                TrackingCategory.CRYPTOMINING,
+                TrackingCategory.FINGERPRINTING,
+                TrackingCategory.TEST
+            )
+        )
+
+        assertEquals(
+            newPolicy.trackingCategories.sumBy { it.id },
+            arrayOf(
+                TrackingCategory.AD,
+                TrackingCategory.SOCIAL,
+                TrackingCategory.ANALYTICS,
+                TrackingCategory.CONTENT,
+                TrackingCategory.CRYPTOMINING,
+                TrackingCategory.FINGERPRINTING,
+                TrackingCategory.TEST
+            ).sumBy { it.id })
     }
 
     @Test
     fun `tracking protection policies can be specified for session type`() {
-        val all = TrackingProtectionPolicy.all()
-        val selected = TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD)
+        val all = TrackingProtectionPolicy.strict()
+        val selected = TrackingProtectionPolicy.select(
+            trackingCategories = arrayOf(TrackingCategory.AD)
+
+        )
 
         // Tracking protection policies should be applied to all sessions by default
         assertTrue(all.useForPrivateSessions)
@@ -584,11 +595,14 @@ class EngineSessionTest {
         assertTrue(selected.useForPrivateSessions)
         assertTrue(selected.useForRegularSessions)
 
-        val allForPrivate = TrackingProtectionPolicy.all().forPrivateSessionsOnly()
+        val allForPrivate = TrackingProtectionPolicy.strict().forPrivateSessionsOnly()
         assertTrue(allForPrivate.useForPrivateSessions)
         assertFalse(allForPrivate.useForRegularSessions)
 
-        val selectedForRegular = TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD).forRegularSessionsOnly()
+        val selectedForRegular =
+            TrackingProtectionPolicy.select(trackingCategories = arrayOf(TrackingCategory.AD))
+                .forRegularSessionsOnly()
+
         assertTrue(selectedForRegular.useForRegularSessions)
         assertFalse(selectedForRegular.useForPrivateSessions)
     }
@@ -624,7 +638,9 @@ class EngineSessionTest {
         defaultObserver.onDesktopModeChange(true)
         defaultObserver.onSecurityChange(true)
         defaultObserver.onTrackerBlocked(mock())
+        defaultObserver.onTrackerLoaded(mock())
         defaultObserver.onTrackerBlockingEnabledChange(true)
+        defaultObserver.onExcludedOnTrackingProtectionChange(true)
         defaultObserver.onFindResult(0, 0, false)
         defaultObserver.onFind("text")
         defaultObserver.onExternalResource("", "")
@@ -636,8 +652,7 @@ class EngineSessionTest {
         defaultObserver.onAppPermissionRequest(mock(PermissionRequest::class.java))
         defaultObserver.onContentPermissionRequest(mock(PermissionRequest::class.java))
         defaultObserver.onCancelContentPermissionRequest(mock(PermissionRequest::class.java))
-        defaultObserver.onOpenWindowRequest(mock(WindowRequest::class.java))
-        defaultObserver.onCloseWindowRequest(mock(WindowRequest::class.java))
+        defaultObserver.onWindowRequest(mock(WindowRequest::class.java))
         defaultObserver.onMediaAdded(mock())
         defaultObserver.onMediaRemoved(mock())
         defaultObserver.onCrash()
@@ -653,17 +668,78 @@ class EngineSessionTest {
 
         verifyZeroInteractions(observer)
     }
+
+    @Test
+    fun `trackingProtectionPolicy contains should work with compound categories`() {
+        val recommendedPolicy = TrackingProtectionPolicy.recommended()
+
+        assertTrue(recommendedPolicy.contains(TrackingCategory.RECOMMENDED))
+        assertTrue(recommendedPolicy.contains(TrackingCategory.AD))
+        assertTrue(recommendedPolicy.contains(TrackingCategory.ANALYTICS))
+        assertTrue(recommendedPolicy.contains(TrackingCategory.SOCIAL))
+        assertTrue(recommendedPolicy.contains(TrackingCategory.TEST))
+
+        assertTrue(recommendedPolicy.contains(TrackingCategory.CRYPTOMINING))
+        assertFalse(recommendedPolicy.contains(TrackingCategory.CONTENT))
+
+        val strictPolicy = TrackingProtectionPolicy.strict()
+
+        assertTrue(strictPolicy.contains(TrackingCategory.RECOMMENDED))
+        assertTrue(strictPolicy.contains(TrackingCategory.AD))
+        assertTrue(strictPolicy.contains(TrackingCategory.ANALYTICS))
+        assertTrue(strictPolicy.contains(TrackingCategory.SOCIAL))
+        assertTrue(strictPolicy.contains(TrackingCategory.TEST))
+        assertTrue(strictPolicy.contains(TrackingCategory.CRYPTOMINING))
+        assertFalse(strictPolicy.contains(TrackingCategory.CONTENT))
+    }
+
+    @Test
+    fun `TrackingSessionPolicies retain all expected fields during privacy transformations`() {
+        val strict = TrackingProtectionPolicy.strict()
+        val default = TrackingProtectionPolicy.recommended()
+        val custom = TrackingProtectionPolicy.select(
+            trackingCategories = emptyArray(),
+            cookiePolicy = CookiePolicy.ACCEPT_ONLY_FIRST_PARTY,
+            strictSocialTrackingProtection = true
+        )
+        val changedFields = listOf("useForPrivateSessions", "useForRegularSessions")
+
+        fun checkSavedFields(expect: TrackingProtectionPolicy, actual: TrackingProtectionPolicy) {
+            TrackingProtectionPolicy::class.java.declaredMethods
+                .filter { method -> changedFields.all { !method.name.toLowerCase().contains(it.toLowerCase()) } }
+                .filter { it.parameterCount == 0 } // Only keep getters
+                .filter { it.modifiers and Modifier.PUBLIC != 0 }
+                .filter { it.modifiers and Modifier.STATIC == 0 }
+                .forEach {
+                    assertEquals(it.invoke(expect), it.invoke(actual))
+                }
+        }
+
+        listOf(
+            strict,
+            default,
+            custom
+        ).forEach {
+            checkSavedFields(it, it.forPrivateSessionsOnly())
+            checkSavedFields(it, it.forRegularSessionsOnly())
+        }
+    }
 }
 
 open class DummyEngineSession : EngineSession() {
     override val settings: Settings
         get() = mock(Settings::class.java)
 
-    override fun restoreState(state: EngineSessionState) {}
+    override fun restoreState(state: EngineSessionState): Boolean { return false }
 
     override fun saveState(): EngineSessionState { return mock() }
 
-    override fun loadUrl(url: String, flags: LoadUrlFlags) {}
+    override fun loadUrl(
+        url: String,
+        parent: EngineSession?,
+        flags: LoadUrlFlags,
+        additionalHeaders: Map<String, String>?
+    ) {}
 
     override fun loadData(data: String, mimeType: String, encoding: String) {}
 

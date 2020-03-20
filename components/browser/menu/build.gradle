@@ -21,15 +21,26 @@ android {
     }
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.freeCompilerArgs += [
+            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    ]
+}
+
 dependencies {
+    implementation project(':concept-engine')
+    implementation project(':browser-menu2')
+    implementation project(':browser-state')
     implementation project(':support-base')
     implementation project(':support-ktx')
     implementation project(':ui-colors')
+    implementation project(':ui-icons')
 
     implementation Dependencies.androidx_appcompat
     implementation Dependencies.androidx_core_ktx
     implementation Dependencies.androidx_recyclerview
     implementation Dependencies.androidx_cardview
+    implementation Dependencies.androidx_constraintlayout
 
     implementation Dependencies.kotlin_stdlib
 
@@ -39,7 +50,7 @@ dependencies {
     testImplementation Dependencies.androidx_test_junit
     testImplementation Dependencies.testing_robolectric
     testImplementation Dependencies.testing_mockito
-    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.testing_coroutines
 
 }
 

@@ -1,8 +1,6 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.feature.readerview.view
 
@@ -37,13 +35,11 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     private lateinit var fontGroup: RadioGroup
     private lateinit var colorSchemeGroup: RadioGroup
 
-    init {
-        View.inflate(getContext(), R.layout.mozac_feature_readerview_view, this)
+    private var view: View? = null
 
+    init {
         isFocusableInTouchMode = true
         isClickable = true
-
-        bindViews()
     }
 
     /**
@@ -111,6 +107,23 @@ class ReaderViewControlsBar @JvmOverloads constructor(
      */
     override fun hideControls() {
         visibility = View.GONE
+    }
+
+    /**
+     * Tries to inflate the view if needed.
+     *
+     * See: https://github.com/mozilla-mobile/android-components/issues/5491
+     *
+     * @return true if the inflation was completed, false if the view was already inflated.
+     */
+    override fun tryInflate(): Boolean {
+        return if (view == null) {
+            view = View.inflate(context, R.layout.mozac_feature_readerview_view, this)
+            bindViews()
+            true
+        } else {
+            false
+        }
     }
 
     override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {

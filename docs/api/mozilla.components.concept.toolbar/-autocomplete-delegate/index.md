@@ -11,11 +11,11 @@ Usually, this will delegate to a specific text view.
 
 | Name | Summary |
 |---|---|
-| [applyAutocompleteResult](apply-autocomplete-result.md) | `abstract fun applyAutocompleteResult(result: `[`AutocompleteResult`](../-autocomplete-result/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
+| [applyAutocompleteResult](apply-autocomplete-result.md) | `abstract fun applyAutocompleteResult(result: `[`AutocompleteResult`](../-autocomplete-result/index.md)`, onApplied: () -> `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)` = { }): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
 | [noAutocompleteResult](no-autocomplete-result.md) | `abstract fun noAutocompleteResult(input: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Autocompletion was invoked and no match was returned. |
 
-### Inheritors
+### Extension Functions
 
 | Name | Summary |
 |---|---|
-| [AsyncAutocompleteDelegate](../../mozilla.components.browser.toolbar/-async-autocomplete-delegate/index.md) | `class AsyncAutocompleteDelegate : `[`AutocompleteDelegate`](./index.md)`, CoroutineScope`<br>An autocomplete delegate which is aware of its parent scope (to check for cancellations). Responsible for processing autocompletion results and discarding stale results when [urlView](#) moved on. |
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

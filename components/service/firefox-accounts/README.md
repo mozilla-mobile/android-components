@@ -26,6 +26,11 @@ Useful companion components:
 * [feature-accounts](https://github.com/mozilla-mobile/android-components/tree/master/components/feature/accounts), provides a `tabs` integration on top of `FxaAccountManager`, to handle display of web sign-in UI.
 * [browser-storage-sync](https://github.com/mozilla-mobile/android-components/tree/master/components/browser/storage-sync), provides data storage layers compatible with Firefox Sync.
 
+## Before using this component
+Products sending telemetry and using this component *must request* a data-review following [this process](https://wiki.mozilla.org/Firefox/Data_Collection).
+This component provides data collection using the [Glean SDK](https://mozilla.github.io/glean/book/index.html).
+The list of metrics being collected is available in the [metrics documentation](../../support/sync-telemetry/docs/metrics.md).
+
 ## Usage
 ### Setting up the dependency
 
@@ -42,18 +47,18 @@ Additionally, see `feature-accounts`
 
 ```kotlin
 // Make the two "syncable" stores accessible to account manager's sync machinery.
-GlobalSyncableStoreProvider.configureStore("history" to historyStorage)
-GlobalSyncableStoreProvider.configureStore("bookmarks" to bookmarksStorage)
+GlobalSyncableStoreProvider.configureStore(SyncEngine.History to historyStorage)
+GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to bookmarksStorage)
 
 val accountManager = FxaAccountManager(
     context = this,
     serverConfig = ServerConfig.release(CLIENT_ID, REDIRECT_URL),
-    deviceConfig =DeviceConfig(
+    deviceConfig = DeviceConfig(
         name = "Sample app",
         type = DeviceType.MOBILE,
         capabilities = setOf(DeviceCapability.SEND_TAB)
     ),
-    syncConfig = SyncConfig(setOf("history", "bookmarks"), syncPeriodInMinutes = 15L)
+    syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 15L)
 )
 
 // Observe changes to the account and profile.
@@ -62,8 +67,13 @@ accountManager.register(accountObserver, owner = this, autoPause = true)
 // Observe sync state changes.
 accountManager.registerForSyncEvents(syncObserver, owner = this, autoPause = true)
 
-// Observe incoming device events (e.g. SEND_TAB events from other devices).
-accountManager.registerForDeviceEvents(deviceEventsObserver, owner = this, autoPause = true)
+// Observe incoming account events (e.g. when another device connects or
+// disconnects to/from the account, SEND_TAB commands from other devices, etc).
+// Note that since the device is configured with a SEND_TAB capability, device constellation will be
+// automatically updated during any account initialization flow (restore, login, sign-up, recovery).
+// It is up to the application to keep it up-to-date beyond that.
+// See `account.deviceConstellation().refreshDeviceStateAsync()`.
+accountManager.registerForAccountEvents(accountEventsObserver, owner = this, autoPause = true)
 
 // Now that all of the observers we care about are registered, kick off the account manager.
 // If we're already authenticated
@@ -71,7 +81,7 @@ launch { accountManager.initAsync().await() }
 
 // 'Sync Now' button binding.
 findViewById<View>(R.id.buttonSync).setOnClickListener {
-    accountManager.syncNowAsync()
+    accountManager.syncNowAsync(SyncReason.User)
 }
 
 // 'Sign-in' button binding.
@@ -93,7 +103,7 @@ findViewById<View>(R.id.buttonLogout).setOnClickListener {
 findViewById<View>(R.id.disablePeriodicSync).setOnClickListener {
     launch {
         accountManager.setSyncConfigAsync(
-            SyncConfig(setOf("history", "bookmarks")
+            SyncConfig(setOf(SyncReason.History, SyncReason.Bookmarks)
         ).await()
     }
 }
@@ -102,10 +112,19 @@ findViewById<View>(R.id.disablePeriodicSync).setOnClickListener {
 findViewById<View>(R.id.enablePeriodicSync).setOnClickListener {
     launch {
         accountManager.setSyncConfigAsync(
-            SyncConfig(setOf("history", "bookmarks"), syncPeriodInMinutes = 60L)
+            SyncConfig(setOf(SyncReason.History, SyncReason.Bookmarks), syncPeriodInMinutes = 60L)
         ).await()
     }
 }
+
+// Globally disabled syncing an engine - this affects all Firefox Sync clients.
+findViewById<View>(R.id.globallyDisableHistoryEngine).setOnClickListener {
+    SyncEnginesStorage.setStatus(SyncEngine.History, false)
+    accountManager.syncNowAsync(SyncReason.EngineChange)
+}
+
+// Get current status of SyncEngines. Note that this may change after every sync, as other Firefox Sync clients can change it.
+val engineStatusMap = SyncEnginesStorage.getStatus() // type is: Map<SyncEngine, Boolean>
 
 // This is expected to be called from the webview/geckoview integration, which intercepts page loads and gets
 // 'code' and 'state' out of the 'successful sign-in redirect' url.
@@ -149,15 +168,21 @@ val syncObserver = object : SyncStatusObserver {
     }
 }
 
-// Observe incoming device events.
-val deviceEventsObserver = object : DeviceEventsObserver {
-    override fun onEvents(events: List<DeviceEvent>) {
-        // device received some events; for example, here's how you can process incoming Send Tab events:
-        events.filter { it is DeviceEvent.TabReceived }.forEach {
-            val tabReceivedEvent = it as DeviceEvent.TabReceived
-            val fromDeviceName = tabReceivedEvent.from?.displayName
-            showNotification("Tab ${tab.title}, received from: ${fromDisplayName}", tab.url)
-        }
+// Observe incoming account events.
+val accountEventsObserver = object : AccountEventsObserver {
+    override fun onEvents(event: List<AccountEvent>) {
+        // device received some commands; for example, here's how you can process incoming Send Tab commands:
+        commands
+            .filter { it is AccountEvent.IncomingDeviceCommand }
+            .map { it.command }
+            .filter { it is DeviceCommandIncoming.TabReceived }
+            .forEach {
+                val tabReceivedCommand = it as DeviceCommandIncoming.TabReceived
+                val fromDeviceName = tabReceivedCommand.from?.displayName
+                showNotification("Tab ${tab.title}, received from: ${fromDisplayName}", tab.url)
+            }
+            // (although note the SendTabFeature makes dealing with these commands
+            // easier still.)
     }
 }
 ```
@@ -217,7 +242,7 @@ Once the configuration is available and an account instance was created, the aut
 
 ```kotlin
 launch {
-    val url = account.beginOAuthFlow(scopes, wantsKeys).await()
+    val url = account.beginOAuthFlow(scopes).await()
     openWebView(url)
 }
 ```

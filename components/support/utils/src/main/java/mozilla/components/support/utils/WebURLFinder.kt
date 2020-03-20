@@ -26,16 +26,21 @@ class WebURLFinder {
         if (string == null) {
             throw IllegalArgumentException("string must not be null")
         }
-
         this.candidates = candidateWebURLs(string)
     }
 
-    /* package-private */ internal constructor(strings: List<String>?) {
+    /* package-private */ internal constructor(string: String?, explicitUnicode: Boolean) {
+        if (string == null) {
+            throw IllegalArgumentException("strings must not be null")
+        }
+        this.candidates = candidateWebURLs(string, explicitUnicode)
+    }
+
+    /* package-private */ internal constructor(strings: List<String>?, explicitUnicode: Boolean) {
         if (strings == null) {
             throw IllegalArgumentException("strings must not be null")
         }
-
-        this.candidates = candidateWebURLs(strings)
+        this.candidates = candidateWebURLs(strings, explicitUnicode)
     }
 
     /**
@@ -307,30 +312,45 @@ class WebURLFinder {
             WORD_BOUNDARY +
             ")")
 
-        /**
-         * Regular expression pattern to match IRIs. If a string starts with http(s):// the expression
-         * tries to match the URL structure with a relaxed rule for TLDs. If the string does not start
-         * with http(s):// the TLDs are expected to be one of the known TLDs.
-         */
-        private val autolinkWebUrl = Pattern.compile(
-            "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL)"
-        )
+        // Taken from mozilla.components.support.utils.URLStringUtils. See documentation
+        // there for a complete description.
+        private const val autolinkWebUrlPattern = "(\\w+-)*\\w+(://[/]*|:|\\.)(\\w+-)*\\w+([\\S&&[^\\w-]]\\S*)?"
 
-        internal val fuzzyUrlRegex = (
-                "^" +
-                "\\s*" +
-                "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL)" +
-                "\\s*" +
-                "$"
-            ).toRegex(RegexOption.IGNORE_CASE)
+        private val autolinkWebUrl by lazy {
+            Pattern.compile(autolinkWebUrlPattern, 0)
+        }
 
-        internal val fuzzyUrlNonWebRegex = (
-            "^" +
-                "\\s*" +
-                "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL|$UNSUPPORTED_URL_WITH_PROTOCOL)" +
-                "\\s*" +
-                "$"
-            ).toRegex(RegexOption.IGNORE_CASE)
+        private val autolinkWebUrlExplicitUnicode by lazy {
+            // To run tests on a non-Android device (like a computer), Pattern.compile
+            // requires a flag to enable unicode support. Set a value like flags here with a local
+            // copy of UNICODE_CHARACTER_CLASS. Use a local copy because that constant is not
+            // available on Android platforms < 24 (Fenix targets 21). At runtime this is not an issue
+            // because, again, Android REs are always unicode compliant.
+            // NB: The value has to go through an intermediate variable; otherwise, the linter will
+            // complain that this value is not one of the predefined enums that are allowed.
+            @Suppress("MagicNumber")
+            val UNICODE_CHARACTER_CLASS: Int = 0x100
+            var regexFlags = UNICODE_CHARACTER_CLASS
+            Pattern.compile(autolinkWebUrlPattern, regexFlags)
+        }
+
+        internal val fuzzyUrlRegex by lazy {
+            ("^" +
+                    "\\s*" +
+                    "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL)" +
+                    "\\s*" +
+                    "$"
+                    ).toRegex(RegexOption.IGNORE_CASE)
+        }
+
+        internal val fuzzyUrlNonWebRegex by lazy {
+            ("^" +
+                    "\\s*" +
+                    "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL|$UNSUPPORTED_URL_WITH_PROTOCOL)" +
+                    "\\s*" +
+                    "$"
+                    ).toRegex(RegexOption.IGNORE_CASE)
+        }
 
         /**
          * Check if string is a Web URL.
@@ -353,7 +373,7 @@ class WebURLFinder {
             return !(URLUtil.isFileUrl(string) || URLUtil.isJavaScriptUrl(string))
         }
 
-        private fun candidateWebURLs(strings: Collection<String?>): List<String> {
+        private fun candidateWebURLs(strings: Collection<String?>, explicitUnicode: Boolean = false): List<String> {
             val candidates = mutableListOf<String>()
 
             // no functional transformation lambdas (ie. flatMapNotNull) since it would turn an
@@ -363,14 +383,18 @@ class WebURLFinder {
                     continue
                 }
 
-                candidates.addAll(candidateWebURLs(string))
+                candidates.addAll(candidateWebURLs(string, explicitUnicode))
             }
 
             return candidates
         }
 
-        private fun candidateWebURLs(string: String): List<String> {
-            val matcher = autolinkWebUrl.matcher(string)
+        private fun candidateWebURLs(string: String, explicitUnicode: Boolean = false): List<String> {
+            val matcher = when {
+                explicitUnicode -> autolinkWebUrlExplicitUnicode.matcher(string)
+                else -> autolinkWebUrl.matcher(string)
+            }
+
             val matches = LinkedList<String>()
 
             while (matcher.find()) {

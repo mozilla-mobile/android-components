@@ -3,6 +3,7 @@
 [![Task Status](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/badge.svg)](https://github.taskcluster.net/v1/repository/mozilla-mobile/android-components/master/latest)
 [![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
 [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/19637)
+[![chat.mozilla.org](https://img.shields.io/badge/chat-on%20matrix-51bb9c)](https://chat.mozilla.org/#/room/#android-components:mozilla.org)
 
 _A collection of Android libraries to build browsers or browser-like applications._
 
@@ -20,7 +21,7 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * [List of good first issues](https://github.com/mozilla-mobile/android-components/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) (**New contributors start here!**) and [List of "help wanted" issues](https://github.com/mozilla-mobile/android-components/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
 
-* IRC: [#android-components (irc.mozilla.org)](https://wiki.mozilla.org/IRC) | [view logs](https://mozilla.logbot.info/android-components/)
+* Matrix: [android-components:mozilla.org chat room](https://chat.mozilla.org/#/room/#android-components:mozilla.org).
 
 * Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
 
@@ -29,13 +30,21 @@ Before you attempt to make a contribution please read the [Community Participati
 # Maven repository
 
 All components are getting published on [maven.mozilla.org](https://maven.mozilla.org/).
-To use them, you need to add the following to your projects top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
+To use them, you need to add the following to your project's top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
 
 ```groovy
 repositories {
     maven {
        url "https://maven.mozilla.org/maven2"
     }
+}
+```
+
+Each module that uses a component needs to specify it in its build file, in the `dependencies` block.  For example, to use the `Base` component (in the `support`) collection, you need:
+
+```groovy
+dependencies {
+    implementation 'org.mozilla.components:support-base:+'
 }
 ```
 
@@ -66,8 +75,6 @@ High-level components for building browser(-like) apps.
 * ⚪ [**Engine-Gecko-Beta**](components/browser/engine-gecko-beta/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Beta channel).
 
 * ⚪ [**Engine-Gecko-Nightly**](components/browser/engine-gecko-nightly/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
-
-* 🔴 [**Engine-Servo**](components/browser/engine-servo/README.md) - *Engine* implementation based on the [Servo Browser Engine](https://servo.org/).
 
 * ⚪ [**Engine-System**](components/browser/engine-system/README.md) - *Engine* implementation based on the system's WebView.
 
@@ -113,6 +120,8 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Accounts**](components/feature/accounts/README.md) - A component that connects an FxaAccountManager from [service-firefox-accounts](components/service/firefox-accounts/README.md) with [feature-tabs](components/feature/tabs/README.md) in order to facilitate authentication flows.
 
+* 🔴 [**Accounts Push**](components/feature/accounts-push/README.md) - Feature of use cases for FxA Account that work with push support.
+
 * ⚪ [**Awesomebar**](components/feature/awesomebar/README.md) - A component that connects a [concept-awesomebar](components/concept/awesomebar/README.md) implementation to a [concept-toolbar](components/concept/toolbar/README.md) implementation and provides implementations of various suggestion providers.
 
 * ⚪ [**Context Menu**](components/feature/contextmenu/README.md) - A component for displaying context menus when *long-pressing* web content.
@@ -131,9 +140,9 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Search**](components/feature/search/README.md) - A component that connects an (concept) engine implementation with the browser search module.
 
-* 🔴 [**SendTab**](components/feature/sendtab/README.md) - A component for sending tabs to other devices with a registered FxA Account.
-
 * ⚪ [**Session**](components/feature/session/README.md) - A component that connects an (concept) engine implementation with the browser session and storage modules.
+
+* 🔴 [**Share**](components/feature/share/README.md) - Feature implementation for saving and sorting recent apps used for sharing.
 
 * 🔴 [**Sync**](components/feature/sync/README.md) -A component that provides synchronization orchestration for groups of (concept) SyncableStore objects.
 
@@ -143,15 +152,23 @@ _Combined components to implement feature-specific use cases._
 
 * 🔴 [**Toolbar**](components/feature/toolbar/README.md) - A component that connects a (concept) toolbar implementation with the browser session module.
 
+* 🔴 [**Top Sites**](components/feature/top-sites/README.md) - Feature implementation for saving and removing top sites.
+
 * ⚪ [**Prompts**](components/feature/prompts/README.md) - A component that will handle all the common prompt dialogs from web content.
 
 * ⚪ [**Push**](components/feature/push/README.md) - A component that provides Autopush messages with help from a supported push service.
 
 * ⚪ [**Find In Page**](components/feature/findinpage/README.md) - A component that provides an UI widget for [find in page functionality](https://support.mozilla.org/en-US/kb/search-contents-current-page-text-or-links).
 
+* 🔴 [**Remote Tabs**](components/feature/remotetabs/README.md) - Feature that provides access to other device's tabs in the same account.
+
 * 🔴 [**Site Permissions**](components/feature/sitepermissions/README.md) - A feature for showing site permission request prompts.
 
 * 🔴 [**Web Notifications**](components/feature/webnotifications/README.md) - A component for displaying web notifications.
+
+* 🔵 [**WebCompat**](components/feature/webcompat/README.md) - A feature to enable website-hotfixing via the Web Compatibility System-Addon.
+
+* 🔴 [**Web Add-ons**](components/feature/addons/README.md) - A feature that provides functionality for managing add-ons.
 
 ## UI
 
@@ -173,7 +190,7 @@ _Components and libraries to interact with backend services._
 
 * 🔵 [**Firefox Accounts (FxA)**](components/service/firefox-accounts/README.md) - A library for integrating with Firefox Accounts.
 
-* 🔴 [**Firefox Sync - Logins**](components/service/sync-logins/README.md) - A library for integrating with Firefox Sync - Logins.
+* 🔵 [**Firefox Sync - Logins**](components/service/sync-logins/README.md) - A library for integrating with Firefox Sync - Logins.
 
 * 🔵 [**Fretboard**](components/service/fretboard/README.md) - An Android framework for segmenting users in order to run A/B tests and roll out features gradually.
 
@@ -197,9 +214,17 @@ _Supporting components with generic helper code._
 
 * 🔵 [**Ktx**](components/support/ktx/README.md) - A set of Kotlin extensions on top of the Android framework and Kotlin standard library.
 
+* ⚪ [**Migration**](components/support/migration/README.md) - Helper code to migrate from a Fennec-based (Firefox for Android) app to an Android Components based app.
+
 * 🔵 [**Test**](components/support/test/README.md) - A collection of helpers for testing components in local unit tests (`src/test`).
 
+* 🔵 [**Test Appservices**](components/support/test-appservices/README.md) - A component for synchronizing Application Services' unit testing dependencies used in Android Components.
+
+* 🔵 [**Test LibState**](components/support/test-libstate/README.md) - A collection of helpers for testing functionality that relies on the lib-state component in local unit tests (`src/test`).
+
 * 🔵 [**Utils**](components/support/utils/README.md) - Generic utility classes to be shared between projects.
+
+* 🔵 [**Webextensions**](components/support/webextensions/README.md) - A component containing building blocks for features implemented as web extensions.
 
 ## Standalone libraries
 
@@ -213,11 +238,13 @@ _Supporting components with generic helper code._
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
+* 🔴  [**Nearby**](components/lib/nearby/README.md) - A library simplifying access to the [Google Connections API](https://developers.google.com/nearby/connections/overview) for peer-to-peer networking.
+
 * ⚪ [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
 
-* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
+* 🔴[**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
 
-* 🔴 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
+* ⚪ [**State**](components/lib/state/README.md) - A library for maintaining application state.
 
 ## Tooling
 
@@ -239,11 +266,73 @@ _Sample apps using various components._
 
 * [**Firefox Sync - Logins**](samples/sync-logins) - A simple app demoing Firefox Sync (Logins) integration.
 
-* [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component.
-
 * [**DataProtect**](samples/dataprotect) - An app demoing how to use the [**Dataprotect**](components/lib/dataprotect/README.md) component to load and store encrypted data in `SharedPreferences`.
 
 * [**Glean**](samples/glean) - An app demoing how to use the [**Glean**](components/service/glean/README.md) library to collect and send telemetry data.
+
+* [**Nearby Chat**](samples/nearby-chat) - An app demoing how to use the [**Nearby**](components/lib/nearby/README.md) library for peer-to-peer communication between devices.
+
+* [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component.
+
+# Building #
+
+## Command line ##
+
+```
+$ git clone https://github.com/mozilla-mobile/android-components.git
+$ cd android-components
+$ ./gradlew assemble
+```
+
+## Android Studio ##
+
+If the environment variable `JAVA_HOME` is not defined, you will need to set it. If you would like to use the JDK installed by Android Studio, here's how to find it:
+
+1. Open Android Studio.
+2. Select "Configure".
+3. Select "Default Project Structure". You should now see the Android JDK location.
+4. Set the environment variable `JAVA_HOME` to the location. (How you set an environment variable depends on your OS.)
+5. Restart Android Studio.
+
+Once the environment variable is set, you can import the project into Android Studio with the default wizard options.
+
+If your build fails, you may find you get more instructive error messages by attempting the build at the command line.
+
+# Coding Standards #
+
+## Style ##
+We follow the style enforced by [ktlint](https://ktlint.github.io/) and [detekt](https://arturbosch.github.io/detekt/). See [how to configure Android Studio appropriately](https://github.com/pinterest/ktlint#option-1-recommended).
+
+To check your style, run:
+
+```
+./gradlew ktlint
+./gradlew detekt
+```
+
+## Documentation ##
+We use `README.md` files and [Dokka](https://github.com/Kotlin/dokka), which you can generate with:
+
+```
+./gradlew dokka                          # Generate dokka for the entire repo
+./gradlew :browser-icons:dokka           # Generate dokka for a specified module
+```
+
+If you fix a bug or change an API, you should update [docs/changelog.md](https://github.com/mozilla-mobile/android-components/blob/master/docs/changelog.md).
+
+## Testing ##
+You are expected to both add tests for code that you write and make sure that your changes do not
+cause existing tests to fail. You may find these command lines helpful:
+
+```
+./gradlew test                            # Run all tests
+./gradlew :support-ktx:testdebugunittest  # Run unit tests for a specified module
+```
+
+See also [how to measure code coverage](https://mozac.org/contributing/code-coverage).
+
+## Accessibility ##
+If your code has user-facing changes, follow [Android accessibility best practices](https://github.com/mozilla-mobile/shared-docs/blob/master/android/accessibility_guide.md).
 
 # License
 

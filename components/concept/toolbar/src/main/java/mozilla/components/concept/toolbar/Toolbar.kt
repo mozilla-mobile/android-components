@@ -5,14 +5,17 @@
 package mozilla.components.concept.toolbar
 
 import android.graphics.drawable.Drawable
-import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
+import androidx.annotation.Dimension
+import androidx.annotation.Dimension.DP
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
 import mozilla.components.support.base.android.Padding
+import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.setPadding
 import java.lang.ref.WeakReference
 
@@ -69,6 +72,11 @@ interface Toolbar {
     fun onBackPressed(): Boolean
 
     /**
+     * Should be called by the host activity when it enters the stop state.
+     */
+    fun onStop()
+
+    /**
      * Registers the given function to be invoked when the user selected a new URL i.e. is done
      * editing.
      *
@@ -93,6 +101,28 @@ interface Toolbar {
      * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action
      */
     fun addBrowserAction(action: Action)
+
+    /**
+     * Removes a previously added browser action (see [addBrowserAction]). If the the provided
+     * actions was never added, this method has no effect.
+     *
+     * @param action the action to remove.
+     */
+    fun removeBrowserAction(action: Action)
+
+    /**
+     * Removes a previously added page action (see [addBrowserAction]). If the the provided
+     * actions was never added, this method has no effect.
+     *
+     * @param action the action to remove.
+     */
+    fun removePageAction(action: Action)
+
+    /**
+     * Declare that the actions (navigation actions, browser actions, page actions) have changed and
+     * should be updated if needed.
+     */
+    fun invalidateActions()
 
     /**
      * Adds an action to be displayed on the right side of the URL in display mode.
@@ -192,17 +222,14 @@ interface Toolbar {
             imageButton.contentDescription = contentDescription
             imageButton.setOnClickListener { listener.invoke() }
 
-            if (background == 0) {
-                val outValue = TypedValue()
-                parent.context.theme.resolveAttribute(
-                    android.R.attr.selectableItemBackgroundBorderless,
-                    outValue,
-                    true
-                )
-                imageButton.setBackgroundResource(outValue.resourceId)
+            @DrawableRes
+            val backgroundResource = if (background == 0) {
+                parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
-                imageButton.setBackgroundResource(background)
+                background
             }
+
+            imageButton.setBackgroundResource(backgroundResource)
             padding?.let { imageButton.setPadding(it) }
         }
 
@@ -238,22 +265,20 @@ interface Toolbar {
         override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also { imageButton ->
             view = WeakReference(imageButton)
 
+            imageButton.scaleType = ImageView.ScaleType.CENTER
             imageButton.setOnClickListener { toggle() }
             imageButton.isSelected = selected
 
             updateViewState()
 
-            if (background == 0) {
-                val outValue = TypedValue()
-                parent.context.theme.resolveAttribute(
-                    android.R.attr.selectableItemBackgroundBorderless,
-                    outValue,
-                    true)
-
-                imageButton.setBackgroundResource(outValue.resourceId)
+            @DrawableRes
+            val backgroundResource = if (background == 0) {
+                parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
-                imageButton.setBackgroundResource(background)
+                background
             }
+
+            imageButton.setBackgroundResource(backgroundResource)
             padding?.let { imageButton.setPadding(it) }
         }
 
@@ -315,7 +340,7 @@ interface Toolbar {
      * @param padding A optional custom padding.
      */
     open class ActionSpace(
-        private val desiredWidth: Int,
+        @Dimension(unit = DP) private val desiredWidth: Int,
         private val padding: Padding? = null
     ) : Action {
         override fun createView(parent: ViewGroup): View = View(parent.context).apply {

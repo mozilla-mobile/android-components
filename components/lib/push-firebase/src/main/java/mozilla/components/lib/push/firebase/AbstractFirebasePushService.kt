@@ -1,15 +1,14 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.lib.push.firebase
 
 import android.content.Context
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.firebase.FirebaseApp
 import com.google.firebase.iid.FirebaseInstanceId
-import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -37,28 +36,46 @@ abstract class AbstractFirebasePushService(
      */
     override fun start(context: Context) {
         FirebaseApp.initializeApp(context)
-        FirebaseMessaging.getInstance().isAutoInitEnabled = true
     }
 
     override fun onNewToken(newToken: String) {
         PushProcessor.requireInstance.onNewToken(newToken)
     }
 
+    @SuppressWarnings("TooGenericExceptionCaught")
     override fun onMessageReceived(remoteMessage: RemoteMessage?) {
         remoteMessage?.let {
-            try {
-                val message = EncryptedPushMessage(
-                    channelId = it.data.getValue("chid"),
-                    body = it.data.getValue("body"),
-                    encoding = it.data.getValue("con"),
-                    salt = it.data["enc"],
-                    cryptoKey = it.data["cryptokey"]
+            // This is not an AutoPush message we can handle.
+            if (it.data[MESSAGE_KEY_CHANNEL_ID] == null) {
+                return
+            }
+
+            val message = try {
+                EncryptedPushMessage(
+                    channelId = it.data.getValue(MESSAGE_KEY_CHANNEL_ID),
+                    body = it.data.getValue(MESSAGE_KEY_BODY),
+                    encoding = it.data.getValue(MESSAGE_KEY_ENCODING),
+                    salt = it.data[MESSAGE_KEY_SALT],
+                    cryptoKey = it.data[MESSAGE_KEY_CRYPTO_KEY]
                 )
-                PushProcessor.requireInstance.onMessageReceived(message)
             } catch (e: NoSuchElementException) {
                 PushProcessor.requireInstance.onError(
                     PushError.MalformedMessage("parsing encrypted message failed: $e")
                 )
+                return
+            }
+
+            // In case of any errors, let the PushProcessor handle this exception. Instead of crashing
+            // here, just drop the message on the floor. This is fine, since we don't really need to
+            // "recover" from a bad incoming message.
+            // PushProcessor will submit relevant issues via a CrashReporter as appropriate.
+            try {
+                PushProcessor.requireInstance.onMessageReceived(message)
+            } catch (e: IllegalStateException) {
+                // Re-throw 'requireInstance' exceptions.
+                throw(e)
+            } catch (e: Exception) {
+                PushProcessor.requireInstance.onError(PushError.Rust(e))
             }
         }
     }
@@ -67,7 +84,6 @@ abstract class AbstractFirebasePushService(
      * Stops the Firebase messaging service and disables auto-start.
      */
     final override fun stop() {
-        FirebaseMessaging.getInstance().isAutoInitEnabled = false
         stopSelf()
     }
 
@@ -83,5 +99,17 @@ abstract class AbstractFirebasePushService(
                 logger.error("Force registration renewable failed.", e)
             }
         }
+    }
+
+    override fun isServiceAvailable(context: Context): Boolean {
+        return GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
+    }
+
+    companion object {
+        const val MESSAGE_KEY_CHANNEL_ID = "chid"
+        const val MESSAGE_KEY_BODY = "body"
+        const val MESSAGE_KEY_ENCODING = "con"
+        const val MESSAGE_KEY_SALT = "enc"
+        const val MESSAGE_KEY_CRYPTO_KEY = "cryptokey"
     }
 }

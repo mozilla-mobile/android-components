@@ -14,10 +14,15 @@ session.
 |---|---|
 | [toJSON](to-j-s-o-n.md) | `abstract fun toJSON(): <ERROR CLASS>`<br>Create a JSON representation of this state that can be saved to disk. |
 
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
+
 ### Inheritors
 
 | Name | Summary |
 |---|---|
 | [GeckoEngineSessionState](../../mozilla.components.browser.engine.gecko/-gecko-engine-session-state/index.md) | `class GeckoEngineSessionState : `[`EngineSessionState`](./index.md) |
-| [ServoEngineSessionState](../../mozilla.components.browser.engine.servo/-servo-engine-session-state/index.md) | `class ServoEngineSessionState : `[`EngineSessionState`](./index.md)<br>No-op implementation of [EngineSessionState](./index.md). |
 | [SystemEngineSessionState](../../mozilla.components.browser.engine.system/-system-engine-session-state/index.md) | `class SystemEngineSessionState : `[`EngineSessionState`](./index.md) |

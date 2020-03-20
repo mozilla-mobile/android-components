@@ -11,16 +11,23 @@ import android.content.Intent
 import android.content.Intent.ACTION_SEND
 import android.content.Intent.EXTRA_SUBJECT
 import android.content.Intent.EXTRA_TEXT
+import android.content.Intent.EXTRA_TITLE
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.os.Process
 import android.view.accessibility.AccessibilityManager
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
+import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.content.getSystemService
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.ktx.R
+import mozilla.components.support.ktx.android.content.res.resolveAttribute
 
 /**
  * The (visible) version name of the application, as specified by the <manifest> tag's versionName
@@ -67,9 +74,9 @@ fun Context.hasCamera(): Boolean {
 }
 
 /**
- *  Shares content via [ACTION_SEND] intent.
+ * Shares content via [ACTION_SEND] intent.
  *
- * @param text the data to be shared  [EXTRA_TEXT]
+ * @param text the data to be shared [EXTRA_TEXT]
  * @param subject of the intent [EXTRA_TEXT]
  * @return true it is able to share false otherwise.
  */
@@ -77,6 +84,7 @@ fun Context.share(text: String, subject: String = getString(R.string.mozac_suppo
     return try {
         val intent = Intent(ACTION_SEND).apply {
             type = "text/plain"
+            putExtra(EXTRA_TITLE, subject)
             putExtra(EXTRA_SUBJECT, subject)
             putExtra(EXTRA_TEXT, text)
             flags = FLAG_ACTIVITY_NEW_TASK
@@ -100,7 +108,7 @@ fun Context.share(text: String, subject: String = getString(R.string.mozac_suppo
  * (via https://stackoverflow.com/a/12362545/512580)
  */
 inline val Context.isScreenReaderEnabled: Boolean
-    get() = (getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager).isTouchExplorationEnabled
+    get() = getSystemService<AccessibilityManager>()!!.isTouchExplorationEnabled
 
 @VisibleForTesting
 internal var isMainProcess: Boolean? = null
@@ -112,11 +120,11 @@ fun Context.isMainProcess(): Boolean {
     if (isMainProcess != null) return isMainProcess as Boolean
 
     val pid = Process.myPid()
-    val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val activityManager: ActivityManager? = getSystemService()
 
-    isMainProcess = (activityManager.runningAppProcesses?.any { processInfo ->
-        (processInfo.pid == pid && processInfo.processName == packageName)
-    }) ?: false
+    isMainProcess = activityManager?.runningAppProcesses.orEmpty().any { processInfo ->
+        processInfo.pid == pid && processInfo.processName == packageName
+    }
 
     return isMainProcess as Boolean
 }
@@ -130,3 +138,21 @@ inline fun Context.runOnlyInMainProcess(block: () -> Unit) {
         block()
     }
 }
+
+/**
+ * Returns the color int corresponding to the attribute.
+ */
+@ColorInt
+fun Context.getColorFromAttr(@AttrRes attr: Int) =
+    ContextCompat.getColor(this, theme.resolveAttribute(attr))
+
+/**
+ * Returns a tinted drawable for the given resource ID.
+ * @param resId ID of the drawable to load.
+ * @param tint Tint color int to apply to the drawable.
+ */
+fun Context.getDrawableWithTint(@DrawableRes resId: Int, @ColorInt tint: Int) =
+    AppCompatResources.getDrawable(this, resId)?.apply {
+        mutate()
+        setTint(tint)
+    }

@@ -4,16 +4,23 @@
 
 package mozilla.components.browser.menu.item
 
-import android.util.TypedValue
+import android.content.Context
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
+import androidx.appcompat.widget.TooltipCompat
+import androidx.core.content.ContextCompat.getColor
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuItem
 import mozilla.components.browser.menu.R
+import mozilla.components.browser.menu2.candidate.ContainerStyle
+import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
+import mozilla.components.browser.menu2.candidate.RowMenuCandidate
+import mozilla.components.browser.menu2.candidate.SmallMenuCandidate
+import mozilla.components.support.ktx.android.content.res.resolveAttribute
 
 /**
  * A toolbar of buttons to show inside the browser menu.
@@ -23,45 +30,44 @@ class BrowserMenuItemToolbar(
 ) : BrowserMenuItem {
     override var visible: () -> Boolean = { true }
 
+    override val interactiveCount: () -> Int = { items.size }
+
     override fun getLayoutResource() = R.layout.mozac_browser_menu_item_toolbar
 
     override fun bind(menu: BrowserMenu, view: View) {
         val layout = view as LinearLayout
         layout.removeAllViews()
 
-        val selectableBackground = TypedValue().also {
-            layout.context.theme.resolveAttribute(
-                android.R.attr.selectableItemBackgroundBorderless,
-                it,
-                true
-            )
-        }
+        val selectableBackground =
+            layout.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
         val iconHeight = view.resources.getDimensionPixelSize(R.dimen.mozac_browser_menu_item_image_text_icon_height)
 
         for (item in items) {
             val button = AppCompatImageButton(layout.context)
             item.bind(button)
 
-            button.setBackgroundResource(selectableBackground.resourceId)
+            button.setFocusable(true)
+            button.setBackgroundResource(selectableBackground)
             button.setOnClickListener {
-                item.listener.invoke()
+                item.listener()
                 menu.dismiss()
             }
 
-            layout.addView(
-                button,
-                LinearLayout.LayoutParams(0, iconHeight, 1f)
-            )
+            layout.addView(button, LinearLayout.LayoutParams(0, iconHeight, 1f))
         }
     }
 
     override fun invalidate(view: View) {
         val layout = view as LinearLayout
-        items.withIndex().forEach {
-            val (index, item) = it
+        items.withIndex().forEach { (index, item) ->
             item.invalidate(layout.getChildAt(index) as AppCompatImageButton)
         }
     }
+
+    override fun asCandidate(context: Context) = RowMenuCandidate(
+        items = items.map { it.asCandidate(context) },
+        containerStyle = ContainerStyle(isVisible = visible())
+    )
 
     /**
      * A button to be shown in a toolbar inside the browser menu.
@@ -83,6 +89,7 @@ class BrowserMenuItemToolbar(
         internal open fun bind(view: ImageView) {
             view.setImageResource(imageResource)
             view.contentDescription = contentDescription
+            TooltipCompat.setTooltipText(view, contentDescription)
             view.setTintResource(iconTintColorResource)
             view.isEnabled = isEnabled()
         }
@@ -90,6 +97,17 @@ class BrowserMenuItemToolbar(
         internal open fun invalidate(view: ImageView) {
             view.isEnabled = isEnabled()
         }
+
+        internal open fun asCandidate(context: Context) = SmallMenuCandidate(
+            contentDescription,
+            icon = DrawableMenuIcon(
+                context,
+                resource = imageResource,
+                tint = if (iconTintColorResource == NO_ID) null else getColor(context, iconTintColorResource)
+            ),
+            containerStyle = ContainerStyle(isEnabled = isEnabled()),
+            onClick = listener
+        )
     }
 
     /**
@@ -132,6 +150,7 @@ class BrowserMenuItemToolbar(
             } else {
                 view.setImageResource(secondaryImageResource)
                 view.contentDescription = secondaryContentDescription
+                TooltipCompat.setTooltipText(view, secondaryContentDescription)
                 view.setTintResource(secondaryImageTintResource)
                 view.isEnabled = !disableInSecondaryState
             }
@@ -143,9 +162,24 @@ class BrowserMenuItemToolbar(
                 bind(view)
             }
         }
-    }
 
-    companion object {
-        private const val ICON_HEIGHT_DP = 24
+        override fun asCandidate(context: Context): SmallMenuCandidate = if (isInPrimaryState()) {
+            super.asCandidate(context)
+        } else {
+            SmallMenuCandidate(
+                secondaryContentDescription,
+                icon = DrawableMenuIcon(
+                    context,
+                    resource = secondaryImageResource,
+                    tint = if (secondaryImageTintResource == NO_ID) {
+                        null
+                    } else {
+                        getColor(context, secondaryImageTintResource)
+                    }
+                ),
+                containerStyle = ContainerStyle(isEnabled = !disableInSecondaryState),
+                onClick = listener
+            )
+        }
     }
 }

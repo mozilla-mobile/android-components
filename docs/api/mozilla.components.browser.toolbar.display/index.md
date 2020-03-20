@@ -6,4 +6,4 @@
 
 | Name | Summary |
 |---|---|
-| [SiteSecurityIcons](-site-security-icons/index.md) | `data class SiteSecurityIcons`<br>Specifies icons to display in the toolbar representing the security of the current website. |
+| [DisplayToolbar](-display-toolbar/index.md) | `class DisplayToolbar`<br>Sub-component of the browser toolbar responsible for displaying the URL and related controls ("display mode"). |

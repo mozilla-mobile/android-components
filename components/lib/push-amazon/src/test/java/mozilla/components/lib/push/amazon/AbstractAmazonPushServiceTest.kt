@@ -1,46 +1,60 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.lib.push.amazon
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import com.amazon.device.messaging.ADM
 import com.amazon.device.messaging.ADMMessageHandlerBase
 import mozilla.components.concept.push.EncryptedPushMessage
 import mozilla.components.concept.push.PushError
 import mozilla.components.concept.push.PushProcessor
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
-import org.junit.Assert
+import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
+import org.mockito.Mockito.anyString
+import org.mockito.Mockito.never
+import org.mockito.Mockito.reset
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyZeroInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 
 @RunWith(RobolectricTestRunner::class)
-@Config(shadows = [ShadowADMMessageHandlerBase::class])
+@Config(shadows = [ShadowADMMessageHandlerBase::class, ShadowADM::class])
 class AbstractAmazonPushServiceTest {
     private val processor: PushProcessor = mock()
     private val service = TestService()
 
     @Before
     fun setup() {
-        Mockito.reset(processor)
+        reset(processor)
         PushProcessor.install(processor)
+    }
+
+    @Test
+    fun `if registrationId exists startRegister invokes onNewToken`() {
+        val testService = TestService()
+
+        testService.start(testContext)
+        verify(processor).onNewToken(anyString())
     }
 
     @Test
     fun `onNewToken passes token to processor`() {
         service.onRegistered("token")
 
-        Mockito.verify(processor).onNewToken("token")
+        verify(processor).onNewToken("token")
     }
 
     @Test
@@ -57,13 +71,31 @@ class AbstractAmazonPushServiceTest {
         messageIntent.putExtras(bundleExtra)
         service.onMessage(messageIntent)
 
-        Mockito.verify(processor).onMessageReceived(captor.capture())
+        verify(processor).onMessageReceived(captor.capture())
 
-        Assert.assertEquals("1234", captor.value.channelId)
-        Assert.assertEquals("contents", captor.value.body)
-        Assert.assertEquals("encoding", captor.value.encoding)
-        Assert.assertEquals("salt", captor.value.salt)
-        Assert.assertEquals("dh256", captor.value.cryptoKey)
+        assertEquals("1234", captor.value.channelId)
+        assertEquals("contents", captor.value.body)
+        assertEquals("encoding", captor.value.encoding)
+        assertEquals("salt", captor.value.salt)
+        assertEquals("dh256", captor.value.cryptoKey)
+    }
+
+    @Test
+    fun `registration errors are forwarded to the processor`() {
+        val service = object : AbstractAmazonPushService() {
+            public override fun onRegistrationError(errorId: String) {
+                super.onRegistrationError(errorId)
+            }
+        }
+
+        val captor = argumentCaptor<PushError>()
+
+        service.onRegistrationError("123")
+
+        verify(processor).onError(captor.capture())
+
+        assertTrue(captor.value is PushError.Registration)
+        assertTrue(captor.value.message.contains("registration failed"))
     }
 
     @Test
@@ -76,10 +108,10 @@ class AbstractAmazonPushServiceTest {
         messageIntent.putExtras(bundleExtra)
         service.onMessage(messageIntent)
 
-        Mockito.verify(processor).onError(captor.capture())
+        verify(processor).onError(captor.capture())
 
-        Assert.assertTrue(captor.value is PushError.MalformedMessage)
-        Assert.assertTrue(captor.value.desc.contains("NoSuchElementException"))
+        assertTrue(captor.value is PushError.MalformedMessage)
+        assertTrue(captor.value.message.contains("NoSuchElementException"))
     }
 
     @Test
@@ -87,14 +119,41 @@ class AbstractAmazonPushServiceTest {
         val messageIntent = Intent()
         service.onMessage(messageIntent)
 
-        Mockito.verifyZeroInteractions(processor)
+        verifyZeroInteractions(processor)
     }
 
-    class TestService : AbstractAmazonPushService()
+    @Test
+    fun `service available reflects Amazon Device Messaging availability`() {
+        assertTrue(service.isServiceAvailable(testContext))
+    }
+}
+
+class TestService : AbstractAmazonPushService()
+
+@RunWith(RobolectricTestRunner::class)
+@Config(shadows = [ShadowADMMessageHandlerBase::class, ShadowADM2::class])
+class AbstractAmazonPushServiceRegistrationTest {
+
+    private val processor: PushProcessor = mock()
+    private val service = TestService()
+
+    @Before
+    fun setup() {
+        reset(processor)
+        PushProcessor.install(processor)
+    }
+
+    @Test
+    fun `if registrationId does NOT exist startRegister never invokes onNewToken`() {
+        val testService = TestService()
+
+        testService.start(testContext)
+        verify(processor, never()).onNewToken(anyString())
+    }
 }
 
 /**
- * Custom Shadow for [ADMMessageHandlerBase]
+ * Custom Shadow for [ADMMessageHandlerBase].
  */
 @Implements(ADMMessageHandlerBase::class)
 class ShadowADMMessageHandlerBase {
@@ -106,4 +165,36 @@ class ShadowADMMessageHandlerBase {
     @Implementation
     @Suppress("UNUSED_PARAMETER")
     fun __constructor__(name: String) {}
+}
+
+/**
+ * Custom Shadow for [ADM].
+ */
+@Implements(ADM::class)
+class ShadowADM {
+
+    @Implementation
+    @Suppress("UNUSED_PARAMETER")
+    fun __constructor__(context: Context) {}
+
+    fun isSupported() = true
+
+    fun getRegistrationId() = "123"
+}
+
+/**
+ * Custom Shadow for [ADM] where the registration ID is null. Currently, we have no way to alter the
+ * Shadow class inside of the service, so this is our work around.
+ */
+@Implements(ADM::class)
+class ShadowADM2 {
+    @Implementation
+    @Suppress("UNUSED_PARAMETER")
+    fun __constructor__(context: Context) {}
+
+    fun isSupported() = true
+
+    fun getRegistrationId(): String? = null
+
+    fun startRegister() {}
 }

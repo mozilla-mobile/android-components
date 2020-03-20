@@ -1,8 +1,6 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.concept.push
 
@@ -51,5 +49,7 @@ class PushProcessorTest {
         override fun onMessageReceived(message: EncryptedPushMessage) {}
 
         override fun onError(error: PushError) {}
+
+        override fun renewRegistration() {}
     }
 }

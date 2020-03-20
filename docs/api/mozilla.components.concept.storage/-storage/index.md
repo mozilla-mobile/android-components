@@ -13,6 +13,12 @@ An interface which provides generic operations for storing browser data like his
 | [cleanup](cleanup.md) | `abstract fun cleanup(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Cleans up background work and database connections |
 | [runMaintenance](run-maintenance.md) | `abstract suspend fun runMaintenance(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Runs internal database maintenance tasks |
 
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
+
 ### Inheritors
 
 | Name | Summary |
@@ -20,3 +26,4 @@ An interface which provides generic operations for storing browser data like his
 | [BookmarksStorage](../-bookmarks-storage/index.md) | `interface BookmarksStorage : `[`Storage`](./index.md)<br>An interface which defines read/write operations for bookmarks data. |
 | [HistoryStorage](../-history-storage/index.md) | `interface HistoryStorage : `[`Storage`](./index.md)<br>An interface which defines read/write methods for history data. |
 | [PlacesStorage](../../mozilla.components.browser.storage.sync/-places-storage/index.md) | `abstract class PlacesStorage : `[`Storage`](./index.md)`, `[`SyncableStore`](../../mozilla.components.concept.sync/-syncable-store/index.md)<br>A base class for concrete implementations of PlacesStorages |
+| [RemoteTabsStorage](../../mozilla.components.browser.storage.sync/-remote-tabs-storage/index.md) | `open class RemoteTabsStorage : `[`Storage`](./index.md)`, `[`SyncableStore`](../../mozilla.components.concept.sync/-syncable-store/index.md)<br>An interface which defines read/write methods for remote tabs data. |

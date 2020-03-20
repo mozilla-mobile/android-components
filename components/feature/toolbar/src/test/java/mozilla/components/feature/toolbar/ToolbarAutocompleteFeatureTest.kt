@@ -10,12 +10,17 @@ import mozilla.components.browser.domains.Domain
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
 import mozilla.components.browser.domains.autocomplete.DomainList
 import mozilla.components.browser.storage.memory.InMemoryHistoryStorage
+import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.storage.HistoryStorage
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.test.any
+import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.fail
@@ -52,6 +57,10 @@ class ToolbarAutocompleteFeatureTest {
             return false
         }
 
+        override fun onStop() {
+            fail()
+        }
+
         override fun setOnUrlCommitListener(listener: (String) -> Boolean) {
             fail()
         }
@@ -61,6 +70,14 @@ class ToolbarAutocompleteFeatureTest {
         }
 
         override fun addBrowserAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun removeBrowserAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun removePageAction(action: Toolbar.Action) {
             fail()
         }
 
@@ -87,6 +104,10 @@ class ToolbarAutocompleteFeatureTest {
         override fun addEditAction(action: Toolbar.Action) {
             fail()
         }
+
+        override fun invalidateActions() {
+            fail()
+        }
     }
 
     @Test
@@ -101,7 +122,7 @@ class ToolbarAutocompleteFeatureTest {
         runBlocking {
             toolbar.autocompleteFilter!!("moz", autocompleteDelegate)
         }
-        verify(autocompleteDelegate, never()).applyAutocompleteResult(any())
+        verify(autocompleteDelegate, never()).applyAutocompleteResult(any(), any())
         verify(autocompleteDelegate, times(1)).noAutocompleteResult("moz")
     }
 
@@ -124,7 +145,7 @@ class ToolbarAutocompleteFeatureTest {
 
         // Can autocomplete with a non-empty history provider.
         runBlocking {
-            history.recordVisit("https://www.mozilla.org", VisitType.TYPED)
+            history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
         }
 
         verifyNoAutocompleteResult(toolbar, autocompleteDelegate, "hi")
@@ -184,7 +205,7 @@ class ToolbarAutocompleteFeatureTest {
         )
 
         runBlocking {
-            history.recordVisit("https://www.mozilla.org", VisitType.TYPED)
+            history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
         }
 
         verifyAutocompleteResult(toolbar, autocompleteDelegate, "mo",
@@ -208,12 +229,38 @@ class ToolbarAutocompleteFeatureTest {
         )
     }
 
+    @Test
+    fun `feature triggers speculative connect for results if engine provided`() {
+        val toolbar = TestToolbar()
+        val engine: Engine = mock()
+        var feature = ToolbarAutocompleteFeature(toolbar, engine)
+        val autocompleteDelegate: AutocompleteDelegate = mock()
+
+        val domains = object : BaseDomainAutocompleteProvider(DomainList.CUSTOM, { emptyList() }) {
+            fun testDomains(list: List<Domain>) {
+                domains = list
+            }
+        }
+        domains.testDomains(listOf(Domain.create("https://www.mozilla.org")))
+        feature.addDomainProvider(domains)
+
+        runBlocking {
+            toolbar.autocompleteFilter!!.invoke("mo", autocompleteDelegate)
+        }
+
+        val callbackCaptor = argumentCaptor<() -> Unit>()
+        verify(autocompleteDelegate, times(1)).applyAutocompleteResult(any(), callbackCaptor.capture())
+        verify(engine, never()).speculativeConnect("https://www.mozilla.org")
+        callbackCaptor.value.invoke()
+        verify(engine).speculativeConnect("https://www.mozilla.org")
+    }
+
     @Suppress("SameParameterValue")
     private fun verifyNoAutocompleteResult(toolbar: TestToolbar, autocompleteDelegate: AutocompleteDelegate, query: String) {
         runBlocking {
             toolbar.autocompleteFilter!!(query, autocompleteDelegate)
         }
-        verify(autocompleteDelegate, never()).applyAutocompleteResult(any())
+        verify(autocompleteDelegate, never()).applyAutocompleteResult(any(), any())
         verify(autocompleteDelegate, times(1)).noAutocompleteResult(query)
         reset(autocompleteDelegate)
     }
@@ -222,7 +269,7 @@ class ToolbarAutocompleteFeatureTest {
         runBlocking {
             toolbar.autocompleteFilter!!.invoke(query, autocompleteDelegate)
         }
-        verify(autocompleteDelegate, times(1)).applyAutocompleteResult(result)
+        verify(autocompleteDelegate, times(1)).applyAutocompleteResult(eq(result), any())
         verify(autocompleteDelegate, never()).noAutocompleteResult(query)
         reset(autocompleteDelegate)
     }

@@ -6,7 +6,7 @@ package mozilla.components.feature.session
 
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.EngineView
-import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
@@ -15,9 +15,9 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 class SessionFeature(
     private val sessionManager: SessionManager,
     private val goBackUseCase: SessionUseCases.GoBackUseCase,
-    engineView: EngineView,
+    private val engineView: EngineView,
     private val sessionId: String? = null
-) : LifecycleAwareFeature, BackHandler {
+) : LifecycleAwareFeature, UserInteractionHandler {
     internal val presenter = EngineViewPresenter(sessionManager, engineView, sessionId)
 
     /**
@@ -47,7 +47,10 @@ class SessionFeature(
             sessionManager.findSessionById(it)
         } ?: sessionManager.selectedSession
 
-        if (session?.canGoBack == true) {
+        if (engineView.canClearSelection()) {
+            engineView.clearSelection()
+            return true
+        } else if (session?.canGoBack == true) {
             goBackUseCase(session)
             return true
         }

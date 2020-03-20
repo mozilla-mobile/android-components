@@ -33,7 +33,11 @@ android {
 dependencies {
     implementation Dependencies.androidx_annotation
 
+    implementation project(':support-ktx')
+
     implementation Dependencies.kotlin_stdlib
+
+    implementation project(':ui-icons')
 
     testImplementation project(':support-test')
 

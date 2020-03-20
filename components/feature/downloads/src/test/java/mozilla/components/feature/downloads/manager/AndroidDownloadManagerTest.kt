@@ -10,11 +10,10 @@ import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.Request
 import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.session.Download
+import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.grantPermission
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -23,16 +22,19 @@ import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD_STATUS
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus
+import org.junit.Assert.assertEquals
 
 @RunWith(AndroidJUnit4::class)
 class AndroidDownloadManagerTest {
 
-    private lateinit var download: Download
+    private lateinit var download: DownloadState
     private lateinit var downloadManager: AndroidDownloadManager
 
     @Before
     fun setup() {
-        download = Download(
+        download = DownloadState(
             "http://ipv4.download.thinkbroadband.com/5MB.zip",
             "", "application/zip", 5242880,
             "Mozilla/5.0 (Linux; Android 7.1.1) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Focus/8.0 Chrome/69.0.3497.100 Mobile Safari/537.36"
@@ -49,7 +51,7 @@ class AndroidDownloadManagerTest {
     fun `calling download must download the file`() {
         var downloadCompleted = false
 
-        downloadManager.onDownloadCompleted = { _, _ -> downloadCompleted = true }
+        downloadManager.onDownloadStopped = { _, _, _ -> downloadCompleted = true }
 
         grantPermissions()
 
@@ -57,6 +59,28 @@ class AndroidDownloadManagerTest {
 
         notifyDownloadCompleted(id)
 
+        assertTrue(downloadCompleted)
+    }
+
+    @Test
+    fun `calling tryAgain starts the download again`() {
+        var downloadCompleted = false
+
+        downloadManager.onDownloadStopped = { _, _, _ -> downloadCompleted = true }
+
+        grantPermissions()
+
+        val id = downloadManager.download(download)!!
+
+        notifyDownloadCompleted(id)
+
+        assertTrue(downloadCompleted)
+
+        downloadCompleted = false
+
+        downloadManager.tryAgain(id)
+
+        notifyDownloadCompleted(id)
         assertTrue(downloadCompleted)
     }
 
@@ -73,8 +97,9 @@ class AndroidDownloadManagerTest {
     }
 
     @Test
-    fun `calling registerListener with valid downloadID must call listener after download`() {
+    fun `sendBroadcast with valid downloadID must call onDownloadStopped after download`() {
         var downloadCompleted = false
+        var downloadStatus: DownloadJobStatus? = null
         val downloadWithFileName = download.copy(fileName = "5MB.zip")
 
         grantPermissions()
@@ -84,16 +109,15 @@ class AndroidDownloadManagerTest {
             cookie = "yummy_cookie=choco"
         )!!
 
-        downloadManager.onDownloadCompleted = { _, _ -> downloadCompleted = true }
+        downloadManager.onDownloadStopped = { _, _, status ->
+            downloadStatus = status
+            downloadCompleted = true
+        }
 
         notifyDownloadCompleted(id)
 
         assertTrue(downloadCompleted)
-
-        downloadCompleted = false
-        notifyDownloadCompleted(id)
-
-        assertFalse(downloadCompleted)
+        assertEquals(DownloadJobStatus.COMPLETED, downloadStatus)
     }
 
     @Test
@@ -118,6 +142,7 @@ class AndroidDownloadManagerTest {
     private fun notifyDownloadCompleted(id: Long) {
         val intent = Intent(ACTION_DOWNLOAD_COMPLETE)
         intent.putExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, id)
+        intent.putExtra(EXTRA_DOWNLOAD_STATUS, DownloadJobStatus.COMPLETED)
         testContext.sendBroadcast(intent)
     }
 

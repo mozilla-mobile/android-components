@@ -2,7 +2,7 @@
 
 # Toolbar
 
-`interface Toolbar` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/toolbar/src/main/java/mozilla/components/concept/toolbar/Toolbar.kt#L23)
+`interface Toolbar` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/toolbar/src/main/java/mozilla/components/concept/toolbar/Toolbar.kt#L26)
 
 Interface to be implemented by components that provide browser toolbar functionality.
 
@@ -41,11 +41,21 @@ Interface to be implemented by components that provide browser toolbar functiona
 | [displayMode](display-mode.md) | `abstract fun displayMode(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Switches to URL displaying mode (from editing mode) if supported by the toolbar implementation. |
 | [displayProgress](display-progress.md) | `abstract fun displayProgress(progress: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Displays the given loading progress. Expects values in the range [0,100](#). |
 | [editMode](edit-mode.md) | `abstract fun editMode(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Switches to URL editing mode (from displaying mode) if supported by the toolbar implementation. |
+| [invalidateActions](invalidate-actions.md) | `abstract fun invalidateActions(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Declare that the actions (navigation actions, browser actions, page actions) have changed and should be updated if needed. |
 | [onBackPressed](on-back-pressed.md) | `abstract fun onBackPressed(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Should be called by an activity when the user pressed the back key of the device. |
+| [onStop](on-stop.md) | `abstract fun onStop(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Should be called by the host activity when it enters the stop state. |
+| [removeBrowserAction](remove-browser-action.md) | `abstract fun removeBrowserAction(action: `[`Action`](-action/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Removes a previously added browser action (see [addBrowserAction](add-browser-action.md)). If the the provided actions was never added, this method has no effect. |
+| [removePageAction](remove-page-action.md) | `abstract fun removePageAction(action: `[`Action`](-action/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Removes a previously added page action (see [addBrowserAction](add-browser-action.md)). If the the provided actions was never added, this method has no effect. |
 | [setAutocompleteListener](set-autocomplete-listener.md) | `abstract fun setAutocompleteListener(filter: suspend (`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, `[`AutocompleteDelegate`](../-autocomplete-delegate/index.md)`) -> `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Registers the given function to be invoked when users changes text in the toolbar. |
 | [setOnEditListener](set-on-edit-listener.md) | `abstract fun setOnEditListener(listener: `[`OnEditListener`](-on-edit-listener/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Registers the given listener to be invoked when the user edits the URL. |
 | [setOnUrlCommitListener](set-on-url-commit-listener.md) | `abstract fun setOnUrlCommitListener(listener: (`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`) -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Registers the given function to be invoked when the user selected a new URL i.e. is done editing. |
 | [setSearchTerms](set-search-terms.md) | `abstract fun setSearchTerms(searchTerms: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Displays the currently used search terms as part of this Toolbar. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

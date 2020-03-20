@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.browser.engine.system
 
 import android.content.Context
@@ -36,6 +40,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
+import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.never
@@ -88,6 +93,13 @@ class SystemEngineSessionTest {
         assertEquals(1, loadHeaders!!.size)
         assertTrue(loadHeaders!!.containsKey("X-Requested-With"))
         assertEquals("", loadHeaders!!["X-Requested-With"])
+
+        val extraHeaders = mapOf("X-Extra-Header" to "true")
+        engineSession.loadUrl("http://mozilla.org", additionalHeaders = extraHeaders)
+        assertNotNull(loadHeaders)
+        assertEquals(2, loadHeaders!!.size)
+        assertTrue(loadHeaders!!.containsKey("X-Extra-Header"))
+        assertEquals("true", loadHeaders!!["X-Extra-Header"])
     }
 
     @Test
@@ -202,18 +214,20 @@ class SystemEngineSessionTest {
     @Test
     fun restoreState() {
         val engineSession = spy(SystemEngineSession(testContext))
-        val webView = mock<WebView>()
+        val webView = spy(WebView(testContext))
 
         try {
             engineSession.restoreState(mock())
             fail("Expected IllegalArgumentException")
         } catch (e: IllegalArgumentException) {}
-        engineSession.restoreState(SystemEngineSessionState(Bundle()))
+        assertFalse(engineSession.restoreState(SystemEngineSessionState(Bundle())))
         verify(webView, never()).restoreState(any(Bundle::class.java))
 
         engineSession.webView = webView
+        engineSession.webView.loadUrl("http://example.com")
+        val state = engineSession.saveState()
 
-        engineSession.restoreState(SystemEngineSessionState(Bundle()))
+        assertTrue(engineSession.restoreState(state))
         verify(webView).restoreState(any(Bundle::class.java))
     }
 
@@ -235,7 +249,10 @@ class SystemEngineSessionTest {
 
         assertNull(engineSession.trackingProtectionPolicy)
         runBlocking { engineSession.enableTrackingProtection() }
-        assertEquals(EngineSession.TrackingProtectionPolicy.all(), engineSession.trackingProtectionPolicy)
+        assertEquals(
+            EngineSession.TrackingProtectionPolicy.strict(),
+            engineSession.trackingProtectionPolicy
+        )
         assertNotNull(enabledObserved)
         assertTrue(enabledObserved as Boolean)
     }
@@ -250,7 +267,7 @@ class SystemEngineSessionTest {
             }
         })
 
-        engineSession.trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.all()
+        engineSession.trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.strict()
 
         engineSession.disableTrackingProtection()
         assertNull(engineSession.trackingProtectionPolicy)
@@ -345,8 +362,9 @@ class SystemEngineSessionTest {
         assertFalse(engineSession.settings.webFontsEnabled)
 
         assertNull(engineSession.settings.trackingProtectionPolicy)
-        engineSession.settings.trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.all()
-        verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.all())
+        engineSession.settings.trackingProtectionPolicy =
+            EngineSession.TrackingProtectionPolicy.strict()
+        verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.strict())
 
         engineSession.settings.trackingProtectionPolicy = null
         verify(engineSession).disableTrackingProtection()
@@ -366,7 +384,7 @@ class SystemEngineSessionTest {
                 javascriptEnabled = false,
                 domStorageEnabled = false,
                 webFontsEnabled = false,
-                trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.all(),
+                trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.strict(),
                 userAgentString = "userAgent",
                 mediaPlaybackRequiresUserGesture = false,
                 javaScriptCanOpenWindowsAutomatically = true,
@@ -393,7 +411,7 @@ class SystemEngineSessionTest {
         verify(webViewSettings).loadWithOverviewMode = true
         verify(webViewSettings).useWideViewPort = true
         verify(webViewSettings).setSupportMultipleWindows(true)
-        verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.all())
+        verify(engineSession).enableTrackingProtection(EngineSession.TrackingProtectionPolicy.strict())
         assertFalse(engineSession.webFontsEnabled)
     }
 
@@ -421,7 +439,12 @@ class SystemEngineSessionTest {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                uri: String,
+                hasUserGesture: Boolean,
+                isSameDomain: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
             }
@@ -488,7 +511,12 @@ class SystemEngineSessionTest {
         doReturn(Uri.parse("sample:about")).`when`(request).url
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                uri: String,
+                hasUserGesture: Boolean,
+                isSameDomain: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
             }
         }
@@ -515,7 +543,12 @@ class SystemEngineSessionTest {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                uri: String,
+                hasUserGesture: Boolean,
+                isSameDomain: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return RequestInterceptor.InterceptionResponse.Url("https://mozilla.org")
             }
@@ -564,7 +597,12 @@ class SystemEngineSessionTest {
         var interceptorCalledWithUri: String? = null
 
         val interceptor = object : RequestInterceptor {
-            override fun onLoadRequest(session: EngineSession, uri: String): RequestInterceptor.InterceptionResponse? {
+            override fun onLoadRequest(
+                engineSession: EngineSession,
+                uri: String,
+                hasUserGesture: Boolean,
+                isSameDomain: Boolean
+            ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return null
             }
@@ -929,5 +967,23 @@ class SystemEngineSessionTest {
         assertFalse(engineSession.recoverFromCrash())
 
         verify(webView, never()).restoreState(any())
+    }
+
+    @Test
+    fun `GIVEN webView_canGoBack() true WHEN goBack() is called THEN verify EngineObserver onNavigateBack() is triggered`() {
+        var observedOnNavigateBack = false
+
+        val engineSession = SystemEngineSession(testContext)
+        val webView = mock<WebView>()
+        engineSession.webView = webView
+        Mockito.`when`(webView.canGoBack()).thenReturn(true)
+        engineSession.register(object : EngineSession.Observer {
+            override fun onNavigateBack() {
+                observedOnNavigateBack = true
+            }
+        })
+
+        engineSession.goBack()
+        assertTrue(observedOnNavigateBack)
     }
 }

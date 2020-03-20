@@ -36,6 +36,19 @@
       </ul>
     ]]></string>
 
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Pokročilé…</string>
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Niekto sa môže vydávať za daný server a preto by ste nemali pokračovať.</label>
+        <br><br>
+        <label>Webové stránky preukazujú svoju identitu pomocou certifikátov. Aplikácia %1$s nemôže stránku <b>%2$s</b>, pretože vydavateľ daného certifikátu je neznámy, certifikát je podpísaný vlastným podpisom alebo server neposiela správne sprostredkujúce certifikáty.</label>
+    ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Prejsť naspäť (odporúča sa)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Rozumiem riziku a chcem pokračovať</string>
+
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Pripojenie bolo prerušené</string>
 
@@ -177,6 +190,13 @@
         <li>Ak nemôžete načítať žiadnu stránku, skontrolujte pripojenie svojho zariadenia k internetu.</li>
       </ul>
     ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">Žiadne pripojenie k internetu</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Skontrolujte pripojenie k sieti alebo skúste načítať stránku o chvíľu.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Obnoviť</string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Neplatná adresa</string>

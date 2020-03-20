@@ -34,6 +34,20 @@
 </ul>
 ]]></string>
 
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Avanzadas…</string>
+
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Alguien podría estar intentando imitar el sitio y no deberías continuar. </label>
+        <br><br>
+        <label>Los sitios web prueban su identidad mediante certificados. %1$s no confía en <b>%2$s</b> porque el emisor del certificado es desconocido, el certificado está autofirmado o el servidor no envía los certificados intermedios correctos.</label>
+    ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Retroceder (recomendado)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Aceptar el riesgo y continuar</string>
+
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Se interrumpió la conexión </string>
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
@@ -48,15 +62,13 @@
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_title">La conexión tardó demasiado tiempo</string>
     <!-- The error message shown when a website took long to load. -->
-    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
-	<p>El sitio solicitado no respondió a una pedido de conexión y el navegador dejó de esperar una respuesta.</p>
+    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[<p>El sitio solicitado no respondió a una pedido de conexión y el navegador dejó de esperar una respuesta.</p>
 	<ul>
 		<li>¿El servidor podría estar experimentando una alta demanda o un corte temporal? Volvé a probar más tarde.</li>
-		<li>¿No podés navegar por otros sitios? Comprobá la conexión de red del equipo.</li>
-		<li>¿Tu red o equipo está protegido por un firewall o un proxy? Una configuración incorrecta puede interferir con la navegación web.</li>
+		<li>¿No podés navegar por otros sitios? Verificá la conexión de red del dispositivo.</li>
+		<li>¿Tu red o dispositivo está protegido por un firewall o un proxy? Una configuración incorrecta puede interferir con la navegación web.</li>
 		<li>¿Todavía tenés problemas? Consultá con el administrador de la red o el proveedor de Internet para obtener asistencia técnica.</li>
-	</ul>
-	]]></string>
+	</ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website could not be reached. -->
     <string name="mozac_browser_errorpages_connection_failure_title">No se puede conectar</string>
@@ -76,20 +88,18 @@
     <string name="mozac_browser_errorpages_redirect_loop_title">La página no se  redirecciona correctamente</string>
 
     <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
-    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
-      <p>El navegador dejó de tratar de transferir el ítem solicitado. El sitio está redirigiendo el pedido en una manera que nunca se completará.</p>
+    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[<p>El navegador dejó de tratar de transferir el ítem solicitado. El sitio está redirigiendo el pedido en una manera que nunca se completará.</p>
       <ul>
       <li>¿Deshabilitaste o bloqueaste cookies requeridas por este sitio?</li>
-      <li> Si aceptar las cookies del sitio no resuelve el problema, seguramente es un problema de configuración del servidor y no de tu computadora.</li>
+      <li> Si aceptar las cookies del sitio no resuelve el problema, seguramente es un problema de configuración del servidor y no de tu dispositivo.</li>
     
-        </ul>
-    ]]></string>
+        </ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
     <string name="mozac_browser_errorpages_offline_title">Modo sin conexión</string>
 
     <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
-    <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>El navegador está funcionando en el modo sin conexión y no puede conectarse al ítem solicitado.</p><ul><li>¿La computadora está conectada a una red activa?</li><li>Presioná “Intentar de nuevo” para volver al modo con conexión y recargar la página.</li></ul>]]></string>
+    <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>El navegador está funcionando en el modo sin conexión y no puede conectarse al ítem solicitado.</p><ul><li>¿El dispositivo está conectado a una red activa?</li><li>Presioná “Intentar de nuevo” para volver al modo con conexión y recargar la página.</li></ul>]]></string>
 
     <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
     <string name="mozac_browser_errorpages_port_blocked_title">Restricción del puerto por razones de seguridad</string>
@@ -102,7 +112,11 @@
     <string name="mozac_browser_errorpages_net_reset_title">Se restableció la conexión</string>
 
     <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
-    <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[<p>]]></string>
+    <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[<p>El navegador se conectó con éxito, pero se interrumpió la conexión mientras se transfería la información. Volvé a probar.</p>
+	<ul>
+		<li>El sitio podría no estar disponible temporalmente o estar demasiado ocupado. Volvé a probar en unos minutos.</li>
+		<li>Si no podés cargar ninguna página, revisá la conexión wifi o de datos de tu dispositivo móvil.</li>
+	</ul>]]></string>
 
     <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
     <string name="mozac_browser_errorpages_unsafe_content_type_title">Tipo de archivo no seguro</string>
@@ -161,6 +175,13 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">Sin conexión a Internet</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Verificá tu conexión a la red o intentá volver a cargar la página en un ratito.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Recargar</string>
+
+    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">La dirección no es válida</string>
     <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
       <p>La dirección provista no tiene un formato reconocible. Mirá si no hay errores en la barra de direcciones e intentá nuevamente.</p>
@@ -210,20 +231,38 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_proxy_connection_refused_title">El servidor proxy rechazó la conexión</string>
 
+    <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[<p>El navegador está configurado para usar un servidor proxy, pero el proxy rechazó la conexión.</p>
+<ul>
+        <li>¿Es correcta la configuración del proxy? Verificá la configuración y volvé a intentarlo.</li>
+        <li>¿El servidor proxy permite conexiones desde esta red?</li>
+        <li>¿Aún tenés problemas? Consultá con el administrador de tu red o el proveedor de internet.</li>
+</ul>]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">No se encontró el servidor proxy</string>
 
-    <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[<p>El navegador está configurado para usar un servidor proxy, pero el proxy no se encontró el servidor.</p><ul><li>¿La configuración del proxy del navegador es correcta? Verificá la configuración y probá de nuevo.</li><li>¿La computadora está conectada a una red activa?</li><li>¿Todavía tenés problemas? Consultá con tu administrador de red o tu proveedor de Internet para recibir asistencia.</li></ul>]]></string>
+    <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[<p>El navegador está configurado para usar un servidor proxy, pero el proxy no se encontró el servidor.</p><ul><li>¿La configuración del proxy del navegador es correcta? Verificá la configuración y probá de nuevo.</li><li>¿El dispositivo está conectado a una red activa?</li><li>¿Todavía tenés problemas? Consultá con tu administrador de red o tu proveedor de Internet para recibir asistencia.</li></ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">Problema del sitio con contenido malicioso</string>
 
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_message"><![CDATA[<p>El sitio %1$s fue informado como un sitio de ataque y fue bloqueado basado en tus preferencias de seguridad.</p>]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">Problema de sitio no deseado</string>
+
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[<p>El sitio %1$s fue informado por instalar software no deseado y fue bloqueado basado en tus preferencias de seguridad.</p>]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_harmful_uri_title">Problema de sitio dañino</string>
 
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_harmful_uri_message"><![CDATA[<p>El sitio %1$s fue informado como un sitio potencialmente dañino y fue bloqueado basado en tus preferencias de seguridad.</p>]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_phishing_uri_title">El sitio es engañoso</string>
-    </resources>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[<p>La página web %1$s fue informada como un sitio engañoso y fue bloqueado basado en tus preferencias de seguridad.</p>]]></string>
+</resources>

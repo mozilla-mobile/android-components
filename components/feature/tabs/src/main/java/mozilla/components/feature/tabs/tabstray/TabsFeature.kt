@@ -5,25 +5,31 @@
 package mozilla.components.feature.tabs.tabstray
 
 import androidx.annotation.VisibleForTesting
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.feature.tabs.ext.toTabs
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
  * Feature implementation for connecting a tabs tray implementation with the session module.
+ *
+ * @param defaultTabsFilter A tab filter that is used for the initial presenting of tabs that will be used by
+ * [TabsFeature.filterTabs] by default as well.
  */
 class TabsFeature(
     tabsTray: TabsTray,
-    sessionManager: SessionManager,
+    private val store: BrowserStore,
     tabsUseCases: TabsUseCases,
+    private val defaultTabsFilter: (TabSessionState) -> Boolean = { true },
     closeTabsTray: () -> Unit
 ) : LifecycleAwareFeature {
     @VisibleForTesting
     internal var presenter = TabsTrayPresenter(
         tabsTray,
-        sessionManager,
+        store,
+        defaultTabsFilter,
         closeTabsTray
     )
 
@@ -44,8 +50,16 @@ class TabsFeature(
         interactor.stop()
     }
 
-    fun filterTabs(tabsFilter: (Session) -> Boolean) {
-        presenter.sessionsFilter = tabsFilter
-        presenter.calculateDiffAndUpdateTabsTray()
+    /**
+     * Filter the list of tabs using [tabsFilter].
+     *
+     * @param tabsFilter A filter function returning `true` for all tabs that should be displayed in
+     * the tabs tray. Uses the [defaultTabsFilter] if none is provided.
+     */
+    fun filterTabs(tabsFilter: (TabSessionState) -> Boolean = defaultTabsFilter) {
+        presenter.tabsFilter = tabsFilter
+
+        val state = store.state
+        presenter.updateTabs(state.toTabs(tabsFilter))
     }
 }

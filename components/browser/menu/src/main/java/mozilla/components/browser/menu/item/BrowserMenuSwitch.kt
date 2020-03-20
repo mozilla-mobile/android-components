@@ -1,12 +1,12 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.browser.menu.item
 
+import android.content.Context
 import mozilla.components.browser.menu.R
+import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
 
 /**
  * A simple browser menu switch.
@@ -21,4 +21,8 @@ class BrowserMenuSwitch(
     listener: (Boolean) -> Unit
 ) : BrowserMenuCompoundButton(label, initialState, listener) {
     override fun getLayoutResource(): Int = R.layout.mozac_browser_menu_item_switch
+
+    override fun asCandidate(context: Context) = super.asCandidate(context).copy(
+        end = CompoundMenuCandidate.ButtonType.SWITCH
+    )
 }

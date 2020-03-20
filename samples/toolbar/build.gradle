@@ -29,16 +29,20 @@ android {
 
 
 dependencies {
+    implementation project(':concept-engine')
     implementation project(':browser-toolbar')
     implementation project(':browser-menu')
     implementation project(':browser-domains')
 
     implementation project(':ui-colors')
+    implementation project(':ui-tabcounter')
     implementation project(':ui-icons')
 
     implementation project(':feature-toolbar')
 
     implementation project(':support-ktx')
+
+    implementation project(':support-utils')
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines

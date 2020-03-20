@@ -59,6 +59,7 @@ respectively (see also [setOnTextChangeListener](set-on-text-change-listener.md)
 | [onFocusChanged](on-focus-changed.md) | `open fun onFocusChanged(gainFocus: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`, direction: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, previouslyFocusedRect: <ERROR CLASS>?): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
 | [onKeyPreIme](on-key-pre-ime.md) | `open fun onKeyPreIme(keyCode: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, event: <ERROR CLASS>): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [onSelectionChanged](on-selection-changed.md) | `open fun onSelectionChanged(selStart: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, selEnd: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
+| [onTextContextMenuItem](on-text-context-menu-item.md) | `open fun onTextContextMenuItem(id: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [onTouchEvent](on-touch-event.md) | `open fun onTouchEvent(event: <ERROR CLASS>): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [onWindowFocusChanged](on-window-focus-changed.md) | `open fun onWindowFocusChanged(hasFocus: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
 | [sendAccessibilityEventUnchecked](send-accessibility-event-unchecked.md) | `open fun sendAccessibilityEventUnchecked(event: <ERROR CLASS>): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
@@ -78,3 +79,9 @@ respectively (see also [setOnTextChangeListener](set-on-text-change-listener.md)
 |---|---|
 | [INPUT_METHOD_AMAZON_ECHO_SHOW](-i-n-p-u-t_-m-e-t-h-o-d_-a-m-a-z-o-n_-e-c-h-o_-s-h-o-w.md) | `const val INPUT_METHOD_AMAZON_ECHO_SHOW: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
 | [INPUT_METHOD_SONY](-i-n-p-u-t_-m-e-t-h-o-d_-s-o-n-y.md) | `const val INPUT_METHOD_SONY: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

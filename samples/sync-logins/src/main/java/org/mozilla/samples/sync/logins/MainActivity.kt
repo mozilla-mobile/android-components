@@ -10,47 +10,44 @@ import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.components.concept.sync.AccountObserver
+import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.service.fxa.FirefoxAccount
+import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.DeviceConfig
+import mozilla.components.service.fxa.FxaAuthData
+import mozilla.components.service.fxa.Server
 import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SyncConfig
+import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
+import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
-import mozilla.components.service.sync.logins.AsyncLoginsStorageAdapter
-import mozilla.components.service.sync.logins.SyncableLoginsStore
+import mozilla.components.service.fxa.toAuthType
+import mozilla.components.service.sync.logins.SyncableLoginsStorage
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.rustlog.RustLog
-import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 const val CLIENT_ID = "3c49430b43dfba77"
 const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
 
 class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope, SyncStatusObserver {
-    private val loginsStorage by lazy {
-        SyncableLoginsStore(
-                AsyncLoginsStorageAdapter.forDatabase(File(this.filesDir, "logins.sqlite").canonicalPath)
-        ) {
-            CompletableDeferred("my-not-so-secret-password")
-        }
-    }
+    private lateinit var keyStorage: SecureAbove22Preferences
 
-    init {
-        GlobalSyncableStoreProvider.configureStore("logins" to loginsStorage)
+    private val loginsStorage = lazy {
+        SyncableLoginsStorage(this, keyStorage.getString(SyncEngine.Passwords.nativeName)!!)
     }
 
     private lateinit var listView: ListView
@@ -60,9 +57,9 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
     private val accountManager by lazy {
         FxaAccountManager(
                 applicationContext,
-                ServerConfig.release(CLIENT_ID, REDIRECT_URL),
+                ServerConfig(Server.RELEASE, CLIENT_ID, REDIRECT_URL),
                 DeviceConfig("A-C Logins Sync Sample", DeviceType.MOBILE, setOf()),
-                SyncConfig(setOf("logins"))
+                SyncConfig(setOf(SyncEngine.Passwords))
         )
     }
 
@@ -72,6 +69,7 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         RustLog.enable()
         RustHttpConfig.setClient(lazy { HttpURLConnectionClient() })
 
@@ -88,9 +86,20 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         listView.adapter = adapter
         activityContext = this
 
+        keyStorage = SecureAbove22Preferences(this, "secret-data-storage")
+        keyStorage.putString(SyncEngine.Passwords.nativeName, "my-not-so-secret-password")
+
         accountManager.register(accountObserver, owner = this, autoPause = true)
 
-        launch { accountManager.initAsync().await() }
+        launch {
+            // Initializing loginsStorage is an expensive operation, and is thus a deferred function.
+            // In order to avoid race conditions with the sync workers trying to access loginsStorage
+            // that's not fully initialized, we 'await' on loginsStorage initialization before
+            // kicking off the accountManager.
+            GlobalSyncableStoreProvider.configureStore(SyncEngine.Passwords to loginsStorage)
+
+            accountManager.initAsync().await()
+        }
 
         findViewById<View>(R.id.buttonWebView).setOnClickListener {
             launch {
@@ -109,8 +118,8 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         @Suppress("EmptyFunctionBlock")
         override fun onLoggedOut() {}
 
-        override fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) {
-            accountManager.syncNowAsync()
+        override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
+            accountManager.syncNowAsync(SyncReason.User)
         }
 
         @Suppress("EmptyFunctionBlock")
@@ -130,17 +139,19 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
     }
 
     private fun openWebView(url: String) {
-        supportFragmentManager?.beginTransaction()?.apply {
+        supportFragmentManager.beginTransaction().apply {
             replace(R.id.container, LoginFragment.create(url, REDIRECT_URL))
             addToBackStack(null)
             commit()
         }
     }
 
-    override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
+    override fun onLoginComplete(code: String, state: String, action: String, fragment: LoginFragment) {
         launch {
-            accountManager.finishAuthenticationAsync(code, state).await()
-            supportFragmentManager?.popBackStack()
+            accountManager.finishAuthenticationAsync(
+                FxaAuthData(action.toAuthType(), code = code, state = state)
+            ).await()
+            supportFragmentManager.popBackStack()
         }
     }
 
@@ -153,13 +164,8 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
         Toast.makeText(this@MainActivity, "Logins sync success", Toast.LENGTH_SHORT).show()
 
         launch {
-            val syncedLogins = CoroutineScope(Dispatchers.IO + job).async {
-                loginsStorage.withUnlocked {
-                    it.list().await()
-                }
-            }
-
-            adapter.addAll(syncedLogins.await().map { "Login: " + it.hostname })
+            val syncedLogins = loginsStorage.value.list()
+            adapter.addAll(syncedLogins.map { "Login: " + it.origin })
             adapter.notifyDataSetChanged()
         }
     }

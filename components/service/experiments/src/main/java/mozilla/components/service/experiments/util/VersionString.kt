@@ -1,6 +1,9 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.service.experiments.util
 
-import java.lang.IllegalArgumentException
 import kotlin.math.max
 
 internal class VersionString(
@@ -22,10 +25,10 @@ internal class VersionString(
 
     @Suppress("ComplexMethod")
     override fun compareTo(other: VersionString): Int {
-        if (!version.matches(VERSION_REGEX)) {
+        if (!isValid()) {
             throw IllegalArgumentException("Unexpected format in VersionString")
         }
-        if (!other.version.matches(VERSION_REGEX)) {
+        if (!other.isValid()) {
             throw IllegalArgumentException("Unexpected format in VersionString")
         }
         val thisParts = version.split(".")
@@ -72,4 +75,8 @@ internal class VersionString(
     override fun hashCode(): Int {
         return version.hashCode()
     }
+
+    fun isValid(): Boolean = version.matches(VERSION_REGEX)
+
+    override fun toString(): String = version
 }

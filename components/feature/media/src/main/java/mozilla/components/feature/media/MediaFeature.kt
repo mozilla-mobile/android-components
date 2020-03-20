@@ -5,7 +5,9 @@
 package mozilla.components.feature.media
 
 import android.content.Context
-import mozilla.components.feature.media.ext.hasMediaWithSufficientLongDuration
+import mozilla.components.feature.media.facts.emitStatePauseFact
+import mozilla.components.feature.media.facts.emitStatePlayFact
+import mozilla.components.feature.media.facts.emitStateStopFact
 import mozilla.components.feature.media.service.MediaService
 import mozilla.components.feature.media.state.MediaState
 import mozilla.components.feature.media.state.MediaStateMachine
@@ -45,15 +47,15 @@ class MediaFeature(
     private fun notifyService(state: MediaState) {
         when (state) {
             is MediaState.Playing -> {
-                if (state.hasMediaWithSufficientLongDuration()) {
-                    MediaService.updateState(context)
-                    serviceStarted = true
-                }
+                MediaService.updateState(context)
+                serviceStarted = true
+                emitStatePlayFact()
             }
 
             is MediaState.Paused -> {
                 if (serviceStarted) {
                     MediaService.updateState(context)
+                    emitStatePauseFact()
                 }
             }
 
@@ -61,8 +63,16 @@ class MediaFeature(
                 if (serviceStarted) {
                     MediaService.updateState(context)
                     serviceStarted = false
+                    emitStateStopFact()
                 }
             }
         }
+    }
+
+    companion object {
+        const val NOTIFICATION_TAG = "mozac.feature.media.foreground-service"
+        const val PENDING_INTENT_TAG = "mozac.feature.media.pendingintent"
+        const val ACTION_SWITCH_TAB = "mozac.feature.media.SWITCH_TAB"
+        const val EXTRA_TAB_ID = "mozac.feature.media.TAB_ID"
     }
 }

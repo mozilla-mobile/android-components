@@ -2,7 +2,7 @@
 
 # MessageHandler
 
-`interface MessageHandler` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/engine/src/main/java/mozilla/components/concept/engine/webextension/WebExtension.kt#L73)
+`interface MessageHandler` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/engine/src/main/java/mozilla/components/concept/engine/webextension/WebExtension.kt#L210)
 
 A handler for all messaging related events, usable for both content and
 background scripts.
@@ -21,3 +21,9 @@ features) deal with the management of ports.
 | [onPortConnected](on-port-connected.md) | `open fun onPortConnected(port: `[`Port`](../-port/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Invoked when a [Port](../-port/index.md) was connected as a result of a `browser.runtime.connectNative` call in JavaScript. |
 | [onPortDisconnected](on-port-disconnected.md) | `open fun onPortDisconnected(port: `[`Port`](../-port/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Invoked when a [Port](../-port/index.md) was disconnected or the corresponding session was destroyed. |
 | [onPortMessage](on-port-message.md) | `open fun onPortMessage(message: `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`, port: `[`Port`](../-port/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Invoked when a message was received on the provided port. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

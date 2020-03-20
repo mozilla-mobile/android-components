@@ -1,29 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- *   Copyright (C) 2006 The Android Open Source Project
- *
- *   Licensed under the Apache License, Version 2.0 (the "License");
- *   you may not use this file except in compliance with the License.
- *   You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *   Unless required by applicable law or agreed to in writing, software
- *   distributed under the License is distributed on an "AS IS" BASIS,
- *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   See the License for the specific language governing permissions and
- *   limitations under the License. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.support.utils
 
 import android.net.Uri
+import android.os.Environment
 import android.webkit.MimeTypeMap
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.UnsupportedEncodingException
 import java.util.regex.Pattern
 
@@ -57,17 +42,50 @@ object DownloadUtils {
      * This method is largely identical to [android.webkit.URLUtil.guessFileName]
      * which unfortunately does not implement RFC 5987.
      */
-    @JvmStatic
-    fun guessFileName(contentDisposition: String?, url: String?, mimeType: String?): String {
-        val filename = extractFileNameFromUrl(contentDisposition, url)
 
-        // Split filename between base and extension
+    @Suppress("Deprecation")
+    @JvmStatic
+    fun guessFileName(
+        contentDisposition: String?,
+        destinationDirectory: String?,
+        url: String?,
+        mimeType: String?
+    ): String {
+        // Split fileName between base and extension
         // Add an extension if filename does not have one
-        return if (filename.contains('.')) {
-            changeExtension(filename, mimeType)
+        val extractedFileName = extractFileNameFromUrl(contentDisposition, url)
+
+        val fileName = if (extractedFileName.contains('.')) {
+            changeExtension(extractedFileName, mimeType)
         } else {
-            filename + createExtension(mimeType)
+            extractedFileName + createExtension(mimeType)
         }
+
+        return destinationDirectory?.let {
+            uniqueFileName(Environment.getExternalStoragePublicDirectory(destinationDirectory), fileName)
+        } ?: fileName
+    }
+
+    /**
+     * Checks if the file exists so as not to overwrite one already in the destination directory
+     */
+    fun uniqueFileName(directory: File, fileName: String): String {
+        var fileExtension = ".${fileName.substringAfterLast(".")}"
+
+        // Check if an extension was found or not
+        if (fileExtension == ".$fileName") { fileExtension = "" }
+
+        val baseFileName = fileName.replace(fileExtension, "")
+
+        var potentialFileName = File(directory, fileName)
+        var copyVersionNumber = 1
+
+        while (potentialFileName.exists()) {
+            potentialFileName = File(directory, "$baseFileName($copyVersionNumber)$fileExtension")
+            copyVersionNumber += 1
+        }
+
+        return potentialFileName.name
     }
 
     private fun extractFileNameFromUrl(contentDisposition: String?, url: String?): String {
@@ -182,7 +200,8 @@ object DownloadUtils {
         }
         if (extension == null) {
             extension = if (mimeType?.startsWith("text/", ignoreCase = true) == true) {
-                if (mimeType.equals("text/html", ignoreCase = true)) {
+                // checking startsWith to ignoring encoding value such as "text/html; charset=utf-8"
+                if (mimeType.startsWith("text/html", ignoreCase = true)) {
                     ".html"
                 } else {
                     ".txt"

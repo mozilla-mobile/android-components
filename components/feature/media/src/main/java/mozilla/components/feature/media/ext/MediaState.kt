@@ -5,13 +5,9 @@
 package mozilla.components.feature.media.ext
 
 import android.support.v4.media.session.PlaybackStateCompat
+import mozilla.components.browser.session.Session
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.feature.media.state.MediaState
-
-/**
- * The minimum duration (in seconds) for media so that we bother with showing a media notification.
- */
-private const val MINIMUM_DURATION_SECONDS = 5
 
 /**
  * Gets the list of [Media] associated with this [MediaState].
@@ -23,6 +19,22 @@ internal fun MediaState.getMedia(): List<Media> {
         else -> emptyList()
     }
 }
+
+/**
+ * Get the [Session] that caused this [MediaState] (if any).
+ */
+fun MediaState.getSession(): Session? {
+    return when (this) {
+        is MediaState.Playing -> session
+        is MediaState.Paused -> session
+        else -> null
+    }
+}
+
+/**
+ * Returns true if this [MediaState] is associated with a Custom Tab [Session].
+ */
+fun MediaState.isForCustomTabSession() = getSession()?.isCustomTabSession() ?: false
 
 /**
  * Turns the [MediaState] into a [PlaybackStateCompat] to be used with a `MediaSession`.
@@ -53,31 +65,17 @@ internal fun MediaState.toPlaybackState() =
 /**
  * If this state is [MediaState.Playing] then pause all playing [Media].
  */
-internal fun MediaState.pauseIfPlaying() {
+fun MediaState.pauseIfPlaying() {
     if (this is MediaState.Playing) {
         media.pause()
     }
 }
 
 /**
- * If this state is [MediaState.Paused] then resume playing all paused media.
+ * If this state is [MediaState.Paused] then resume playing all paused [Media].
  */
-internal fun MediaState.playIfPaused() {
+fun MediaState.playIfPaused() {
     if (this is MediaState.Paused) {
         media.play()
     }
-}
-
-internal fun MediaState.hasMediaWithSufficientLongDuration(): Boolean {
-    getMedia().forEach { media ->
-        if (media.metadata.duration < 0) {
-            return true
-        }
-
-        if (media.metadata.duration > MINIMUM_DURATION_SECONDS) {
-            return true
-        }
-    }
-
-    return false
 }

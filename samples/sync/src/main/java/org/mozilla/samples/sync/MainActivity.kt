@@ -19,16 +19,20 @@ import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.sync.AccountObserver
+import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceConstellationObserver
-import mozilla.components.concept.sync.DeviceEvent
-import mozilla.components.concept.sync.DeviceEventOutgoing
+import mozilla.components.concept.sync.DeviceCommandIncoming
+import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DeviceType
-import mozilla.components.concept.sync.DeviceEventsObserver
+import mozilla.components.concept.sync.AccountEventsObserver
+import mozilla.components.concept.sync.AccountEvent
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
+import mozilla.components.lib.dataprotect.SecureAbove22Preferences
+import mozilla.components.lib.dataprotect.generateEncryptionKey
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.DeviceConfig
 import mozilla.components.service.fxa.ServerConfig
@@ -37,40 +41,59 @@ import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.support.base.log.Log
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+import mozilla.components.service.fxa.FxaAuthData
+import mozilla.components.service.fxa.Server
+import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.sync.SyncReason
+import mozilla.components.service.fxa.toAuthType
+import mozilla.components.service.sync.logins.SyncableLoginsStorage
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.rustlog.RustLog
 import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
 
+private const val PASSWORDS_ENCRYPTION_KEY_STRENGTH = 256
+
 class MainActivity :
         AppCompatActivity(),
         LoginFragment.OnLoginCompleteListener,
         DeviceFragment.OnDeviceListInteractionListener,
         CoroutineScope {
-    private val historyStorage by lazy {
+    private val historyStorage = lazy {
         PlacesHistoryStorage(this)
     }
 
-    private val bookmarksStorage by lazy {
+    private val bookmarksStorage = lazy {
         PlacesBookmarksStorage(this)
     }
 
-    init {
-        GlobalSyncableStoreProvider.configureStore("history" to historyStorage)
-        GlobalSyncableStoreProvider.configureStore("bookmarks" to bookmarksStorage)
+    private val securePreferences by lazy { SecureAbove22Preferences(this, "key_store") }
+
+    private val passwordsEncryptionKey by lazy {
+        securePreferences.getString(SyncEngine.Passwords.nativeName)
+            ?: generateEncryptionKey(PASSWORDS_ENCRYPTION_KEY_STRENGTH).also {
+                securePreferences.putString(SyncEngine.Passwords.nativeName, it)
+            }
     }
+
+    private val passwordsStorage = lazy { SyncableLoginsStorage(this, passwordsEncryptionKey) }
 
     private val accountManager by lazy {
         FxaAccountManager(
                 this,
-                ServerConfig.release(CLIENT_ID, REDIRECT_URL),
+                ServerConfig(Server.RELEASE, CLIENT_ID, REDIRECT_URL),
                 DeviceConfig(
                     name = "A-C Sync Sample - ${System.currentTimeMillis()}",
                     type = DeviceType.MOBILE,
-                    capabilities = setOf(DeviceCapability.SEND_TAB)
+                    capabilities = setOf(DeviceCapability.SEND_TAB),
+                    secureStateAtRest = true
                 ),
-                SyncConfig(setOf("history", "bookmarks"), syncPeriodInMinutes = 15L)
+                SyncConfig(
+                    setOf(SyncEngine.History, SyncEngine.Bookmarks, SyncEngine.Passwords),
+                    syncPeriodInMinutes = 15L
+                )
         )
     }
 
@@ -82,6 +105,8 @@ class MainActivity :
         const val CLIENT_ID = "3c49430b43dfba77"
         const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
     }
+
+    private val logger = Logger("SampleSync")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,7 +136,7 @@ class MainActivity :
         }
 
         findViewById<View>(R.id.refreshDevice).setOnClickListener {
-            launch { accountManager.authenticatedAccount()?.deviceConstellation()?.refreshDeviceStateAsync()?.await() }
+            launch { accountManager.authenticatedAccount()?.deviceConstellation()?.refreshDevicesAsync()?.await() }
         }
 
         findViewById<View>(R.id.sendTab).setOnClickListener {
@@ -123,8 +148,8 @@ class MainActivity :
                     }
 
                     targets?.forEach {
-                        constellation.sendEventToDeviceAsync(
-                            it.id, DeviceEventOutgoing.SendTab("Sample tab", "https://www.mozilla.org")
+                        constellation.sendCommandToDeviceAsync(
+                            it.id, DeviceCommandOutgoing.SendTab("Sample tab", "https://www.mozilla.org")
                         ).await()
                     }
 
@@ -143,14 +168,20 @@ class MainActivity :
         accountManager.register(accountObserver, owner = this, autoPause = true)
         // Observe sync state changes.
         accountManager.registerForSyncEvents(syncObserver, owner = this, autoPause = true)
-        // Observe incoming device events.
-        accountManager.registerForDeviceEvents(deviceEventsObserver, owner = this, autoPause = true)
+        // Observe incoming device commands.
+        accountManager.registerForAccountEvents(accountEventsObserver, owner = this, autoPause = true)
 
-        // Now that our account state observer is registered, we can kick off the account manager.
-        launch { accountManager.initAsync().await() }
+        launch {
+            GlobalSyncableStoreProvider.configureStore(SyncEngine.History to historyStorage)
+            GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to bookmarksStorage)
+            GlobalSyncableStoreProvider.configureStore(SyncEngine.Passwords to passwordsStorage)
+
+            // Now that our account state observer is registered, we can kick off the account manager.
+            accountManager.initAsync().await()
+        }
 
         findViewById<View>(R.id.buttonSync).setOnClickListener {
-            accountManager.syncNowAsync()
+            accountManager.syncNowAsync(SyncReason.User)
         }
     }
 
@@ -160,10 +191,12 @@ class MainActivity :
         job.cancel()
     }
 
-    override fun onLoginComplete(code: String, state: String, fragment: LoginFragment) {
+    override fun onLoginComplete(code: String, state: String, action: String, fragment: LoginFragment) {
         launch {
-            supportFragmentManager?.popBackStack()
-            accountManager.finishAuthenticationAsync(code, state).await()
+            supportFragmentManager.popBackStack()
+            accountManager.finishAuthenticationAsync(
+                FxaAuthData(action.toAuthType(), code = code, state = state)
+            ).await()
         }
     }
 
@@ -180,7 +213,7 @@ class MainActivity :
     }
 
     private fun openWebView(url: String) {
-        supportFragmentManager?.beginTransaction()?.apply {
+        supportFragmentManager.beginTransaction().apply {
             replace(R.id.container, LoginFragment.create(url, REDIRECT_URL))
             addToBackStack(null)
             commit()
@@ -210,23 +243,55 @@ class MainActivity :
         }
     }
 
-    private val deviceEventsObserver = object : DeviceEventsObserver {
-        override fun onEvents(events: List<DeviceEvent>) {
+    @Suppress("SetTextI18n", "NestedBlockDepth")
+    private val accountEventsObserver = object : AccountEventsObserver {
+        override fun onEvents(events: List<AccountEvent>) {
             val txtView: TextView = findViewById(R.id.latestTabs)
-            var tabsStringified = ""
-            events.filter { it is DeviceEvent.TabReceived }.forEach {
-                val tabReceivedEvent = it as DeviceEvent.TabReceived
-                tabsStringified += "Tab(s) from: ${tabReceivedEvent.from?.displayName}\n"
-                tabReceivedEvent.entries.forEach { tab ->
-                    tabsStringified += "${tab.title}: ${tab.url}\n"
+            events.forEach {
+                when (it) {
+                    is AccountEvent.DeviceCommandIncoming -> {
+                        when (it.command) {
+                            is DeviceCommandIncoming.TabReceived -> {
+                                val cmd = it.command as DeviceCommandIncoming.TabReceived
+                                txtView.text = "A tab was received"
+                                var tabsStringified = "Tab(s) from: ${cmd.from?.displayName}\n"
+                                cmd.entries.forEach { tab ->
+                                    tabsStringified += "${tab.title}: ${tab.url}\n"
+                                }
+                                txtView.text = tabsStringified
+                            }
+                        }
+                    }
+                    is AccountEvent.ProfileUpdated -> {
+                        txtView.text = "The user's profile was updated"
+                    }
+                    is AccountEvent.AccountAuthStateChanged -> {
+                        txtView.text = "The account auth state changed"
+                    }
+                    is AccountEvent.AccountDestroyed -> {
+                        txtView.text = "The account was destroyed"
+                    }
+                    is AccountEvent.DeviceConnected -> {
+                        txtView.text = "Another device connected to the account"
+                    }
+                    is AccountEvent.DeviceDisconnected -> {
+                        if (it.isLocalDevice) {
+                            txtView.text = "This device disconnected"
+                        } else {
+                            txtView.text = "The device ${it.deviceId} disconnected"
+                        }
+                    }
                 }
             }
-            txtView.text = tabsStringified
         }
     }
 
     private val accountObserver = object : AccountObserver {
+        lateinit var lastAuthType: AuthType
+
         override fun onLoggedOut() {
+            logger.info("onLoggedOut")
+
             launch {
                 val txtView: TextView = findViewById(R.id.fxaStatusView)
                 txtView.text = getString(R.string.logged_out)
@@ -252,6 +317,8 @@ class MainActivity :
         }
 
         override fun onAuthenticationProblems() {
+            logger.info("onAuthenticationProblems")
+
             launch {
                 val txtView: TextView = findViewById(R.id.fxaStatusView)
                 txtView.text = getString(R.string.need_reauth)
@@ -260,10 +327,14 @@ class MainActivity :
             }
         }
 
-        override fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) {
+        override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
+            logger.info("onAuthenticated")
+
             launch {
+                lastAuthType = authType
+
                 val txtView: TextView = findViewById(R.id.fxaStatusView)
-                txtView.text = getString(R.string.signed_in_waiting_for_profile)
+                txtView.text = getString(R.string.signed_in_waiting_for_profile, authType::class.simpleName)
 
                 findViewById<View>(R.id.buttonLogout).visibility = View.VISIBLE
                 findViewById<View>(R.id.buttonSignIn).visibility = View.INVISIBLE
@@ -280,10 +351,13 @@ class MainActivity :
         }
 
         override fun onProfileUpdated(profile: Profile) {
+            logger.info("onProfileUpdated")
+
             launch {
                 val txtView: TextView = findViewById(R.id.fxaStatusView)
                 txtView.text = getString(
                     R.string.signed_in_with_profile,
+                    lastAuthType::class.simpleName,
                     "${profile.displayName ?: ""} ${profile.email}"
                 )
             }
@@ -292,17 +366,19 @@ class MainActivity :
 
     private val syncObserver = object : SyncStatusObserver {
         override fun onStarted() {
+            logger.info("onSyncStarted")
             CoroutineScope(Dispatchers.Main).launch {
                 syncStatus?.text = getString(R.string.syncing)
             }
         }
 
         override fun onIdle() {
+            logger.info("onSyncIdle")
             CoroutineScope(Dispatchers.Main).launch {
                 syncStatus?.text = getString(R.string.sync_idle)
 
                 val historyResultTextView: TextView = findViewById(R.id.historySyncResult)
-                val visitedCount = historyStorage.getVisited().size
+                val visitedCount = historyStorage.value.getVisited().size
                 // visitedCount is passed twice: to get the correct plural form, and then as
                 // an argument for string formatting.
                 historyResultTextView.text = resources.getQuantityString(
@@ -310,11 +386,11 @@ class MainActivity :
                 )
 
                 val bookmarksResultTextView: TextView = findViewById(R.id.bookmarksSyncResult)
-                val bookmarksRoot = bookmarksStorage.getTree("root________", recursive = true)
+                val bookmarksRoot = bookmarksStorage.value.getTree("root________", recursive = true)
                 if (bookmarksRoot == null) {
                     bookmarksResultTextView.text = getString(R.string.no_bookmarks_root)
                 } else {
-                    var bookmarksRootAndChildren = "Bookmarks\n"
+                    var bookmarksRootAndChildren = "BOOKMARKS\n"
                     fun addTreeNode(node: BookmarkNode, depth: Int) {
                         val desc = " ".repeat(depth * 2) + "${node.title} - ${node.url} (${node.guid})\n"
                         bookmarksRootAndChildren += desc
@@ -331,6 +407,7 @@ class MainActivity :
         }
 
         override fun onError(error: Exception?) {
+            logger.error("onSyncError", error)
             CoroutineScope(Dispatchers.Main).launch {
                 syncStatus?.text = getString(R.string.sync_error, error)
             }

@@ -8,14 +8,17 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.engine.gecko.selection.GeckoSelectionActionDelegate
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
+import org.mockito.Mockito.never
+import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mozilla.geckoview.GeckoResult
@@ -48,6 +51,7 @@ class GeckoEngineViewTest {
 
     @Test
     fun captureThumbnail() {
+        val geckoSession: GeckoEngineSession = mock()
         val engineView = GeckoEngineView(context)
         val mockGeckoView = mock<NestedGeckoView>()
         var thumbnail: Bitmap? = null
@@ -59,7 +63,19 @@ class GeckoEngineViewTest {
         engineView.captureThumbnail {
             thumbnail = it
         }
+        verify(mockGeckoView, never()).capturePixels()
 
+        engineView.currentSession = geckoSession
+        engineView.captureThumbnail {
+            thumbnail = it
+        }
+        verify(mockGeckoView, never()).capturePixels()
+
+        whenever(geckoSession.firstContentfulPaint).thenReturn(true)
+        engineView.captureThumbnail {
+            thumbnail = it
+        }
+        verify(mockGeckoView).capturePixels()
         geckoResult.complete(mock())
         assertNotNull(thumbnail)
 
@@ -72,6 +88,30 @@ class GeckoEngineViewTest {
 
         geckoResult.completeExceptionally(mock())
         assertNull(thumbnail)
+
+        // Verify that with `firstContentfulPaint` set to false, capturePixels returns a null bitmap
+        geckoResult = GeckoResult()
+
+        thumbnail = mock()
+        whenever(geckoSession.firstContentfulPaint).thenReturn(false)
+        engineView.captureThumbnail {
+            thumbnail = it
+        }
+        // capturePixels should not have been called again because `firstContentfulPaint` is false
+        verify(mockGeckoView, times(2)).capturePixels()
+        geckoResult.complete(mock())
+        assertNull(thumbnail)
+    }
+
+    @Test
+    fun `clearSelection is forwarded to BasicSelectionAction instance`() {
+        val engineView = GeckoEngineView(context)
+        engineView.currentGeckoView = mock()
+        engineView.currentSelection = mock()
+
+        engineView.clearSelection()
+
+        verify(engineView.currentSelection)?.clearSelection()
     }
 
     @Test
@@ -79,9 +119,19 @@ class GeckoEngineViewTest {
         val engineView = GeckoEngineView(context)
         engineView.currentGeckoView = mock()
 
-        engineView.setVerticalClipping(42)
+        engineView.setVerticalClipping(-42)
 
-        verify(engineView.currentGeckoView).setVerticalClipping(42)
+        verify(engineView.currentGeckoView).setVerticalClipping(-42)
+    }
+
+    @Test
+    fun `setDynamicToolbarMaxHeight is forwarded to GeckoView instance`() {
+        val engineView = GeckoEngineView(context)
+        engineView.currentGeckoView = mock()
+
+        engineView.setDynamicToolbarMaxHeight(42)
+
+        verify(engineView.currentGeckoView).setDynamicToolbarMaxHeight(42)
     }
 
     @Test
@@ -96,13 +146,33 @@ class GeckoEngineViewTest {
 
         engineView.render(engineSession)
 
-        verify(geckoView, Mockito.never()).releaseSession()
-        verify(engineSession, Mockito.never()).unregister(any())
+        verify(geckoView, never()).releaseSession()
+        verify(engineSession, never()).unregister(any())
 
         engineView.release()
 
         verify(geckoView).releaseSession()
         verify(engineSession).unregister(any())
+    }
+
+    @Test
+    fun `View will rebind session if process gets killed`() {
+        val engineView = GeckoEngineView(context)
+        val engineSession = mock<GeckoEngineSession>()
+        val geckoSession = mock<GeckoSession>()
+        val geckoView = mock<NestedGeckoView>()
+
+        whenever(engineSession.geckoSession).thenReturn(geckoSession)
+        engineView.currentGeckoView = geckoView
+
+        engineView.render(engineSession)
+
+        reset(geckoView)
+        verify(geckoView, never()).setSession(geckoSession)
+
+        engineView.observer.onProcessKilled()
+
+        verify(geckoView).setSession(geckoSession)
     }
 
     @Test
@@ -117,11 +187,28 @@ class GeckoEngineViewTest {
 
         engineView.render(engineSession)
 
-        Mockito.reset(geckoView)
-        verify(geckoView, Mockito.never()).setSession(geckoSession)
+        reset(geckoView)
+        verify(geckoView, never()).setSession(geckoSession)
 
         engineView.observer.onCrash()
 
         verify(geckoView).setSession(geckoSession)
+    }
+
+    @Test
+    fun `after rendering currentSelection should be a GeckoSelectionActionDelegate`() {
+        val engineView = GeckoEngineView(context).apply {
+            selectionActionDelegate = mock()
+        }
+        val engineSession = mock<GeckoEngineSession>()
+        val geckoSession = mock<GeckoSession>()
+        val geckoView = mock<NestedGeckoView>()
+
+        whenever(engineSession.geckoSession).thenReturn(geckoSession)
+        engineView.currentGeckoView = geckoView
+
+        engineView.render(engineSession)
+
+        assertTrue(engineView.currentSelection is GeckoSelectionActionDelegate)
     }
 }

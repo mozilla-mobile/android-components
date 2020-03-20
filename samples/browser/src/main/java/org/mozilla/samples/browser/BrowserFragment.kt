@@ -11,10 +11,13 @@ import android.view.ViewGroup
 import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.feature.awesomebar.AwesomeBarFeature
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
+import mozilla.components.feature.search.SearchFeature
 import mozilla.components.feature.session.ThumbnailsFeature
+import mozilla.components.feature.tabs.WindowFeature
 import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
-import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.feature.toolbar.WebExtensionToolbarFeature
+import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import org.mozilla.samples.browser.ext.components
 import org.mozilla.samples.browser.integration.ReaderViewIntegration
@@ -22,14 +25,17 @@ import org.mozilla.samples.browser.integration.ReaderViewIntegration
 /**
  * Fragment used for browsing the web within the main app.
  */
-class BrowserFragment : BaseBrowserFragment(), BackHandler {
+class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private val thumbnailsFeature = ViewBoundFeatureWrapper<ThumbnailsFeature>()
     private val readerViewFeature = ViewBoundFeatureWrapper<ReaderViewIntegration>()
+    private val webExtToolbarFeature = ViewBoundFeatureWrapper<WebExtensionToolbarFeature>()
+    private val searchFeature = ViewBoundFeatureWrapper<SearchFeature>()
 
+    @Suppress("LongMethod")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val layout = super.onCreateView(inflater, container, savedInstanceState)
 
-        ToolbarAutocompleteFeature(layout.toolbar).apply {
+        ToolbarAutocompleteFeature(layout.toolbar, components.engine).apply {
             addHistoryStorageProvider(components.historyStorage)
             addDomainProvider(components.shippedDomainsProvider)
         }
@@ -39,14 +45,27 @@ class BrowserFragment : BaseBrowserFragment(), BackHandler {
         AwesomeBarFeature(layout.awesomeBar, layout.toolbar, layout.engineView, components.icons)
             .addHistoryProvider(
                 components.historyStorage,
-                components.sessionUseCases.loadUrl)
-            .addSessionProvider(components.sessionManager, components.tabsUseCases.selectTab)
+                components.sessionUseCases.loadUrl,
+                components.engine
+            )
+            .addSessionProvider(
+                resources,
+                components.store,
+                components.tabsUseCases.selectTab
+            )
             .addSearchProvider(
-                components.searchEngineManager.getDefaultSearchEngine(requireContext()),
+                requireContext(),
+                components.searchEngineManager,
                 components.searchUseCases.defaultSearch,
                 fetchClient = components.client,
-                mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS)
-            .addClipboardProvider(requireContext(), components.sessionUseCases.loadUrl)
+                mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS,
+                engine = components.engine
+            )
+            .addClipboardProvider(
+                requireContext(),
+                components.sessionUseCases.loadUrl,
+                components.engine
+            )
 
         readerViewFeature.set(
             feature = ReaderViewIntegration(
@@ -66,6 +85,29 @@ class BrowserFragment : BaseBrowserFragment(), BackHandler {
             owner = this,
             view = layout
         )
+
+        webExtToolbarFeature.set(
+            feature = WebExtensionToolbarFeature(
+                layout.toolbar,
+                components.store
+            ),
+            owner = this,
+            view = layout
+        )
+
+        searchFeature.set(
+            feature = SearchFeature(components.store) {
+                when (it.isPrivate) {
+                    true -> components.searchUseCases.newPrivateTabSearch.invoke(it.query)
+                    false -> components.searchUseCases.newTabSearch.invoke(it.query)
+                }
+            },
+            owner = this,
+            view = layout
+        )
+
+        val windowFeature = WindowFeature(components.store, components.tabsUseCases)
+        lifecycle.addObserver(windowFeature)
 
         return layout
     }

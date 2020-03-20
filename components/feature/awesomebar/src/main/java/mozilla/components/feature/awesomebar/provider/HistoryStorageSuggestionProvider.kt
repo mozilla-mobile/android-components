@@ -5,10 +5,12 @@
 package mozilla.components.feature.awesomebar.provider
 
 import mozilla.components.browser.icons.BrowserIcons
+import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.SearchResult
-import mozilla.components.feature.awesomebar.internal.loadLambda
 import mozilla.components.feature.session.SessionUseCases
 import java.util.UUID
 
@@ -17,11 +19,21 @@ internal const val HISTORY_SUGGESTION_LIMIT = 20
 /**
  * A [AwesomeBar.SuggestionProvider] implementation that provides suggestions based on the browsing
  * history stored in the [HistoryStorage].
+ *
+ * @property historyStorage and instance of the [BookmarksStorage] used
+ * to query matching bookmarks.
+ * @property loadUrlUseCase the use case invoked to load the url when the
+ * user clicks on the suggestion.
+ * @property icons optional instance of [BrowserIcons] to load fav icons
+ * for bookmarked URLs.
+ * @param engine optional [Engine] instance to call [Engine.speculativeConnect] for the
+ * highest scored suggestion URL.
  */
 class HistoryStorageSuggestionProvider(
     private val historyStorage: HistoryStorage,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
-    private val icons: BrowserIcons? = null
+    private val icons: BrowserIcons? = null,
+    internal val engine: Engine? = null
 ) : AwesomeBar.SuggestionProvider {
 
     override val id: String = UUID.randomUUID().toString()
@@ -31,26 +43,32 @@ class HistoryStorageSuggestionProvider(
             return emptyList()
         }
 
-        val suggestions = historyStorage.getSuggestions(text, HISTORY_SUGGESTION_LIMIT)
         // In case of duplicates we want to pick the suggestion with the highest score.
         // See: https://github.com/mozilla/application-services/issues/970
-        return suggestions.sortedByDescending { it.score }.distinctBy { it.id }.into()
+        val suggestions = historyStorage.getSuggestions(text, HISTORY_SUGGESTION_LIMIT)
+            .sortedByDescending { it.score }
+            .distinctBy { it.id }
+
+        suggestions.firstOrNull()?.url?.let { url -> engine?.speculativeConnect(url) }
+
+        return suggestions.into()
     }
 
     override val shouldClearSuggestions: Boolean
         // We do not want the suggestion of this provider to disappear and re-appear when text changes.
         get() = false
 
-    private fun Iterable<SearchResult>.into(): List<AwesomeBar.Suggestion> {
-        return this.map {
+    private suspend fun Iterable<SearchResult>.into(): List<AwesomeBar.Suggestion> {
+        val iconRequests = this.map { icons?.loadIcon(IconRequest(it.url)) }
+        return this.zip(iconRequests) { result, icon ->
             AwesomeBar.Suggestion(
                 provider = this@HistoryStorageSuggestionProvider,
-                id = it.id,
-                icon = icons.loadLambda(it.url),
-                title = it.title,
-                description = it.url,
-                score = it.score,
-                onSuggestionClicked = { loadUrlUseCase.invoke(it.url) }
+                id = result.id,
+                icon = icon?.await()?.bitmap,
+                title = result.title,
+                description = result.url,
+                score = result.score,
+                onSuggestionClicked = { loadUrlUseCase.invoke(result.url) }
             )
         }
     }

@@ -4,7 +4,9 @@
 
 package mozilla.components.browser.menu
 
+import android.content.Context
 import android.view.View
+import mozilla.components.browser.menu2.candidate.MenuCandidate
 
 /**
  * Interface to be implemented by menu items to be shown in the browser menu.
@@ -15,6 +17,13 @@ interface BrowserMenuItem {
      * if this item should be hidden.
      */
     val visible: () -> Boolean
+
+    /**
+     * Lambda expression that returns the number of interactive elements in this menu item.
+     * For example, a simple item will have 1, divider will have 0, and a composite
+     * item, like a tool bar, will have several.
+     */
+    val interactiveCount: () -> Int get() = { 1 }
 
     /**
      * Returns the layout resource ID of the layout to be inflated for showing a menu item of this
@@ -31,4 +40,9 @@ interface BrowserMenuItem {
      * Called by the browser menu to update the displayed data of this item using the passed view.
      */
     fun invalidate(view: View) = Unit
+
+    /**
+     * Converts the menu item into a menu candidate.
+     */
+    fun asCandidate(context: Context): MenuCandidate? = null
 }

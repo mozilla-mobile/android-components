@@ -6,5 +6,5 @@
 
 | Name | Summary |
 |---|---|
-| [pxToDp](px-to-dp.md) | `fun <ERROR CLASS>.~~pxToDp~~(pixels: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): <ERROR CLASS>`<br>Converts a value in density independent pixels (pxToDp) to the actual pixel values for the display. |
 | [readJSONObject](read-j-s-o-n-object.md) | `fun <ERROR CLASS>.readJSONObject(fileName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): <ERROR CLASS>`<br>Read a file from the "assets" and create a a JSONObject from its content. |
+| [resolveAttribute](resolve-attribute.md) | `fun <ERROR CLASS>.resolveAttribute(attribute: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)<br>Resolves the resource ID corresponding to the given attribute. |

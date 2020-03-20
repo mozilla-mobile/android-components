@@ -43,7 +43,7 @@ class SessionUseCasesTest {
         verify(selectedEngineSession).loadUrl("http://mozilla.org")
 
         useCases.loadUrl("http://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
-        verify(selectedEngineSession).loadUrl("http://www.mozilla.org", LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
+        verify(selectedEngineSession).loadUrl("http://www.mozilla.org", flags = LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
 
         useCases.loadUrl("http://getpocket.com", selectedSession)
         verify(selectedEngineSession).loadUrl("http://getpocket.com")
@@ -51,7 +51,7 @@ class SessionUseCasesTest {
         useCases.loadUrl.invoke("http://www.getpocket.com", selectedSession,
                 LoadUrlFlags.select(LoadUrlFlags.BYPASS_PROXY))
         verify(selectedEngineSession).loadUrl("http://www.getpocket.com",
-                LoadUrlFlags.select(LoadUrlFlags.BYPASS_PROXY))
+                flags = LoadUrlFlags.select(LoadUrlFlags.BYPASS_PROXY))
     }
 
     @Test
@@ -62,8 +62,8 @@ class SessionUseCasesTest {
         useCases.loadData("Should load in WebView", "text/plain", session = selectedSession)
         verify(selectedEngineSession).loadData("Should load in WebView", "text/plain", "UTF-8")
 
-        useCases.loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64", selectedSession)
-        verify(selectedEngineSession).loadData("ahr0cdovl21vemlsbgeub3jn==", "text/plain", "base64")
+        useCases.loadData("Should also load in WebView", "text/plain", "base64", selectedSession)
+        verify(selectedEngineSession).loadData("Should also load in WebView", "text/plain", "base64")
     }
 
     @Test

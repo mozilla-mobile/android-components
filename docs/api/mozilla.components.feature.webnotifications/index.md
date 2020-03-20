@@ -6,4 +6,4 @@
 
 | Name | Summary |
 |---|---|
-| [Placeholder](-placeholder/index.md) | `class Placeholder` |
+| [WebNotificationFeature](-web-notification-feature/index.md) | `class WebNotificationFeature : `[`WebNotificationDelegate`](../mozilla.components.concept.engine.webnotifications/-web-notification-delegate/index.md)<br>Feature implementation for configuring and displaying web notifications to the user. |

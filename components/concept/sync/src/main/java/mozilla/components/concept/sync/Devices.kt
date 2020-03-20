@@ -4,6 +4,7 @@
 @file:SuppressWarnings("TooManyFunctions")
 package mozilla.components.concept.sync
 
+import android.content.Context
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.Deferred
 import mozilla.components.support.base.observer.Observable
@@ -11,7 +12,7 @@ import mozilla.components.support.base.observer.Observable
 /**
  * Describes available interactions with the current device and other devices associated with an [OAuthAccount].
  */
-interface DeviceConstellation : Observable<DeviceEventsObserver> {
+interface DeviceConstellation : Observable<AccountEventsObserver> {
     /**
      * Register current device in the associated [DeviceConstellation].
      *
@@ -49,17 +50,12 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
     fun registerDeviceObserver(observer: DeviceConstellationObserver, owner: LifecycleOwner, autoPause: Boolean)
 
     /**
-     * Get all devices in the constellation.
-     * @return A list of all devices in the constellation, or `null` on failure.
-     */
-    fun fetchAllDevicesAsync(): Deferred<List<Device>?>
-
-    /**
      * Set name of the current device.
      * @param name New device name.
+     * @param context An application context, used for updating internal caches.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun setDeviceNameAsync(name: String): Deferred<Boolean>
+    fun setDeviceNameAsync(name: String, context: Context): Deferred<Boolean>
 
     /**
      * Set a [DevicePushSubscription] for the current device.
@@ -69,12 +65,12 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
     fun setDevicePushSubscriptionAsync(subscription: DevicePushSubscription): Deferred<Boolean>
 
     /**
-     * Send an event to a specified device.
+     * Send a command to a specified device.
      * @param targetDeviceId A device ID of the recipient.
-     * @param outgoingEvent An event to send.
+     * @param outgoingCommand An event to send.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun sendEventToDeviceAsync(targetDeviceId: String, outgoingEvent: DeviceEventOutgoing): Deferred<Boolean>
+    fun sendCommandToDeviceAsync(targetDeviceId: String, outgoingCommand: DeviceCommandOutgoing): Deferred<Boolean>
 
     /**
      * Process a raw event, obtained via a push message or some other out-of-band mechanism.
@@ -84,29 +80,19 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
     fun processRawEventAsync(payload: String): Deferred<Boolean>
 
     /**
-     * Poll for events targeted at the current [Device]. It's expected that if a [DeviceEvent] was
-     * returned after a poll, it will not be returned in consequent polls.
-     * @return A list of [DeviceEvent] instances that are currently pending for this [Device], or `null` on failure.
-     */
-    fun pollForEventsAsync(): Deferred<List<DeviceEvent>?>
-
-    /**
-     * Begin periodically refreshing constellation state, including polling for events.
-     */
-    fun startPeriodicRefresh()
-
-    /**
-     * Stop periodically refreshing constellation state and polling for events.
-     */
-    fun stopPeriodicRefresh()
-
-    /**
-     * Refreshes [ConstellationState] and polls for device events.
+     * Refreshes [ConstellationState]. Registered [DeviceConstellationObserver] observers will be notified.
      *
-     * @return A [Deferred] that will be resolved with a success flag once operation is complete. Failure may
-     * indicate a partial success.
+     * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun refreshDeviceStateAsync(): Deferred<Boolean>
+    fun refreshDevicesAsync(): Deferred<Boolean>
+
+    /**
+     * Polls for any pending [DeviceCommandIncoming] commands.
+     * In case of new commands, registered [AccountEventsObserver] observers will be notified.
+     *
+     * @return A [Deferred] that will be resolved with a success flag once operation is complete.
+     */
+    fun pollForCommandsAsync(): Deferred<Boolean>
 }
 
 /**
@@ -127,6 +113,9 @@ interface DeviceConstellationObserver {
 enum class DeviceType {
     DESKTOP,
     MOBILE,
+    TABLET,
+    TV,
+    VR,
     UNKNOWN
 }
 

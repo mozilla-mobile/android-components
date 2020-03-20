@@ -2,7 +2,7 @@
 
 # Crash
 
-`sealed class Crash` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/crash/src/main/java/mozilla/components/lib/crash/Crash.kt#L26)
+`sealed class Crash` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/lib/crash/src/main/java/mozilla/components/lib/crash/Crash.kt#L29)
 
 Crash types that are handled by this library.
 
@@ -19,6 +19,12 @@ Crash types that are handled by this library.
 |---|---|
 | [fromIntent](from-intent.md) | `fun fromIntent(intent: <ERROR CLASS>): `[`Crash`](./index.md) |
 | [isCrashIntent](is-crash-intent.md) | `fun isCrashIntent(intent: <ERROR CLASS>): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.browser.menu.item
 
 import android.view.LayoutInflater
@@ -6,7 +10,9 @@ import android.widget.CheckBox
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.R
+import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -74,6 +80,38 @@ class BrowserMenuCompoundButtonTest {
     fun `hitting default methods`() {
         val item = SimpleTestBrowserCompoundButton("") {}
         item.invalidate(mock(View::class.java))
+    }
+
+    @Test
+    fun `menu compound button can be converted to candidate`() {
+        val listener = { _: Boolean -> }
+
+        assertEquals(
+            CompoundMenuCandidate(
+                "Hello",
+                isChecked = false,
+                end = CompoundMenuCandidate.ButtonType.CHECKBOX,
+                onCheckedChange = listener
+            ),
+            SimpleTestBrowserCompoundButton(
+                "Hello",
+                listener = listener
+            ).asCandidate(testContext)
+        )
+
+        assertEquals(
+            CompoundMenuCandidate(
+                "Hello",
+                isChecked = true,
+                end = CompoundMenuCandidate.ButtonType.CHECKBOX,
+                onCheckedChange = listener
+            ),
+            SimpleTestBrowserCompoundButton(
+                "Hello",
+                initialState = { true },
+                listener = listener
+            ).asCandidate(testContext)
+        )
     }
 
     class SimpleTestBrowserCompoundButton(

@@ -17,6 +17,8 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.permission.Permission
 import mozilla.components.concept.engine.permission.Permission.ContentAudioCapture
 import mozilla.components.concept.engine.permission.Permission.ContentAudioMicrophone
+import mozilla.components.concept.engine.permission.Permission.ContentAutoPlayAudible
+import mozilla.components.concept.engine.permission.Permission.ContentAutoPlayInaudible
 import mozilla.components.concept.engine.permission.Permission.ContentGeoLocation
 import mozilla.components.concept.engine.permission.Permission.ContentNotification
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCamera
@@ -32,6 +34,8 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.grantPermission
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -235,7 +239,9 @@ class SitePermissionsFeatureTest {
             location = SitePermissionsRules.Action.BLOCKED,
             camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
             notification = SitePermissionsRules.Action.ASK_TO_ALLOW,
-            microphone = SitePermissionsRules.Action.BLOCKED
+            microphone = SitePermissionsRules.Action.BLOCKED,
+            autoplayAudible = SitePermissionsRules.Action.BLOCKED,
+            autoplayInaudible = SitePermissionsRules.Action.ASK_TO_ALLOW
         )
 
         sitePermissionFeature.sitePermissionsRules = rules
@@ -286,6 +292,128 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
+    fun `only autoplay requests should use default rules instead of site rules`() {
+        val siteRules = SitePermissions(
+            location = BLOCKED,
+            camera = BLOCKED,
+            notification = BLOCKED,
+            microphone = BLOCKED,
+            autoplayAudible = BLOCKED,
+            autoplayInaudible = BLOCKED,
+            origin = "any",
+            savedAt = 1
+        )
+        val defaultRules = SitePermissionsRules(
+            location = SitePermissionsRules.Action.ALLOWED,
+            camera = SitePermissionsRules.Action.ALLOWED,
+            notification = SitePermissionsRules.Action.ALLOWED,
+            microphone = SitePermissionsRules.Action.ALLOWED,
+            autoplayAudible = SitePermissionsRules.Action.ALLOWED,
+            autoplayInaudible = SitePermissionsRules.Action.ALLOWED
+        )
+
+        doReturn(siteRules).`when`(mockStorage).findSitePermissionsBy(anyString())
+        sitePermissionFeature.sitePermissionsRules = defaultRules
+
+        fun testPermission(permission: Permission, shouldUseDefaultRules: Boolean) {
+            var grantWasCalled = false
+            var rejectWasCalled = false
+
+            val permissionRequest: PermissionRequest = object : PermissionRequest {
+                override val uri: String?
+                    get() = "http://www.mozilla.org"
+                override val permissions: List<Permission>
+                    get() = listOf(permission)
+
+                override fun grant(permissions: List<Permission>) {
+                    grantWasCalled = true
+                }
+
+                override fun reject() {
+                    rejectWasCalled = true
+                }
+            }
+
+            mockStorage = mock()
+            val session = getSelectedSession()
+            session.contentPermissionRequest = Consumable.from(permissionRequest)
+
+            runBlocking {
+                val prompt = sitePermissionFeature.onContentPermissionRequested(session, permissionRequest)
+
+                assertTrue(grantWasCalled == shouldUseDefaultRules)
+                assertTrue(rejectWasCalled != shouldUseDefaultRules)
+                assertNull(prompt)
+            }
+        }
+
+        listOf(ContentAutoPlayInaudible(), ContentAutoPlayAudible()).forEach {
+            testPermission(permission = it, shouldUseDefaultRules = true)
+        }
+        listOf(
+            ContentGeoLocation(),
+            ContentNotification(),
+            ContentAudioCapture(),
+            ContentAudioMicrophone()
+        ).forEach {
+            testPermission(permission = it, shouldUseDefaultRules = false)
+        }
+    }
+
+    @Test
+    fun `autoplay requests should be denied if sitePermissionsRules is null`() {
+        val siteRules = SitePermissions(
+            location = ALLOWED,
+            camera = ALLOWED,
+            notification = ALLOWED,
+            microphone = ALLOWED,
+            autoplayAudible = ALLOWED,
+            autoplayInaudible = ALLOWED,
+            origin = "any",
+            savedAt = 1
+        )
+
+        doReturn(siteRules).`when`(mockStorage).findSitePermissionsBy(anyString())
+        sitePermissionFeature.sitePermissionsRules = null
+
+        fun assertPermissionRejected(permission: Permission) {
+            var grantWasCalled = false
+            var rejectWasCalled = false
+
+            val permissionRequest: PermissionRequest = object : PermissionRequest {
+                override val uri: String?
+                    get() = "http://www.mozilla.org"
+                override val permissions: List<Permission>
+                    get() = listOf(permission)
+
+                override fun grant(permissions: List<Permission>) {
+                    grantWasCalled = true
+                }
+
+                override fun reject() {
+                    rejectWasCalled = true
+                }
+            }
+
+            mockStorage = mock()
+            val session = getSelectedSession()
+            session.contentPermissionRequest = Consumable.from(permissionRequest)
+
+            runBlocking {
+                val prompt = sitePermissionFeature.onContentPermissionRequested(session, permissionRequest)
+
+                assertFalse(grantWasCalled)
+                assertTrue(rejectWasCalled)
+                assertNull(prompt)
+            }
+        }
+
+        listOf(ContentAutoPlayInaudible(), ContentAutoPlayAudible()).forEach {
+            assertPermissionRejected(permission = it)
+        }
+    }
+
+    @Test
     fun `storing a new SitePermissions must call save on the store`() {
         val sitePermissionsList = listOf(ContentGeoLocation())
         val request: PermissionRequest = mock()
@@ -325,6 +453,8 @@ class SitePermissionsFeatureTest {
             ContentNotification(),
             ContentAudioCapture(),
             ContentAudioMicrophone(),
+            ContentAutoPlayAudible(),
+            ContentAutoPlayInaudible(),
             Generic(id = null)
         )
 
@@ -480,6 +610,47 @@ class SitePermissionsFeatureTest {
             }
         }
         assertTrue(exceptionThrown)
+    }
+
+    @Test
+    fun `dismissing a permission request must call reject and consume contentPermissionRequest`() {
+        val permissions = listOf(
+                ContentGeoLocation(),
+                ContentNotification(),
+                ContentAudioCapture(),
+                ContentAudioMicrophone()
+        )
+
+        permissions.forEach { permission ->
+            val session = getSelectedSession()
+            var rejectWasCalled = false
+
+            val permissionRequest: PermissionRequest = object : PermissionRequest {
+                override val uri: String?
+                    get() = "http://www.mozilla.org"
+                override val permissions: List<Permission>
+                    get() = listOf(permission)
+
+                override fun reject() {
+                    rejectWasCalled = true
+                }
+
+                override fun grant(permissions: List<Permission>) = Unit
+            }
+            grantPermission(Manifest.permission.RECORD_AUDIO)
+
+            session.contentPermissionRequest = Consumable.from(permissionRequest)
+
+            runBlocking {
+                val prompt = sitePermissionFeature.onContentPermissionRequested(session, permissionRequest)
+
+                sitePermissionFeature.onDismiss(session.id)
+
+                assertNotNull(prompt)
+                assertTrue(rejectWasCalled)
+                assertTrue(session.contentPermissionRequest.isConsumed())
+            }
+        }
     }
 
     @Test
@@ -742,6 +913,35 @@ class SitePermissionsFeatureTest {
         sitePermissionFeature.start()
         verify(mockFragmentManager).beginTransaction()
         verify(transaction).remove(fragment)
+    }
+
+    @Test
+    fun `getInitialSitePermissions - WHEN sitePermissionsRules is present the function MUST use the sitePermissionsRules values to create a SitePermissions object`() {
+
+        val rules = SitePermissionsRules(
+                location = SitePermissionsRules.Action.BLOCKED,
+                camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
+                notification = SitePermissionsRules.Action.ASK_TO_ALLOW,
+                microphone = SitePermissionsRules.Action.BLOCKED,
+                autoplayAudible = SitePermissionsRules.Action.BLOCKED,
+                autoplayInaudible = SitePermissionsRules.Action.ALLOWED
+        )
+
+        sitePermissionFeature.sitePermissionsRules = rules
+
+        val mockPermissionRequest: PermissionRequest = mock {
+            whenever(uri).thenReturn(" http://mozilla.org")
+        }
+
+        val sitePermissions = sitePermissionFeature.getInitialSitePermissions(mockPermissionRequest)
+
+        assertEquals("mozilla.org", sitePermissions.origin)
+        assertEquals(BLOCKED, sitePermissions.location)
+        assertEquals(NO_DECISION, sitePermissions.camera)
+        assertEquals(NO_DECISION, sitePermissions.notification)
+        assertEquals(BLOCKED, sitePermissions.microphone)
+        assertEquals(BLOCKED, sitePermissions.autoplayAudible)
+        assertEquals(ALLOWED, sitePermissions.autoplayInaudible)
     }
 
     private fun mockFragmentManager(): FragmentManager {

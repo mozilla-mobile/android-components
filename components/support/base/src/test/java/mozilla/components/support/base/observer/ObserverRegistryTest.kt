@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, you can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.support.base.observer
 
@@ -43,6 +43,29 @@ class ObserverRegistryTest {
         }
 
         assertTrue(observer.notified)
+    }
+
+    @Test
+    fun `observer gets queued notifications when registered`() {
+        val registry = ObserverRegistry<TestIntObserver>()
+
+        val observer = TestIntObserver()
+        val anotherObserver = TestIntObserver()
+        registry.notifyAtLeastOneObserver {
+            somethingChanged(1)
+        }
+        registry.notifyAtLeastOneObserver {
+            somethingChanged(2)
+        }
+        registry.notifyAtLeastOneObserver {
+            somethingChanged(3)
+        }
+        assertEquals(emptyList<Int>(), observer.notified)
+
+        registry.register(observer)
+        registry.register(anotherObserver)
+        assertEquals(listOf(1, 2, 3), observer.notified)
+        assertEquals(emptyList<Int>(), anotherObserver.notified)
     }
 
     @Test
@@ -152,7 +175,7 @@ class ObserverRegistryTest {
         assertTrue(observer.notified)
 
         // Pretend lifecycle gets destroyed
-        owner.lifecycleRegistry.markState(Lifecycle.State.DESTROYED)
+        owner.lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
         observer.notified = false
         registry.notifyObservers { somethingChanged() }
@@ -176,13 +199,13 @@ class ObserverRegistryTest {
         assertTrue(observer.notified)
 
         // RESUMED
-        owner.lifecycleRegistry.markState(Lifecycle.State.RESUMED)
+        owner.lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         observer.notified = false
         registry.notifyObservers { somethingChanged() }
         assertTrue(observer.notified)
 
         // CREATED
-        owner.lifecycleRegistry.markState(Lifecycle.State.CREATED)
+        owner.lifecycleRegistry.currentState = Lifecycle.State.CREATED
         observer.notified = false
         registry.notifyObservers { somethingChanged() }
         assertTrue(observer.notified)
@@ -616,7 +639,7 @@ class ObserverRegistryTest {
 
     private class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
         val lifecycleRegistry = LifecycleRegistry(this).apply {
-            markState(initialState)
+            currentState = initialState
         }
 
         override fun getLifecycle(): Lifecycle = lifecycleRegistry

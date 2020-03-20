@@ -6,3 +6,8 @@
 
 Overrides [OAuthAccount.registerPersistenceCallback](../../mozilla.components.concept.sync/-o-auth-account/register-persistence-callback.md)
 
+Registers a callback for when the account state gets persisted
+
+### Parameters
+
+`callback` - the account state persistence callback

@@ -8,9 +8,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
-import mozilla.components.browser.icons.BrowserIcons
+import androidx.core.graphics.drawable.toBitmap
 import mozilla.components.concept.awesomebar.AwesomeBar
-import mozilla.components.feature.awesomebar.internal.loadLambda
+import mozilla.components.concept.engine.Engine
+import mozilla.components.feature.awesomebar.R
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.utils.WebURLFinder
 import java.util.UUID
@@ -20,14 +21,24 @@ private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
 /**
  * An [AwesomeBar.SuggestionProvider] implementation that returns a suggestions for an URL in the clipboard (if there's
  * any).
+ *
+ * @property context the activity or application context, required to look up the clipboard manager.
+ * @property loadUrlUseCase the use case invoked to load the url when
+ * the user clicks on the suggestion.
+ * @property icon optional icon used for the [AwesomeBar.Suggestion].
+ * @property title optional title used for the [AwesomeBar.Suggestion].
+ * @property requireEmptyText whether or no the input text must be empty for a
+ * clipboard suggestion to be provided, defaults to true.
+ * @property engine optional [Engine] instance to call [Engine.speculativeConnect] for the
+ * highest scored suggestion URL.
  */
 class ClipboardSuggestionProvider(
-    context: Context,
+    private val context: Context,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icon: Bitmap? = null,
     private val title: String? = null,
-    private val icons: BrowserIcons? = null,
-    private val requireEmptyText: Boolean = true
+    private val requireEmptyText: Boolean = true,
+    internal val engine: Engine? = null
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
 
@@ -43,12 +54,14 @@ class ClipboardSuggestionProvider(
             findUrl(it)
         } ?: return emptyList()
 
+        engine?.speculativeConnect(url)
+
         return listOf(AwesomeBar.Suggestion(
             provider = this,
             id = url,
             description = url,
             flags = setOf(AwesomeBar.Suggestion.Flag.CLIPBOARD),
-            icon = icons.loadLambda(url, icon),
+            icon = icon ?: context.getDrawable(R.drawable.mozac_ic_search)?.toBitmap(),
             title = title,
             onSuggestionClicked = {
                 loadUrlUseCase.invoke(url)

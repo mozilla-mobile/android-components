@@ -7,21 +7,61 @@ package mozilla.components.lib.crash.handler
 import android.content.ComponentName
 import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.lib.crash.Crash
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.lib.crash.CrashReporter
-import mozilla.components.lib.crash.service.CrashReporterService
+import mozilla.components.support.test.any
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doNothing
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class CrashHandlerServiceTest {
+    private val testDispatcher = TestCoroutineDispatcher()
+    private var service: CrashHandlerService? = null
+    private var reporter: CrashReporter? = null
+    private var intent: Intent? = null
+
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+
+    @Before
+    fun setUp() {
+        val scope = TestCoroutineScope(testDispatcher)
+        reporter = spy(CrashReporter(
+            shouldPrompt = CrashReporter.Prompt.NEVER,
+            services = listOf(mock()),
+            nonFatalCrashIntent = mock(),
+            scope = scope
+        )).install(testContext)
+
+        intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
+        intent?.component = ComponentName(
+            "org.mozilla.samples.browser",
+            "mozilla.components.lib.crash.handler.CrashHandlerService"
+        )
+        intent?.putExtra(
+            "minidumpPath",
+            "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp"
+        )
+        intent?.putExtra(
+            "extrasPath",
+            "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra"
+        )
+        intent?.putExtra("minidumpSuccess", true)
+        service = spy(CrashHandlerService())
+    }
 
     @After
     fun tearDown() {
@@ -29,56 +69,26 @@ class CrashHandlerServiceTest {
     }
 
     @Test
-    fun `CrashHandlerService will forward GeckoView crash to crash reporter`() {
-        var caughtCrash: Crash.NativeCodeCrash? = null
+    fun `CrashHandlerService forwards fatal native code crash to crash reporter`() {
+        doNothing().`when`(reporter)?.sendCrashReport(any(), any())
+        doNothing().`when`(service)?.kill()
 
-        CrashReporter(
-            shouldPrompt = CrashReporter.Prompt.NEVER,
-            services = listOf(object : CrashReporterService {
-                override fun report(crash: Crash.UncaughtExceptionCrash) {
-                    fail("Didn't expect uncaught exception crash")
-                }
+        intent?.putExtra("fatal", true)
+        service?.onHandleIntent(intent)
+        verify(reporter)?.onCrash(any(), any())
+        verify(reporter)?.sendCrashReport(any(), any())
+        verify(reporter, never())?.sendNonFatalCrashIntent(any(), any())
+    }
 
-                override fun report(crash: Crash.NativeCodeCrash) {
-                    caughtCrash = crash
-                }
-            })
-        ).install(testContext)
+    @Test
+    fun `CrashHandlerService forwards non-fatal native code crash to crash reporter`() {
+        doNothing().`when`(reporter)?.sendCrashReport(any(), any())
+        doNothing().`when`(service)?.kill()
 
-        val intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
-        intent.component = ComponentName(
-            "org.mozilla.samples.browser",
-            "mozilla.components.lib.crash.handler.CrashHandlerService"
-        )
-        intent.putExtra(
-            "minidumpPath",
-            "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp"
-        )
-        intent.putExtra("fatal", false)
-        intent.putExtra(
-            "extrasPath",
-            "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra"
-        )
-        intent.putExtra("minidumpSuccess", true)
-
-        val service = spy(CrashHandlerService())
-        doNothing().`when`(service).kill()
-        service.onHandleIntent(intent)
-
-        assertNotNull(caughtCrash)
-
-        val nativeCrash = caughtCrash
-            ?: throw AssertionError("Expected NativeCodeCrash instance")
-
-        assertEquals(true, nativeCrash.minidumpSuccess)
-        assertEquals(false, nativeCrash.isFatal)
-        assertEquals(
-            "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
-            nativeCrash.minidumpPath
-        )
-        assertEquals(
-            "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
-            nativeCrash.extrasPath
-        )
+        intent?.putExtra("fatal", false)
+        service?.onHandleIntent(intent)
+        verify(reporter)?.onCrash(any(), any())
+        verify(reporter)?.sendNonFatalCrashIntent(any(), any())
+        verify(reporter, never())?.sendCrashReport(any(), any())
     }
 }

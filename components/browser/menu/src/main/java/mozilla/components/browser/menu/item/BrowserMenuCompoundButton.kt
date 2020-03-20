@@ -1,15 +1,18 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.browser.menu.item
 
+import android.content.Context
 import android.view.View
 import android.widget.CompoundButton
+import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuItem
+import mozilla.components.browser.menu2.candidate.CompoundMenuCandidate
+import mozilla.components.browser.menu2.candidate.ContainerStyle
+import java.lang.reflect.Modifier.PRIVATE
 
 /**
  * A browser menu compound button. A basic sub-class would only have to provide a layout resource to
@@ -20,7 +23,8 @@ import mozilla.components.browser.menu.BrowserMenuItem
  * @param listener Callback to be invoked when this menu item is checked.
  */
 abstract class BrowserMenuCompoundButton(
-    private val label: String,
+    @VisibleForTesting(otherwise = PRIVATE)
+    val label: String,
     private val initialState: () -> Boolean = { false },
     private val listener: (Boolean) -> Unit
 ) : BrowserMenuItem {
@@ -36,4 +40,12 @@ abstract class BrowserMenuCompoundButton(
             }
         }
     }
+
+    override fun asCandidate(context: Context) = CompoundMenuCandidate(
+        label,
+        isChecked = initialState(),
+        end = CompoundMenuCandidate.ButtonType.CHECKBOX,
+        containerStyle = ContainerStyle(isVisible = visible()),
+        onCheckedChange = listener
+    )
 }

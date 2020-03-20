@@ -5,6 +5,12 @@
 package mozilla.components.browser.state.state
 
 import android.graphics.Bitmap
+import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.state.content.FindResultState
+import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.search.SearchRequest
+import mozilla.components.concept.engine.window.WindowRequest
 
 /**
  * Value type that represents the state of the content within a [SessionState].
@@ -21,6 +27,12 @@ import android.graphics.Bitmap
  * @property thumbnail the last generated [Bitmap] of this session's content, to
  * be used as a preview in e.g. a tab switcher.
  * @property icon the icon of the page currently loaded by this session.
+ * @property download Last unhandled download request.
+ * @property hitResult the target of the latest long click operation.
+ * @property promptRequest the last received [PromptRequest].
+ * @property findResults the list of results of the latest "find in page" operation.
+ * @property windowRequest the last received [WindowRequest].
+ * @property searchRequest the last received [SearchRequest]
  */
 data class ContentState(
     val url: String,
@@ -31,5 +43,11 @@ data class ContentState(
     val searchTerms: String = "",
     val securityInfo: SecurityInfoState = SecurityInfoState(),
     val thumbnail: Bitmap? = null,
-    val icon: Bitmap? = null
+    val icon: Bitmap? = null,
+    val download: DownloadState? = null,
+    val hitResult: HitResult? = null,
+    val promptRequest: PromptRequest? = null,
+    val findResults: List<FindResultState> = emptyList(),
+    val windowRequest: WindowRequest? = null,
+    val searchRequest: SearchRequest? = null
 )

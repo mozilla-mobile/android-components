@@ -5,9 +5,12 @@
 package mozilla.components.concept.sync
 
 import kotlinx.coroutines.Deferred
+import org.json.JSONObject
 
 /**
  * An auth-related exception type, for use with [AuthException].
+ *
+ * @property msg string value of the auth exception type
  */
 enum class AuthExceptionType(val msg: String) {
     KEY_INFO("Missing key info"),
@@ -16,27 +19,235 @@ enum class AuthExceptionType(val msg: String) {
 }
 
 /**
+ * The access-type determines whether the code can be exchanged for a refresh token for
+ * offline use or not.
+ *
+ * @property msg string value of the access-type
+ */
+enum class AccessType(val msg: String) {
+    ONLINE("online"),
+    OFFLINE("offline")
+}
+
+/**
  * An exception which may happen while obtaining auth information using [OAuthAccount].
  */
 class AuthException(type: AuthExceptionType, cause: Exception? = null) : Throwable(type.msg, cause)
+
+/**
+ * An object that represents a login flow initiated by [OAuthAccount].
+ * @property state OAuth state parameter, identifying a specific authentication flow.
+ * This string is randomly generated during [OAuthAccount.beginOAuthFlowAsync] and [OAuthAccount.beginPairingFlowAsync].
+ * @property url Url which needs to be loaded to go through the authentication flow identified by [state].
+ */
+data class AuthFlowUrl(val state: String, val url: String)
+
+/**
+ * Represents a specific type of an "in-flight" migration state that could result from intermittent
+ * issues during [OAuthAccount.migrateFromSessionTokenAsync] or [OAuthAccount.copyFromSessionTokenAsync].
+ */
+enum class InFlightMigrationState {
+    /**
+     * No in-flight migration.
+     */
+    NONE,
+
+    /**
+     * "Copy" in-flight migration present. Can retry migration via [OAuthAccount.retryMigrateFromSessionTokenAsync].
+     */
+    COPY_SESSION_TOKEN,
+
+    /**
+     * "Reuse" in-flight migration present. Can retry migration via [OAuthAccount.retryMigrateFromSessionTokenAsync].
+     */
+    REUSE_SESSION_TOKEN
+}
 
 /**
  * Facilitates testing consumers of FirefoxAccount.
  */
 @SuppressWarnings("TooManyFunctions")
 interface OAuthAccount : AutoCloseable {
-    fun beginOAuthFlowAsync(scopes: Set<String>, wantsKeys: Boolean): Deferred<String?>
-    fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>): Deferred<String?>
-    fun getProfileAsync(ignoreCache: Boolean): Deferred<Profile?>
-    fun getProfileAsync(): Deferred<Profile?>
+
+    /**
+     * Constructs a URL used to begin the OAuth flow for the requested scopes and keys.
+     *
+     * @param scopes List of OAuth scopes for which the client wants access
+     * @return Deferred AuthFlowUrl that resolves to the flow URL when complete
+     */
+    fun beginOAuthFlowAsync(scopes: Set<String>): Deferred<AuthFlowUrl?>
+
+    /**
+     * Constructs a URL used to begin the pairing flow for the requested scopes and pairingUrl.
+     *
+     * @param pairingUrl URL string for pairing
+     * @param scopes List of OAuth scopes for which the client wants access
+     * @return Deferred AuthFlowUrl Optional that resolves to the flow URL when complete
+     */
+    fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>): Deferred<AuthFlowUrl?>
+
+    /**
+     * Returns current FxA Device ID for an authenticated account.
+     *
+     * @return Current device's FxA ID, if available. `null` otherwise.
+     */
+    fun getCurrentDeviceId(): String?
+
+    /**
+     * Returns session token for an authenticated account.
+     *
+     * @return Current account's session token, if available. `null` otherwise.
+     */
+    fun getSessionToken(): String?
+
+    /**
+     * Provisions a scoped OAuth code for a given [clientId] and the passed [scopes].
+     *
+     * @param clientId the client id string
+     * @param scopes the list of scopes to request access to
+     * @param state the state token string
+     * @param accessType the accessType method to be used by the returned code, determines whether
+     * the code can be exchanged for a refresh token to be used offline or not
+     * @return Deferred authorized auth code string, or `null` in case of failure.
+     */
+    fun authorizeOAuthCodeAsync(
+        clientId: String,
+        scopes: Array<String>,
+        state: String,
+        accessType: AccessType = AccessType.ONLINE
+    ): Deferred<String?>
+
+    /**
+     * Fetches the profile object for the current client either from the existing cached state
+     * or from the server (requires the client to have access to the profile scope).
+     *
+     * @param ignoreCache Fetch the profile information directly from the server
+     * @return Profile (optional, if successfully retrieved) representing the user's basic profile info
+     */
+    fun getProfileAsync(ignoreCache: Boolean = false): Deferred<Profile?>
+
+    /**
+     * Authenticates the current account using the [code] and [state] parameters obtained via the
+     * OAuth flow initiated by [beginOAuthFlowAsync].
+     *
+     * Modifies the FirefoxAccount state.
+     * @param code OAuth code string
+     * @param state state token string
+     * @return Deferred boolean representing success or failure
+     */
     fun completeOAuthFlowAsync(code: String, state: String): Deferred<Boolean>
+
+    /**
+     * Tries to fetch an access token for the given scope.
+     *
+     * @param singleScope Single OAuth scope (no spaces) for which the client wants access
+     * @return [AccessTokenInfo] that stores the token, along with its scope, key and
+     *                           expiration timestamp (in seconds) since epoch when complete
+     */
     fun getAccessTokenAsync(singleScope: String): Deferred<AccessTokenInfo?>
+
+    /**
+     * This method should be called when a request made with an OAuth token failed with an
+     * authentication error. It will re-build cached state and perform a connectivity check.
+     *
+     * In time, fxalib will grow a similar method, at which point we'll just relay to it.
+     * See https://github.com/mozilla/application-services/issues/1263
+     *
+     * @param singleScope An oauth scope for which to check authorization state.
+     * @return An optional [Boolean] flag indicating if we're connected, or need to go through
+     * re-authentication. A null result means we were not able to determine state at this time.
+     */
     fun checkAuthorizationStatusAsync(singleScope: String): Deferred<Boolean?>
+
+    /**
+     * Fetches the token server endpoint, for authentication using the SAML bearer flow.
+     *
+     * @return Token server endpoint URL string
+     */
     fun getTokenServerEndpointURL(): String
+
+    /**
+     * Get the pairing URL to navigate to on the Authority side (typically a computer).
+     *
+     * @return The URL to show the pairing user
+     */
+    fun getPairingAuthorityURL(): String
+
+    /**
+     * Registers a callback for when the account state gets persisted
+     *
+     * @param callback the account state persistence callback
+     */
     fun registerPersistenceCallback(callback: StatePersistenceCallback)
-    fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<Boolean>
+
+    /**
+     * Attempts to migrate from an existing session token without user input.
+     * Passed-in session token will be reused.
+     *
+     * @param sessionToken token string to use for login
+     * @param kSync sync string for login
+     * @param kXCS XCS string for login
+     * @return JSON object with the result of the migration or 'null' if it failed.
+     * For up-to-date schema, see underlying implementation in https://github.com/mozilla/application-services/blob/v0.49.0/components/fxa-client/src/migrator.rs#L10
+     * At the moment, it's just "{total_duration: long}".
+     */
+    fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<JSONObject?>
+
+    /**
+     * Attempts to migrate from an existing session token without user input.
+     * New session token will be created.
+     *
+     * @param sessionToken token string to use for login
+     * @param kSync sync string for login
+     * @param kXCS XCS string for login
+     * @return JSON object with the result of the migration or 'null' if it failed.
+     * For up-to-date schema, see underlying implementation in https://github.com/mozilla/application-services/blob/v0.49.0/components/fxa-client/src/migrator.rs#L10
+     * At the moment, it's just "{total_duration: long}".
+     */
+    fun copyFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<JSONObject?>
+
+    /**
+     * Checks if there's a migration in-flight. An in-flight migration means that we've tried to migrate
+     * via either [migrateFromSessionTokenAsync] or [copyFromSessionTokenAsync], and failed for intermittent
+     * (e.g. network)
+     * reasons. When an in-flight migration is present, we can retry using [retryMigrateFromSessionTokenAsync].
+     * @return InFlightMigrationState indicating specific migration state.
+     */
+    fun isInMigrationState(): InFlightMigrationState
+
+    /**
+     * Retries an in-flight migration attempt.
+     * @return JSON object with the result of the retry attempt or 'null' if it failed.
+     * For up-to-date schema, see underlying implementation in https://github.com/mozilla/application-services/blob/v0.49.0/components/fxa-client/src/migrator.rs#L10
+     * At the moment, it's just "{total_duration: long}".
+     */
+    fun retryMigrateFromSessionTokenAsync(): Deferred<JSONObject?>
+
+    /**
+     * Returns the device constellation for the current account
+     *
+     * @return Device constellation for the current account
+     */
     fun deviceConstellation(): DeviceConstellation
+
+    /**
+     * Reset internal account state and destroy current device record.
+     * Use this when device record is no longer relevant, e.g. while logging out. On success, other
+     * devices will no longer see the current device in their device lists.
+     *
+     * @return A [Deferred] that will be resolved with a success flag once operation is complete.
+     * Failure indicates that we may have failed to destroy current device record. Nothing to do for
+     * the consumer; device record will be cleaned up eventually via TTL.
+     */
     fun disconnectAsync(): Deferred<Boolean>
+
+    /**
+     * Serializes the current account's authentication state as a JSON string, for persistence in
+     * the Android KeyStore/shared preferences. The authentication state can be restored using
+     * [FirefoxAccount.fromJSONString].
+     *
+     * @return String containing the authentication details in JSON format
+     */
     fun toJSONString(): String
 }
 
@@ -50,8 +261,47 @@ interface StatePersistenceCallback {
     fun persist(data: String)
 }
 
+sealed class AuthType {
+    /**
+     * Account restored from hydrated state on disk.
+     */
+    object Existing : AuthType()
+
+    /**
+     * Account created in response to a sign-in.
+     */
+    object Signin : AuthType()
+
+    /**
+     * Account created in response to a sign-up.
+     */
+    object Signup : AuthType()
+
+    /**
+     * Account created via pairing (similar to sign-in, but without requiring credentials).
+     */
+    object Pairing : AuthType()
+
+    /**
+     * Account was created for an unknown external reason, hopefully identified by [action].
+     */
+    data class OtherExternal(val action: String?) : AuthType()
+
+    /**
+     * Account created via a shared account state from another app.
+     */
+    object Shared : AuthType()
+
+    /**
+     * Existing account was recovered from an authentication problem.
+     */
+    object Recovered : AuthType()
+}
+
 /**
  * Observer interface which lets its users monitor account state changes and major events.
+ * (XXX - there's some tension between this and the
+ * mozilla.components.concept.sync.AccountEvent we should resolve!)
  */
 interface AccountObserver {
     /**
@@ -61,10 +311,11 @@ interface AccountObserver {
 
     /**
      * Account was successfully authenticated.
+     *
      * @param account An authenticated instance of a [OAuthAccount].
-     * @param newAccount True if this is a new account that was authenticated.
+     * @param authType Describes what kind of authentication event caused this invocation.
      */
-    fun onAuthenticated(account: OAuthAccount, newAccount: Boolean) = Unit
+    fun onAuthenticated(account: OAuthAccount, authType: AuthType) = Unit
 
     /**
      * Account's profile is now available.

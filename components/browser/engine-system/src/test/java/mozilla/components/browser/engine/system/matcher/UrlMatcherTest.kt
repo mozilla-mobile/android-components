@@ -6,6 +6,10 @@ package mozilla.components.browser.engine.system.matcher
 
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.engine.system.matcher.UrlMatcher.Companion.ADVERTISING
+import mozilla.components.browser.engine.system.matcher.UrlMatcher.Companion.ANALYTICS
+import mozilla.components.browser.engine.system.matcher.UrlMatcher.Companion.CONTENT
+import mozilla.components.browser.engine.system.matcher.UrlMatcher.Companion.SOCIAL
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -27,24 +31,24 @@ class UrlMatcherTest {
     fun basicMatching() {
         val matcher = UrlMatcher(arrayOf("bcd.random"))
 
-        assertTrue(matcher.matches("http://bcd.random/something", "http://mozilla.org"))
-        assertTrue(matcher.matches("http://bcd.random", "http://mozilla.org"))
-        assertTrue(matcher.matches("http://www.bcd.random", "http://mozilla.org"))
-        assertTrue(matcher.matches("http://www.bcd.random/something", "http://mozilla.org"))
-        assertTrue(matcher.matches("http://foobar.bcd.random", "http://mozilla.org"))
-        assertTrue(matcher.matches("http://foobar.bcd.random/something", "http://mozilla.org"))
+        assertTrue(matcher.matches("http://bcd.random/something", "http://mozilla.org").first)
+        assertTrue(matcher.matches("http://bcd.random", "http://mozilla.org").first)
+        assertTrue(matcher.matches("http://www.bcd.random", "http://mozilla.org").first)
+        assertTrue(matcher.matches("http://www.bcd.random/something", "http://mozilla.org").first)
+        assertTrue(matcher.matches("http://foobar.bcd.random", "http://mozilla.org").first)
+        assertTrue(matcher.matches("http://foobar.bcd.random/something", "http://mozilla.org").first)
 
-        assertFalse(matcher.matches("http://other.random", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://other.random/something", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://www.other.random", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://www.other.random/something", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://bcd.specific", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://bcd.specific/something", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://www.bcd.specific", "http://mozilla.org"))
-        assertFalse(matcher.matches("http://www.bcd.specific/something", "http://mozilla.org"))
+        assertFalse(matcher.matches("http://other.random", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://other.random/something", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://www.other.random", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://www.other.random/something", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://bcd.specific", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://bcd.specific/something", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://www.bcd.specific", "http://mozilla.org").first)
+        assertFalse(matcher.matches("http://www.bcd.specific/something", "http://mozilla.org").first)
 
-        assertFalse(matcher.matches("http://mozilla.org/resource", "data:text/html;stuff here"))
-        assertTrue(matcher.matches("http://bcd.random/resource", "data:text/html;stuff here"))
+        assertFalse(matcher.matches("http://mozilla.org/resource", "data:text/html;stuff here").first)
+        assertTrue(matcher.matches("http://bcd.random/resource", "data:text/html;stuff here").first)
     }
 
     /**
@@ -103,7 +107,8 @@ class UrlMatcherTest {
                 val enabled = currentBit and categoryPattern == currentBit
                 val url = "http://category$currentCategory.com"
                 assertEquals("Incorrect category matched for combo=$categoryPattern url=$url",
-                        enabled, matcher.matches(url, "http://www.mozilla.org"))
+                    enabled, matcher.matches(url, "http://www.mozilla.org").first
+                )
             }
         }
     }
@@ -111,22 +116,6 @@ class UrlMatcherTest {
     val BLOCK_LIST = """{
       "license": "test-license",
       "categories": {
-        "Disconnect": [
-          {
-            "Facebook": {
-              "http://www.facebook.com/": [
-                "facebook.com"
-              ]
-            }
-          },
-          {
-            "Disconnect1": {
-              "http://www.disconnect1.com/": [
-                "disconnect1.com"
-              ]
-            }
-          }
-        ],
         "Advertising": [
           {
             "AdTest1": {
@@ -195,22 +184,6 @@ class UrlMatcherTest {
     }
     """
 
-    val OVERRIDES = """{
-      "categories": {
-        "Advertising": [
-          {
-            "AdTest2": {
-              "http://www.adtest2.com/": [
-                "adtest2.de",
-                "adtest2.at"
-              ]
-            }
-          }
-        ]
-      }
-    }
-    """
-
     val WHITE_LIST = """{
       "SocialTest1": {
         "properties": [
@@ -225,28 +198,50 @@ class UrlMatcherTest {
     fun createMatcher() {
         val matcher = UrlMatcher.createMatcher(
                 StringReader(BLOCK_LIST),
-                listOf(StringReader(OVERRIDES)),
                 StringReader(WHITE_LIST))
 
-        assertTrue(matcher.matches("http://adtest1.com", "http://www.adtest1.com"))
-        assertTrue(matcher.matches("http://adtest1.de", "http://www.adtest1.com"))
+        // Check returns correct category
+        val (matchesAds, categoryAds) = matcher.matches("http://adtest1.com", "http://www.adtest1.com")
 
-        // Check that override worked
-        assertTrue(matcher.matches("http://adtest2.com", "http://www.adtest2.com"))
-        assertTrue(matcher.matches("http://adtest2.at", "http://www.adtest2.com"))
-        assertTrue(matcher.matches("http://adtest2.de", "http://www.adtest2.com"))
+        assertTrue(matchesAds)
+        assertEquals(categoryAds, ADVERTISING)
+
+        val (matchesAds2, categoryAd2) = matcher.matches("http://adtest1.de", "http://www.adtest1.com")
+
+        assertTrue(matchesAds2)
+        assertEquals(categoryAd2, ADVERTISING)
+
+        val (matchesSocial, categorySocial) = matcher.matches(
+            "http://socialtest1.com/",
+            "http://www.socialtest1.com/"
+        )
+
+        assertTrue(matchesSocial)
+        assertEquals(categorySocial, SOCIAL)
+
+        val (matchesContent, categoryContent) = matcher.matches(
+            "http://contenttest1.com/",
+            "http://www.contenttest1.com/"
+        )
+
+        assertTrue(matchesContent)
+        assertEquals(categoryContent, CONTENT)
+
+        val (matchesAnalytics, categoryAnalytics) = matcher.matches(
+            "http://analyticsTest1.com/",
+            "http://www.analyticsTest1.com/"
+        )
+
+        assertTrue(matchesAnalytics)
+        assertEquals(categoryAnalytics, ANALYTICS)
 
         // Check that white list worked
-        assertTrue(matcher.matches("http://socialtest1.com", "http://www.socialtest1.com"))
-        assertFalse(matcher.matches("http://socialtest1.de", "http://www.socialtest1.com"))
+        assertTrue(matcher.matches("http://socialtest1.com", "http://www.socialtest1.com").first)
+        assertFalse(matcher.matches("http://socialtest1.de", "http://www.socialtest1.com").first)
 
         // Check ignored categories
-        assertFalse(matcher.matches("http://ignored1.de", "http://www.ignored1.com"))
-        assertFalse(matcher.matches("http://ignored2.de", "http://www.ignored2.com"))
-
-        // Check that we find the social URIs we moved from Disconnect
-        assertTrue(matcher.matches("http://facebook.com", "http://www.facebook.com"))
-        assertFalse(matcher.matches("http://disconnect1.com", "http://www.disconnect1.com"))
+        assertFalse(matcher.matches("http://ignored1.de", "http://www.ignored1.com").first)
+        assertFalse(matcher.matches("http://ignored2.de", "http://www.ignored2.com").first)
     }
 
     @Test
@@ -264,7 +259,6 @@ class UrlMatcherTest {
     fun setCategoriesEnabled() {
         val matcher = spy(UrlMatcher.createMatcher(
                 StringReader(BLOCK_LIST),
-                listOf(StringReader(OVERRIDES)),
                 StringReader(WHITE_LIST),
                 setOf("Advertising", "Analytics"))
         )
@@ -282,10 +276,14 @@ class UrlMatcherTest {
     fun webFontsNotBlockedByDefault() {
         val matcher = UrlMatcher.createMatcher(
                 StringReader(BLOCK_LIST),
-                listOf(StringReader(OVERRIDES)),
                 StringReader(WHITE_LIST),
                 setOf(UrlMatcher.ADVERTISING, UrlMatcher.ANALYTICS, UrlMatcher.SOCIAL, UrlMatcher.CONTENT))
 
-        assertFalse(matcher.matches("http://mozilla.org/fonts/test.woff2", "http://mozilla.org"))
+        assertFalse(
+            matcher.matches(
+                "http://mozilla.org/fonts/test.woff2",
+                "http://mozilla.org"
+            ).first
+        )
     }
 }

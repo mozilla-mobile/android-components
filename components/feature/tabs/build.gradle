@@ -22,9 +22,15 @@ android {
     }
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.freeCompilerArgs += [
+            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
+    ]
+}
 
 dependencies {
-    api project(':browser-session')
+    implementation project(':browser-session')
     api project(':feature-session')
     implementation project(':concept-engine')
     implementation project(':concept-tabstray')
@@ -45,8 +51,10 @@ dependencies {
     testImplementation project(':support-test')
 
     testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_coroutines
     testImplementation Dependencies.testing_robolectric
     testImplementation Dependencies.testing_mockito
+    testImplementation project(":support-test-libstate")
 }
 
 apply from: '../../../publish.gradle'

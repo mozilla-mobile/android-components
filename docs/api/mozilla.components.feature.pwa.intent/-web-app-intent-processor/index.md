@@ -2,7 +2,7 @@
 
 # WebAppIntentProcessor
 
-`class WebAppIntentProcessor : `[`IntentProcessor`](../../mozilla.components.browser.session.intent/-intent-processor/index.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/pwa/src/main/java/mozilla/components/feature/pwa/intent/WebAppIntentProcessor.kt#L23)
+`class WebAppIntentProcessor : `[`IntentProcessor`](../../mozilla.components.feature.intent.processing/-intent-processor/index.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/pwa/src/main/java/mozilla/components/feature/pwa/intent/WebAppIntentProcessor.kt#L24)
 
 Processor for intents which trigger actions related to web apps.
 
@@ -16,7 +16,6 @@ Processor for intents which trigger actions related to web apps.
 
 | Name | Summary |
 |---|---|
-| [matches](matches.md) | `fun matches(intent: <ERROR CLASS>): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Returns true if this intent should launch a progressive web app. |
 | [process](process.md) | `suspend fun process(intent: <ERROR CLASS>): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Processes the given [Intent](#) by creating a [Session](../../mozilla.components.browser.session/-session/index.md) with a corresponding web app manifest. |
 
 ### Companion Object Properties
@@ -24,3 +23,9 @@ Processor for intents which trigger actions related to web apps.
 | Name | Summary |
 |---|---|
 | [ACTION_VIEW_PWA](-a-c-t-i-o-n_-v-i-e-w_-p-w-a.md) | `const val ACTION_VIEW_PWA: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html) |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

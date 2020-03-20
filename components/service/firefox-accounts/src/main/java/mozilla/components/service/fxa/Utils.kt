@@ -4,9 +4,7 @@
 
 package mozilla.components.service.fxa
 
-import mozilla.components.concept.sync.AuthException
-import mozilla.components.concept.sync.AuthExceptionType
-import mozilla.components.service.fxa.manager.authErrorRegistry
+import mozilla.components.service.fxa.manager.GlobalAccountManager
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -18,10 +16,10 @@ import mozilla.components.support.base.log.logger.Logger
  * @param handleErrorBlock A lambda to execute if [block] fails with a non-panic, non-auth [FxaException].
  * @return object of type T, as defined by [block].
  */
-fun <T> handleFxaExceptions(
+suspend fun <T> handleFxaExceptions(
     logger: Logger,
     operation: String,
-    block: () -> T,
+    block: suspend () -> T,
     postHandleAuthErrorBlock: (e: FxaUnauthorizedException) -> T,
     handleErrorBlock: (e: FxaException) -> T
 ): T {
@@ -31,13 +29,14 @@ fun <T> handleFxaExceptions(
         logger.info("Successfully executed: $operation")
         res
     } catch (e: FxaException) {
+        // We'd like to simply crash in case of certain errors (e.g. panics).
+        if (shouldThrow(e)) {
+            throw e
+        }
         when (e) {
-            is FxaPanicException -> {
-                throw e
-            }
             is FxaUnauthorizedException -> {
                 logger.warn("Auth error while running: $operation")
-                authErrorRegistry.notifyObservers { onAuthErrorAsync(AuthException(AuthExceptionType.UNAUTHORIZED, e)) }
+                GlobalAccountManager.authError(e)
                 postHandleAuthErrorBlock(e)
             }
             else -> {
@@ -52,16 +51,33 @@ fun <T> handleFxaExceptions(
  * Helper method that handles [FxaException] and allows specifying a lazy default value via [default]
  * block for use in case of errors. Execution is wrapped in log statements.
  */
-fun <T> handleFxaExceptions(logger: Logger, operation: String, default: (error: FxaException) -> T, block: () -> T): T {
+suspend fun <T> handleFxaExceptions(
+    logger: Logger,
+    operation: String,
+    default: (error: FxaException) -> T,
+    block: suspend () -> T
+): T {
     return handleFxaExceptions(logger, operation, block, { default(it) }, { default(it) })
 }
 
 /**
  * Helper method that handles [FxaException] and returns a [Boolean] success flag as a result.
  */
-fun handleFxaExceptions(logger: Logger, operation: String, block: () -> Unit): Boolean {
+suspend fun handleFxaExceptions(logger: Logger, operation: String, block: () -> Unit): Boolean {
     return handleFxaExceptions(logger, operation, { false }, {
         block()
         true
     })
+}
+
+private fun shouldThrow(e: FxaException): Boolean {
+    return when (e) {
+        // Throw on panics
+        is FxaPanicException -> true
+        // Don't throw for recoverable errors.
+        is FxaNetworkException, is FxaUnauthorizedException, is FxaUnspecifiedException -> false
+        // Throw on newly encountered exceptions.
+        // If they're actually recoverable and you see them in crash reports, update this check.
+        else -> true
+    }
 }

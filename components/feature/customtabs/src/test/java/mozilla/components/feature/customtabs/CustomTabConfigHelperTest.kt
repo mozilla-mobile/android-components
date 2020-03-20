@@ -9,11 +9,12 @@ import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.os.Binder
 import android.os.Bundle
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.browser.customtabs.CustomTabsIntent.EXTRA_NAVIGATION_BAR_COLOR
 import androidx.browser.customtabs.TrustedWebUtils
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.session.tab.CustomTabConfig.Companion.EXTRA_NAVIGATION_BAR_COLOR
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -22,12 +23,23 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.spy
 
 @RunWith(AndroidJUnit4::class)
 class CustomTabConfigHelperTest {
+
+    private lateinit var resources: Resources
+
+    @Before
+    fun setup() {
+        resources = spy(testContext.resources)
+        doReturn(24f).`when`(resources).getDimension(R.dimen.mozac_feature_customtabs_max_close_button_size)
+    }
 
     @Test
     fun isCustomTabIntent() {
@@ -86,6 +98,11 @@ class CustomTabConfigHelperTest {
         assertEquals(closeButtonIcon, customTabConfig.closeButtonIcon)
         assertEquals(size, customTabConfig.closeButtonIcon?.width)
         assertEquals(size, customTabConfig.closeButtonIcon?.height)
+
+        val customTabConfigNoResources = createCustomTabConfigFromIntent(builder.build().intent, null)
+        assertEquals(closeButtonIcon, customTabConfigNoResources.closeButtonIcon)
+        assertEquals(size, customTabConfigNoResources.closeButtonIcon?.width)
+        assertEquals(size, customTabConfigNoResources.closeButtonIcon?.height)
     }
 
     @Test
@@ -97,6 +114,9 @@ class CustomTabConfigHelperTest {
 
         val customTabConfig = createCustomTabConfigFromIntent(builder.build().intent, testContext.resources)
         assertNull(customTabConfig.closeButtonIcon)
+
+        val customTabConfigNoResources = createCustomTabConfigFromIntent(builder.build().intent, null)
+        assertEquals(closeButtonIcon, customTabConfigNoResources.closeButtonIcon)
     }
 
     @Test
@@ -129,7 +149,7 @@ class CustomTabConfigHelperTest {
         builder.enableUrlBarHiding()
 
         val customTabConfig = createCustomTabConfigFromIntent(builder.build().intent, testContext.resources)
-        assertFalse(customTabConfig.disableUrlbarHiding)
+        assertTrue(customTabConfig.enableUrlbarHiding)
     }
 
     @Test
@@ -219,5 +239,17 @@ class CustomTabConfigHelperTest {
 
         val customTabConfig = createCustomTabConfigFromIntent(customTabsIntent.intent, testContext.resources)
         assertTrue(customTabConfig.titleVisible)
+    }
+
+    @Test
+    fun createFromIntentWithSessionToken() {
+        val customTabsIntent: Intent = mock()
+        val bundle: Bundle = mock()
+        val binder: Binder = mock()
+        `when`(customTabsIntent.extras).thenReturn(bundle)
+        `when`(bundle.getBinder(CustomTabsIntent.EXTRA_SESSION)).thenReturn(binder)
+
+        val customTabConfig = createCustomTabConfigFromIntent(customTabsIntent, testContext.resources)
+        assertNotNull(customTabConfig.sessionToken)
     }
 }

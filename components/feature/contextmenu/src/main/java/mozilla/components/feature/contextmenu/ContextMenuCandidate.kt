@@ -10,26 +10,27 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import com.google.android.material.snackbar.Snackbar
-import mozilla.components.browser.session.Download
-import mozilla.components.browser.session.Session
+import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.feature.tabs.TabsUseCases
-import mozilla.components.support.base.observer.Consumable
+import mozilla.components.feature.app.links.AppLinksUseCases
 
 /**
  * A candidate for an item to be displayed in the context menu.
  *
  * @property id A unique ID that will be used to uniquely identify the candidate that the user selected.
  * @property label The label that will be displayed in the context menu
- * @property showFor If this lambda returns true for a given [Session] and [HitResult] then it will be displayed in the
- * context menu.
+ * @property showFor If this lambda returns true for a given [SessionState] and [HitResult] then it
+ * will be displayed in the context menu.
  * @property action The action to be invoked once the user selects this item.
  */
+@Suppress("TooManyFunctions")
 data class ContextMenuCandidate(
     val id: String,
     val label: String,
-    val showFor: (Session, HitResult) -> Boolean,
-    val action: (Session, HitResult) -> Unit
+    val showFor: (SessionState, HitResult) -> Boolean,
+    val action: (SessionState, HitResult) -> Unit
 ) {
     companion object {
         /**
@@ -40,15 +41,18 @@ data class ContextMenuCandidate(
         fun defaultCandidates(
             context: Context,
             tabsUseCases: TabsUseCases,
+            contextMenuUseCases: ContextMenuUseCases,
             snackBarParentView: View,
             snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate()
         ): List<ContextMenuCandidate> = listOf(
             createOpenInNewTabCandidate(context, tabsUseCases, snackBarParentView, snackbarDelegate),
             createOpenInPrivateTabCandidate(context, tabsUseCases, snackBarParentView, snackbarDelegate),
             createCopyLinkCandidate(context, snackBarParentView, snackbarDelegate),
+            createDownloadLinkCandidate(context, contextMenuUseCases),
             createShareLinkCandidate(context),
             createOpenImageInNewTabCandidate(context, tabsUseCases, snackBarParentView, snackbarDelegate),
-            createSaveImageCandidate(context),
+            createSaveImageCandidate(context, contextMenuUseCases),
+            createSaveVideoAudioCandidate(context, contextMenuUseCases),
             createCopyImageLocationCandidate(context, snackBarParentView, snackbarDelegate)
         )
 
@@ -63,10 +67,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.open_in_new_tab",
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_new_tab),
-            showFor = { session, hitResult -> hitResult.isLink() && !session.private },
+            showFor = { tab, hitResult -> hitResult.isLink() && !tab.content.private },
             action = { parent, hitResult ->
-                val session = tabsUseCases.addTab(
-                    hitResult.getLink(), selectTab = false, startLoading = true, parent = parent)
+                val tab = tabsUseCases.addTab(
+                    hitResult.getLink(), selectTab = false, startLoading = true, parentId = parent.id)
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
@@ -74,7 +78,7 @@ data class ContextMenuCandidate(
                     duration = Snackbar.LENGTH_LONG,
                     action = R.string.mozac_feature_contextmenu_snackbar_action_switch
                 ) {
-                    tabsUseCases.selectTab(session)
+                    tabsUseCases.selectTab(tab)
                 }
             }
         )
@@ -92,8 +96,8 @@ data class ContextMenuCandidate(
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_private_tab),
             showFor = { _, hitResult -> hitResult.isLink() },
             action = { parent, hitResult ->
-                val session = tabsUseCases.addPrivateTab(
-                    hitResult.getLink(), selectTab = false, startLoading = true, parent = parent)
+                val tab = tabsUseCases.addPrivateTab(
+                    hitResult.getLink(), selectTab = false, startLoading = true, parentId = parent.id)
 
                 snackbarDelegate.show(
                     snackBarParentView,
@@ -101,7 +105,30 @@ data class ContextMenuCandidate(
                     Snackbar.LENGTH_LONG,
                     R.string.mozac_feature_contextmenu_snackbar_action_switch
                 ) {
-                    tabsUseCases.selectTab(session)
+                    tabsUseCases.selectTab(tab)
+                }
+            }
+        )
+
+        /**
+         * Context Menu item: "Open Link in external App".
+         */
+        fun createOpenInExternalAppCandidate(
+            context: Context,
+            appLinksUseCases: AppLinksUseCases
+        ) = ContextMenuCandidate(
+            id = "mozac.feature.contextmenu.open_in_external_app",
+            label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_external_app),
+            showFor = { _, hitResult -> hitResult.canOpenInExternalApp(appLinksUseCases) },
+            action = { _, hitResult ->
+                val link = hitResult.getLink()
+                val redirect = appLinksUseCases.appLinkRedirectIncludeInstall(link)
+                val appIntent = redirect.appIntent
+                val marketPlaceIntent = redirect.marketplaceIntent
+                if (appIntent != null) {
+                    appLinksUseCases.openAppLink(appIntent)
+                } else if (marketPlaceIntent != null) {
+                    appLinksUseCases.openAppLink(marketPlaceIntent)
                 }
             }
         )
@@ -119,12 +146,12 @@ data class ContextMenuCandidate(
             label = context.getString(R.string.mozac_feature_contextmenu_open_image_in_new_tab),
             showFor = { _, hitResult -> hitResult.isImage() },
             action = { parent, hitResult ->
-                val session = if (parent.private) {
+                val tab = if (parent.content.private) {
                     tabsUseCases.addPrivateTab(
-                        hitResult.src, selectTab = false, startLoading = true, parent = parent)
+                        hitResult.src, selectTab = false, startLoading = true, parentId = parent.id)
                 } else {
                     tabsUseCases.addTab(
-                        hitResult.src, selectTab = false, startLoading = true, parent = parent)
+                        hitResult.src, selectTab = false, startLoading = true, parentId = parent.id)
                 }
 
                 snackbarDelegate.show(
@@ -133,7 +160,7 @@ data class ContextMenuCandidate(
                     duration = Snackbar.LENGTH_LONG,
                     action = R.string.mozac_feature_contextmenu_snackbar_action_switch
                 ) {
-                    tabsUseCases.selectTab(session)
+                    tabsUseCases.selectTab(tab)
                 }
             }
         )
@@ -142,13 +169,53 @@ data class ContextMenuCandidate(
          * Context Menu item: "Save image".
          */
         fun createSaveImageCandidate(
-            context: Context
+            context: Context,
+            contextMenuUseCases: ContextMenuUseCases
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.save_image",
             label = context.getString(R.string.mozac_feature_contextmenu_save_image),
             showFor = { _, hitResult -> hitResult.isImage() },
-            action = { session, hitResult ->
-                session.download = Consumable.from(Download(hitResult.src))
+            action = { tab, hitResult ->
+                contextMenuUseCases.injectDownload(
+                    tab.id,
+                    DownloadState(hitResult.src, skipConfirmation = true)
+                )
+            }
+        )
+
+        /**
+         * Context Menu item: "Save video".
+         */
+        fun createSaveVideoAudioCandidate(
+            context: Context,
+            contextMenuUseCases: ContextMenuUseCases
+        ) = ContextMenuCandidate(
+            id = "mozac.feature.contextmenu.save_video",
+            label = context.getString(R.string.mozac_feature_contextmenu_save_file_to_device),
+            showFor = { _, hitResult -> hitResult.isVideoAudio() },
+            action = { tab, hitResult ->
+                contextMenuUseCases.injectDownload(
+                    tab.id,
+                    DownloadState(hitResult.src, skipConfirmation = true)
+                )
+            }
+        )
+
+        /**
+         * Context Menu item: "Save link".
+         */
+        fun createDownloadLinkCandidate(
+            context: Context,
+            contextMenuUseCases: ContextMenuUseCases
+        ) = ContextMenuCandidate(
+            id = "mozac.feature.contextmenu.download_link",
+            label = context.getString(R.string.mozac_feature_contextmenu_download_link),
+            showFor = { _, hitResult -> hitResult.isLink() },
+            action = { tab, hitResult ->
+                contextMenuUseCases.injectDownload(
+                    tab.id,
+                    DownloadState(hitResult.src, skipConfirmation = true)
+                )
             }
         )
 
@@ -195,7 +262,7 @@ data class ContextMenuCandidate(
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
-                    text = R.string.mozac_feature_contextmenu_snackbar_text_copied,
+                    text = R.string.mozac_feature_contextmenu_snackbar_link_copied,
                     duration = Snackbar.LENGTH_SHORT
                 )
             }
@@ -219,7 +286,7 @@ data class ContextMenuCandidate(
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
-                    text = R.string.mozac_feature_contextmenu_snackbar_text_copied,
+                    text = R.string.mozac_feature_contextmenu_snackbar_link_copied,
                     duration = Snackbar.LENGTH_SHORT
                 )
             }
@@ -255,13 +322,35 @@ data class ContextMenuCandidate(
 private fun HitResult.isImage(): Boolean =
     (this is HitResult.IMAGE || this is HitResult.IMAGE_SRC) && src.isNotEmpty()
 
+private fun HitResult.isVideoAudio(): Boolean =
+    (this is HitResult.VIDEO || this is HitResult.AUDIO) && src.isNotEmpty()
+
 private fun HitResult.isLink(): Boolean =
     ((this is HitResult.UNKNOWN && src.isNotEmpty()) || this is HitResult.IMAGE_SRC) &&
         getLink().startsWith("http")
 
+private fun HitResult.isIntent(): Boolean =
+    (this is HitResult.UNKNOWN && src.isNotEmpty() &&
+        getLink().startsWith("intent"))
+
+private fun HitResult.canOpenInExternalApp(appLinksUseCases: AppLinksUseCases): Boolean
+{
+    if (isLink() || isIntent()) {
+        val redirect = appLinksUseCases.appLinkRedirectIncludeInstall(getLink())
+        return redirect.hasExternalApp() || redirect.hasMarketplaceIntent()
+    }
+    return false
+}
+
 internal fun HitResult.getLink(): String = when (this) {
     is HitResult.UNKNOWN -> src
     is HitResult.IMAGE_SRC -> uri
+    is HitResult.IMAGE ->
+        if (title.isNullOrBlank()) src else title.toString()
+    is HitResult.VIDEO ->
+        if (title.isNullOrBlank()) src else title.toString()
+    is HitResult.AUDIO ->
+        if (title.isNullOrBlank()) src else title.toString()
     else -> "about:blank"
 }
 

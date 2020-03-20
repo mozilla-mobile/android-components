@@ -1,8 +1,6 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.feature.toolbar
 
@@ -42,6 +40,10 @@ class ToolbarInteractorTest {
             return false
         }
 
+        override fun onStop() {
+            fail()
+        }
+
         override fun setOnUrlCommitListener(listener: (String) -> Boolean) {
             listener("https://mozilla.org")
         }
@@ -51,6 +53,14 @@ class ToolbarInteractorTest {
         }
 
         override fun addBrowserAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun removeBrowserAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun removePageAction(action: Toolbar.Action) {
             fail()
         }
 
@@ -75,6 +85,10 @@ class ToolbarInteractorTest {
         }
 
         override fun addEditAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun invalidateActions() {
             fail()
         }
     }

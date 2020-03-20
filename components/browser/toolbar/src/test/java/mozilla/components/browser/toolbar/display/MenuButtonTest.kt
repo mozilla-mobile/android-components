@@ -4,145 +4,91 @@
 
 package mozilla.components.browser.toolbar.display
 
-import android.content.Context
-import android.content.res.Resources
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
-import android.graphics.drawable.Drawable
+import android.graphics.Color
 import android.view.View
-import androidx.annotation.ColorInt
-import androidx.annotation.ColorRes
-import androidx.appcompat.widget.AppCompatImageView
-import androidx.core.view.iterator
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.BrowserMenuHighlight
+import mozilla.components.browser.menu.ext.getHighlight
 import mozilla.components.browser.menu.item.BrowserMenuHighlightableItem
-import mozilla.components.browser.toolbar.R
 import mozilla.components.support.test.any
-import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.anyBoolean
-import org.mockito.Mock
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 
 @RunWith(AndroidJUnit4::class)
 class MenuButtonTest {
-
-    @Mock private lateinit var parent: View
-    @Mock private lateinit var menuBuilder: BrowserMenuBuilder
-    @Mock private lateinit var menu: BrowserMenu
+    private lateinit var menuBuilder: BrowserMenuBuilder
+    private lateinit var menu: BrowserMenu
+    private lateinit var menuButtonInternal: mozilla.components.browser.menu.view.MenuButton
     private lateinit var menuButton: MenuButton
 
     @Before
     fun setup() {
-        initMocks(this)
-        menuButton = MenuButton(testContext, parent)
+        menu = mock()
+        menuBuilder = mock()
+        doReturn(menu).`when`(menuBuilder).build(testContext)
 
-        `when`(parent.layoutParams).thenReturn(mock())
-        `when`(menuBuilder.build(testContext)).thenReturn(menu)
+        menuButtonInternal = mock()
+        menuButton = MenuButton(menuButtonInternal)
     }
 
     @Test
     fun `menu button is visible only if menu builder attached`() {
-        assertEquals(View.GONE, menuButton.visibility)
+        verify(menuButtonInternal).visibility = View.GONE
 
         menuButton.menuBuilder = mock()
-        assertEquals(View.VISIBLE, menuButton.visibility)
+        verify(menuButtonInternal).visibility = View.VISIBLE
 
         menuButton.menuBuilder = null
-        assertEquals(View.GONE, menuButton.visibility)
+        verify(menuButtonInternal, times(2)).visibility = View.GONE
     }
 
     @Test
-    fun `changing menu builder dismisses old menu`() {
-        menuButton.menuBuilder = menuBuilder
-        menuButton.performClick()
+    fun `menu button sets onDismiss action`() {
+        val action = {}
+        menuButton.setMenuDismissAction(action)
 
-        verify(menu).show(eq(menuButton), any(), anyBoolean(), any())
-
-        menuButton.menuBuilder = mock()
-        verify(menu).dismiss()
+        verify(menuButtonInternal).onDismiss = action
     }
 
     @Test
-    fun `icon has content description`() {
-        val icon = extractIcon()
-
-        assertEquals("Menu", icon.contentDescription)
-        assertNotNull(icon.drawable)
-    }
-
-    @Test
-    fun `icon color filter can be changed`() {
-        val icon = extractIcon()
-        assertNull(icon.colorFilter)
-
-        menuButton.setColorFilter(0xffffff)
-        assertEquals(PorterDuffColorFilter(0xffffff, PorterDuff.Mode.SRC_ATOP), icon.colorFilter)
-    }
-
-    @Test
-    fun `icon displays highlight if highlighted item is present in menu`() {
-        val colorResource = 100
-        val context = mockContextWithColorResource(colorResource, 0xffffff)
-
-        val menuButton = MenuButton(context, parent)
-        val icon = extractIcon()
-        assertNull(icon.background)
+    fun `icon displays dot if low highlighted item is present in menu`() {
+        verify(menuButtonInternal, never()).invalidateBrowserMenu()
+        verify(menuButtonInternal, never()).setHighlight(any())
 
         var isHighlighted = false
+        val highlight = BrowserMenuHighlight.LowPriority(Color.YELLOW)
         val highlightMenuBuilder = spy(BrowserMenuBuilder(listOf(
             BrowserMenuHighlightableItem(
                 label = "Test",
-                imageResource = 0,
-                highlight = BrowserMenuHighlightableItem.Highlight(0, colorResource, colorResource),
+                startImageResource = 0,
+                highlight = highlight,
                 isHighlighted = { isHighlighted }
             )
         )))
-        `when`(highlightMenuBuilder.build(context)).thenReturn(menu)
+        whenever(highlightMenuBuilder.build(testContext)).thenReturn(menu)
 
         menuButton.menuBuilder = highlightMenuBuilder
+        doReturn(highlightMenuBuilder).`when`(menuButtonInternal).menuBuilder
         menuButton.invalidateMenu()
 
-        verify(menu, never()).invalidate()
-        assertNull(icon.background)
+        verify(menuButtonInternal).setHighlight(null)
 
         isHighlighted = true
         menuButton.invalidateMenu()
 
-        verify(context).getDrawable(R.drawable.mozac_menu_indicator)
-    }
-
-    private fun extractIcon() =
-        menuButton.iterator().asSequence().find { it is AppCompatImageView } as AppCompatImageView
-
-    private fun mockContextWithColorResource(@ColorRes resId: Int, @ColorInt color: Int): Context {
-        val context: Context = spy(testContext)
-
-        val drawable: Drawable = mock()
-        doReturn(drawable).`when`(drawable).mutate()
-        doReturn(drawable).`when`(context).getDrawable(R.drawable.mozac_menu_indicator)
-
-        val res: Resources = spy(testContext.resources)
-        doReturn(res).`when`(context).resources
-
-        doReturn(color).`when`(context).getColor(resId)
-        @Suppress("Deprecation")
-        doReturn(color).`when`(res).getColor(resId)
-
-        return context
+        assertEquals(highlight, highlightMenuBuilder.items.getHighlight())
+        verify(menuButtonInternal).setHighlight(highlight)
     }
 }

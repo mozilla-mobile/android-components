@@ -1,4 +1,4 @@
-componentsVersion: 8.0.0
+componentsVersion: 37.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -40,6 +40,10 @@ projects:
     path: components/feature/accounts
     description: 'Component for tying an account manager with the tabs feature to facilitate auth flows.'
     publish: true
+  feature-accounts-push:
+    path: components/feature/accounts-push
+    description: 'Feature of use cases for FxA Account that work with push support.'
+    publish: true
   feature-app-links:
     path: components/feature/app-links
     description: 'Component opening URLs in other non-browser apps.'
@@ -72,10 +76,6 @@ projects:
     path: components/feature/search
     description: 'Feature implementation connecting an engine implementation with the search module.'
     publish: true
-  feature-sendtab:
-    path: components/feature/sendtab
-    description: 'Feature of use cases for sending tabs between devices in an FxA Account.'
-    publish: true
   feature-session:
     path: components/feature/session
     description: 'Feature implementation connecting an engine implementation with the session module.'
@@ -92,9 +92,21 @@ projects:
     path: components/feature/toolbar
     description: 'Feature implementation connecting a toolbar implementation with the session module.'
     publish: true
+  feature-top-sites:
+    path: components/feature/top-sites
+    description: 'Feature implementation for saving and removing top sites.'
+    publish: true
+  feature-share:
+    path: components/feature/share
+    description: 'Feature implementation for saving and sorting recent apps used for sharing.'
+    publish: true
   feature-downloads:
     path: components/feature/downloads
     description: 'Feature implementation for apps that want to use Android downloads manager.'
+    publish: true
+  feature-privatemode:
+    path: components/feature/privatemode
+    description: 'Features used to enhance private browsing mode.'
     publish: true
   feature-prompts:
     path: components/feature/prompts
@@ -112,6 +124,10 @@ projects:
     path: components/feature/findinpage
     description: 'Feature that will subscribe to the selected session and show an UI for results of find in page.'
     publish: true
+  feature-syncedtabs:
+    path: components/feature/syncedtabs
+    description: 'Feature that provides access to other devices'' tabs in the same account.'
+    publish: true
   feature-sitepermissions:
     path: components/feature/sitepermissions
     description: 'A feature for showing site permission request prompts.'
@@ -119,6 +135,14 @@ projects:
   feature-qr:
     path: components/feature/qr
     description: 'A feature that provides functionality for scanning QR codes.'
+    publish: true
+  feature-webcompat:
+    path: components/feature/webcompat
+    description: 'Feature that provides hotfixes for websites from Mozilla''s Web Compatibility team'
+    publish: true
+  feature-addons:
+    path: components/feature/addons
+    description: 'A feature that provides for managing add-ons.'
     publish: true
   browser-awesomebar:
     path: components/browser/awesomebar
@@ -144,10 +168,6 @@ projects:
     path: components/browser/engine-system
     description: 'Engine implementation based on the system WebView.'
     publish: true
-  browser-engine-servo:
-    path: components/browser/engine-servo
-    description: 'Engine implementation based on the Servo Browser Engine.'
-    publish: true
   browser-errorpages:
     path: components/browser/errorpages
     description: 'Responsive browser error pages for Android apps.'
@@ -159,6 +179,10 @@ projects:
   browser-menu:
     path: components/browser/menu
     description: 'A customizable menu for browsers.'
+    publish: true
+  browser-menu2:
+    path: components/browser/menu2
+    description: 'An immutable customizable menu for browsers.'
     publish: true
   browser-search:
     path: components/browser/search
@@ -248,17 +272,33 @@ projects:
     path: components/support/ktx
     description: 'A set of Kotlin extensions.'
     publish: true
+  support-migration:
+    path: components/support/migration
+    description: 'Helper code to migrate from a Fennec-based (Firefox for Android) app to an Android Components based app.'
+    publish: true
   support-test:
     path: components/support/test
     description: 'A collection of helpers for testing components (local unit tests).'
+    publish: true
+  support-test-libstate:
+    path: components/support/test-libstate
+    description: 'A collection of helpers for testing functionality that relies on the lib-state component (local unit tests).'
     publish: true
   support-android-test:
     path: components/support/android-test
     description: 'A collection of helpers for testing components from instrumented (on device) tests.'
     publish: true
+  support-test-appservices:
+    path: components/support/test-appservices
+    description: 'A component for synchronizing Application Services'' unit testing dependencies used in Android Components.'
+    publish: true
   support-utils:
     path: components/support/utils
     description: 'A collection of generic helper classes.'
+    publish: true
+  support-sync-telemetry:
+    path: components/support/sync-telemetry
+    description: 'A collection of sync-related telemetry helper classes and ping descriptions.'
     publish: true
   support-rustlog:
     path: components/support/rustlog
@@ -271,6 +311,10 @@ projects:
   support-locale:
     path: components/support/locale
     description: 'A component to allow apps to change the system defined language by their custom one'
+    publish: true
+  support-webextensions:
+    path: components/support/webextensions
+    description: 'A component containing building blocks for features implemented as web extensions.'
     publish: true
   lib-crash:
     path: components/lib/crash
@@ -292,6 +336,10 @@ projects:
     path: components/lib/jexl
     description: 'Javascript Expression Language: Powerful context-based expression parser and evaluator.'
     publish: true
+  lib-nearby:
+    path: components/lib/nearby
+    description: 'A library for communication with nearby devices Android devices.'
+    publish: true
   lib-publicsuffixlist:
     path: components/lib/publicsuffixlist
     description: 'A library for reading and using the public suffix list.'
@@ -308,6 +356,10 @@ projects:
     path: components/lib/state
     description: 'A library for maintaining application state.'
     publish: true
+  tooling-detekt:
+    path: components/tooling/detekt
+    description: 'Custom Detekt rules for internal use.'
+    publish: false
   tooling-lint:
     path: components/tooling/lint
     description: 'Custom Lint checks for using and writing components.'
@@ -336,6 +388,10 @@ projects:
     path: samples/glean/samples-glean-library
     description: 'A third-party library used by samples-glean to demonstrate multi-library support for Glean.'
     publish: false
+  samples-nearby-chat:
+    path: samples/nearby-chat
+    description: 'A simple app demoing use of the Nearby library to communicate between two devices.'
+    publish: false
   samples-sync:
     path: samples/sync
     description: 'A simple app demoing Firefox Sync (History, Bookmarks, etc) integration.'
@@ -352,3 +408,8 @@ projects:
     path: samples/dataprotect
     description: 'An app demoing how to use the Dataprotect component to load and store encrypted data in SharedPreferences.'
     publish: false
+  tooling-glean-gradle:
+    path: components/tooling/glean-gradle-plugin
+    description: 'A Gradle plugin to generate code for Glean metrics.'
+    publish: true
+    artifact-type: jar

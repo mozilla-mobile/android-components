@@ -15,11 +15,16 @@ import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
 import mozilla.components.lib.crash.prompt.CrashPrompt
-import mozilla.components.support.base.ids.notify
+import mozilla.components.lib.crash.service.SendCrashReportService
+import mozilla.components.support.base.ids.SharedIdsHelper
+import mozilla.components.support.utils.asForegroundServicePendingIntent
 
-private const val NOTIFICATION_CHANNEL_ID = "Crashes"
-private const val NOTIFICATION_TAG = "mozac.lib.crash.CRASH"
 private const val NOTIFICATION_SDK_LEVEL = 29 // On Android Q+ we show a notification instead of a prompt
+
+internal const val NOTIFICATION_TAG = "mozac.lib.crash.notification"
+internal const val NOTIFICATION_ID = 1
+private const val NOTIFICATION_CHANNEL_ID = "mozac.lib.crash.channel"
+private const val PENDING_INTENT_TAG = "mozac.lib.crash.pendingintent"
 
 internal class CrashNotification(
     private val context: Context,
@@ -28,10 +33,17 @@ internal class CrashNotification(
 ) {
     fun show() {
         val pendingIntent = PendingIntent.getActivity(
-            context, 0, CrashPrompt.createIntent(context, crash), 0
+            context, SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG),
+            CrashPrompt.createIntent(context, crash), 0
         )
 
-        val channel = ensureChannelExists()
+        val reportPendingIntent = SendCrashReportService
+            .createReportIntent(context, crash, NOTIFICATION_TAG, NOTIFICATION_ID)
+            .asForegroundServicePendingIntent(
+                context, SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG)
+            )
+
+        val channel = ensureChannelExists(context)
 
         val notification = NotificationCompat.Builder(context, channel)
             .setContentTitle(context.getString(R.string.mozac_lib_crash_dialog_title, configuration.appName))
@@ -39,29 +51,13 @@ internal class CrashNotification(
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .setContentIntent(pendingIntent)
+            .addAction(R.drawable.mozac_lib_crash_notification, context.getString(
+                    R.string.mozac_lib_crash_notification_action_report), reportPendingIntent)
             .setAutoCancel(true)
             .build()
 
         NotificationManagerCompat.from(context)
-            .notify(context, NOTIFICATION_TAG, notification)
-    }
-
-    private fun ensureChannelExists(): String {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager: NotificationManager = context.getSystemService(
-                Context.NOTIFICATION_SERVICE
-            ) as NotificationManager
-
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                context.getString(R.string.mozac_lib_crash_channel),
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        return NOTIFICATION_CHANNEL_ID
+            .notify(NOTIFICATION_TAG, NOTIFICATION_ID, notification)
     }
 
     companion object {
@@ -81,6 +77,24 @@ internal class CrashNotification(
                 // This is a fatal native crash. We may not be able to launch an activity from here.
                 else -> crash is Crash.NativeCodeCrash && crash.isFatal
             }
+        }
+
+        fun ensureChannelExists(context: Context): String {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val notificationManager: NotificationManager = context.getSystemService(
+                        Context.NOTIFICATION_SERVICE
+                ) as NotificationManager
+
+                val channel = NotificationChannel(
+                        NOTIFICATION_CHANNEL_ID,
+                        context.getString(R.string.mozac_lib_crash_channel),
+                        NotificationManager.IMPORTANCE_DEFAULT
+                )
+
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            return NOTIFICATION_CHANNEL_ID
         }
     }
 }

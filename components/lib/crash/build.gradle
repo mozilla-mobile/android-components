@@ -2,6 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+buildscript {
+    repositories {
+        maven {
+            url "https://maven.mozilla.org/maven2"
+        }
+
+        dependencies {
+            classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
+        }
+    }
+}
+
 plugins {
     id "com.jetbrains.python.envs" version "0.0.26"
 }
@@ -37,6 +49,7 @@ dependencies {
 
     implementation project(':support-base')
     implementation project(':support-ktx')
+    implementation project(':support-utils')
 
     // We only compile against Sentry, GeckoView, and Glean. It's up to the app to add those dependencies if it wants to
     // send crash reports to Socorro (GV) or Sentry.
@@ -53,8 +66,11 @@ dependencies {
     testImplementation Dependencies.testing_robolectric
     testImplementation Dependencies.testing_mockito
     testImplementation Dependencies.testing_coroutines
+    testImplementation Dependencies.testing_mockwebserver
+    testImplementation Dependencies.mozilla_glean_forUnitTests
 }
 
-apply from: '../../../components/service/glean/scripts/sdk_generator.gradle'
+ext.gleanGenerateMarkdownDocs = true
+apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

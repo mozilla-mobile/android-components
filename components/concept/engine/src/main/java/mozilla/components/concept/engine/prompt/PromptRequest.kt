@@ -6,6 +6,7 @@ package mozilla.components.concept.engine.prompt
 
 import android.content.Context
 import android.net.Uri
+import mozilla.components.concept.storage.Login
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Level
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Method
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
@@ -50,6 +51,20 @@ sealed class PromptRequest {
         val hasShownManyDialogs: Boolean = false,
         override val onDismiss: () -> Unit,
         val onConfirm: (Boolean) -> Unit
+    ) : PromptRequest(), Dismissible
+
+    /**
+     * Value type that represents a request for an login prompt.
+     * @property hint a value that helps to determine the appropriate prompting behavior.
+     * @property logins a list of logins that are associated with the current domain.
+     * @property onDismiss callback to let the page know the user dismissed the dialog.
+     * @property onConfirm callback that is called when the user wants to save the login.
+     */
+    data class LoginPrompt(
+        val hint: Int,
+        val logins: List<Login>,
+        override val onDismiss: () -> Unit,
+        val onConfirm: (Login) -> Unit
     ) : PromptRequest(), Dismissible
 
     /**
@@ -230,6 +245,21 @@ sealed class PromptRequest {
         val onConfirmPositiveButton: (Boolean) -> Unit,
         val onConfirmNegativeButton: (Boolean) -> Unit,
         val onConfirmNeutralButton: (Boolean) -> Unit,
+        override val onDismiss: () -> Unit
+    ) : PromptRequest(), Dismissible
+
+    /**
+     * Value type that represents a request to share data.
+     * https://w3c.github.io/web-share/
+     * @property data Share data containing title, text, and url of the request.
+     * @property onSuccess Callback to notify that the user hared with another app successfully.
+     * @property onFailure Callback to notify that the user attempted to share with another app, but it failed.
+     * @property onDismiss Callback to notify that the user aborted the share.
+     */
+    data class Share(
+        val data: ShareData,
+        val onSuccess: () -> Unit,
+        val onFailure: () -> Unit,
         override val onDismiss: () -> Unit
     ) : PromptRequest(), Dismissible
 

@@ -1,7 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.lib.jexl.parser
 
+import mozilla.components.lib.jexl.ast.ArrayLiteral
 import mozilla.components.lib.jexl.ast.AstNode
-import mozilla.components.lib.jexl.ast.AstType
+import mozilla.components.lib.jexl.ast.ConditionalExpression
+import mozilla.components.lib.jexl.ast.FilterExpression
+import mozilla.components.lib.jexl.ast.ObjectLiteral
+import mozilla.components.lib.jexl.ast.Transformation
 import mozilla.components.lib.jexl.lexer.Token
 
 internal val stateMachine: Map<State, StateMap> = mapOf(
@@ -119,8 +127,7 @@ internal val stateMachine: Map<State, StateMap> = mapOf(
     ),
     State.FILTER to StateMap(
         subHandler = { parser, node ->
-            val expressionNode = AstNode(
-                AstType.FILTER_EXPRESSION,
+            val expressionNode = FilterExpression(
                 expression = node,
                 relative = parser.subParser!!.relative,
                 subject = parser.cursor
@@ -141,7 +148,8 @@ internal val stateMachine: Map<State, StateMap> = mapOf(
     ),
     State.ARGUMENT_VALUE to StateMap(
         subHandler = { parser, node ->
-            parser.cursor!!.arguments.add(node!!)
+            val cursor = parser.cursor!! as Transformation
+            cursor.arguments.add(node!!)
         },
         endStates = mapOf(
             Token.Type.COMMA to State.ARGUMENT_VALUE,
@@ -150,9 +158,10 @@ internal val stateMachine: Map<State, StateMap> = mapOf(
     ),
     State.OBJECT_VALUE to StateMap(
         subHandler = { parser, node ->
-            @Suppress("UNCHECKED_CAST")
-            (parser.cursor!!.value as MutableMap<String, AstNode>)[parser.currentObjectKey!!] =
-                node!!
+            val cursor = parser.cursor as ObjectLiteral
+            val properties = cursor.properties as MutableMap<String, AstNode>
+
+            properties[parser.currentObjectKey!!] = node!!
         },
         endStates = mapOf(
             Token.Type.COMMA to State.EXPECT_OBJECT_KEY,
@@ -162,8 +171,7 @@ internal val stateMachine: Map<State, StateMap> = mapOf(
     State.ARRAY_VALUE to StateMap(
         subHandler = { parser, node ->
             if (node != null) {
-                @Suppress("UNCHECKED_CAST")
-                (parser.cursor!!.value as MutableList<AstNode>).add(node)
+                (parser.cursor!! as ArrayLiteral).values.add(node)
             }
         },
         endStates = mapOf(
@@ -173,7 +181,8 @@ internal val stateMachine: Map<State, StateMap> = mapOf(
     ),
     State.TERNARY_MID to StateMap(
         subHandler = { parser, node ->
-            parser.cursor!!.consequent = node
+            val cursor = parser.cursor!! as ConditionalExpression
+            cursor.consequent = node
         },
         endStates = mapOf(
             Token.Type.COLON to State.TERNARY_END
@@ -181,16 +190,16 @@ internal val stateMachine: Map<State, StateMap> = mapOf(
     ),
     State.TERNARY_END to StateMap(
         subHandler = { parser, node ->
-            parser.cursor!!.alternate = node
+            val cursor = parser.cursor!! as ConditionalExpression
+            cursor.alternate = node
         },
         completable = true
     )
 )
 
 private fun objectStart(parser: Parser, @Suppress("UNUSED_PARAMETER") token: Token) {
-    val node = AstNode(
-        AstType.OBJECT_LITERAL,
-        mutableMapOf<String, AstNode>()
+    val node = ObjectLiteral(
+        properties = mutableMapOf()
     )
     parser.placeAtCursor(node)
 }
@@ -200,16 +209,12 @@ private fun objectKey(parser: Parser, token: Token) {
 }
 
 private fun arrayStart(parser: Parser, @Suppress("UNUSED_PARAMETER") token: Token) {
-    val node = AstNode(
-        AstType.ARRAY_LITERAL,
-        mutableListOf<AstNode>()
-    )
+    val node = ArrayLiteral()
     parser.placeAtCursor(node)
 }
 
 private fun transform(parser: Parser, token: Token) {
-    val node = AstNode(
-        AstType.TRANSFORM,
+    val node = Transformation(
         name = token.value.toString(),
         subject = parser.cursor
     )
@@ -217,8 +222,7 @@ private fun transform(parser: Parser, token: Token) {
 }
 
 private fun ternaryStart(parser: Parser, @Suppress("UNUSED_PARAMETER") token: Token) {
-    val node = AstNode(
-        AstType.CONDITIONAL_EXPRESSION,
+    val node = ConditionalExpression(
         test = parser.tree
     )
     parser.tree = node

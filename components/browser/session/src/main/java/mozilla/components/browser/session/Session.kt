@@ -4,23 +4,35 @@
 
 package mozilla.components.browser.session
 
+import android.content.Intent
 import android.graphics.Bitmap
 import mozilla.components.browser.session.engine.EngineSessionHolder
+import mozilla.components.browser.session.engine.request.LaunchIntentMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestOption
 import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.session.ext.toFindResultState
 import mozilla.components.browser.session.ext.toSecurityInfoState
-import mozilla.components.browser.session.tab.CustomTabConfig
-import mozilla.components.browser.state.action.ContentAction.RemoveIconAction
+import mozilla.components.browser.session.ext.toTabSessionState
+import mozilla.components.browser.state.action.ContentAction.AddFindResultAction
+import mozilla.components.browser.state.action.ContentAction.ClearFindResultsAction
+import mozilla.components.browser.state.action.ContentAction.ConsumeHitResultAction
 import mozilla.components.browser.state.action.ContentAction.RemoveThumbnailAction
-import mozilla.components.browser.state.action.ContentAction.UpdateIconAction
+import mozilla.components.browser.state.action.ContentAction.UpdateHitResultAction
 import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
-import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfo
 import mozilla.components.browser.state.action.ContentAction.UpdateSearchTermsAction
+import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfoAction
 import mozilla.components.browser.state.action.ContentAction.UpdateThumbnailAction
 import mozilla.components.browser.state.action.ContentAction.UpdateTitleAction
 import mozilla.components.browser.state.action.ContentAction.UpdateUrlAction
+import mozilla.components.browser.state.action.CustomTabListAction.RemoveCustomTabAction
+import mozilla.components.browser.state.action.EngineAction
+import mozilla.components.browser.state.action.ReaderAction
+import mozilla.components.browser.state.action.TabListAction.AddTabAction
+import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.selector.findTabOrCustomTab
+import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -28,8 +40,6 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -82,9 +92,9 @@ class Session(
         fun onSecurityChanged(session: Session, securityInfo: SecurityInfo) = Unit
         fun onCustomTabConfigChanged(session: Session, customTabConfig: CustomTabConfig?) = Unit
         fun onWebAppManifestChanged(session: Session, manifest: WebAppManifest?) = Unit
-        fun onDownload(session: Session, download: Download): Boolean = false
         fun onTrackerBlockingEnabledChanged(session: Session, blockingEnabled: Boolean) = Unit
         fun onTrackerBlocked(session: Session, tracker: Tracker, all: List<Tracker>) = Unit
+        fun onTrackerLoaded(session: Session, tracker: Tracker, all: List<Tracker>) = Unit
         fun onLongPress(session: Session, hitResult: HitResult): Boolean = false
         fun onFindResult(session: Session, result: FindResult) = Unit
         fun onDesktopModeChanged(session: Session, enabled: Boolean) = Unit
@@ -92,16 +102,13 @@ class Session(
         fun onThumbnailChanged(session: Session, bitmap: Bitmap?) = Unit
         fun onContentPermissionRequested(session: Session, permissionRequest: PermissionRequest): Boolean = false
         fun onAppPermissionRequested(session: Session, permissionRequest: PermissionRequest): Boolean = false
-        fun onPromptRequested(session: Session, promptRequest: PromptRequest): Boolean = false
-        fun onOpenWindowRequested(session: Session, windowRequest: WindowRequest): Boolean = false
-        fun onCloseWindowRequested(session: Session, windowRequest: WindowRequest): Boolean = false
         fun onMediaRemoved(session: Session, media: List<Media>, removed: Media) = Unit
         fun onMediaAdded(session: Session, media: List<Media>, added: Media) = Unit
         fun onCrashStateChanged(session: Session, crashed: Boolean) = Unit
-        fun onIconChanged(session: Session, icon: Bitmap?) = Unit
         fun onReaderableStateUpdated(session: Session, readerable: Boolean) = Unit
         fun onReaderModeChanged(session: Session, enabled: Boolean) = Unit
         fun onRecordingDevicesChanged(session: Session, devices: List<RecordingDevice>) = Unit
+        fun onLaunchIntentRequest(session: Session, url: String, appIntent: Intent?) = Unit
     }
 
     /**
@@ -122,6 +129,11 @@ class Session(
          * Created to handle an ACTION_SEND (share) intent
          */
         ACTION_SEND,
+
+        /**
+         * Created to handle an ACTION_SEARCH and ACTION_WEB_SEARCH intent
+         */
+        ACTION_SEARCH,
 
         /**
          * Created to handle an ACTION_VIEW intent
@@ -246,19 +258,43 @@ class Session(
     }
 
     /**
+     * Set when a launch intent is received.
+     */
+    var launchIntentMetadata: LaunchIntentMetadata by Delegates.observable(LaunchIntentMetadata.blank) { _, _, new ->
+        notifyObservers {
+            onLaunchIntentRequest(
+                this@Session,
+                new.url,
+                new.appIntent
+            )
+        }
+    }
+
+    /**
      * Security information indicating whether or not the current session is
      * for a secure URL, as well as the host and SSL certificate authority, if applicable.
      */
     var securityInfo: SecurityInfo by Delegates.observable(SecurityInfo()) { _, old, new ->
         notifyObservers(old, new) { onSecurityChanged(this@Session, new) }
-        store?.syncDispatch(UpdateSecurityInfo(id, new.toSecurityInfoState()))
+        store?.syncDispatch(UpdateSecurityInfoAction(id, new.toSecurityInfoState()))
     }
 
     /**
      * Configuration data in case this session is used for a Custom Tab.
      */
-    var customTabConfig: CustomTabConfig? by Delegates.observable<CustomTabConfig?>(null) { _, _, new ->
+    var customTabConfig: CustomTabConfig? by Delegates.observable<CustomTabConfig?>(null) { _, old, new ->
         notifyObservers { onCustomTabConfigChanged(this@Session, new) }
+
+        // The custom tab config is set to null when we're migrating custom
+        // tabs to regular tabs, so we have to dispatch the corresponding
+        // browser actions to keep the store in sync.
+        if (old != new && new == null) {
+            store?.syncDispatch(RemoveCustomTabAction(id))
+            store?.syncDispatch(AddTabAction(toTabSessionState()))
+            engineSessionHolder.engineSession?.let { engineSession ->
+                store?.syncDispatch(EngineAction.LinkEngineSessionAction(id, engineSession))
+            }
+        }
     }
 
     /**
@@ -266,14 +302,6 @@ class Session(
      */
     var webAppManifest: WebAppManifest? by Delegates.observable<WebAppManifest?>(null) { _, _, new ->
         notifyObservers { onWebAppManifestChanged(this@Session, new) }
-    }
-
-    /**
-     * Last download request if it wasn't consumed by at least one observer.
-     */
-    var download: Consumable<Download> by Delegates.vetoable(Consumable.empty()) { _, _, download ->
-        val consumers = wrapConsumers<Download> { onDownload(this@Session, it) }
-        !download.consumeBy(consumers)
     }
 
     /**
@@ -300,6 +328,8 @@ class Session(
      */
     var trackerBlockingEnabled: Boolean by Delegates.observable(false) { _, old, new ->
         notifyObservers(old, new) { onTrackerBlockingEnabledChanged(this@Session, new) }
+
+        store?.syncDispatch(TrackingProtectionAction.ToggleAction(id, new))
     }
 
     /**
@@ -310,6 +340,37 @@ class Session(
             if (new.isNotEmpty()) {
                 onTrackerBlocked(this@Session, new.last(), new)
             }
+        }
+
+        if (new.isEmpty()) {
+            // From `EngineObserver` we can assume that this means the trackers have been cleared.
+            // The `ClearTrackersAction` will also clear the loaded trackers list. That is always
+            // the case when this list is cleared from `EngineObserver`. For the sake of migrating
+            // to browser-state we assume that no other code changes the tracking properties.
+            store?.syncDispatch(TrackingProtectionAction.ClearTrackersAction(id))
+        } else {
+            // `EngineObserver` always adds new trackers to the end of the list. So we just dispatch
+            // an action for the last item in the list.
+            store?.syncDispatch(TrackingProtectionAction.TrackerBlockedAction(id, new.last()))
+        }
+    }
+
+    /**
+     * List of [Tracker]s that could be blocked but have been loaded in this session.
+     */
+    var trackersLoaded: List<Tracker> by Delegates.observable(emptyList()) { _, old, new ->
+        notifyObservers(old, new) {
+            if (new.isNotEmpty()) {
+                onTrackerLoaded(this@Session, new.last(), new)
+            }
+        }
+
+        if (new.isNotEmpty()) {
+            // The empty case is already handled by the `trackersBlocked` property since both
+            // properties are always cleared together by `EngineObserver`.
+            // `EngineObserver` always adds new trackers to the end of the list. So we just dispatch
+            // an action for the last item in the list.
+            store?.syncDispatch(TrackingProtectionAction.TrackerLoadedAction(id, new.last()))
         }
     }
 
@@ -322,12 +383,28 @@ class Session(
                 onFindResult(this@Session, new.last())
             }
         }
+
+        if (new.isNotEmpty()) {
+            store?.syncDispatch(AddFindResultAction(id, new.last().toFindResultState()))
+        } else {
+            store?.syncDispatch(ClearFindResultsAction(id))
+        }
     }
 
     /**
      * The target of the latest long click operation.
      */
     var hitResult: Consumable<HitResult> by Delegates.vetoable(Consumable.empty()) { _, _, result ->
+        store?.let {
+            val hitResult = result.peek()
+            if (hitResult == null) {
+                it.syncDispatch(ConsumeHitResultAction(id))
+            } else {
+                it.syncDispatch(UpdateHitResultAction(id, hitResult))
+                result.onConsume { it.syncDispatch(ConsumeHitResultAction(id)) }
+            }
+        }
+
         val consumers = wrapConsumers<HitResult> { onLongPress(this@Session, it) }
         !result.consumeBy(consumers)
     }
@@ -359,12 +436,10 @@ class Session(
     /**
      * An icon for the currently visible page.
      */
-    var icon: Bitmap? by Delegates.observable<Bitmap?>(null) { _, old, new ->
-        if (notifyObservers(old, new) { onIconChanged(this@Session, new) }) {
-            val action = if (new != null) UpdateIconAction(id, new) else RemoveIconAction(id)
-            store?.syncDispatch(action)
-        }
-    }
+    val icon: Bitmap?
+        // This is a workaround until all callers are migrated to use browser-state. Until then
+        // we try to lookup the icon from an attached BrowserStore if possible.
+        get() = store?.state?.findTabOrCustomTab(id)?.content?.icon
 
     /**
      * [Consumable] permission request from web content. A [PermissionRequest]
@@ -390,31 +465,6 @@ class Session(
     }
 
     /**
-     * [Consumable] State for a prompt request from web content.
-     */
-    var promptRequest: Consumable<PromptRequest> by Delegates.vetoable(Consumable.empty()) {
-        _, _, request ->
-            val consumers = wrapConsumers<PromptRequest> { onPromptRequested(this@Session, it) }
-            !request.consumeBy(consumers)
-    }
-
-    /**
-     * [Consumable] request to open/create a window.
-     */
-    var openWindowRequest: Consumable<WindowRequest> by Delegates.vetoable(Consumable.empty()) { _, _, request ->
-        val consumers = wrapConsumers<WindowRequest> { onOpenWindowRequested(this@Session, it) }
-        !request.consumeBy(consumers)
-    }
-
-    /**
-     * [Consumable] request to close a window.
-     */
-    var closeWindowRequest: Consumable<WindowRequest> by Delegates.vetoable(Consumable.empty()) { _, _, request ->
-        val consumers = wrapConsumers<WindowRequest> { onCloseWindowRequested(this@Session, it) }
-        !request.consumeBy(consumers)
-    }
-
-    /**
      * Whether this [Session] has crashed.
      *
      * In conjunction with a `concept-engine` implementation that uses a multi-process architecture, single sessions
@@ -432,6 +482,7 @@ class Session(
      */
     var readerable: Boolean by Delegates.observable(false) { _, _, new ->
         notifyObservers { onReaderableStateUpdated(this@Session, new) }
+        store?.syncDispatch(ReaderAction.UpdateReaderableAction(id, new))
     }
 
     /**
@@ -439,6 +490,7 @@ class Session(
      */
     var readerMode: Boolean by Delegates.observable(false) { _, old, new ->
         notifyObservers(old, new) { onReaderModeChanged(this@Session, new) }
+        store?.syncDispatch(ReaderAction.UpdateReaderActiveAction(id, new))
     }
 
     /**

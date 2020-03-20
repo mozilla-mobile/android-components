@@ -6,12 +6,44 @@ package mozilla.components.service.fxa.sync
 
 import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.service.fxa.SyncConfig
+import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import java.io.Closeable
 import java.lang.Exception
 import java.util.concurrent.TimeUnit
+
+/**
+ * A collection of objects describing a reason for running a sync.
+ */
+sealed class SyncReason {
+    /**
+     * Application is starting up, and wants to sync data.
+     */
+    object Startup : SyncReason()
+
+    /**
+     * User is requesting a sync (e.g. pressed a "sync now" button).
+     */
+    object User : SyncReason()
+
+    /**
+     * User changed enabled/disabled state of one or more [SyncEngine]s.
+     */
+    object EngineChange : SyncReason()
+
+    /**
+     * Internal use only: first time running a sync.
+     */
+    internal object FirstSync : SyncReason()
+
+    /**
+     * Internal use only: running a periodic sync.
+     */
+    internal object Scheduled : SyncReason()
+}
 
 /**
  * An interface for consumers that wish to observer "sync lifecycle" events.
@@ -24,6 +56,8 @@ interface SyncStatusObserver {
 
     /**
      * Gets called at the end of a sync, after every configured syncable has been synchronized.
+     * A set of enabled [SyncEngine]s could have changed, so observers are expected to query
+     * [SyncEnginesStorage.getStatus].
      */
     fun onIdle()
 
@@ -42,23 +76,27 @@ interface SyncStatusObserver {
  * available instances of stores within an application.
  */
 object GlobalSyncableStoreProvider {
-    private val stores: MutableMap<String, SyncableStore> = mutableMapOf()
+    private val stores: MutableMap<String, Lazy<SyncableStore>> = mutableMapOf()
 
-    fun configureStore(storePair: Pair<String, SyncableStore>) {
-        stores[storePair.first] = storePair.second
+    /**
+     * Configure an instance of [SyncableStore] for a [SyncEngine] enum.
+     * @param storePair A pair associating [SyncableStore] with a [SyncEngine].
+     */
+    fun configureStore(storePair: Pair<SyncEngine, Lazy<SyncableStore>>) {
+        stores[storePair.first.nativeName] = storePair.second
     }
 
-    fun getStore(name: String): SyncableStore? {
-        return stores[name]
+    internal fun getStore(name: String): SyncableStore? {
+        return stores[name]?.value
     }
 }
 
 /**
  * Internal interface to enable testing SyncManager implementations independently from SyncDispatcher.
  */
-interface SyncDispatcher : Closeable, Observable<SyncStatusObserver> {
+internal interface SyncDispatcher : Closeable, Observable<SyncStatusObserver> {
     fun isSyncActive(): Boolean
-    fun syncNow(startup: Boolean = false)
+    fun syncNow(reason: SyncReason, debounce: Boolean = false)
     fun startPeriodicSync(unit: TimeUnit, period: Long)
     fun stopPeriodicSync()
     fun workersStateChanged(isRunning: Boolean)
@@ -119,24 +157,25 @@ abstract class SyncManager(
     /**
      * Request an immediate synchronization of all configured stores.
      *
-     * @param startup Boolean flag indicating if sync is being requested in a startup situation.
+     * @param reason A [SyncReason] indicating why this sync is being requested.
+     * @param debounce Whether or not this sync should debounced.
      */
-    internal fun now(startup: Boolean = false) = synchronized(this) {
+    internal fun now(reason: SyncReason, debounce: Boolean = false) = synchronized(this) {
         if (syncDispatcher == null) {
             logger.info("Sync is not enabled. Ignoring 'sync now' request.")
         }
         syncDispatcher?.let {
-            logger.debug("Requesting immediate sync")
-            it.syncNow(startup)
+            logger.debug("Requesting immediate sync, reason: $reason, debounce: $debounce")
+            it.syncNow(reason, debounce)
         }
     }
 
     /**
      * Enables synchronization, with behaviour described in [syncConfig].
      */
-    internal fun start() = synchronized(this) {
+    internal fun start(reason: SyncReason) = synchronized(this) {
         logger.debug("Enabling...")
-        syncDispatcher = initDispatcher(newDispatcher(syncDispatcher, syncConfig.syncableStores))
+        syncDispatcher = initDispatcher(newDispatcher(syncDispatcher, syncConfig.supportedEngines), reason)
         logger.debug("set and initialized new dispatcher: $syncDispatcher")
     }
 
@@ -151,13 +190,13 @@ abstract class SyncManager(
         syncDispatcher = null
     }
 
-    internal abstract fun createDispatcher(stores: Set<String>): SyncDispatcher
+    internal abstract fun createDispatcher(supportedEngines: Set<SyncEngine>): SyncDispatcher
 
     internal abstract fun dispatcherUpdated(dispatcher: SyncDispatcher)
 
     private fun newDispatcher(
         currentDispatcher: SyncDispatcher?,
-        stores: Set<String>
+        supportedEngines: Set<SyncEngine>
     ): SyncDispatcher {
         // Let the existing dispatcher, if present, cleanup.
         currentDispatcher?.close()
@@ -166,12 +205,12 @@ abstract class SyncManager(
         currentDispatcher?.unregister(dispatcherStatusObserver)
 
         // Create a new dispatcher bound to current stores and account.
-        return createDispatcher(stores)
+        return createDispatcher(supportedEngines)
     }
 
-    private fun initDispatcher(dispatcher: SyncDispatcher): SyncDispatcher {
+    private fun initDispatcher(dispatcher: SyncDispatcher, reason: SyncReason): SyncDispatcher {
         dispatcher.register(dispatcherStatusObserver)
-        dispatcher.syncNow()
+        dispatcher.syncNow(reason)
         if (syncConfig.syncPeriodInMinutes != null) {
             dispatcher.startPeriodicSync(SYNC_PERIOD_UNIT, syncConfig.syncPeriodInMinutes)
         }

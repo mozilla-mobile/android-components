@@ -601,59 +601,99 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
         return inputMethod ?: ""
     }
 
+    /**
+     * This class watches for text changes and adds or removes autocomplete text accordingly.
+     * Using this class is preferred when making text changes as it will not interfere
+     * with any composing text at the same time as custom keyboards.
+     *
+     * Known issue: autocomplete will not be added when replacing the current text with one
+     * that has a text length equal to the one being replaced minus 1.
+     * */
     private inner class TextChangeListener : TextWatcher {
-        private var textLengthBeforeChange: Int = 0
+
+        /**
+         * Holds the value of the non-autocomplete text before any changes have been made.
+         * */
+        private var beforeChangedTextNonAutocomplete: String = ""
+
+        /**
+         * The start index of the characters about to be replaced.
+         * When using keyboards that have their own text correction enabled this value
+         * will be 0 if no text has been selected beforehand.
+         * This is because text correction from keyboards usually works by replacing the
+         * whole text when the user is typing.
+         * (e.g.: a text of 5 chars is replaced by a text of 6 when inputting a character
+         * or by a text of 4 when backspacing.)
+         * */
+        private var beforeTextChangedIndex: Int = 0
+
+        /**
+         * The number of characters that have been changed in [onTextChanged].
+         * When using keyboards that do not have their own text correction enabled
+         * and the user is pressing backspace this value will be 0.
+         * */
+        private var textChangedCount: Int = 0
+
+        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+            if (!isEnabled || settingAutoComplete) return
+            beforeChangedTextNonAutocomplete = getNonAutocompleteText(text)
+            beforeTextChangedIndex = start
+        }
+
+        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+            if (!isEnabled || settingAutoComplete) return
+
+            textChangedCount = count
+        }
 
         override fun afterTextChanged(editable: Editable) {
-            if (!isEnabled || settingAutoComplete) {
-                return
-            }
+            if (!isEnabled || settingAutoComplete) return
 
-            val text = getNonAutocompleteText(editable)
-            val textLength = text.length
-            var doAutocomplete = !
-            (
-                // Don't autocomplete if search query
-                text.contains(" ") ||
+            val afterNonAutocompleteText = getNonAutocompleteText(editable)
 
-                // ... or if user is hitting a backspace (the string is getting smaller)
-                (textLength == textLengthBeforeChange - 1 || textLength == 0)
-            )
+            val hasTextShortenedByOne: Boolean =
+                    beforeChangedTextNonAutocomplete.length == afterNonAutocompleteText.length + 1
 
-            autoCompletePrefixLength = textLength
+            // Covers both keyboards with text correction activated and those without.
+            val hasBackspaceBeenPressed =
+                    (textChangedCount == 0) || (hasTextShortenedByOne && beforeTextChangedIndex == 0)
+
+            // No autocompleting when typing a search query
+            val afterTextIsSearch = afterNonAutocompleteText.contains(" ")
+
+            val hasTextBeenAdded: Boolean =
+                    (afterNonAutocompleteText.contains(beforeChangedTextNonAutocomplete) ||
+                            beforeChangedTextNonAutocomplete.isEmpty()) &&
+                            afterNonAutocompleteText.length > beforeChangedTextNonAutocomplete.length
+
+            var shouldAddAutocomplete: Boolean = hasTextBeenAdded || (!afterTextIsSearch && !hasBackspaceBeenPressed)
+
+            autoCompletePrefixLength = afterNonAutocompleteText.length
 
             // If we are not autocompleting, we set discardAutoCompleteResult to true
             // to discard any autocomplete results that are in-flight, and vice versa.
-            discardAutoCompleteResult = !doAutocomplete
+            discardAutoCompleteResult = !shouldAddAutocomplete
 
-            if (!doAutocomplete) {
+            if (!shouldAddAutocomplete) {
                 // Remove the old autocomplete text until any new autocomplete text gets added.
                 removeAutocomplete(editable)
             } else {
                 // If this text already matches our autocomplete text, autocomplete likely
                 // won't change. Just reuse the old autocomplete value.
-                autocompleteResult?.takeIf { it.startsWith(text) }?.let {
+                autocompleteResult?.takeIf { it.startsWith(afterNonAutocompleteText) }?.let {
                     applyAutocompleteResult(it)
-                    doAutocomplete = false
+                    shouldAddAutocomplete = false
                 }
             }
 
             // Update search icon with an active state since user is typing
-            searchStateChangeListener?.invoke(textLength > 0)
+            searchStateChangeListener?.invoke(afterNonAutocompleteText.isNotEmpty())
 
-            if (doAutocomplete) {
-                filterListener?.invoke(text)
+            if (shouldAddAutocomplete) {
+                filterListener?.invoke(afterNonAutocompleteText)
             }
 
-            textChangeListener?.invoke(text, getText().toString())
-        }
-
-        override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
-            textLengthBeforeChange = s.length
-        }
-
-        override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
-            // do nothing
+            textChangeListener?.invoke(afterNonAutocompleteText, text.toString())
         }
     }
 
@@ -675,6 +715,14 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         windowFocusChangeListener?.invoke(hasFocus)
+    }
+
+    override fun onTextContextMenuItem(id: Int): Boolean {
+        var newId = id
+        if (newId == android.R.id.paste && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            newId = android.R.id.pasteAsPlainText
+        }
+        return super.onTextContextMenuItem(newId)
     }
 
     @Suppress("ClickableViewAccessibility")

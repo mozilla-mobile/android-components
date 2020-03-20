@@ -29,8 +29,6 @@ import android.webkit.WebViewClient
 import android.webkit.WebViewDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
-import mozilla.components.browser.engine.system.SystemEngineView.Companion.MAX_SUCCESSIVE_DIALOG_COUNT
-import mozilla.components.browser.engine.system.SystemEngineView.Companion.MAX_SUCCESSIVE_DIALOG_SECONDS_LIMIT
 import mozilla.components.browser.engine.system.matcher.UrlMatcher
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
@@ -41,6 +39,8 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
@@ -68,10 +68,9 @@ import org.mockito.Mockito.verifyZeroInteractions
 import org.robolectric.Robolectric
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import java.util.Calendar
-import java.util.Calendar.SECOND
-import java.util.Calendar.YEAR
-import java.util.Date
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
+import mozilla.components.concept.engine.content.blocking.Tracker
+import java.io.StringReader
 
 @RunWith(AndroidJUnit4::class)
 class SystemEngineViewTest {
@@ -297,10 +296,10 @@ class SystemEngineViewTest {
         whenever(historyDelegate.shouldStoreUri(any())).thenReturn(true)
 
         engineSession.webView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
-        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(VisitType.LINK))
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE)))
 
         engineSession.webView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", true)
-        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(VisitType.RELOAD))
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE)))
     }
 
     @Test
@@ -317,7 +316,7 @@ class SystemEngineViewTest {
 
         // Verify that engine session asked delegate if uri should be stored.
         engineSession.webView.webViewClient.doUpdateVisitedHistory(webView, "https://www.mozilla.com", false)
-        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(VisitType.LINK))
+        verify(historyDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE)))
         verify(historyDelegate).shouldStoreUri("https://www.mozilla.com")
 
         // Verify that engine won't try to store a uri that delegate doesn't want.
@@ -333,7 +332,7 @@ class SystemEngineViewTest {
 
         val engineView = SystemEngineView(testContext)
         val historyDelegate = object : HistoryTrackingDelegate {
-            override suspend fun onVisited(uri: String, type: VisitType) {
+            override suspend fun onVisited(uri: String, visit: PageVisit) {
                 fail()
             }
 
@@ -481,7 +480,7 @@ class SystemEngineViewTest {
         var response = webViewClient.shouldInterceptRequest(engineSession.webView, invalidRequest)
         assertNull(response)
 
-        engineSession.trackingProtectionPolicy = TrackingProtectionPolicy.all()
+        engineSession.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
         response = webViewClient.shouldInterceptRequest(engineSession.webView, invalidRequest)
         assertNotNull(response)
         assertNull(response!!.data)
@@ -500,11 +499,105 @@ class SystemEngineViewTest {
         val blockedRequest = mock<WebResourceRequest>()
         whenever(blockedRequest.isForMainFrame).thenReturn(false)
         whenever(blockedRequest.url).thenReturn(Uri.parse("http://blocked.random"))
+
+        var trackerBlocked: Tracker? = null
+        engineSession.register(object : EngineSession.Observer {
+            override fun onTrackerBlocked(tracker: Tracker) {
+                trackerBlocked = tracker
+            }
+        })
+
         response = webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
         assertNotNull(response)
         assertNull(response!!.data)
         assertNull(response.encoding)
         assertNull(response.mimeType)
+        assertTrue(trackerBlocked!!.trackingCategories.isEmpty())
+    }
+
+    @Test
+    fun `blocked trackers are reported with correct categories`() {
+        val BLOCK_LIST = """{
+      "license": "test-license",
+      "categories": {
+        "Advertising": [
+          {
+            "AdTest1": {
+              "http://www.adtest1.com/": [
+                "adtest1.com"
+              ]
+            }
+          }
+        ],
+        "Analytics": [
+          {
+            "AnalyticsTest": {
+                "http://analyticsTest1.com/": [
+                  "analyticsTest1.com"
+                ]
+            }
+          }
+        ],
+        "Content": [
+          {
+            "ContentTest1": {
+              "http://contenttest1.com/": [
+                "contenttest1.com"
+              ]
+            }
+          }
+        ],
+        "Social": [
+          {
+            "SocialTest1": {
+              "http://www.socialtest1.com/": [
+                "socialtest1.com"
+               ]
+              }
+            }
+        ]
+      }
+        }
+    """
+        SystemEngineView.URL_MATCHER = UrlMatcher.createMatcher(
+            StringReader(BLOCK_LIST),
+            StringReader("{}")
+        )
+
+        val engineSession = SystemEngineSession(testContext)
+        val engineView = SystemEngineView(testContext)
+        var trackerBlocked: Tracker? = null
+
+        engineView.render(engineSession)
+        val webViewClient = engineSession.webView.webViewClient
+
+        engineSession.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onTrackerBlocked(tracker: Tracker) {
+                trackerBlocked = tracker
+            }
+        })
+
+        val blockedRequest = mock<WebResourceRequest>()
+        whenever(blockedRequest.isForMainFrame).thenReturn(false)
+
+        whenever(blockedRequest.url).thenReturn(Uri.parse("http://www.adtest1.com/"))
+        webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
+
+        assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.AD)
+
+        whenever(blockedRequest.url).thenReturn(Uri.parse("http://analyticsTest1.com/"))
+        webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
+
+        assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.ANALYTICS)
+
+        whenever(blockedRequest.url).thenReturn(Uri.parse("http://www.socialtest1.com/"))
+        webViewClient.shouldInterceptRequest(engineSession.webView, blockedRequest)
+
+        assertTrue(trackerBlocked!!.trackingCategories.first() == TrackingCategory.SOCIAL)
+
+        SystemEngineView.URL_MATCHER = null
     }
 
     @Test
@@ -548,7 +641,7 @@ class SystemEngineViewTest {
 
         val webView = mock<WebView>()
         engineSession.webView = webView
-        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        val errorResponse = RequestInterceptor.ErrorResponse.Content("foo", url = "about:fail")
         webViewClient.onReceivedError(
             engineSession.webView,
             WebViewClient.ERROR_UNKNOWN,
@@ -567,7 +660,7 @@ class SystemEngineViewTest {
         )
         verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
 
-        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        val errorResponse2 = RequestInterceptor.ErrorResponse.Content("foo")
         webViewClient.onReceivedError(
             engineSession.webView,
             WebViewClient.ERROR_UNKNOWN,
@@ -619,7 +712,7 @@ class SystemEngineViewTest {
 
         val webView = mock<WebView>()
         engineSession.webView = webView
-        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        val errorResponse = RequestInterceptor.ErrorResponse.Content("foo", url = "about:fail")
         webViewClient.onReceivedError(engineSession.webView, webRequest, webError)
         verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
 
@@ -628,7 +721,7 @@ class SystemEngineViewTest {
         webViewClient.onReceivedError(engineSession.webView, webRequest, webError)
         verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
 
-        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        val errorResponse2 = RequestInterceptor.ErrorResponse.Content("foo")
         webViewClient.onReceivedError(engineSession.webView, webRequest, webError)
         verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
 
@@ -665,7 +758,7 @@ class SystemEngineViewTest {
 
         val webView = mock<WebView>()
         engineSession.webView = webView
-        val errorResponse = RequestInterceptor.ErrorResponse("foo", url = "about:fail")
+        val errorResponse = RequestInterceptor.ErrorResponse.Content("foo", url = "about:fail")
         webViewClient.onReceivedSslError(engineSession.webView, handler, error)
         verify(webView, never()).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
 
@@ -679,7 +772,7 @@ class SystemEngineViewTest {
         webViewClient.onReceivedSslError(engineSession.webView, handler, error)
         verify(webView).loadDataWithBaseURL("about:fail", "foo", "text/html", "UTF-8", null)
 
-        val errorResponse2 = RequestInterceptor.ErrorResponse("foo")
+        val errorResponse2 = RequestInterceptor.ErrorResponse.Content("foo")
         webViewClient.onReceivedSslError(engineSession.webView, handler, error)
         verify(webView, never()).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
 
@@ -689,7 +782,7 @@ class SystemEngineViewTest {
         verify(webView).loadDataWithBaseURL(null, "foo", "text/html", "UTF-8", null)
 
         whenever(requestInterceptor.onErrorRequest(engineSession, ErrorType.ERROR_SECURITY_SSL, "http://failed.random"))
-            .thenReturn(RequestInterceptor.ErrorResponse("foo", "http://failed.random"))
+            .thenReturn(RequestInterceptor.ErrorResponse.Content("foo", "http://failed.random"))
         webViewClient.onReceivedSslError(engineSession.webView, handler, error)
         verify(webView).loadDataWithBaseURL("http://failed.random", "foo", "text/html", "UTF-8", null)
     }
@@ -903,15 +996,55 @@ class SystemEngineViewTest {
         SystemEngineView.URL_MATCHER = null
         val resources = testContext.resources
 
-        var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(resources,
-                TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.ANALYTICS)
+        var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(
+            resources,
+            TrackingProtectionPolicy.select(
+                arrayOf(
+                    TrackingCategory.AD,
+                    TrackingCategory.ANALYTICS
+                )
+            )
         )
         assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.ANALYTICS), urlMatcher.enabledCategories)
 
-        urlMatcher = SystemEngineView.getOrCreateUrlMatcher(resources,
-                TrackingProtectionPolicy.select(TrackingProtectionPolicy.AD, TrackingProtectionPolicy.SOCIAL)
+        urlMatcher = SystemEngineView.getOrCreateUrlMatcher(
+            resources,
+            TrackingProtectionPolicy.select(
+                arrayOf(
+                    TrackingCategory.AD,
+                    TrackingCategory.SOCIAL
+                )
+            )
         )
         assertEquals(setOf(UrlMatcher.ADVERTISING, UrlMatcher.SOCIAL), urlMatcher.enabledCategories)
+    }
+
+    @Test
+    fun `URL matcher supports compounded categories`() {
+        val recommendedPolicy = TrackingProtectionPolicy.recommended()
+        val strictPolicy = TrackingProtectionPolicy.strict()
+        val resources = testContext.resources
+        val recommendedCategories = setOf(
+            UrlMatcher.ADVERTISING,
+            UrlMatcher.ANALYTICS,
+            UrlMatcher.SOCIAL,
+            UrlMatcher.CRYPTOMINING
+        )
+        val strictCategories = setOf(
+            UrlMatcher.ADVERTISING,
+            UrlMatcher.ANALYTICS,
+            UrlMatcher.SOCIAL,
+            UrlMatcher.FINGERPRINTING,
+            UrlMatcher.CRYPTOMINING
+        )
+
+        var urlMatcher = SystemEngineView.getOrCreateUrlMatcher(resources, recommendedPolicy)
+
+        assertEquals(recommendedCategories, urlMatcher.enabledCategories)
+
+        urlMatcher = SystemEngineView.getOrCreateUrlMatcher(resources, strictPolicy)
+
+        assertEquals(strictCategories, urlMatcher.enabledCategories)
     }
 
     @Test
@@ -956,19 +1089,20 @@ class SystemEngineViewTest {
         var createWindowRequest: WindowRequest? = null
         var closeWindowRequest: WindowRequest? = null
         engineSession.register(object : EngineSession.Observer {
-            override fun onOpenWindowRequest(windowRequest: WindowRequest) {
-                createWindowRequest = windowRequest
-            }
-
-            override fun onCloseWindowRequest(windowRequest: WindowRequest) {
-                closeWindowRequest = windowRequest
+            override fun onWindowRequest(windowRequest: WindowRequest) {
+                if (windowRequest.type == WindowRequest.Type.OPEN) {
+                    createWindowRequest = windowRequest
+                } else {
+                    closeWindowRequest = windowRequest
+                }
             }
         })
 
-        engineSession.webView.webChromeClient!!.onCreateWindow(mock<WebView>(), false, false, null)
+        engineSession.webView.webChromeClient!!.onCreateWindow(mock(), false, false, null)
         assertNotNull(createWindowRequest)
+        assertNull(closeWindowRequest)
 
-        engineSession.webView.webChromeClient!!.onCloseWindow(mock<WebView>())
+        engineSession.webView.webChromeClient!!.onCloseWindow(mock())
         assertNotNull(closeWindowRequest)
     }
 
@@ -1068,131 +1202,13 @@ class SystemEngineViewTest {
         assertTrue(request is PromptRequest.Alert)
 
         assertTrue(alertRequest.title.contains("mozilla.org"))
-        assertEquals(alertRequest.hasShownManyDialogs, false)
         assertEquals(alertRequest.message, "message")
 
         alertRequest.onConfirm(true)
         verify(mockJSResult).confirm()
-        assertEquals(engineView.jsAlertCount, 1)
 
         alertRequest.onDismiss()
         verify(mockJSResult).cancel()
-
-        alertRequest.onConfirm(true)
-        assertEquals(engineView.shouldShowMoreDialogs, false)
-
-        engineView.lastDialogShownAt = engineView.lastDialogShownAt.add(YEAR, -1)
-        engineSession.webView.webChromeClient!!.onJsAlert(mock(), "http://www.mozilla.org", "message", mockJSResult)
-
-        assertEquals(engineView.jsAlertCount, 1)
-        verify(mockJSResult, times(2)).cancel()
-
-        engineView.lastDialogShownAt = engineView.lastDialogShownAt.add(YEAR, -1)
-        engineView.jsAlertCount = 100
-        engineView.shouldShowMoreDialogs = true
-
-        engineSession.webView.webChromeClient!!.onJsAlert(mock(), "http://www.mozilla.org", null, mockJSResult)
-
-        assertTrue((request as PromptRequest.Alert).hasShownManyDialogs)
-
-        engineSession.currentUrl = "http://www.mozilla.org"
-        engineSession.webView.webChromeClient!!.onJsAlert(mock(), null, "message", mockJSResult)
-        assertTrue((request as PromptRequest.Alert).title.contains("mozilla.org"))
-    }
-
-    @Test
-    fun `are dialogs by count`() {
-        val engineView = SystemEngineView(testContext)
-
-        with(engineView) {
-
-            assertFalse(areDialogsAbusedByCount())
-
-            jsAlertCount = MAX_SUCCESSIVE_DIALOG_COUNT + 1
-
-            assertTrue(areDialogsAbusedByCount())
-
-            jsAlertCount = MAX_SUCCESSIVE_DIALOG_COUNT - 1
-
-            assertFalse(areDialogsAbusedByCount())
-        }
-    }
-
-    @Test
-    fun `are dialogs by time`() {
-        val engineView = SystemEngineView(testContext)
-
-        with(engineView) {
-
-            assertFalse(areDialogsAbusedByTime())
-
-            lastDialogShownAt = Date()
-
-            jsAlertCount = 1
-
-            assertTrue(areDialogsAbusedByTime())
-        }
-    }
-
-    @Test
-    fun `are dialogs being abused`() {
-        val engineView = SystemEngineView(testContext)
-
-        with(engineView) {
-
-            assertFalse(areDialogsBeingAbused())
-
-            jsAlertCount = MAX_SUCCESSIVE_DIALOG_COUNT + 1
-
-            assertTrue(areDialogsBeingAbused())
-
-            jsAlertCount = 0
-            lastDialogShownAt = Date()
-
-            assertFalse(areDialogsBeingAbused())
-
-            jsAlertCount = 1
-            lastDialogShownAt = Date()
-
-            assertTrue(areDialogsBeingAbused())
-        }
-    }
-
-    @Test
-    fun `update JSDialog abused state`() {
-        val engineView = SystemEngineView(testContext)
-
-        with(engineView) {
-            val thresholdInSeconds = MAX_SUCCESSIVE_DIALOG_SECONDS_LIMIT + 1
-            lastDialogShownAt = lastDialogShownAt.add(SECOND, -thresholdInSeconds)
-
-            val initialDate = lastDialogShownAt
-            updateJSDialogAbusedState()
-
-            assertEquals(jsAlertCount, 1)
-            assertTrue(lastDialogShownAt.after(initialDate))
-
-            lastDialogShownAt = lastDialogShownAt.add(SECOND, -thresholdInSeconds)
-            updateJSDialogAbusedState()
-            assertEquals(jsAlertCount, 1)
-        }
-    }
-
-    @Test
-    fun `js alert abuse state must be reset every time a page is started`() {
-        val engineSession = SystemEngineSession(testContext)
-        val engineView = SystemEngineView(testContext)
-
-        with(engineView) {
-            jsAlertCount = 20
-            shouldShowMoreDialogs = false
-
-            render(engineSession)
-            engineSession.webView.webViewClient!!.onPageStarted(mock(), "www.mozilla.org", null)
-
-            assertEquals(jsAlertCount, 0)
-            assertTrue(shouldShowMoreDialogs)
-        }
     }
 
     @Test
@@ -1229,48 +1245,11 @@ class SystemEngineViewTest {
 
         textPromptRequest.onConfirm(true, "value")
         verify(mockJSPromptResult).confirm("value")
-        assertEquals(engineView.jsAlertCount, 1)
 
         textPromptRequest.onDismiss()
         verify(mockJSPromptResult).cancel()
 
         textPromptRequest.onConfirm(true, "value")
-        assertEquals(engineView.shouldShowMoreDialogs, false)
-
-        engineView.lastDialogShownAt = engineView.lastDialogShownAt.add(YEAR, -1)
-        engineSession.webView.webChromeClient!!.onJsPrompt(
-            mock(),
-            "http://www.mozilla.org",
-            "message", "defaultValue",
-            mockJSPromptResult
-        )
-
-        assertEquals(engineView.jsAlertCount, 1)
-        verify(mockJSPromptResult, times(2)).cancel()
-
-        engineView.lastDialogShownAt = engineView.lastDialogShownAt.add(YEAR, -1)
-        engineView.jsAlertCount = 100
-        engineView.shouldShowMoreDialogs = true
-
-        engineSession.webView.webChromeClient!!.onJsPrompt(
-            mock(),
-            "http://www.mozilla.org",
-            null,
-            null,
-            mockJSPromptResult
-        )
-
-        assertTrue((request as PromptRequest.TextPrompt).hasShownManyDialogs)
-
-        engineSession.currentUrl = "http://www.mozilla.org"
-        engineSession.webView.webChromeClient!!.onJsPrompt(
-            mock(),
-            null,
-            "message",
-            "defaultValue",
-            mockJSPromptResult
-        )
-        assertTrue((request as PromptRequest.TextPrompt).title.contains("mozilla.org"))
     }
 
     @Test
@@ -1332,54 +1311,15 @@ class SystemEngineViewTest {
         assertTrue(confirmPromptRequest.title.contains("mozilla.org"))
         assertEquals(confirmPromptRequest.hasShownManyDialogs, false)
         assertEquals(confirmPromptRequest.message, "message")
-        assertEquals(confirmPromptRequest.positiveButtonTitle.toLowerCase(), "OK".toLowerCase())
-        assertEquals(confirmPromptRequest.negativeButtonTitle.toLowerCase(), "Cancel".toLowerCase())
 
         confirmPromptRequest.onConfirmPositiveButton(true)
         verify(mockJSPromptResult).confirm()
-        assertEquals(engineView.jsAlertCount, 1)
 
         confirmPromptRequest.onDismiss()
         verify(mockJSPromptResult).cancel()
 
         confirmPromptRequest.onConfirmNegativeButton(true)
         verify(mockJSPromptResult, times(2)).cancel()
-
-        confirmPromptRequest.onConfirmPositiveButton(true)
-        assertEquals(engineView.shouldShowMoreDialogs, false)
-
-        engineView.lastDialogShownAt = engineView.lastDialogShownAt.add(YEAR, -1)
-        engineSession.webView.webChromeClient!!.onJsConfirm(
-            mock(),
-            "http://www.mozilla.org",
-            "message",
-            mockJSPromptResult
-        )
-
-        assertEquals(engineView.jsAlertCount, 1)
-        verify(mockJSPromptResult, times(3)).cancel()
-
-        engineView.lastDialogShownAt = engineView.lastDialogShownAt.add(YEAR, -1)
-        engineView.jsAlertCount = 100
-        engineView.shouldShowMoreDialogs = true
-
-        engineSession.webView.webChromeClient!!.onJsConfirm(
-            mock(),
-            "http://www.mozilla.org",
-            null,
-            mockJSPromptResult
-        )
-
-        assertTrue((request as PromptRequest.Confirm).hasShownManyDialogs)
-
-        engineSession.currentUrl = "http://www.mozilla.org"
-        engineSession.webView.webChromeClient!!.onJsConfirm(
-            mock(),
-            null,
-            "message",
-            mockJSPromptResult
-        )
-        assertTrue((request as PromptRequest.Confirm).title.contains("mozilla.org"))
     }
 
     @Test
@@ -1602,12 +1542,5 @@ class SystemEngineViewTest {
         val authRequest = request as PromptRequest.Authentication
         assertEquals(authRequest.userName, userName)
         assertEquals(authRequest.password, password)
-    }
-
-    private fun Date.add(timeUnit: Int, amountOfTime: Int): Date {
-        val calendar = Calendar.getInstance()
-        calendar.time = this
-        calendar.add(timeUnit, amountOfTime)
-        return calendar.time
     }
 }

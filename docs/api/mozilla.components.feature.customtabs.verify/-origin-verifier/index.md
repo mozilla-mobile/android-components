@@ -14,10 +14,16 @@ lifecycle and reuses that without making any new network requests.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `OriginVerifier(packageName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, relation: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, packageManager: <ERROR CLASS>, httpClient: `[`Client`](../../mozilla.components.concept.fetch/-client/index.md)`)`<br>Used to verify postMessage origin for a designated package name. |
+| [&lt;init&gt;](-init-.md) | `OriginVerifier(packageName: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`, relation: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`, packageManager: <ERROR CLASS>, httpClient: `[`Client`](../../mozilla.components.concept.fetch/-client/index.md)`, apiKey: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?)`<br>Used to verify postMessage origin for a designated package name. |
 
 ### Functions
 
 | Name | Summary |
 |---|---|
 | [verifyOrigin](verify-origin.md) | `suspend fun verifyOrigin(origin: <ERROR CLASS>): <ERROR CLASS>`<br>Verify the claimed origin for the cached package name asynchronously. This will end up making a network request for non-cached origins with a HTTP [Client](../../mozilla.components.concept.fetch/-client/index.md). |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

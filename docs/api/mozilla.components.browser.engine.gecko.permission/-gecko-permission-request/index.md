@@ -2,7 +2,7 @@
 
 # GeckoPermissionRequest
 
-`sealed class GeckoPermissionRequest : `[`PermissionRequest`](../../mozilla.components.concept.engine.permission/-permission-request/index.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/engine-gecko-beta/src/main/java/mozilla/components/browser/engine/gecko/permission/GeckoPermissionRequest.kt#L29)
+`sealed class GeckoPermissionRequest : `[`PermissionRequest`](../../mozilla.components.concept.engine.permission/-permission-request/index.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/engine-gecko-beta/src/main/java/mozilla/components/browser/engine/gecko/permission/GeckoPermissionRequest.kt#L31)
 
 Gecko-based implementation of [PermissionRequest](../../mozilla.components.concept.engine.permission/-permission-request/index.md).
 
@@ -39,6 +39,12 @@ Gecko-based implementation of [PermissionRequest](../../mozilla.components.conce
 |---|---|
 | [containsVideoAndAudioSources](../../mozilla.components.concept.engine.permission/-permission-request/contains-video-and-audio-sources.md) | `open fun containsVideoAndAudioSources(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [grantIf](../../mozilla.components.concept.engine.permission/-permission-request/grant-if.md) | `open fun grantIf(predicate: (`[`Permission`](../../mozilla.components.concept.engine.permission/-permission/index.md)`) -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Grants this permission request if the provided predicate is true for any of the requested permissions. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

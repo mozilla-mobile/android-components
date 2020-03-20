@@ -5,12 +5,13 @@
 package mozilla.components.feature.pwa.intent
 
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.intent.IntentProcessor
-import mozilla.components.browser.session.intent.putSessionId
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.feature.intent.ext.putSessionId
+import mozilla.components.feature.intent.processing.IntentProcessor
 import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.ext.putWebAppManifest
 import mozilla.components.feature.pwa.ext.toCustomTabConfig
@@ -29,7 +30,7 @@ class WebAppIntentProcessor(
     /**
      * Returns true if this intent should launch a progressive web app.
      */
-    override fun matches(intent: Intent) =
+    private fun matches(intent: Intent) =
         intent.toSafeIntent().action == ACTION_VIEW_PWA
 
     /**
@@ -50,6 +51,7 @@ class WebAppIntentProcessor(
 
             sessionManager.add(session)
             loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external())
+            intent.flags = FLAG_ACTIVITY_NEW_DOCUMENT
             intent.putSessionId(session.id)
             intent.putWebAppManifest(webAppManifest)
 

@@ -6,13 +6,23 @@ package mozilla.components.feature.media.state
 
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.utils.AllSessionsObserver
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.feature.media.ext.hasMediaWithSufficientLongDuration
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import kotlin.coroutines.EmptyCoroutineContext
+
+private const val DELAY_STATE_UPDATE_MS = 100L
 
 /**
  * A state machine that subscribes to all [Session] instances and watches changes to their [Media] to create an
@@ -23,6 +33,8 @@ import mozilla.components.support.base.observer.ObserverRegistry
 object MediaStateMachine : Observable<MediaStateMachine.Observer> by ObserverRegistry() {
     private val logger = Logger("MediaStateMachine")
     private var observer: AllSessionsObserver? = null
+    private var mediaObserver: MediaSessionObserver = MediaSessionObserver(this)
+    internal var scope: CoroutineScope? = null
 
     /**
      * The current [MediaState].
@@ -34,10 +46,13 @@ object MediaStateMachine : Observable<MediaStateMachine.Observer> by ObserverReg
     /**
      * Start observing [Session] and their [Media] and create an aggregated [MediaState] that can be observed.
      */
+    @Synchronized
     fun start(sessionManager: SessionManager) {
+        scope = CoroutineScope(EmptyCoroutineContext)
+
         observer = AllSessionsObserver(
             sessionManager,
-            MediaSessionObserver(this)
+            mediaObserver
         ).also { it.start() }
     }
 
@@ -46,8 +61,17 @@ object MediaStateMachine : Observable<MediaStateMachine.Observer> by ObserverReg
      *
      * The [MediaState] will be reset to [MediaState.None]
      */
+    @Synchronized
     fun stop() {
+        scope?.cancel()
         observer?.stop()
+        state = MediaState.None
+    }
+
+    /**
+     * Resets the [MediaState] to [MediaState.None].
+     */
+    fun reset() {
         state = MediaState.None
     }
 
@@ -74,12 +98,18 @@ object MediaStateMachine : Observable<MediaStateMachine.Observer> by ObserverReg
          */
         fun onStateChanged(state: MediaState)
     }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    internal fun waitForStateChange() = runBlocking {
+        mediaObserver.updateStateJob?.join()
+    }
 }
 
 private class MediaSessionObserver(
     private val stateMachine: MediaStateMachine
 ) : AllSessionsObserver.Observer, Media.Observer {
     private val mediaMap = MediaMap()
+    internal var updateStateJob: Job? = null
 
     override fun onMediaAdded(session: Session, media: List<Media>, added: Media) {
         added.register(this)
@@ -97,7 +127,7 @@ private class MediaSessionObserver(
         updateState()
     }
 
-    override fun onPlaybackStateChanged(media: Media, playbackState: Media.PlaybackState) {
+    override fun onStateChanged(media: Media, state: Media.State) {
         updateState()
     }
 
@@ -118,12 +148,22 @@ private class MediaSessionObserver(
         updateState()
     }
 
+    @Synchronized
     private fun updateState() {
-        val state = determineNewState()
-        stateMachine.transitionTo(state)
+        // We delay updating the state here and cancel previous jobs in order to batch multiple
+        // state changes together before updating the state. In addition to reducing the work load
+        // this also allows us to treat multiple pause events as a single pause event that we can
+        // resume from.
+        updateStateJob?.cancel()
+        updateStateJob = checkNotNull(MediaStateMachine.scope).launch {
+            delay(DELAY_STATE_UPDATE_MS)
+
+            val state = determineNewState()
+            stateMachine.transitionTo(state)
+        }
     }
 
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "ComplexMethod")
     private fun determineNewState(): MediaState {
         val currentState = stateMachine.state
 
@@ -139,17 +179,27 @@ private class MediaSessionObserver(
         // Check if there's a session that has playing media and emit a "playing" state for it.
         val playingSession = mediaMap.findPlayingSession()
         if (playingSession != null) {
-            return MediaState.Playing(
-                playingSession.first,
-                playingSession.second
-            )
+            val (session, media) = playingSession
+            // We only switch to playing state if there's media playing that has a sufficient long
+            // duration. Otherwise we let just Gecko play it and do not request audio focus or show
+            // a media notification. This will let us ignore short audio effects (Beeep!).
+            return if (media.hasMediaWithSufficientLongDuration()) {
+                return MediaState.Playing(session, media)
+            } else {
+                MediaState.None
+            }
         }
 
         // If we were in "playing" state and the media for this session is now paused then emit a "paused" state.
         if (currentState is MediaState.Playing) {
             val media = mediaMap.getPausedMedia(currentState.session)
             if (media.isNotEmpty()) {
-                return MediaState.Paused(currentState.session, media)
+                return MediaState.Paused(currentState.session, media.filter {
+                    // We only add paused media to the state that was playing before. If the user
+                    // chooses to "resume" playback then we only want to resume this list of media
+                    // and not all paused media in the session.
+                    currentState.media.contains(it)
+                })
             }
         }
 

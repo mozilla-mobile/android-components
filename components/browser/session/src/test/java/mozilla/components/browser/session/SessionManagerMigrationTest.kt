@@ -4,14 +4,28 @@
 
 package mozilla.components.browser.session
 
+import android.content.ComponentCallbacks2
+import mozilla.components.browser.session.ext.toFindResultState
+import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
 
 /**
  * This test suite validates that calls on [SessionManager] update [BrowserStore] to create a matching state.
@@ -35,6 +49,87 @@ class SessionManagerMigrationTest {
 
         assertEquals("https://www.mozilla.org", tab.content.url)
         assertTrue(tab.content.private)
+    }
+
+    @Test
+    fun `Add session with parent`() {
+        val store = BrowserStore()
+
+        val sessionManager = SessionManager(engine = mock(), store = store)
+
+        assertTrue(sessionManager.sessions.isEmpty())
+        assertTrue(store.state.tabs.isEmpty())
+
+        val parent = Session("https://www.mozilla.org")
+        sessionManager.add(parent)
+        assertEquals(1, sessionManager.sessions.size)
+        assertEquals(1, store.state.tabs.size)
+
+        sessionManager.add(Session("https://getpocket.com"))
+
+        // Make sure child tab was added next to parent
+        val child = Session("https://www.firefox.com")
+        sessionManager.add(child, parent = parent)
+        assertEquals(3, sessionManager.sessions.size)
+        assertEquals(parent, sessionManager.all.toTypedArray()[0])
+        assertEquals(child, sessionManager.all.toTypedArray()[1])
+
+        assertEquals(3, store.state.tabs.size)
+        assertEquals("https://www.mozilla.org", store.state.tabs[0].content.url)
+        assertEquals("https://www.firefox.com", store.state.tabs[1].content.url)
+    }
+
+    @Test
+    fun `Add custom tab session`() {
+        val store = BrowserStore()
+
+        val sessionManager = SessionManager(engine = mock(), store = store)
+
+        assertTrue(sessionManager.sessions.isEmpty())
+        assertTrue(store.state.tabs.isEmpty())
+
+        val customTabSession = Session("https://www.mozilla.org")
+        customTabSession.customTabConfig = mock()
+        sessionManager.add(customTabSession)
+
+        assertEquals(0, sessionManager.sessions.size)
+        assertEquals(1, sessionManager.all.size)
+        assertEquals(0, store.state.tabs.size)
+        assertEquals(1, store.state.customTabs.size)
+
+        val tab = store.state.customTabs[0]
+        assertEquals("https://www.mozilla.org", tab.content.url)
+    }
+
+    @Test
+    fun `Migrating a custom tab session`() {
+        val store = BrowserStore()
+
+        val sessionManager = SessionManager(engine = mock(), store = store)
+
+        val customTabSession = Session("https://www.mozilla.org")
+        customTabSession.customTabConfig = mock()
+        val engineSession: EngineSession = mock()
+        customTabSession.engineSessionHolder.engineSession = engineSession
+        sessionManager.add(customTabSession)
+
+        assertEquals(0, sessionManager.sessions.size)
+        assertEquals(1, sessionManager.all.size)
+        assertEquals(0, store.state.tabs.size)
+        assertEquals(1, store.state.customTabs.size)
+
+        val customTab = store.state.customTabs[0]
+        assertEquals("https://www.mozilla.org", customTab.content.url)
+
+        customTabSession.customTabConfig = null
+        assertEquals(1, sessionManager.sessions.size)
+        assertEquals(1, sessionManager.all.size)
+        assertEquals(1, store.state.tabs.size)
+        assertEquals(0, store.state.customTabs.size)
+
+        val tab = store.state.tabs[0]
+        assertEquals("https://www.mozilla.org", tab.content.url)
+        assertSame(engineSession, tab.engineState.engineSession)
     }
 
     @Test
@@ -453,6 +548,7 @@ class SessionManagerMigrationTest {
     }
 
     @Test
+    @Suppress("Deprecation")
     fun `thumbnails of all but selected session should be removed on low memory`() {
         val store = BrowserStore()
         val sessionManager = SessionManager(engine = mock(), store = store)
@@ -555,4 +651,640 @@ class SessionManagerMigrationTest {
         assertEquals("https://getpocket.com", manager.selectedSessionOrThrow.url)
         assertEquals("https://getpocket.com", store.state.selectedTab!!.content.url)
     }
+
+    @Test
+    fun `Adding sessions with tracking protection state`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val tracker1: Tracker = mock()
+        val tracker2: Tracker = mock()
+        val tracker3: Tracker = mock()
+
+        manager.add(Session(id = "session1", initialUrl = "https://www.mozilla.org").apply {
+            trackerBlockingEnabled = true
+            trackersBlocked = listOf(tracker1)
+            trackersLoaded = listOf(tracker2, tracker3)
+        })
+
+        manager.add(Session(id = "session2", initialUrl = "https://www.mozilla.org").apply {
+            trackerBlockingEnabled = false
+            trackersBlocked = listOf()
+            trackersLoaded = listOf(tracker2)
+        })
+
+        assertEquals(2, manager.sessions.size)
+        assertEquals(2, store.state.tabs.size)
+
+        store.state.findTab("session1")!!.also { tab ->
+            assertTrue(tab.trackingProtection.enabled)
+            assertEquals(1, tab.trackingProtection.blockedTrackers.size)
+            assertEquals(2, tab.trackingProtection.loadedTrackers.size)
+            assertTrue(tab.trackingProtection.blockedTrackers.contains(tracker1))
+            assertTrue(tab.trackingProtection.loadedTrackers.contains(tracker2))
+            assertTrue(tab.trackingProtection.loadedTrackers.contains(tracker3))
+        }
+
+        store.state.findTab("session2")!!.also { tab ->
+            assertFalse(tab.trackingProtection.enabled)
+            assertTrue(tab.trackingProtection.blockedTrackers.isEmpty())
+            assertEquals(1, tab.trackingProtection.loadedTrackers.size)
+            assertTrue(tab.trackingProtection.loadedTrackers.contains(tracker2))
+        }
+    }
+
+    @Test
+    fun `Updating tracking protection state of session`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val session = Session(id = "session", initialUrl = "https://www.mozilla.org")
+        manager.add(session)
+
+        store.state.findTab("session")!!.also { tab ->
+            assertFalse(tab.trackingProtection.enabled)
+            assertEquals(0, tab.trackingProtection.blockedTrackers.size)
+            assertEquals(0, tab.trackingProtection.loadedTrackers.size)
+        }
+
+        session.trackerBlockingEnabled = true
+
+        store.state.findTab("session")!!.also { tab ->
+            assertTrue(tab.trackingProtection.enabled)
+            assertEquals(0, tab.trackingProtection.blockedTrackers.size)
+            assertEquals(0, tab.trackingProtection.loadedTrackers.size)
+        }
+
+        session.trackersBlocked = listOf(mock())
+        session.trackersLoaded = listOf(mock())
+        session.trackersBlocked = listOf(mock(), mock())
+
+        store.state.findTab("session")!!.also { tab ->
+            assertTrue(tab.trackingProtection.enabled)
+            assertEquals(2, tab.trackingProtection.blockedTrackers.size)
+            assertEquals(1, tab.trackingProtection.loadedTrackers.size)
+        }
+
+        session.trackersBlocked = emptyList()
+        session.trackersLoaded = emptyList()
+
+        store.state.findTab("session")!!.also { tab ->
+            assertTrue(tab.trackingProtection.enabled)
+            assertEquals(0, tab.trackingProtection.blockedTrackers.size)
+            assertEquals(0, tab.trackingProtection.loadedTrackers.size)
+        }
+
+        session.trackerBlockingEnabled = false
+
+        store.state.findTab("session")!!.also { tab ->
+            assertFalse(tab.trackingProtection.enabled)
+            assertEquals(0, tab.trackingProtection.blockedTrackers.size)
+            assertEquals(0, tab.trackingProtection.loadedTrackers.size)
+        }
+    }
+
+    @Test
+    fun `Adding a hit result`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val session = Session(id = "session", initialUrl = "https://www.mozilla.org")
+        manager.add(session)
+
+        assertNull(session.hitResult.peek())
+        assertNull(store.state.findTab("session")!!.content.hitResult)
+
+        val hitResult: HitResult = HitResult.UNKNOWN("test")
+        session.hitResult = Consumable.from(hitResult)
+
+        assertEquals(hitResult, session.hitResult.peek())
+        store.state.findTab("session")!!.also { tab ->
+            assertNotNull(tab.content.hitResult)
+            assertSame(hitResult, tab.content.hitResult)
+        }
+
+        session.hitResult.consume { true }
+        store.state.findTab("session")!!.also { tab ->
+            assertNull(tab.content.hitResult)
+        }
+    }
+
+    @Test
+    fun `Linking session to engine session`() {
+        val store = BrowserStore()
+        val engine: Engine = mock()
+
+        val engineSession1: EngineSession = mock()
+        doReturn(engineSession1).`when`(engine).createSession(false)
+
+        val sessionManager = SessionManager(engine, store)
+
+        val session = Session(id = "session", initialUrl = "https://www.mozilla.org")
+        sessionManager.add(session)
+
+        assertNull(sessionManager.getEngineSession(session))
+        assertEquals(engineSession1, sessionManager.getOrCreateEngineSession(session))
+        store.state.findTab("session")!!.also { tab ->
+            assertEquals(engineSession1, tab.engineState.engineSession)
+        }
+
+        // Force unlink and link again
+        val engineSession2: EngineSession = mock()
+        doReturn(engineSession2).`when`(engine).createSession(false)
+        session.engineSessionHolder.engineSession = null
+        assertEquals(engineSession2, sessionManager.getOrCreateEngineSession(session))
+        store.state.findTab("session")!!.also { tab ->
+            assertEquals(engineSession2, tab.engineState.engineSession)
+        }
+    }
+
+    @Test
+    fun `Session is added to store before engine session can be created and linked`() {
+        val store = BrowserStore()
+        val engine: Engine = mock()
+
+        val engineSession1: EngineSession = mock()
+        doReturn(engineSession1).`when`(engine).createSession(false)
+
+        val sessionManager = SessionManager(engine, store)
+        sessionManager.register(object : SessionManager.Observer {
+            override fun onSessionAdded(session: Session) {
+                sessionManager.getOrCreateEngineSession(session)
+            }
+        })
+
+        val session = Session(id = "session", initialUrl = "https://www.mozilla.org")
+        sessionManager.add(session)
+
+        assertEquals(engineSession1, sessionManager.getOrCreateEngineSession(session))
+        store.state.findTab("session")!!.also { tab ->
+            assertEquals(engineSession1, tab.engineState.engineSession)
+        }
+    }
+
+    @Test
+    fun `Restoring engine session with state`() {
+        val engine: Engine = mock()
+        val store = BrowserStore()
+        val sessionManager = SessionManager(engine, store)
+
+        val engineSession: EngineSession = mock()
+        val engineSessionState: EngineSessionState = mock()
+
+        val snapshot = SessionManager.Snapshot(
+            listOf(
+                SessionManager.Snapshot.Item(
+                    session = Session(id = "session1", initialUrl = "http://www.firefox.com"),
+                    engineSessionState = engineSessionState
+                ),
+                SessionManager.Snapshot.Item(
+                    session = Session(id = "session2", initialUrl = "http://www.mozilla.org"),
+                    engineSession = engineSession
+                )
+            ),
+            selectedSessionIndex = 0
+        )
+
+        sessionManager.restore(snapshot)
+        assertEquals(2, sessionManager.size)
+
+        store.state.findTab("session1")!!.also { tab ->
+            assertEquals(engineSessionState, tab.engineState.engineSessionState)
+        }
+
+        store.state.findTab("session2")!!.also { tab ->
+            assertEquals(engineSession, tab.engineState.engineSession)
+        }
+    }
+
+    @Test
+    fun `Adding a find result`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val session = Session(id = "session", initialUrl = "https://www.mozilla.org")
+        manager.add(session)
+
+        assertTrue(session.findResults.isEmpty())
+        assertTrue(store.state.findTab("session")!!.content.findResults.isEmpty())
+
+        val result = Session.FindResult(0, 0, false)
+        session.findResults += result
+
+        assertEquals(1, session.findResults.size)
+        assertEquals(result, session.findResults.last())
+        store.state.findTab("session")!!.also { tab ->
+            assertEquals(1, tab.content.findResults.size)
+            assertEquals(result.toFindResultState(), tab.content.findResults.last())
+        }
+
+        session.findResults = emptyList()
+        assertTrue(session.findResults.isEmpty())
+        assertTrue(store.state.findTab("session")!!.content.findResults.isEmpty())
+    }
+
+    @Test
+    fun `Updating reader state`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val session = Session(id = "session", initialUrl = "https://www.mozilla.org")
+        manager.add(session)
+
+        assertFalse(session.readerable)
+        assertFalse(session.readerMode)
+        assertFalse(store.state.findTab("session")!!.readerState.active)
+        assertFalse(store.state.findTab("session")!!.readerState.readerable)
+
+        session.readerable = true
+        assertTrue(store.state.findTab("session")!!.readerState.readerable)
+        assertFalse(store.state.findTab("session")!!.readerState.active)
+
+        session.readerMode = true
+        assertTrue(store.state.findTab("session")!!.readerState.active)
+        assertTrue(store.state.findTab("session")!!.readerState.readerable)
+
+        session.readerable = false
+        session.readerMode = false
+        assertFalse(store.state.findTab("session")!!.readerState.active)
+        assertFalse(store.state.findTab("session")!!.readerState.readerable)
+    }
+
+    @Test
+    fun `Trimming memory - RUNNING_LOW - Removes thumbnails`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val engineSession1 = createMockEngineSessionWithState()
+        val engineSession2 = createMockEngineSessionWithState()
+        val engineSession3 = createMockEngineSessionWithState()
+        val engineSession4 = createMockEngineSessionWithState()
+
+        manager.add(Session("https://www.mozilla.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession1)
+
+        manager.add(Session("https://www.firefox.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession2)
+
+        manager.add(Session("https://getpocket.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession3)
+
+        manager.add(Session("https://www.allizom.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession4)
+
+        manager.select(manager.sessions[2])
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[3].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[3].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        // Now trim memory
+
+        manager.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW)
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[3].apply {
+            assertNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[3].apply {
+            assertNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        verify(engineSession1, never()).close()
+        verify(engineSession2, never()).close()
+        verify(engineSession3, never()).close()
+        verify(engineSession4, never()).close()
+    }
+
+    @Test
+    fun `Trimming memory - RUNNING_CRITICAL - Removes thumbnails`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val engineSession1 = createMockEngineSessionWithState()
+        val engineSession2 = createMockEngineSessionWithState()
+        val engineSession3 = createMockEngineSessionWithState()
+        val engineSession4 = createMockEngineSessionWithState()
+
+        manager.add(Session("https://www.mozilla.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession1)
+
+        manager.add(Session("https://www.firefox.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession2)
+
+        manager.add(Session("https://getpocket.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession3)
+
+        manager.add(Session("https://www.allizom.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession4)
+
+        manager.select(manager.sessions[2])
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[3].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[3].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        // Now trim memory
+
+        manager.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL)
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNull(thumbnail)
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNull(thumbnail)
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[3].apply {
+            assertNull(thumbnail)
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNull(content.thumbnail)
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNull(content.thumbnail)
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[3].apply {
+            assertNull(content.thumbnail)
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        verify(engineSession1).close()
+        verify(engineSession2).close()
+        verify(engineSession3, never()).close()
+        verify(engineSession4).close()
+    }
+
+    @Test
+    fun `Trimming memory - RUNNING_ODERATE - Does not affect SessionManager`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val engineSession1 = createMockEngineSessionWithState()
+        val engineSession2 = createMockEngineSessionWithState()
+        val engineSession3 = createMockEngineSessionWithState()
+        val engineSession4 = createMockEngineSessionWithState()
+
+        manager.add(Session("https://www.mozilla.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession1)
+
+        manager.add(Session("https://www.firefox.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession2)
+
+        manager.add(Session("https://getpocket.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession3)
+
+        manager.add(Session("https://www.allizom.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession4)
+
+        manager.select(manager.sessions[2])
+
+        manager.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE)
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[3].apply {
+            assertNotNull(thumbnail)
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[3].apply {
+            assertNotNull(content.thumbnail)
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        verify(engineSession1, never()).close()
+        verify(engineSession2, never()).close()
+        verify(engineSession3, never()).close()
+        verify(engineSession4, never()).close()
+    }
+}
+
+private fun createMockEngineSessionWithState(): EngineSession {
+    val engineSession: EngineSession = mock()
+    doReturn(mock<EngineSessionState>()).`when`(engineSession).saveState()
+    return engineSession
 }

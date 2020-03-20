@@ -6,13 +6,29 @@ package org.mozilla.samples.browser
 
 import android.content.Context
 import mozilla.components.browser.engine.gecko.GeckoEngine
+import mozilla.components.browser.engine.gecko.glean.GeckoAdapter
+import mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient
 import mozilla.components.concept.engine.Engine
+import mozilla.components.feature.webcompat.WebCompatFeature
+import org.mozilla.geckoview.GeckoRuntime
+import org.mozilla.geckoview.GeckoRuntimeSettings
 
 /**
  * Helper class for lazily instantiating components needed by the application.
  */
 class Components(applicationContext: Context) : DefaultComponents(applicationContext) {
-    override val engine: Engine by lazy {
-        GeckoEngine(applicationContext, engineSettings)
+    private val runtime by lazy {
+        // Allow for exfiltrating Gecko metrics through the Glean SDK.
+        val builder = GeckoRuntimeSettings.Builder()
+        builder.telemetryDelegate(GeckoAdapter())
+        GeckoRuntime.create(applicationContext, builder.build())
     }
+
+    override val engine: Engine by lazy {
+        GeckoEngine(applicationContext, engineSettings, runtime).also {
+            WebCompatFeature.install(it)
+        }
+    }
+
+    override val client by lazy { GeckoViewFetchClient(applicationContext, runtime) }
 }

@@ -47,9 +47,25 @@ class EngineTest {
     }
 
     @Test
+    fun `invokes default functions on trackingProtectionExceptionStore`() {
+        var wasExecuted = false
+        try {
+            testEngine.trackingProtectionExceptionStore
+        } catch (_: Exception) {
+            wasExecuted = true
+        }
+        assertTrue(wasExecuted)
+    }
+
+    @Test
     fun `invokes error callback if webextensions not supported`() {
         var exception: Throwable? = null
         testEngine.installWebExtension("my-ext", "resource://path", onError = { _, e -> exception = e })
+        assertNotNull(exception)
+        assertTrue(exception is UnsupportedOperationException)
+
+        exception = null
+        testEngine.listInstalledWebExtensions(onSuccess = { }, onError = { e -> exception = e })
         assertNotNull(exception)
         assertTrue(exception is UnsupportedOperationException)
     }

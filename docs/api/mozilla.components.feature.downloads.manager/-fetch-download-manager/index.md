@@ -10,25 +10,27 @@ Handles the interactions with [AbstractFetchDownloadService](../../mozilla.compo
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `FetchDownloadManager(applicationContext: <ERROR CLASS>, service: `[`KClass`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html)`<`[`T`](index.md#T)`>, broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(applicationContext), onDownloadCompleted: `[`OnDownloadCompleted`](../-on-download-completed.md)` = noop)`<br>Handles the interactions with [AbstractFetchDownloadService](../../mozilla.components.feature.downloads/-abstract-fetch-download-service/index.md). |
+| [&lt;init&gt;](-init-.md) | `FetchDownloadManager(applicationContext: <ERROR CLASS>, service: `[`KClass`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.reflect/-k-class/index.html)`<`[`T`](index.md#T)`>, broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(applicationContext), onDownloadStopped: `[`onDownloadStopped`](../on-download-stopped.md)` = noop)`<br>Handles the interactions with [AbstractFetchDownloadService](../../mozilla.components.feature.downloads/-abstract-fetch-download-service/index.md). |
 
 ### Properties
 
 | Name | Summary |
 |---|---|
-| [onDownloadCompleted](on-download-completed.md) | `var onDownloadCompleted: `[`OnDownloadCompleted`](../-on-download-completed.md) |
+| [onDownloadStopped](on-download-stopped.md) | `var onDownloadStopped: `[`onDownloadStopped`](../on-download-stopped.md) |
 | [permissions](permissions.md) | `val permissions: <ERROR CLASS>` |
 
 ### Functions
 
 | Name | Summary |
 |---|---|
-| [download](download.md) | `fun download(download: `[`Download`](../../mozilla.components.browser.session/-download/index.md)`, cookie: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`?`<br>Schedules a download through the [AbstractFetchDownloadService](../../mozilla.components.feature.downloads/-abstract-fetch-download-service/index.md). |
-| [onReceive](on-receive.md) | `fun onReceive(context: <ERROR CLASS>, intent: <ERROR CLASS>): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Invoked when a download is complete. Calls [onDownloadCompleted](on-download-completed.md) and unregisters the broadcast receiver if there are no more queued downloads. |
+| [download](download.md) | `fun download(download: `[`DownloadState`](../../mozilla.components.browser.state.state.content/-download-state/index.md)`, cookie: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`?`<br>Schedules a download through the [AbstractFetchDownloadService](../../mozilla.components.feature.downloads/-abstract-fetch-download-service/index.md). |
+| [onReceive](on-receive.md) | `fun onReceive(context: <ERROR CLASS>, intent: <ERROR CLASS>): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Invoked when a download is complete. Calls [onDownloadStopped](../on-download-stopped.md) and unregisters the broadcast receiver if there are no more queued downloads. |
+| [tryAgain](try-again.md) | `fun tryAgain(downloadId: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Schedules another attempt at downloading the given download. |
 | [unregisterListeners](unregister-listeners.md) | `fun unregisterListeners(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Remove all the listeners. |
 
 ### Extension Functions
 
 | Name | Summary |
 |---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 | [validatePermissionGranted](../validate-permission-granted.md) | `fun `[`DownloadManager`](../-download-manager/index.md)`.validatePermissionGranted(context: <ERROR CLASS>): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |

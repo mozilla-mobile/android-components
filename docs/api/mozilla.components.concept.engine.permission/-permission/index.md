@@ -17,6 +17,8 @@ Represents all the different supported permission types.
 | [ContentAudioCapture](-content-audio-capture/index.md) | `data class ContentAudioCapture : `[`Permission`](./index.md) |
 | [ContentAudioMicrophone](-content-audio-microphone/index.md) | `data class ContentAudioMicrophone : `[`Permission`](./index.md) |
 | [ContentAudioOther](-content-audio-other/index.md) | `data class ContentAudioOther : `[`Permission`](./index.md) |
+| [ContentAutoPlayAudible](-content-auto-play-audible/index.md) | `data class ContentAutoPlayAudible : `[`Permission`](./index.md) |
+| [ContentAutoPlayInaudible](-content-auto-play-inaudible/index.md) | `data class ContentAutoPlayInaudible : `[`Permission`](./index.md) |
 | [ContentGeoLocation](-content-geo-location/index.md) | `data class ContentGeoLocation : `[`Permission`](./index.md) |
 | [ContentNotification](-content-notification/index.md) | `data class ContentNotification : `[`Permission`](./index.md) |
 | [ContentProtectedMediaId](-content-protected-media-id/index.md) | `data class ContentProtectedMediaId : `[`Permission`](./index.md) |
@@ -33,8 +35,14 @@ Represents all the different supported permission types.
 
 | Name | Summary |
 |---|---|
-| [desc](desc.md) | `open val desc: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?`<br>an optional description of what this permission type is for. |
-| [id](id.md) | `open val id: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?`<br>an optional native engine-specific ID of this permission. |
+| [desc](desc.md) | `abstract val desc: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?`<br>an optional description of what this permission type is for. |
+| [id](id.md) | `abstract val id: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`?`<br>an optional native engine-specific ID of this permission. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 
@@ -47,6 +55,8 @@ Represents all the different supported permission types.
 | [ContentAudioCapture](-content-audio-capture/index.md) | `data class ContentAudioCapture : `[`Permission`](./index.md) |
 | [ContentAudioMicrophone](-content-audio-microphone/index.md) | `data class ContentAudioMicrophone : `[`Permission`](./index.md) |
 | [ContentAudioOther](-content-audio-other/index.md) | `data class ContentAudioOther : `[`Permission`](./index.md) |
+| [ContentAutoPlayAudible](-content-auto-play-audible/index.md) | `data class ContentAutoPlayAudible : `[`Permission`](./index.md) |
+| [ContentAutoPlayInaudible](-content-auto-play-inaudible/index.md) | `data class ContentAutoPlayInaudible : `[`Permission`](./index.md) |
 | [ContentGeoLocation](-content-geo-location/index.md) | `data class ContentGeoLocation : `[`Permission`](./index.md) |
 | [ContentNotification](-content-notification/index.md) | `data class ContentNotification : `[`Permission`](./index.md) |
 | [ContentProtectedMediaId](-content-protected-media-id/index.md) | `data class ContentProtectedMediaId : `[`Permission`](./index.md) |

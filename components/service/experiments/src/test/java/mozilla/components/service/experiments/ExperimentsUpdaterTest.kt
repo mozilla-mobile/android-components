@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.service.experiments
 
@@ -79,11 +79,11 @@ class ExperimentsUpdaterTest {
     @Test
     fun `ExperimentsUpdater initialize schedules ExperimentsUpdateWorker in WorkManager`() {
         assertFalse("ExperimentsUpdateWorker should not be scheduled yet",
-            isWorkScheduled(ExperimentsUpdater.TAG))
+            isWorkScheduled(context, ExperimentsUpdater.TAG))
         experimentsUpdater.initialize(configuration)
         assertTrue("initialize must schedule ExperimentsUpdateWorker",
-            isWorkScheduled(ExperimentsUpdater.TAG))
-        val workInfo = getWorkInfoByTag(ExperimentsUpdater.TAG)
+            isWorkScheduled(context, ExperimentsUpdater.TAG))
+        val workInfo = getWorkInfoByTag(context, ExperimentsUpdater.TAG)
         assertNotNull("workInfo must not be null", workInfo)
         assertEquals("workInfo id must match request id", workRequest.id, workInfo?.id)
     }

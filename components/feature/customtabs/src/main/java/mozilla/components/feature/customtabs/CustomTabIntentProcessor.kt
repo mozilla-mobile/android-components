@@ -9,9 +9,9 @@ import android.content.Intent.ACTION_VIEW
 import android.content.res.Resources
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.intent.IntentProcessor
-import mozilla.components.browser.session.intent.putSessionId
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.feature.intent.ext.putSessionId
+import mozilla.components.feature.intent.processing.IntentProcessor
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeIntent
@@ -22,10 +22,11 @@ import mozilla.components.support.utils.toSafeIntent
 class CustomTabIntentProcessor(
     private val sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
-    private val resources: Resources
+    private val resources: Resources,
+    private val isPrivate: Boolean = false
 ) : IntentProcessor {
 
-    override fun matches(intent: Intent): Boolean {
+    private fun matches(intent: Intent): Boolean {
         val safeIntent = intent.toSafeIntent()
         return safeIntent.action == ACTION_VIEW && isCustomTabIntent(safeIntent)
     }
@@ -35,7 +36,7 @@ class CustomTabIntentProcessor(
         val url = safeIntent.dataString
 
         return if (!url.isNullOrEmpty() && matches(intent)) {
-            val session = Session(url, private = false, source = Session.Source.CUSTOM_TAB)
+            val session = Session(url, private = isPrivate, source = Session.Source.CUSTOM_TAB)
             session.customTabConfig = createCustomTabConfigFromIntent(intent, resources)
 
             sessionManager.add(session)

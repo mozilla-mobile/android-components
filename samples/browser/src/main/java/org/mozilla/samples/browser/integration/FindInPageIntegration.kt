@@ -5,30 +5,30 @@
 package org.mozilla.samples.browser.integration
 
 import android.view.View
-import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.findinpage.FindInPageFeature
 import mozilla.components.feature.findinpage.view.FindInPageView
-import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 
+@Suppress("UndocumentedPublicClass")
 class FindInPageIntegration(
-    private val sessionManager: SessionManager,
+    private val store: BrowserStore,
     private val view: FindInPageView,
-    private val engineView: EngineView
-) : LifecycleAwareFeature, BackHandler {
-    private val feature = FindInPageFeature(sessionManager, view, engineView, ::onClose)
+    engineView: EngineView
+) : LifecycleAwareFeature, UserInteractionHandler {
+    private val feature = FindInPageFeature(store, view, engineView, ::onClose)
 
     override fun start() {
         feature.start()
-
-        FindInPageIntegration.launch = this::launch
+        launch = this::launch
     }
 
     override fun stop() {
         feature.stop()
-
-        FindInPageIntegration.launch = null
+        launch = null
     }
 
     override fun onBackPressed(): Boolean {
@@ -40,7 +40,7 @@ class FindInPageIntegration(
     }
 
     private fun launch() {
-        val session = sessionManager.selectedSession ?: return
+        val session = store.state.selectedTab ?: return
 
         view.asView().visibility = View.VISIBLE
         feature.bind(session)

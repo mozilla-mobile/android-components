@@ -4,8 +4,8 @@
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.3.40"
-    const val coroutines = "1.2.2"
+    const val kotlin = "1.3.70"
+    const val coroutines = "1.3.5"
 
     const val junit = "4.12"
     const val robolectric = "4.1"
@@ -15,9 +15,10 @@ object Versions {
     const val mockwebserver = "3.10.0"
 
     const val dokka = "0.9.17"
-    const val android_gradle_plugin = "3.4.1"
+    const val android_gradle_plugin = "3.5.3"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "26.3.2"
+    const val detekt = "1.2.2"
 
     const val sentry = "1.7.21"
     const val okhttp = "3.13.1"
@@ -26,31 +27,34 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "1.6.3"
 
-    const val mozilla_appservices = "0.36.0"
-    const val servo = "0.0.1.20181017.aa95911"
+    const val mozilla_appservices = "0.55.0"
+
+    const val mozilla_glean = "25.0.0"
 
     const val material = "1.0.0"
+    const val nearby = "17.0.0"
 
     object AndroidX {
-        const val annotation = "1.0.2"
-        const val appcompat = "1.0.0"
-        const val browser = "1.0.0"
+        const val annotation = "1.1.0"
+        const val appcompat = "1.1.0"
+        const val browser = "1.2.0"
         const val cardview = "1.0.0"
         const val constraintlayout = "1.1.3"
-        const val core = "1.0.0"
-        const val fragment = "1.0.0"
+        const val core = "1.2.0"
+        const val fragment = "1.1.0"
         const val recyclerview = "1.0.0"
         const val test = "1.2.0"
         const val test_ext = "1.1.1"
         const val espresso = "3.2.0"
-        const val room = "2.0.0"
-        const val paging = "2.0.0"
+        const val room = "2.1.0"
+        const val paging = "2.1.0"
         const val palette = "1.0.0"
-        const val lifecycle = "2.0.0"
-        const val media = "1.0.1"
-        const val work = "2.0.1"
-        const val arch_core_testing = "2.0.0"
+        const val lifecycle = "2.1.0"
+        const val media = "1.1.0"
+        const val work = "2.2.0"
+        const val arch_core_testing = "2.1.0"
         const val uiautomator = "2.2.0"
+        const val localbroadcastmanager = "1.0.0"
     }
 
     object Firebase {
@@ -68,6 +72,7 @@ object Dependencies {
 
     const val testing_junit = "junit:junit:${Versions.junit}"
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"
+    const val testing_robolectric_playservices = "org.robolectric:shadows-playservices:${Versions.robolectric}"
     const val testing_mockito = "org.mockito:mockito-core:${Versions.mockito}"
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.mockwebserver}"
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
@@ -100,8 +105,10 @@ object Dependencies {
     const val androidx_work_runtime = "androidx.work:work-runtime-ktx:${Versions.AndroidX.work}"
     const val androidx_work_testing = "androidx.work:work-testing:${Versions.AndroidX.work}"
     const val androidx_espresso_core = "androidx.test.espresso:espresso-core:${Versions.AndroidX.espresso}"
+    const val androidx_localbroadcastmanager = "androidx.localbroadcastmanager:localbroadcastmanager:${Versions.AndroidX.localbroadcastmanager}"
 
     const val google_material = "com.google.android.material:material:${Versions.material}"
+    const val google_nearby = "com.google.android.gms:play-services-nearby:${Versions.nearby}"
 
     const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
@@ -112,20 +119,26 @@ object Dependencies {
     const val tools_lintapi = "com.android.tools.lint:lint-api:${Versions.lint}"
     const val tools_linttests = "com.android.tools.lint:lint-tests:${Versions.lint}"
 
+    const val tools_detekt_api = "io.gitlab.arturbosch.detekt:detekt-api:${Versions.detekt}"
+    const val tools_detekt_test = "io.gitlab.arturbosch.detekt:detekt-test:${Versions.detekt}"
+
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
+
+    const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-forUnitTests:${Versions.mozilla_glean}"
 
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
+    const val mozilla_sync_manager = "org.mozilla.appservices:syncmanager:${Versions.mozilla_appservices}"
 
     const val mozilla_push = "org.mozilla.appservices:push:${Versions.mozilla_appservices}"
+
+    const val mozilla_remote_tabs = "org.mozilla.appservices:tabs:${Versions.mozilla_appservices}"
 
     const val mozilla_httpconfig = "org.mozilla.appservices:httpconfig:${Versions.mozilla_appservices}"
     const val mozilla_full_megazord = "org.mozilla.appservices:full-megazord:${Versions.mozilla_appservices}"
     const val mozilla_full_megazord_forUnitTests = "org.mozilla.appservices:full-megazord-forUnitTests:${Versions.mozilla_appservices}"
 
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
-    const val mozilla_servo_arm = "org.mozilla.servoview:servoview-armv7:${Versions.servo}"
-    const val mozilla_servo_x86 = "org.mozilla.servoview:servoview-x86:${Versions.servo}"
     const val mozilla_sync15 = "org.mozilla.appservices:sync15:${Versions.mozilla_appservices}"
 
     const val thirdparty_okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"

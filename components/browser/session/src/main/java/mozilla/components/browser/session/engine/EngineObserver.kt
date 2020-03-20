@@ -4,12 +4,20 @@
 
 package mozilla.components.browser.session.engine
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Environment
-import mozilla.components.browser.session.Download
+import androidx.core.net.toUri
 import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.engine.request.LaunchIntentMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -25,15 +33,23 @@ import mozilla.components.support.base.observer.Consumable
  * [EngineSession.Observer] implementation responsible to update the state of a [Session] from the events coming out of
  * an [EngineSession].
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 internal class EngineObserver(
-    val session: Session
+    private val session: Session,
+    private val store: BrowserStore? = null
 ) : EngineSession.Observer {
 
+    override fun onNavigateBack() {
+        session.searchTerms = ""
+    }
+
     override fun onLocationChange(url: String) {
-        if (session.url != url) {
+        if (!isUrlSame(session.url, url)) {
             session.title = ""
-            session.icon = null
+        }
+
+        if (!isInScope(session.webAppManifest, url)) {
+            session.webAppManifest = null
         }
 
         session.url = url
@@ -49,7 +65,43 @@ internal class EngineObserver(
         }
     }
 
-    override fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
+    private fun isUrlSame(originalUrl: String, newUrl: String): Boolean {
+        val originalUri = Uri.parse(originalUrl)
+        val uri = Uri.parse(newUrl)
+
+        return uri.port == originalUri.port &&
+            uri.host == originalUri.host &&
+            uri.path?.trimStart('/') == originalUri.path?.trimStart('/') &&
+            uri.query == originalUri.query
+    }
+
+    private fun isHostEquals(sessionUrl: String, newUrl: String): Boolean {
+        val sessionUri = sessionUrl.toUri()
+        val newUri = newUrl.toUri()
+
+        return sessionUri.scheme == newUri.scheme && sessionUri.host == newUri.host
+    }
+
+    /**
+     * Checks that the [newUrl] is in scope of the web app manifest.
+     *
+     * https://www.w3.org/TR/appmanifest/#dfn-within-scope
+     */
+    private fun isInScope(manifest: WebAppManifest?, newUrl: String): Boolean {
+        val scope = manifest?.scope ?: manifest?.startUrl ?: return false
+        val scopeUri = scope.toUri()
+        val newUri = newUrl.toUri()
+
+        return isHostEquals(scope, newUrl) &&
+            scopeUri.port == newUri.port &&
+            newUri.path.orEmpty().startsWith(scopeUri.path.orEmpty())
+    }
+
+    override fun onLoadRequest(
+        url: String,
+        triggeredByRedirect: Boolean,
+        triggeredByWebContent: Boolean
+    ) {
         if (triggeredByRedirect || triggeredByWebContent) {
             session.searchTerms = ""
         }
@@ -61,6 +113,10 @@ internal class EngineObserver(
                 if (triggeredByWebContent) LoadRequestOption.WEB_CONTENT else LoadRequestOption.NONE
             )
         )
+    }
+
+    override fun onLaunchIntentRequest(url: String, appIntent: Intent?) {
+        session.launchIntentMetadata = LaunchIntentMetadata(url, appIntent)
     }
 
     override fun onTitleChange(title: String) {
@@ -76,6 +132,7 @@ internal class EngineObserver(
         if (loading) {
             session.findResults = emptyList()
             session.trackersBlocked = emptyList()
+            session.trackersLoaded = emptyList()
         }
     }
 
@@ -91,6 +148,14 @@ internal class EngineObserver(
 
     override fun onTrackerBlocked(tracker: Tracker) {
         session.trackersBlocked += tracker
+    }
+
+    override fun onTrackerLoaded(tracker: Tracker) {
+        session.trackersLoaded += tracker
+    }
+
+    override fun onExcludedOnTrackingProtectionChange(excluded: Boolean) {
+        store?.syncDispatch(TrackingProtectionAction.ToggleExclusionListAction(session.id, excluded))
     }
 
     override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
@@ -117,8 +182,19 @@ internal class EngineObserver(
         cookie: String?,
         userAgent: String?
     ) {
-        val download = Download(url, fileName, contentType, contentLength, userAgent, Environment.DIRECTORY_DOWNLOADS)
-        session.download = Consumable.from(download)
+        val download = DownloadState(
+            url,
+            fileName,
+            contentType,
+            contentLength,
+            userAgent,
+            Environment.DIRECTORY_DOWNLOADS
+        )
+
+        store?.dispatch(ContentAction.UpdateDownloadAction(
+            session.id,
+            download
+        ))
     }
 
     override fun onDesktopModeChange(enabled: Boolean) {
@@ -146,15 +222,19 @@ internal class EngineObserver(
     }
 
     override fun onPromptRequest(promptRequest: PromptRequest) {
-        session.promptRequest = Consumable.from(promptRequest)
+        store?.dispatch(ContentAction.UpdatePromptRequestAction(
+            session.id,
+            promptRequest
+        ))
     }
 
-    override fun onOpenWindowRequest(windowRequest: WindowRequest) {
-        session.openWindowRequest = Consumable.from(windowRequest)
-    }
-
-    override fun onCloseWindowRequest(windowRequest: WindowRequest) {
-        session.closeWindowRequest = Consumable.from(windowRequest)
+    override fun onWindowRequest(windowRequest: WindowRequest) {
+        store?.dispatch(
+            ContentAction.UpdateWindowRequestAction(
+                session.id,
+                windowRequest
+            )
+        )
     }
 
     override fun onMediaAdded(media: Media) {

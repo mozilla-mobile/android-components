@@ -2,7 +2,7 @@
 
 # ReaderViewControlsView
 
-`interface ReaderViewControlsView` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/readerview/src/main/java/mozilla/components/feature/readerview/view/ReaderViewControlsView.kt#L16)
+`interface ReaderViewControlsView` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/readerview/src/main/java/mozilla/components/feature/readerview/view/ReaderViewControlsView.kt#L14)
 
 An interface for views that can display ReaderView appearance controls (e.g. font size, font type).
 
@@ -28,6 +28,13 @@ An interface for views that can display ReaderView appearance controls (e.g. fon
 | [setFont](set-font.md) | `abstract fun setFont(font: `[`FontType`](../../mozilla.components.feature.readerview/-reader-view-feature/-font-type/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Sets the selected font option. |
 | [setFontSize](set-font-size.md) | `abstract fun setFontSize(size: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Sets the selected font size. |
 | [showControls](show-controls.md) | `abstract fun showControls(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Makes the UI controls visible and requests focus. |
+| [tryInflate](try-inflate.md) | `abstract fun tryInflate(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)<br>Tries to inflate the view if needed. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

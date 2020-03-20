@@ -23,7 +23,7 @@ A customizable "Find in page" bar implementing [FindInPageView](../-find-in-page
 | Name | Summary |
 |---|---|
 | [clear](clear.md) | `fun clear(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Clears the UI state. |
-| [displayResult](display-result.md) | `fun displayResult(result: `[`FindResult`](../../mozilla.components.browser.session/-session/-find-result/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Displays the given [Session.FindResult](../../mozilla.components.browser.session/-session/-find-result/index.md) state in the view. |
+| [displayResult](display-result.md) | `fun displayResult(result: `[`FindResultState`](../../mozilla.components.browser.state.state.content/-find-result-state/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Displays the given [FindResultState](../../mozilla.components.browser.state.state.content/-find-result-state/index.md) state in the view. |
 | [focus](focus.md) | `fun focus(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Requests focus for the input element the user can type their query into. |
 
 ### Inherited Functions
@@ -31,3 +31,9 @@ A customizable "Find in page" bar implementing [FindInPageView](../-find-in-page
 | Name | Summary |
 |---|---|
 | [asView](../-find-in-page-view/as-view.md) | `open fun asView(): <ERROR CLASS>`<br>Casts this [FindInPageView](../-find-in-page-view/index.md) interface to an actual Android [View](#) object. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

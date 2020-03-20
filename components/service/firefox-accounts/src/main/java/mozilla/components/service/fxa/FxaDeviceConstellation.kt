@@ -4,26 +4,24 @@
 
 package mozilla.components.service.fxa
 
+import android.content.Context
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import mozilla.appservices.fxaclient.AccountEvent
 import mozilla.appservices.fxaclient.FirefoxAccount
 import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceConstellationObserver
-import mozilla.components.concept.sync.DeviceEvent
-import mozilla.components.concept.sync.DeviceEventOutgoing
-import mozilla.components.concept.sync.DeviceEventsObserver
+import mozilla.components.concept.sync.AccountEvent
+import mozilla.components.concept.sync.AccountEventsObserver
+import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DevicePushSubscription
 import mozilla.components.concept.sync.DeviceType
-import mozilla.components.service.fxa.manager.DeviceManagerProvider
-import mozilla.components.service.fxa.manager.PollingDeviceManager
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -35,24 +33,15 @@ import mozilla.components.support.base.observer.ObserverRegistry
 class FxaDeviceConstellation(
     private val account: FirefoxAccount,
     private val scope: CoroutineScope
-) : DeviceConstellation, Observable<DeviceEventsObserver> by ObserverRegistry() {
+) : DeviceConstellation, Observable<AccountEventsObserver> by ObserverRegistry() {
     private val logger = Logger("FxaDeviceConstellation")
 
     private val deviceObserverRegistry = ObserverRegistry<DeviceConstellationObserver>()
-    private val deviceManager = PollingDeviceManager(this, scope, deviceObserverRegistry)
 
-    init {
-        DeviceManagerProvider.deviceManager = deviceManager
+    @Volatile
+    private var constellationState: ConstellationState? = null
 
-        deviceManager.register(object : DeviceEventsObserver {
-            override fun onEvents(events: List<DeviceEvent>) {
-                // TODO notifyObserversOnMainThread
-                CoroutineScope(Dispatchers.Main).launch {
-                    notifyObservers { onEvents(events) }
-                }
-            }
-        })
-    }
+    override fun state(): ConstellationState? = constellationState
 
     override fun initDeviceAsync(
         name: String,
@@ -76,34 +65,8 @@ class FxaDeviceConstellation(
 
     override fun processRawEventAsync(payload: String): Deferred<Boolean> {
         return scope.async {
-            handleFxaExceptions(logger, "processing raw events") {
-                val events = account.handlePushMessage(payload).filter {
-                    it is AccountEvent.TabReceived
-                }.map {
-                    (it as AccountEvent.TabReceived).into()
-                }
-                deviceManager.processEvents(events)
-            }
-        }
-    }
-
-    override fun pollForEventsAsync(): Deferred<List<DeviceEvent>?> {
-        // Currently ignoring non-TabReceived events.
-        return scope.async {
-            handleFxaExceptions(logger, "polling for device events", { null }) {
-                account.pollDeviceCommands().filter {
-                    it is AccountEvent.TabReceived
-                }.map {
-                    (it as AccountEvent.TabReceived).into()
-                }
-            }
-        }
-    }
-
-    override fun fetchAllDevicesAsync(): Deferred<List<Device>?> {
-        return scope.async {
-            handleFxaExceptions(logger, "fetching all devices", { null }) {
-                account.getDevices().map { it.into() }
+            handleFxaExceptions(logger, "processing raw commands") {
+                processEvents(account.handlePushMessage(payload).map { it.into() })
             }
         }
     }
@@ -116,13 +79,14 @@ class FxaDeviceConstellation(
         deviceObserverRegistry.register(observer, owner, autoPause)
     }
 
-    override fun setDeviceNameAsync(name: String): Deferred<Boolean> {
+    override fun setDeviceNameAsync(name: String, context: Context): Deferred<Boolean> {
         return scope.async {
             val rename = handleFxaExceptions(logger, "changing device name") {
                 account.setDeviceDisplayName(name)
             }
+            FxaDeviceSettingsCache(context).updateCachedName(name)
             // See the latest device (name) changes after changing it.
-            val refreshDevices = deviceManager.refreshDevicesAsync().await()
+            val refreshDevices = refreshDevicesAsync().await()
 
             rename && refreshDevices
         }
@@ -138,39 +102,83 @@ class FxaDeviceConstellation(
         }
     }
 
-    override fun sendEventToDeviceAsync(targetDeviceId: String, outgoingEvent: DeviceEventOutgoing): Deferred<Boolean> {
+    override fun sendCommandToDeviceAsync(
+        targetDeviceId: String,
+        outgoingCommand: DeviceCommandOutgoing
+    ): Deferred<Boolean> {
         return scope.async {
-            handleFxaExceptions(logger, "sending device event") {
-                when (outgoingEvent) {
-                    is DeviceEventOutgoing.SendTab -> {
-                        account.sendSingleTab(targetDeviceId, outgoingEvent.title, outgoingEvent.url)
+            handleFxaExceptions(logger, "sending device command") {
+                when (outgoingCommand) {
+                    is DeviceCommandOutgoing.SendTab -> {
+                        account.sendSingleTab(targetDeviceId, outgoingCommand.title, outgoingCommand.url)
                     }
-                    else -> logger.debug("Skipped sending unsupported event type: $outgoingEvent")
+                    else -> logger.debug("Skipped sending unsupported command type: $outgoingCommand")
                 }
             }
         }
     }
 
-    override fun state(): ConstellationState? {
-        return deviceManager.constellationState()
-    }
-
-    override fun startPeriodicRefresh() {
-        deviceManager.startPolling()
-    }
-
-    override fun stopPeriodicRefresh() {
-        deviceManager.stopPolling()
-    }
-
-    override fun refreshDeviceStateAsync(): Deferred<Boolean> {
+    // Poll for missed commands. Commands are the only event-type that can be
+    // polled for, although missed commands will be delivered as AccountEvents.
+    override fun pollForCommandsAsync(): Deferred<Boolean> {
         return scope.async {
-            val refreshedDevices = deviceManager.refreshDevicesAsync().await()
-            val events = pollForEventsAsync().await()?.let {
-                deviceManager.processEvents(it)
+            val events = handleFxaExceptions(logger, "polling for device commands", { null }) {
+                account.pollDeviceCommands().map { AccountEvent.DeviceCommandIncoming(command = it.into()) }
+            }
+
+            if (events == null) {
+                false
+            } else {
+                processEvents(events)
                 true
-            } ?: false
-            refreshedDevices && events
+            }
+        }
+    }
+
+    private fun processEvents(events: List<AccountEvent>) = CoroutineScope(Dispatchers.Main).launch {
+        notifyObservers { onEvents(events) }
+    }
+
+    override fun refreshDevicesAsync(): Deferred<Boolean> = scope.async {
+        logger.info("Refreshing device list...")
+
+        // Attempt to fetch devices, or bail out on failure.
+        val allDevices = fetchAllDevicesAsync().await() ?: return@async false
+
+        // Find the current device.
+        val currentDevice = allDevices.find { it.isCurrentDevice }?.also {
+            // Check if our current device's push subscription needs to be renewed.
+            if (it.subscriptionExpired) {
+                logger.info("Current device needs push endpoint registration")
+            }
+        }
+
+        // Filter out the current devices.
+        val otherDevices = allDevices.filter { !it.isCurrentDevice }
+
+        val newState = ConstellationState(currentDevice, otherDevices)
+        constellationState = newState
+
+        logger.info("Refreshed device list; saw ${allDevices.size} device(s).")
+
+        CoroutineScope(Dispatchers.Main).launch {
+            // NB: at this point, 'constellationState' might have changed.
+            // Notify with an immutable, local 'newState' instead.
+            deviceObserverRegistry.notifyObservers { onDevicesUpdate(newState) }
+        }
+
+        true
+    }
+
+    /**
+     * Get all devices in the constellation.
+     * @return A list of all devices in the constellation, or `null` on failure.
+     */
+    private fun fetchAllDevicesAsync(): Deferred<List<Device>?> {
+        return scope.async {
+            handleFxaExceptions(logger, "fetching all devices", { null }) {
+                account.getDevices().map { it.into() }
+            }
         }
     }
 }

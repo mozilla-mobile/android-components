@@ -5,10 +5,11 @@
 package mozilla.components.browser.session
 
 import android.graphics.Bitmap
-import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,6 +17,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyString
 
 import org.mockito.Mockito.`when`
@@ -107,6 +109,46 @@ class SessionManagerTest {
     }
 
     @Test
+    fun `selected session is marked as active for web extensions`() {
+        val engine = mock(Engine::class.java)
+        val engineSession1 = mock(EngineSession::class.java)
+        val engineSession2 = mock(EngineSession::class.java)
+        `when`(engine.name()).thenReturn("gecko")
+        `when`(engine.createSession(anyBoolean())).thenReturn(engineSession1)
+
+        val session1 = Session("http://www.mozilla.org")
+        val session2 = Session("http://www.firefox.com")
+
+        val manager = SessionManager(engine)
+        manager.add(session1)
+        manager.add(session2)
+        assertEquals("http://www.mozilla.org", manager.selectedSessionOrThrow.url)
+
+        // Session1 was selected but never linked to an engine session so we have never marked it as active
+        verify(engineSession1, never()).markActiveForWebExtensions(true)
+
+        // Creating an engine session and linking to session1 should mark it as active
+        manager.getOrCreateEngineSession(session1)
+        verify(engineSession1).markActiveForWebExtensions(true)
+
+        // Selecting a new session should mark the new session as active and the previous one as inactive
+        `when`(engine.createSession(anyBoolean())).thenReturn(engineSession2)
+        verify(engineSession2, never()).markActiveForWebExtensions(true)
+        manager.getOrCreateEngineSession(session2)
+        manager.select(session2)
+        assertEquals("http://www.firefox.com", manager.selectedSessionOrThrow.url)
+        verify(engineSession1).markActiveForWebExtensions(false)
+        verify(engineSession2).markActiveForWebExtensions(true)
+
+        // Removing the selected session should mark it as inactive and the new selection as active
+        `when`(engine.createSession(anyBoolean())).thenReturn(engineSession1)
+        manager.remove(session2)
+        assertEquals("http://www.mozilla.org", manager.selectedSessionOrThrow.url)
+        verify(engineSession2).markActiveForWebExtensions(false)
+        verify(engineSession1, times(2)).markActiveForWebExtensions(true)
+    }
+
+    @Test
     fun `observer does not get notified after unregistering`() {
         val session1 = Session("http://www.mozilla.org")
         val session2 = Session("http://www.firefox.com")
@@ -151,16 +193,32 @@ class SessionManagerTest {
         val manager = SessionManager(mock())
         val session1 = Session("https://www.mozilla.org")
         val session2 = Session("https://www.firefox.com")
+        val session3 = Session("https://getpocket.com")
+        val session4 = Session("https://github.com/mozilla-mobile/android-components")
 
         manager.add(session1)
-        manager.add(session2)
+        manager.add(session2, selected = true)
+        manager.add(session3)
+        manager.add(session4)
 
         val observer: SessionManager.Observer = mock()
         manager.register(observer)
 
-        manager.remove(session1)
+        manager.remove(session3)
+        verify(observer).onSessionRemoved(session3)
+        verify(observer, never()).onSessionSelected(any())
 
+        manager.remove(session1)
         verify(observer).onSessionRemoved(session1)
+        verify(observer, never()).onSessionSelected(any())
+
+        assertEquals(session2, manager.selectedSession)
+        manager.remove(session2)
+        verify(observer).onSessionRemoved(session2)
+        // Only removing the selected session should cause
+        // a new one to be selected.
+        verify(observer).onSessionSelected(session4)
+
         verifyNoMoreInteractions(observer)
     }
 
@@ -584,11 +642,38 @@ class SessionManagerTest {
         assertEquals(actualEngineSession, sessionManager.getOrCreateEngineSession(session))
         assertEquals(actualEngineSession, sessionManager.getEngineSession(session))
         assertEquals(actualEngineSession, sessionManager.getOrCreateEngineSession(session))
+        assertEquals(actualEngineSession, session.engineSessionHolder.engineSession)
 
         val privateSession = Session("https://www.mozilla.org", true, Session.Source.NONE)
         sessionManager.add(privateSession)
         assertNull(sessionManager.getEngineSession(privateSession))
         assertEquals(privateEngineSession, sessionManager.getOrCreateEngineSession(privateSession))
+        assertEquals(privateEngineSession, privateSession.engineSessionHolder.engineSession)
+    }
+
+    @Test
+    fun `session manager considers parent when creating and linking engine session`() {
+        val engine: Engine = mock()
+
+        val parent = Session(id = "parent", initialUrl = "")
+        val parentEngineSession: EngineSession = mock()
+        val session = Session("https://www.mozilla.org")
+        session.parentId = parent.id
+        val engineSession: EngineSession = mock()
+
+        val sessionManager = SessionManager(engine)
+        sessionManager.add(parent)
+        sessionManager.add(session)
+
+        doReturn(parentEngineSession, engineSession).`when`(engine).createSession(false)
+
+        assertEquals(parentEngineSession, sessionManager.getOrCreateEngineSession(parent))
+        assertEquals(parentEngineSession, parent.engineSessionHolder.engineSession)
+
+        assertEquals(engineSession, sessionManager.getOrCreateEngineSession(session))
+        assertEquals(engineSession, session.engineSessionHolder.engineSession)
+
+        verify(engineSession).loadUrl(session.url, parentEngineSession, EngineSession.LoadUrlFlags.none())
     }
 
     @Test
@@ -668,6 +753,7 @@ class SessionManagerTest {
     }
 
     @Test
+    @Suppress("Deprecation")
     fun `thumbnails of all but selected session should be removed on low memory`() {
         val manager = SessionManager(mock())
 
@@ -718,14 +804,16 @@ class SessionManagerTest {
         val child = Session("https://www.mozilla.org/en-US/internet-health/")
 
         val manager = SessionManager(mock())
+        val observer: SessionManager.Observer = mock()
         manager.add(parent)
         manager.add(session1)
         manager.add(session2)
         manager.add(child, parent = parent)
 
         manager.select(child)
+        manager.register(observer)
         manager.remove(child, selectParentIfExists = true)
-
+        verify(observer).onSessionSelected(parent)
         assertEquals(parent, manager.selectedSession)
         assertEquals("https://www.mozilla.org", manager.selectedSessionOrThrow.url)
     }
@@ -740,6 +828,8 @@ class SessionManagerTest {
         val child2 = Session("https://www.mozilla.org/en-US/technology/")
 
         val manager = SessionManager(mock())
+        val observer: SessionManager.Observer = mock()
+        manager.register(observer)
         manager.add(parent)
         manager.add(session1)
         manager.add(session2)
@@ -748,7 +838,7 @@ class SessionManagerTest {
 
         manager.select(child1)
         manager.remove(child1, selectParentIfExists = false)
-
+        verify(observer).onSessionSelected(session1)
         assertEquals(session1, manager.selectedSession)
         assertEquals("https://www.firefox.com", manager.selectedSessionOrThrow.url)
     }
@@ -760,13 +850,15 @@ class SessionManagerTest {
         val session3 = Session("https://www.mozilla.org/en-US/internet-health/")
 
         val manager = SessionManager(mock())
+        val observer: SessionManager.Observer = mock()
+        manager.register(observer)
         manager.add(session1)
         manager.add(session2)
         manager.add(session3)
 
         manager.select(session3)
         manager.remove(session3, selectParentIfExists = true)
-
+        verify(observer).onSessionSelected(session2)
         assertEquals(session2, manager.selectedSession)
         assertEquals("https://getpocket.com", manager.selectedSessionOrThrow.url)
     }

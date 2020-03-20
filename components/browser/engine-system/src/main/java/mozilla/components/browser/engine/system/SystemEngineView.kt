@@ -54,11 +54,16 @@ import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
+import mozilla.components.concept.engine.selection.SelectionActionDelegate
+import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.ktx.android.view.getRectWithViewLocation
+import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import mozilla.components.support.utils.DownloadUtils
-import java.util.Date
 
 /**
  * WebView-based implementation of EngineView.
@@ -71,9 +76,8 @@ class SystemEngineView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView, View.OnLongClickListener {
     @VisibleForTesting(otherwise = PRIVATE)
     internal var session: SystemEngineSession? = null
-    internal var jsAlertCount = 0
-    internal var shouldShowMoreDialogs = true
-    internal var lastDialogShownAt = Date()
+
+    override var selectionActionDelegate: SelectionActionDelegate? = null
 
     /**
      * Render the content of the given session.
@@ -156,7 +160,8 @@ class SystemEngineView @JvmOverloads constructor(
             }
 
             runBlocking {
-                session?.settings?.historyTrackingDelegate?.onVisited(url, visitType)
+                session?.settings?.historyTrackingDelegate?.onVisited(url,
+                    PageVisit(visitType, RedirectSource.NOT_A_SOURCE))
             }
         }
 
@@ -169,7 +174,6 @@ class SystemEngineView @JvmOverloads constructor(
                     onNavigationStateChange(view.canGoBack(), view.canGoForward())
                 }
             }
-            resetJSAlertAbuseState()
         }
 
         override fun onPageFinished(view: WebView?, url: String?) {
@@ -186,7 +190,7 @@ class SystemEngineView @JvmOverloads constructor(
             }
         }
 
-        @Suppress("ReturnCount", "NestedBlockDepth")
+        @Suppress("ReturnCount", "NestedBlockDepth", "LongMethod")
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
             if (session?.webFontsEnabled == false && UrlMatcher.isWebFont(request.url)) {
                 return WebResourceResponse(null, null, null)
@@ -213,13 +217,18 @@ class SystemEngineView @JvmOverloads constructor(
                     return WebResourceResponse(null, null, null)
                 }
 
-                if (!request.isForMainFrame &&
-                        getOrCreateUrlMatcher(resources, it).matches(resourceUri, Uri.parse(session?.currentUrl))) {
+                val (matches, stringCategory) = getOrCreateUrlMatcher(resources, it).matches(
+                    resourceUri,
+                    Uri.parse(session?.currentUrl)
+                )
+
+                if (!request.isForMainFrame && matches) {
                     session?.internalNotifyObservers {
+                        val matchedCategories = stringCategory.toTrackingProtectionCategories()
                         onTrackerBlocked(
                             Tracker(
                                 resourceUri.toString(),
-                                emptyList()
+                                matchedCategories
                             )
                         )
                     }
@@ -230,13 +239,25 @@ class SystemEngineView @JvmOverloads constructor(
             session?.let { session ->
                 session.settings.requestInterceptor?.let { interceptor ->
                     interceptor.onLoadRequest(
-                        session, request.url.toString()
+                        session,
+                        request.url.toString(),
+                        request.hasGesture(),
+                        session.currentUrl.tryGetHostFromUrl() == request.url.host
                     )?.apply {
                         return when (this) {
                             is InterceptionResponse.Content ->
                                 WebResourceResponse(mimeType, encoding, data.byteInputStream())
                             is InterceptionResponse.Url -> {
                                 view.post { view.loadUrl(url) }
+                                super.shouldInterceptRequest(view, request)
+                            }
+                            is InterceptionResponse.AppIntent -> {
+                                if (request.isForMainFrame) {
+                                    session.notifyObservers {
+                                        onLaunchIntentRequest(url = url, appIntent = appIntent)
+                                    }
+                                }
+
                                 super.shouldInterceptRequest(view, request)
                             }
                         }
@@ -263,7 +284,14 @@ class SystemEngineView @JvmOverloads constructor(
                     ErrorType.ERROR_SECURITY_SSL,
                     error.url
                 )?.apply {
-                    view.loadDataWithBaseURL(url, data, mimeType, encoding, null)
+                    when (this) {
+                        is RequestInterceptor.ErrorResponse.Content -> {
+                            view.loadDataWithBaseURL(url, data, mimeType, encoding, null)
+                        }
+                        is RequestInterceptor.ErrorResponse.Uri -> {
+                            view.loadUrl(uri)
+                        }
+                    }
                 }
             }
         }
@@ -276,7 +304,14 @@ class SystemEngineView @JvmOverloads constructor(
                     errorType,
                     failingUrl
                 )?.apply {
-                    view.loadDataWithBaseURL(url ?: failingUrl, data, mimeType, encoding, null)
+                    when (this) {
+                        is RequestInterceptor.ErrorResponse.Content -> {
+                            view.loadDataWithBaseURL(url ?: failingUrl, data, mimeType, encoding, null)
+                        }
+                        is RequestInterceptor.ErrorResponse.Uri -> {
+                            view.loadUrl(uri)
+                        }
+                    }
                 }
             }
         }
@@ -293,7 +328,14 @@ class SystemEngineView @JvmOverloads constructor(
                     errorType,
                     request.url.toString()
                 )?.apply {
-                    view.loadDataWithBaseURL(url ?: request.url.toString(), data, mimeType, encoding, null)
+                    when (this) {
+                        is RequestInterceptor.ErrorResponse.Content -> {
+                            view.loadDataWithBaseURL(url ?: request.url.toString(), data, mimeType, encoding, null)
+                        }
+                        is RequestInterceptor.ErrorResponse.Uri -> {
+                            view.loadUrl(this.uri)
+                        }
+                    }
                 }
             }
         }
@@ -406,25 +448,17 @@ class SystemEngineView @JvmOverloads constructor(
                 result.cancel()
             }
 
-            if (shouldShowMoreDialogs) {
-
-                session.notifyObservers {
-                    onPromptRequest(
-                        PromptRequest.Alert(
-                            title,
-                            message ?: "",
-                            areDialogsBeingAbused(),
-                            onDismiss
-                        ) { shouldNotShowMoreDialogs ->
-                            shouldShowMoreDialogs = !shouldNotShowMoreDialogs
-                            result.confirm()
-                        })
-                }
-            } else {
-                result.cancel()
+            session.notifyObservers {
+                onPromptRequest(
+                    PromptRequest.Alert(
+                        title,
+                        message ?: "",
+                        false,
+                        onDismiss
+                    ) { _ ->
+                        result.confirm()
+                    })
             }
-
-            updateJSDialogAbusedState()
             return true
         }
 
@@ -443,72 +477,57 @@ class SystemEngineView @JvmOverloads constructor(
                 result.cancel()
             }
 
-            val onConfirm: (Boolean, String) -> Unit = { shouldNotShowMoreDialogs, valueInput ->
-                shouldShowMoreDialogs = !shouldNotShowMoreDialogs
+            val onConfirm: (Boolean, String) -> Unit = { _, valueInput ->
                 result.confirm(valueInput)
             }
 
-            if (shouldShowMoreDialogs) {
-                session.notifyObservers {
-                    onPromptRequest(
-                        PromptRequest.TextPrompt(
-                            title,
-                            message ?: "",
-                            defaultValue ?: "",
-                            areDialogsBeingAbused(),
-                            onDismiss,
-                            onConfirm
-                        )
+            session.notifyObservers {
+                onPromptRequest(
+                    PromptRequest.TextPrompt(
+                        title,
+                        message ?: "",
+                        defaultValue ?: "",
+                        false,
+                        onDismiss,
+                        onConfirm
                     )
-                }
-            } else {
-                result.cancel()
+                )
             }
-            updateJSDialogAbusedState()
             return true
         }
 
         override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult): Boolean {
             val session = session ?: return applyDefaultJsDialogBehavior(result)
             val title = context.getString(R.string.mozac_browser_engine_system_alert_title, url ?: session.currentUrl)
-            val positiveButton = context.getString(android.R.string.ok)
-            val negativeButton = context.getString(android.R.string.cancel)
 
             val onDismiss: () -> Unit = {
                 result.cancel()
             }
 
-            val onConfirmPositiveButton: (Boolean) -> Unit = { shouldNotShowMoreDialogs ->
-                shouldShowMoreDialogs = !shouldNotShowMoreDialogs
+            val onConfirmPositiveButton: (Boolean) -> Unit = { _ ->
                 result.confirm()
             }
 
-            val onConfirmNegativeButton: (Boolean) -> Unit = { shouldNotShowMoreDialogs ->
-                shouldShowMoreDialogs = !shouldNotShowMoreDialogs
+            val onConfirmNegativeButton: (Boolean) -> Unit = { _ ->
                 result.cancel()
             }
 
-            if (shouldShowMoreDialogs) {
-                session.notifyObservers {
-                    onPromptRequest(
-                        PromptRequest.Confirm(
-                            title,
-                            message ?: "",
-                            areDialogsBeingAbused(),
-                            positiveButton,
-                            negativeButton,
-                            "",
-                            onConfirmPositiveButton,
-                            onConfirmNegativeButton,
-                            {},
-                            onDismiss
-                        )
+            session.notifyObservers {
+                onPromptRequest(
+                    PromptRequest.Confirm(
+                        title,
+                        message ?: "",
+                        false,
+                        "",
+                        "",
+                        "",
+                        onConfirmPositiveButton,
+                        onConfirmNegativeButton,
+                        {},
+                        onDismiss
                     )
-                }
-            } else {
-                result.cancel()
+                )
             }
-            updateJSDialogAbusedState()
             return true
         }
 
@@ -568,7 +587,7 @@ class SystemEngineView @JvmOverloads constructor(
         ): Boolean {
             session?.internalNotifyObservers {
                 val newEngineSession = SystemEngineSession(context, session?.settings)
-                onOpenWindowRequest(SystemWindowRequest(
+                onWindowRequest(SystemWindowRequest(
                     view, newEngineSession, NestedWebView(context), isDialog, isUserGesture, resultMsg
                 ))
             }
@@ -576,14 +595,17 @@ class SystemEngineView @JvmOverloads constructor(
         }
 
         override fun onCloseWindow(window: WebView) {
-            session?.internalNotifyObservers { onCloseWindowRequest(SystemWindowRequest(window)) }
+            session?.internalNotifyObservers {
+                onWindowRequest(SystemWindowRequest(window, type = WindowRequest.Type.CLOSE))
+            }
         }
     }
 
     internal fun createDownloadListener(): DownloadListener {
         return DownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
             session?.internalNotifyObservers {
-                val fileName = DownloadUtils.guessFileName(contentDisposition, url, mimetype)
+
+                val fileName = DownloadUtils.guessFileName(contentDisposition, null, url, mimetype)
                 val cookie = CookieManager.getInstance().getCookie(url)
                 onExternalResource(url, fileName, contentLength, mimetype, cookie, userAgent)
             }
@@ -671,6 +693,10 @@ class SystemEngineView @JvmOverloads constructor(
         // no-op
     }
 
+    override fun setDynamicToolbarMaxHeight(height: Int) {
+        // no-op
+    }
+
     override fun canScrollVerticallyUp() = session?.webView?.canScrollVertically(-1) ?: false
 
     override fun canScrollVerticallyDown() = session?.webView?.canScrollVertically(1) ?: false
@@ -687,6 +713,10 @@ class SystemEngineView @JvmOverloads constructor(
         } else {
             createThumbnailUsingPixelCopy(webView, onFinish)
         }
+    }
+
+    override fun clearSelection() {
+        // no-op
     }
 
     private fun createThumbnailUsingDrawingView(view: View, onFinish: (Bitmap?) -> Unit) {
@@ -708,40 +738,9 @@ class SystemEngineView @JvmOverloads constructor(
         }, handler)
     }
 
-    private fun resetJSAlertAbuseState() {
-        jsAlertCount = 0
-        shouldShowMoreDialogs = true
-    }
-
     private fun applyDefaultJsDialogBehavior(result: JsResult?): Boolean {
         result?.cancel()
         return true
-    }
-
-    internal fun updateJSDialogAbusedState() {
-        if (!areDialogsAbusedByTime()) {
-            jsAlertCount = 0
-        }
-        ++jsAlertCount
-        lastDialogShownAt = Date()
-    }
-
-    internal fun areDialogsBeingAbused(): Boolean {
-        return areDialogsAbusedByTime() || areDialogsAbusedByCount()
-    }
-
-    internal fun areDialogsAbusedByTime(): Boolean {
-        return if (jsAlertCount == 0) {
-            false
-        } else {
-            val now = Date()
-            val diffInSeconds = (now.time - lastDialogShownAt.time) / SECOND_MS
-            diffInSeconds < MAX_SUCCESSIVE_DIALOG_SECONDS_LIMIT
-        }
-    }
-
-    internal fun areDialogsAbusedByCount(): Boolean {
-        return jsAlertCount > MAX_SUCCESSIVE_DIALOG_COUNT
     }
 
     @Suppress("Deprecation")
@@ -782,11 +781,22 @@ class SystemEngineView @JvmOverloads constructor(
         internal var URL_MATCHER: UrlMatcher? = null
 
         private val urlMatcherCategoryMap = mapOf(
-                UrlMatcher.ADVERTISING to TrackingProtectionPolicy.AD,
-                UrlMatcher.ANALYTICS to TrackingProtectionPolicy.ANALYTICS,
-                UrlMatcher.CONTENT to TrackingProtectionPolicy.CONTENT,
-                UrlMatcher.SOCIAL to TrackingProtectionPolicy.SOCIAL
+                UrlMatcher.ADVERTISING to TrackingProtectionPolicy.TrackingCategory.AD,
+                UrlMatcher.ANALYTICS to TrackingProtectionPolicy.TrackingCategory.ANALYTICS,
+                UrlMatcher.CONTENT to TrackingProtectionPolicy.TrackingCategory.CONTENT,
+                UrlMatcher.SOCIAL to TrackingProtectionPolicy.TrackingCategory.SOCIAL,
+                UrlMatcher.CRYPTOMINING to TrackingProtectionPolicy.TrackingCategory.CRYPTOMINING,
+                UrlMatcher.FINGERPRINTING to TrackingProtectionPolicy.TrackingCategory.FINGERPRINTING
         )
+
+        private fun String?.toTrackingProtectionCategories(): List<TrackingProtectionPolicy.TrackingCategory> {
+            val category = urlMatcherCategoryMap[this]
+            return if (category != null) {
+                listOf(category)
+            } else {
+                emptyList()
+            }
+        }
 
         @Synchronized
         internal fun getOrCreateUrlMatcher(resources: Resources, policy: TrackingProtectionPolicy): UrlMatcher {
@@ -796,7 +806,6 @@ class SystemEngineView @JvmOverloads constructor(
                 URL_MATCHER = UrlMatcher.createMatcher(
                         resources,
                         R.raw.domain_blacklist,
-                        intArrayOf(R.raw.domain_overrides),
                         R.raw.domain_whitelist,
                         categories)
                 }

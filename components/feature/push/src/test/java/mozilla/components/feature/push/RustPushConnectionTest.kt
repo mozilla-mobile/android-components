@@ -1,24 +1,32 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.feature.push
 
 import kotlinx.coroutines.runBlocking
+import mozilla.appservices.push.DispatchInfo
+import mozilla.appservices.push.KeyInfo
 import mozilla.appservices.push.PushAPI
+import mozilla.components.support.test.any
+import mozilla.appservices.push.SubscriptionInfo
+import mozilla.appservices.push.SubscriptionResponse
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
+import org.mockito.ArgumentMatchers.nullable
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.anyString
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 
+@Suppress("Deprecation")
 class RustPushConnectionTest {
 
     @Ignore("Requires push-forUnitTests; seems unnecessary to introduce it for this one test.")
@@ -45,6 +53,7 @@ class RustPushConnectionTest {
             connection.updateToken("123")
         }
 
+        verify(api, never()).subscribe(any(), any(), any())
         verify(api).update(anyString())
     }
 
@@ -53,7 +62,7 @@ class RustPushConnectionTest {
         val connection = createConnection()
 
         runBlocking {
-            connection.subscribe("123", "")
+            connection.subscribe("123")
         }
     }
 
@@ -61,13 +70,31 @@ class RustPushConnectionTest {
     fun `subscribe calls Rust API`() {
         val connection = createConnection()
         val api: PushAPI = mock()
+        val response = SubscriptionResponse(
+            channelID = "1234",
+            subscriptionInfo = SubscriptionInfo(
+                endpoint = "https://foo",
+                keys = KeyInfo(
+                    auth = "auth",
+                    p256dh = "p256dh"
+                )
+            )
+        )
+
         connection.api = api
 
+        `when`(api.subscribe(anyString(), anyString(), nullable(String::class.java))).thenReturn(response)
+
         runBlocking {
-            connection.subscribe("123", "")
+            val sub = connection.subscribe("123")
+
+            assertEquals("123", sub.scope)
+            assertEquals("auth", sub.authKey)
+            assertEquals("p256dh", sub.publicKey)
+            assertEquals("https://foo", sub.endpoint)
         }
 
-        verify(api).subscribe(anyString(), anyString())
+        verify(api).subscribe(anyString(), anyString(), nullable(String::class.java))
     }
 
     @Test(expected = IllegalStateException::class)
@@ -111,7 +138,7 @@ class RustPushConnectionTest {
             connection.unsubscribeAll()
         }
 
-        verify(api).unsubscribe("")
+        verify(api).unsubscribeAll()
     }
 
     @Test(expected = IllegalStateException::class)
@@ -141,7 +168,7 @@ class RustPushConnectionTest {
         val connection = createConnection()
 
         runBlocking {
-            connection.decrypt("123", "plain text")
+            connection.decryptMessage("123", "plain text")
         }
     }
 
@@ -149,16 +176,26 @@ class RustPushConnectionTest {
     fun `decrypt calls Rust API`() {
         val connection = createConnection()
         val api: PushAPI = mock()
+        val dispatchInfo: DispatchInfo = mock()
         connection.api = api
 
         runBlocking {
-            connection.decrypt("123", "body")
+            connection.decryptMessage("123", "body")
+        }
+
+        verify(api, never()).decrypt(anyString(), anyString(), eq(""), eq(""), eq(""))
+
+        `when`(api.dispatchInfoForChid(anyString())).thenReturn(dispatchInfo)
+        `when`(dispatchInfo.scope).thenReturn("test")
+
+        runBlocking {
+            connection.decryptMessage("123", "body")
         }
 
         verify(api).decrypt(anyString(), anyString(), eq(""), eq(""), eq(""))
 
         runBlocking {
-            connection.decrypt("123", "body", "enc", "salt", "key")
+            connection.decryptMessage("123", "body", "enc", "salt", "key")
         }
 
         verify(api).decrypt(anyString(), anyString(), eq("enc"), eq("salt"), eq("key"))

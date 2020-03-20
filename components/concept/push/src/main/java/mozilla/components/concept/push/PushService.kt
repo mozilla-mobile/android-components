@@ -1,8 +1,6 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.concept.push
 
@@ -28,4 +26,9 @@ interface PushService {
      * Tells the push service to delete the registration token.
      */
     fun deleteToken()
+
+    /**
+     * If the push service is support on the device.
+     */
+    fun isServiceAvailable(context: Context): Boolean
 }

@@ -7,15 +7,20 @@ package mozilla.components.concept.engine
 import android.content.Context
 import android.util.AttributeSet
 import androidx.annotation.MainThread
+import mozilla.components.concept.engine.content.blocking.TrackerLog
+import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.utils.EngineVersion
-import mozilla.components.concept.engine.webextension.WebExtension
+import mozilla.components.concept.engine.webextension.WebExtensionRuntime
+import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
+import mozilla.components.concept.engine.webpush.WebPushDelegate
+import mozilla.components.concept.engine.webpush.WebPushHandler
 import org.json.JSONObject
-import java.lang.UnsupportedOperationException
 
 /**
  * Entry point for interacting with the engine implementation.
  */
-interface Engine {
+@Suppress("TooManyFunctions")
+interface Engine : WebExtensionRuntime {
 
     /**
      * Describes a combination of browsing data types stored by the engine.
@@ -73,12 +78,15 @@ interface Engine {
     fun createView(context: Context, attrs: AttributeSet? = null): EngineView
 
     /**
-     * Creates a new engine session.
+     * Creates a new engine session. If [speculativeCreateSession] is supported this
+     * method returns the prepared [EngineSession] if it is still applicable i.e.
+     * the parameter(s) ([private]) are equal.
      *
      * @param private whether or not this session should use private mode.
      *
      * @return the newly created [EngineSession].
      */
+    @MainThread
     fun createSession(private: Boolean = false): EngineSession
 
     /**
@@ -106,26 +114,35 @@ interface Engine {
     fun speculativeConnect(url: String)
 
     /**
-     * Installs the provided extension in this engine.
+     * Informs the engine that an [EngineSession] is likely to be requested soon
+     * via [createSession]. This is useful in case creating an engine session is
+     * costly and an application wants to decide when the session should be created
+     * without having to manage the session itself i.e. when it may or may not
+     * need it.
      *
-     * @param id the unique ID of the extension.
-     * @param url the url pointing to a resources path for locating the extension
-     * within the APK file e.g. resource://android/assets/extensions/my_web_ext.
-     * @param allowContentMessaging whether or not the web extension is allowed
-     * to send messages from content scripts, defaults to true.
-     * @param onSuccess (optional) callback invoked if the extension was installed successfully,
-     * providing access to the [WebExtension] object for bi-directional messaging.
-     * @param onError (optional) callback invoked if there was an error installing the extension.
-     * This callback is invoked with an [UnsupportedOperationException] in case the engine doesn't
-     * have web extension support.
+     * @param private whether or not the session should use private mode.
      */
-    fun installWebExtension(
-        id: String,
-        url: String,
-        allowContentMessaging: Boolean = true,
-        onSuccess: ((WebExtension) -> Unit) = { },
-        onError: ((String, Throwable) -> Unit) = { _, _ -> }
-    ): Unit = onError(id, UnsupportedOperationException("Web extension support is not available in this engine"))
+    @MainThread
+    fun speculativeCreateSession(private: Boolean = false) = Unit
+
+    /**
+     * Registers a [WebNotificationDelegate] to be notified of engine events
+     * related to web notifications
+     *
+     * @param webNotificationDelegate callback to be invoked for web notification events.
+     */
+    fun registerWebNotificationDelegate(
+        webNotificationDelegate: WebNotificationDelegate
+    ): Unit = throw UnsupportedOperationException("Web notification support is not available in this engine")
+
+    /**
+     * Registers a [WebPushDelegate] to be notified of engine events related to web extensions.
+     *
+     * @return A [WebPushHandler] to notify the engine with messages and subscriptions when are delivered.
+     */
+    fun registerWebPushDelegate(
+        webPushDelegate: WebPushDelegate
+    ): WebPushHandler = throw UnsupportedOperationException("Web Push support is not available in this engine")
 
     /**
      * Clears browsing data stored by the engine.
@@ -143,6 +160,29 @@ interface Engine {
         onError: ((Throwable) -> Unit) = { }
     ): Unit = onError(UnsupportedOperationException("Clearing browsing data is not supported by this engine. " +
             "Check both the engine and engine session implementation."))
+
+    /**
+     * Fetch a list of trackers logged for a given [session] .
+     *
+     * @param session the session where the trackers were logged.
+     * @param onSuccess callback invoked if the data was fetched successfully.
+     * @param onError (optional) callback invoked if fetching the data caused an exception.
+     */
+    fun getTrackersLog(
+        session: EngineSession,
+        onSuccess: (List<TrackerLog>) -> Unit,
+        onError: (Throwable) -> Unit = { }
+    ): Unit = onError(
+        UnsupportedOperationException(
+            "getTrackersLog is not supported by this engine."
+        )
+    )
+
+    /**
+     * Provides access to the tracking protection exception list for this engine.
+     */
+    val trackingProtectionExceptionStore: TrackingProtectionExceptionStorage
+        get() = throw UnsupportedOperationException("TrackingProtectionExceptionStorage not supported by this engine.")
 
     /**
      * Provides access to the settings of this engine.

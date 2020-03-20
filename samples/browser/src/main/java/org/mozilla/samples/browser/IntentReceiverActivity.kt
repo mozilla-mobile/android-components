@@ -15,38 +15,32 @@ class IntentReceiverActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         MainScope().launch {
             val intent = intent?.let { Intent(it) } ?: Intent()
-            val intentProcessors = listOf(
-                components.webAppIntentProcessor,
-                components.customTabIntentProcessor,
-                components.tabIntentProcessor
-            )
+            val intentProcessors = components.externalAppIntentProcessors + components.tabIntentProcessor
 
-            intentProcessors.any { it.process(intent) }
+            // Explicitly remove the new task and clear task flags (Our browser activity is a single
+            // task activity and we never want to start a second task here).
+            intent.flags = intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK.inv()
+            intent.flags = intent.flags and Intent.FLAG_ACTIVITY_CLEAR_TASK.inv()
 
-            setBrowserActivity(intent)
+            // LauncherActivity is started with the "excludeFromRecents" flag (set in manifest). We
+            // do not want to propagate this flag from the launcher activity to the browser.
+            intent.flags = intent.flags and Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS.inv()
 
-            startActivity(intent)
+            val processor = intentProcessors.firstOrNull { it.process(intent) }
+
+            val activityClass = if (processor in components.externalAppIntentProcessors) {
+                ExternalAppBrowserActivity::class
+            } else {
+                BrowserActivity::class
+            }
+
+            intent.setClassName(applicationContext, activityClass.java.name)
+
             finish()
+            startActivity(intent)
         }
-    }
-
-    /**
-     * Sets the activity that this [intent] will launch.
-     */
-    private fun setBrowserActivity(intent: Intent) {
-        val externalAppIntentProcessors = listOf(
-            components.webAppIntentProcessor,
-            components.customTabIntentProcessor
-        )
-
-        val className = if (externalAppIntentProcessors.any { it.matches(intent) }) {
-            ExternalAppBrowserActivity::class
-        } else {
-            BrowserActivity::class
-        }
-
-        intent.setClassName(applicationContext, className.java.name)
     }
 }

@@ -34,7 +34,7 @@ class SettingsTest {
             { settings.automaticLanguageAdjustment },
             { settings.automaticLanguageAdjustment = false },
             { settings.trackingProtectionPolicy },
-            { settings.trackingProtectionPolicy = TrackingProtectionPolicy.all() },
+            { settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict() },
             { settings.historyTrackingDelegate },
             { settings.historyTrackingDelegate = null },
             { settings.requestInterceptor },
@@ -71,14 +71,14 @@ class SettingsTest {
             { settings.preferredColorScheme = PreferredColorScheme.System },
             { settings.testingModeEnabled },
             { settings.testingModeEnabled = false },
-            { settings.allowAutoplayMedia },
-            { settings.allowAutoplayMedia = false },
             { settings.suspendMediaWhenInactive },
             { settings.suspendMediaWhenInactive = false },
             { settings.fontInflationEnabled },
             { settings.fontInflationEnabled = false },
             { settings.fontSizeFactor },
-            { settings.fontSizeFactor = 1.0F }
+            { settings.fontSizeFactor = 1.0F },
+            { settings.forceUserScalableContent },
+            { settings.forceUserScalableContent = true }
         )
     }
 
@@ -114,10 +114,10 @@ class SettingsTest {
         assertFalse(settings.supportMultipleWindows)
         assertEquals(PreferredColorScheme.System, settings.preferredColorScheme)
         assertFalse(settings.testingModeEnabled)
-        assertTrue(settings.allowAutoplayMedia)
         assertFalse(settings.suspendMediaWhenInactive)
         assertNull(settings.fontInflationEnabled)
         assertNull(settings.fontSizeFactor)
+        assertFalse(settings.forceUserScalableContent)
 
         val interceptor: RequestInterceptor = mock()
         val historyTrackingDelegate: HistoryTrackingDelegate = mock()
@@ -128,7 +128,7 @@ class SettingsTest {
             webFontsEnabled = false,
             automaticFontSizeAdjustment = false,
             automaticLanguageAdjustment = false,
-            trackingProtectionPolicy = TrackingProtectionPolicy.all(),
+            trackingProtectionPolicy = TrackingProtectionPolicy.strict(),
             historyTrackingDelegate = historyTrackingDelegate,
             requestInterceptor = interceptor,
             userAgentString = "userAgent",
@@ -147,17 +147,17 @@ class SettingsTest {
             supportMultipleWindows = true,
             preferredColorScheme = PreferredColorScheme.Dark,
             testingModeEnabled = true,
-            allowAutoplayMedia = false,
             suspendMediaWhenInactive = true,
             fontInflationEnabled = false,
-            fontSizeFactor = 2.0F)
+            fontSizeFactor = 2.0F,
+            forceUserScalableContent = true)
 
         assertFalse(defaultSettings.domStorageEnabled)
         assertFalse(defaultSettings.javascriptEnabled)
         assertFalse(defaultSettings.webFontsEnabled)
         assertFalse(defaultSettings.automaticFontSizeAdjustment)
         assertFalse(defaultSettings.automaticLanguageAdjustment)
-        assertEquals(TrackingProtectionPolicy.all(), defaultSettings.trackingProtectionPolicy)
+        assertEquals(TrackingProtectionPolicy.strict(), defaultSettings.trackingProtectionPolicy)
         assertEquals(historyTrackingDelegate, defaultSettings.historyTrackingDelegate)
         assertEquals(interceptor, defaultSettings.requestInterceptor)
         assertEquals("userAgent", defaultSettings.userAgentString)
@@ -176,9 +176,9 @@ class SettingsTest {
         assertTrue(defaultSettings.supportMultipleWindows)
         assertEquals(PreferredColorScheme.Dark, defaultSettings.preferredColorScheme)
         assertTrue(defaultSettings.testingModeEnabled)
-        assertFalse(defaultSettings.allowAutoplayMedia)
         assertTrue(defaultSettings.suspendMediaWhenInactive)
         assertFalse(defaultSettings.fontInflationEnabled!!)
         assertEquals(2.0F, defaultSettings.fontSizeFactor)
+        assertTrue(defaultSettings.forceUserScalableContent)
     }
 }

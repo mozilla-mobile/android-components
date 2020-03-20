@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.icons
 
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
@@ -18,11 +19,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import mozilla.components.browser.icons.decoder.AndroidIconDecoder
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
 import mozilla.components.browser.icons.decoder.IconDecoder
-import mozilla.components.browser.icons.extension.IconSessionObserver
+import mozilla.components.browser.icons.extension.IconMessageHandler
 import mozilla.components.browser.icons.generator.DefaultIconGenerator
 import mozilla.components.browser.icons.generator.IconGenerator
 import mozilla.components.browser.icons.loader.DataUriIconLoader
@@ -41,15 +45,21 @@ import mozilla.components.browser.icons.processor.MemoryIconProcessor
 import mozilla.components.browser.icons.utils.CancelOnDetach
 import mozilla.components.browser.icons.utils.IconDiskCache
 import mozilla.components.browser.icons.utils.IconMemoryCache
-import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.utils.AllSessionsObserver
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.fetch.Client
+import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.base.memory.MemoryConsumer
+import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
 import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
 
 private const val MAXIMUM_SCALE_FACTOR = 2.0f
+
+private const val EXTENSION_MESSAGING_NAME = "MozacBrowserIcons"
 
 // Number of worker threads we are using internally.
 private const val THREADS = 3
@@ -87,7 +97,7 @@ class BrowserIcons(
         DiskIconProcessor(sharedDiskCache)
     ),
     jobDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(THREADS).asCoroutineDispatcher()
-) {
+) : MemoryConsumer {
     private val logger = Logger("BrowserIcons")
     private val maximumSize = context.resources.getDimensionPixelSize(R.dimen.mozac_browser_icons_maximum_size)
     private val scope = CoroutineScope(jobDispatcher)
@@ -113,17 +123,8 @@ class BrowserIcons(
         val request = prepare(context, preparers, initialRequest)
 
         // (2) Then try to load an icon.
-        val (result, resource) = load(context, request, loaders)
-
-        val icon = when (result) {
-            IconLoader.Result.NoResult -> return generator.generate(context, request)
-
-            is IconLoader.Result.BitmapResult -> Icon(result.bitmap, source = result.source)
-
-            is IconLoader.Result.BytesResult ->
-                decode(result.bytes, decoders, desiredSize)?.let { Icon(it, source = result.source) }
-                    ?: return generator.generate(context, request)
-        }
+        val (icon, resource) = load(context, request, loaders, decoders, desiredSize)
+            ?: generator.generate(context, request) to null
 
         // (3) Finally process the icon.
         return process(context, processors, request, resource, icon, desiredSize)
@@ -133,7 +134,7 @@ class BrowserIcons(
     /**
      * Installs the "icons" extension in the engine in order to dynamically load icons for loaded websites.
      */
-    fun install(engine: Engine, sessionManager: SessionManager) {
+    fun install(engine: Engine, store: BrowserStore) {
         engine.installWebExtension(
             id = "mozacBrowserIcons",
             url = "resource://android/assets/extensions/browser-icons/",
@@ -141,8 +142,7 @@ class BrowserIcons(
             onSuccess = { extension ->
                 Logger.debug("Installed browser-icons extension")
 
-                AllSessionsObserver(sessionManager, IconSessionObserver(this, sessionManager, extension))
-                    .start()
+                store.flowScoped { flow -> subscribeToUpdates(store, flow, extension) }
             },
             onError = { _, throwable ->
                 Logger.error("Could not install browser-icons extension", throwable)
@@ -199,8 +199,40 @@ class BrowserIcons(
         }
     }
 
+    /**
+     * The device is running low on memory. This component should trim its memory usage.
+     */
+    @Deprecated("Use onTrimMemory instead.", replaceWith = ReplaceWith("onTrimMemory"))
     fun onLowMemory() {
         sharedMemoryCache.clear()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            sharedMemoryCache.clear()
+        }
+    }
+
+    private suspend fun subscribeToUpdates(
+        store: BrowserStore,
+        flow: Flow<BrowserState>,
+        extension: WebExtension
+    ) {
+        // Whenever we see a new EngineSession in the store then we register our content message
+        // handler if it has not been added yet.
+
+        flow.map { it.tabs }
+            .filterChanged { it.engineState.engineSession }
+            .collect { state ->
+                val engineSession = state.engineState.engineSession ?: return@collect
+
+                if (extension.hasContentMessageHandler(engineSession, EXTENSION_MESSAGING_NAME)) {
+                    return@collect
+                }
+
+                val handler = IconMessageHandler(store, state.id, state.content.private, this)
+                extension.registerContentMessageHandler(engineSession, EXTENSION_MESSAGING_NAME, handler)
+            }
     }
 }
 
@@ -212,8 +244,10 @@ private fun prepare(context: Context, preparers: List<IconPreprarer>, request: I
 private fun load(
     context: Context,
     request: IconRequest,
-    loaders: List<IconLoader>
-): Pair<IconLoader.Result, IconRequest.Resource?> {
+    loaders: List<IconLoader>,
+    decoders: List<IconDecoder>,
+    desiredSize: DesiredSize
+): Pair<Icon, IconRequest.Resource>? {
     request.resources
         .asSequence()
         .distinct()
@@ -222,16 +256,31 @@ private fun load(
             loaders.forEach { loader ->
                 val result = loader.load(context, request, resource)
 
-                if (result != IconLoader.Result.NoResult) {
-                    return Pair(result, resource)
+                val icon = decodeIconLoaderResult(result, decoders, desiredSize)
+
+                if (icon != null) {
+                    return Pair(icon, resource)
                 }
             }
         }
 
-    return Pair(IconLoader.Result.NoResult, null)
+    return null
 }
 
-private fun decode(
+private fun decodeIconLoaderResult(
+    result: IconLoader.Result,
+    decoders: List<IconDecoder>,
+    desiredSize: DesiredSize
+): Icon? = when (result) {
+    IconLoader.Result.NoResult -> null
+
+    is IconLoader.Result.BitmapResult -> Icon(result.bitmap, source = result.source)
+
+    is IconLoader.Result.BytesResult ->
+        decodeBytes(result.bytes, decoders, desiredSize)?.let { Icon(it, source = result.source) }
+}
+
+private fun decodeBytes(
     data: ByteArray,
     decoders: List<IconDecoder>,
     desiredSize: DesiredSize

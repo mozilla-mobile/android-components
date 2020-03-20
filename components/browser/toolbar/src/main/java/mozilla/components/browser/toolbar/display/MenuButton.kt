@@ -4,99 +4,49 @@
 
 package mozilla.components.browser.toolbar.display
 
-import android.content.Context
-import android.content.res.ColorStateList
-import android.util.TypedValue
-import android.view.View
-import android.widget.FrameLayout
 import androidx.annotation.ColorInt
-import androidx.appcompat.widget.AppCompatImageView
-import androidx.core.content.ContextCompat
-import androidx.core.view.setPadding
-import mozilla.components.browser.menu.BrowserMenu
+import androidx.annotation.VisibleForTesting
+import androidx.core.view.isVisible
 import mozilla.components.browser.menu.BrowserMenuBuilder
-import mozilla.components.browser.menu.item.BrowserMenuHighlightableItem
-import mozilla.components.browser.toolbar.R
+import mozilla.components.browser.menu.ext.getHighlight
 import mozilla.components.browser.toolbar.facts.emitOpenMenuFact
 
-@Suppress("ViewConstructor") // This view is only instantiated in code
 internal class MenuButton(
-    context: Context,
-    private val parent: View
-) : FrameLayout(context) {
-
-    private var menu: BrowserMenu? = null
-
-    private val menuIcon = AppCompatImageView(context).apply {
-        setPadding(resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_menu_padding))
-        setImageResource(mozilla.components.ui.icons.R.drawable.mozac_ic_menu)
-        contentDescription = context.getString(R.string.mozac_browser_toolbar_menu_button)
-    }
+    @VisibleForTesting
+    internal val impl: mozilla.components.browser.menu.view.MenuButton
+) {
 
     init {
-        val outValue = TypedValue()
-        context.theme.resolveAttribute(
-            android.R.attr.selectableItemBackgroundBorderless,
-            outValue,
-            true)
-        setBackgroundResource(outValue.resourceId)
-
-        visibility = View.GONE
-        isClickable = true
-        isFocusable = true
-
-        setOnClickListener {
-            menu = menuBuilder?.build(context)
-            val endAlwaysVisible = menuBuilder?.endOfMenuAlwaysVisible ?: false
-            menu?.show(
-                anchor = this,
-                orientation = BrowserMenu.determineMenuOrientation(parent),
-                endOfMenuAlwaysVisible = endAlwaysVisible
-            ) { menu = null }
-
-            emitOpenMenuFact(menuBuilder?.extras)
+        impl.isVisible = false
+        impl.onShow = {
+            emitOpenMenuFact(impl.menuBuilder?.extras)
         }
-
-        addView(menuIcon)
     }
 
-    var menuBuilder: BrowserMenuBuilder? = null
+    var menuBuilder: BrowserMenuBuilder?
+        get() = impl.menuBuilder
         set(value) {
-            field = value
-            menu?.dismiss()
-            if (value != null) {
-                visibility = View.VISIBLE
-            } else {
-                visibility = View.GONE
-                menu = null
-            }
+            impl.menuBuilder = value
+            impl.isVisible = value != null
         }
 
     /**
      * Declare that the menu items should be updated if needed.
      */
+    @Suppress("Deprecation")
     fun invalidateMenu() {
-        menu?.invalidate()
-        val highlightColorResource: Int? = menuBuilder?.items?.let { items ->
-            items.forEach { item ->
-                if (item is BrowserMenuHighlightableItem && item.isHighlighted()) {
-                    return@let item.highlight.colorResource
-                }
-            }
-            null
-        }
-
-        // If a highlighted item is found, show the indicator.
-        if (highlightColorResource != null) {
-            val color = ContextCompat.getColor(context, highlightColorResource)
-            menuIcon.setBackgroundResource(R.drawable.mozac_menu_indicator)
-            menuIcon.backgroundTintList = ColorStateList.valueOf(color)
-        } else {
-            menuIcon.setBackgroundResource(0)
-        }
+        impl.invalidateBrowserMenu()
+        impl.setHighlight(menuBuilder?.items?.getHighlight())
     }
 
-    fun setColorFilter(@ColorInt color: Int) {
-        menuIcon.setColorFilter(color)
+    fun dismissMenu() = impl.dismissMenu()
+
+    /**
+     * Sets a lambda to be invoked when the menu is dismissed
+     */
+    fun setMenuDismissAction(onDismiss: () -> Unit) {
+        impl.onDismiss = onDismiss
     }
+
+    fun setColorFilter(@ColorInt color: Int) = impl.setColorFilter(color)
 }

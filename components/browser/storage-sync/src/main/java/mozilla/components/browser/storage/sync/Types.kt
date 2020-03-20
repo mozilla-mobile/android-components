@@ -5,10 +5,13 @@
 @file:Suppress("MatchingDeclarationName")
 package mozilla.components.browser.storage.sync
 
+import mozilla.appservices.places.BookmarkFolder
+import mozilla.appservices.places.BookmarkItem
+import mozilla.appservices.places.BookmarkSeparator
+import mozilla.appservices.places.BookmarkTreeNode
 import mozilla.appservices.places.SyncAuthInfo
-import java.util.Date
-import mozilla.appservices.sync15.EngineInfo
-import mozilla.appservices.sync15.FailureReason
+import mozilla.components.concept.storage.BookmarkNode
+import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
 
@@ -65,50 +68,17 @@ internal fun mozilla.appservices.places.VisitInfo.into(): VisitInfo {
     )
 }
 
-/**
- * Holds fields common to all Glean sync engine pings.
- */
-internal data class BaseGleanSyncPing(
-    val uid: String,
-    val startedAt: Date,
-    val finishedAt: Date,
-    val applied: Int,
-    val failedToApply: Int,
-    val reconciled: Int,
-    val uploaded: Int,
-    val failedToUpload: Int,
-    val outgoingBatches: Int,
-    val failureReason: FailureReason?
-) {
-    companion object {
-        const val MILLIS_PER_SEC = 1000L
-
-        fun fromEngineInfo(uid: String, info: EngineInfo): BaseGleanSyncPing {
-            val failedToApply = info.incoming?.let {
-                it.failed + it.newFailed
-            } ?: 0
-            val (uploaded, failedToUpload) = info.outgoing.fold(Pair(0, 0)) { totals, batch ->
-                val (uploaded, failedToUpload) = totals
-                Pair(uploaded + batch.sent, failedToUpload + batch.failed)
-            }
-            return BaseGleanSyncPing(
-                uid = uid,
-                startedAt = Date(info.at.toLong() * MILLIS_PER_SEC),
-                // Glean intentionally doesn't support recording arbitrary
-                // durations in timespans, and we can't use the timespan
-                // measurement API because everything is measured in Rust
-                // code. Instead, we record absolute start and end times.
-                // The Sync ping records both `at` _and_ `took`, so this doesn't
-                // leak additional info.
-                finishedAt = Date(info.at.toLong() * MILLIS_PER_SEC + info.took),
-                applied = info.incoming?.applied ?: 0,
-                failedToApply = failedToApply,
-                reconciled = info.incoming?.reconciled ?: 0,
-                uploaded = uploaded,
-                failedToUpload = failedToUpload,
-                outgoingBatches = info.outgoing.size,
-                failureReason = info.failureReason
-            )
+internal fun BookmarkTreeNode.asBookmarkNode(): BookmarkNode {
+    return when (this) {
+        is BookmarkItem -> {
+            BookmarkNode(BookmarkNodeType.ITEM, this.guid, this.parentGUID, this.position, this.title, this.url, null)
+        }
+        is BookmarkFolder -> {
+            BookmarkNode(BookmarkNodeType.FOLDER, this.guid, this.parentGUID, this.position, this.title, null,
+                this.children?.map(BookmarkTreeNode::asBookmarkNode))
+        }
+        is BookmarkSeparator -> {
+            BookmarkNode(BookmarkNodeType.SEPARATOR, this.guid, this.parentGUID, this.position, null, null, null)
         }
     }
 }

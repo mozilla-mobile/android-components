@@ -39,6 +39,19 @@
       </ul>
     ]]></string>
 
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Advanced…</string>
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Someone could be trying to impersonate the site and you should not continue.</label>
+        <br><br>
+        <label>Websites prove their identity via certificates. %1$s does not trust <b>%2$s</b> because its certificate issuer is unknown, the certificate is self-signed, or the server is not sending the correct intermediate certificates.</label>
+    ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Go Back (Recommended)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Accept the Risk and Continue</string>
+
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">The connection was interrupted</string>
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
@@ -57,8 +70,8 @@
       <p>The requested site did not respond to a connection request and the browser has stopped waiting for a reply.</p>
       <ul>
         <li>Could the server be experiencing high demand or a temporary outage? Try again later.</li>
-        <li>Are you unable to browse other sites? Check the computer’s network connection.</li>
-        <li>Is your computer or network protected by a firewall or proxy? Incorrect settings can interfere with Web browsing.</li>
+        <li>Are you unable to browse other sites? Check the device’s network connection.</li>
+        <li>Is your device or network protected by a firewall or proxy? Incorrect settings can interfere with Web browsing.</li>
         <li>Still having trouble? Consult your network administrator or Internet provider for assistance.</li>
       </ul>
     ]]></string>
@@ -87,7 +100,7 @@
       <p>The browser has stopped trying to retrieve the requested item. The site is redirecting the request in a way that will never complete.</p>
       <ul>
         <li>Have you disabled or blocked cookies required by this site?</li>
-        <li>If accepting the site’s cookies does not resolve the problem, it is likely a server configuration issue and not your computer.</li>
+        <li>If accepting the site’s cookies does not resolve the problem, it is likely a server configuration issue and not your device.</li>
       </ul>
     ]]></string>
 
@@ -97,7 +110,7 @@
     <string name="mozac_browser_errorpages_offline_message"><![CDATA[
       <p>The browser is operating in its offline mode and cannot connect to the requested item.</p>
       <ul>
-        <li>Is the computer connected to an active network?</li>
+        <li>Is the device connected to an active network?</li>
         <li>Press “Try Again” to switch to online mode and reload the page.</li>
       </ul>
     ]]></string>
@@ -171,6 +184,13 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">No internet connection</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Check your network connection or try reloading the page in a few moments.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Reload</string>
+
+    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Invalid Address</string>
     <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
       <p>The provided address is not in a recognized format. Please check the location bar for mistakes and try again.</p>
@@ -230,7 +250,7 @@
       <p>The browser is configured to use a proxy server, but the proxy could not be found.</p>
       <ul>
         <li>Is the browser’s proxy configuration correct? Check the settings and try again.</li>
-        <li>Is the computer connected to an active network?</li>
+        <li>Is the device connected to an active network?</li>
         <li>Still having trouble? Consult your network administrator or Internet provider for assistance.</li>
       </ul>
     ]]></string>

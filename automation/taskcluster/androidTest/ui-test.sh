@@ -48,25 +48,18 @@ fi
 
 JAVA_BIN="/usr/bin/java"
 PATH_TEST="./automation/taskcluster/androidTest"
-FLANK_BIN="/build/test-tools/flank.jar"
+FLANK_BIN="/builds/worker/test-tools/flank.jar"
 FLANK_CONF_ARM="${PATH_TEST}/flank-arm.yml"
 FLANK_CONF_X86="${PATH_TEST}/flank-x86.yml"
-
-echo
-echo "RETRIEVE SERVICE ACCT TOKEN"
-echo
-python automation/taskcluster/helper/get-secret.py --json -s project/mobile/android-components/firebase -k firebaseToken  -f $GOOGLE_APPLICATION_CREDENTIALS 
-echo
-echo
 
 echo
 echo "ACTIVATE SERVICE ACCT"
 echo
 # this is where the Google Testcloud project ID is set
-gcloud config set project "$GOOGLE_PROJECT" 
+gcloud config set project "$GOOGLE_PROJECT"
 echo
 
-gcloud auth activate-service-account --key-file "$GOOGLE_APPLICATION_CREDENTIALS" 
+gcloud auth activate-service-account --key-file "$GOOGLE_APPLICATION_CREDENTIALS"
 echo
 echo
 
@@ -81,7 +74,7 @@ else
     flank_template="$FLANK_CONF_ARM"
 fi
 
-APK_APP="./samples/${component}/build/outputs/apk/geckoNightlyUniversal/debug/samples-browser-geckoNightly-universal-debug.apk"
+APK_APP="./samples/${component}/build/outputs/apk/geckoNightly/debug/samples-browser-geckoNightly-debug.apk"
 APK_TEST="./components/${component}/engine-gecko-nightly/build/outputs/apk/androidTest/debug/browser-engine-gecko-nightly-debug-androidTest.apk"
 
 

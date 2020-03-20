@@ -5,11 +5,11 @@
 package mozilla.components.feature.toolbar
 
 import androidx.annotation.ColorInt
-import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
-import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
@@ -22,14 +22,14 @@ typealias SearchUseCase = (String) -> Unit
  * Feature implementation for connecting a toolbar implementation with the session module.
  */
 class ToolbarFeature(
-    val toolbar: Toolbar,
-    sessionManager: SessionManager,
+    private val toolbar: Toolbar,
+    store: BrowserStore,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     searchUseCase: SearchUseCase? = null,
-    sessionId: String? = null,
+    customTabId: String? = null,
     urlRenderConfiguration: UrlRenderConfiguration? = null
-) : LifecycleAwareFeature, BackHandler {
-    private val presenter = ToolbarPresenter(toolbar, sessionManager, sessionId, urlRenderConfiguration)
+) : LifecycleAwareFeature, UserInteractionHandler {
+    private val presenter = ToolbarPresenter(toolbar, store, customTabId, urlRenderConfiguration)
     private val interactor = ToolbarInteractor(toolbar, loadUrlUseCase, searchUseCase)
 
     /**
@@ -52,6 +52,7 @@ class ToolbarFeature(
      */
     override fun stop() {
         presenter.stop()
+        toolbar.onStop()
     }
 
     /**

@@ -14,6 +14,7 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.concept.engine.selection.SelectionActionDelegate
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
@@ -94,8 +95,11 @@ class SwipeRefreshFeatureTest {
     private open class DummyEngineView(context: Context) : FrameLayout(context), EngineView {
         override fun canScrollVerticallyUp() = scrollY > 0
         override fun setVerticalClipping(clippingHeight: Int) {}
+        override fun setDynamicToolbarMaxHeight(height: Int) {}
         override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
+        override fun clearSelection() {}
         override fun render(session: EngineSession) {}
         override fun release() {}
+        override var selectionActionDelegate: SelectionActionDelegate? = null
     }
 }

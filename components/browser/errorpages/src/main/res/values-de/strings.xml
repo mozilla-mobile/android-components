@@ -36,6 +36,19 @@
 		</ul>
 	]]></string>
 
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Erweitert…</string>
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Jemand könnte versuchen, sich als diese Website auszugeben, daher sollten Sie nicht fortfahren.</label>
+        <br><br>
+        <label>Websites weisen ihre Identität mittels Zertifikaten nach. %1$s vertraut <b>%2$s</b> nicht, weil der Aussteller des Zertifikats unbekannt ist, das Zertifikat selbstsigniert ist oer der Server nicht die korrekten Zwischenzertifikate sendet.</label>
+    ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Zurück (empfohlen)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Risiko akzeptieren und fortfahren</string>
+
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Fehler: Datenübertragung unterbrochen</string>
     <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
@@ -165,6 +178,13 @@
 	</ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">Keine Internetverbindung</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Überprüfen Sie Ihre Netzwerkverbindung oder versuchen Sie in wenigen Augenblicken, die Seite neu zu laden.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Neu laden</string>
+
+    <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Ungültige Adresse</string>
     <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
 	<p>Das Format der angegebenen Adresse wurde nicht erkannt. Bitte überprüfen Sie die Adressleiste auf Fehler und versuchen Sie es erneut.</p>
@@ -256,12 +276,4 @@
 	<p>Die Website auf %1$s wurde als betrügerische Website gemeldet und aufgrund Ihrer Sicherheitseinstellungen blockiert.</p>
 	]]></string>
 
-    <!-- The tile for the list of external apps to open the link in -->
-    <string name="mozac_feature_applinks_open_in">Öffnen in…</string>
-    <!-- The description to warn users that their private browsing session changes  -->
-    <string name="mozac_feature_applinks_confirm_dialog_title">In App öffnen? Ihre Aktivitäten sind dann möglicherweise nicht mehr privat.</string>
-    <!-- Opens the selected time -->
-    <string name="mozac_feature_applinks_confirm_dialog_confirm">Öffnen</string>
-    <!-- Cancels the prompt -->
-    <string name="mozac_feature_applinks_confirm_dialog_deny">Abbrechen</string>
-</resources>
+    </resources>

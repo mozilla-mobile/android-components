@@ -13,6 +13,7 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -102,6 +103,24 @@ class SelectorsKtTest {
     }
 
     @Test
+    fun `findTabOrCustomTabOrSelectedTab extension function`() {
+        val tab = createTab("https://www.firefox.com")
+        val otherTab = createTab("https://getpocket.com")
+        val customTab = createCustomTab("https://www.mozilla.org")
+
+        val state = BrowserState(
+                tabs = listOf(tab, otherTab),
+                customTabs = listOf(customTab),
+                selectedTabId = tab.id)
+
+        assertEquals(tab, state.findTabOrCustomTabOrSelectedTab())
+        assertEquals(tab, state.findTabOrCustomTabOrSelectedTab(null))
+        assertEquals(tab, state.findTabOrCustomTabOrSelectedTab(tab.id))
+        assertEquals(otherTab, state.findTabOrCustomTabOrSelectedTab(otherTab.id))
+        assertEquals(customTab, state.findTabOrCustomTabOrSelectedTab(customTab.id))
+    }
+
+    @Test
     fun `privateTabs and normalTabs extension properties`() {
         val tab1 = createTab("https://www.firefox.com")
         val tab2 = createTab("https://www.mozilla.org")
@@ -117,5 +136,26 @@ class SelectorsKtTest {
 
         assertEquals(emptyList<TabSessionState>(), BrowserState().normalTabs)
         assertEquals(emptyList<TabSessionState>(), BrowserState().privateTabs)
+    }
+
+    @Test
+    fun `findTabOrCustomTab finds regular and custom tabs`() {
+        BrowserState(
+            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id"))
+        ).also { state ->
+            assertNotNull(state.findTabOrCustomTab("test-id"))
+            assertEquals(
+                "https://www.mozilla.org",
+                state.findTabOrCustomTab("test-id")!!.content.url)
+        }
+
+        BrowserState(
+            customTabs = listOf(createCustomTab("https://www.mozilla.org", id = "test-id"))
+        ).also { state ->
+            assertNotNull(state.findTabOrCustomTab("test-id"))
+            assertEquals(
+                "https://www.mozilla.org",
+                state.findTabOrCustomTab("test-id")!!.content.url)
+        }
     }
 }

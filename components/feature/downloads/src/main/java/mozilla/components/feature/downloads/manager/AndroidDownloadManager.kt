@@ -17,12 +17,12 @@ import android.util.LongSparseArray
 import androidx.annotation.RequiresPermission
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
-import androidx.core.util.isEmpty
 import androidx.core.util.set
-import mozilla.components.browser.session.Download
+import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.fetch.Headers.Names.COOKIE
 import mozilla.components.concept.fetch.Headers.Names.REFERRER
 import mozilla.components.concept.fetch.Headers.Names.USER_AGENT
+import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.ext.isScheme
 import mozilla.components.support.utils.DownloadUtils
 
@@ -36,11 +36,19 @@ typealias SystemRequest = android.app.DownloadManager.Request
  */
 class AndroidDownloadManager(
     private val applicationContext: Context,
-    override var onDownloadCompleted: OnDownloadCompleted = noop
+    override var onDownloadStopped: onDownloadStopped = noop
 ) : BroadcastReceiver(), DownloadManager {
 
-    private val queuedDownloads = LongSparseArray<Download>()
+    private val queuedDownloads = LongSparseArray<DownloadStateWithRequest>()
     private var isSubscribedReceiver = false
+
+    /**
+     * Holds both the state and the Android DownloadManager.Request for the queued download
+     */
+    data class DownloadStateWithRequest(
+        val state: DownloadState,
+        val request: SystemRequest
+    )
 
     override val permissions = arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE)
 
@@ -51,7 +59,7 @@ class AndroidDownloadManager(
      * @return the id reference of the scheduled download.
      */
     @RequiresPermission(allOf = [INTERNET, WRITE_EXTERNAL_STORAGE])
-    override fun download(download: Download, cookie: String): Long? {
+    override fun download(download: DownloadState, cookie: String): Long? {
 
         val androidDownloadManager: SystemDownloadManager = applicationContext.getSystemService()!!
 
@@ -67,11 +75,20 @@ class AndroidDownloadManager(
         val request = download.toAndroidRequest(cookie)
 
         val downloadID = androidDownloadManager.enqueue(request)
-        queuedDownloads[downloadID] = download
+
+        queuedDownloads[downloadID] = DownloadStateWithRequest(
+            state = download,
+            request = request
+        )
 
         registerBroadcastReceiver()
 
         return downloadID
+    }
+
+    override fun tryAgain(downloadId: Long) {
+        val androidDownloadManager: SystemDownloadManager = applicationContext.getSystemService()!!
+        androidDownloadManager.enqueue(queuedDownloads[downloadId].request)
     }
 
     /**
@@ -94,25 +111,22 @@ class AndroidDownloadManager(
     }
 
     /**
-     * Invoked when a download is complete. Calls [onDownloadCompleted] and unregisters the
+     * Invoked when a download is complete. Calls [onDownloadStopped] and unregisters the
      * broadcast receiver if there are no more queued downloads.
      */
     override fun onReceive(context: Context, intent: Intent) {
-        if (queuedDownloads.isEmpty()) unregisterListeners()
-
         val downloadID = intent.getLongExtra(EXTRA_DOWNLOAD_ID, -1)
         val download = queuedDownloads[downloadID]
+        val downloadStatus = intent.getSerializableExtra(AbstractFetchDownloadService.EXTRA_DOWNLOAD_STATUS)
+            as AbstractFetchDownloadService.DownloadJobStatus
 
         if (download != null) {
-            onDownloadCompleted(download, downloadID)
-            queuedDownloads.remove(downloadID)
+            onDownloadStopped(download.state, downloadID, downloadStatus)
         }
-
-        if (queuedDownloads.isEmpty()) unregisterListeners()
     }
 }
 
-private fun Download.toAndroidRequest(cookie: String): SystemRequest {
+private fun DownloadState.toAndroidRequest(cookie: String): SystemRequest {
     val request = SystemRequest(url.toUri())
         .setNotificationVisibility(VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
 
@@ -127,7 +141,7 @@ private fun Download.toAndroidRequest(cookie: String): SystemRequest {
     }
 
     val fileName = if (fileName.isNullOrBlank()) {
-        DownloadUtils.guessFileName(null, url, contentType)
+        DownloadUtils.guessFileName(null, destinationDirectory, url, contentType)
     } else {
         fileName
     }

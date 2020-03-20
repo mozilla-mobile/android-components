@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.state.state
 
+import android.graphics.Bitmap
 import java.util.UUID
 
 /**
@@ -11,33 +12,49 @@ import java.util.UUID
  *
  * @property id the ID of this tab and session.
  * @property content the [ContentState] of this tab.
+ * @property trackingProtection the [TrackingProtectionState] of this tab.
  * @property parentId the parent ID of this tab or null if this tab has no
  * parent. The parent tab is usually the tab that initiated opening this
  * tab (e.g. the user clicked a link with target="_blank" or selected
  * "open in new tab" or a "window.open" was triggered).
+ * @property extensionState a map of web extension ids to extensions,
+ * that contains the overridden values for this tab.
+ * @property readerState the [ReaderState] of this tab.
  */
 data class TabSessionState(
     override val id: String = UUID.randomUUID().toString(),
     override val content: ContentState,
-    val parentId: String? = null
+    override val trackingProtection: TrackingProtectionState = TrackingProtectionState(),
+    override val engineState: EngineState = EngineState(),
+    val parentId: String? = null,
+    override val extensionState: Map<String, WebExtensionState> = emptyMap(),
+    val readerState: ReaderState = ReaderState()
 ) : SessionState
 
-internal fun createTab(
+/**
+ * Convenient function for creating a tab.
+ */
+@Suppress("LongParameterList")
+fun createTab(
     url: String,
     private: Boolean = false,
     id: String = UUID.randomUUID().toString(),
-    parent: TabSessionState? = null
+    parent: TabSessionState? = null,
+    extensions: Map<String, WebExtensionState> = emptyMap(),
+    readerState: ReaderState = ReaderState(),
+    title: String = "",
+    thumbnail: Bitmap? = null
 ): TabSessionState {
     return TabSessionState(
         id = id,
-        content = ContentState(url, private),
-        parentId = parent?.id
-    )
-}
-
-internal fun createCustomTab(url: String, id: String = UUID.randomUUID().toString()): CustomTabSessionState {
-    return CustomTabSessionState(
-        id = id,
-        content = ContentState(url)
+        content = ContentState(
+            url,
+            private,
+            title = title,
+            thumbnail = thumbnail
+        ),
+        parentId = parent?.id,
+        extensionState = extensions,
+        readerState = readerState
     )
 }

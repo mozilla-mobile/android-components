@@ -14,9 +14,12 @@ private const val INTENT_CRASH = "mozilla.components.lib.crash.CRASH"
 // Uncaught exception crash intent extras
 private const val INTENT_EXCEPTION = "exception"
 
+// Breadcrumbs intent extras
+private const val INTENT_BREADCRUMBS = "breadcrumbs"
+
 // Native code crash intent extras (Mirroring GeckoView values)
 private const val INTENT_MINIDUMP_PATH = "minidumpPath"
-private const val INTENT_EXTEAS_PATH = "extrasPath"
+private const val INTENT_EXTRAS_PATH = "extrasPath"
 private const val INTENT_MINIDUMP_SUCCESS = "minidumpSuccess"
 private const val INTENT_FATAL = "fatal"
 
@@ -28,17 +31,21 @@ sealed class Crash {
      * A crash caused by an uncaught exception.
      *
      * @property throwable The [Throwable] that caused the crash.
+     * @property breadcrumbs List of breadcrumbs to send with the crash report.
      */
     data class UncaughtExceptionCrash(
-        val throwable: Throwable
+        val throwable: Throwable,
+        val breadcrumbs: ArrayList<Breadcrumb>
     ) : Crash() {
         override fun toBundle() = Bundle().apply {
             putSerializable(INTENT_EXCEPTION, throwable as Serializable)
+            putParcelableArrayList(INTENT_BREADCRUMBS, breadcrumbs)
         }
 
         companion object {
             internal fun fromBundle(bundle: Bundle) = UncaughtExceptionCrash(
-                bundle.getSerializable(INTENT_EXCEPTION) as Throwable
+                bundle.getSerializable(INTENT_EXCEPTION) as Throwable,
+                bundle.getParcelableArrayList(INTENT_BREADCRUMBS) ?: arrayListOf()
             )
         }
     }
@@ -55,26 +62,30 @@ sealed class Crash {
      * @property isFatal Whether or not the crash was fatal or not: If true, the main application process was affected
      *                   by the crash. If false, only an internal process used by Gecko has crashed and the application
      *                   may be able to recover.
+     * @property breadcrumbs List of breadcrumbs to send with the crash report.
      */
     data class NativeCodeCrash(
-        val minidumpPath: String,
+        val minidumpPath: String?,
         val minidumpSuccess: Boolean,
-        val extrasPath: String,
-        val isFatal: Boolean
+        val extrasPath: String?,
+        val isFatal: Boolean,
+        val breadcrumbs: ArrayList<Breadcrumb>
     ) : Crash() {
         override fun toBundle() = Bundle().apply {
             putString(INTENT_MINIDUMP_PATH, minidumpPath)
             putBoolean(INTENT_MINIDUMP_SUCCESS, minidumpSuccess)
-            putString(INTENT_EXTEAS_PATH, extrasPath)
+            putString(INTENT_EXTRAS_PATH, extrasPath)
             putBoolean(INTENT_FATAL, isFatal)
+            putParcelableArrayList(INTENT_BREADCRUMBS, breadcrumbs)
         }
 
         companion object {
             internal fun fromBundle(bundle: Bundle) = NativeCodeCrash(
-                bundle.getString(INTENT_MINIDUMP_PATH, ""),
+                bundle.getString(INTENT_MINIDUMP_PATH, null),
                 bundle.getBoolean(INTENT_MINIDUMP_SUCCESS, false),
-                bundle.getString(INTENT_EXTEAS_PATH, ""),
-                bundle.getBoolean(INTENT_FATAL, false)
+                bundle.getString(INTENT_EXTRAS_PATH, null),
+                bundle.getBoolean(INTENT_FATAL, false),
+                bundle.getParcelableArrayList(INTENT_BREADCRUMBS) ?: arrayListOf()
             )
         }
     }

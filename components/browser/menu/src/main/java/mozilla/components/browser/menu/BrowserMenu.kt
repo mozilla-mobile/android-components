@@ -13,6 +13,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -27,10 +28,10 @@ import mozilla.components.support.ktx.android.view.onNextGlobalLayout
 /**
  * A popup menu composed of BrowserMenuItem objects.
  */
-class BrowserMenu internal constructor(
-    private val adapter: BrowserMenuAdapter
+open class BrowserMenu internal constructor(
+    internal val adapter: BrowserMenuAdapter
 ) {
-    private var currentPopup: PopupWindow? = null
+    protected var currentPopup: PopupWindow? = null
     private var menuList: RecyclerView? = null
 
     /**
@@ -40,7 +41,7 @@ class BrowserMenu internal constructor(
      *  the top of the menu is always visible.
      */
     @SuppressLint("InflateParams")
-    fun show(
+    open fun show(
         anchor: View,
         orientation: Orientation = DOWN,
         endOfMenuAlwaysVisible: Boolean = false,
@@ -56,6 +57,15 @@ class BrowserMenu internal constructor(
             }
             adapter = this@BrowserMenu.adapter
         }
+
+        menuList?.setAccessibilityDelegate(object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(host: View?, info: AccessibilityNodeInfo?) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info?.collectionInfo = AccessibilityNodeInfo.CollectionInfo.obtain(
+                    adapter.interactiveCount, 0, false
+                )
+            }
+        })
 
         return PopupWindow(
             view,
@@ -111,7 +121,11 @@ class BrowserMenu internal constructor(
         /**
          * Determines the orientation to be used for a menu based on the positioning of the [parent] in the layout.
          */
-        fun determineMenuOrientation(parent: View): Orientation {
+        fun determineMenuOrientation(parent: View?): Orientation {
+            if (parent == null) {
+                return DOWN
+            }
+
             val params = parent.layoutParams
             return if (params is CoordinatorLayout.LayoutParams) {
                 if ((params.gravity and Gravity.BOTTOM) == Gravity.BOTTOM) {
@@ -158,22 +172,31 @@ internal fun PopupWindow.displayPopup(
             showPopupWithUpOrientation(anchor, availableHeightToBottom, containerHeight)
         }
         else -> {
-            showPopupWhereBestFits(anchor, fitsUp, fitsDown, availableHeightToBottom, containerHeight)
+            showPopupWhereBestFits(
+                anchor,
+                fitsUp,
+                fitsDown,
+                availableHeightToTop,
+                availableHeightToBottom,
+                containerHeight
+            )
         }
     }
 }
 
+@Suppress("LongParameterList")
 private fun PopupWindow.showPopupWhereBestFits(
     anchor: View,
     fitsUp: Boolean,
     fitsDown: Boolean,
+    availableHeightToTop: Int,
     availableHeightToBottom: Int,
     containerHeight: Int
 ) {
     // We don't have enough space to show the menu UP neither DOWN.
     // Let's just show the popup at the location of the anchor.
     if (!fitsUp && !fitsDown) {
-        showAtAnchorLocation(anchor)
+        showAtAnchorLocation(anchor, availableHeightToTop < availableHeightToBottom)
     } else {
         if (fitsDown) {
             showPopupWithDownOrientation(anchor)
@@ -204,8 +227,16 @@ private fun PopupWindow.showPopupWithDownOrientation(anchor: View) {
     showAsDropDown(anchor, xOffset, -anchor.height)
 }
 
-private fun PopupWindow.showAtAnchorLocation(anchor: View) {
+private fun PopupWindow.showAtAnchorLocation(anchor: View, isCloserToTop: Boolean) {
     val anchorPosition = IntArray(2)
+
+    // Apply the best fit animation style based on positioning
+    animationStyle = if (isCloserToTop) {
+        R.style.Mozac_Browser_Menu_Animation_OverflowMenuTop
+    } else {
+        R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom
+    }
+
     anchor.getLocationOnScreen(anchorPosition)
     val x = anchorPosition[0]
     val y = anchorPosition[1]

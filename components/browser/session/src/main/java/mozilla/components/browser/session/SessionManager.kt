@@ -4,28 +4,88 @@
 
 package mozilla.components.browser.session
 
+import android.content.ComponentCallbacks2
+import mozilla.components.browser.session.engine.EngineObserver
 import mozilla.components.browser.session.ext.syncDispatch
 import mozilla.components.browser.session.ext.toCustomTabSessionState
 import mozilla.components.browser.session.ext.toTabSessionState
 import mozilla.components.browser.state.action.CustomTabListAction
+import mozilla.components.browser.state.action.EngineAction.LinkEngineSessionAction
+import mozilla.components.browser.state.action.EngineAction.UpdateEngineSessionStateAction
+import mozilla.components.browser.state.action.EngineAction.UnlinkEngineSessionAction
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.base.memory.MemoryConsumer
 import mozilla.components.support.base.observer.Observable
 import java.lang.IllegalArgumentException
 
 /**
  * This class provides access to a centralized registry of all active sessions.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class SessionManager(
     val engine: Engine,
     private val store: BrowserStore? = null,
-    private val delegate: LegacySessionManager = LegacySessionManager(engine)
-) : Observable<SessionManager.Observer> by delegate {
+    private val linker: EngineSessionLinker = EngineSessionLinker(store),
+    private val delegate: LegacySessionManager = LegacySessionManager(engine, linker)
+) : Observable<SessionManager.Observer> by delegate, MemoryConsumer {
+    private val logger = Logger("SessionManager")
+
+    /**
+     * This class only exists for migrating from browser-session
+     * to browser-state. We need a way to dispatch the corresponding browser
+     * actions when an engine session is linked and unlinked.
+     */
+    class EngineSessionLinker(private val store: BrowserStore?) {
+        /**
+         * Links the provided [Session] and [EngineSession].
+         */
+        fun link(
+            session: Session,
+            engineSession: EngineSession,
+            parentEngineSession: EngineSession?,
+            sessionRestored: Boolean = false
+        ) {
+            unlink(session)
+
+            session.engineSessionHolder.apply {
+                this.engineSession = engineSession
+                this.engineObserver = EngineObserver(session, store).also { observer ->
+                    engineSession.register(observer)
+                    if (!sessionRestored) {
+                        engineSession.loadUrl(session.url, parentEngineSession)
+                    }
+                }
+            }
+
+            store?.syncDispatch(LinkEngineSessionAction(session.id, engineSession))
+        }
+
+        fun unlink(session: Session) {
+            val observer = session.engineSessionHolder.engineObserver
+            val engineSession = session.engineSessionHolder.engineSession
+
+            if (observer != null && engineSession != null) {
+                engineSession.unregister(observer)
+            }
+
+            session.engineSessionHolder.engineSession = null
+            session.engineSessionHolder.engineObserver = null
+            session.engineSessionHolder.engineSessionState = null
+
+            store?.syncDispatch(UnlinkEngineSessionAction(session.id))
+
+            // Now, that neither the session manager nor the store keep a reference to the engine
+            // session, we can close it.
+            engineSession?.close()
+        }
+    }
+
     /**
      * Returns the number of session including CustomTab sessions.
      */
@@ -91,8 +151,10 @@ class SessionManager(
     ) {
         // Add store to Session so that it can dispatch actions whenever it changes.
         session.store = store
-
-        delegate.add(session, selected, engineSession, parent)
+        if (parent != null) {
+            require(all.contains(parent)) { "The parent does not exist" }
+            session.parentId = parent.id
+        }
 
         if (session.isCustomTabSession()) {
             store?.syncDispatch(
@@ -108,6 +170,8 @@ class SessionManager(
                 )
             )
         }
+
+        delegate.add(session, selected, engineSession, parent)
     }
 
     /**
@@ -158,15 +222,16 @@ class SessionManager(
 
         delegate.restore(snapshot, updateSelection)
 
-        val tabs = snapshot.sessions
+        val items = snapshot.sessions
             .filter {
                 // A restored snapshot should not contain any custom tab so we should be able to safely ignore
                 // them here.
                 !it.session.isCustomTabSession()
             }
-            .map { item ->
-                item.session.toTabSessionState()
-            }
+
+        val tabs = items.map { item ->
+            item.session.toTabSessionState()
+        }
 
         val selectedTabId = if (updateSelection && snapshot.selectedSessionIndex != NO_SELECTION) {
             val index = snapshot.selectedSessionIndex
@@ -180,6 +245,11 @@ class SessionManager(
         }
 
         store?.syncDispatch(TabListAction.RestoreAction(tabs, selectedTabId))
+
+        items.forEach { item ->
+            item.engineSession?.let { store?.syncDispatch(LinkEngineSessionAction(item.session.id, it)) }
+            item.engineSessionState?.let { store?.syncDispatch(UpdateEngineSessionStateAction(item.session.id, it)) }
+        }
     }
 
     /**
@@ -258,9 +328,55 @@ class SessionManager(
      * Informs this [SessionManager] that the OS is in low memory condition so it
      * can reduce its allocated objects.
      */
+    @Deprecated("Use onTrimMemory instead.", replaceWith = ReplaceWith("onTrimMemory"))
     fun onLowMemory() {
-        delegate.onLowMemory()
-        store?.syncDispatch(SystemAction.LowMemoryAction)
+        onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_MODERATE)
+    }
+
+    @Synchronized
+    @Suppress("NestedBlockDepth")
+    override fun onTrimMemory(level: Int) {
+        val clearThumbnails = level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
+        val closeEngineSessions = level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
+
+        logger.debug("onTrimMemory($level): clearThumbnails=$clearThumbnails, closeEngineSessions=$closeEngineSessions")
+
+        if (!clearThumbnails && !closeEngineSessions) {
+            // Nothing to do for now.
+            return
+        }
+
+        val selectedSession = selectedSession
+        val states = mutableMapOf<String, EngineSessionState>()
+        val sessions = sessions
+
+        var clearedThumbnails = 0
+        var unlinkedEngineSessions = 0
+
+        sessions.forEach {
+            if (it != selectedSession) {
+                if (clearThumbnails) {
+                    it.thumbnail = null
+                    clearedThumbnails++
+                }
+
+                if (closeEngineSessions) {
+                    val state = it.engineSessionHolder.engineSession?.saveState()
+                    linker.unlink(it)
+
+                    if (state != null) {
+                        it.engineSessionHolder.engineSessionState = state
+                        states[it.id] = state
+                    }
+
+                    unlinkedEngineSessions++
+                }
+            }
+        }
+
+        logger.debug("Cleared $clearedThumbnails thumbnail(s) and unlinked $unlinkedEngineSessions engine sessions(s)")
+
+        store?.syncDispatch(SystemAction.LowMemoryAction(states))
     }
 
     companion object {

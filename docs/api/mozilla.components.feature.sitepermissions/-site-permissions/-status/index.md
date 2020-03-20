@@ -2,7 +2,7 @@
 
 # Status
 
-`enum class Status` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/sitepermissions/src/main/java/mozilla/components/feature/sitepermissions/SitePermissions.kt#L38)
+`enum class Status` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/sitepermissions/src/main/java/mozilla/components/feature/sitepermissions/SitePermissions.kt#L28)
 
 ### Enum Values
 
@@ -18,3 +18,4 @@
 |---|---|
 | [doNotAskAgain](do-not-ask-again.md) | `fun doNotAskAgain(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [isAllowed](is-allowed.md) | `fun isAllowed(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
+| [toggle](toggle.md) | `fun toggle(): `[`Status`](./index.md) |

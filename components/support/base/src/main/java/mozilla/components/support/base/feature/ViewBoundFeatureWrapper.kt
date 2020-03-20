@@ -138,15 +138,18 @@ class ViewBoundFeatureWrapper<T : LifecycleAwareFeature>() {
     }
 
     /**
-     * Convenient method for invoking [BackHandler.onBackPressed] on a wrapped [LifecycleAwareFeature] that implements
-     * [BackHandler]. Returns false if the [LifecycleAwareFeature] was cleared already.
+     * Convenient method for invoking [UserInteractionHandler.onBackPressed] on a wrapped
+     * [LifecycleAwareFeature] that implements [UserInteractionHandler]. Returns false if
+     * the [LifecycleAwareFeature] was cleared already.
      */
     @Synchronized
     fun onBackPressed(): Boolean {
         val feature = feature ?: return false
 
-        if (feature !is BackHandler) {
-            throw IllegalAccessError("Feature does not implement BackHandler interface")
+        if (feature !is UserInteractionHandler) {
+            throw IllegalAccessError(
+                "Feature does not implement ${UserInteractionHandler::class.java.simpleName} interface"
+            )
         }
 
         return feature.onBackPressed()

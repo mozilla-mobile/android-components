@@ -4,17 +4,24 @@
 
 package org.mozilla.samples.glean
 
+import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
 import mozilla.components.service.experiments.Experiments
-import mozilla.components.service.glean.Glean
 import org.mozilla.samples.glean.GleanMetrics.Test
 import org.mozilla.samples.glean.GleanMetrics.BrowserEngagement
 import org.mozilla.samples.glean.library.SamplesGleanLibrary
 
-open class MainActivity : AppCompatActivity() {
+/**
+ * Main Activity of the glean-sample-app
+ */
+open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.ExperimentUpdateListener {
+
+    // This BroadcastReceiver is not relevant to the Glean SDK, but is relevant to the experiments
+    // library.
+    private var experimentUpdateReceiver: ExperimentUpdateReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,12 +34,12 @@ open class MainActivity : AppCompatActivity() {
 
             // Adds the EditText's text content as a new string in the string list metric from the
             // metrics.yaml file.
-            Test.testStringList.add(etStringListInput.text.toString())
+            Test.stringList.add(etStringListInput.text.toString())
             // Clear current text to help indicate something happened
             etStringListInput.setText("")
 
             // Increments the test_counter metric from the metrics.yaml file.
-            Test.testCounter.add()
+            Test.counter.add()
 
             // This is referencing the event ping named 'click' from the metrics.yaml file. In
             // order to illustrate adding extra information to the event, it is also adding to the
@@ -46,29 +53,47 @@ open class MainActivity : AppCompatActivity() {
             )
         }
 
-        // Generate pings on click by simulating Glean handling a background event.
-        buttonSendPing.setOnClickListener {
-            Glean.handleBackgroundEvent()
-        }
-
-        Test.testTimespan.stop()
+        Test.timespan.stop()
 
         // Update some metrics from a third-party library
         SamplesGleanLibrary.recordMetric()
         SamplesGleanLibrary.recordExperiment()
 
+        // The following is not relevant to the Glean SDK, but to the experiments library.
+        // Set up the ExperimentUpdateReceiver to receive experiment updated Intents.
+        experimentUpdateReceiver = ExperimentUpdateReceiver(this)
+        val filter = IntentFilter()
+        filter.addAction("org.mozilla.samples.glean.experiments.updated")
+        registerReceiver(experimentUpdateReceiver, filter)
+
         // Handle logic for the "test-color" experiment on click.
         buttonCheckExperiments.setOnClickListener {
-            textViewExperimentStatus.setBackgroundColor(Color.WHITE)
-            textViewExperimentStatus.text = getString(R.string.experiment_not_active)
+            onExperimentsUpdated()
+        }
+    }
 
-            Experiments.withExperiment("test-color") {
-                val color = when (it) {
-                    "blue" -> Color.BLUE
-                    "red" -> Color.RED
-                    "control" -> Color.DKGRAY
-                    else -> Color.WHITE
-                }
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(experimentUpdateReceiver)
+    }
+
+    /**
+     * This function will be called by the ExperimentUpdateListener interface when the experiments
+     * are updated.  This is not relevant to the Glean SDK, but to the experiments library.
+     */
+    override fun onExperimentsUpdated() {
+        textViewExperimentStatus.setBackgroundColor(Color.WHITE)
+        textViewExperimentStatus.text = getString(R.string.experiment_not_active)
+
+        Experiments.withExperiment("test-color") {
+            val color = when (it) {
+                "blue" -> Color.BLUE
+                "red" -> Color.RED
+                "control" -> Color.DKGRAY
+                else -> Color.WHITE
+            }
+            // Dispatch the UI work back to the appropriate thread
+            this@MainActivity.runOnUiThread {
                 textViewExperimentStatus.setBackgroundColor(color)
                 textViewExperimentStatus.text = getString(R.string.experiment_active_branch, it)
             }

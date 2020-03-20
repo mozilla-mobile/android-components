@@ -4,8 +4,10 @@
 
 package mozilla.components.concept.engine
 
+import android.content.Intent
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.Companion.RECOMMENDED
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -39,6 +41,14 @@ abstract class EngineSession(
         fun onSecurityChange(secure: Boolean, host: String? = null, issuer: String? = null) = Unit
         fun onTrackerBlockingEnabledChange(enabled: Boolean) = Unit
         fun onTrackerBlocked(tracker: Tracker) = Unit
+        fun onTrackerLoaded(tracker: Tracker) = Unit
+        fun onNavigateBack() = Unit
+
+        /**
+         * Event to indicate whether or not this [EngineSession] should be [excluded] from tracking protection.
+         */
+        fun onExcludedOnTrackingProtectionChange(excluded: Boolean) = Unit
+
         fun onLongPress(hitResult: HitResult) = Unit
         fun onDesktopModeChange(enabled: Boolean) = Unit
         fun onFind(text: String) = Unit
@@ -49,8 +59,14 @@ abstract class EngineSession(
         fun onContentPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
         fun onPromptRequest(promptRequest: PromptRequest) = Unit
-        fun onOpenWindowRequest(windowRequest: WindowRequest) = Unit
-        fun onCloseWindowRequest(windowRequest: WindowRequest) = Unit
+
+        /**
+         * The engine received a request to open or close a window.
+         *
+         * @param windowRequest the request to describing the required window action.
+         */
+        fun onWindowRequest(windowRequest: WindowRequest) = Unit
+
         fun onMediaAdded(media: Media) = Unit
         fun onMediaRemoved(media: Media) = Unit
         fun onWebAppManifestLoaded(manifest: WebAppManifest) = Unit
@@ -65,8 +81,28 @@ abstract class EngineSession(
          * @param triggeredByRedirect True if and only if the request was triggered by an HTTP redirect.
          * @param triggeredByWebContent True if and only if the request was triggered from within
          * web content (as opposed to via the browser chrome).
+         *
+         * Unlike the name LoadRequest.isRedirect may imply this flag is not about http redirects.
+         * The flag is "True if and only if the request was triggered by an HTTP redirect."
+         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1545170
          */
-        fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) = Unit
+        fun onLoadRequest(
+            url: String,
+            triggeredByRedirect: Boolean,
+            triggeredByWebContent: Boolean
+        ) = Unit
+
+        /**
+         * The engine received a request to launch a app intent.
+         *
+         * @param url The string url that was requested.
+         * @param appIntent The Android Intent that was requested.
+         * web content (as opposed to via the browser chrome).
+         */
+        fun onLaunchIntentRequest(
+            url: String,
+            appIntent: Intent?
+        ) = Unit
 
         @Suppress("LongParameterList")
         fun onExternalResource(
@@ -85,16 +121,51 @@ abstract class EngineSession(
     abstract val settings: Settings
 
     /**
+     * Represents a safe browsing policy, which is indicates with type of site should be alerted
+     * to user as possible harmful.
+     */
+    @Suppress("MagicNumber")
+    enum class SafeBrowsingPolicy(val id: Int) {
+        NONE(0),
+
+        /**
+         * Blocks malware sites.
+         */
+        MALWARE(1 shl 10),
+
+        /**
+         * Blocks unwanted sites.
+         */
+        UNWANTED(1 shl 11),
+
+        /**
+         * Blocks harmful sites.
+         */
+        HARMFUL(1 shl 12),
+
+        /**
+         * Blocks phishing sites.
+         */
+        PHISHING(1 shl 13),
+
+        /**
+         * Blocks all unsafe sites.
+         */
+        RECOMMENDED(MALWARE.id + UNWANTED.id + HARMFUL.id + PHISHING.id)
+    }
+
+    /**
      * Represents a tracking protection policy, which is a combination of
      * tracker categories that should be blocked. Unless otherwise specified,
      * a [TrackingProtectionPolicy] is applicable to all session types (see
      * [TrackingProtectionPolicyForSessionTypes]).
      */
     open class TrackingProtectionPolicy internal constructor(
-        val categories: Int,
+        val trackingCategories: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
         val useForPrivateSessions: Boolean = true,
         val useForRegularSessions: Boolean = true,
-        val cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS
+        val cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS,
+        val strictSocialTrackingProtection: Boolean? = null
     ) {
 
         /**
@@ -133,123 +204,161 @@ abstract class EngineSession(
             ACCEPT_NON_TRACKERS(4)
         }
 
-        companion object {
-            internal const val NONE: Int = 0
+        @Suppress("MagicNumber")
+        enum class TrackingCategory(val id: Int) {
+
+            NONE(0),
+
             /**
-             * Blocks advertisement trackers.
+             * Blocks advertisement trackers from the ads-track-digest256 list.
              */
-            const val AD: Int = 1 shl 1
+            AD(1 shl 1),
+
             /**
-             * Blocks analytics trackers.
+             * Blocks analytics trackers from the analytics-track-digest256 list.
              */
-            const val ANALYTICS: Int = 1 shl 2
+            ANALYTICS(1 shl 2),
+
             /**
-             * Blocks social trackers.
+             * Blocks social trackers from the social-track-digest256 list.
              */
-            const val SOCIAL: Int = 1 shl 3
+            SOCIAL(1 shl 3),
+
             /**
-             * Blocks content trackers.
+             * Blocks content trackers from the content-track-digest256 list.
              * May cause issues with some web sites.
              */
-            const val CONTENT: Int = 1 shl 4
-            // This policy is just to align categories with GeckoView (which has AT_TEST = 1 << 5)
-            const val TEST: Int = 1 shl 5
+            CONTENT(1 shl 4),
+
+            // This policy is just to align categories with GeckoView
+            TEST(1 shl 5),
+
             /**
              * Blocks cryptocurrency miners.
              */
-            const val CRYPTOMINING = 1 shl 6
+            CRYPTOMINING(1 shl 6),
+
             /**
              * Blocks fingerprinting trackers.
              */
-            const val FINGERPRINTING = 1 shl 7
-            /**
-             * Blocks malware sites.
-             */
-            const val SAFE_BROWSING_MALWARE = 1 shl 10
-            /**
-             * Blocks unwanted sites.
-             */
-            const val SAFE_BROWSING_UNWANTED = 1 shl 11
-            /**
-             * Blocks harmful sites.
-             */
-            const val SAFE_BROWSING_HARMFUL = 1 shl 12
-            /**
-             * Blocks phishing sites.
-             */
-            const val SAFE_BROWSING_PHISHING = 1 shl 13
-            /**
-             * Blocks all unsafe sites.
-             */
-            const val SAFE_BROWSING_ALL =
-                SAFE_BROWSING_MALWARE + SAFE_BROWSING_UNWANTED + SAFE_BROWSING_HARMFUL + SAFE_BROWSING_PHISHING
+            FINGERPRINTING(1 shl 7),
 
-            const val RECOMMENDED = AD + ANALYTICS + SOCIAL + TEST + SAFE_BROWSING_ALL
+            /**
+             * Blocks social trackers from the social-tracking-protection-digest256 list.
+             */
+            MOZILLA_SOCIAL(1 shl 8),
 
-            const val ALL = RECOMMENDED + CRYPTOMINING + FINGERPRINTING + CONTENT
+            /**
+             * Blocks content like scripts and sub-resources.
+             */
+            SCRIPTS_AND_SUB_RESOURCES(1 shl 9999),
 
-            fun none() = TrackingProtectionPolicy(NONE, cookiePolicy = ACCEPT_ALL)
+            RECOMMENDED(AD.id + ANALYTICS.id + SOCIAL.id + TEST.id + MOZILLA_SOCIAL.id +
+                CRYPTOMINING.id),
+
+            /**
+             * Combining the [RECOMMENDED] categories plus [SCRIPTS_AND_SUB_RESOURCES]
+             * and [FINGERPRINTING].
+             */
+            STRICT(RECOMMENDED.id + SCRIPTS_AND_SUB_RESOURCES.id + FINGERPRINTING.id)
+        }
+
+        companion object {
+
+            internal val RECOMMENDED = TrackingProtectionPolicy()
+
+            fun none() = TrackingProtectionPolicy(
+                trackingCategories = arrayOf(TrackingCategory.NONE),
+                cookiePolicy = ACCEPT_ALL
+            )
 
             /**
              * Strict policy.
-             * Combining the [recommended] categories plus [CRYPTOMINING], [FINGERPRINTING] and [CONTENT].
-             * With a cookiePolicy of [ACCEPT_NON_TRACKERS].
+             * Combining the [TrackingCategory.STRICT] plus a cookiePolicy of [ACCEPT_NON_TRACKERS]
              * This is the strictest setting and may cause issues on some web sites.
              */
-            fun all() = TrackingProtectionPolicyForSessionTypes(ALL)
+            fun strict() = TrackingProtectionPolicyForSessionTypes(
+                trackingCategory = arrayOf(TrackingCategory.STRICT),
+                cookiePolicy = ACCEPT_NON_TRACKERS,
+                strictSocialTrackingProtection = true
+            )
 
             /**
              * Recommended policy.
-             * Combining the [AD], [ANALYTICS], [SOCIAL], [TEST] categories plus [SAFE_BROWSING_ALL].
-             * With a [CookiePolicy] of [ACCEPT_NON_TRACKERS].
+             * Combining the [TrackingCategory.RECOMMENDED] plus a [CookiePolicy] of [ACCEPT_NON_TRACKERS].
              * This is the recommended setting.
              */
-            fun recommended() = TrackingProtectionPolicyForSessionTypes(RECOMMENDED)
+            fun recommended() = TrackingProtectionPolicyForSessionTypes(
+                trackingCategory = arrayOf(TrackingCategory.RECOMMENDED),
+                cookiePolicy = ACCEPT_NON_TRACKERS,
+                strictSocialTrackingProtection = false
+            )
 
-            fun select(vararg categories: Int, cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS) =
-                TrackingProtectionPolicyForSessionTypes(categories.sum(), cookiePolicy)
+            fun select(
+                trackingCategories: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
+                cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS,
+                strictSocialTrackingProtection: Boolean? = null
+            ) = TrackingProtectionPolicyForSessionTypes(
+                trackingCategories,
+                cookiePolicy,
+                strictSocialTrackingProtection
+            )
         }
-
-        fun contains(category: Int) = (categories and category) != 0
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is TrackingProtectionPolicy) return false
-            if (categories != other.categories) return false
+            if (hashCode() != other.hashCode()) return false
             if (useForPrivateSessions != other.useForPrivateSessions) return false
             if (useForRegularSessions != other.useForRegularSessions) return false
             return true
         }
 
-        override fun hashCode() = categories
+        override fun hashCode() = trackingCategories.sumBy { it.id } + cookiePolicy.id
+
+        fun contains(category: TrackingCategory) =
+            (trackingCategories.sumBy { it.id } and category.id) != 0
     }
 
     /**
      * Subtype of [TrackingProtectionPolicy] to control the type of session this policy
      * should be applied to. By default, a policy will be applied to all sessions.
+     *  @param trackingCategory a list of tracking categories to apply.
+     *  @param cookiePolicy indicate how cookies should behave for this policy.
+     *  @param strictSocialTrackingProtection indicate  if content should be blocked from the
+     *  social-tracking-protection-digest256 list, when given a null value,
+     *  it is only applied when the [EngineSession.TrackingProtectionPolicy.TrackingCategory.STRICT]
+     *  is set.
      */
     class TrackingProtectionPolicyForSessionTypes internal constructor(
-        categories: Int,
-        cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS
-    ) : TrackingProtectionPolicy(categories, cookiePolicy = cookiePolicy) {
+        trackingCategory: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
+        cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS,
+        strictSocialTrackingProtection: Boolean? = null
+    ) : TrackingProtectionPolicy(
+        trackingCategories = trackingCategory,
+        cookiePolicy = cookiePolicy,
+        strictSocialTrackingProtection = strictSocialTrackingProtection
+    ) {
         /**
          * Marks this policy to be used for private sessions only.
          */
         fun forPrivateSessionsOnly() = TrackingProtectionPolicy(
-            categories,
+            trackingCategories = trackingCategories,
             useForPrivateSessions = true,
             useForRegularSessions = false,
-            cookiePolicy = cookiePolicy
+            cookiePolicy = cookiePolicy,
+            strictSocialTrackingProtection = strictSocialTrackingProtection
         )
 
         /**
          * Marks this policy to be used for regular (non-private) sessions only.
          */
         fun forRegularSessionsOnly() = TrackingProtectionPolicy(
-            categories,
+            trackingCategories = trackingCategories,
             useForPrivateSessions = false,
             useForRegularSessions = true,
-            cookiePolicy = cookiePolicy
+            cookiePolicy = cookiePolicy,
+            strictSocialTrackingProtection = strictSocialTrackingProtection
         )
     }
 
@@ -288,9 +397,17 @@ abstract class EngineSession(
      * Loads the given URL.
      *
      * @param url the url to load.
+     * @param parent the parent (referring) [EngineSession] i.e. the session that
+     * triggered creating this one.
      * @param flags the [LoadUrlFlags] to use when loading the provider url.
+     * @param additionalHeaders the extra headers to use when loading the provided url.
      */
-    abstract fun loadUrl(url: String, flags: LoadUrlFlags = LoadUrlFlags.none())
+    abstract fun loadUrl(
+        url: String,
+        parent: EngineSession? = null,
+        flags: LoadUrlFlags = LoadUrlFlags.none(),
+        additionalHeaders: Map<String, String>? = null
+    )
 
     /**
      * Loads the data with the given mimeType.
@@ -345,15 +462,17 @@ abstract class EngineSession(
      * Restores the engine state as provided by [saveState].
      *
      * @param state state retrieved from [saveState]
+     * @return true if the engine session has successfully been restored with the provided state,
+     * false otherwise.
      */
-    abstract fun restoreState(state: EngineSessionState)
+    abstract fun restoreState(state: EngineSessionState): Boolean
 
     /**
      * Enables tracking protection for this engine session.
      *
      * @param policy the tracking protection policy to use, defaults to blocking all trackers.
      */
-    abstract fun enableTrackingProtection(policy: TrackingProtectionPolicy = TrackingProtectionPolicy.all())
+    abstract fun enableTrackingProtection(policy: TrackingProtectionPolicy = TrackingProtectionPolicy.strict())
 
     /**
      * Disables tracking protection for this engine session.
@@ -413,6 +532,14 @@ abstract class EngineSession(
      * Returns true if a last known state was restored, otherwise false.
      */
     abstract fun recoverFromCrash(): Boolean
+
+    /**
+     * Marks this session active/inactive for web extensions to support
+     * tabs.query({active: true}).
+     *
+     * @param active whether this session should be marked as active or inactive.
+     */
+    open fun markActiveForWebExtensions(active: Boolean) = Unit
 
     /**
      * Close the session. This may free underlying objects. Call this when you are finished using

@@ -5,6 +5,7 @@
 package org.mozilla.samples.glean
 
 import android.app.Application
+import android.content.Intent
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.experiments.Experiments
 import mozilla.components.support.base.log.Log
@@ -27,13 +28,18 @@ class GleanApplication : Application() {
 
         // Initialize the Glean library. Ideally, this is the first thing that
         // must be done right after enabling logging.
-        Glean.initialize(applicationContext)
+        Glean.initialize(applicationContext, uploadEnabled = true)
 
-        // Initialize the Experiments library right afterwards. Experiments can
-        // not be activated before this, so it's important to do this early.
-        Experiments.initialize(applicationContext)
+        // Initialize the Experiments library and pass in the callback that will generate a
+        // broadcast Intent to signal the application that experiments have been updated. This is
+        // only relevant to the experiments library, aside from recording the experiment in Glean.
+        Experiments.initialize(applicationContext) {
+            val intent = Intent()
+            intent.action = "org.mozilla.samples.glean.experiments.updated"
+            sendBroadcast(intent)
+        }
 
-        Test.testTimespan.start()
+        Test.timespan.start()
 
         Custom.counter.add()
 

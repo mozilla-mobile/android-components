@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.service.experiments
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.service.experiments.util.VersionString
 import mozilla.components.support.ktx.android.org.json.tryGetInt
 import org.json.JSONException
 import org.json.JSONObject
@@ -28,8 +29,8 @@ class JSONExperimentParserTest {
                 appId = "sample-appId",
                 regions = listOf("US"),
                 appDisplayVersion = "1.0",
-                appMinVersion = "0.1.0",
-                appMaxVersion = "1.1.0",
+                appMinVersion = VersionString("0.1.0"),
+                appMaxVersion = VersionString("1.1.0"),
                 deviceManufacturer = "manufacturer",
                 deviceModel = "device",
                 localeCountry = "country",
@@ -152,8 +153,8 @@ class JSONExperimentParserTest {
                 localeLanguage = "es|en",
                 appId = "sample-appId",
                 regions = listOf("US"),
-                appMinVersion = "1.0.0",
-                appMaxVersion = "1.1.0"
+                appMinVersion = VersionString("1.0.0"),
+                appMaxVersion = VersionString("1.1.0")
             ),
             buckets = Experiment.Buckets(0, 20),
             lastModified = currentTime

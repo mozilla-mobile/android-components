@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.customtabs
 
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
@@ -12,6 +13,8 @@ import android.support.customtabs.ICustomTabsService
 import androidx.browser.customtabs.CustomTabsService
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.fetch.Client
+import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,6 +34,8 @@ class AbstractCustomTabsServiceTest {
         val customTabsService = object : AbstractCustomTabsService() {
             override val engine: Engine
                 get() = mock()
+
+            override fun getPackageManager(): PackageManager = mock()
         }
 
         val customTabsServiceStub = customTabsService.onBind(mock())
@@ -91,5 +96,47 @@ class AbstractCustomTabsServiceTest {
         assertTrue(stub.mayLaunchUrl(mock(), Uri.parse("https://www.mozilla.org"), Bundle(), listOf()))
 
         verify(engine).speculativeConnect("https://www.mozilla.org")
+    }
+
+    @Test
+    fun `verifier is only created when store and client are provided`() {
+        val justEngine = object : AbstractCustomTabsService() {
+            override val engine: Engine = mock()
+        }
+        assertNull(justEngine.verifier)
+
+        val withStore = object : AbstractCustomTabsService() {
+            override val engine: Engine = mock()
+            override val customTabsServiceStore: CustomTabsServiceStore? = mock()
+        }
+        assertNull(withStore.verifier)
+
+        val withClient = object : AbstractCustomTabsService() {
+            override val engine: Engine = mock()
+            override val httpClient: Client? = mock()
+        }
+        assertNull(withClient.verifier)
+
+        val both = object : AbstractCustomTabsService() {
+            override val engine: Engine = mock()
+            override val customTabsServiceStore: CustomTabsServiceStore? = mock()
+            override val httpClient: Client? = mock()
+
+            override fun getPackageManager(): PackageManager = mock()
+        }
+        assertNotNull(both.verifier)
+    }
+
+    @Test
+    fun `API key is passed to verifier`() {
+        val service = object : AbstractCustomTabsService() {
+            override val engine: Engine = mock()
+            override val customTabsServiceStore: CustomTabsServiceStore? = mock()
+            override val httpClient: Client? = mock()
+            override val apiKey: String? = "a-completely-valid-key"
+
+            override fun getPackageManager(): PackageManager = mock()
+        }
+        assertEquals("a-completely-valid-key", service.verifier?.apiKey)
     }
 }

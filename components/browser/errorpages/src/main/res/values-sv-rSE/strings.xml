@@ -10,7 +10,7 @@
     <string name="mozac_browser_errorpages_page_go_back">Gå tillbaka</string>
 
     <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
-    <string name="mozac_browser_errorpages_generic_title">Kan inte slutföra begäran</string>
+    <string name="mozac_browser_errorpages_generic_title">Begäran kan inte slutföras</string>
     <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
     <string name="mozac_browser_errorpages_generic_message"><![CDATA[
       <p>Ytterligare information om detta problem eller fel är för närvarande inte tillgänglig.</p>
@@ -38,6 +38,20 @@
       </ul>
     ]]></string>
 
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Avancerat…</string>
+
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Någon kan försöka efterlikna webbplatsen och du bör inte fortsätta.</label>
+        <br><br>
+        <label>Webbplatser bevisar sin identitet via certifikat. %1$s litar inte på <b>%2$s</b> eftersom certifikatutgivaren är okänd, certifikatet är självsignerat eller servern skickar inte rätt mellanliggande certifikat.</label>
+    ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Gå tillbaka (rekommenderas)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Acceptera risken och fortsätt</string>
+
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Anslutningen avbröts</string>
 
@@ -53,15 +67,13 @@
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_title">Anslutningens tidsgräns överskreds </string>
     <!-- The error message shown when a website took long to load. -->
-    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
-      <p>Den begärda webbplatsen svarade inte på en anslutningsbegäran och webbläsaren har slutat vänta på ett svar.</p>
+    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[<p>Den begärda webbplatsen svarade inte på en anslutningsbegäran och webbläsaren har slutat vänta på ett svar.</p>
       <ul>
         <li>Kan servern ha hög efterfrågan eller tillfälligt avbrott? Försök igen senare.</li>
-        <li>Kan du inte surfa på andra webbplatser? Kontrollera datorns nätverksanslutning.</li>
-        <li>Är din dator eller nätverk skyddad av en brandvägg eller proxy? Felaktiga inställningar kan påverka surfningen.</li>
+        <li>Kan du inte surfa på andra webbplatser? Kontrollera enhetens nätverksanslutning.</li>
+        <li>Är din enhet eller nätverk skyddad av en brandvägg eller proxy? Felaktiga inställningar kan påverka surfningen.</li>
         <li>Har du fortfarande problem? Kontakta nätverksadministratören eller internetleverantören för hjälp.</li>
-      </ul>
-    ]]></string>
+      </ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website could not be reached. -->
     <string name="mozac_browser_errorpages_connection_failure_title">Kan inte ansluta</string>
@@ -84,13 +96,11 @@
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_title">Sidan dirigeras om felaktigt</string>
     <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
-    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
-      <p>Webbläsaren har slutat försöka hämta det begärda objektet. Webbplatsen omdirigerar begäran på ett sätt som aldrig kommer att slutföras.</p>
+    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[<p>Webbläsaren har slutat försöka hämta det begärda objektet. Webbplatsen omdirigerar begäran på ett sätt som aldrig kommer att slutföras.</p>
       <ul>
         <li>Har du inaktiverat eller blockerat kakor som krävs av denna webbplats?</li>
-        <li>Om att acceptera webbplatsens kakor inte löser problemet, är det troligtvis ett konfigurationsproblem i servern och inte din dator.</li>
-      </ul>
-    ]]></string>
+        <li>Om att acceptera webbplatsens kakor inte löser problemet, är det troligtvis ett konfigurationsproblem i servern och inte din enhet.</li>
+      </ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
     <string name="mozac_browser_errorpages_offline_title">Offlineläge</string>
@@ -174,6 +184,13 @@
         <li>Om du inte kan ladda några sidor kan du kontrollera enhetens data eller Wi-Fi-anslutning.</li>
       </ul>
     ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">Ingen internetanslutning</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Kontrollera din nätverksanslutning eller försök ladda om sidan om en stund.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Ladda om</string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">Ogiltig adress</string>

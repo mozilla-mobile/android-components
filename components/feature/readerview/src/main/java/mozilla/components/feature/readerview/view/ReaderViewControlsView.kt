@@ -1,8 +1,6 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.feature.readerview.view
 
@@ -46,6 +44,15 @@ interface ReaderViewControlsView {
      * Casts this [ReaderViewControlsView] interface to an actual Android [View] object.
      */
     fun asView(): View = (this as View)
+
+    /**
+     * Tries to inflate the view if needed.
+     *
+     * See: https://github.com/mozilla-mobile/android-components/issues/5491
+     *
+     * @return true if the inflation was completed, false if the view was already inflated.
+     */
+    fun tryInflate(): Boolean
 
     interface Listener {
         fun onFontChanged(font: FontType)

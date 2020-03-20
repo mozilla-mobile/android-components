@@ -9,15 +9,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_tabstray.*
+import kotlinx.android.synthetic.main.fragment_tabstray.tabsTray
+import kotlinx.android.synthetic.main.fragment_tabstray.toolbar
 import mozilla.components.feature.tabs.tabstray.TabsFeature
-import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.samples.browser.ext.components
 
 /**
  * A fragment for displaying the tabs tray.
  */
-class TabsTrayFragment : Fragment(), BackHandler {
+class TabsTrayFragment : Fragment(), UserInteractionHandler {
     private var tabsFeature: TabsFeature? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
@@ -44,9 +45,9 @@ class TabsTrayFragment : Fragment(), BackHandler {
 
         tabsFeature = TabsFeature(
             tabsTray,
-            components.sessionManager,
+            components.store,
             components.tabsUseCases,
-            ::closeTabsTray
+            closeTabsTray = ::closeTabsTray
         ).also { lifecycle.addObserver(it) }
     }
 

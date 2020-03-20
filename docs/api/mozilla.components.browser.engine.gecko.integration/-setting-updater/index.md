@@ -2,7 +2,7 @@
 
 # SettingUpdater
 
-`abstract class SettingUpdater<T>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/engine-gecko-beta/src/main/java/mozilla/components/browser/engine/gecko/integration/SettingUpdater.kt#L3)
+`abstract class SettingUpdater<T>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/engine-gecko-beta/src/main/java/mozilla/components/browser/engine/gecko/integration/SettingUpdater.kt#L7)
 
 ### Constructors
 
@@ -24,6 +24,12 @@
 | [findValue](find-value.md) | `abstract fun findValue(): `[`T`](index.md#T)<br>Find the value of the setting from the device state. This is setting specific. |
 | [registerForUpdates](register-for-updates.md) | `abstract fun registerForUpdates(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Register for updates from the device state. This is setting specific. |
 | [unregisterForUpdates](unregister-for-updates.md) | `abstract fun unregisterForUpdates(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Unregister for updates from the device state. |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
 
 ### Inheritors
 

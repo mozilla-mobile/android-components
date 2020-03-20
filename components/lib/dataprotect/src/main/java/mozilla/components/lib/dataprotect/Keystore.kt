@@ -5,7 +5,7 @@
 package mozilla.components.lib.dataprotect
 
 import android.annotation.TargetApi
-import android.os.Build
+import android.os.Build.VERSION_CODES.M
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.GeneralSecurityException
@@ -20,8 +20,11 @@ import javax.crypto.spec.GCMParameterSpec
 private const val KEYSTORE_TYPE = "AndroidKeyStore"
 private const val ENCRYPTED_VERSION = 0x02
 
+@TargetApi(M)
 internal const val CIPHER_ALG = KeyProperties.KEY_ALGORITHM_AES
+@TargetApi(M)
 internal const val CIPHER_MOD = KeyProperties.BLOCK_MODE_GCM
+@TargetApi(M)
 internal const val CIPHER_PAD = KeyProperties.ENCRYPTION_PADDING_NONE
 internal const val CIPHER_KEY_LEN = 256
 internal const val CIPHER_TAG_LEN = 128
@@ -34,7 +37,7 @@ internal const val CIPHER_NONCE_LEN = 12
  * and instrumenting.
  *
  */
-@TargetApi(Build.VERSION_CODES.M)
+@TargetApi(M)
 open class KeyStoreWrapper {
     private var keystore: KeyStore? = null
 
@@ -66,7 +69,7 @@ open class KeyStoreWrapper {
      * @throws UnrecoverableKeyException If the key could not be recovered for some reason
      */
     open fun getKeyFor(label: String): Key? =
-            loadKeyStore().getKey(label, null)
+        loadKeyStore().getKey(label, null)
 
     /**
      * Creates a SecretKey for the given label.
@@ -82,12 +85,14 @@ open class KeyStoreWrapper {
      * @throws NoSuchAlgorithmException If the cipher algorithm is not supported
      */
     open fun makeKeyFor(label: String): SecretKey {
-        val spec = KeyGenParameterSpec.Builder(label,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setKeySize(CIPHER_KEY_LEN)
-                .setBlockModes(CIPHER_MOD)
-                .setEncryptionPaddings(CIPHER_PAD)
-                .build()
+        val spec = KeyGenParameterSpec.Builder(
+            label,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        )
+            .setKeySize(CIPHER_KEY_LEN)
+            .setBlockModes(CIPHER_MOD)
+            .setEncryptionPaddings(CIPHER_PAD)
+            .build()
         val gen = KeyGenerator.getInstance(CIPHER_ALG, KEYSTORE_TYPE)
         gen.init(spec)
         return gen.generateKey()
@@ -138,7 +143,7 @@ open class KeyStoreWrapper {
  * Unless `manual` is `true`, the key is created if not already present in the
  * platform's key storage.
  */
-@TargetApi(Build.VERSION_CODES.M)
+@TargetApi(M)
 open class Keystore(
     val label: String,
     manual: Boolean = false,
@@ -151,7 +156,7 @@ open class Keystore(
     }
 
     private fun getKey(): SecretKey? =
-            wrapper.getKeyFor(label) as? SecretKey?
+        wrapper.getKeyFor(label) as? SecretKey?
 
     /**
      * Determines if the managed key is available for use.  Consumers can use this to
@@ -213,11 +218,16 @@ open class Keystore(
         // 5116-style interface  = [ inputs || ciphertext || atag ]
         // - inputs = [ version = 0x02 || cipher.iv (always 12 bytes) ]
         // - cipher.doFinal() provides [ ciphertext || atag ]
-        val cipher = createEncryptCipher()
-        val cdata = cipher.doFinal(plain)
-        val nonce = cipher.iv
+        // Cipher operations are not thread-safe so we synchronize over them through doFinal to
+        // prevent crashes with quickly repeated encrypt/decrypt operations
+        // https://github.com/mozilla-mobile/android-components/issues/5342
+        synchronized(this) {
+            val cipher = createEncryptCipher()
+            val cdata = cipher.doFinal(plain)
+            val nonce = cipher.iv
 
-        return byteArrayOf(ENCRYPTED_VERSION.toByte()) + nonce + cdata
+            return byteArrayOf(ENCRYPTED_VERSION.toByte()) + nonce + cdata
+        }
     }
 
     /**
@@ -238,10 +248,15 @@ open class Keystore(
             throw KeystoreException("unsupported encrypted version: $version")
         }
 
-        val iv = encrypted.sliceArray(1..CIPHER_NONCE_LEN)
-        val cdata = encrypted.sliceArray((CIPHER_NONCE_LEN + 1)..encrypted.size - 1)
-        val cipher = createDecryptCipher(iv)
-        return cipher.doFinal(cdata)
+        // Cipher operations are not thread-safe so we synchronize over them through doFinal to
+        // prevent crashes with quickly repeated encrypt/decrypt operations
+        // https://github.com/mozilla-mobile/android-components/issues/5342
+        synchronized(this) {
+            val iv = encrypted.sliceArray(1..CIPHER_NONCE_LEN)
+            val cdata = encrypted.sliceArray((CIPHER_NONCE_LEN + 1)..encrypted.size - 1)
+            val cipher = createDecryptCipher(iv)
+            return cipher.doFinal(cdata)
+        }
     }
 
     /**

@@ -4,11 +4,16 @@
 
 package mozilla.components.feature.awesomebar.provider
 
+import android.content.res.Resources
+import kotlinx.coroutines.Deferred
 import mozilla.components.browser.icons.BrowserIcons
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.icons.Icon
+import mozilla.components.browser.icons.IconRequest
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.awesomebar.AwesomeBar
-import mozilla.components.feature.awesomebar.internal.loadLambda
+import mozilla.components.feature.awesomebar.R
 import mozilla.components.feature.tabs.TabsUseCases
 import java.util.UUID
 
@@ -17,7 +22,8 @@ import java.util.UUID
  * [SessionManager] (Open tabs).
  */
 class SessionSuggestionProvider(
-    private val sessionManager: SessionManager,
+    private val resources: Resources,
+    private val store: BrowserStore,
     private val selectTabUseCase: TabsUseCases.SelectTabUseCase,
     private val icons: BrowserIcons? = null,
     private val excludeSelectedSession: Boolean = false
@@ -29,37 +35,41 @@ class SessionSuggestionProvider(
             return emptyList()
         }
 
-        val suggestions = mutableListOf<AwesomeBar.Suggestion>()
+        val state = store.state
+        val tabs = state.tabs
 
-        sessionManager.sessions.forEach { session ->
-            if (session.contains(text) && !session.private && shouldIncludeSelectedSession(session)
+        val suggestions = mutableListOf<AwesomeBar.Suggestion>()
+        val iconRequests: List<Deferred<Icon>?> = tabs.map { icons?.loadIcon(IconRequest(it.content.url)) }
+
+        tabs.zip(iconRequests) { result, icon ->
+            if (
+                result.contains(text) &&
+                !result.content.private &&
+                shouldIncludeSelectedTab(state, result)
             ) {
                 suggestions.add(
-                    AwesomeBar.Suggestion(
-                        provider = this,
-                        id = session.id,
-                        title = session.title,
-                        description = session.url,
-                        icon = icons.loadLambda(session.url),
-                        onSuggestionClicked = { selectTabUseCase(session) }
-                    )
+                        AwesomeBar.Suggestion(
+                            provider = this,
+                            id = result.id,
+                            title = result.content.title,
+                            description = resources.getString(R.string.switch_to_tab_description),
+                            icon = icon?.await()?.bitmap,
+                            onSuggestionClicked = { selectTabUseCase(result.id) }
+                        )
                 )
             }
         }
-
         return suggestions
     }
 
-    private fun Session.contains(text: String) =
-        (url.contains(text, ignoreCase = true) || title.contains(text, ignoreCase = true))
+    private fun TabSessionState.contains(text: String) =
+            (content.url.contains(text, ignoreCase = true) || content.title.contains(text, ignoreCase = true))
 
-    private fun shouldIncludeSelectedSession(session: Session): Boolean {
+    private fun shouldIncludeSelectedTab(state: BrowserState, tab: TabSessionState): Boolean {
         return if (excludeSelectedSession) {
-            !isSelectedSession(session)
+            tab.id != state.selectedTabId
         } else {
             true
         }
     }
-
-    private fun isSelectedSession(session: Session) = sessionManager.selectedSession?.equals(session) ?: false
 }

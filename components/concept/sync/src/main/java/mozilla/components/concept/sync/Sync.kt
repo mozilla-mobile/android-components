@@ -16,7 +16,7 @@ sealed class SyncStatus {
     /**
      * Sync completed with an error.
      */
-    data class Error(val exception: Throwable) : SyncStatus()
+    data class Error(val exception: Exception) : SyncStatus()
 }
 
 /**
@@ -47,16 +47,9 @@ data class SyncAuthInfo(
  */
 interface SyncableStore {
     /**
-     * Performs a sync.
+     * This should be removed. See: https://github.com/mozilla/application-services/issues/1877
      *
-     * @param authInfo Auth information necessary for syncing this store.
-     * @return [SyncStatus] A status object describing how sync went.
+     * @return raw internal handle that could be used for referencing underlying [PlacesApi]. Use it with SyncManager.
      */
-    suspend fun sync(authInfo: SyncAuthInfo): SyncStatus
+    fun getHandle(): Long
 }
-
-/**
- * A set of results of running a sync operation for multiple instances of [SyncableStore].
- */
-typealias SyncResult = Map<String, StoreSyncStatus>
-data class StoreSyncStatus(val status: SyncStatus)

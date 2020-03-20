@@ -5,6 +5,7 @@
 package mozilla.components.concept.engine
 
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.request.RequestInterceptor
@@ -47,6 +48,11 @@ abstract class Settings {
      * Setting to control tracking protection.
      */
     open var trackingProtectionPolicy: TrackingProtectionPolicy? by UnsupportedSetting()
+
+    /**
+     * Setting to control tracking protection.
+     */
+    open var safeBrowsingPolicy: Array<SafeBrowsingPolicy> by UnsupportedSetting()
 
     /**
      * Setting to intercept and override requests.
@@ -145,11 +151,6 @@ abstract class Settings {
     open var preferredColorScheme: PreferredColorScheme by UnsupportedSetting()
 
     /**
-     * Setting to control whether media is allowed to auto-play on page load.
-     */
-    open var allowAutoplayMedia: Boolean by UnsupportedSetting()
-
-    /**
      * Setting to control whether media should be suspended when the session is inactive.
      */
     open var suspendMediaWhenInactive: Boolean by UnsupportedSetting()
@@ -163,6 +164,11 @@ abstract class Settings {
      * Setting to control the font size factor. All font sizes will be multiplied by this factor.
      */
     open var fontSizeFactor: Float? by UnsupportedSetting()
+
+    /**
+     * Setting to force the ability to scale the content
+     */
+    open var forceUserScalableContent: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -193,10 +199,10 @@ data class DefaultSettings(
     override var supportMultipleWindows: Boolean = false,
     override var preferredColorScheme: PreferredColorScheme = PreferredColorScheme.System,
     override var testingModeEnabled: Boolean = false,
-    override var allowAutoplayMedia: Boolean = true,
     override var suspendMediaWhenInactive: Boolean = false,
     override var fontInflationEnabled: Boolean? = null,
-    override var fontSizeFactor: Float? = null
+    override var fontSizeFactor: Float? = null,
+    override var forceUserScalableContent: Boolean = false
 ) : Settings()
 
 class UnsupportedSetting<T> {

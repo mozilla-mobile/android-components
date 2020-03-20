@@ -5,8 +5,9 @@
 package mozilla.components.feature.downloads
 
 import android.os.Bundle
-import androidx.fragment.app.DialogFragment
-import mozilla.components.browser.session.Download
+import androidx.appcompat.app.AppCompatDialogFragment
+import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.feature.downloads.DownloadDialogFragment.Companion.MEGABYTE
 import mozilla.components.support.utils.DownloadUtils
 
 /**
@@ -15,7 +16,7 @@ import mozilla.components.support.utils.DownloadUtils
  * If [SimpleDownloadDialogFragment] is not flexible enough for your use case you should inherit for this class.
  * Be mindful to call [onStartDownload] when you want to start the download.
  */
-abstract class DownloadDialogFragment : DialogFragment() {
+abstract class DownloadDialogFragment : AppCompatDialogFragment() {
 
     /**
      * A callback to trigger a download, call it when you are ready to start a download. For instance,
@@ -24,13 +25,15 @@ abstract class DownloadDialogFragment : DialogFragment() {
      */
     var onStartDownload: () -> Unit = {}
 
+    var onCancelDownload: () -> Unit = {}
+
     /**
-     * add the metadata of this download object to the arguments of this fragment.
+     * Add the metadata of this download object to the arguments of this fragment.
      */
-    fun setDownload(download: Download) {
+    fun setDownload(download: DownloadState) {
         val args = arguments ?: Bundle()
         args.putString(KEY_FILE_NAME, download.fileName
-            ?: DownloadUtils.guessFileName(null, download.url, download.contentType))
+            ?: DownloadUtils.guessFileName(null, download.destinationDirectory, download.url, download.contentType))
         args.putString(KEY_URL, download.url)
         args.putLong(KEY_CONTENT_LENGTH, download.contentLength ?: 0)
         arguments = args
@@ -51,5 +54,14 @@ abstract class DownloadDialogFragment : DialogFragment() {
         const val KEY_URL = "KEY_URL"
 
         const val FRAGMENT_TAG = "SHOULD_DOWNLOAD_PROMPT_DIALOG"
+
+        const val MEGABYTE = 1024.0 * 1024.0
     }
+}
+
+/**
+ * Converts the bytes to megabytes with two decimal places and returns a formatted string
+ */
+fun Long.toMegabyteString(): String {
+    return String.format("%.2f MB", this / MEGABYTE)
 }

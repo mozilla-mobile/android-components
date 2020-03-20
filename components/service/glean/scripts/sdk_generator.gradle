@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**********************************************************************
+  THIS FILE IS OBSOLETE AND UNMAINTAINED.
+  The functionality in this file has moved to a proper Gradle plugin
+  in https://github.com/mozilla/glean
+  However, this file must remain on the master branch indefinitely so that
+  Glean-using applications can continue to build historical revisions from
+  prior to the existence of the plugin.
+**********************************************************************/
+
 /*
  * IMPORTANT DEVELOPER'S NOTE:
  *
@@ -13,15 +22,24 @@
  * of android-components rather than tracking snapshots.)
  */
 
-import org.apache.tools.ant.taskdefs.condition.Os
 import groovy.json.JsonOutput
+import java.util.logging.Logger
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.internal.artifacts.ArtifactAttributes
+
+Logger logger = Logger.getLogger("Glean sdk_generator.gradle")
+logger.warning("The Glean sdk_generator.gradle script is deprecated. Use the Glean Gradle plugin instead")
 
 // This installs a Miniconda3 environment into the gradle user home directory
 // so that it will be shared between all libraries that use Glean.  This is
 // important because it is approximately 300MB in installed size.
 
-String GLEAN_PARSER_VERSION = "1.1.0"
+///////////////////////////////////////////////////////////////////////////
+// NOTE: SINCE THIS FILE HAS BEEN DEPRECATED, THIS VERSION SHOULD NO LONGER BE
+// UPDATED. THE CANONICAL SOURCE FOR THE glean_parser VERSION IS IN THE
+// glean-gradle-plugin IN https://github.com/mozilla/glean
+///////////////////////////////////////////////////////////////////////////
+String GLEAN_PARSER_VERSION = "1.18.2"
 // The version of Miniconda is explicitly specified.
 // Miniconda3-4.5.12 is known to not work on Windows.
 String MINICONDA_VERSION = "4.5.11"
@@ -170,8 +188,20 @@ if (project.ext.has("allowMetricsFromAAR")) {
     }
 }
 
-// Generate the Metrics API
-ext.gleanGenerateMetricsAPI = {
+def gleanTaskNamePrefix = "gleanGenerateMetrics"
+
+// A shared function to get the Python command line executable.
+ext.gleanGetPythonCommand = {
+    // Note that the command line is OS dependant: on linux/mac is Miniconda3/bin/python.
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        return new File(GLEAN_MINICONDA_DIR, "python")
+    }
+
+    return new File(GLEAN_MINICONDA_DIR, "bin/python")
+}
+
+// Generate the various Glean SDK artifacts.
+ext.gleanAttachGeneratingTasks = {
     variant ->
 
     def sourceOutputDir =  "$buildDir/generated/source/glean/${variant.dirName}/kotlin"
@@ -183,7 +213,7 @@ ext.gleanGenerateMetricsAPI = {
     def originalPackageName = buildConfigProvider.get().getBuildConfigPackageName()
 
     def fullNamespace = "${originalPackageName}.GleanMetrics"
-    def generateKotlinAPI = task("generateMetricsSourceFor${variant.name.capitalize()}", type: Exec) {
+    def generateKotlinAPI = task("${gleanTaskNamePrefix}SourceFor${variant.name.capitalize()}", type: Exec) {
         description = "Generate the Kotlin code for the Metrics API"
 
         if (project.ext.has("allowMetricsFromAAR")) {
@@ -199,12 +229,7 @@ ext.gleanGenerateMetricsAPI = {
         outputs.dir sourceOutputDir
 
         workingDir  rootDir
-        // Note that the command line is OS dependant: on linux/mac is Miniconda3/bin/python.
-        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-            commandLine new File(GLEAN_MINICONDA_DIR, "python")
-        } else {
-            commandLine new File(GLEAN_MINICONDA_DIR, "bin/python")
-        }
+        commandLine gleanGetPythonCommand()
 
         def gleanNamespace = "mozilla.components.service.glean"
         if (project.ext.has("gleanNamespace")) {
@@ -258,12 +283,83 @@ ext.gleanGenerateMetricsAPI = {
         }
     }
 
+    // Create the task for generating Glean SDK docs.
+    def generateDocsTask = task("${gleanTaskNamePrefix}DocsFor${variant.name.capitalize()}", type: Exec) {
+        description = "Generate the Markdown docs for the collected metrics"
+
+        def gleanDocsDirectory = "$projectDir/docs"
+        if (project.ext.has("gleanDocsDirectory")) {
+            gleanDocsDirectory = project.ext.get("gleanDocsDirectory")
+        }
+
+        if (project.ext.has("allowMetricsFromAAR")) {
+            // This is sufficiently lazy to be valid at configuration time.  See the model at
+            // https://github.com/google/protobuf-gradle-plugin/blob/6d99a421c8d15710045e4e8d31a3af6cb0cc3b70/src/main/groovy/com/google/protobuf/gradle/ProtobufPlugin.groovy#L270-L277
+            inputs.files variant.compileConfiguration.incoming.artifactView {
+                attributes {
+                    it.attribute(ArtifactAttributes.ARTIFACT_FORMAT, 'glean-metrics-yaml')
+                }
+            }.files
+        }
+
+        outputs.dir gleanDocsDirectory
+        workingDir rootDir
+        commandLine gleanGetPythonCommand()
+
+        args "-c"
+        args runPythonScript
+        args "glean_parser"
+        args GLEAN_PARSER_VERSION
+        args "translate"
+        args "-f"
+        args "markdown"
+        args "-o"
+        args gleanDocsDirectory
+        args "$projectDir/metrics.yaml"
+        args "$projectDir/pings.yaml"
+
+        // If we're building the Glean library itself (rather than an
+        // application using Glean) pass the --allow-reserved flag so we can
+        // use metrics in the "glean..." category
+        if (project.name == 'service-glean' || project.ext.has("allowGleanInternal")) {
+            args "--allow-reserved"
+        }
+
+        doFirst {
+            // Add the potential 'metrics.yaml' files at evaluation-time, rather than
+            // configuration-time. Otherwise the Gradle build will fail.
+            if (project.ext.has("allowMetricsFromAAR")) {
+                inputs.files.forEach{ file ->
+                    project.logger.lifecycle("Glean SDK - generating docs for ${file.path} in $gleanDocsDirectory")
+                    args file.path
+                }
+            }
+        }
+
+        // Only show the output if something went wrong.
+        ignoreExitValue = true
+        standardOutput = new ByteArrayOutputStream()
+        errorOutput = standardOutput
+        doLast {
+            if (execResult.exitValue != 0) {
+                throw new GradleException("Process '${commandLine}' finished with non-zero exit value ${execResult.exitValue}:\n\n${standardOutput.toString()}")
+            }
+        }
+    }
+
     // Only attach the generation task if the metrics file is available or we're requested
     // to fetch them from AAR files. We don't need to fail hard otherwise, as some 3rd party
     // project might just want metrics included in Glean and nothing more.
     if (file("$projectDir/metrics.yaml").exists()
         || file("$projectDir/pings.yaml").exists()
         || project.ext.has("allowMetricsFromAAR")) {
+        // Generate the Metrics docs, if requested.
+        if (project.ext.has("gleanGenerateMarkdownDocs")) {
+            // Attach the docs generation task to the code generation task, to make sure
+            // we generate docs, if we're asked for it.
+            generateKotlinAPI.dependsOn(generateDocsTask)
+        }
+
         // This is an Android-Gradle plugin 3+-ism.  Culted from reading the source,
         // searching for "registerJavaGeneratingTask", and finding
         // https://github.com/GoogleCloudPlatform/endpoints-framework-gradle-plugin/commit/2f2b91476fb1c6647791e2c6fe531a47615a1e85.
@@ -274,7 +370,7 @@ ext.gleanGenerateMetricsAPI = {
 }
 
 if (android.hasProperty('applicationVariants')) {
-    android.applicationVariants.all(ext.gleanGenerateMetricsAPI)
+    android.applicationVariants.all(ext.gleanAttachGeneratingTasks)
 } else {
-    android.libraryVariants.all(ext.gleanGenerateMetricsAPI)
+    android.libraryVariants.all(ext.gleanAttachGeneratingTasks)
 }

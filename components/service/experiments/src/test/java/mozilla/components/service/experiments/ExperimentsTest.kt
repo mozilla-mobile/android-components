@@ -14,6 +14,7 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import mozilla.components.service.glean.Glean
+import mozilla.components.service.glean.testing.GleanTestRule
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -25,6 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.assertNotNull
+import org.junit.Rule
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
@@ -48,6 +50,9 @@ class ExperimentsTest {
     private lateinit var experimentsUpdater: ExperimentsUpdater
 
     private val EXAMPLE_CLIENT_ID = "c641eacf-c30c-4171-b403-f077724e848a"
+
+    @get:Rule
+    val gleanRule = GleanTestRule(context)
 
     private val experimentsList = listOf(
         createDefaultExperiment(
@@ -292,6 +297,26 @@ class ExperimentsTest {
         verify(experiments, times(1)).onExperimentsUpdated(snapshot2)
         assertEquals(experimentsList2, experiments.experiments)
         assertEquals(snapshot2, experiments.experimentsResult)
+    }
+
+    @Test
+    fun `updating experiments invokes callback`() {
+        resetExperiments()
+
+        // Set up the Kinto-side experiments.
+        val experimentsList1 = listOf(createDefaultExperiment(id = "id"))
+        val snapshot1 = ExperimentsSnapshot(experimentsList1, null)
+        `when`(experimentSource.getExperiments(any())).thenReturn(snapshot1)
+
+        var canary = false
+        experiments.initialize(context, configuration) { canary = true }
+
+        verify(experimentStorage, times(1)).retrieve()
+        verify(experimentSource, times(1)).getExperiments(any())
+        verify(experiments, times(1)).onExperimentsUpdated(snapshot1)
+        assertEquals(experimentsList1, experiments.experiments)
+        assertEquals(snapshot1, experiments.experimentsResult)
+        assertTrue(canary)
     }
 
     @Test

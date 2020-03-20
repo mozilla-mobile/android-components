@@ -14,19 +14,20 @@ import androidx.fragment.app.Fragment
 import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
-import mozilla.components.feature.app.links.AppLinksFeature
+import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
+import mozilla.components.feature.privatemode.feature.SecureWindowFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.SwipeRefreshFeature
-import mozilla.components.feature.session.WindowFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
+import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import mozilla.components.feature.toolbar.ToolbarFeature
-import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
@@ -41,7 +42,7 @@ import org.mozilla.samples.browser.integration.FindInPageIntegration
  * This class only contains shared code focused on the main browsing content.
  * UI code specific to the app or to custom tabs can be found in the subclasses.
  */
-abstract class BaseBrowserFragment : Fragment(), BackHandler {
+abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
     private val sessionFeature = ViewBoundFeatureWrapper<SessionFeature>()
     private val toolbarFeature = ViewBoundFeatureWrapper<ToolbarFeature>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
@@ -49,7 +50,6 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
-    private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
 
     protected val sessionId: String?
         get() = arguments?.getString(SESSION_ID_KEY)
@@ -59,7 +59,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val layout = inflater.inflate(R.layout.fragment_browser, container, false)
 
-        layout.toolbar.setMenuBuilder(components.menuBuilder)
+        layout.toolbar.display.menuBuilder = components.menuBuilder
 
         sessionFeature.set(
             feature = SessionFeature(
@@ -73,7 +73,7 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
         toolbarFeature.set(
             feature = ToolbarFeature(
                 layout.toolbar,
-                components.sessionManager,
+                components.store,
                 components.sessionUseCases.loadUrl,
                 components.defaultSearchUseCase,
                 sessionId),
@@ -106,37 +106,52 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
         downloadsFeature.set(
             feature = DownloadsFeature(
                 requireContext().applicationContext,
-                sessionManager = components.sessionManager,
+                store = components.store,
+                useCases = components.downloadsUseCases,
                 fragmentManager = childFragmentManager,
-                onDownloadCompleted = { download, id ->
-                    Logger.debug("Download done. ID#$id $download")
+                onDownloadStopped = { download, id, status ->
+                    Logger.debug("Download done. ID#$id $download with status $status")
                 },
                 downloadManager = FetchDownloadManager(
                     requireContext().applicationContext,
                     DownloadService::class
                 ),
+                tabId = sessionId,
                 onNeedToRequestPermissions = { permissions ->
                     requestPermissions(permissions, REQUEST_CODE_DOWNLOAD_PERMISSIONS)
                 }),
             owner = this,
-            view = layout)
+            view = layout
+        )
 
         val scrollFeature = CoordinateScrollingFeature(components.sessionManager, layout.engineView, layout.toolbar)
 
+        val contextMenuCandidateAppLinksUseCases = AppLinksUseCases(
+            requireContext(),
+            { true }
+        )
+
+        val contextMenuCandidates = ContextMenuCandidate.defaultCandidates(
+            requireContext(),
+            components.tabsUseCases,
+            components.contextMenuUseCases,
+            layout) +
+            ContextMenuCandidate.createOpenInExternalAppCandidate(
+                requireContext(), contextMenuCandidateAppLinksUseCases)
+
         val contextMenuFeature = ContextMenuFeature(
-            requireFragmentManager(),
-            components.sessionManager,
-            ContextMenuCandidate.defaultCandidates(
-                requireContext(),
-                components.tabsUseCases,
-                layout),
-            layout.engineView)
+            fragmentManager = requireFragmentManager(),
+            store = components.store,
+            candidates = contextMenuCandidates,
+            engineView = layout.engineView,
+            useCases = components.contextMenuUseCases,
+            tabId = sessionId)
 
         promptFeature.set(
             feature = PromptFeature(
                 fragment = this,
-                sessionManager = components.sessionManager,
-                sessionId = sessionId,
+                store = components.store,
+                customTabId = sessionId,
                 fragmentManager = requireFragmentManager(),
                 onNeedToRequestPermissions = { permissions ->
                     requestPermissions(permissions, REQUEST_CODE_PROMPT_PERMISSIONS)
@@ -144,14 +159,20 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
             owner = this,
             view = layout)
 
-        val windowFeature = WindowFeature(components.sessionManager)
-
         sitePermissionsFeature.set(
             feature = SitePermissionsFeature(
                 context = requireContext(),
                 sessionManager = components.sessionManager,
                 sessionId = sessionId,
-                fragmentManager = requireFragmentManager()
+                fragmentManager = requireFragmentManager(),
+                sitePermissionsRules = SitePermissionsRules(
+                    autoplayAudible = SitePermissionsRules.AutoplayAction.ALLOWED,
+                    autoplayInaudible = SitePermissionsRules.AutoplayAction.ALLOWED,
+                    camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
+                    location = SitePermissionsRules.Action.ASK_TO_ALLOW,
+                    notification = SitePermissionsRules.Action.ASK_TO_ALLOW,
+                    microphone = SitePermissionsRules.Action.ASK_TO_ALLOW
+                )
             ) { permissions ->
                 requestPermissions(permissions, REQUEST_CODE_APP_PERMISSIONS)
             },
@@ -160,28 +181,22 @@ abstract class BaseBrowserFragment : Fragment(), BackHandler {
         )
 
         findInPageIntegration.set(
-            feature = FindInPageIntegration(components.sessionManager, layout.findInPage, layout.engineView),
+            feature = FindInPageIntegration(components.store, layout.findInPage, layout.engineView),
             owner = this,
             view = layout)
+
+        val secureWindowFeature = SecureWindowFeature(
+            window = requireActivity().window,
+            store = components.store,
+            customTabId = sessionId
+        )
 
         // Observe the lifecycle for supported features
         lifecycle.addObservers(
             scrollFeature,
             contextMenuFeature,
-            windowFeature,
-            menuUpdaterFeature
-        )
-
-        appLinksFeature.set(
-            feature = AppLinksFeature(
-                context = requireContext(),
-                sessionManager = components.sessionManager,
-                sessionId = sessionId,
-                fragmentManager = requireFragmentManager(),
-                interceptLinkClicks = true
-            ),
-            owner = this,
-            view = layout
+            menuUpdaterFeature,
+            secureWindowFeature
         )
 
         return layout

@@ -2,7 +2,7 @@
 
 # PictureInPictureFeature
 
-`class PictureInPictureFeature` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/session/src/main/java/mozilla/components/feature/session/PictureInPictureFeature.kt#L24)
+`class PictureInPictureFeature` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/session/src/main/java/mozilla/components/feature/session/PictureInPictureFeature.kt#L22)
 
 A simple implementation of Picture-in-picture mode if on a supported platform.
 
@@ -28,3 +28,9 @@ doesn't support this.
 | [enterPipModeCompat](enter-pip-mode-compat.md) | `fun enterPipModeCompat(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [onHomePressed](on-home-pressed.md) | `fun onHomePressed(): `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html) |
 | [onPictureInPictureModeChanged](on-picture-in-picture-mode-changed.md) | `fun onPictureInPictureModeChanged(enabled: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)`?` |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

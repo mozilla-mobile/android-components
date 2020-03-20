@@ -380,7 +380,11 @@ class SessionStorageTest {
                 ArgumentMatchers.eq(300L),
                 ArgumentMatchers.eq(TimeUnit.SECONDS))).thenReturn(scheduledFuture)
 
-        val lifecycle = LifecycleRegistry(mock(LifecycleOwner::class.java))
+        // LifecycleRegistry only keeps a weak reference to the owner, so it is important to keep
+        // a reference here too during the test run.
+        // See https://github.com/mozilla-mobile/android-components/issues/5166
+        val owner = mock(LifecycleOwner::class.java)
+        val lifecycle = LifecycleRegistry(owner)
 
         val storage = SessionStorage(testContext, engine)
         storage.autoSave(mock())
@@ -445,14 +449,14 @@ class SessionStorageTest {
         json.put("url", "testUrl")
         json.put("source", Source.NEW_TAB.name)
         json.put("parentUuid", "")
-        assertEquals(Source.NEW_TAB, deserializeSession(json, restoreId = true).source)
+        assertEquals(Source.NEW_TAB, deserializeSession(json, restoreId = true, restoreParentId = true).source)
 
         val jsonInvalid = JSONObject()
         jsonInvalid.put("uuid", "testId")
         jsonInvalid.put("url", "testUrl")
         jsonInvalid.put("source", "invalidSource")
         jsonInvalid.put("parentUuid", "")
-        assertEquals(Source.NONE, deserializeSession(jsonInvalid, restoreId = true).source)
+        assertEquals(Source.NONE, deserializeSession(jsonInvalid, restoreId = true, restoreParentId = true).source)
     }
 
     @Suppress("UNCHECKED_CAST")

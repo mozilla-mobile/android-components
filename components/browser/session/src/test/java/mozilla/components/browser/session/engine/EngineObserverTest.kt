@@ -5,8 +5,12 @@
 package mozilla.components.browser.session.engine
 
 import android.graphics.Bitmap
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
@@ -18,18 +22,20 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
-import org.junit.Assert
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
+@RunWith(AndroidJUnit4::class)
 class EngineObserverTest {
 
     @Test
@@ -43,7 +49,7 @@ class EngineObserverTest {
             override fun goForward() {}
             override fun reload() {}
             override fun stopLoading() {}
-            override fun restoreState(state: EngineSessionState) {}
+            override fun restoreState(state: EngineSessionState): Boolean { return false }
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun disableTrackingProtection() {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
@@ -62,7 +68,12 @@ class EngineObserverTest {
                 notifyObservers { onLoadingStateChange(true) }
                 notifyObservers { onNavigationStateChange(true, true) }
             }
-            override fun loadUrl(url: String, flags: LoadUrlFlags) {
+            override fun loadUrl(
+                url: String,
+                parent: EngineSession?,
+                flags: LoadUrlFlags,
+                additionalHeaders: Map<String, String>?
+            ) {
                 notifyObservers { onLocationChange(url) }
                 notifyObservers { onProgress(100) }
                 notifyObservers { onLoadingStateChange(true) }
@@ -73,13 +84,13 @@ class EngineObserverTest {
 
         engineSession.loadUrl("http://mozilla.org")
         engineSession.toggleDesktopMode(true)
-        Assert.assertEquals("http://mozilla.org", session.url)
-        Assert.assertEquals("", session.searchTerms)
-        Assert.assertEquals(100, session.progress)
-        Assert.assertEquals(true, session.loading)
-        Assert.assertEquals(true, session.canGoForward)
-        Assert.assertEquals(true, session.canGoBack)
-        Assert.assertEquals(true, session.desktopMode)
+        assertEquals("http://mozilla.org", session.url)
+        assertEquals("", session.searchTerms)
+        assertEquals(100, session.progress)
+        assertEquals(true, session.loading)
+        assertEquals(true, session.canGoForward)
+        assertEquals(true, session.canGoBack)
+        assertEquals(true, session.desktopMode)
     }
 
     @Test
@@ -93,7 +104,7 @@ class EngineObserverTest {
             override fun goForward() {}
             override fun stopLoading() {}
             override fun reload() {}
-            override fun restoreState(state: EngineSessionState) {}
+            override fun restoreState(state: EngineSessionState): Boolean { return false }
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun disableTrackingProtection() {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
@@ -104,7 +115,12 @@ class EngineObserverTest {
             override fun saveState(): EngineSessionState = mock()
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun recoverFromCrash(): Boolean { return false }
-            override fun loadUrl(url: String, flags: LoadUrlFlags) {
+            override fun loadUrl(
+                url: String,
+                parent: EngineSession?,
+                flags: LoadUrlFlags,
+                additionalHeaders: Map<String, String>?
+            ) {
                 if (url.startsWith("https://")) {
                     notifyObservers { onSecurityChange(true, "host", "issuer") }
                 } else {
@@ -115,10 +131,10 @@ class EngineObserverTest {
         engineSession.register(EngineObserver(session))
 
         engineSession.loadUrl("http://mozilla.org")
-        Assert.assertEquals(Session.SecurityInfo(false), session.securityInfo)
+        assertEquals(Session.SecurityInfo(false), session.securityInfo)
 
         engineSession.loadUrl("https://mozilla.org")
-        Assert.assertEquals(Session.SecurityInfo(true, "host", "issuer"), session.securityInfo)
+        assertEquals(Session.SecurityInfo(true, "host", "issuer"), session.securityInfo)
     }
 
     @Test
@@ -132,7 +148,7 @@ class EngineObserverTest {
             override fun goForward() {}
             override fun stopLoading() {}
             override fun reload() {}
-            override fun restoreState(state: EngineSessionState) {}
+            override fun restoreState(state: EngineSessionState): Boolean { return false }
             override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
                 notifyObservers { onTrackerBlockingEnabledChange(true) }
             }
@@ -142,7 +158,12 @@ class EngineObserverTest {
 
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun saveState(): EngineSessionState = mock()
-            override fun loadUrl(url: String, flags: LoadUrlFlags) {}
+            override fun loadUrl(
+                url: String,
+                parent: EngineSession?,
+                flags: LoadUrlFlags,
+                additionalHeaders: Map<String, String>?
+            ) {}
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
@@ -167,6 +188,23 @@ class EngineObserverTest {
 
         observer.onTrackerBlocked(tracker2)
         assertEquals(listOf(tracker1, tracker2), session.trackersBlocked)
+    }
+
+    @Test
+    fun engineSessionObserverExcludedOnTrackingProtection() {
+        val session = Session("")
+        val store = mock(BrowserStore::class.java)
+        val observer = EngineObserver(session, store)
+
+        whenever(store.dispatch(any())).thenReturn(mock())
+        observer.onExcludedOnTrackingProtectionChange(true)
+
+        verify(store).dispatch(
+            TrackingProtectionAction.ToggleExclusionListAction(
+                session.id,
+                true
+            )
+        )
     }
 
     @Test
@@ -200,6 +238,21 @@ class EngineObserverTest {
     }
 
     @Test
+    fun `EngineObserver does not clear title if the URL changes hash`() {
+        val session = Session("https://www.mozilla.org")
+        session.title = "Hello World"
+
+        val observer = EngineObserver(session)
+        observer.onTitleChange("Mozilla")
+
+        assertEquals("Mozilla", session.title)
+
+        observer.onLocationChange("https://www.mozilla.org/#something")
+
+        assertEquals("Mozilla", session.title)
+    }
+
+    @Test
     fun engineObserverClearsBlockedTrackersIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org")
         val observer = EngineObserver(session)
@@ -212,6 +265,72 @@ class EngineObserverTest {
 
         observer.onLoadingStateChange(true)
         assertEquals(emptyList<String>(), session.trackersBlocked)
+    }
+
+    @Test
+    fun engineObserverClearsLoadedTrackersIfNewPageStartsLoading() {
+        val session = Session("https://www.mozilla.org")
+        val observer = EngineObserver(session)
+
+        val tracker1 = Tracker("tracker1")
+        val tracker2 = Tracker("tracker2")
+        observer.onTrackerLoaded(tracker1)
+        observer.onTrackerLoaded(tracker2)
+        assertEquals(listOf(tracker1, tracker2), session.trackersLoaded)
+
+        observer.onLoadingStateChange(true)
+        assertEquals(emptyList<String>(), session.trackersLoaded)
+    }
+
+    @Test
+    fun engineObserverClearsWebAppManifestIfNewPageStartsLoading() {
+        val session = Session("https://www.mozilla.org")
+        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://mozilla.org")
+
+        val observer = EngineObserver(session)
+        observer.onWebAppManifestLoaded(manifest)
+
+        assertEquals(manifest, session.webAppManifest)
+
+        observer.onLocationChange("https://getpocket.com")
+
+        assertNull(session.webAppManifest)
+    }
+
+    @Test
+    fun engineObserverDoesNotClearWebAppManifestIfNewPageInStartUrlScope() {
+        val session = Session("https://www.mozilla.org")
+        val manifest = WebAppManifest(name = "Mozilla", startUrl = "https://www.mozilla.org")
+
+        val observer = EngineObserver(session)
+        observer.onWebAppManifestLoaded(manifest)
+
+        assertEquals(manifest, session.webAppManifest)
+
+        observer.onLocationChange("https://www.mozilla.org/hello.html")
+
+        assertEquals(manifest, session.webAppManifest)
+    }
+
+    @Test
+    fun engineObserverDoesNotClearWebAppManifestIfNewPageInScope() {
+        val session = Session("https://www.mozilla.org/hello/page1.html")
+        val manifest = WebAppManifest(
+            name = "Mozilla",
+            startUrl = "https://www.mozilla.org",
+            scope = "https://www.mozilla.org/hello/"
+        )
+
+        val observer = EngineObserver(session)
+        observer.onWebAppManifestLoaded(manifest)
+
+        assertEquals(manifest, session.webAppManifest)
+
+        observer.onLocationChange("https://www.mozilla.org/hello/page2.html")
+        assertEquals(manifest, session.webAppManifest)
+
+        observer.onLocationChange("https://www.mozilla.org/hello.html")
+        assertNull(session.webAppManifest)
     }
 
     @Test
@@ -331,30 +450,32 @@ class EngineObserverTest {
     }
 
     @Test
-    fun engineSessionObserverWithOnPromptRequest() {
-
+    fun engineObserverHandlesPromptRequest() {
         val promptRequest = mock(PromptRequest::class.java)
-        val session = Session("")
-        val observer = EngineObserver(session)
+        val session = Session(id = "test-session", initialUrl = "")
+        val store = mock(BrowserStore::class.java)
+        val observer = EngineObserver(session, store)
 
-        assertTrue(session.promptRequest.isConsumed())
         observer.onPromptRequest(promptRequest)
-        assertFalse(session.promptRequest.isConsumed())
+        verify(store).dispatch(ContentAction.UpdatePromptRequestAction(
+            session.id,
+            promptRequest
+        ))
     }
 
     @Test
-    fun engineSessionObserverWithWindowRequests() {
+    fun engineObserverHandlesWindowRequest() {
         val windowRequest = mock(WindowRequest::class.java)
         val session = Session("")
-        val observer = EngineObserver(session)
+        val store = mock(BrowserStore::class.java)
+        whenever(store.state).thenReturn(mock())
+        val observer = EngineObserver(session, store)
 
-        assertTrue(session.openWindowRequest.isConsumed())
-        observer.onOpenWindowRequest(windowRequest)
-        assertFalse(session.openWindowRequest.isConsumed())
-
-        assertTrue(session.closeWindowRequest.isConsumed())
-        observer.onCloseWindowRequest(windowRequest)
-        assertFalse(session.closeWindowRequest.isConsumed())
+        observer.onWindowRequest(windowRequest)
+        verify(store).dispatch(ContentAction.UpdateWindowRequestAction(
+            session.id,
+            windowRequest
+        ))
     }
 
     @Test
@@ -421,20 +542,6 @@ class EngineObserverTest {
     }
 
     @Test
-    fun `onLocationChange clears icon`() {
-        val session = Session("https://www.mozilla.org")
-        session.icon = mock()
-
-        val observer = EngineObserver(session)
-
-        assertNotNull(session.icon)
-
-        observer.onLocationChange("https://www.firefox.com")
-
-        assertNull(session.icon)
-    }
-
-    @Test
     fun `onLocationChange does not clear search terms`() {
         val session = Session("https://www.mozilla.org")
         session.searchTerms = "Mozilla Foundation"
@@ -446,7 +553,7 @@ class EngineObserverTest {
     }
 
     @Test
-    fun `onLoadRequest clears search terms for requests triggered by webcontent`() {
+    fun `onLoadRequest clears search terms for requests triggered by web content`() {
         val url = "https://www.mozilla.org"
         val session = Session(url)
         session.searchTerms = "Mozilla Foundation"
@@ -495,5 +602,18 @@ class EngineObserverTest {
 
         assertFalse(triggeredByRedirect)
         assertFalse(triggeredByWebContent)
+    }
+
+    @Test
+    fun `onNavigateBack clears search terms when navigating back`() {
+        val url = "https://www.mozilla.org"
+        val session = Session(url)
+        session.searchTerms = "Mozilla Foundation"
+        session.canGoBack = true
+
+        val observer = EngineObserver(session)
+        observer.onNavigateBack()
+
+        assertEquals("", session.searchTerms)
     }
 }

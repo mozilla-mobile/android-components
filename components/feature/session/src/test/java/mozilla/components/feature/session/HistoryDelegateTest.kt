@@ -9,6 +9,8 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.storage.HistoryAutocompleteResult
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.SearchResult
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
@@ -27,26 +29,26 @@ class HistoryDelegateTest {
 
     @Test
     fun `history delegate passes through onVisited calls`() = runBlocking {
-        val storage: HistoryStorage = mock()
-        val delegate = HistoryDelegate(storage)
+        val storage = mock<HistoryStorage>()
+        val delegate = HistoryDelegate(lazy { storage })
 
-        delegate.onVisited("about:blank", VisitType.TYPED)
-        verify(storage, never()).recordVisit("about:blank", VisitType.TYPED)
+        delegate.onVisited("about:blank", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        verify(storage, never()).recordVisit("about:blank", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
 
-        delegate.onVisited("http://www.mozilla.org", VisitType.LINK)
-        verify(storage).recordVisit("http://www.mozilla.org", VisitType.LINK)
+        delegate.onVisited("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
+        verify(storage).recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
 
-        delegate.onVisited("http://www.firefox.com", VisitType.RELOAD)
-        verify(storage).recordVisit("http://www.firefox.com", VisitType.RELOAD)
+        delegate.onVisited("http://www.firefox.com", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
+        verify(storage).recordVisit("http://www.firefox.com", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
 
-        delegate.onVisited("http://www.firefox.com", VisitType.BOOKMARK)
-        verify(storage).recordVisit("http://www.firefox.com", VisitType.BOOKMARK)
+        delegate.onVisited("http://www.firefox.com", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
+        verify(storage).recordVisit("http://www.firefox.com", PageVisit(VisitType.BOOKMARK, RedirectSource.NOT_A_SOURCE))
     }
 
     @Test
     fun `history delegate passes through onTitleChanged calls`() = runBlocking {
-        val storage: HistoryStorage = mock()
-        val delegate = HistoryDelegate(storage)
+        val storage = mock<HistoryStorage>()
+        val delegate = HistoryDelegate(lazy { storage })
 
         delegate.onTitleChanged("http://www.mozilla.org", "Mozilla")
         verify(storage).recordObservation("http://www.mozilla.org", PageObservation("Mozilla"))
@@ -61,7 +63,7 @@ class HistoryDelegateTest {
             var getVisitedListCalled = false
             var getVisitedPlainCalled = false
 
-            override suspend fun recordVisit(uri: String, visitType: VisitType) {
+            override suspend fun recordVisit(uri: String, visit: PageVisit) {
                 fail()
             }
 
@@ -133,7 +135,7 @@ class HistoryDelegateTest {
             }
         }
         val storage = TestHistoryStorage()
-        val delegate = HistoryDelegate(storage)
+        val delegate = HistoryDelegate(lazy { storage })
 
         assertFalse(storage.getVisitedPlainCalled)
         assertFalse(storage.getVisitedListCalled)

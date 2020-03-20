@@ -10,11 +10,17 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session.Source
+import mozilla.components.browser.session.engine.request.LaunchIntentMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestMetadata
 import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.ext.toFindResultState
 import mozilla.components.browser.session.ext.toSecurityInfoState
-import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.browser.session.ext.toTabSessionState
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.CustomTabListAction
+import mozilla.components.browser.state.action.ReaderAction
+import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -23,8 +29,6 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
@@ -37,6 +41,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
@@ -229,12 +234,28 @@ class SessionTest {
         session.register(observer)
 
         session.loadRequestMetadata = LoadRequestMetadata(
-            "https://www.mozilla.org",
-            arrayOf(LoadRequestOption.REDIRECT)
+            "https://www.mozilla.org", arrayOf(LoadRequestOption.REDIRECT)
         )
 
         assertTrue(session.loadRequestMetadata.isSet(LoadRequestOption.REDIRECT))
-        verify(observer, times(1)).onLoadRequest(eq(session), eq("https://www.mozilla.org"), eq(true), eq(false))
+        verify(observer, times(1)).onLoadRequest(eq(session), eq("https://www.mozilla.org"),
+            anyBoolean(), anyBoolean())
+        verifyNoMoreInteractions(observer)
+    }
+
+    @Test
+    fun `observer is notified when launch intent request is triggered`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        session.launchIntentMetadata = LaunchIntentMetadata(
+            "https://www.mozilla.org", mock()
+        )
+
+        verify(observer, times(1)).onLaunchIntentRequest(eq(session), eq("https://www.mozilla.org"),
+            any())
         verifyNoMoreInteractions(observer)
     }
 
@@ -271,7 +292,7 @@ class SessionTest {
         session.store = store
         session.securityInfo = Session.SecurityInfo(true, "mozilla.org", "issuer")
 
-        verify(store).dispatch(ContentAction.UpdateSecurityInfo(session.id, session.securityInfo.toSecurityInfoState()))
+        verify(store).dispatch(ContentAction.UpdateSecurityInfoAction(session.id, session.securityInfo.toSecurityInfoState()))
         verifyNoMoreInteractions(store)
     }
 
@@ -303,6 +324,24 @@ class SessionTest {
 
         assertNotNull(config)
         assertEquals("id", config!!.id)
+    }
+
+    @Test
+    fun `action is dispatched when custom tab config is set`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+        session.customTabConfig = mock()
+
+        verify(store, never()).dispatch(CustomTabListAction.RemoveCustomTabAction(session.id))
+        verify(store, never()).dispatch(TabListAction.AddTabAction(session.toTabSessionState()))
+
+        session.customTabConfig = null
+        verify(store).dispatch(CustomTabListAction.RemoveCustomTabAction(session.id))
+        verify(store).dispatch(TabListAction.AddTabAction(session.toTabSessionState()))
+        verifyNoMoreInteractions(store)
     }
 
     @Test
@@ -372,45 +411,6 @@ class SessionTest {
     }
 
     @Test
-    fun `Download will be set on Session if no observer is registered`() {
-        val download: Download = mock()
-        `when`(download.url).thenReturn("https://download.mozilla.org/")
-
-        val session = Session("https://www.mozilla.org")
-        session.download = Consumable.from(download)
-
-        assertFalse(session.download.isConsumed())
-
-        var downloadIsSet = false
-
-        session.download.consume { consumable ->
-            downloadIsSet = consumable.url == "https://download.mozilla.org/"
-            true
-        }
-
-        assertTrue(downloadIsSet)
-    }
-
-    @Test
-    fun `Download will not be set on Session if consumed by observer`() {
-        var callbackExecuted = false
-
-        val session = Session("https://www.mozilla.org")
-        session.register(object : Session.Observer {
-            override fun onDownload(session: Session, download: Download): Boolean {
-                callbackExecuted = true
-                return true // Consume download
-            }
-        })
-
-        val download: Download = mock()
-        session.download = Consumable.from(download)
-
-        assertTrue(callbackExecuted)
-        assertTrue(session.download.isConsumed())
-    }
-
-    @Test
     fun `HitResult will be set on Session`() {
         val hitResult: HitResult = mock()
         `when`(hitResult.src).thenReturn("https://mozilla.org")
@@ -450,83 +450,22 @@ class SessionTest {
     }
 
     @Test
-    fun `All observers will not be notified about a download`() {
-        var firstCallbackExecuted = false
-        var secondCallbackExecuted = false
+    fun `action is dispatched when hit result changes`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
 
         val session = Session("https://www.mozilla.org")
-        session.register(object : Session.Observer {
-            override fun onDownload(session: Session, download: Download): Boolean {
-                firstCallbackExecuted = true
-                return true // Consume download
-            }
-        })
-        session.register(object : Session.Observer {
-            override fun onDownload(session: Session, download: Download): Boolean {
-                secondCallbackExecuted = true
-                return false // Do not consume download
-            }
-        })
+        session.store = store
 
-        val download: Download = mock()
-        session.download = Consumable.from(download)
+        session.hitResult = Consumable.empty()
+        verify(store).dispatch(ContentAction.ConsumeHitResultAction(session.id))
 
-        assertTrue(firstCallbackExecuted)
-        assertTrue(secondCallbackExecuted)
-        assertTrue(session.download.isConsumed())
-    }
+        val hitResult = HitResult.UNKNOWN("test")
+        session.hitResult = Consumable.from(hitResult)
+        verify(store).dispatch(ContentAction.UpdateHitResultAction(session.id, hitResult))
 
-    @Test
-    fun `Download will be set on Session if no observer consumes it`() {
-        var firstCallbackExecuted = false
-        var secondCallbackExecuted = false
-
-        val session = Session("https://www.mozilla.org")
-        session.register(object : Session.Observer {
-            override fun onDownload(session: Session, download: Download): Boolean {
-                firstCallbackExecuted = true
-                return false // Do not consume download
-            }
-        })
-        session.register(object : Session.Observer {
-            override fun onDownload(session: Session, download: Download): Boolean {
-                secondCallbackExecuted = true
-                return false // Do not consume download
-            }
-        })
-
-        val download: Download = mock()
-        session.download = Consumable.from(download)
-
-        assertTrue(firstCallbackExecuted)
-        assertTrue(secondCallbackExecuted)
-        assertFalse(session.download.isConsumed())
-    }
-
-    @Test
-    fun `Download can be consumed`() {
-        val session = Session("https://www.mozilla.org")
-        session.download = Consumable.from(mock())
-
-        assertFalse(session.download.isConsumed())
-
-        var consumerExecuted = false
-        session.download.consume {
-            consumerExecuted = true
-            false // Do not consume
-        }
-
-        assertTrue(consumerExecuted)
-        assertFalse(session.download.isConsumed())
-
-        consumerExecuted = false
-        session.download.consume {
-            consumerExecuted = true
-            true // Consume download
-        }
-
-        assertTrue(consumerExecuted)
-        assertTrue(session.download.isConsumed())
+        session.hitResult.consume { true }
+        verify(store, times(2)).dispatch(ContentAction.ConsumeHitResultAction(session.id))
     }
 
     @Test
@@ -598,6 +537,40 @@ class SessionTest {
     }
 
     @Test
+    fun `observer is notified when a tracker is loaded`() {
+        val observer = mock(Session.Observer::class.java)
+
+        val session = Session("https://www.mozilla.org")
+        session.register(observer)
+
+        val tracker1 = Tracker("trackerUrl1")
+        val tracker2 = Tracker("trackerUrl2")
+
+        session.trackersLoaded += tracker1
+
+        verify(observer).onTrackerLoaded(
+            eq(session),
+            eq(tracker1),
+            eq(listOf(tracker1))
+        )
+
+        assertEquals(listOf(tracker1), session.trackersLoaded)
+
+        session.trackersLoaded += tracker2
+
+        verify(observer).onTrackerLoaded(
+            eq(session),
+            eq(tracker2),
+            eq(listOf(tracker1, tracker2))
+        )
+
+        assertEquals(listOf(tracker1, tracker2), session.trackersLoaded)
+
+        session.trackersLoaded = emptyList()
+        verifyNoMoreInteractions(observer)
+    }
+
+    @Test
     fun `observer is notified when tracker blocking is enabled`() {
         val observer = mock(Session.Observer::class.java)
 
@@ -646,6 +619,24 @@ class SessionTest {
 
         session.findResults = emptyList()
         verifyNoMoreInteractions(observer)
+    }
+
+    @Test
+    fun `action is dispatched when find results are updated`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+
+        val result: Session.FindResult = Session.FindResult(0, 1, false)
+        session.findResults += result
+        verify(store).dispatch(ContentAction.AddFindResultAction(session.id, result.toFindResultState()))
+
+        session.findResults = emptyList()
+        verify(store).dispatch(ContentAction.ClearFindResultsAction(session.id))
+
+        verifyNoMoreInteractions(store)
     }
 
     @Test
@@ -711,8 +702,6 @@ class SessionTest {
         val defaultObserver = object : Session.Observer {}
         val contentPermissionRequest: PermissionRequest = mock()
         val appPermissionRequest: PermissionRequest = mock()
-        val promptRequest: PromptRequest = mock()
-        val windowRequest: WindowRequest = mock()
 
         defaultObserver.onUrlChanged(session, "")
         defaultObserver.onTitleChanged(session, "")
@@ -722,7 +711,6 @@ class SessionTest {
         defaultObserver.onSearch(session, "")
         defaultObserver.onSecurityChanged(session, Session.SecurityInfo())
         defaultObserver.onCustomTabConfigChanged(session, null)
-        defaultObserver.onDownload(session, mock(Download::class.java))
         defaultObserver.onTrackerBlockingEnabledChanged(session, true)
         defaultObserver.onTrackerBlocked(session, mock(), emptyList())
         defaultObserver.onLongPress(session, mock(HitResult::class.java))
@@ -732,13 +720,9 @@ class SessionTest {
         defaultObserver.onThumbnailChanged(session, spy(Bitmap::class.java))
         defaultObserver.onContentPermissionRequested(session, contentPermissionRequest)
         defaultObserver.onAppPermissionRequested(session, appPermissionRequest)
-        defaultObserver.onPromptRequested(session, promptRequest)
-        defaultObserver.onOpenWindowRequested(session, windowRequest)
-        defaultObserver.onCloseWindowRequested(session, windowRequest)
         defaultObserver.onWebAppManifestChanged(session, mock())
         defaultObserver.onMediaAdded(session, emptyList(), mock())
         defaultObserver.onMediaRemoved(session, emptyList(), mock())
-        defaultObserver.onIconChanged(session, mock())
         defaultObserver.onReaderableStateUpdated(session, true)
         defaultObserver.onRecordingDevicesChanged(session, emptyList())
     }
@@ -799,98 +783,6 @@ class SessionTest {
     }
 
     @Test
-    fun `prompt requests will be set on session if no observer consumes it`() {
-        val promptRequest: PromptRequest = mock()
-
-        val session = Session("https://www.mozilla.org")
-        session.promptRequest = Consumable.from(promptRequest)
-        assertFalse(session.promptRequest.isConsumed())
-
-        var promptRequestRequestIsSet = false
-        session.promptRequest.consume {
-            promptRequestRequestIsSet = true
-            true
-        }
-
-        assertTrue(promptRequestRequestIsSet)
-    }
-
-    @Test
-    fun `prompt requests will not be set on session if consumed by observer`() {
-        var promptCallbackExecuted = false
-
-        val session = Session("https://www.mozilla.org")
-        session.register(object : Session.Observer {
-            override fun onPromptRequested(session: Session, promptRequest: PromptRequest): Boolean {
-                promptCallbackExecuted = true
-                return true
-            }
-        })
-
-        val promptRequest: PromptRequest = mock()
-        session.promptRequest = Consumable.from(promptRequest)
-
-        assertTrue(promptCallbackExecuted)
-        assertTrue(session.contentPermissionRequest.isConsumed())
-    }
-
-    @Test
-    fun `window requests will be set on session if no observer consumes them`() {
-        val openWindowRequest: WindowRequest = mock()
-        val closeWindowRequest: WindowRequest = mock()
-
-        val session = Session("https://www.mozilla.org")
-        session.openWindowRequest = Consumable.from(openWindowRequest)
-        session.closeWindowRequest = Consumable.from(closeWindowRequest)
-        assertFalse(session.openWindowRequest.isConsumed())
-        assertFalse(session.closeWindowRequest.isConsumed())
-
-        var createWindowRequestIsSet = false
-        var closeWindowRequestIsSet = false
-        session.openWindowRequest.consume {
-            createWindowRequestIsSet = true
-            true
-        }
-        session.closeWindowRequest.consume {
-            closeWindowRequestIsSet = true
-            true
-        }
-        assertTrue(createWindowRequestIsSet)
-        assertTrue(closeWindowRequestIsSet)
-    }
-
-    @Test
-    fun `window requests will not be set on session if consumed by observer`() {
-        var openWindowRequestExecuted = false
-        var closeWindowRequestExecuted = false
-
-        val session = Session("https://www.mozilla.org")
-        session.register(object : Session.Observer {
-            override fun onOpenWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
-                openWindowRequestExecuted = true
-                return true
-            }
-
-            override fun onCloseWindowRequested(session: Session, windowRequest: WindowRequest): Boolean {
-                closeWindowRequestExecuted = true
-                return true
-            }
-        })
-
-        val createWindowRequest: WindowRequest = mock()
-        session.openWindowRequest = Consumable.from(createWindowRequest)
-
-        val closeWindowRequest: WindowRequest = mock()
-        session.closeWindowRequest = Consumable.from(closeWindowRequest)
-
-        assertTrue(openWindowRequestExecuted)
-        assertTrue(session.openWindowRequest.isConsumed())
-
-        assertTrue(closeWindowRequestExecuted)
-        assertTrue(session.closeWindowRequest.isConsumed())
-    }
-
-    @Test
     fun `handle empty blocked trackers list race conditions`() {
         val observer = mock(Session.Observer::class.java)
         val observer2 = mock(Session.Observer::class.java)
@@ -910,6 +802,33 @@ class SessionTest {
                     session.trackersBlocked = emptyList()
                     session.trackersBlocked += Tracker("test")
                     session.trackersBlocked = emptyList()
+                }
+                def.await()
+                def2.await()
+            }
+        }
+    }
+
+    @Test
+    fun `handle empty loaded trackers list race conditions`() {
+        val observer = mock(Session.Observer::class.java)
+        val observer2 = mock(Session.Observer::class.java)
+
+        val session = Session("about:blank")
+        session.register(observer)
+        session.register(observer2)
+
+        runBlocking {
+            (1..3).map {
+                val def = GlobalScope.async(IO) {
+                    session.trackersLoaded = emptyList()
+                    session.trackersLoaded += Tracker("test")
+                    session.trackersLoaded = emptyList()
+                }
+                val def2 = GlobalScope.async(IO) {
+                    session.trackersLoaded = emptyList()
+                    session.trackersLoaded += Tracker("test")
+                    session.trackersLoaded = emptyList()
                 }
                 def.await()
                 def2.await()
@@ -1041,49 +960,6 @@ class SessionTest {
     }
 
     @Test
-    fun `Observer is notified when icon is added and removed`() {
-        var notifiedIcon: Bitmap? = null
-
-        val session = Session("https://www.mozilla.org")
-        session.register(object : Session.Observer {
-            override fun onIconChanged(session: Session, icon: Bitmap?) {
-                notifiedIcon = icon
-            }
-        })
-
-        val bitmapMock: Bitmap = mock()
-        session.icon = bitmapMock
-
-        assertEquals(bitmapMock, notifiedIcon)
-
-        session.icon = null
-
-        assertNull(notifiedIcon)
-
-        session.icon = bitmapMock
-
-        assertEquals(bitmapMock, notifiedIcon)
-    }
-
-    @Test
-    fun `action is dispatched when icon changes`() {
-        val store: BrowserStore = mock()
-        `when`(store.dispatch(any())).thenReturn(mock())
-
-        val session = Session("https://www.mozilla.org")
-        session.store = store
-
-        val icon = spy(Bitmap::class.java)
-        session.icon = icon
-        verify(store).dispatch(ContentAction.UpdateIconAction(session.id, icon))
-
-        session.icon = null
-        verify(store).dispatch(ContentAction.RemoveIconAction(session.id))
-
-        verifyNoMoreInteractions(store)
-    }
-
-    @Test
     fun `observer is notified when readerable state updated`() {
         val observer = mock(Session.Observer::class.java)
 
@@ -1109,6 +985,19 @@ class SessionTest {
     }
 
     @Test
+    fun `action is dispatched when readerable state changes`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+        session.readerable = true
+
+        verify(store).dispatch(ReaderAction.UpdateReaderableAction(session.id, true))
+        verifyNoMoreInteractions(store)
+    }
+
+    @Test
     fun `observer is notified when reader mode state changes`() {
         val observer = mock(Session.Observer::class.java)
 
@@ -1123,6 +1012,19 @@ class SessionTest {
                 eq(true))
 
         assertTrue(session.readerMode)
+    }
+
+    @Test
+    fun `action is dispatched when reader mode state changes`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+        session.readerMode = true
+
+        verify(store).dispatch(ReaderAction.UpdateReaderActiveAction(session.id, true))
+        verifyNoMoreInteractions(store)
     }
 
     @Test

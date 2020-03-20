@@ -9,6 +9,7 @@ import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.inputmethod.InputMethodManager
 import androidx.annotation.MainThread
@@ -32,30 +33,6 @@ val View.isRTL: Boolean
  */
 val View.isLTR: Boolean
     get() = layoutDirection == ViewCompat.LAYOUT_DIRECTION_LTR
-
-/**
- * Returns true if this view's visibility is set to View.VISIBLE.
- */
-@Deprecated("Use Android KTX instead", ReplaceWith("isVisible", "androidx.core.view.isVisible"))
-fun View.isVisible(): Boolean {
-    return visibility == View.VISIBLE
-}
-
-/**
- * Returns true if this view's visibility is set to View.GONE.
- */
-@Deprecated("Use Android KTX instead", ReplaceWith("isGone", "androidx.core.view.isGone"))
-fun View.isGone(): Boolean {
-    return visibility == View.GONE
-}
-
-/**
- * Returns true if this view's visibility is set to View.INVISIBLE.
- */
-@Deprecated("Use Android KTX instead", ReplaceWith("isInvisible", "androidx.core.view.isInvisible"))
-fun View.isInvisible(): Boolean {
-    return visibility == View.INVISIBLE
-}
 
 /**
  * Tries to focus this view and show the soft input window for it.
@@ -127,6 +104,22 @@ fun View.toScope(): CoroutineScope {
     })
 
     return scope
+}
+
+/**
+ * Finds the first a view in the hierarchy, for which the provided predicate is true.
+ */
+fun View.findViewInHierarchy(predicate: (View) -> Boolean): View? {
+    if (predicate(this)) return this
+
+    if (this is ViewGroup) {
+        for (i in 0 until this.childCount) {
+            val childView = this.getChildAt(i).findViewInHierarchy(predicate)
+            if (childView != null) return childView
+        }
+    }
+
+    return null
 }
 
 /**

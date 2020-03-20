@@ -10,11 +10,14 @@ import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.feature.media.MediaFeature
 import mozilla.components.feature.media.MockMedia
+import mozilla.components.feature.media.state.MediaState
 import mozilla.components.feature.media.state.MediaStateMachine
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,6 +50,7 @@ class MediaServiceTest {
         feature.enable()
 
         media.playbackState = Media.PlaybackState.PLAYING
+        MediaStateMachine.waitForStateChange()
 
         val service = spy(Robolectric.buildService(MediaService::class.java)
             .create()
@@ -71,6 +75,7 @@ class MediaServiceTest {
         feature.enable()
 
         media.playbackState = Media.PlaybackState.PLAYING
+        MediaStateMachine.waitForStateChange()
 
         val service = spy(Robolectric.buildService(MediaService::class.java)
             .create()
@@ -81,6 +86,7 @@ class MediaServiceTest {
         verify(service, never()).stopSelf()
 
         media.playbackState = Media.PlaybackState.ENDED
+        MediaStateMachine.waitForStateChange()
 
         service.onStartCommand(MediaService.updateStateIntent(testContext), 0, 0)
 
@@ -101,6 +107,7 @@ class MediaServiceTest {
         feature.enable()
 
         media.playbackState = Media.PlaybackState.PLAYING
+        MediaStateMachine.waitForStateChange()
 
         val service = spy(Robolectric.buildService(MediaService::class.java)
             .create()
@@ -113,11 +120,79 @@ class MediaServiceTest {
         verify(service).startForeground(anyInt(), any())
 
         media.playbackState = Media.PlaybackState.PAUSE
+        MediaStateMachine.waitForStateChange()
 
         verify(service, never()).stopForeground(false)
 
         service.onStartCommand(MediaService.updateStateIntent(testContext), 0, 0)
 
         verify(service).stopForeground(false)
+    }
+
+    @Test
+    fun `Task getting removed stops service`() {
+        val media = MockMedia(Media.PlaybackState.UNKNOWN)
+
+        val sessionManager = SessionManager(engine = mock()).apply {
+            add(Session("https://www.mozilla.org").also { it.media = listOf(media) })
+        }
+
+        MediaStateMachine.start(sessionManager)
+
+        val feature = MediaFeature(mock())
+        feature.enable()
+
+        media.playbackState = Media.PlaybackState.PLAYING
+        MediaStateMachine.waitForStateChange()
+
+        val service = spy(Robolectric.buildService(MediaService::class.java)
+            .create()
+            .get())
+
+        service.onStartCommand(MediaService.updateStateIntent(testContext), 0, 0)
+
+        verify(service).startForeground(anyInt(), any())
+        verify(service, never()).stopSelf()
+        assertTrue(MediaStateMachine.state is MediaState.Playing)
+
+        service.onTaskRemoved(mock())
+
+        verify(service).stopSelf()
+        assertEquals(MediaState.None, MediaStateMachine.state)
+    }
+
+    @Test
+    fun `Task getting removed does not stop service if media state is for custom tab`() {
+        val media = MockMedia(Media.PlaybackState.UNKNOWN)
+
+        val sessionManager = SessionManager(engine = mock()).apply {
+            add(Session("https://www.mozilla.org").also {
+                it.media = listOf(media)
+                it.customTabConfig = mock()
+            })
+        }
+
+        MediaStateMachine.start(sessionManager)
+
+        val feature = MediaFeature(mock())
+        feature.enable()
+
+        media.playbackState = Media.PlaybackState.PLAYING
+        MediaStateMachine.waitForStateChange()
+
+        val service = spy(Robolectric.buildService(MediaService::class.java)
+            .create()
+            .get())
+
+        service.onStartCommand(MediaService.updateStateIntent(testContext), 0, 0)
+
+        verify(service).startForeground(anyInt(), any())
+        verify(service, never()).stopSelf()
+        assertTrue(MediaStateMachine.state is MediaState.Playing)
+
+        service.onTaskRemoved(mock())
+
+        verify(service, never()).stopSelf()
+        assertTrue(MediaStateMachine.state is MediaState.Playing)
     }
 }

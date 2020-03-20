@@ -21,8 +21,17 @@ import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.`when`
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.concept.sync.AuthFlowUrl
+import mozilla.components.concept.sync.AuthType
 import mozilla.components.service.fxa.DeviceConfig
+import mozilla.components.service.fxa.FxaAuthData
+import mozilla.components.service.fxa.Server
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
+import org.robolectric.annotation.Config
 
 // Same as the actual account manager, except we get to control how FirefoxAccountShaped instances
 // are created. This is necessary because due to some build issues (native dependencies not available
@@ -50,6 +59,10 @@ class FirefoxAccountsAuthFeatureTest {
         }
     }
 
+    // Note that tests that involve secure storage specify API=21, because of issues testing secure storage on
+    // 23+ API levels. See https://github.com/mozilla-mobile/android-components/issues/4956
+
+    @Config(sdk = [22])
     @Test
     fun `begin authentication`() {
         val manager = prepareAccountManagerForSuccessfulAuthentication()
@@ -68,6 +81,7 @@ class FirefoxAccountsAuthFeatureTest {
         assertEquals("auth://url", authLabmda.url)
     }
 
+    @Config(sdk = [22])
     @Test
     fun `begin pairing authentication`() {
         val manager = prepareAccountManagerForSuccessfulAuthentication()
@@ -86,6 +100,7 @@ class FirefoxAccountsAuthFeatureTest {
         assertEquals("auth://url", authLabmda.url)
     }
 
+    @Config(sdk = [22])
     @Test
     fun `begin authentication with errors`() {
         val manager = prepareAccountManagerForFailedAuthentication()
@@ -105,6 +120,7 @@ class FirefoxAccountsAuthFeatureTest {
         assertEquals("https://accounts.firefox.com/signin", authLambda.url)
     }
 
+    @Config(sdk = [22])
     @Test
     fun `begin pairing authentication with errors`() {
         val manager = prepareAccountManagerForFailedAuthentication()
@@ -124,18 +140,91 @@ class FirefoxAccountsAuthFeatureTest {
         assertEquals("https://accounts.firefox.com/signin", authLambda.url)
     }
 
+    @Test
+    fun `auth interceptor`() {
+        val manager = mock<FxaAccountManager>()
+        val redirectUrl = "https://accounts.firefox.com/oauth/success/123"
+        val feature = FirefoxAccountsAuthFeature(
+            manager,
+            redirectUrl,
+            mock()
+        ) { _, _ -> }
+
+        // Non-final FxA url.
+        assertNull(feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/not/the/right/url", false, false))
+        verify(manager, never()).finishAuthenticationAsync(any())
+
+        // Non-FxA url.
+        assertNull(feature.interceptor.onLoadRequest(mock(), "https://www.wikipedia.org", false, false))
+        verify(manager, never()).finishAuthenticationAsync(any())
+
+        // Redirect url, without code/state.
+        assertNull(feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/", false, false))
+        verify(manager, never()).finishAuthenticationAsync(any())
+
+        // Redirect url, without code/state.
+        assertNull(feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/test", false, false))
+        verify(manager, never()).finishAuthenticationAsync(any())
+
+        // Code+state, no action.
+        assertEquals(
+            RequestInterceptor.InterceptionResponse.Url(redirectUrl),
+            feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/?code=testCode1&state=testState1", false, false)
+        )
+        verify(manager).finishAuthenticationAsync(
+            FxaAuthData(authType = AuthType.OtherExternal(null), code = "testCode1", state = "testState1")
+        )
+
+        // Code+state, action=signin.
+        assertEquals(
+            RequestInterceptor.InterceptionResponse.Url(redirectUrl),
+            feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/?code=testCode2&state=testState2&action=signin", false, false)
+        )
+        verify(manager).finishAuthenticationAsync(
+            FxaAuthData(authType = AuthType.Signin, code = "testCode2", state = "testState2")
+        )
+
+        // Code+state, action=signup.
+        assertEquals(
+            RequestInterceptor.InterceptionResponse.Url(redirectUrl),
+            feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/?code=testCode3&state=testState3&action=signup", false, false)
+        )
+        verify(manager).finishAuthenticationAsync(
+            FxaAuthData(authType = AuthType.Signup, code = "testCode3", state = "testState3")
+        )
+
+        // Code+state, action=pairing.
+        assertEquals(
+            RequestInterceptor.InterceptionResponse.Url(redirectUrl),
+            feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/?code=testCode4&state=testState4&action=pairing", false, false)
+        )
+        verify(manager).finishAuthenticationAsync(
+            FxaAuthData(authType = AuthType.Pairing, code = "testCode4", state = "testState4")
+        )
+
+        // Code+state, action is an unknown value.
+        assertEquals(
+            RequestInterceptor.InterceptionResponse.Url(redirectUrl),
+            feature.interceptor.onLoadRequest(mock(), "https://accounts.firefox.com/oauth/success/123/?code=testCode5&state=testState5&action=someNewActionType", false, false)
+        )
+        verify(manager).finishAuthenticationAsync(
+            FxaAuthData(authType = AuthType.OtherExternal("someNewActionType"), code = "testCode5", state = "testState5")
+        )
+    }
+
+    @Config(sdk = [22])
     private fun prepareAccountManagerForSuccessfulAuthentication(): TestableFxaAccountManager {
         val mockAccount: OAuthAccount = mock()
         val profile = Profile(uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
 
         `when`(mockAccount.getProfileAsync(anyBoolean())).thenReturn(CompletableDeferred(profile))
-        `when`(mockAccount.beginOAuthFlowAsync(any(), anyBoolean())).thenReturn(CompletableDeferred("auth://url"))
-        `when`(mockAccount.beginPairingFlowAsync(anyString(), any())).thenReturn(CompletableDeferred("auth://url"))
+        `when`(mockAccount.beginOAuthFlowAsync(any())).thenReturn(CompletableDeferred(AuthFlowUrl("authState", "auth://url")))
+        `when`(mockAccount.beginPairingFlowAsync(anyString(), any())).thenReturn(CompletableDeferred(AuthFlowUrl("authState", "auth://url")))
         `when`(mockAccount.completeOAuthFlowAsync(anyString(), anyString())).thenReturn(CompletableDeferred(true))
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig.release("dummyId", "bad://url"),
+            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
             setOf("test-scope")
         ) {
             mockAccount
@@ -148,19 +237,20 @@ class FirefoxAccountsAuthFeatureTest {
         return manager
     }
 
+    @Config(sdk = [22])
     private fun prepareAccountManagerForFailedAuthentication(): TestableFxaAccountManager {
         val mockAccount: OAuthAccount = mock()
         val profile = Profile(uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
 
         `when`(mockAccount.getProfileAsync(anyBoolean())).thenReturn(CompletableDeferred(profile))
 
-        `when`(mockAccount.beginOAuthFlowAsync(any(), anyBoolean())).thenReturn(CompletableDeferred(value = null))
+        `when`(mockAccount.beginOAuthFlowAsync(any())).thenReturn(CompletableDeferred(value = null))
         `when`(mockAccount.beginPairingFlowAsync(anyString(), any())).thenReturn(CompletableDeferred(value = null))
         `when`(mockAccount.completeOAuthFlowAsync(anyString(), anyString())).thenReturn(CompletableDeferred(true))
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig.release("dummyId", "bad://url"),
+            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
             setOf("test-scope")
         ) {
             mockAccount

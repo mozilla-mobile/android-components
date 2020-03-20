@@ -10,10 +10,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.awesomebar.AwesomeBar
-import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
@@ -26,9 +24,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.`when`
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.never
-import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
@@ -82,6 +80,15 @@ class ClipboardSuggestionProviderTest {
             "https://www.mozilla.org")
 
         assertClipboardYieldsUrl(
+                """
+                This is a longer
+                text over multiple lines
+                and it www.mozilla.org contains
+                URLs as well. https://www.firefox.com
+            """,
+                "https://www.firefox.com")
+
+        assertClipboardYieldsUrl(
         """
             mozilla.org
             firefox.com
@@ -89,7 +96,9 @@ class ClipboardSuggestionProviderTest {
             """,
             "mozilla.org")
 
-        assertClipboardYieldsUrl("My IP is 192.168.0.1.", "192.168.0.1")
+        // Note that the new, less-lenient URL detection process (Issue #5594) allows the dot
+        // at the end of the IP address to be part of the URL. Gecko handles this.
+        assertClipboardYieldsUrl("My IP is 192.168.0.1.", "192.168.0.1.")
     }
 
     @Test
@@ -112,8 +121,6 @@ class ClipboardSuggestionProviderTest {
         assertClipboardYieldsNothing("Hello World")
 
         assertClipboardYieldsNothing("Is this mozilla org")
-
-        assertClipboardYieldsNothing("192.168.")
     }
 
     @Test
@@ -136,7 +143,7 @@ class ClipboardSuggestionProviderTest {
         }
 
         runBlocking {
-            assertEquals(bitmap, suggestion?.icon?.invoke(2, 2))
+            assertEquals(bitmap, suggestion?.icon)
             assertEquals("My test title", suggestion?.title)
         }
     }
@@ -150,13 +157,7 @@ class ClipboardSuggestionProviderTest {
             )
         )
 
-        val selectedEngineSession: EngineSession = mock()
-        val selectedSession: Session = mock()
-        val sessionManager: SessionManager = mock()
-        `when`(sessionManager.selectedSession).thenReturn(selectedSession)
-        `when`(sessionManager.getOrCreateEngineSession(selectedSession)).thenReturn(selectedEngineSession)
-
-        val useCase = spy(SessionUseCases(sessionManager).loadUrl)
+        val useCase: SessionUseCases.LoadUrlUseCase = mock()
 
         val provider = ClipboardSuggestionProvider(testContext, useCase, requireEmptyText = false)
 
@@ -166,12 +167,12 @@ class ClipboardSuggestionProviderTest {
 
         val suggestion = suggestions.first()
 
-        verify(useCase, never()).invoke(any(), any(), any())
+        verify(useCase, never()).invoke(any(), any())
 
         assertNotNull(suggestion.onSuggestionClicked)
         suggestion.onSuggestionClicked!!.invoke()
 
-        verify(useCase).invoke(eq("https://www.mozilla.org"), any(), any())
+        verify(useCase).invoke(eq("https://www.mozilla.org"), any())
     }
 
     @Test
@@ -192,6 +193,24 @@ class ClipboardSuggestionProviderTest {
         val provider = ClipboardSuggestionProvider(testContext, mock(), requireEmptyText = true)
         val suggestions = provider.onInputChanged("Hello")
         assertTrue(suggestions.isEmpty())
+    }
+
+    @Test
+    fun `provider calls speculative connect for URL of suggestion`() {
+        val engine: Engine = mock()
+        val provider = ClipboardSuggestionProvider(testContext, mock(), engine = engine)
+        var suggestions = runBlocking { provider.onInputStarted() }
+        assertTrue(suggestions.isEmpty())
+        verify(engine, never()).speculativeConnect(anyString())
+
+        clipboardManager.setPrimaryClip(ClipData.newPlainText("Test label", "https://www.mozilla.org"))
+        suggestions = runBlocking { provider.onInputStarted() }
+        assertEquals(1, suggestions.size)
+        verify(engine, times(1)).speculativeConnect(eq("https://www.mozilla.org"))
+
+        val suggestion = suggestions.firstOrNull()
+        assertNotNull(suggestion!!)
+        assertEquals("https://www.mozilla.org", suggestion.description)
     }
 
     private fun assertClipboardYieldsUrl(text: String, url: String) {

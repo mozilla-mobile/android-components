@@ -42,6 +42,13 @@ fun BrowserState.findCustomTab(tabId: String): CustomTabSessionState? {
 }
 
 /**
+ * Finds and returns the [TabSessionState] or [CustomTabSessionState] with the given [tabId].
+ */
+fun BrowserState.findTabOrCustomTab(tabId: String): SessionState? {
+    return findTab(tabId) ?: findCustomTab(tabId)
+}
+
+/**
  * Finds and returns the tab with the given id or the selected tab if no id was provided (null). Returns null
  * if no matching tab could be found or if no selected tab exists.
  *
@@ -51,6 +58,21 @@ fun BrowserState.findCustomTab(tabId: String): CustomTabSessionState? {
 fun BrowserState.findCustomTabOrSelectedTab(customTabId: String? = null): SessionState? {
     return if (customTabId != null) {
         findCustomTab(customTabId)
+    } else {
+        selectedTab
+    }
+}
+
+/**
+ * Finds and returns the tab with the given id or the selected tab if no id was provided (null). Returns null
+ * if no matching tab could be found or if no selected tab exists.
+ *
+ * @param tabId An optional ID of a tab. If not provided or null then the selected tab will be returned.
+ * @return The custom tab with the provided ID or the selected tav if no id was provided.
+ */
+fun BrowserState.findTabOrCustomTabOrSelectedTab(tabId: String? = null): SessionState? {
+    return if (tabId != null) {
+        findTabOrCustomTab(tabId)
     } else {
         selectedTab
     }

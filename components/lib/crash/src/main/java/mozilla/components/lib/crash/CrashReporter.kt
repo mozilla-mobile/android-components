@@ -9,10 +9,18 @@ import android.content.Context
 import android.content.Intent
 import androidx.annotation.StyleRes
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.lib.crash.handler.ExceptionHandler
 import mozilla.components.lib.crash.notification.CrashNotification
 import mozilla.components.lib.crash.prompt.CrashPrompt
 import mozilla.components.lib.crash.service.CrashReporterService
+import mozilla.components.lib.crash.service.SendCrashReportService
+import mozilla.components.lib.crash.service.SendCrashTelemetryService
 import mozilla.components.support.base.log.logger.Logger
 
 /**
@@ -34,6 +42,7 @@ import mozilla.components.support.base.log.logger.Logger
  * @property enabled Enable/Disable crash reporting.
  *
  * @param services List of crash reporting services that should receive crash reports.
+ * @param telemetryServices List of telemetry crash reporting services that should receive crash reports.
  * @param shouldPrompt Whether or not the user should be prompted to confirm sending crash reports.
  * @param enabled Enable/Disable crash reporting.
  * @param promptConfiguration Configuration for customizing the crash reporter prompt.
@@ -41,17 +50,21 @@ import mozilla.components.support.base.log.logger.Logger
  *                            happened. This gives the app the opportunity to show an in-app confirmation UI before
  *                            sending a crash report. See component README for details.
  */
+@Suppress("TooManyFunctions")
 class CrashReporter(
-    private val services: List<CrashReporterService>,
+    private val services: List<CrashReporterService> = emptyList(),
+    private val telemetryServices: List<CrashReporterService> = emptyList(),
     private val shouldPrompt: Prompt = Prompt.NEVER,
     var enabled: Boolean = true,
     internal val promptConfiguration: PromptConfiguration = PromptConfiguration(),
-    private val nonFatalCrashIntent: PendingIntent? = null
+    private val nonFatalCrashIntent: PendingIntent? = null,
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
     internal val logger = Logger("mozac/CrashReporter")
+    internal val crashBreadcrumbs = BreadcrumbPriorityQueue(BREADCRUMB_MAX_NUM)
 
     init {
-        if (services.isEmpty()) {
+        if (services.isEmpty() and telemetryServices.isEmpty()) {
             throw IllegalArgumentException("No crash reporter services defined")
         }
     }
@@ -71,18 +84,66 @@ class CrashReporter(
 
     /**
      * Submit a crash report to all registered services.
-     *
-     * Note: This method may block and perform I/O on the calling thread.
      */
-    fun submitReport(crash: Crash) {
-        services.forEach { service ->
-            when (crash) {
-                is Crash.NativeCodeCrash -> service.report(crash)
-                is Crash.UncaughtExceptionCrash -> service.report(crash)
+    fun submitReport(crash: Crash, then: () -> Unit = {}): Job {
+        return scope.launch {
+            services.forEach { service ->
+                when (crash) {
+                    is Crash.NativeCodeCrash -> service.report(crash)
+                    is Crash.UncaughtExceptionCrash -> service.report(crash)
+                }
+            }
+
+            logger.info("Crash report submitted to ${services.size} services")
+            withContext(Dispatchers.Main) {
+                then()
             }
         }
+    }
 
-        logger.info("Crash report submitted to ${services.size} services")
+    /**
+     * Submit a crash report to all registered telemetry services.
+     */
+    fun submitCrashTelemetry(crash: Crash, then: () -> Unit = {}): Job {
+        return scope.launch {
+            telemetryServices.forEach { telemetryService ->
+                when (crash) {
+                    is Crash.NativeCodeCrash -> telemetryService.report(crash)
+                    is Crash.UncaughtExceptionCrash -> telemetryService.report(crash)
+                }
+            }
+
+            logger.info("Crash report submitted to ${services.size} telemetry services")
+            withContext(Dispatchers.Main) {
+                then()
+            }
+        }
+    }
+
+    /**
+     * Submit a caught exception report to all registered services.
+     */
+    fun submitCaughtException(throwable: Throwable): Job {
+        logger.info("Caught Exception report submitted to ${services.size} services")
+
+        return scope.launch {
+            services.forEach {
+                it.report(throwable)
+            }
+        }
+    }
+
+    /**
+     * Add a crash breadcrumb to all registered services with breadcrumb support.
+     *
+     * ```Kotlin
+     *   crashReporter.recordCrashBreadcrumb(
+     *       Breadcrumb("Settings button clicked", data, "UI", Level.INFO, Type.USER)
+     *   )
+     * ```
+     */
+    fun recordCrashBreadcrumb(breadcrumb: Breadcrumb) {
+        crashBreadcrumbs.add(breadcrumb)
     }
 
     internal fun onCrash(context: Context, crash: Crash) {
@@ -92,22 +153,28 @@ class CrashReporter(
 
         logger.info("Received crash: $crash")
 
-        if (CrashPrompt.shouldPromptForCrash(shouldPrompt, crash)) {
-            if (shouldSendIntent(crash)) {
-                // This crash was not fatal and the app has registered a pending intent: Send Intent to app and let the
-                // app handle showing a confirmation UI.
-                launchCrashIntent(context, crash)
-            } else {
-                showPromptOrNotification(context, crash)
-            }
-        } else {
-            logger.info("Immediately submitting crash report")
+        if (telemetryServices.isNotEmpty()) {
+            sendCrashTelemetry(context, crash)
+        }
 
-            submitReport(crash)
+        // If crash is native code and non fatal then the view will handle the user prompt
+        if (shouldSendIntent(crash)) {
+            // App has registered a pending intent
+            sendNonFatalCrashIntent(context, crash)
+            return
+        }
+
+        if (services.isNotEmpty()) {
+            if (CrashPrompt.shouldPromptForCrash(shouldPrompt, crash)) {
+                showPromptOrNotification(context, crash)
+            } else {
+                sendCrashReport(context, crash)
+            }
         }
     }
 
-    private fun launchCrashIntent(context: Context, crash: Crash) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun sendNonFatalCrashIntent(context: Context, crash: Crash) {
         logger.info("Invoking non-fatal PendingIntent")
 
         val additionalIntent = Intent()
@@ -116,6 +183,10 @@ class CrashReporter(
     }
 
     private fun showPromptOrNotification(context: Context, crash: Crash) {
+        if (services.isEmpty()) {
+            return
+        }
+
         if (CrashNotification.shouldShowNotificationInsteadOfPrompt(crash)) {
             // If this is a fatal crash taking down the app then we may not be able to show a crash reporter
             // prompt on Android Q+. Unfortunately it's not possible to easily determine if we can launch an
@@ -128,6 +199,16 @@ class CrashReporter(
             logger.info("Showing prompt")
             showPrompt(context, crash)
         }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun sendCrashReport(context: Context, crash: Crash) {
+        ContextCompat.startForegroundService(context, SendCrashReportService.createReportIntent(context, crash))
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun sendCrashTelemetry(context: Context, crash: Crash) {
+        ContextCompat.startForegroundService(context, SendCrashTelemetryService.createReportIntent(context, crash))
     }
 
     @VisibleForTesting
@@ -174,6 +255,9 @@ class CrashReporter(
     )
 
     companion object {
+        @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+        internal const val BREADCRUMB_MAX_NUM = 20
+
         @Volatile
         private var instance: CrashReporter? = null
 

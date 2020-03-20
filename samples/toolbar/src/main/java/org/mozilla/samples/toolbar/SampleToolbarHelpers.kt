@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package org.mozilla.samples.toolbar
 
 import android.app.Activity
@@ -22,9 +26,10 @@ enum class ToolbarConfiguration(val label: String) {
     DEFAULT("Default"),
     FOCUS_TABLET("Firefox Focus (Tablet)"),
     FOCUS_PHONE("Firefox Focus (Phone)"),
-    SEEDLING("Seedling"),
     CUSTOM_MENU("Custom Menu"),
-    PRIVATE_MODE("Private Mode")
+    PRIVATE_MODE("Private Mode"),
+    FENIX("Fenix"),
+    FENIX_CUSTOMTAB("Fenix (Custom Tab)")
 }
 
 class ConfigurationAdapter(

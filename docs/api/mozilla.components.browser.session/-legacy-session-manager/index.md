@@ -2,7 +2,7 @@
 
 # LegacySessionManager
 
-`class LegacySessionManager : `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/src/main/java/mozilla/components/browser/session/LegacySessionManager.kt#L21)
+`class LegacySessionManager : `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`>` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/src/main/java/mozilla/components/browser/session/LegacySessionManager.kt#L20)
 
 This class provides access to a centralized registry of all active sessions.
 
@@ -10,7 +10,7 @@ This class provides access to a centralized registry of all active sessions.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `LegacySessionManager(engine: `[`Engine`](../../mozilla.components.concept.engine/-engine/index.md)`, delegate: `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`> = ObserverRegistry())`<br>This class provides access to a centralized registry of all active sessions. |
+| [&lt;init&gt;](-init-.md) | `LegacySessionManager(engine: `[`Engine`](../../mozilla.components.concept.engine/-engine/index.md)`, engineSessionLinker: `[`EngineSessionLinker`](../-session-manager/-engine-session-linker/index.md)`, delegate: `[`Observable`](../../mozilla.components.support.base.observer/-observable/index.md)`<`[`Observer`](../-session-manager/-observer/index.md)`> = ObserverRegistry())`<br>This class provides access to a centralized registry of all active sessions. |
 
 ### Properties
 
@@ -33,8 +33,6 @@ This class provides access to a centralized registry of all active sessions.
 | [findSessionById](find-session-by-id.md) | `fun findSessionById(id: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`Session`](../-session/index.md)`?`<br>Finds and returns the session with the given id. Returns null if no matching session could be found. |
 | [getEngineSession](get-engine-session.md) | `fun getEngineSession(session: `[`Session`](../-session/index.md)` = selectedSessionOrThrow): `[`EngineSession`](../../mozilla.components.concept.engine/-engine-session/index.md)`?`<br>Gets the linked engine session for the provided session (if it exists). |
 | [getOrCreateEngineSession](get-or-create-engine-session.md) | `fun getOrCreateEngineSession(session: `[`Session`](../-session/index.md)` = selectedSessionOrThrow): `[`EngineSession`](../../mozilla.components.concept.engine/-engine-session/index.md)<br>Gets the linked engine session for the provided session and creates it if needed. |
-| [link](link.md) | `fun link(session: `[`Session`](../-session/index.md)`, engineSession: `[`EngineSession`](../../mozilla.components.concept.engine/-engine-session/index.md)`): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html) |
-| [onLowMemory](on-low-memory.md) | `fun onLowMemory(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Informs this [SessionManager](../-session-manager/index.md) that the OS is in low memory condition so it can reduce its allocated objects. |
 | [remove](remove.md) | `fun remove(session: `[`Session`](../-session/index.md)` = selectedSessionOrThrow, selectParentIfExists: `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = false): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Removes the provided session. If no session is provided then the selected session is removed. |
 | [removeAll](remove-all.md) | `fun removeAll(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Removes all sessions including CustomTab sessions. |
 | [removeSessions](remove-sessions.md) | `fun removeSessions(): `[`Unit`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html)<br>Removes all sessions but CustomTab sessions. |
@@ -46,3 +44,9 @@ This class provides access to a centralized registry of all active sessions.
 | Name | Summary |
 |---|---|
 | [NO_SELECTION](-n-o_-s-e-l-e-c-t-i-o-n.md) | `const val NO_SELECTION: `[`Int`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html) |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

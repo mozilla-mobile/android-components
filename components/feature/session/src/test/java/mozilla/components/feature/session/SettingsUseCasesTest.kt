@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.feature.session
 
 import mozilla.components.browser.session.Session
@@ -37,16 +41,16 @@ class SettingsUseCasesTest {
 
     @Test
     fun `UpdateSettingUseCase will update all sessions`() {
-        val autoplaySetting = object : UpdateSettingUseCase<Boolean>(settings, sessionManager) {
+        val allowFileAccessSetting = object : UpdateSettingUseCase<Boolean>(settings, sessionManager) {
             override fun update(settings: Settings, value: Boolean) {
-                settings.allowAutoplayMedia = value
+                settings.allowFileAccess = value
             }
         }
 
-        autoplaySetting(true)
-        verify(settings).allowAutoplayMedia = true
-        verify(engineSessionA.settings).allowAutoplayMedia = true
-        verify(engineSessionB.settings).allowAutoplayMedia = true
+        allowFileAccessSetting(true)
+        verify(settings).allowFileAccess = true
+        verify(engineSessionA.settings).allowFileAccess = true
+        verify(engineSessionB.settings).allowFileAccess = true
     }
 
     @Test
@@ -56,9 +60,9 @@ class SettingsUseCasesTest {
         verify(engineSessionA).enableTrackingProtection(TrackingProtectionPolicy.none())
         verify(engineSessionB).enableTrackingProtection(TrackingProtectionPolicy.none())
 
-        useCases.updateTrackingProtection(TrackingProtectionPolicy.all())
-        verify(settings).trackingProtectionPolicy = TrackingProtectionPolicy.all()
-        verify(engineSessionA).enableTrackingProtection(TrackingProtectionPolicy.all())
-        verify(engineSessionB).enableTrackingProtection(TrackingProtectionPolicy.all())
+        useCases.updateTrackingProtection(TrackingProtectionPolicy.strict())
+        verify(settings).trackingProtectionPolicy = TrackingProtectionPolicy.strict()
+        verify(engineSessionA).enableTrackingProtection(TrackingProtectionPolicy.strict())
+        verify(engineSessionB).enableTrackingProtection(TrackingProtectionPolicy.strict())
     }
 }

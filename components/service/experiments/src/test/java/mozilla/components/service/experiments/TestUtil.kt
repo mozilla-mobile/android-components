@@ -1,11 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.service.experiments
 
+import android.content.Context
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import mozilla.components.service.experiments.util.VersionString
 import java.util.concurrent.ExecutionException
 
 /**
@@ -14,8 +16,8 @@ import java.util.concurrent.ExecutionException
  * @param tag a string representing the worker tag
  * @return True if the task found in [WorkManager], false otherwise
  */
-internal fun isWorkScheduled(tag: String): Boolean {
-    val instance = WorkManager.getInstance()
+internal fun isWorkScheduled(context: Context, tag: String): Boolean {
+    val instance = WorkManager.getInstance(context)
     val statuses = instance.getWorkInfosByTag(tag)
     try {
         val workInfoList = statuses.get()
@@ -41,8 +43,8 @@ internal fun isWorkScheduled(tag: String): Boolean {
  * @param tag a string representing the worker tag
  * @return [WorkInfo] for the tag that was passed in or null
  */
-internal fun getWorkInfoByTag(tag: String): WorkInfo? {
-    val instance = WorkManager.getInstance()
+internal fun getWorkInfoByTag(context: Context, tag: String): WorkInfo? {
+    val instance = WorkManager.getInstance(context)
     val statuses = instance.getWorkInfosByTag(tag)
     try {
         val workInfoList = statuses.get()
@@ -64,8 +66,8 @@ internal fun getWorkInfoByTag(tag: String): WorkInfo? {
 internal fun createDefaultMatcher(
     appId: String? = null,
     appDisplayVersion: String? = null,
-    appMinVersion: String? = null,
-    appMaxVersion: String? = null,
+    appMinVersion: VersionString? = null,
+    appMaxVersion: VersionString? = null,
     localeLanguage: String? = null,
     localeCountry: String? = null,
     deviceManufacturer: String? = null,

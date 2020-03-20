@@ -2,7 +2,7 @@
 
 # SyncConfig
 
-`data class SyncConfig` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/service/firefox-accounts/src/main/java/mozilla/components/service/fxa/Config.kt#L40)
+`data class SyncConfig` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/service/firefox-accounts/src/main/java/mozilla/components/service/fxa/Config.kt#L51)
 
 Configuration for sync.
 
@@ -10,11 +10,17 @@ Configuration for sync.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `SyncConfig(syncableStores: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>, syncPeriodInMinutes: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`? = null)`<br>Configuration for sync. |
+| [&lt;init&gt;](-init-.md) | `SyncConfig(supportedEngines: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`SyncEngine`](../-sync-engine/index.md)`>, syncPeriodInMinutes: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`? = null)`<br>Configuration for sync. |
 
 ### Properties
 
 | Name | Summary |
 |---|---|
+| [supportedEngines](supported-engines.md) | `val supportedEngines: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`SyncEngine`](../-sync-engine/index.md)`>`<br>A set of supported sync engines, exposed via [GlobalSyncableStoreProvider](../../mozilla.components.service.fxa.sync/-global-syncable-store-provider/index.md). |
 | [syncPeriodInMinutes](sync-period-in-minutes.md) | `val syncPeriodInMinutes: `[`Long`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html)`?`<br>Optional, how frequently periodic sync should happen. If this is `null`, periodic syncing will be disabled. |
-| [syncableStores](syncable-stores.md) | `val syncableStores: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>`<br>A set of store names to sync, exposed via [GlobalSyncableStoreProvider](../../mozilla.components.service.fxa.sync/-global-syncable-store-provider/index.md). |
+
+### Extension Functions
+
+| Name | Summary |
+|---|---|
+| [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |

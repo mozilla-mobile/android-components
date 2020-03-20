@@ -15,9 +15,17 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
-import mozilla.components.concept.engine.Engine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.createCustomTab
+import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
@@ -29,203 +37,238 @@ import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
-import mozilla.components.support.base.observer.Consumable
+import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.Login
+import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment
+import mozilla.components.feature.prompts.dialog.LoginDialogFragment
+import mozilla.components.feature.prompts.dialog.MultiButtonDialogFragment
+import mozilla.components.feature.prompts.dialog.PromptDialogFragment
+import mozilla.components.feature.prompts.file.FilePicker.Companion.FILE_PICKER_ACTIVITY_REQUEST_CODE
+import mozilla.components.feature.prompts.share.ShareDelegate
 import mozilla.components.support.test.any
+import mozilla.components.support.test.eq
+import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import java.lang.ref.WeakReference
 import java.security.InvalidParameterException
 import java.util.Date
-import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class PromptFeatureTest {
 
-    private lateinit var mockSessionManager: SessionManager
-    private lateinit var mockFragmentManager: FragmentManager
-    private lateinit var promptFeature: PromptFeature
+    private val testDispatcher = TestCoroutineDispatcher()
+
+    private lateinit var store: BrowserStore
+    private lateinit var fragmentManager: FragmentManager
+
+    private val tabId = "test-tab"
+    private fun tab(): TabSessionState? {
+        return store.state.tabs.find { it.id == tabId }
+    }
 
     @Before
-    fun setup() {
-        val engine = mock<Engine>()
-        mockFragmentManager = mockFragmentManager()
+    @ExperimentalCoroutinesApi
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+        store = BrowserStore(BrowserState(
+            tabs = listOf(
+                createTab("https://www.mozilla.org", id = tabId)
+            ),
+            customTabs = listOf(
+                createCustomTab("https://www.mozilla.org", id = "custom-tab")
+            ),
+            selectedTabId = tabId
+        ))
+        fragmentManager = mockFragmentManager()
+    }
 
-        mockSessionManager = spy(SessionManager(engine))
-        promptFeature = PromptFeature(mock<Fragment>(), mockSessionManager, null, mockFragmentManager) { }
+    @After
+    @ExperimentalCoroutinesApi
+    fun tearDown() {
+        Dispatchers.resetMain()
+        testDispatcher.cleanupTestCoroutines()
     }
 
     @Test
-    fun `PromptFeatures act on a given session or the selected session`() {
-        val session = Session("custom-tab")
-        `when`(mockSessionManager.findSessionById(session.id)).thenReturn(session)
+    fun `PromptFeature acts on the selected session by default`() {
+        val feature = spy(PromptFeature(fragment = mock(), store = store, fragmentManager = fragmentManager) { })
+        feature.start()
 
-        promptFeature = PromptFeature(mock<Fragment>(), mockSessionManager, session.id, mockFragmentManager) { }
-        promptFeature.start()
+        val promptRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+        verify(feature).onPromptRequested(store.state.tabs.first())
+    }
 
-        verify(mockSessionManager).findSessionById(session.id)
+    @Test
+    fun `PromptFeature acts on a given custom tab session`() {
+        val feature = spy(
+            PromptFeature(
+                fragment = mock(),
+                store = store,
+                customTabId = "custom-tab",
+                fragmentManager = fragmentManager) { }
+        )
+        feature.start()
 
-        val selected = Session("browser-tab")
-        `when`(mockSessionManager.selectedSession).thenReturn(selected)
-
-        promptFeature = PromptFeature(mock<Fragment>(), mockSessionManager, null, mockFragmentManager) { }
-        promptFeature.start()
-
-        verify(mockSessionManager).selectedSession
+        val promptRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", promptRequest)).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+        verify(feature).onPromptRequested(store.state.customTabs.first())
     }
 
     @Test
     fun `New promptRequests for selected session will cause fragment transaction`() {
+        val feature = PromptFeature(fragment = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.start()
 
-        val session = getSelectedSession()
         val singleChoiceRequest = SingleChoice(arrayOf()) {}
-
-        promptFeature.start()
-
-        session.promptRequest = Consumable.from(singleChoiceRequest)
-
-        verify(mockFragmentManager).beginTransaction()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest)).joinBlocking()
+        verify(fragmentManager).beginTransaction()
     }
 
     @Test
     fun `New promptRequests for selected session will not cause fragment transaction if feature is stopped`() {
+        val feature = PromptFeature(fragment = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.start()
+        feature.stop()
 
-        val session = getSelectedSession()
-        val singleChoiceRequest = MultipleChoice(arrayOf()) {}
-
-        promptFeature.start()
-        promptFeature.stop()
-
-        session.promptRequest = Consumable.from(singleChoiceRequest)
-
-        verify(mockFragmentManager, never()).beginTransaction()
+        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest)).joinBlocking()
+        verify(fragmentManager, never()).beginTransaction()
     }
 
     @Test
     fun `Feature will re-attach to already existing fragment`() {
-
-        val session = getSelectedSession().apply {
-            promptRequest = Consumable.from(MultipleChoice(arrayOf()) {})
-        }
-
         val fragment: ChoiceDialogFragment = mock()
-        doReturn(session.id).`when`(fragment).sessionId
+        doReturn(tabId).`when`(fragment).sessionId
+        doReturn(fragment).`when`(fragmentManager).findFragmentByTag(FRAGMENT_TAG)
 
-        mockFragmentManager = mock()
-        doReturn(fragment).`when`(mockFragmentManager).findFragmentByTag(any())
+        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest)).joinBlocking()
 
-        promptFeature = PromptFeature(mock<Activity>(), mockSessionManager, null, mockFragmentManager) { }
-
-        promptFeature.start()
-        verify(fragment).feature = promptFeature
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.start()
+        verify(fragment).feature = feature
     }
 
     @Test
-    fun `Already existing fragment will be removed if session has no prompt request set anymore`() {
-        val session = getSelectedSession()
-
+    fun `Existing fragment will be removed if session has no prompt request`() {
         val fragment: ChoiceDialogFragment = mock()
-
-        doReturn(session.id).`when`(fragment).sessionId
+        doReturn(tabId).`when`(fragment).sessionId
+        doReturn(fragment).`when`(fragmentManager).findFragmentByTag(FRAGMENT_TAG)
 
         val transaction: FragmentTransaction = mock()
-        val fragmentManager: FragmentManager = mock()
-
-        doReturn(fragment).`when`(fragmentManager).findFragmentByTag(any())
         doReturn(transaction).`when`(fragmentManager).beginTransaction()
-        doReturn(transaction).`when`(transaction).remove(fragment)
+        doReturn(transaction).`when`(transaction).remove(any())
 
-        val feature = PromptFeature(mock<Fragment>(), mockSessionManager, null, fragmentManager) { }
-
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         feature.start()
+
+        verify(fragment, never()).feature = feature
         verify(fragmentManager).beginTransaction()
         verify(transaction).remove(fragment)
     }
 
     @Test
-    fun `Already existing fragment will be removed if session does not exist anymore`() {
+    fun `Existing fragment will be removed if session does not exist anymore`() {
         val fragment: ChoiceDialogFragment = mock()
-        doReturn(UUID.randomUUID().toString()).`when`(fragment).sessionId
+        doReturn("invalid-tab").`when`(fragment).sessionId
+        doReturn(fragment).`when`(fragmentManager).findFragmentByTag(FRAGMENT_TAG)
+
+        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction("invalid-tab", singleChoiceRequest)).joinBlocking()
 
         val transaction: FragmentTransaction = mock()
-        val fragmentManager: FragmentManager = mock()
-
-        doReturn(fragment).`when`(fragmentManager).findFragmentByTag(any())
         doReturn(transaction).`when`(fragmentManager).beginTransaction()
-        doReturn(transaction).`when`(transaction).remove(fragment)
+        doReturn(transaction).`when`(transaction).remove(any())
 
-        val feature = PromptFeature(mock<Activity>(), mockSessionManager, null, fragmentManager) { }
-
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         feature.start()
+
+        verify(fragment, never()).feature = feature
         verify(fragmentManager).beginTransaction()
         verify(transaction).remove(fragment)
     }
 
     @Test
     fun `Calling onCancel will consume promptRequest`() {
-        val session = getSelectedSession().apply {
-            promptRequest = Consumable.from(MultipleChoice(arrayOf()) {})
-        }
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
 
-        assertFalse(session.promptRequest.isConsumed())
-        promptFeature.onCancel(session.id)
-        assertTrue(session.promptRequest.isConsumed())
-    }
-
-    @Test
-    fun `Selecting a item a single choice dialog will consume promptRequest`() {
-        val session = getSelectedSession()
         val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest)).joinBlocking()
 
-        promptFeature.start()
+        assertEquals(singleChoiceRequest, tab()?.content?.promptRequest)
+        feature.onCancel(tabId)
 
-        session.promptRequest = Consumable.from(singleChoiceRequest)
-
-        promptFeature.onConfirm(session.id, mock<Choice>())
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
-    fun `Selecting a item a menu choice dialog will consume promptRequest`() {
-        val session = getSelectedSession()
+    fun `Selecting an item in a single choice dialog will consume promptRequest`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.start()
+
+        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest)).joinBlocking()
+
+        assertEquals(singleChoiceRequest, tab()?.content?.promptRequest)
+        feature.onConfirm(tabId, mock<Choice>())
+
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
+    }
+
+    @Test
+    fun `Selecting an item in a menu choice dialog will consume promptRequest`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.start()
+
         val menuChoiceRequest = MenuChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, menuChoiceRequest)).joinBlocking()
 
-        promptFeature.start()
+        assertEquals(menuChoiceRequest, tab()?.content?.promptRequest)
+        feature.onConfirm(tabId, mock<Choice>())
 
-        session.promptRequest = Consumable.from(menuChoiceRequest)
-
-        promptFeature.onConfirm(session.id, mock<Choice>())
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
     fun `Selecting items on multiple choice dialog will consume promptRequest`() {
-        val session = getSelectedSession()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.start()
+
         val multipleChoiceRequest = MultipleChoice(arrayOf()) {}
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, multipleChoiceRequest)).joinBlocking()
 
-        promptFeature.start()
+        assertEquals(multipleChoiceRequest, tab()?.content?.promptRequest)
+        feature.onConfirm(tabId, arrayOf<Choice>())
 
-        session.promptRequest = Consumable.from(multipleChoiceRequest)
-
-        promptFeature.onConfirm(session.id, arrayOf<Choice>())
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
     fun `onNoMoreDialogsChecked will consume promptRequest`() {
-        val session = getSelectedSession()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
 
         var onShowNoMoreAlertsWasCalled = false
         var onDismissWasCalled = false
@@ -234,43 +277,38 @@ class PromptFeatureTest {
             onShowNoMoreAlertsWasCalled = true
         }
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onConfirm(session.id, false)
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onConfirm(tabId, false)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onShowNoMoreAlertsWasCalled)
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onCancel(session.id)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
         assertTrue(onDismissWasCalled)
     }
 
     @Test
     fun `Calling onCancel with an alert request will consume promptRequest and call onDismiss`() {
-        val session = getSelectedSession()
-
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onDismissWasCalled = false
-
         val promptRequest = Alert("title", "message", false, { onDismissWasCalled = true }) {}
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onCancel(session.id)
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
         assertTrue(onDismissWasCalled)
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
     fun `onConfirmTextPrompt will consume promptRequest`() {
-        val session = getSelectedSession()
-
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onConfirmWasCalled = false
         var onDismissWasCalled = false
 
@@ -283,25 +321,24 @@ class PromptFeatureTest {
             onConfirmWasCalled = true
         }
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onConfirm(session.id, false to "")
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onConfirm(tabId, false to "")
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onConfirmWasCalled)
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onCancel(session.id)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onDismissWasCalled)
     }
 
     @Test
     fun `Calling onCancel with an TextPrompt request will consume promptRequest and call onDismiss`() {
-        val session = getSelectedSession()
-
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onDismissWasCalled = false
 
         val promptRequest = TextPrompt(
@@ -311,13 +348,13 @@ class PromptFeatureTest {
             false,
             { onDismissWasCalled = true }) { _, _ -> }
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        promptFeature.onCancel(session.id)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onDismissWasCalled)
     }
 
@@ -331,7 +368,7 @@ class PromptFeatureTest {
         )
 
         timeSelectionTypes.forEach { type ->
-            val session = getSelectedSession()
+            val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
             var onClearWasCalled = false
             var selectedDate: Date? = null
             val promptRequest = PromptRequest.TimeSelection(
@@ -343,62 +380,59 @@ class PromptFeatureTest {
                 onClearWasCalled = true
             }
 
-            promptFeature.start()
-            session.promptRequest = Consumable.from(promptRequest)
+            feature.start()
+            store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
             val now = Date()
-            promptFeature.onConfirm(session.id, now)
+            feature.onConfirm(tabId, now)
+            store.waitUntilIdle()
+            assertNull(tab()?.content?.promptRequest)
 
-            assertTrue(session.promptRequest.isConsumed())
             assertEquals(now, selectedDate)
-            session.promptRequest = Consumable.from(promptRequest)
+            store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-            promptFeature.onClear(session.id)
+            feature.onClear(tabId)
             assertTrue(onClearWasCalled)
+            feature.stop()
         }
     }
 
     @Test(expected = InvalidParameterException::class)
-    fun `calling handleDialogsRequest with not a promptRequest type will throw an exception`() {
-        promptFeature.handleDialogsRequest(mock<PromptRequest.File>(), mock())
+    fun `calling handleDialogsRequest with invalid type will throw an exception`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        feature.handleDialogsRequest(mock<PromptRequest.File>(), mock())
     }
 
+    @Suppress("Deprecation")
     @Test(expected = IllegalStateException::class)
     fun `Initializing a PromptFeature without giving an activity or fragment reference will throw an exception`() {
-        promptFeature = PromptFeature(null, null, mockSessionManager, null, mockFragmentManager) { }
+        PromptFeature(null, null, store, null, fragmentManager) { }
     }
 
     @Test
-    fun `onActivityResult with RESULT_OK and isMultipleFilesSelection false will consume PromptRequest of the actual session`() {
-
+    fun `onActivityResult with RESULT_OK and isMultipleFilesSelection false will consume PromptRequest`() {
         var onSingleFileSelectionWasCalled = false
 
         val onSingleFileSelection: (Context, Uri) -> Unit = { _, _ ->
             onSingleFileSelectionWasCalled = true
         }
 
-        val filePickerRequest =
-            PromptRequest.File(emptyArray(), false, onSingleFileSelection, { _, _ -> }) {
-            }
+        val filePickerRequest = PromptRequest.File(emptyArray(), false, onSingleFileSelection, { _, _ -> }) { }
 
-        val session = getSelectedSession()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         val intent = Intent()
 
         intent.data = mock()
-        session.promptRequest = Consumable.from(filePickerRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, filePickerRequest)).joinBlocking()
 
-        stubContext()
-
-        promptFeature.onActivityResult(PromptFeature.FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
-
-        verify(mockSessionManager).selectedSession
+        feature.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
+        store.waitUntilIdle()
         assertTrue(onSingleFileSelectionWasCalled)
-        assertTrue(session.promptRequest.isConsumed())
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
     fun `onActivityResult with RESULT_OK and isMultipleFilesSelection true will consume PromptRequest of the actual session`() {
-
         var onMultipleFileSelectionWasCalled = false
 
         val onMultipleFileSelection: (Context, Array<Uri>) -> Unit = { _, _ ->
@@ -408,7 +442,7 @@ class PromptFeatureTest {
         val filePickerRequest =
             PromptRequest.File(emptyArray(), true, { _, _ -> }, onMultipleFileSelection) {}
 
-        val session = getSelectedSession()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         val intent = Intent()
 
         intent.clipData = mock()
@@ -421,20 +455,16 @@ class PromptFeatureTest {
             doReturn(item).`when`(this).getItemAt(0)
         }
 
-        session.promptRequest = Consumable.from(filePickerRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, filePickerRequest)).joinBlocking()
 
-        stubContext()
-
-        promptFeature.onActivityResult(PromptFeature.FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
-
-        verify(mockSessionManager).selectedSession
+        feature.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
+        store.waitUntilIdle()
         assertTrue(onMultipleFileSelectionWasCalled)
-        assertTrue(session.promptRequest.isConsumed())
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
-    fun `onActivityResult with not RESULT_OK will consume PromptRequest of the actual session and call onDismiss `() {
-
+    fun `onActivityResult with RESULT_CANCELED will consume PromptRequest call onDismiss `() {
         var onDismissWasCalled = false
 
         val filePickerRequest =
@@ -442,86 +472,86 @@ class PromptFeatureTest {
                 onDismissWasCalled = true
             }
 
-        val session = getSelectedSession()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         val intent = Intent()
 
-        session.promptRequest = Consumable.from(filePickerRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, filePickerRequest)).joinBlocking()
 
-        promptFeature.onActivityResult(PromptFeature.FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_CANCELED, intent)
-
-        verify(mockSessionManager).selectedSession
+        feature.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_CANCELED, intent)
+        store.waitUntilIdle()
         assertTrue(onDismissWasCalled)
-        assertTrue(session.promptRequest.isConsumed())
+        assertNull(tab()?.content?.promptRequest)
     }
 
     @Test
     fun `Calling onConfirmAuthentication will consume promptRequest`() {
-        val session = getSelectedSession()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
 
         var onConfirmWasCalled = false
         var onDismissWasCalled = false
 
         val promptRequest = Authentication(
-            "title",
-            "message",
-            "username",
-            "password",
-            HOST,
-            NONE,
-            false,
-            false,
-            false,
-            { _, _ -> onConfirmWasCalled = true }) {
-            onDismissWasCalled = true
-        }
+            title = "title",
+            message = "message",
+            userName = "username",
+            password = "password",
+            method = HOST,
+            level = NONE,
+            onlyShowPassword = false,
+            previousFailed = false,
+            isCrossOrigin = false,
+            onConfirm = { _, _ -> onConfirmWasCalled = true },
+            onDismiss = { onDismissWasCalled = true }
+        )
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        promptFeature.onConfirm(session.id, "" to "")
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onConfirm(tabId, "" to "")
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onConfirmWasCalled)
 
-        session.promptRequest = Consumable.from(promptRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        promptFeature.onCancel(session.id)
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
         assertTrue(onDismissWasCalled)
     }
 
     @Test
-    fun `Calling onCancel with an Authentication request will consume promptRequest and call onDismiss`() {
-        val session = getSelectedSession()
+    fun `Calling onCancel on a authentication request will consume promptRequest and call onDismiss`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onDismissWasCalled = false
 
         val promptRequest = Authentication(
-            "title",
-            "message",
-            "username",
-            "password",
-            HOST,
-            NONE,
-            false,
-            false,
-            false,
-            { _, _ -> }) {
-            onDismissWasCalled = true
-        }
+            title = "title",
+            message = "message",
+            userName = "username",
+            password = "password",
+            method = HOST,
+            level = NONE,
+            onlyShowPassword = false,
+            previousFailed = false,
+            isCrossOrigin = false,
+            onConfirm = { _, _ -> },
+            onDismiss = { onDismissWasCalled = true }
+        )
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        promptFeature.onCancel(session.id)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onDismissWasCalled)
     }
 
     @Test
-    fun `Calling onConfirm with a Color request will consume promptRequest`() {
-        val session = getSelectedSession()
+    fun `Calling onConfirm on a color request will consume promptRequest`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
 
         var onConfirmWasCalled = false
         var onDismissWasCalled = false
@@ -534,24 +564,31 @@ class PromptFeatureTest {
             onDismissWasCalled = true
         }
 
-        promptFeature.start()
+        feature.start()
 
-        session.promptRequest = Consumable.from(promptRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        promptFeature.onConfirm(session.id, "#f6b73c")
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onConfirm(tabId, "#f6b73c")
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onConfirmWasCalled)
 
-        session.promptRequest = Consumable.from(promptRequest)
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        promptFeature.onCancel(session.id)
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onDismissWasCalled)
     }
 
     @Test
-    fun `calling onConfirm for a Popup request will consume promptRequest`() {
-        val session = getSelectedSession()
+    fun `Calling onConfirm on a popup request will consume promptRequest`() {
+        val fragment: Fragment = mock()
+        whenever(fragment.getString(R.string.mozac_feature_prompts_popup_dialog_title)).thenReturn("")
+        whenever(fragment.getString(R.string.mozac_feature_prompts_allow)).thenReturn("")
+        whenever(fragment.getString(R.string.mozac_feature_prompts_deny)).thenReturn("")
+
+        val feature = PromptFeature(fragment = fragment, store = store, fragmentManager = fragmentManager) { }
         var onConfirmWasCalled = false
 
         val promptRequest = PromptRequest.Popup(
@@ -559,44 +596,43 @@ class PromptFeatureTest {
             { onConfirmWasCalled = true }
         ) {}
 
-        stubContext()
+        feature.start()
 
-        promptFeature.start()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onConfirm(session.id)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onConfirm(tabId, null)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onConfirmWasCalled)
     }
 
     @Test
-    fun `calling onCancel with a Popup request will consume promptRequest`() {
-        val session = getSelectedSession()
+    fun `Calling onCancel on a popup request will consume promptRequest`() {
+        val fragment: Fragment = mock()
+        whenever(fragment.getString(R.string.mozac_feature_prompts_popup_dialog_title)).thenReturn("")
+        whenever(fragment.getString(R.string.mozac_feature_prompts_allow)).thenReturn("")
+        whenever(fragment.getString(R.string.mozac_feature_prompts_deny)).thenReturn("")
+
+        val feature = PromptFeature(fragment = fragment, store = store, fragmentManager = fragmentManager) { }
         var onCancelWasCalled = false
 
         val promptRequest = PromptRequest.Popup("http://www.popuptest.com/", { }) {
             onCancelWasCalled = true
         }
 
-        stubContext()
+        feature.start()
 
-        promptFeature.start()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onCancel(session.id)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onCancelWasCalled)
-
-        session.promptRequest = Consumable.from(promptRequest)
     }
 
     @Test
-    fun `calling onConfirm for a Confirm request will consume promptRequest`() {
-        val session = getSelectedSession()
+    fun `Calling onConfirm on a confirm request will consume promptRequest`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onPositiveButtonWasCalled = false
         var onNegativeButtonWasCalled = false
         var onNeutralButtonWasCalled = false
@@ -625,33 +661,32 @@ class PromptFeatureTest {
             onConfirmNeutralButton
         ) {}
 
-        stubContext()
+        feature.start()
 
-        promptFeature.start()
-
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onConfirm(session.id, true to MultiButtonDialogFragment.ButtonType.POSITIVE)
-
-        assertTrue(session.promptRequest.isConsumed())
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onConfirm(tabId, true to MultiButtonDialogFragment.ButtonType.POSITIVE)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onPositiveButtonWasCalled)
 
-        session.promptRequest = Consumable.from(promptRequest)
-        promptFeature.onConfirm(session.id, true to MultiButtonDialogFragment.ButtonType.NEGATIVE)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.promptAbuserDetector.resetJSAlertAbuseState()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onConfirm(tabId, true to MultiButtonDialogFragment.ButtonType.NEGATIVE)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onNegativeButtonWasCalled)
 
-        session.promptRequest = Consumable.from(promptRequest)
-        promptFeature.onConfirm(session.id, true to MultiButtonDialogFragment.ButtonType.NEUTRAL)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.promptAbuserDetector.resetJSAlertAbuseState()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+        feature.onConfirm(tabId, true to MultiButtonDialogFragment.ButtonType.NEUTRAL)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onNeutralButtonWasCalled)
     }
 
     @Test
-    fun `calling onCancel with a Confirm request will consume promptRequest`() {
-        val session = getSelectedSession()
+    fun `Calling onCancel on a confirm request will consume promptRequest`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onCancelWasCalled = false
 
         val onConfirm: (Boolean) -> Unit = { }
@@ -673,39 +708,264 @@ class PromptFeatureTest {
             onDismiss
         )
 
-        stubContext()
+        feature.start()
 
-        promptFeature.start()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
 
-        session.promptRequest = Consumable.from(promptRequest)
-
-        promptFeature.onCancel(session.id)
-
-        assertTrue(session.promptRequest.isConsumed())
+        feature.onCancel(tabId)
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
         assertTrue(onCancelWasCalled)
-
-        session.promptRequest = Consumable.from(promptRequest)
     }
 
-    private fun getSelectedSession(): Session {
-        val session = Session("")
-        mockSessionManager.add(session)
-        mockSessionManager.select(session)
-        return session
+    @Test
+    fun `When dialogs are being abused prompts are not allowed`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        var onDismissWasCalled: Boolean
+        val onDismiss = { onDismissWasCalled = true }
+        val alertRequest = Alert("", "", false, onDismiss, {})
+        val textRequest = TextPrompt("", "", "", false, onDismiss) { _, _ -> }
+        val confirmRequest =
+            PromptRequest.Confirm("", "", false, "+", "-", "", {}, {}, {}, onDismiss)
+
+        val promptRequests = arrayOf<PromptRequest>(alertRequest, textRequest, confirmRequest)
+
+        feature.start()
+        feature.promptAbuserDetector.userWantsMoreDialogs(false)
+
+        promptRequests.forEach { request ->
+            onDismissWasCalled = false
+            store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, request)).joinBlocking()
+            verify(fragmentManager, never()).beginTransaction()
+            assertTrue(onDismissWasCalled)
+        }
+    }
+
+    @Test
+    fun `When dialogs are being abused but the page is refreshed prompts are allowed`() {
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
+        var onDismissWasCalled = false
+        val onDismiss = { onDismissWasCalled = true }
+        val alertRequest = Alert("", "", false, onDismiss, {})
+
+        feature.start()
+        feature.promptAbuserDetector.userWantsMoreDialogs(false)
+
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, alertRequest)).joinBlocking()
+
+        verify(fragmentManager, never()).beginTransaction()
+        assertTrue(onDismissWasCalled)
+
+        // Simulate reloading page
+        store.dispatch(ContentAction.UpdateLoadingStateAction(tabId, true)).joinBlocking()
+        store.dispatch(ContentAction.UpdateLoadingStateAction(tabId, false)).joinBlocking()
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, alertRequest)).joinBlocking()
+
+        assertTrue(feature.promptAbuserDetector.shouldShowMoreDialogs)
+        verify(fragmentManager).beginTransaction()
+    }
+
+    @Test
+    fun `Share prompt calls ShareDelegate`() {
+        val delegate: ShareDelegate = mock()
+        val activity: Activity = mock()
+        val feature = spy(
+            PromptFeature(
+                activity,
+                store,
+                customTabId = "custom-tab",
+                shareDelegate = delegate,
+                fragmentManager = fragmentManager) { }
+        )
+        feature.start()
+
+        val promptRequest = PromptRequest.Share(ShareData("Title", "Text", null), {}, {}, {})
+        store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", promptRequest)).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+
+        verify(feature).onPromptRequested(store.state.customTabs.first())
+        verify(delegate).showShareSheet(
+            eq(activity),
+            eq(promptRequest.data),
+            onDismiss = any(),
+            onSuccess = any()
+        )
+    }
+
+    @Test
+    fun `Selecting an item in a share dialog will consume promptRequest`() {
+        val delegate: ShareDelegate = mock()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = delegate) { }
+        feature.start()
+
+        var onSuccessCalled = false
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = { onSuccessCalled = true },
+            onFailure = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        assertEquals(shareRequest, tab()?.content?.promptRequest)
+        feature.onConfirm(tabId, null)
+
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
+        assertTrue(onSuccessCalled)
+    }
+
+    @Test
+    fun `Dismissing a share dialog will consume promptRequest`() {
+        val delegate: ShareDelegate = mock()
+        val feature = PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = delegate) { }
+        feature.start()
+
+        var onDismissCalled = false
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = {},
+            onFailure = {},
+            onDismiss = { onDismissCalled = true }
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        assertEquals(shareRequest, tab()?.content?.promptRequest)
+        feature.onCancel(tabId)
+
+        store.waitUntilIdle()
+        assertNull(tab()?.content?.promptRequest)
+        assertTrue(onDismissCalled)
+    }
+
+    @Test
+    fun `dialog will never be dismissed if page load does not occur`() {
+        val feature = spy(PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = mock()) { })
+        feature.start()
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = {},
+            onFailure = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        verify(feature, times(0)).activePrompt
+    }
+
+    @Test
+    fun `dialog will be dismissed if progress reaches 90%`() {
+        val feature = spy(PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = mock()) { })
+        feature.start()
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = {},
+            onFailure = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        val fragment = mock<PromptDialogFragment>()
+        whenever(fragment.shouldDismissOnLoad()).thenReturn(true)
+        feature.activePrompt = WeakReference(fragment)
+
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 0)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 10)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 11)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 28)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 32)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 49)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 60)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 89)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 90)).joinBlocking()
+
+        verify(fragment, times(1)).dismiss()
+    }
+
+    @Test
+    fun `dialog will be dismissed if new page load progress skips past 90%`() {
+        val feature = spy(PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = mock()) { })
+        feature.start()
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = {},
+            onFailure = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        val fragment = mock<PromptDialogFragment>()
+        whenever(fragment.shouldDismissOnLoad()).thenReturn(true)
+        feature.activePrompt = WeakReference(fragment)
+
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 0)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 10)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 100)).joinBlocking()
+
+        verify(fragment, times(1)).dismiss()
+    }
+
+    @Test
+    fun `save login dialog will not be dismissed on page load`() {
+        val feature = spy(PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = mock()) { })
+        feature.start()
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = {},
+            onFailure = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        val fragment = spy(LoginDialogFragment.newInstance(
+            tabId,
+            0,
+            Login(origin = "https://www.mozilla.org", username = "username", password = "password")
+        ))
+        feature.activePrompt = WeakReference(fragment)
+
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 0)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 10)).joinBlocking()
+        store.dispatch(ContentAction.UpdateProgressAction(tabId, 100)).joinBlocking()
+
+        verify(fragment, times(0)).dismiss()
+    }
+
+    @Test
+    fun `confirm dialogs will not be automatically dismissed`() {
+        val feature = spy(PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager, shareDelegate = mock()) { })
+        feature.start()
+
+        val promptRequest = PromptRequest.Confirm(
+            "title",
+            "message",
+            false,
+            "positive",
+            "negative",
+            "neutral",
+            { },
+            { },
+            { },
+            { }
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
+
+        val prompt = feature.activePrompt?.get()
+        assertNotNull(prompt)
+        assertFalse(prompt!!.shouldDismissOnLoad())
     }
 
     private fun mockFragmentManager(): FragmentManager {
         val fragmentManager: FragmentManager = mock()
         val transaction: FragmentTransaction = mock()
         doReturn(transaction).`when`(fragmentManager).beginTransaction()
+        doReturn(transaction).`when`(transaction).remove(any())
         return fragmentManager
-    }
-
-    private fun stubContext() {
-        val mockFragment: Fragment = mock()
-
-        doReturn(testContext).`when`(mockFragment).requireContext()
-
-        promptFeature = PromptFeature(mockFragment, mockSessionManager, null, mockFragmentManager) {}
     }
 }

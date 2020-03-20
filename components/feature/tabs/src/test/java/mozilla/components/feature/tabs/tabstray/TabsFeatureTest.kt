@@ -1,19 +1,18 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.feature.tabs.tabstray
 
-import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.tabstray.Tabs
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
-
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
@@ -22,10 +21,11 @@ class TabsFeatureTest {
     @Test
     fun `asserting getters`() {
         val sessionManager = SessionManager(engine = mock())
+        val store = BrowserStore()
         val presenter: TabsTrayPresenter = mock()
         val interactor: TabsTrayInteractor = mock()
         val useCases = TabsUseCases(sessionManager)
-        val tabsFeature = spy(TabsFeature(mock(), sessionManager, useCases, mock()))
+        val tabsFeature = spy(TabsFeature(mock(), store, useCases, mock(), mock()))
 
         assertNotEquals(tabsFeature.interactor, interactor)
         assertNotEquals(tabsFeature.presenter, presenter)
@@ -40,10 +40,11 @@ class TabsFeatureTest {
     @Test
     fun start() {
         val sessionManager = SessionManager(engine = mock())
+        val store = BrowserStore()
         val presenter: TabsTrayPresenter = mock()
         val interactor: TabsTrayInteractor = mock()
         val useCases = TabsUseCases(sessionManager)
-        val tabsFeature = spy(TabsFeature(mock(), sessionManager, useCases, mock()))
+        val tabsFeature = spy(TabsFeature(mock(), store, useCases, mock(), mock()))
 
         tabsFeature.presenter = presenter
         tabsFeature.interactor = interactor
@@ -57,10 +58,11 @@ class TabsFeatureTest {
     @Test
     fun stop() {
         val sessionManager = SessionManager(engine = mock())
+        val store = BrowserStore()
         val presenter: TabsTrayPresenter = mock()
         val interactor: TabsTrayInteractor = mock()
         val useCases = TabsUseCases(sessionManager)
-        val tabsFeature = spy(TabsFeature(mock(), sessionManager, useCases, mock()))
+        val tabsFeature = spy(TabsFeature(mock(), store, useCases, mock(), mock()))
 
         tabsFeature.presenter = presenter
         tabsFeature.interactor = interactor
@@ -74,19 +76,38 @@ class TabsFeatureTest {
     @Test
     fun filterTabs() {
         val sessionManager = SessionManager(engine = mock())
+        val store = BrowserStore()
         val presenter: TabsTrayPresenter = mock()
         val interactor: TabsTrayInteractor = mock()
         val useCases = TabsUseCases(sessionManager)
-        val tabsFeature = spy(TabsFeature(mock(), sessionManager, useCases, mock()))
+        val tabsFeature = spy(TabsFeature(mock(), store, useCases, mock(), mock()))
 
         tabsFeature.presenter = presenter
         tabsFeature.interactor = interactor
 
-        val filter: (Session) -> Boolean = { true }
+        val filter: (TabSessionState) -> Boolean = { true }
 
         tabsFeature.filterTabs(filter)
 
-        verify(presenter).sessionsFilter = filter
-        verify(presenter).calculateDiffAndUpdateTabsTray()
+        verify(presenter).tabsFilter = filter
+        verify(presenter).updateTabs(Tabs(emptyList(), -1))
+    }
+
+    @Test
+    fun `filterTabs uses default filter if a new one is not provided`() {
+        val store = BrowserStore()
+        val filter: (TabSessionState) -> Boolean = { false }
+        val sessionManager = SessionManager(engine = mock())
+        val useCases = TabsUseCases(sessionManager)
+        val tabsFeature = spy(TabsFeature(mock(), store, useCases, filter, mock()))
+        val presenter: TabsTrayPresenter = mock()
+        val interactor: TabsTrayInteractor = mock()
+
+        tabsFeature.presenter = presenter
+        tabsFeature.interactor = interactor
+
+        tabsFeature.filterTabs()
+
+        verify(presenter).tabsFilter = filter
     }
 }

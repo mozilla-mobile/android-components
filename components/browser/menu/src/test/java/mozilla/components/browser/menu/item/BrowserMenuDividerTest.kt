@@ -1,18 +1,16 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- *  License, v. 2.0. If a copy of the MPL was not distributed with this
- *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package mozilla.components.browser.menu.item
 
-import android.view.View
-import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.R
+import mozilla.components.browser.menu2.candidate.ContainerStyle
+import mozilla.components.browser.menu2.candidate.DividerMenuCandidate
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.Mockito.mock
 
 class BrowserMenuDividerTest {
 
@@ -26,7 +24,24 @@ class BrowserMenuDividerTest {
     fun `hitting default methods`() {
         val item = BrowserMenuDivider()
         assertTrue(item.visible())
-        item.bind(mock(BrowserMenu::class.java), mock(View::class.java))
-        item.invalidate(mock(View::class.java))
+        item.bind(mock(), mock())
+        item.invalidate(mock())
+    }
+
+    @Test
+    fun `menu divider can be converted to candidate`() {
+        assertEquals(
+            DividerMenuCandidate(),
+            BrowserMenuDivider().asCandidate(mock())
+        )
+
+        assertEquals(
+            DividerMenuCandidate(
+                containerStyle = ContainerStyle(isVisible = true)
+            ),
+            BrowserMenuDivider().apply {
+                visible = { true }
+            }.asCandidate(mock())
+        )
     }
 }

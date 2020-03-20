@@ -4,14 +4,15 @@
 
 package mozilla.components.feature.sitepermissions
 
-import android.os.Parcel
 import android.os.Parcelable
+import kotlinx.android.parcel.Parcelize
 import mozilla.components.feature.sitepermissions.SitePermissions.Status.NO_DECISION
-import mozilla.components.feature.sitepermissions.db.StatusConverter
+import mozilla.components.feature.sitepermissions.SitePermissionsStorage.Permission
 
 /**
  * A site permissions and its state.
  */
+@Parcelize
 data class SitePermissions(
     val origin: String,
     val location: Status = NO_DECISION,
@@ -20,21 +21,10 @@ data class SitePermissions(
     val camera: Status = NO_DECISION,
     val bluetooth: Status = NO_DECISION,
     val localStorage: Status = NO_DECISION,
+    val autoplayAudible: Status = NO_DECISION,
+    val autoplayInaudible: Status = NO_DECISION,
     val savedAt: Long
 ) : Parcelable {
-
-    constructor(parcel: Parcel) :
-        this(
-            requireNotNull(parcel.readString()),
-            requireNotNull(converter.toStatus(parcel.readInt())),
-            requireNotNull(converter.toStatus(parcel.readInt())),
-            requireNotNull(converter.toStatus(parcel.readInt())),
-            requireNotNull(converter.toStatus(parcel.readInt())),
-            requireNotNull(converter.toStatus(parcel.readInt())),
-            requireNotNull(converter.toStatus(parcel.readInt())),
-            parcel.readLong()
-        )
-
     enum class Status(
         internal val id: Int
     ) {
@@ -43,32 +33,26 @@ data class SitePermissions(
         fun isAllowed() = this == ALLOWED
 
         fun doNotAskAgain() = this == ALLOWED || this == BLOCKED
-    }
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeString(origin)
-        parcel.writeInt(converter.toInt(location))
-        parcel.writeInt(converter.toInt(notification))
-        parcel.writeInt(converter.toInt(microphone))
-        parcel.writeInt(converter.toInt(camera))
-        parcel.writeInt(converter.toInt(bluetooth))
-        parcel.writeInt(converter.toInt(localStorage))
-        parcel.writeLong(savedAt)
-    }
-
-    override fun describeContents(): Int {
-        return 0
-    }
-
-    companion object CREATOR : Parcelable.Creator<SitePermissions> {
-        override fun createFromParcel(parcel: Parcel): SitePermissions {
-            return SitePermissions(parcel)
+        fun toggle(): Status = when (this) {
+            BLOCKED, NO_DECISION -> ALLOWED
+            ALLOWED -> BLOCKED
         }
+    }
 
-        override fun newArray(size: Int): Array<SitePermissions?> {
-            return arrayOfNulls(size)
+    /**
+     * Gets the current status for a [Permission] type
+     */
+    operator fun get(permissionType: Permission): Status {
+        return when (permissionType) {
+            Permission.MICROPHONE -> microphone
+            Permission.BLUETOOTH -> bluetooth
+            Permission.CAMERA -> camera
+            Permission.LOCAL_STORAGE -> localStorage
+            Permission.NOTIFICATION -> notification
+            Permission.LOCATION -> location
+            Permission.AUTOPLAY_AUDIBLE -> autoplayAudible
+            Permission.AUTOPLAY_INAUDIBLE -> autoplayInaudible
         }
-
-        private val converter = StatusConverter()
     }
 }

@@ -8,10 +8,29 @@ import android.app.ActivityManager.TaskDescription
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import androidx.core.net.toUri
-import mozilla.components.browser.session.tab.CustomTabConfig
+import mozilla.components.browser.state.state.CustomTabConfig
+import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.engine.manifest.WebAppManifest.Icon.Purpose
 import mozilla.components.support.utils.ColorUtils.isDark
+
+private const val MIN_INSTALLABLE_ICON_SIZE = 192
+
+/**
+ * Checks if the web app manifest can be used to create a shortcut icon.
+ *
+ * Websites have an installable icon if the manifest contains an icon of at least 192x192.
+ * @see [installableManifest]
+ */
+fun WebAppManifest.hasLargeIcons() = icons.any { icon ->
+    (Purpose.ANY in icon.purpose || Purpose.MASKABLE in icon.purpose) &&
+        icon.sizes.any { size ->
+            size.minLength >= MIN_INSTALLABLE_ICON_SIZE
+        }
+}
 
 /**
  * Creates a [TaskDescription] for the activity manager based on the manifest.
@@ -26,19 +45,24 @@ fun WebAppManifest.toTaskDescription(icon: Bitmap?) =
 /**
  * Creates a [CustomTabConfig] that styles a custom tab toolbar to match the manifest theme.
  */
-fun WebAppManifest.toCustomTabConfig() =
-    CustomTabConfig(
-        id = startUrl,
+fun WebAppManifest.toCustomTabConfig(): CustomTabConfig {
+    val backgroundColor = this.backgroundColor
+    return CustomTabConfig(
         toolbarColor = themeColor,
-        navigationBarColor = backgroundColor?.let {
-            if (isDark(it)) Color.BLACK else Color.WHITE
+        navigationBarColor = if (SDK_INT >= Build.VERSION_CODES.O && backgroundColor != null) {
+            if (isDark(backgroundColor)) Color.BLACK else Color.WHITE
+        } else {
+            null
         },
         closeButtonIcon = null,
         enableUrlbarHiding = true,
         actionButtonConfig = null,
+        showCloseButton = false,
         showShareMenuItem = true,
-        menuItems = emptyList()
+        menuItems = emptyList(),
+        externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP
     )
+}
 
 /**
  * Returns the scope of the manifest as a [Uri] for use

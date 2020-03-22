@@ -385,6 +385,29 @@ class BrowserAwesomeBarTest {
         assertEquals(1, awesomeBar.getUniqueSuggestionId(AwesomeBar.Suggestion(id = "1", score = 0, provider = provider)))
     }
 
+    @Test
+    fun `provider does not exist in BrowserAwesomeBar`() {
+        val awesomeBar = BrowserAwesomeBar(testContext)
+        val provider1 = mockProvider()
+        `when`(provider1.id).thenReturn("1")
+
+        val provider2 = mockProvider()
+        `when`(provider2.id).thenReturn("2")
+
+        awesomeBar.addProviders(provider1)
+        assertEquals(false, awesomeBar.containsProvider(provider2))
+    }
+
+    @Test
+    fun `provider exists in BrowserAwesomeBar`() {
+        val awesomeBar = BrowserAwesomeBar(testContext)
+        val provider1 = mockProvider()
+        `when`(provider1.id).thenReturn("1")
+
+        awesomeBar.addProviders(provider1)
+        assertEquals(true, awesomeBar.containsProvider(provider1))
+    }
+
     @Test(expected = IllegalStateException::class)
     fun `exception thrown when duplicate provider added`() {
         val awesomeBar = BrowserAwesomeBar(testContext)

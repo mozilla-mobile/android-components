@@ -95,7 +95,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     @Synchronized
     override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
         providers.forEach { provider ->
-            if (containsProvider(provider)) {
+            if (!this.providers.add(provider)) {
                 throw IllegalStateException("Failed to add provider " +
                         "${provider.id} of type ${provider::class.java.name}. " +
                         "Provider with the same ID already exists.")
@@ -128,11 +128,6 @@ class BrowserAwesomeBar @JvmOverloads constructor(
             providerIterator.remove()
         }
         this.resizeUniqueSuggestionIdCache(0)
-    }
-
-    override fun containsProvider(provider: AwesomeBar.SuggestionProvider): Boolean {
-        val existingProvider = this.providers.find { it.id == provider.id }
-        return existingProvider != null
     }
 
     @Synchronized

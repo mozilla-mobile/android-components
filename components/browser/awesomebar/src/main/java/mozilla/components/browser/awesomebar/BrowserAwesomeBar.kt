@@ -38,7 +38,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 ) : RecyclerView(context, attrs, defStyleAttr), AwesomeBar {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var jobDispatcher = Executors.newFixedThreadPool(PROVIDER_QUERY_THREADS).asCoroutineDispatcher()
-    private val providers: MutableSet<AwesomeBar.SuggestionProvider> = mutableSetOf()
+    private val providers: MutableList<AwesomeBar.SuggestionProvider> = mutableListOf()
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val uniqueSuggestionIds = LruCache<String, Long>(INITIAL_NUMBER_OF_PROVIDERS * PROVIDER_MAX_SUGGESTIONS)
     private var lastUsedSuggestionId = 0L
@@ -95,7 +95,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     @Synchronized
     override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
         providers.forEach { provider ->
-            if (!this.providers.add(provider)) {
+            if (containsProvider(provider)) {
                 throw IllegalStateException("Failed to add provider " +
                         "${provider.id} of type ${provider::class.java.name}. " +
                         "Provider with the same ID already exists.")
@@ -128,6 +128,10 @@ class BrowserAwesomeBar @JvmOverloads constructor(
             providerIterator.remove()
         }
         this.resizeUniqueSuggestionIdCache(0)
+    }
+
+    override fun containsProvider(provider: AwesomeBar.SuggestionProvider): Boolean {
+        return this.providers.find { it.id == provider.id } != null
     }
 
     @Synchronized

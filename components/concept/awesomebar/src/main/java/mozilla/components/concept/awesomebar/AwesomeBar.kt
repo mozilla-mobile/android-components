@@ -36,7 +36,7 @@ interface AwesomeBar {
     /**
      * Returns true if this awesome bar contains the following [SuggestionProvider]
      */
-    fun containsProvider(provider: SuggestionProvider) : Boolean
+    fun containsProvider(provider: SuggestionProvider): Boolean
 
     /**
      * Fired when the user starts interacting with the awesome bar by entering text in the toolbar.

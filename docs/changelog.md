@@ -22,7 +22,7 @@ permalink: /changelog/
 
 * **feature-fullscreen**
   * ⚠️ **This is a breaking change**: Added `viewportFitChanged` to support Android display cutouts.
-  
+
   * **feature-qr**
     * Moved `AutoFitTextureView` from `support-base` to `feature-qr`.
 
@@ -35,6 +35,20 @@ permalink: /changelog/
 
 * **browser-tabstray**
   * The iconView is no longer required in the template.
+
+* **concept-menu**
+  * 🆕 New component to create a menu API for `browser-menu` and `browser-menu2`.
+
+* **browser-menu**, **browser-menu2**
+  * Updated to use new `concept-menu`; implementation changes should remain the same.
+
+* **browser-toolbar**
+  * Added support for setting colors on the display/edit modes directly from the `BrowserToolbar`.
+  * Added `onUrlClicked` listener to allow or deny switching between the two modes.
+  * Moved to the new `concept-menu` API.
+
+* **feature-customtabs**
+  * Replaced the concrete implementation of `BrowserToolbar` with the `Toolbar` instead.
 
 # 38.0.0
 

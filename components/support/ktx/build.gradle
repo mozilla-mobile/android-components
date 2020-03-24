@@ -6,13 +6,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -23,20 +23,31 @@ android {
     }
 }
 
-dependencies {
-    implementation Deps.kotlin_stdlib
-
-    implementation Deps.support_compat
-
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.freeCompilerArgs += [
+            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
+    ]
 }
 
-archivesBaseName = "ktx"
+dependencies {
+    implementation project(':support-base')
+    implementation project(':support-utils')
+
+    implementation Dependencies.androidx_core
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
+
+    testImplementation project(':support-test')
+
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.kotlin_reflect
+    testImplementation Dependencies.testing_coroutines
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+}
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'ktx',
-        'A set of Kotlin extensions.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

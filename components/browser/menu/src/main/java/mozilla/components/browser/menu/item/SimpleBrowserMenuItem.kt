@@ -4,31 +4,79 @@
 
 package mozilla.components.browser.menu.item
 
+import android.content.Context
 import android.view.View
 import android.widget.TextView
+import androidx.annotation.ColorRes
+import androidx.core.content.ContextCompat.getColor
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuItem
 import mozilla.components.browser.menu.R
+import mozilla.components.browser.menu2.candidate.ContainerStyle
+import mozilla.components.browser.menu2.candidate.DecorativeTextMenuCandidate
+import mozilla.components.browser.menu2.candidate.MenuCandidate
+import mozilla.components.browser.menu2.candidate.TextMenuCandidate
+import mozilla.components.browser.menu2.candidate.TextStyle
 
 /**
  * A simple browser menu item displaying text.
  *
  * @param label The visible label of this menu item.
+ * @param textSize: The size of the label.
+ * @param textColorResource: The color resource to apply to the text.
  * @param listener Callback to be invoked when this menu item is clicked.
  */
 class SimpleBrowserMenuItem(
     private val label: String,
-    private val listener: () -> Unit
+    private val textSize: Float = NO_ID.toFloat(),
+    @ColorRes
+    private val textColorResource: Int = NO_ID,
+    private val listener: (() -> Unit)? = null
 ) : BrowserMenuItem {
     override var visible: () -> Boolean = { true }
 
     override fun getLayoutResource() = R.layout.mozac_browser_menu_item_simple
 
     override fun bind(menu: BrowserMenu, view: View) {
-        (view as TextView).text = label
-        view.setOnClickListener {
-            listener.invoke()
-            menu.dismiss()
+        val textView = view as TextView
+        textView.text = label
+
+        if (textSize != NO_ID.toFloat()) {
+            textView.textSize = textSize
+        }
+
+        textView.setColorResource(textColorResource)
+
+        if (listener != null) {
+            textView.setOnClickListener {
+                listener.invoke()
+                menu.dismiss()
+            }
+        } else {
+            // Remove the ripple effect
+            textView.background = null
+        }
+    }
+
+    override fun asCandidate(context: Context): MenuCandidate {
+        val textStyle = TextStyle(
+            size = if (textSize == NO_ID.toFloat()) null else textSize,
+            color = if (textColorResource == NO_ID) null else getColor(context, textColorResource)
+        )
+        val containerStyle = ContainerStyle(isVisible = visible())
+        return if (listener != null) {
+            TextMenuCandidate(
+                label,
+                textStyle = textStyle,
+                containerStyle = containerStyle,
+                onClick = listener
+            )
+        } else {
+            DecorativeTextMenuCandidate(
+                label,
+                textStyle = textStyle,
+                containerStyle = containerStyle
+            )
         }
     }
 }

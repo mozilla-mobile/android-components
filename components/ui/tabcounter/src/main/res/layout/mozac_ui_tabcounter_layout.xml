@@ -1,9 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?><!-- This Source Code Form is subject to the terms of the Mozilla Public
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:background="@drawable/mozac_ui_tabcounter_round_rectangle_ripple"
     tools:layout_height="40dp"
     tools:layout_width="40dp"
@@ -21,8 +22,8 @@
             android:id="@+id/counter_box"
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:contentDescription="@string/mozac_ui_tabcounter_description"
-            android:src="@drawable/mozac_ui_tabcounter_box" />
+            android:importantForAccessibility="no"
+            app:srcCompat="@drawable/mozac_ui_tabcounter_box" />
 
         <TextView
             android:id="@+id/counter_text"
@@ -42,7 +43,7 @@
         android:layout_below="@id/counter_root"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="1dp"
-        android:contentDescription="@string/mozac_ui_tabcounter_description"
-        android:src="@drawable/mozac_ui_tabcounter_bar" />
+        android:importantForAccessibility="no"
+        app:srcCompat="@drawable/mozac_ui_tabcounter_bar" />
 
 </merge>

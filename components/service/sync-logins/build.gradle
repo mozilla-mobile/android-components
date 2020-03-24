@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     lintOptions {
@@ -27,45 +27,36 @@ android {
     }
 }
 
-configurations {
-    // There's an interaction between Gradle's resolution of dependencies with different types
-    // (@jar, @aar) for `implementation` and `testImplementation` and with Android Studio's built-in
-    // JUnit test runner.  The runtime classpath in the built-in JUnit test runner gets the
-    // dependency from the `implementation`, which is type @aar, and therefore the JNA dependency
-    // doesn't provide the JNI dispatch libraries in the correct Java resource directories.  I think
-    // what's happening is that @aar type in `implementation` resolves to the @jar type in
-    // `testImplementation`, and that it wins the dependency resolution battle.
-    //
-    // A workaround is to add a new configuration which depends on the @jar type and to reference
-    // the underlying JAR file directly in `testImplementation`.  This JAR file doesn't resolve to
-    // the @aar type in `implementation`.  This works when invoked via `gradle`, but also sets the
-    // correct runtime classpath when invoked with Android Studio's built-in JUnit test runner.
-    // Success!
-    jnaForTest
-}
-
 dependencies {
-    jnaForTest Deps.jnaForTest
+    // Parts of this dependency are typealiase'd or are otherwise part of this module's public API.
+    api(Dependencies.mozilla_sync_logins) {
+      // Use our own version of the Glean dependency,
+      // which might be different from the version declared by A-S.
+      exclude group: 'org.mozilla.components', module: 'service-glean'
+    }
+    api Dependencies.mozilla_sync15
 
-    api Deps.mozilla_sync_logins
+    // Types defined in concept-sync are part of this module's public API.
+    api project(':concept-sync')
+    api project(':lib-dataprotect')
 
-    implementation Deps.kotlin_stdlib
-    implementation Deps.jna
-    implementation Deps.kotlin_coroutines
+    implementation project(':concept-storage')
+    implementation project(':support-sync-telemetry')
+    implementation project(':service-glean')
 
-    testImplementation files(configurations.jnaForTest.files)
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
-    testImplementation Deps.mozilla_sync_logins
+    testImplementation Dependencies.mozilla_sync_logins
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_coroutines
+    testImplementation project(':support-test')
 }
-
-archivesBaseName = "sync-logins"
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'sync-logins',
-        'A library for integrating with Firefox Sync - Logins.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

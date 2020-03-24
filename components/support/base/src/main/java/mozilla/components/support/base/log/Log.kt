@@ -4,7 +4,7 @@
 
 package mozilla.components.support.base.log
 
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import mozilla.components.support.base.log.sink.LogSink
 
 /**
@@ -24,6 +24,8 @@ object Log {
     var logLevel: Priority = Priority.DEBUG
 
     private val sinks = mutableListOf<LogSink>()
+
+    private val testMode: Boolean = System.getProperty("logging.test-mode") == "true"
 
     /**
      * Adds a sink that will receive log calls.
@@ -56,15 +58,40 @@ object Log {
                 }
             }
         }
+
+        if (testMode) {
+            printTestModeMessage(priority, tag, throwable, message)
+        }
     }
 
     // Only for testing
-    @VisibleForTesting fun reset() {
+    @VisibleForTesting
+    fun reset() {
         logLevel = Priority.DEBUG
 
         synchronized(sinks) {
             sinks.clear()
         }
+    }
+
+    private fun printTestModeMessage(
+        priority: Priority,
+        tag: String?,
+        throwable: Throwable?,
+        message: String?
+    ) {
+        val printMessage = StringBuilder()
+        printMessage.append(priority.name[0])
+        printMessage.append(" ")
+        if (tag != null) {
+            printMessage.append("[$tag] ")
+        }
+        if (message != null) {
+            printMessage.append(message)
+        }
+
+        println(printMessage.toString())
+        throwable?.printStackTrace()
     }
 
     /**

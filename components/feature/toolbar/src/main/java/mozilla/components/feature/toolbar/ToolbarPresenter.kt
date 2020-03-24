@@ -4,77 +4,94 @@
 
 package mozilla.components.feature.toolbar
 
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.PRIVATE
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collect
+import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
+import mozilla.components.feature.toolbar.internal.URLRenderer
+import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 
 /**
  * Presenter implementation for a toolbar implementation in order to update the toolbar whenever
- * the state of the selected session changes.
+ * the state of the selected session.
  */
+@Suppress("TooManyFunctions")
 class ToolbarPresenter(
     private val toolbar: Toolbar,
-    private val sessionManager: SessionManager,
-    private val sessionId: String? = null
-) : SessionManager.Observer, Session.Observer {
-    private var activeSession: Session? = null
+    private val store: BrowserStore,
+    private val customTabId: String? = null,
+    urlRenderConfiguration: ToolbarFeature.UrlRenderConfiguration? = null
+) {
+    @VisibleForTesting
+    internal var renderer = URLRenderer(toolbar, urlRenderConfiguration)
+
+    private var scope: CoroutineScope? = null
 
     /**
      * Start presenter: Display data in toolbar.
      */
     fun start() {
-        activeSession = sessionId?.let {
-            sessionManager.findSessionById(sessionId)
-        } ?: run {
-            sessionManager.register(this)
-            sessionManager.selectedSession
-        }
+        renderer.start()
 
-        activeSession?.register(this)
-        initializeView()
+        scope = store.flowScoped { flow ->
+            flow.ifChanged { it.findCustomTabOrSelectedTab(customTabId) }
+                .collect { state ->
+                    render(state)
+                }
+        }
     }
 
-    /**
-     * Stop presenter from updating the view.
-     */
     fun stop() {
-        sessionManager.unregister(this)
-        activeSession?.unregister(this)
+        scope?.cancel()
+        renderer.stop()
     }
 
-    /**
-     * A new session has been selected: Update toolbar to display data of new session.
-     */
-    override fun onSessionSelected(session: Session) {
-        activeSession?.unregister(this)
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal fun render(state: BrowserState) {
+        val tab = state.findCustomTabOrSelectedTab(customTabId)
 
-        activeSession = session
-        session.register(this)
+        if (tab != null) {
+            renderer.post(tab.content.url)
 
-        initializeView()
-    }
+            toolbar.setSearchTerms(tab.content.searchTerms)
+            toolbar.displayProgress(tab.content.progress)
 
-    private fun initializeView() {
-        activeSession?.let { session ->
-            toolbar.url = session.url
-
-            session.customTabConfig?.toolbarColor?.let {
-                toolbar.asView().setBackgroundColor(it)
+            toolbar.siteSecure = if (tab.content.securityInfo.secure) {
+                Toolbar.SiteSecurity.SECURE
+            } else {
+                Toolbar.SiteSecurity.INSECURE
             }
-            // TODO Apply remaining configurations: https://github.com/mozilla-mobile/android-components/issues/306
+
+            toolbar.siteTrackingProtection = when {
+                tab.trackingProtection.ignoredOnTrackingProtection -> SiteTrackingProtection.OFF_FOR_A_SITE
+                tab.trackingProtection.enabled && tab.trackingProtection.blockedTrackers.isNotEmpty() ->
+                    SiteTrackingProtection.ON_TRACKERS_BLOCKED
+
+                tab.trackingProtection.enabled -> SiteTrackingProtection.ON_NO_TRACKERS_BLOCKED
+
+                else -> SiteTrackingProtection.OFF_GLOBALLY
+            }
+        } else {
+            clear()
         }
     }
 
-    override fun onUrlChanged(session: Session, url: String) {
-        toolbar.url = url
-        toolbar.setSearchTerms(session.searchTerms)
-    }
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal fun clear() {
+        renderer.post("")
 
-    override fun onProgress(session: Session, progress: Int) {
-        toolbar.displayProgress(progress)
-    }
+        toolbar.setSearchTerms("")
+        toolbar.displayProgress(0)
 
-    override fun onSearch(session: Session, searchTerms: String) {
-        toolbar.setSearchTerms(searchTerms)
+        toolbar.siteSecure = Toolbar.SiteSecurity.INSECURE
+
+        toolbar.siteTrackingProtection = SiteTrackingProtection.OFF_GLOBALLY
     }
 }

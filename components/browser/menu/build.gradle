@@ -6,13 +6,13 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
-    
+
     buildTypes {
         release {
             minifyEnabled false
@@ -21,24 +21,38 @@ android {
     }
 }
 
-dependencies {
-    implementation project(':support-ktx')
-
-    implementation Deps.support_appcompat
-    implementation Deps.support_recyclerview
-    implementation Deps.support_cardview
-
-    implementation Deps.kotlin_stdlib
-
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.freeCompilerArgs += [
+            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"
+    ]
 }
 
-archivesBaseName = "menu"
+dependencies {
+    implementation project(':concept-engine')
+    implementation project(':browser-menu2')
+    implementation project(':browser-state')
+    implementation project(':support-base')
+    implementation project(':support-ktx')
+    implementation project(':ui-colors')
+    implementation project(':ui-icons')
+
+    implementation Dependencies.androidx_appcompat
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.androidx_recyclerview
+    implementation Dependencies.androidx_cardview
+    implementation Dependencies.androidx_constraintlayout
+
+    implementation Dependencies.kotlin_stdlib
+
+    testImplementation project(':support-test')
+
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_coroutines
+
+}
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'menu',
-        'A customizable menu for browsers.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

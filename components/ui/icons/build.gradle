@@ -5,11 +5,11 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     lintOptions {
@@ -29,10 +29,5 @@ dependencies {
     // None
 }
 
-archivesBaseName = "icons"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.photon',
-        'icons',
-        'A collection of often used browser icons.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

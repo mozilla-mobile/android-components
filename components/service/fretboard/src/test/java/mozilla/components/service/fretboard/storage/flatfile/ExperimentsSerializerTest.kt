@@ -4,6 +4,7 @@
 
 package mozilla.components.service.fretboard.storage.flatfile
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.fretboard.Experiment
 import mozilla.components.service.fretboard.ExperimentsSnapshot
 import org.json.JSONException
@@ -12,9 +13,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-val experimentsJson = """
+const val experimentsJson = """
                               {
                                   "experiments": [
                                       {
@@ -56,10 +56,11 @@ val experimentsJson = """
                               }
                               """
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class ExperimentsSerializerTest {
+
     @Test
-    fun testFromJsonValid() {
+    fun fromJsonValid() {
         val experimentsResult = ExperimentsSerializer().fromJson(experimentsJson)
         val experiments = experimentsResult.experiments
         assertEquals(2, experiments.size)
@@ -87,12 +88,12 @@ class ExperimentsSerializerTest {
     }
 
     @Test(expected = JSONException::class)
-    fun testFromJsonEmptyString() {
+    fun fromJsonEmptyString() {
         ExperimentsSerializer().fromJson("")
     }
 
     @Test
-    fun testFromJsonEmptyArray() {
+    fun fromJsonEmptyArray() {
         val experimentsJson = """ {"experiments":[]} """
         val experimentsResult = ExperimentsSerializer().fromJson(experimentsJson)
         assertEquals(0, experimentsResult.experiments.size)
@@ -100,7 +101,7 @@ class ExperimentsSerializerTest {
     }
 
     @Test
-    fun testToJsonValid() {
+    fun toJsonValid() {
         val experiments = listOf(
             Experiment("experiment-id",
                 "first",
@@ -152,7 +153,7 @@ class ExperimentsSerializerTest {
     }
 
     @Test
-    fun testToJsonEmptyList() {
+    fun toJsonEmptyList() {
         val experiments = listOf<Experiment>()
         val experimentsJson = JSONObject(ExperimentsSerializer().toJson(ExperimentsSnapshot(experiments, null)))
         assertEquals(1, experimentsJson.length())

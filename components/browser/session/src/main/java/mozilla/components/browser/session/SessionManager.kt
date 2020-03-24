@@ -4,43 +4,114 @@
 
 package mozilla.components.browser.session
 
+import android.content.ComponentCallbacks2
 import mozilla.components.browser.session.engine.EngineObserver
+import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.session.ext.toCustomTabSessionState
+import mozilla.components.browser.session.ext.toTabSessionState
+import mozilla.components.browser.state.action.CustomTabListAction
+import mozilla.components.browser.state.action.EngineAction.LinkEngineSessionAction
+import mozilla.components.browser.state.action.EngineAction.UpdateEngineSessionStateAction
+import mozilla.components.browser.state.action.EngineAction.UnlinkEngineSessionAction
+import mozilla.components.browser.state.action.SystemAction
+import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.base.memory.MemoryConsumer
 import mozilla.components.support.base.observer.Observable
-import mozilla.components.support.base.observer.ObserverRegistry
+import java.lang.IllegalArgumentException
 
 /**
  * This class provides access to a centralized registry of all active sessions.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class SessionManager(
     val engine: Engine,
-    val defaultSession: (() -> Session)? = null,
-    delegate: Observable<SessionManager.Observer> = ObserverRegistry()
-) : Observable<SessionManager.Observer> by delegate {
-    private val values = mutableListOf<Session>()
-    private var selectedIndex: Int = NO_SELECTION
+    private val store: BrowserStore? = null,
+    private val linker: EngineSessionLinker = EngineSessionLinker(store),
+    private val delegate: LegacySessionManager = LegacySessionManager(engine, linker)
+) : Observable<SessionManager.Observer> by delegate, MemoryConsumer {
+    private val logger = Logger("SessionManager")
+
+    /**
+     * This class only exists for migrating from browser-session
+     * to browser-state. We need a way to dispatch the corresponding browser
+     * actions when an engine session is linked and unlinked.
+     */
+    class EngineSessionLinker(private val store: BrowserStore?) {
+        /**
+         * Links the provided [Session] and [EngineSession].
+         */
+        fun link(
+            session: Session,
+            engineSession: EngineSession,
+            parentEngineSession: EngineSession?,
+            sessionRestored: Boolean = false
+        ) {
+            unlink(session)
+
+            session.engineSessionHolder.apply {
+                this.engineSession = engineSession
+                this.engineObserver = EngineObserver(session, store).also { observer ->
+                    engineSession.register(observer)
+                    if (!sessionRestored) {
+                        engineSession.loadUrl(session.url, parentEngineSession)
+                    }
+                }
+            }
+
+            store?.syncDispatch(LinkEngineSessionAction(session.id, engineSession))
+        }
+
+        fun unlink(session: Session) {
+            val observer = session.engineSessionHolder.engineObserver
+            val engineSession = session.engineSessionHolder.engineSession
+
+            if (observer != null && engineSession != null) {
+                engineSession.unregister(observer)
+            }
+
+            session.engineSessionHolder.engineSession = null
+            session.engineSessionHolder.engineObserver = null
+            session.engineSessionHolder.engineSessionState = null
+
+            store?.syncDispatch(UnlinkEngineSessionAction(session.id))
+
+            // Now, that neither the session manager nor the store keep a reference to the engine
+            // session, we can close it.
+            engineSession?.close()
+        }
+    }
 
     /**
      * Returns the number of session including CustomTab sessions.
      */
     val size: Int
-        get() = synchronized(values) { values.size }
+        get() = delegate.size
+
+    /**
+     * Produces a snapshot of this manager's state, suitable for restoring via [SessionManager.restore].
+     * Only regular sessions are included in the snapshot. Private and Custom Tab sessions are omitted.
+     *
+     * @return [Snapshot] of the current session state.
+     */
+    fun createSnapshot(): Snapshot = delegate.createSnapshot()
+
+    /**
+     * Produces a [Snapshot.Item] of a single [Session], suitable for restoring via [SessionManager.restore].
+     */
+    fun createSessionSnapshot(session: Session): Snapshot.Item = delegate.createSessionSnapshot(session)
 
     /**
      * Gets the currently selected session if there is one.
      *
      * Only one session can be selected at a given time.
      */
-    val selectedSession: Session?
-        get() = synchronized(values) {
-            if (selectedIndex == NO_SELECTION) {
-                null
-            } else {
-                values[selectedIndex]
-            }
-        }
+    val selectedSession
+        get() = delegate.selectedSession
 
     /**
      * Gets the currently selected session or throws an IllegalStateException if no session is
@@ -55,199 +126,279 @@ class SessionManager(
      * Only one session can be selected at a given time.
      */
     val selectedSessionOrThrow: Session
-        get() = selectedSession ?: throw IllegalStateException("No selected session")
+        get() = delegate.selectedSessionOrThrow
 
     /**
      * Returns a list of active sessions and filters out sessions used for CustomTabs.
      */
     val sessions: List<Session>
-        get() = synchronized(values) { values.filter { !it.isCustomTabSession() } }
+        get() = delegate.sessions
 
     /**
      * Returns a list of all active sessions (including CustomTab sessions).
      */
     val all: List<Session>
-        get() = synchronized(values) { values.toList() }
+        get() = delegate.all
 
     /**
      * Adds the provided session.
      */
-    fun add(session: Session, selected: Boolean = false, engineSession: EngineSession? = null) = synchronized(values) {
-        values.add(session)
+    fun add(
+        session: Session,
+        selected: Boolean = false,
+        engineSession: EngineSession? = null,
+        parent: Session? = null
+    ) {
+        // Add store to Session so that it can dispatch actions whenever it changes.
+        session.store = store
+        if (parent != null) {
+            require(all.contains(parent)) { "The parent does not exist" }
+            session.parentId = parent.id
+        }
 
-        engineSession?.let { link(session, it) }
+        if (session.isCustomTabSession()) {
+            store?.syncDispatch(
+                CustomTabListAction.AddCustomTabAction(
+                    session.toCustomTabSessionState()
+                )
+            )
+        } else {
+            store?.syncDispatch(
+                TabListAction.AddTabAction(
+                    session.toTabSessionState(),
+                    select = selected
+                )
+            )
+        }
 
-        notifyObservers { onSessionAdded(session) }
+        delegate.add(session, selected, engineSession, parent)
+    }
 
-        if (selected || (selectedIndex == NO_SELECTION && !session.isCustomTabSession())) {
-            select(session)
+    /**
+     * Adds multiple sessions.
+     *
+     * Note that for performance reasons this method will invoke
+     * [SessionManager.Observer.onSessionsRestored] and not [SessionManager.Observer.onSessionAdded]
+     * for every added [Session].
+     */
+    fun add(sessions: List<Session>) {
+        // We disallow bulk adding custom tabs or sessions with a parent. At the moment this is not
+        // needed and it makes the browser-state migration logic easier.
+
+        sessions.find { it.isCustomTabSession() }?.let {
+            throw IllegalArgumentException("Bulk adding of custom tab sessions is not supported.")
+        }
+
+        sessions.find { it.parentId != null }?.let {
+            throw IllegalArgumentException("Bulk adding of sessions with a parent is not supported. ")
+        }
+
+        // Add store to each Session so that it can dispatch actions whenever it changes.
+        sessions.forEach { it.store = store }
+
+        delegate.add(sessions)
+
+        store?.syncDispatch(TabListAction.AddMultipleTabsAction(
+            tabs = sessions.map { it.toTabSessionState() }
+        ))
+    }
+
+    /**
+     * Restores sessions from the provided [Snapshot].
+     *
+     * Notification behaviour is as follows:
+     * - onSessionAdded notifications will not fire,
+     * - onSessionSelected notification will fire exactly once if the snapshot isn't empty (See [updateSelection]
+     *   parameter),
+     * - once snapshot has been restored, and appropriate session has been selected, onSessionsRestored
+     *   notification will fire.
+     *
+     * @param snapshot A [Snapshot] which may be produced by [createSnapshot].
+     * @param updateSelection Whether the selected session should be updated from the restored snapshot.
+     */
+    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
+        // Add store to each Session so that it can dispatch actions whenever it changes.
+        snapshot.sessions.forEach { it.session.store = store }
+
+        delegate.restore(snapshot, updateSelection)
+
+        val items = snapshot.sessions
+            .filter {
+                // A restored snapshot should not contain any custom tab so we should be able to safely ignore
+                // them here.
+                !it.session.isCustomTabSession()
+            }
+
+        val tabs = items.map { item ->
+            item.session.toTabSessionState()
+        }
+
+        val selectedTabId = if (updateSelection && snapshot.selectedSessionIndex != NO_SELECTION) {
+            val index = snapshot.selectedSessionIndex
+            if (index in 0..snapshot.sessions.lastIndex) {
+                snapshot.sessions[index].session.id
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+
+        store?.syncDispatch(TabListAction.RestoreAction(tabs, selectedTabId))
+
+        items.forEach { item ->
+            item.engineSession?.let { store?.syncDispatch(LinkEngineSessionAction(item.session.id, it)) }
+            item.engineSessionState?.let { store?.syncDispatch(UpdateEngineSessionStateAction(item.session.id, it)) }
         }
     }
 
     /**
      * Gets the linked engine session for the provided session (if it exists).
      */
-    fun getEngineSession(session: Session = selectedSessionOrThrow) = session.engineSessionHolder.engineSession
+    fun getEngineSession(session: Session = selectedSessionOrThrow) = delegate.getEngineSession(session)
 
     /**
      * Gets the linked engine session for the provided session and creates it if needed.
      */
     fun getOrCreateEngineSession(session: Session = selectedSessionOrThrow): EngineSession {
-        getEngineSession(session)?.let { return it }
-
-        return engine.createSession(session.private).apply {
-            link(session, this)
-        }
-    }
-
-    private fun link(session: Session, engineSession: EngineSession) {
-        unlink(session)
-
-        session.engineSessionHolder.apply {
-            this.engineSession = engineSession
-            this.engineObserver = EngineObserver(session).also { observer ->
-                engineSession.register(observer)
-                engineSession.loadUrl(session.url)
-            }
-        }
-    }
-
-    private fun unlink(session: Session) {
-        session.engineSessionHolder.engineObserver?.let { observer ->
-            session.engineSessionHolder.apply {
-                engineSession?.unregister(observer)
-                engineSession?.close()
-                engineSession = null
-                engineObserver = null
-            }
-        }
+        return delegate.getOrCreateEngineSession(session)
     }
 
     /**
      * Removes the provided session. If no session is provided then the selected session is removed.
      */
-    fun remove(session: Session = selectedSessionOrThrow) = synchronized(values) {
-        val indexToRemove = values.indexOf(session)
-        if (indexToRemove == -1) {
-            return
-        }
+    fun remove(
+        session: Session = selectedSessionOrThrow,
+        selectParentIfExists: Boolean = false
+    ) {
+        delegate.remove(session, selectParentIfExists)
 
-        values.removeAt(indexToRemove)
-
-        unlink(session)
-
-        // Recalculate selection
-        val newSelectedIndex = when {
-            // All items have been removed
-            values.size == 0 -> NO_SELECTION
-
-            // Something on the left of our selection has been removed, we need to move the index to the left
-            indexToRemove < selectedIndex -> selectedIndex - 1
-
-            // The selection is out of bounds. Let's selected the previous item.
-            selectedIndex == values.size -> selectedIndex - 1
-
-            // We can keep the selected index.
-            else -> selectedIndex
-        }
-
-        val selectionUpdated = newSelectedIndex != selectedIndex
-
-        if (selectionUpdated) {
-            selectedIndex = newSelectedIndex
-        }
-
-        notifyObservers { onSessionRemoved(session) }
-
-        // NB: we're not explicitly calling notifyObservers here, since adding a session when none
-        // are present will notify observers with onSessionSelected.
-        if (selectedIndex == NO_SELECTION && defaultSession != null) {
-            add(defaultSession.invoke())
-            return
-        }
-
-        if (selectionUpdated && selectedIndex != NO_SELECTION) {
-            notifyObservers { onSessionSelected(selectedSessionOrThrow) }
+        if (session.isCustomTabSession()) {
+            store?.syncDispatch(
+                CustomTabListAction.RemoveCustomTabAction(session.id)
+            )
+        } else {
+            store?.syncDispatch(
+                TabListAction.RemoveTabAction(session.id)
+            )
         }
     }
 
     /**
      * Removes all sessions but CustomTab sessions.
      */
-    fun removeSessions() = synchronized(values) {
-        sessions.forEach {
-            unlink(it)
-            values.remove(it)
-        }
-
-        selectedIndex = NO_SELECTION
-
-        // NB: This callback indicates to observers that either removeSessions or removeAll were
-        // invoked, not that the manager is now empty.
-        notifyObservers { onAllSessionsRemoved() }
-
-        if (defaultSession != null) {
-            add(defaultSession.invoke())
-        }
+    fun removeSessions() {
+        delegate.removeSessions()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
     }
 
     /**
      * Removes all sessions including CustomTab sessions.
      */
-    fun removeAll() = synchronized(values) {
-        val onlyCustomTabSessionsPresent = values.isNotEmpty() && sessions.isEmpty()
-
-        values.forEach { unlink(it) }
-        values.clear()
-
-        selectedIndex = NO_SELECTION
-
-        // NB: This callback indicates to observers that either removeSessions or removeAll were
-        // invoked, not that the manager is now empty.
-        notifyObservers { onAllSessionsRemoved() }
-
-        // Don't create a default session if we only had CustomTab sessions to begin with.
-        if (!onlyCustomTabSessionsPresent && defaultSession != null) {
-            add(defaultSession.invoke())
-        }
+    fun removeAll() {
+        delegate.removeAll()
+        store?.syncDispatch(
+            TabListAction.RemoveAllTabsAction
+        )
+        store?.syncDispatch(
+            CustomTabListAction.RemoveAllCustomTabsAction
+        )
     }
 
     /**
      * Marks the given session as selected.
      */
-    fun select(session: Session) = synchronized(values) {
-        val index = values.indexOf(session)
+    fun select(session: Session) {
+        delegate.select(session)
 
-        if (index == -1) {
-            throw IllegalArgumentException("Value to select is not in list")
-        }
-
-        selectedIndex = index
-
-        notifyObservers { onSessionSelected(session) }
+        store?.syncDispatch(
+            TabListAction.SelectTabAction(session.id)
+        )
     }
 
     /**
      * Finds and returns the session with the given id. Returns null if no matching session could be
      * found.
      */
-    fun findSessionById(id: String): Session? = values.find { session -> session.id == id }
+    fun findSessionById(id: String) = delegate.findSessionById(id)
 
     /**
      * Informs this [SessionManager] that the OS is in low memory condition so it
      * can reduce its allocated objects.
      */
+    @Deprecated("Use onTrimMemory instead.", replaceWith = ReplaceWith("onTrimMemory"))
     fun onLowMemory() {
-        // Removing the all the thumbnails except for the selected session to
-        // reduce memory consumption.
-        sessions.forEach {
-            if (it != selectedSession)
-                it.thumbnail = null
+        onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_MODERATE)
+    }
+
+    @Synchronized
+    @Suppress("NestedBlockDepth")
+    override fun onTrimMemory(level: Int) {
+        val clearThumbnails = level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
+        val closeEngineSessions = level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
+
+        logger.debug("onTrimMemory($level): clearThumbnails=$clearThumbnails, closeEngineSessions=$closeEngineSessions")
+
+        if (!clearThumbnails && !closeEngineSessions) {
+            // Nothing to do for now.
+            return
         }
+
+        val selectedSession = selectedSession
+        val states = mutableMapOf<String, EngineSessionState>()
+        val sessions = sessions
+
+        var clearedThumbnails = 0
+        var unlinkedEngineSessions = 0
+
+        sessions.forEach {
+            if (it != selectedSession) {
+                if (clearThumbnails) {
+                    it.thumbnail = null
+                    clearedThumbnails++
+                }
+
+                if (closeEngineSessions) {
+                    val state = it.engineSessionHolder.engineSession?.saveState()
+                    linker.unlink(it)
+
+                    if (state != null) {
+                        it.engineSessionHolder.engineSessionState = state
+                        states[it.id] = state
+                    }
+
+                    unlinkedEngineSessions++
+                }
+            }
+        }
+
+        logger.debug("Cleared $clearedThumbnails thumbnail(s) and unlinked $unlinkedEngineSessions engine sessions(s)")
+
+        store?.syncDispatch(SystemAction.LowMemoryAction(states))
     }
 
     companion object {
         const val NO_SELECTION = -1
+    }
+
+    data class Snapshot(
+        val sessions: List<Item>,
+        val selectedSessionIndex: Int
+    ) {
+        fun isEmpty() = sessions.isEmpty()
+
+        data class Item(
+            val session: Session,
+            val engineSession: EngineSession? = null,
+            val engineSessionState: EngineSessionState? = null
+        )
+
+        companion object {
+            fun empty() = Snapshot(emptyList(), NO_SELECTION)
+            fun singleItem(item: Item) = Snapshot(listOf(item), NO_SELECTION)
+        }
     }
 
     /**
@@ -265,6 +416,13 @@ class SessionManager(
         fun onSessionAdded(session: Session) = Unit
 
         /**
+         * Sessions have been restored via a snapshot. This callback is invoked at the end of the
+         * call to <code>read</code>, after every session in the snapshot was added, and
+         * appropriate session was selected.
+         */
+        fun onSessionsRestored() = Unit
+
+        /**
          * The given session has been removed.
          */
         fun onSessionRemoved(session: Session) = Unit
@@ -277,4 +435,43 @@ class SessionManager(
          */
         fun onAllSessionsRemoved() = Unit
     }
+}
+
+/**
+ * Tries to find a session with the provided session ID and runs the block if found.
+ *
+ * @return True if the session was found and run successfully.
+ */
+fun SessionManager.runWithSession(
+    sessionId: String?,
+    block: SessionManager.(Session) -> Boolean
+): Boolean {
+    sessionId?.let {
+        findSessionById(sessionId)?.let { session ->
+            return block(session)
+        }
+    }
+    return false
+}
+
+/**
+ * Tries to find a session with the provided session ID or uses the selected session and runs the block if found.
+ *
+ * @return True if the session was found and run successfully.
+ */
+fun SessionManager.runWithSessionIdOrSelected(
+    sessionId: String?,
+    block: SessionManager.(Session) -> Unit
+): Boolean {
+    sessionId?.let {
+        findSessionById(sessionId)?.let { session ->
+            block(session)
+            return true
+        }
+    }
+    selectedSession?.let {
+        block(it)
+        return true
+    }
+    return false
 }

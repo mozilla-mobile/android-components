@@ -4,26 +4,32 @@
 
 package mozilla.components.feature.tabs.toolbar
 
-import android.content.Context
+import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.runWithSession
 import mozilla.components.concept.toolbar.Toolbar
-import mozilla.components.feature.tabs.R
 
 /**
  * Feature implementation for connecting a tabs tray implementation with a toolbar implementation.
  */
 
 class TabsToolbarFeature(
-    context: Context,
     toolbar: Toolbar,
+    sessionManager: SessionManager,
+    sessionId: String? = null,
     showTabs: () -> Unit
 ) {
     init {
-        val tabsAction = Toolbar.ActionButton(
-            mozilla.components.ui.icons.R.drawable.mozac_ic_tab,
-            context.getString(R.string.mozac_feature_tabs_toolbar_tabs_button)) {
-            showTabs.invoke()
+        run {
+            sessionManager.runWithSession(sessionId) {
+                it.isCustomTabSession()
+            }.also { isCustomTab ->
+                if (isCustomTab) return@run
+            }
+            val tabsAction = TabCounterToolbarButton(
+                sessionManager,
+                showTabs
+            )
+            toolbar.addBrowserAction(tabsAction)
         }
-
-        toolbar.addBrowserAction(tabsAction)
     }
 }

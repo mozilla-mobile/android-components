@@ -6,22 +6,32 @@ permalink: /contributing/
 
 We encourage you to participate in this open source project. We love pull requests, bug reports, ideas, (security) code reviews or any kind of positive contribution.
 
-Before you attempt to make a contribution please read the [Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/).
+Thank you for taking the time to contribute to one of Mozilla's Android projects!
+
+Before contributing, please review our [Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/).
 
 ## Docs
 
+* [Contributing to Mozilla Mobile's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/master/android/CONTRIBUTING.md)
+* [Contributing code to Mozilla's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/master/android/CONTRIBUTING_code.md)
+
 ### Project
 
-* [Hosting Android code in the Android Components repository]({{ site.baseurl }}//contributing/hosting-android-code-in-repository)
+* [Hosting Android code in the Android Components repository]({{ site.baseurl }}{% link contribute/hosting_code_in_repository.md %})
 
 ### Development
 
+* [Architecture and Overview]({{ site.baseurl }}/contributing/architecture)
 * [Code coverage]({{ site.baseurl }}/contributing/code-coverage)
 * [Working on unreleased component code in an app]({{ site.baseurl }}{% link contribute/components_inside_app.md %})
 
 ### Process
 
 * [Release checklist]({{ site.baseurl }}/contributing/release-checklist)
+* [Versioning and release process]({{ site.baseurl }}/contributing/versioning)
+* [Deprecating components and code]({{ site.baseurl }}/contributing/deprecating)
+* [Merge day process]({{ site.baseurl }}/contributing/merge-day)
+* [Updating the tracking protection lists process]({{ site.baseurl }}/contributing/update-tracking-protection-list)
 
 ### Presentations
 

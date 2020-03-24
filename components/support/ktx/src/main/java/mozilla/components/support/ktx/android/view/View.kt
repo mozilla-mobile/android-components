@@ -5,12 +5,21 @@
 package mozilla.components.support.ktx.android.view
 
 import android.content.Context
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
-import android.support.v4.view.ViewCompat
 import android.view.View
+import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.inputmethod.InputMethodManager
-import mozilla.components.support.ktx.android.content.systemService
+import androidx.annotation.MainThread
+import androidx.core.content.getSystemService
+import androidx.core.view.ViewCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import mozilla.components.support.base.android.Padding
+import mozilla.components.support.ktx.android.util.dpToPx
 import java.lang.ref.WeakReference
 
 /**
@@ -24,27 +33,6 @@ val View.isRTL: Boolean
  */
 val View.isLTR: Boolean
     get() = layoutDirection == ViewCompat.LAYOUT_DIRECTION_LTR
-
-/**
- * Returns true if this view's visibility is set to View.VISIBLE.
- */
-fun View.isVisible(): Boolean {
-    return visibility == View.VISIBLE
-}
-
-/**
- * Returns true if this view's visibility is set to View.GONE.
- */
-fun View.isGone(): Boolean {
-    return visibility == View.GONE
-}
-
-/**
- * Returns true if this view's visibility is set to View.INVISIBLE.
- */
-fun View.isInvisible(): Boolean {
-    return visibility == View.INVISIBLE
-}
 
 /**
  * Tries to focus this view and show the soft input window for it.
@@ -61,9 +49,90 @@ fun View.showKeyboard(flags: Int = InputMethodManager.SHOW_IMPLICIT) {
  */
 fun View.hideKeyboard() {
     val imm = (context.getSystemService(Context.INPUT_METHOD_SERVICE) ?: return)
-            as InputMethodManager
+        as InputMethodManager
 
     imm.hideSoftInputFromWindow(windowToken, 0)
+}
+
+/**
+ * Fills the given [Rect] with data about location view in the window.
+ *
+ * @see View.getLocationInWindow
+ */
+fun View.getRectWithViewLocation(): Rect {
+    val locationInWindow = IntArray(2).apply { getLocationInWindow(this) }
+    return Rect(locationInWindow[0],
+            locationInWindow[1],
+            locationInWindow[0] + width,
+            locationInWindow[1] + height)
+}
+
+/**
+ * Set a padding using [Padding] object.
+ */
+fun View.setPadding(padding: Padding) {
+    with(resources) {
+        setPadding(
+            padding.left.dpToPx(displayMetrics),
+            padding.top.dpToPx(displayMetrics),
+            padding.right.dpToPx(displayMetrics),
+            padding.bottom.dpToPx(displayMetrics)
+        )
+    }
+}
+
+/**
+ * Creates a [CoroutineScope] that is active as long as this [View] is attached. Once this [View]
+ * gets detached this [CoroutineScope] gets cancelled automatically.
+ *
+ * By default coroutines dispatched on the created [CoroutineScope] run on the main dispatcher.
+ *
+ * Note: This scope gets only cancelled if the [View] gets detached. In cases where the [View] never
+ * gets attached this may create a scope that never gets cancelled!
+ */
+@MainThread
+fun View.toScope(): CoroutineScope {
+    val scope = CoroutineScope(Dispatchers.Main)
+
+    addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(view: View) = Unit
+
+        override fun onViewDetachedFromWindow(view: View) {
+            scope.cancel()
+            view.removeOnAttachStateChangeListener(this)
+        }
+    })
+
+    return scope
+}
+
+/**
+ * Finds the first a view in the hierarchy, for which the provided predicate is true.
+ */
+fun View.findViewInHierarchy(predicate: (View) -> Boolean): View? {
+    if (predicate(this)) return this
+
+    if (this is ViewGroup) {
+        for (i in 0 until this.childCount) {
+            val childView = this.getChildAt(i).findViewInHierarchy(predicate)
+            if (childView != null) return childView
+        }
+    }
+
+    return null
+}
+
+/**
+ * Registers a one-time callback to be invoked when the global layout state
+ * or the visibility of views within the view tree changes.
+ */
+inline fun View.onNextGlobalLayout(crossinline callback: () -> Unit) {
+    var listener: ViewTreeObserver.OnGlobalLayoutListener? = null
+    listener = ViewTreeObserver.OnGlobalLayoutListener {
+        viewTreeObserver.removeOnGlobalLayoutListener(listener)
+        callback()
+    }
+    viewTreeObserver.addOnGlobalLayoutListener(listener)
 }
 
 private class ShowKeyboard(
@@ -87,7 +156,7 @@ private class ShowKeyboard(
                 return
             }
 
-            view.context?.systemService<InputMethodManager>(Context.INPUT_METHOD_SERVICE)?.let { imm ->
+            view.context?.getSystemService<InputMethodManager>()?.let { imm ->
                 if (!imm.isActive(view)) {
                     // This view is not the currently active view for the input method yet.
                     post()

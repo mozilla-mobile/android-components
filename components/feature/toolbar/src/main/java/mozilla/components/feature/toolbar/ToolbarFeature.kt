@@ -4,9 +4,13 @@
 
 package mozilla.components.feature.toolbar
 
+import androidx.annotation.ColorInt
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.toolbar.Toolbar
-import mozilla.components.browser.session.SessionManager
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.lib.publicsuffixlist.PublicSuffixList
+import mozilla.components.support.base.feature.UserInteractionHandler
+import mozilla.components.support.base.feature.LifecycleAwareFeature
 
 /**
  * A function representing the search use case, accepting
@@ -18,19 +22,20 @@ typealias SearchUseCase = (String) -> Unit
  * Feature implementation for connecting a toolbar implementation with the session module.
  */
 class ToolbarFeature(
-    val toolbar: Toolbar,
-    sessionManager: SessionManager,
+    private val toolbar: Toolbar,
+    store: BrowserStore,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     searchUseCase: SearchUseCase? = null,
-    sessionId: String? = null
-) {
-    private val presenter = ToolbarPresenter(toolbar, sessionManager, sessionId)
+    customTabId: String? = null,
+    urlRenderConfiguration: UrlRenderConfiguration? = null
+) : LifecycleAwareFeature, UserInteractionHandler {
+    private val presenter = ToolbarPresenter(toolbar, store, customTabId, urlRenderConfiguration)
     private val interactor = ToolbarInteractor(toolbar, loadUrlUseCase, searchUseCase)
 
     /**
      * Start feature: App is in the foreground.
      */
-    fun start() {
+    override fun start() {
         interactor.start()
         presenter.start()
     }
@@ -40,15 +45,42 @@ class ToolbarFeature(
      *
      * @return true if the event was handled, otherwise false.
      */
-    fun handleBackPressed(): Boolean {
-        return toolbar.onBackPressed()
-    }
+    override fun onBackPressed(): Boolean = toolbar.onBackPressed()
 
     /**
      * Stop feature: App is in the background.
      */
-    fun stop() {
-        interactor.stop()
+    override fun stop() {
         presenter.stop()
+        toolbar.onStop()
+    }
+
+    /**
+     * Configuration that controls how URLs are rendered.
+     *
+     * @property publicSuffixList A shared/global [PublicSuffixList] object required to extract certain domain parts.
+     * @property registrableDomainColor Text color that should be used for the registrable domain of the URL (see
+     * [PublicSuffixList.getPublicSuffixPlusOne] for an explanation of "registrable domain".
+     * @property urlColor Optional text color used for the URL.
+     * @property renderStyle Sealed class that controls the style of the url to be displayed
+     */
+    data class UrlRenderConfiguration(
+        internal val publicSuffixList: PublicSuffixList,
+        @ColorInt internal val registrableDomainColor: Int,
+        @ColorInt internal val urlColor: Int? = null,
+        internal val renderStyle: RenderStyle = RenderStyle.ColoredUrl
+    )
+
+    /**
+     * Controls how the url should be styled
+     *
+     * RegistrableDomain: displays only the url, uncolored
+     * ColoredUrl: displays the registrableDomain with color and url with another color
+     * UncoloredUrl: displays the full url, uncolored
+     */
+    sealed class RenderStyle {
+        object RegistrableDomain : RenderStyle()
+        object ColoredUrl : RenderStyle()
+        object UncoloredUrl : RenderStyle()
     }
 }

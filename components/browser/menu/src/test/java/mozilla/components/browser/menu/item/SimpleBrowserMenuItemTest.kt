@@ -5,19 +5,27 @@
 package mozilla.components.browser.menu.item
 
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.TextView
+import androidx.core.content.ContextCompat.getColor
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenu
+import mozilla.components.browser.menu.R
+import mozilla.components.browser.menu2.candidate.DecorativeTextMenuCandidate
+import mozilla.components.browser.menu2.candidate.TextMenuCandidate
+import mozilla.components.browser.menu2.candidate.TextStyle
+import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SimpleBrowserMenuItemTest {
+
     @Test
     fun `simple menu items are always visible by default`() {
         val item = SimpleBrowserMenuItem("Hello") {
@@ -33,9 +41,8 @@ class SimpleBrowserMenuItemTest {
             // do nothing
         }
 
-        val view = LayoutInflater.from(
-            RuntimeEnvironment.application
-        ).inflate(item.getLayoutResource(), null)
+        val view = LayoutInflater.from(testContext)
+            .inflate(item.getLayoutResource(), null)
 
         assertNotNull(view)
     }
@@ -49,7 +56,7 @@ class SimpleBrowserMenuItemTest {
         }
 
         val menu = mock(BrowserMenu::class.java)
-        val view = TextView(RuntimeEnvironment.application)
+        val view = TextView(testContext)
 
         item.bind(menu, view)
 
@@ -57,5 +64,59 @@ class SimpleBrowserMenuItemTest {
 
         assertTrue(callbackInvoked)
         verify(menu).dismiss()
+    }
+
+    @Test
+    fun `simple browser menu item should have the right text, textSize, and textColorResource`() {
+        val item = SimpleBrowserMenuItem(
+                "Powered by Mozilla",
+                10f,
+                android.R.color.holo_green_dark
+        )
+
+        val view = inflate(item)
+
+        val textView = view.findViewById<TextView>(R.id.simple_text)
+        assertEquals(textView.text, "Powered by Mozilla")
+        assertEquals(textView.textSize, 10f)
+        assertEquals(textView.currentTextColor, testContext.getColor(android.R.color.holo_green_dark))
+    }
+
+    @Test
+    fun `simple menu item can be converted to candidate`() {
+        val listener = {}
+
+        assertEquals(
+            TextMenuCandidate(
+                "Hello",
+                onClick = listener
+            ),
+            SimpleBrowserMenuItem(
+                "Hello",
+                listener = listener
+            ).asCandidate(testContext)
+        )
+
+        assertEquals(
+            DecorativeTextMenuCandidate(
+                "Powered by Mozilla",
+                textStyle = TextStyle(
+                    size = 10f,
+                    color = getColor(testContext, android.R.color.holo_green_dark)
+                )
+            ),
+            SimpleBrowserMenuItem(
+                "Powered by Mozilla",
+                10f,
+                android.R.color.holo_green_dark
+            ).asCandidate(testContext)
+        )
+    }
+
+    private fun inflate(item: SimpleBrowserMenuItem): View {
+        val view = LayoutInflater.from(testContext).inflate(item.getLayoutResource(), null)
+        val mockMenu = mock(BrowserMenu::class.java)
+        item.bind(mockMenu, view)
+        return view
     }
 }

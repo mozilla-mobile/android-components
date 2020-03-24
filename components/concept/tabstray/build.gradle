@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -22,16 +22,10 @@ android {
 }
 
 dependencies {
-    implementation project(':browser-session')
     implementation project(':support-base')
 
-    implementation Deps.kotlin_stdlib
+    implementation Dependencies.kotlin_stdlib
 }
 
-archivesBaseName = "concept-tabstray"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'concept-tabstray',
-        'An abstract definition of a tabs tray component.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

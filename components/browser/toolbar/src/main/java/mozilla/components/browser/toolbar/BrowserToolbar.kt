@@ -5,20 +5,32 @@
 package mozilla.components.browser.toolbar
 
 import android.content.Context
-import android.support.annotation.DrawableRes
-import android.support.annotation.VisibleForTesting
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.view.LayoutInflater
 import android.view.View
-import android.view.View.OnFocusChangeListener
 import android.view.ViewGroup
-import mozilla.components.browser.menu.BrowserMenuBuilder
+import android.widget.ImageButton
+import androidx.annotation.DrawableRes
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting.PRIVATE
+import androidx.core.view.forEach
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.browser.toolbar.edit.EditToolbar
+import mozilla.components.concept.toolbar.AutocompleteDelegate
+import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
-import mozilla.components.support.ktx.android.content.res.pxToDp
-import mozilla.components.support.ktx.android.view.forEach
-import mozilla.components.support.ktx.android.view.isVisible
+import mozilla.components.support.base.android.Padding
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.ui.autocomplete.AutocompleteView
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
+import mozilla.components.ui.autocomplete.OnFilterListener
+import kotlin.coroutines.CoroutineContext
 
 /**
  * A customizable toolbar for browsers.
@@ -27,6 +39,7 @@ import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
  * URL and controls for navigation. In edit mode the current URL can be edited. Those two modes are
  * implemented by the DisplayToolbar and EditToolbar classes.
  *
+ * ```
  *           +----------------+
  *           | BrowserToolbar |
  *           +--------+-------+
@@ -36,7 +49,7 @@ import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
  *  +---------v------+ +-------v--------+
  *  | DisplayToolbar | |   EditToolbar  |
  *  +----------------+ +----------------+
- *
+ * ```
  */
 @Suppress("TooManyFunctions")
 class BrowserToolbar @JvmOverloads constructor(
@@ -44,104 +57,91 @@ class BrowserToolbar @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : ViewGroup(context, attrs, defStyleAttr), Toolbar {
-
-    // displayToolbar and editToolbar are only visible internally and mutable so that we can mock
-    // them in tests.
-    @VisibleForTesting internal var displayToolbar = DisplayToolbar(context, this)
-    @VisibleForTesting internal var editToolbar = EditToolbar(context, this)
-
-    /**
-     * Set/Get whether a site security icon (usually a lock or globe icon) should be next to the URL.
-     */
-    var displaySiteSecurityIcon: Boolean
-        get() = displayToolbar.iconView.isVisible()
-        set(value) {
-            displayToolbar.iconView.visibility = if (value) View.VISIBLE else View.GONE
-        }
-
-    /**
-     * Gets/Sets a custom view that will be drawn as behind the URL and page actions in display mode.
-     */
-    var urlBoxView: View?
-        get() = displayToolbar.urlBoxView
-        set(value) { displayToolbar.urlBoxView = value }
-
-    /**
-     * Gets/Sets the margin to be used between browser actions.
-     */
-    var browserActionMargin: Int
-        get() = displayToolbar.browserActionMargin
-        set(value) { displayToolbar.browserActionMargin = value }
-
-    /**
-     * Gets/Sets horizontal margin of the URL box (surrounding URL and page actions) in display mode.
-     */
-    var urlBoxMargin: Int
-        get() = displayToolbar.urlBoxMargin
-        set(value) { displayToolbar.urlBoxMargin = value }
-
-    /**
-     * Sets a lambda that will be invoked whenever the URL in display mode was clicked. Only if this
-     * lambda returns <code>true</code> the toolbar will switch to editing mode. Return
-     * <code>false</code> to not switch to editing mode and handle the click manually.
-     */
-    var onUrlClicked: () -> Boolean
-        get() = displayToolbar.onUrlClicked
-        set(value) { displayToolbar.onUrlClicked = value }
-
-    /**
-     * Sets the text to be displayed when the URL of the toolbar is empty.
-     */
-    var hint: String
-        get() = displayToolbar.urlView.hint.toString()
-        set(value) {
-            displayToolbar.urlView.hint = value
-            editToolbar.urlView.hint = value
-        }
-
-    /**
-     * Sets a listener to be invoked when focus of the URL input view (in edit mode) changed.
-     */
-    fun setOnEditFocusChangeListener(listener: (Boolean) -> Unit) {
-        editToolbar.urlView.onFocusChangeListener = OnFocusChangeListener { _, hasFocus ->
-            listener.invoke(hasFocus)
-        }
-    }
-
-    /**
-     * Sets autocomplete filter to be used in edit mode.
-     */
-    fun setAutocompleteFilter(filter: (String, InlineAutocompleteEditText?) -> Unit) {
-        editToolbar.urlView.setOnFilterListener(filter)
-    }
-
-    /**
-     * Sets the padding to be applied to the URL text (in display mode).
-     */
-    fun setUrlTextPadding(
-        left: Int = displayToolbar.urlView.paddingLeft,
-        top: Int = displayToolbar.urlView.paddingTop,
-        right: Int = displayToolbar.urlView.paddingRight,
-        bottom: Int = displayToolbar.urlView.paddingBottom
-    ) = displayToolbar.urlView.setPadding(left, top, right, bottom)
-
     private var state: State = State.DISPLAY
     private var searchTerms: String = ""
-    private var urlCommitListener: ((String) -> Unit)? = null
+    private var urlCommitListener: ((String) -> Boolean)? = null
 
-    override var url: String = ""
+    /**
+     * Toolbar in "display mode".
+     */
+    var display = DisplayToolbar(
+        context,
+        this,
+        LayoutInflater.from(context).inflate(
+            R.layout.mozac_browser_toolbar_displaytoolbar,
+            this,
+            false
+        )
+    )
+    @VisibleForTesting(otherwise = PRIVATE) internal set
+
+    /**
+     * Toolbar in "edit mode".
+     */
+    var edit = EditToolbar(
+        context,
+        this,
+        LayoutInflater.from(context).inflate(
+            R.layout.mozac_browser_toolbar_edittoolbar,
+            this,
+            false
+        )
+    )
+    @VisibleForTesting(otherwise = PRIVATE) internal set
+
+    override var title: String
+        get() = display.title
+        set(value) { display.title = value }
+
+    override var url: CharSequence
+        get() = display.url.toString()
         set(value) {
             // We update the display toolbar immediately. We do not do that for the edit toolbar to not
             // mess with what the user is entering. Instead we will remember the value and update the
             // edit toolbar whenever we switch to it.
-            displayToolbar.updateUrl(value)
-
-            field = value
+            display.url = value
         }
 
+    override var siteSecure: Toolbar.SiteSecurity
+        get() = display.siteSecurity
+        set(value) { display.siteSecurity = value }
+
+    override var siteTrackingProtection: Toolbar.SiteTrackingProtection =
+        Toolbar.SiteTrackingProtection.OFF_GLOBALLY
+        set(value) {
+            if (field != value) {
+                display.setTrackingProtectionState(value)
+                field = value
+            }
+        }
+
+    override var private: Boolean
+        get() = edit.private
+        set(value) { edit.private = value }
+
+    /**
+     * Registers the given listener to be invoked when the user edits the URL.
+     */
+    override fun setOnEditListener(listener: Toolbar.OnEditListener) {
+        edit.editListener = listener
+    }
+
+    /**
+     * Registers the given function to be invoked when users changes text in the toolbar.
+     *
+     * @param filter A function which will perform autocompletion and send results to [AutocompleteDelegate].
+     */
+    override fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit) {
+        // Our 'filter' knows how to autocomplete, and the 'urlView' knows how to apply results of
+        // autocompletion. Which gives us a lovely delegate chain!
+        // urlView decides when it's appropriate to ask for autocompletion, and in turn we invoke
+        // our 'filter' and send results back to 'urlView'.
+        edit.setAutocompleteListener(filter)
+    }
+
     init {
-        addView(displayToolbar)
-        addView(editToolbar)
+        addView(display.rootView)
+        addView(edit.rootView)
 
         updateState(State.DISPLAY)
     }
@@ -150,10 +150,10 @@ class BrowserToolbar @JvmOverloads constructor(
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         forEach { child ->
             child.layout(
-                    0 + paddingLeft,
-                    0 + paddingTop,
-                    paddingLeft + child.measuredWidth,
-                    paddingTop + child.measuredHeight)
+                0 + paddingLeft,
+                0 + paddingTop,
+                paddingLeft + child.measuredWidth,
+                paddingTop + child.measuredHeight)
         }
     }
 
@@ -165,7 +165,7 @@ class BrowserToolbar @JvmOverloads constructor(
         val height = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) {
             MeasureSpec.getSize(heightMeasureSpec)
         } else {
-            resources.pxToDp(DEFAULT_TOOLBAR_HEIGHT_DP)
+            resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_default_toolbar_height)
         }
 
         setMeasuredDimension(width, height)
@@ -188,15 +188,19 @@ class BrowserToolbar @JvmOverloads constructor(
         return false
     }
 
+    override fun onStop() {
+        display.onStop()
+    }
+
     override fun setSearchTerms(searchTerms: String) {
         this.searchTerms = searchTerms
     }
 
     override fun displayProgress(progress: Int) {
-        displayToolbar.updateProgress(progress)
+        display.updateProgress(progress)
     }
 
-    override fun setOnUrlCommitListener(listener: (String) -> Unit) {
+    override fun setOnUrlCommitListener(listener: (String) -> Boolean) {
         this.urlCommitListener = listener
     }
 
@@ -208,8 +212,9 @@ class BrowserToolbar @JvmOverloads constructor(
      * view for this action should be added or removed. Additionally <code>bind</code> will be
      * called on every visible action to update its view.
      */
-    fun invalidateActions() {
-        displayToolbar.invalidateActions()
+    override fun invalidateActions() {
+        display.invalidateActions()
+        edit.invalidateActions()
     }
 
     /**
@@ -223,7 +228,27 @@ class BrowserToolbar @JvmOverloads constructor(
      * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action
      */
     override fun addBrowserAction(action: Toolbar.Action) {
-        displayToolbar.addBrowserAction(action)
+        display.addBrowserAction(action)
+    }
+
+    /**
+     * Removes a previously added browser action (see [addBrowserAction]). If the provided
+     * action was never added, this method has no effect.
+     *
+     * @param action the action to remove.
+     */
+    override fun removeBrowserAction(action: Toolbar.Action) {
+        display.removeBrowserAction(action)
+    }
+
+    /**
+     * Removes a previously added page action (see [addPageAction]). If the provided
+     * action was never added, this method has no effect.
+     *
+     * @param action the action to remove.
+     */
+    override fun removePageAction(action: Toolbar.Action) {
+        display.removePageAction(action)
     }
 
     /**
@@ -233,7 +258,7 @@ class BrowserToolbar @JvmOverloads constructor(
      * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Page_actions
      */
     override fun addPageAction(action: Toolbar.Action) {
-        displayToolbar.addPageAction(action)
+        display.addPageAction(action)
     }
 
     /**
@@ -241,48 +266,57 @@ class BrowserToolbar @JvmOverloads constructor(
      * on larger devices for navigation actions like "back" and "forward".
      */
     override fun addNavigationAction(action: Toolbar.Action) {
-        displayToolbar.addNavigationAction(action)
+        display.addNavigationAction(action)
+    }
+
+    /**
+     * Adds an action to be displayed on the right of the URL in edit mode.
+     */
+    override fun addEditAction(action: Toolbar.Action) {
+        edit.addEditAction(action)
     }
 
     /**
      * Switches to URL editing mode.
      */
-    fun editMode() {
+    override fun editMode() {
         val urlValue = if (searchTerms.isEmpty()) url else searchTerms
-        editToolbar.updateUrl(urlValue)
+        // Don't autocomplete search terms as they could be substrings of a suggested url
+        val shouldAutoComplete = searchTerms.isEmpty()
 
+        edit.updateUrl(urlValue.toString(), shouldAutoComplete)
         updateState(State.EDIT)
-
-        editToolbar.focus()
+        edit.focus()
+        edit.selectAll()
     }
 
     /**
      * Switches to URL displaying mode.
      */
-    fun displayMode() {
+    override fun displayMode() {
         updateState(State.DISPLAY)
     }
 
-    /**
-     * Sets a BrowserMenuBuilder that will be used to create a menu when the menu button is clicked.
-     * The menu button will only be visible if a builder has been set.
-     */
-    fun setMenuBuilder(menuBuilder: BrowserMenuBuilder) {
-        displayToolbar.menuBuilder = menuBuilder
-    }
-
     internal fun onUrlEntered(url: String) {
-        displayMode()
-
-        urlCommitListener?.invoke(url)
+        if (urlCommitListener?.invoke(url) != false) {
+            // Return to display mode if there's no urlCommitListener or if it returned true. This lets
+            // the app control whether we should switch to display mode automatically.
+            displayMode()
+        }
     }
 
     private fun updateState(state: State) {
         this.state = state
 
         val (show, hide) = when (state) {
-            State.DISPLAY -> Pair(displayToolbar, editToolbar)
-            State.EDIT -> Pair(editToolbar, displayToolbar)
+            State.DISPLAY -> {
+                edit.stopEditing()
+                Pair(display.rootView, edit.rootView)
+            }
+            State.EDIT -> {
+                edit.startEditing()
+                Pair(edit.rootView, display.rootView)
+            }
         }
 
         show.visibility = View.VISIBLE
@@ -297,71 +331,180 @@ class BrowserToolbar @JvmOverloads constructor(
     /**
      * An action button to be added to the toolbar.
      *
-     * @param imageResource The drawable to be shown.
+     * @param imageDrawable The drawable to be shown.
      * @param contentDescription The content description to use.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param background A custom (stateful) background drawable resource to be used.
+     * @param padding a custom [Padding] for this Button.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class Button(
-        imageResource: Int,
+        imageDrawable: Drawable,
         contentDescription: String,
         visible: () -> Boolean = { true },
-        @DrawableRes background: Int? = null,
+        @DrawableRes background: Int = 0,
+        val padding: Padding = DEFAULT_PADDING,
         listener: () -> Unit
-    ) : Toolbar.ActionButton(imageResource, contentDescription, visible, background, listener) {
-        override fun createView(parent: ViewGroup): View {
-            val view = super.createView(parent)
-
-            val padding = view.resources.pxToDp(ACTION_PADDING_DP)
-            view.setPadding(padding, padding, padding, padding)
-
-            return view
-        }
-    }
+    ) : Toolbar.ActionButton(imageDrawable, contentDescription, visible, background, padding, listener)
 
     /**
      * An action button with two states, selected and unselected. When the button is pressed, the
      * state changes automatically.
      *
-     * @param imageResource The drawable to be shown if the button is in unselected state.
-     * @param imageResourceSelected The drawable to be shown if the button is in selected state.
+     * @param image The drawable to be shown if the button is in unselected state.
+     * @param imageSelected The drawable to be shown if the button is in selected state.
      * @param contentDescription The content description to use if the button is in unselected state.
      * @param contentDescriptionSelected The content description to use if the button is in selected state.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param selected Sets whether this button should be selected initially.
      * @param background A custom (stateful) background drawable resource to be used.
+     * @param padding a custom [Padding] for this Button.
      * @param listener Callback that will be invoked whenever the checked state changes.
      */
     open class ToggleButton(
-        @DrawableRes imageResource: Int,
-        @DrawableRes imageResourceSelected: Int,
+        image: Drawable,
+        imageSelected: Drawable,
         contentDescription: String,
         contentDescriptionSelected: String,
         visible: () -> Boolean = { true },
         selected: Boolean = false,
-        @DrawableRes background: Int? = null,
+        @DrawableRes background: Int = 0,
+        val padding: Padding = DEFAULT_PADDING,
         listener: (Boolean) -> Unit
     ) : Toolbar.ActionToggleButton(
-        imageResource,
-        imageResourceSelected,
+        image,
+        imageSelected,
         contentDescription,
         contentDescriptionSelected,
         visible,
         selected,
         background,
+        padding,
         listener
+    )
+
+    /**
+     * An action that either shows an active button or an inactive button based on the provided
+     * <code>isEnabled</code> lambda.
+     *
+     * @param enabledImage The drawable to be show if the button is in the enabled stated.
+     * @param enabledContentDescription The content description to use if the button is in the enabled state.
+     * @param disabledImage The drawable to be show if the button is in the disabled stated.
+     * @param disabledContentDescription The content description to use if the button is in the enabled state.
+     * @param isEnabled Lambda that returns true of false to indicate whether this button should be enabled/disabled.
+     * @param background A custom (stateful) background drawable resource to be used.
+     * @param listener Callback that will be invoked whenever the checked state changes.
+     */
+    open class TwoStateButton(
+        private val enabledImage: Drawable,
+        private val enabledContentDescription: String,
+        private val disabledImage: Drawable,
+        private val disabledContentDescription: String,
+        private val isEnabled: () -> Boolean = { true },
+        background: Int = 0,
+        listener: () -> Unit
+    ) : BrowserToolbar.Button(
+        enabledImage,
+        enabledContentDescription,
+        listener = listener,
+        background = background
     ) {
-        override fun createView(parent: ViewGroup): View {
-            return super.createView(parent).apply {
-                val padding = resources.pxToDp(ACTION_PADDING_DP)
-                setPadding(padding, padding, padding, padding)
+        var enabled: Boolean = false
+            private set
+
+        override fun bind(view: View) {
+            enabled = isEnabled.invoke()
+
+            val button = view as ImageButton
+
+            if (enabled) {
+                button.setImageDrawable(disabledImage)
+                button.contentDescription = disabledContentDescription
+            } else {
+                button.setImageDrawable(enabledImage)
+                button.contentDescription = enabledContentDescription
             }
         }
     }
 
     companion object {
-        private const val ACTION_PADDING_DP = 16
-        private const val DEFAULT_TOOLBAR_HEIGHT_DP = 56
+        internal const val ACTION_PADDING_DP = 16
+        internal val DEFAULT_PADDING =
+            Padding(ACTION_PADDING_DP, ACTION_PADDING_DP, ACTION_PADDING_DP, ACTION_PADDING_DP)
+    }
+}
+
+/**
+ * Wraps [filter] execution in a coroutine context, cancelling prior executions on every invocation.
+ * [coroutineContext] must be of type that doesn't propagate cancellation of its children upwards.
+ */
+class AsyncFilterListener(
+    private val urlView: AutocompleteView,
+    override val coroutineContext: CoroutineContext,
+    private val filter: suspend (String, AutocompleteDelegate) -> Unit,
+    private val uiContext: CoroutineContext = Dispatchers.Main
+) : OnFilterListener, CoroutineScope {
+    override fun invoke(text: String) {
+        // We got a new input, so whatever past autocomplete queries we still have running are
+        // irrelevant. We cancel them, but do not depend on cancellation to take place.
+        coroutineContext.cancelChildren()
+
+        CoroutineScope(coroutineContext).launch {
+            filter(text, AsyncAutocompleteDelegate(urlView, this, uiContext))
+        }
+    }
+}
+
+/**
+ * An autocomplete delegate which is aware of its parent scope (to check for cancellations).
+ * Responsible for processing autocompletion results and discarding stale results when [urlView] moved on.
+ */
+private class AsyncAutocompleteDelegate(
+    private val urlView: AutocompleteView,
+    private val parentScope: CoroutineScope,
+    override val coroutineContext: CoroutineContext,
+    private val logger: Logger = Logger("AsyncAutocompleteDelegate")
+) : AutocompleteDelegate, CoroutineScope {
+    override fun applyAutocompleteResult(result: AutocompleteResult, onApplied: () -> Unit) {
+        // Bail out if we were cancelled already.
+        if (!parentScope.isActive) {
+            logger.debug("Autocomplete request cancelled. Discarding results.")
+            return
+        }
+
+        // Process results on the UI dispatcher.
+        CoroutineScope(coroutineContext).launch {
+            // Ignore this result if the query is stale.
+            if (result.input == urlView.originalText) {
+                urlView.applyAutocompleteResult(
+                    InlineAutocompleteEditText.AutocompleteResult(
+                        text = result.text,
+                        source = result.source,
+                        totalItems = result.totalItems
+                    )
+                )
+                onApplied()
+            } else {
+                logger.debug("Discarding stale autocomplete result.")
+            }
+        }
+    }
+
+    override fun noAutocompleteResult(input: String) {
+        // Bail out if we were cancelled already.
+        if (!parentScope.isActive) {
+            logger.debug("Autocomplete request cancelled. Discarding 'noAutocompleteResult'.")
+            return
+        }
+
+        // Process results on the UI thread.
+        CoroutineScope(coroutineContext).launch {
+            // Ignore this result if the query is stale.
+            if (input == urlView.originalText) {
+                urlView.noAutocompleteResult()
+            } else {
+                logger.debug("Discarding stale lack of autocomplete results.")
+            }
+        }
     }
 }

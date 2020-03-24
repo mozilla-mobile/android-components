@@ -4,21 +4,119 @@
 
 package mozilla.components.browser.session.engine
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Environment
-import mozilla.components.browser.session.Download
+import androidx.core.net.toUri
 import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.engine.request.LaunchIntentMetadata
+import mozilla.components.browser.session.engine.request.LoadRequestMetadata
+import mozilla.components.browser.session.engine.request.LoadRequestOption
+import mozilla.components.browser.session.ext.syncDispatch
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
+import mozilla.components.concept.engine.permission.PermissionRequest
+import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
 
-@Suppress("TooManyFunctions")
-internal class EngineObserver(val session: Session) : EngineSession.Observer {
+/**
+ * [EngineSession.Observer] implementation responsible to update the state of a [Session] from the events coming out of
+ * an [EngineSession].
+ */
+@Suppress("TooManyFunctions", "LargeClass")
+internal class EngineObserver(
+    private val session: Session,
+    private val store: BrowserStore? = null
+) : EngineSession.Observer {
+
+    override fun onNavigateBack() {
+        session.searchTerms = ""
+    }
 
     override fun onLocationChange(url: String) {
+        if (!isUrlSame(session.url, url)) {
+            session.title = ""
+        }
+
+        if (!isInScope(session.webAppManifest, url)) {
+            session.webAppManifest = null
+        }
+
         session.url = url
-        session.searchTerms = ""
-        session.title = ""
+
+        // Meh, GeckoView doesn't notify us about recording devices no longer used when navigating away. As a
+        // workaround we clear them here. But that's not perfect...
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1554778
+        session.recordingDevices = listOf()
+
+        session.contentPermissionRequest.consume {
+            it.reject()
+            true
+        }
+    }
+
+    private fun isUrlSame(originalUrl: String, newUrl: String): Boolean {
+        val originalUri = Uri.parse(originalUrl)
+        val uri = Uri.parse(newUrl)
+
+        return uri.port == originalUri.port &&
+            uri.host == originalUri.host &&
+            uri.path?.trimStart('/') == originalUri.path?.trimStart('/') &&
+            uri.query == originalUri.query
+    }
+
+    private fun isHostEquals(sessionUrl: String, newUrl: String): Boolean {
+        val sessionUri = sessionUrl.toUri()
+        val newUri = newUrl.toUri()
+
+        return sessionUri.scheme == newUri.scheme && sessionUri.host == newUri.host
+    }
+
+    /**
+     * Checks that the [newUrl] is in scope of the web app manifest.
+     *
+     * https://www.w3.org/TR/appmanifest/#dfn-within-scope
+     */
+    private fun isInScope(manifest: WebAppManifest?, newUrl: String): Boolean {
+        val scope = manifest?.scope ?: manifest?.startUrl ?: return false
+        val scopeUri = scope.toUri()
+        val newUri = newUrl.toUri()
+
+        return isHostEquals(scope, newUrl) &&
+            scopeUri.port == newUri.port &&
+            newUri.path.orEmpty().startsWith(scopeUri.path.orEmpty())
+    }
+
+    override fun onLoadRequest(
+        url: String,
+        triggeredByRedirect: Boolean,
+        triggeredByWebContent: Boolean
+    ) {
+        if (triggeredByRedirect || triggeredByWebContent) {
+            session.searchTerms = ""
+        }
+
+        session.loadRequestMetadata = LoadRequestMetadata(
+            url,
+            arrayOf(
+                if (triggeredByRedirect) LoadRequestOption.REDIRECT else LoadRequestOption.NONE,
+                if (triggeredByWebContent) LoadRequestOption.WEB_CONTENT else LoadRequestOption.NONE
+            )
+        )
+    }
+
+    override fun onLaunchIntentRequest(url: String, appIntent: Intent?) {
+        session.launchIntentMetadata = LaunchIntentMetadata(url, appIntent)
     }
 
     override fun onTitleChange(title: String) {
@@ -34,6 +132,7 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
         if (loading) {
             session.findResults = emptyList()
             session.trackersBlocked = emptyList()
+            session.trackersLoaded = emptyList()
         }
     }
 
@@ -47,8 +146,16 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
                 ?: "", issuer ?: "")
     }
 
-    override fun onTrackerBlocked(url: String) {
-        session.trackersBlocked += url
+    override fun onTrackerBlocked(tracker: Tracker) {
+        session.trackersBlocked += tracker
+    }
+
+    override fun onTrackerLoaded(tracker: Tracker) {
+        session.trackersLoaded += tracker
+    }
+
+    override fun onExcludedOnTrackingProtectionChange(excluded: Boolean) {
+        store?.syncDispatch(TrackingProtectionAction.ToggleExclusionListAction(session.id, excluded))
     }
 
     override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
@@ -75,8 +182,19 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
         cookie: String?,
         userAgent: String?
     ) {
-        val download = Download(url, fileName, contentType, contentLength, userAgent, Environment.DIRECTORY_DOWNLOADS)
-        session.download = Consumable.from(download)
+        val download = DownloadState(
+            url,
+            fileName,
+            contentType,
+            contentLength,
+            userAgent,
+            Environment.DIRECTORY_DOWNLOADS
+        )
+
+        store?.dispatch(ContentAction.UpdateDownloadAction(
+            session.id,
+            download
+        ))
     }
 
     override fun onDesktopModeChange(enabled: Boolean) {
@@ -89,5 +207,58 @@ internal class EngineObserver(val session: Session) : EngineSession.Observer {
 
     override fun onThumbnailChange(bitmap: Bitmap?) {
         session.thumbnail = bitmap
+    }
+
+    override fun onContentPermissionRequest(permissionRequest: PermissionRequest) {
+        session.contentPermissionRequest = Consumable.from(permissionRequest)
+    }
+
+    override fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) {
+        session.contentPermissionRequest = Consumable.empty()
+    }
+
+    override fun onAppPermissionRequest(permissionRequest: PermissionRequest) {
+        session.appPermissionRequest = Consumable.from(permissionRequest)
+    }
+
+    override fun onPromptRequest(promptRequest: PromptRequest) {
+        store?.dispatch(ContentAction.UpdatePromptRequestAction(
+            session.id,
+            promptRequest
+        ))
+    }
+
+    override fun onWindowRequest(windowRequest: WindowRequest) {
+        store?.dispatch(
+            ContentAction.UpdateWindowRequestAction(
+                session.id,
+                windowRequest
+            )
+        )
+    }
+
+    override fun onMediaAdded(media: Media) {
+        session.media = session.media.toMutableList().also {
+            it.add(media)
+        }
+    }
+
+    override fun onMediaRemoved(media: Media) {
+        session.media = session.media.toMutableList().also {
+            it.remove(media)
+        }
+        media.unregisterObservers()
+    }
+
+    override fun onWebAppManifestLoaded(manifest: WebAppManifest) {
+        session.webAppManifest = manifest
+    }
+
+    override fun onCrash() {
+        session.crashed = true
+    }
+
+    override fun onRecordingStateChanged(devices: List<RecordingDevice>) {
+        session.recordingDevices = devices
     }
 }

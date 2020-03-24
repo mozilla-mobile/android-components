@@ -4,9 +4,9 @@
 
 package org.mozilla.telemetry.ping;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.RestrictTo;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.NonNull;
+import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
 
 import org.mozilla.telemetry.config.TelemetryConfiguration;
 import org.mozilla.telemetry.measurement.ClientIdMeasurement;
@@ -30,13 +30,20 @@ public abstract class TelemetryPingBuilder {
         this.type = type;
         this.measurements = new LinkedList<>();
 
-        // All pings contain a version and a client id
+        // All pings contain a version and a client id (with exception below)
         addMeasurement(new VersionMeasurement(version));
-        addMeasurement(new ClientIdMeasurement(configuration));
+        if (shouldIncludeClientId()) {
+            addMeasurement(new ClientIdMeasurement(configuration));
+        }
     }
 
     public TelemetryConfiguration getConfiguration() {
         return configuration;
+    }
+
+    // Fire-tv pocket telemetry ping should not include client-id (see #1606)
+    protected boolean shouldIncludeClientId() {
+        return true;
     }
 
     @NonNull

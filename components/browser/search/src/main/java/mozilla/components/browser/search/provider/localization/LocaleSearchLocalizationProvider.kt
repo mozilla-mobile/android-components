@@ -10,10 +10,12 @@ import java.util.Locale
  * LocalizationProvider implementation that only provides the language and country from the system's
  * default languageTag.
  */
-class LocaleSearchLocalizationProvider : SearchLocalizationProvider() {
-    override val language: String = Locale.getDefault().language
-
-    override val country: String = Locale.getDefault().country
-
-    override val region: String? = null
+class LocaleSearchLocalizationProvider : SearchLocalizationProvider {
+    override suspend fun determineRegion(): SearchLocalization {
+        return SearchLocalization(
+            language = Locale.getDefault().language,
+            country = Locale.getDefault().country,
+            region = Locale.getDefault().country
+        )
+    }
 }

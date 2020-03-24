@@ -4,41 +4,58 @@
 
 package mozilla.components.browser.toolbar.display
 
-import android.graphics.Rect
+import android.graphics.Color
 import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuBuilder
+import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.toolbar.BrowserToolbar
-import mozilla.components.support.ktx.android.view.forEach
+import mozilla.components.browser.toolbar.R
+import mozilla.components.concept.toolbar.Toolbar.SiteSecurity
+import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
+import mozilla.components.support.base.Component
+import mozilla.components.support.base.facts.Action
+import mozilla.components.support.base.facts.processor.CollectionProcessor
+import mozilla.components.support.test.any
+import mozilla.components.support.test.eq
+import mozilla.components.support.test.mock
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class DisplayToolbarTest {
+    private fun createDisplayToolbar(): Pair<BrowserToolbar, DisplayToolbar> {
+        val toolbar: BrowserToolbar = mock()
+        val displayToolbar = DisplayToolbar(
+            testContext, toolbar,
+            View.inflate(testContext, R.layout.mozac_browser_toolbar_displaytoolbar, null)
+        )
+        return Pair(toolbar, displayToolbar)
+    }
+
     @Test
     fun `clicking on the URL switches the toolbar to editing mode`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (toolbar, displayToolbar) = createDisplayToolbar()
 
-        val urlView = extractUrlView(displayToolbar)
+        val urlView = displayToolbar.views.origin.urlView
         assertTrue(urlView.performClick())
 
         verify(toolbar).editMode()
@@ -46,10 +63,9 @@ class DisplayToolbarTest {
 
     @Test
     fun `progress is forwarded to progress bar`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val progressView = extractProgressView(displayToolbar)
+        val progressView = displayToolbar.views.progress
 
         displayToolbar.updateProgress(10)
         assertEquals(10, progressView.progress)
@@ -65,125 +81,183 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `icon view will use square size`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+    fun `trackingProtectionViewColor will change the color of the trackingProtectionIconView`() {
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
+        assertNull(displayToolbar.views.trackingProtectionIndicator.colorFilter)
 
-        displayToolbar.measure(widthSpec, heightSpec)
+        displayToolbar.colors = displayToolbar.colors.copy(
+            trackingProtection = Color.BLUE
+        )
 
-        val iconView = extractIconView(displayToolbar)
-
-        assertEquals(56, iconView.measuredWidth)
-        assertEquals(56, iconView.measuredHeight)
+        assertNotNull(displayToolbar.views.trackingProtectionIndicator.colorFilter)
     }
 
     @Test
-    fun `progress view will use full width and 3dp height`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+    fun `tracking protection and separator views become visible when states ON OR ACTIVE are set to siteTrackingProtection`() {
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
+        val trackingView = displayToolbar.views.trackingProtectionIndicator
+        val separatorView = displayToolbar.views.separator
 
-        displayToolbar.measure(widthSpec, heightSpec)
+        assertTrue(trackingView.visibility == View.GONE)
+        assertTrue(separatorView.visibility == View.GONE)
 
-        val progressView = extractProgressView(displayToolbar)
+        displayToolbar.indicators = listOf(
+            DisplayToolbar.Indicators.SECURITY,
+            DisplayToolbar.Indicators.TRACKING_PROTECTION
+        )
+        displayToolbar.url = "https://www.mozilla.org"
+        displayToolbar.displayIndicatorSeparator = true
+        displayToolbar.setTrackingProtectionState(SiteTrackingProtection.ON_NO_TRACKERS_BLOCKED)
 
-        assertEquals(1024, progressView.measuredWidth)
-        assertEquals(3, progressView.measuredHeight)
+        assertTrue(trackingView.isVisible)
+        assertTrue(separatorView.isVisible)
+
+        displayToolbar.setTrackingProtectionState(SiteTrackingProtection.OFF_GLOBALLY)
+
+        assertTrue(trackingView.visibility == View.GONE)
+        assertTrue(separatorView.visibility == View.GONE)
+
+        displayToolbar.setTrackingProtectionState(SiteTrackingProtection.ON_TRACKERS_BLOCKED)
+
+        assertTrue(trackingView.isVisible)
+        assertTrue(separatorView.isVisible)
+    }
+
+    @Test
+    fun `setTrackingProtectionIcons will forward to TrackingProtectionIconView`() {
+        val (_, displayToolbar) = createDisplayToolbar()
+
+        val oldTrackingProtectionIcon = displayToolbar.views.trackingProtectionIndicator.drawable
+        assertNotNull(oldTrackingProtectionIcon)
+
+        val drawable1 =
+            testContext.getDrawable(TrackingProtectionIconView.DEFAULT_ICON_ON_NO_TRACKERS_BLOCKED)!!
+        val drawable2 =
+            testContext.getDrawable(TrackingProtectionIconView.DEFAULT_ICON_ON_TRACKERS_BLOCKED)!!
+        val drawable3 =
+            testContext.getDrawable(TrackingProtectionIconView.DEFAULT_ICON_OFF_FOR_A_SITE)!!
+
+        displayToolbar.indicators = listOf(DisplayToolbar.Indicators.TRACKING_PROTECTION)
+        displayToolbar.icons = displayToolbar.icons.copy(
+            trackingProtectionTrackersBlocked = drawable1,
+            trackingProtectionNothingBlocked = drawable2,
+            trackingProtectionException = drawable3
+        )
+
+        assertNotEquals(
+            oldTrackingProtectionIcon,
+            displayToolbar.views.trackingProtectionIndicator.drawable
+        )
+
+        assertEquals(drawable2, displayToolbar.views.trackingProtectionIndicator.drawable)
+
+        displayToolbar.setTrackingProtectionState(SiteTrackingProtection.ON_TRACKERS_BLOCKED)
+
+        assertNotEquals(
+            oldTrackingProtectionIcon,
+            displayToolbar.views.trackingProtectionIndicator.drawable
+        )
+
+        assertEquals(
+            drawable1,
+            displayToolbar.views.trackingProtectionIndicator.drawable
+        )
     }
 
     @Test
     fun `menu view is gone by default`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val menuView = extractMenuView(displayToolbar)
+        val menuView = displayToolbar.views.menu
+
         assertNotNull(menuView)
-        assertTrue(menuView.visibility == View.GONE)
+        assertEquals(View.GONE, menuView.impl.visibility)
     }
 
     @Test
     fun `menu view becomes visible once a menu builder is set`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val menuView = extractMenuView(displayToolbar)
+        val menuView = displayToolbar.views.menu
+
         assertNotNull(menuView)
 
-        assertTrue(menuView.visibility == View.GONE)
+        assertEquals(View.GONE, menuView.impl.visibility)
 
         displayToolbar.menuBuilder = BrowserMenuBuilder(emptyList())
 
-        assertTrue(menuView.visibility == View.VISIBLE)
+        assertEquals(View.VISIBLE, menuView.impl.visibility)
 
         displayToolbar.menuBuilder = null
 
-        assertTrue(menuView.visibility == View.GONE)
+        assertEquals(View.GONE, menuView.impl.visibility)
     }
 
     @Test
     fun `no menu builder is set by default`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
         assertNull(displayToolbar.menuBuilder)
     }
 
     @Test
     fun `menu builder will be used to create and show menu when button is clicked`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
-        val menuView = extractMenuView(displayToolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
+        val menuView = displayToolbar.views.menu
 
         val menuBuilder = mock(BrowserMenuBuilder::class.java)
         val menu = mock(BrowserMenu::class.java)
-        doReturn(menu).`when`(menuBuilder).build(RuntimeEnvironment.application)
+        doReturn(menu).`when`(menuBuilder).build(testContext)
 
         displayToolbar.menuBuilder = menuBuilder
 
-        verify(menuBuilder, never()).build(RuntimeEnvironment.application)
-        verify(menu, never()).show(menuView)
+        verify(menuBuilder, never()).build(testContext)
+        verify(menu, never()).show(menuView.impl)
 
-        menuView.performClick()
+        menuView.impl.performClick()
 
-        verify(menuBuilder).build(RuntimeEnvironment.application)
-        verify(menu).show(menuView)
+        verify(menuBuilder).build(testContext)
+        verify(menu).show(eq(menuView.impl), any(), anyBoolean(), any())
+        verify(menu, never()).invalidate()
+
+        displayToolbar.invalidateActions()
+
+        verify(menu).invalidate()
     }
 
     @Test
     fun `browser action gets added as view to toolbar`() {
         val contentDescription = "Mozilla"
 
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        assertNull(extractActionView(displayToolbar, contentDescription))
+        assertEquals(0, displayToolbar.views.browserActions.childCount)
 
-        val action = BrowserToolbar.Button(0, contentDescription) {}
+        val action = BrowserToolbar.Button(mock(), contentDescription) {}
         displayToolbar.addBrowserAction(action)
 
-        val view = extractActionView(displayToolbar, contentDescription)
-        assertNotNull(view)
-        assertEquals(contentDescription, view?.contentDescription)
+        assertEquals(1, displayToolbar.views.browserActions.childCount)
+
+        val view = displayToolbar.views.browserActions.getChildAt(0)
+        assertEquals(contentDescription, view.contentDescription)
     }
 
     @Test
     fun `clicking browser action view triggers listener of action`() {
         var callbackExecuted = false
 
-        val action = BrowserToolbar.Button(0, "Button") {
+        val action = BrowserToolbar.Button(mock(), "Button") {
             callbackExecuted = true
         }
 
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
         displayToolbar.addBrowserAction(action)
 
-        val view = extractActionView(displayToolbar, "Button")
+        assertEquals(1, displayToolbar.views.browserActions.childCount)
+        val view = displayToolbar.views.browserActions.getChildAt(0)
+
         assertNotNull(view)
 
         assertFalse(callbackExecuted)
@@ -194,52 +268,69 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `browser action view will use square size`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+    fun `browser action can be removed`() {
+        val contentDescription = "to-be-removed"
 
-        val action = BrowserToolbar.Button(0, "action") {}
+        val (_, displayToolbar) = createDisplayToolbar()
+
+        val action = BrowserToolbar.Button(mock(), contentDescription) {}
+        // Removing action which was never added has no effect
+        displayToolbar.removeBrowserAction(action)
+
         displayToolbar.addBrowserAction(action)
+        assertEquals(1, displayToolbar.views.browserActions.childCount)
 
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
+        displayToolbar.removeBrowserAction(action)
+        assertEquals(0, displayToolbar.views.browserActions.childCount)
+    }
 
-        displayToolbar.measure(widthSpec, heightSpec)
+    @Test
+    fun `page action can be removed`() {
+        val contentDescription = "to-be-removed"
 
-        val view = extractActionView(displayToolbar, "action")!!
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        assertEquals(56, view.measuredWidth)
-        assertEquals(56, view.measuredHeight)
+        val action = BrowserToolbar.Button(mock(), contentDescription) {}
+        // Removing action which was never added has no effect
+        displayToolbar.removePageAction(action)
+
+        displayToolbar.addPageAction(action)
+        assertEquals(1, displayToolbar.views.pageActions.childCount)
+
+        displayToolbar.removePageAction(action)
+        assertEquals(0, displayToolbar.views.pageActions.childCount)
     }
 
     @Test
     fun `page actions will be added as view to the toolbar`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        assertNull(extractActionView(displayToolbar, "Reader Mode"))
+        assertEquals(0, displayToolbar.views.pageActions.childCount)
 
-        val action = BrowserToolbar.Button(0, "Reader Mode") {}
+        val action = BrowserToolbar.Button(mock(), "Reader Mode") {}
         displayToolbar.addPageAction(action)
 
-        assertNotNull(extractActionView(displayToolbar, "Reader Mode"))
+        assertEquals(1, displayToolbar.views.pageActions.childCount)
+        val view = displayToolbar.views.pageActions.getChildAt(0)
+        assertEquals("Reader Mode", view.contentDescription)
     }
 
     @Test
     fun `clicking a page action view will execute the listener of the action`() {
         var listenerExecuted = false
 
-        val action = BrowserToolbar.Button(0, "Reload") {
+        val action = BrowserToolbar.Button(mock(), "Reload") {
             listenerExecuted = true
         }
 
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
         displayToolbar.addPageAction(action)
 
         assertFalse(listenerExecuted)
 
-        val view = extractActionView(displayToolbar, "Reload")
+        assertEquals(1, displayToolbar.views.pageActions.childCount)
+        val view = displayToolbar.views.pageActions.getChildAt(0)
+
         assertNotNull(view)
         view!!.performClick()
 
@@ -247,46 +338,23 @@ class DisplayToolbarTest {
     }
 
     @Test
-    fun `views for page actions will have a square shape`() {
-        val action = BrowserToolbar.Button(0, "Open app") {}
-
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
-        displayToolbar.addPageAction(action)
-
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
-
-        displayToolbar.measure(widthSpec, heightSpec)
-
-        val view = extractActionView(displayToolbar, "Open app")!!
-
-        assertEquals(56, view.measuredWidth)
-        assertEquals(56, view.measuredHeight)
-    }
-
-    @Test
     fun `navigation actions will be added as view to the toolbar`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        assertNull(extractActionView(displayToolbar, "Back"))
-        assertNull(extractActionView(displayToolbar, "Forward"))
+        assertEquals(0, displayToolbar.views.navigationActions.childCount)
 
-        displayToolbar.addNavigationAction(BrowserToolbar.Button(0, "Back") {})
-        displayToolbar.addNavigationAction(BrowserToolbar.Button(0, "Forward") {})
+        displayToolbar.addNavigationAction(BrowserToolbar.Button(mock(), "Back") {})
+        displayToolbar.addNavigationAction(BrowserToolbar.Button(mock(), "Forward") {})
 
-        assertNotNull(extractActionView(displayToolbar, "Back"))
-        assertNotNull(extractActionView(displayToolbar, "Forward"))
+        assertEquals(2, displayToolbar.views.navigationActions.childCount)
     }
 
     @Test
     fun `clicking on navigation action will execute listener of the action`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
         var listenerExecuted = false
-        val action = BrowserToolbar.Button(0, "Back") {
+        val action = BrowserToolbar.Button(mock(), "Back") {
             listenerExecuted = true
         }
 
@@ -294,69 +362,50 @@ class DisplayToolbarTest {
 
         assertFalse(listenerExecuted)
 
-        extractActionView(displayToolbar, "Back")!!
-            .performClick()
+        assertEquals(1, displayToolbar.views.navigationActions.childCount)
+        val view = displayToolbar.views.navigationActions.getChildAt(0)
+        view.performClick()
 
         assertTrue(listenerExecuted)
     }
 
     @Test
-    fun `navigation action view will have a square shape`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
-
-        displayToolbar.addNavigationAction(
-                BrowserToolbar.Button(0, "Back") {})
-
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
-
-        displayToolbar.measure(widthSpec, heightSpec)
-
-        val view = extractActionView(displayToolbar, "Back")!!
-
-        assertEquals(56, view.measuredWidth)
-        assertEquals(56, view.measuredHeight)
-    }
-
-    @Test
     fun `view of not visible navigation action gets removed after invalidating`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
         var shouldActionBeDisplayed = true
 
         val action = BrowserToolbar.Button(
-            0,
+            mock(),
             "Back",
             visible = { shouldActionBeDisplayed }
         ) { /* Do nothing */ }
 
         displayToolbar.addNavigationAction(action)
 
-        assertNotNull(extractActionView(displayToolbar, "Back"))
+        assertEquals(1, displayToolbar.views.navigationActions.childCount)
 
         shouldActionBeDisplayed = false
         displayToolbar.invalidateActions()
 
-        assertNull(extractActionView(displayToolbar, "Back"))
+        assertEquals(0, displayToolbar.views.navigationActions.childCount)
 
         shouldActionBeDisplayed = true
         displayToolbar.invalidateActions()
 
-        assertNotNull(extractActionView(displayToolbar, "Back"))
+        assertEquals(1, displayToolbar.views.navigationActions.childCount)
     }
 
     @Test
     fun `toolbar should call bind with view argument on action after invalidating`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val action = spy(BrowserToolbar.Button(0, "Reload") {})
+        val action = spy(BrowserToolbar.Button(mock(), "Reload") {})
 
         displayToolbar.addPageAction(action)
 
-        val view = extractActionView(displayToolbar, "Reload")
+        assertEquals(1, displayToolbar.views.pageActions.childCount)
+        val view = displayToolbar.views.pageActions.getChildAt(0)
 
         verify(action, never()).bind(view!!)
 
@@ -367,280 +416,297 @@ class DisplayToolbarTest {
 
     @Test
     fun `page action will not be added if visible lambda of action returns false`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val visibleAction = BrowserToolbar.Button(0, "Reload") {}
+        val visibleAction = BrowserToolbar.Button(mock(), "Reload") {}
         val invisibleAction = BrowserToolbar.Button(
-            0,
+            mock(),
             "Reader Mode",
             visible = { false }) {}
 
         displayToolbar.addPageAction(visibleAction)
         displayToolbar.addPageAction(invisibleAction)
 
-        assertNotNull(extractActionView(displayToolbar, "Reload"))
-        assertNull(extractActionView(displayToolbar, "Reader Mode"))
+        assertEquals(1, displayToolbar.views.pageActions.childCount)
+
+        val view = displayToolbar.views.pageActions.getChildAt(0)
+        assertEquals("Reload", view.contentDescription)
     }
 
     @Test
     fun `browser action will not be added if visible lambda of action returns false`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val visibleAction = BrowserToolbar.Button(0, "Tabs") {}
+        val visibleAction = BrowserToolbar.Button(mock(), "Tabs") {}
         val invisibleAction = BrowserToolbar.Button(
-                0,
-                "Settings",
-                visible = { false }) {}
+            mock(),
+            "Settings",
+            visible = { false }) {}
 
         displayToolbar.addBrowserAction(visibleAction)
         displayToolbar.addBrowserAction(invisibleAction)
 
-        assertNotNull(extractActionView(displayToolbar, "Tabs"))
-        assertNull(extractActionView(displayToolbar, "Settings"))
+        assertEquals(1, displayToolbar.views.browserActions.childCount)
+
+        val view = displayToolbar.views.browserActions.getChildAt(0)
+        assertEquals("Tabs", view.contentDescription)
     }
 
     @Test
     fun `navigation action will not be added if visible lambda of action returns false`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val visibleAction = BrowserToolbar.Button(0, "Forward") {}
+        val visibleAction = BrowserToolbar.Button(mock(), "Forward") {}
         val invisibleAction = BrowserToolbar.Button(
-                0,
-                "Back",
-                visible = { false }) {}
+            mock(),
+            "Back",
+            visible = { false }) {}
 
         displayToolbar.addNavigationAction(visibleAction)
         displayToolbar.addNavigationAction(invisibleAction)
 
-        assertNotNull(extractActionView(displayToolbar, "Forward"))
-        assertNull(extractActionView(displayToolbar, "Back"))
+        assertEquals(1, displayToolbar.views.navigationActions.childCount)
+
+        val view = displayToolbar.views.navigationActions.getChildAt(0)
+        assertEquals("Forward", view.contentDescription)
     }
 
     @Test
-    fun `toolbar will honor minimum width of action view`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+    fun `url background will be added and removed from display layout`() {
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val normalAction = BrowserToolbar.Button(0, "Forward") {}
-        val backAction = object : BrowserToolbar.Button(0, "Back", listener = {}) {
-            override fun createView(parent: ViewGroup): View {
-                return super.createView(parent).apply {
-                    minimumWidth = 500
-                }
-            }
-        }
+        assertNull(displayToolbar.views.background.drawable)
 
-        displayToolbar.addNavigationAction(normalAction)
-        displayToolbar.addNavigationAction(backAction)
+        displayToolbar.setUrlBackground(
+            ContextCompat.getDrawable(testContext, R.drawable.mozac_ic_broken_lock)
+        )
 
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.EXACTLY)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY)
+        assertNotNull(displayToolbar.views.background.drawable)
 
-        displayToolbar.measure(widthSpec, heightSpec)
+        displayToolbar.setUrlBackground(null)
 
-        val forwardView = extractActionView(displayToolbar, "Forward")!!
-        val backView = extractActionView(displayToolbar, "Back")!!
-
-        assertEquals(56, forwardView.measuredWidth)
-        assertEquals(56, forwardView.measuredHeight)
-
-        assertEquals(500, backView.measuredWidth)
-        assertEquals(56, backView.measuredHeight)
+        assertNull(displayToolbar.views.background.drawable)
     }
 
     @Test
-    fun `url box view will be added and removed from display layout`() {
-        val view = TextView(RuntimeEnvironment.application)
+    fun `titleView does not display when there is no title text`() {
+        val (_, displayToolbar) = createDisplayToolbar()
 
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        assertTrue(displayToolbar.views.origin.titleView.isGone)
 
-        view assertNotIn displayToolbar
+        displayToolbar.title = "Hello World"
 
-        displayToolbar.urlBoxView = view
-
-        view assertIn displayToolbar
-
-        displayToolbar.urlBoxView = null
-
-        view assertNotIn displayToolbar
-    }
-
-    @Test
-    fun `url box size matches url and page actions size`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
-
-        displayToolbar.addPageAction(BrowserToolbar.Button(0, "Reload") {})
-        displayToolbar.addPageAction(BrowserToolbar.Button(0, "Reader Mode") {})
-
-        val view = TextView(RuntimeEnvironment.application)
-        displayToolbar.urlBoxView = view
-
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST)
-
-        displayToolbar.measure(widthSpec, heightSpec)
-
-        val urlView = extractUrlView(displayToolbar)
-        val reloadView = extractActionView(displayToolbar, "Reload")!!
-        val readerView = extractActionView(displayToolbar, "Reader Mode")!!
-
-        assertTrue(view.measuredWidth > 0)
-
-        assertEquals(view.measuredWidth, urlView.measuredWidth + reloadView.measuredWidth + readerView.measuredWidth)
-        assertEquals(200, view.measuredHeight)
-    }
-
-    @Test
-    fun `url box position is enclosing url and page actions`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
-
-        displayToolbar.addPageAction(BrowserToolbar.Button(0, "Reload") {})
-        displayToolbar.addPageAction(BrowserToolbar.Button(0, "Reader Mode") {})
-
-        val view = TextView(RuntimeEnvironment.application)
-        displayToolbar.urlBoxView = view
-
-        val widthSpec = View.MeasureSpec.makeMeasureSpec(1024, View.MeasureSpec.AT_MOST)
-        val heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST)
-
-        displayToolbar.measure(widthSpec, heightSpec)
-        displayToolbar.layout(0, 0, 1024, 200)
-
-        val urlView = extractUrlView(displayToolbar)
-        val reloadView = extractActionView(displayToolbar, "Reload")!!
-        val readerView = extractActionView(displayToolbar, "Reader Mode")!!
-
-        val viewRect = Rect(view.left, view.top, view.right, view.bottom)
-        val urlViewRect = Rect(urlView.left, urlView.top, urlView.right, urlView.bottom)
-        val reloadViewRect = Rect(reloadView.left, reloadView.top, reloadView.right, reloadView.bottom)
-        val readerViewRect = Rect(readerView.left, readerView.top, readerView.right, readerView.bottom)
-
-        assertTrue(viewRect.width() > 0)
-        assertTrue(viewRect.height() > 0)
-        assertTrue(viewRect.contains(urlViewRect))
-        assertTrue(viewRect.contains(reloadViewRect))
-        assertTrue(viewRect.contains(readerViewRect))
-        assertEquals(urlViewRect.width() + reloadViewRect.width() + readerViewRect.width(), viewRect.width())
+        assertTrue(displayToolbar.views.origin.titleView.isVisible)
     }
 
     @Test
     fun `toolbar only switches to editing mode if onUrlClicked returns true`() {
-        val toolbar = mock(BrowserToolbar::class.java)
-        val displayToolbar = DisplayToolbar(RuntimeEnvironment.application, toolbar)
+        val (toolbar, displayToolbar) = createDisplayToolbar()
 
-        displayToolbar.urlView.performClick()
+        displayToolbar.views.origin.urlView.performClick()
 
         verify(toolbar).editMode()
 
         reset(toolbar)
         displayToolbar.onUrlClicked = { false }
-        displayToolbar.urlView.performClick()
+        displayToolbar.views.origin.urlView.performClick()
 
         verify(toolbar, never()).editMode()
 
         reset(toolbar)
         displayToolbar.onUrlClicked = { true }
-        displayToolbar.urlView.performClick()
+        displayToolbar.views.origin.urlView.performClick()
 
         verify(toolbar).editMode()
     }
 
-    companion object {
-        private fun extractUrlView(displayToolbar: DisplayToolbar): TextView {
-            var textView: TextView? = null
+    @Test
+    fun `urlView delegates long click when set`() {
+        val (_, displayToolbar) = createDisplayToolbar()
 
-            displayToolbar.forEach {
-                if (it is TextView) {
-                    textView = it
-                    return@forEach
-                }
-            }
+        var longUrlClicked = false
 
-            return textView ?: throw AssertionError("Could not find URL view")
+        displayToolbar.setOnUrlLongClickListener {
+            longUrlClicked = true
+            false
         }
 
-        private fun extractProgressView(displayToolbar: DisplayToolbar): ProgressBar {
-            var progressView: ProgressBar? = null
-
-            displayToolbar.forEach {
-                if (it is ProgressBar) {
-                    progressView = it
-                    return@forEach
-                }
-            }
-
-            return progressView ?: throw AssertionError("Could not find URL view")
-        }
-
-        private fun extractIconView(displayToolbar: DisplayToolbar): ImageView {
-            var iconView: ImageView? = null
-
-            displayToolbar.forEach {
-                if (it is ImageView) {
-                    iconView = it
-                    return@forEach
-                }
-            }
-
-            return iconView ?: throw AssertionError("Could not find URL view")
-        }
-
-        private fun extractMenuView(displayToolbar: DisplayToolbar): ImageButton {
-            var menuButton: ImageButton? = null
-
-            displayToolbar.forEach {
-                if (it is ImageButton) {
-                    menuButton = it
-                    return@forEach
-                }
-            }
-
-            return menuButton ?: throw AssertionError("Could not find menu view")
-        }
-
-        private fun extractActionView(
-            displayToolbar: DisplayToolbar,
-            contentDescription: String
-        ): ImageButton? {
-            var actionView: ImageButton? = null
-
-            displayToolbar.forEach {
-                if (it is ImageButton && it.contentDescription == contentDescription) {
-                    actionView = it
-                    return@forEach
-                }
-            }
-
-            return actionView
-        }
-    }
-}
-
-infix fun View.assertIn(group: ViewGroup) {
-    var found = false
-
-    group.forEach {
-        if (this == it) {
-            println("Checking $this == $it")
-            found = true
-        }
+        assertFalse(longUrlClicked)
+        displayToolbar.views.origin.urlView.performLongClick()
+        assertTrue(longUrlClicked)
     }
 
-    if (!found) {
-        throw AssertionError("View not found in ViewGroup")
-    }
-}
+    @Test
+    fun `urlView longClickListener can be unset`() {
+        val (_, displayToolbar) = createDisplayToolbar()
 
-infix fun View.assertNotIn(group: ViewGroup) {
-    group.forEach {
-        if (this == it) {
-            throw AssertionError("View should not be in ViewGroup")
+        var longClicked = false
+        displayToolbar.setOnUrlLongClickListener {
+            longClicked = true
+            true
         }
+
+        displayToolbar.views.origin.urlView.performLongClick()
+        assertTrue(longClicked)
+        longClicked = false
+
+        displayToolbar.setOnUrlLongClickListener(null)
+        displayToolbar.views.origin.urlView.performLongClick()
+
+        assertFalse(longClicked)
+    }
+
+    @Test
+    fun `iconView changes site secure state when site security changes`() {
+        val (_, displayToolbar) = createDisplayToolbar()
+        assertEquals(SiteSecurity.INSECURE, displayToolbar.views.securityIndicator.siteSecurity)
+
+        displayToolbar.siteSecurity = SiteSecurity.SECURE
+
+        assertEquals(SiteSecurity.SECURE, displayToolbar.views.securityIndicator.siteSecurity)
+
+        displayToolbar.siteSecurity = SiteSecurity.INSECURE
+
+        assertEquals(SiteSecurity.INSECURE, displayToolbar.views.securityIndicator.siteSecurity)
+    }
+
+    @Test
+    fun `securityIconColor is set when securityIconColor changes`() {
+        val (_, displayToolbar) = createDisplayToolbar()
+
+        assertNull(displayToolbar.views.securityIndicator.colorFilter)
+
+        displayToolbar.colors = displayToolbar.colors.copy(
+            securityIconSecure = Color.TRANSPARENT,
+            securityIconInsecure = Color.TRANSPARENT
+        )
+
+        assertNull(displayToolbar.views.securityIndicator.colorFilter)
+
+        displayToolbar.colors = displayToolbar.colors.copy(
+            securityIconSecure = Color.BLUE,
+            securityIconInsecure = Color.BLUE
+        )
+
+        assertNotNull(displayToolbar.views.securityIndicator.colorFilter)
+    }
+
+    @Test
+    fun `clicking menu button emits facts with additional extras from builder set`() {
+        CollectionProcessor.withFactCollection { facts ->
+            val (_, displayToolbar) = createDisplayToolbar()
+            val menuView = displayToolbar.views.menu
+
+            val menuBuilder = BrowserMenuBuilder(
+                listOf(SimpleBrowserMenuItem("Mozilla")), mapOf(
+                    "customTab" to true,
+                    "test" to "23"
+                )
+            )
+            displayToolbar.menuBuilder = menuBuilder
+
+            assertEquals(0, facts.size)
+
+            menuView.impl.performClick()
+
+            assertEquals(1, facts.size)
+
+            val fact = facts[0]
+
+            assertEquals(Component.BROWSER_TOOLBAR, fact.component)
+            assertEquals(Action.CLICK, fact.action)
+            assertEquals("menu", fact.item)
+            assertNull(fact.value)
+
+            assertNotNull(fact.metadata)
+
+            val metadata = fact.metadata!!
+            assertEquals(2, metadata.size)
+            assertTrue(metadata.containsKey("customTab"))
+            assertTrue(metadata.containsKey("test"))
+            assertEquals(true, metadata["customTab"])
+            assertEquals("23", metadata["test"])
+        }
+    }
+
+    @Test
+    fun `clicking on site security indicator invokes listener`() {
+        var listenerInvoked = false
+
+        val (_, displayToolbar) = createDisplayToolbar()
+
+        assertNull(displayToolbar.views.securityIndicator.background)
+
+        displayToolbar.setOnSiteSecurityClickedListener {
+            listenerInvoked = true
+        }
+
+        assertNotNull(displayToolbar.views.securityIndicator.background)
+
+        displayToolbar.views.securityIndicator.performClick()
+
+        assertTrue(listenerInvoked)
+
+        listenerInvoked = false
+
+        displayToolbar.setOnSiteSecurityClickedListener { }
+
+        assertNotNull(displayToolbar.views.securityIndicator.background)
+
+        displayToolbar.views.securityIndicator.performClick()
+
+        assertFalse(listenerInvoked)
+
+        displayToolbar.setOnSiteSecurityClickedListener(null)
+
+        assertNull(displayToolbar.views.securityIndicator.background)
+    }
+
+    @Test
+    fun `Security icon has proper content description`() {
+        val (_, displayToolbar) = createDisplayToolbar()
+        val siteSecurityIconView = displayToolbar.views.securityIndicator
+
+        assertNotNull(siteSecurityIconView.contentDescription)
+        assertEquals(testContext.getString(R.string.mozac_browser_toolbar_content_description_site_info),
+            siteSecurityIconView.contentDescription)
+    }
+
+    @Test
+    fun `Backgrounding the app dismisses menu if already open`() {
+        var wasDismissed = false
+        val (_, displayToolbar) = createDisplayToolbar()
+        val menuView = displayToolbar.views.menu
+        menuView.impl.onDismiss = { wasDismissed = true }
+        menuView.menuBuilder = BrowserMenuBuilder(emptyList())
+        menuView.impl.performClick()
+
+        displayToolbar.onStop()
+
+        assertTrue(wasDismissed)
+    }
+
+    @Test
+    fun `set a dismiss lambda on the menu button`() {
+        var wasDismissed = false
+        val (_, displayToolbar) = createDisplayToolbar()
+        displayToolbar.setMenuDismissAction { wasDismissed = true }
+        val menuView = displayToolbar.views.menu
+        menuView.menuBuilder = BrowserMenuBuilder(emptyList())
+        menuView.impl.performClick()
+
+        menuView.dismissMenu()
+        assertTrue(wasDismissed)
+    }
+
+    @Test
+    fun `url formatter used if provided`() {
+        val (_, displayToolbar) = createDisplayToolbar()
+        displayToolbar.url = "https://mozilla.org"
+        assertEquals(displayToolbar.url, displayToolbar.views.origin.url)
+
+        displayToolbar.urlFormatter = { it.replace("https://".toRegex(), "") }
+        displayToolbar.url = "https://mozilla.org"
+        assertEquals("mozilla.org", displayToolbar.views.origin.url)
     }
 }

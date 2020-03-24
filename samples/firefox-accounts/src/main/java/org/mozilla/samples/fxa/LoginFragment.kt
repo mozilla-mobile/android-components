@@ -9,13 +9,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.fragment.app.Fragment
 
 class LoginFragment : Fragment() {
 
@@ -27,14 +27,13 @@ class LoginFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            authUrl = it.getString(AUTH_URL)
-            redirectUrl = it.getString(REDIRECT_URL)
+            authUrl = it.getString(AUTH_URL)!!
+            redirectUrl = it.getString(REDIRECT_URL)!!
         }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view: View = inflater.inflate(R.layout.fragment_view, container, false)
         val webView = view.findViewById<WebView>(R.id.webview)
         // Need JS, cookies and localStorage.
@@ -70,7 +69,7 @@ class LoginFragment : Fragment() {
         if (context is OnLoginCompleteListener) {
             listener = context
         } else {
-            throw IllegalStateException(context.toString() + " must implement OnLoginCompleteListener")
+            throw IllegalStateException("$context must implement OnLoginCompleteListener")
         }
     }
 

@@ -1,22 +1,31 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.service.fxa
 
 /**
- * Wrapper class for the exceptions thrown in the Rust library, which ensures that the
- * error messages will be consumed and freed properly in Rust.
+ * High-level exception class for the exceptions thrown in the Rust library.
  */
-open class FxaException(message: String) : Exception(message) {
-    class Unspecified(msg: String) : FxaException(msg)
-    class Unauthorized(msg: String) : FxaException(msg)
-    class Panic(msg: String) : FxaException(msg)
+typealias FxaException = mozilla.appservices.fxaclient.FxaException
 
-    companion object {
-        fun fromConsuming(e: Error): FxaException {
-            val message = e.consumeMessage() ?: ""
-            return when (e.code) {
-                FxaClient.ErrorCode.AuthenticationError.ordinal -> Unauthorized(message)
-                FxaClient.ErrorCode.InternalPanic.ordinal -> Panic(message)
-                else -> Unspecified(message)
-            }
-        }
-    }
-}
+/**
+ * Thrown on a network error.
+ */
+typealias FxaNetworkException = mozilla.appservices.fxaclient.FxaException.Network
+
+/**
+ * Thrown when the Rust library hits an assertion or panic (this is always a bug).
+ */
+typealias FxaPanicException = mozilla.appservices.fxaclient.FxaException.Panic
+
+/**
+ * Thrown when the operation requires additional authorization.
+ */
+typealias FxaUnauthorizedException = mozilla.appservices.fxaclient.FxaException.Unauthorized
+
+/**
+ * Thrown when the Rust library hits an unexpected error that isn't a panic.
+ * This may indicate library misuse, network errors, etc.
+ */
+typealias FxaUnspecifiedException = mozilla.appservices.fxaclient.FxaException.Unspecified

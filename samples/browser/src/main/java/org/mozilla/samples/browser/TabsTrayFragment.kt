@@ -5,18 +5,20 @@
 package org.mozilla.samples.browser
 
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_tabstray.*
+import androidx.fragment.app.Fragment
+import kotlinx.android.synthetic.main.fragment_tabstray.tabsTray
+import kotlinx.android.synthetic.main.fragment_tabstray.toolbar
 import mozilla.components.feature.tabs.tabstray.TabsFeature
+import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.samples.browser.ext.components
 
 /**
  * A fragment for displaying the tabs tray.
  */
-class TabsTrayFragment : Fragment(), BackHandler {
+class TabsTrayFragment : Fragment(), UserInteractionHandler {
     private var tabsFeature: TabsFeature? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
@@ -34,7 +36,7 @@ class TabsTrayFragment : Fragment(), BackHandler {
         toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.newTab -> {
-                    components.tabsUseCases.addSession.invoke("about:blank", selectTab = true)
+                    components.tabsUseCases.addTab.invoke("about:blank", selectTab = true)
                     closeTabsTray()
                 }
             }
@@ -43,21 +45,10 @@ class TabsTrayFragment : Fragment(), BackHandler {
 
         tabsFeature = TabsFeature(
             tabsTray,
-            components.sessionManager,
+            components.store,
             components.tabsUseCases,
-            ::closeTabsTray)
-    }
-
-    override fun onStart() {
-        super.onStart()
-
-        tabsFeature?.start()
-    }
-
-    override fun onStop() {
-        super.onStop()
-
-        tabsFeature?.stop()
+            closeTabsTray = ::closeTabsTray
+        ).also { lifecycle.addObserver(it) }
     }
 
     override fun onBackPressed(): Boolean {

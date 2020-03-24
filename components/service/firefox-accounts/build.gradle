@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     lintOptions {
@@ -45,25 +45,39 @@ configurations {
 }
 
 dependencies {
-    jnaForTest Deps.jnaForTest
+    // Types defined in concept-sync are part of the public API of this module.
+    api project(':concept-sync')
 
-    api Deps.mozilla_fxa
+    // Parts of this dependency are typealiase'd or are otherwise part of this module's public API.
+    api Dependencies.mozilla_fxa
+    implementation Dependencies.mozilla_sync_manager
 
-    implementation Deps.kotlin_stdlib
-    implementation Deps.jna
-    implementation Deps.kotlin_coroutines
+    // Observable is part of public API of the FxaAccountManager.
+    api project(':support-base')
+    implementation project(':support-sync-telemetry')
+    implementation project(':support-ktx')
+    implementation project(':lib-dataprotect')
+    // CrashReporter is part of the public API.
+    api project(':lib-crash')
 
-    testImplementation files(configurations.jnaForTest.files)
+    implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.kotlin_coroutines
 
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+    implementation Dependencies.androidx_work_runtime
+
+    testImplementation project(':support-test')
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.androidx_work_testing
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_coroutines
+
+    jnaForTest Dependencies.thirdparty_jna
+    testImplementation files(configurations.jnaForTest.copyRecursive().files)
+
+    testImplementation Dependencies.mozilla_full_megazord_forUnitTests
 }
 
-archivesBaseName = "fxa"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'fxa',
-        'A library for integrating with Firefox Accounts.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

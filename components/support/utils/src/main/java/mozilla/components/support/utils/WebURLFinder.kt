@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:SuppressWarnings("MaxLineLength")
+
 package mozilla.components.support.utils
 
 import android.webkit.URLUtil
@@ -24,16 +26,21 @@ class WebURLFinder {
         if (string == null) {
             throw IllegalArgumentException("string must not be null")
         }
-
         this.candidates = candidateWebURLs(string)
     }
 
-    /* package-private */ internal constructor(strings: List<String>?) {
+    /* package-private */ internal constructor(string: String?, explicitUnicode: Boolean) {
+        if (string == null) {
+            throw IllegalArgumentException("strings must not be null")
+        }
+        this.candidates = candidateWebURLs(string, explicitUnicode)
+    }
+
+    /* package-private */ internal constructor(strings: List<String>?, explicitUnicode: Boolean) {
         if (strings == null) {
             throw IllegalArgumentException("strings must not be null")
         }
-
-        this.candidates = candidateWebURLs(strings)
+        this.candidates = candidateWebURLs(strings, explicitUnicode)
     }
 
     /**
@@ -63,6 +70,7 @@ class WebURLFinder {
 
     private fun firstWebURLWithoutScheme(): String? = candidates.firstOrNull()
 
+    @SuppressWarnings("LargeClass")
     companion object {
         /**
          * Regular expression to match all IANA top-level domains.
@@ -291,14 +299,58 @@ class WebURLFinder {
                 WORD_BOUNDARY +
                 ")")
 
-        /**
-         * Regular expression pattern to match IRIs. If a string starts with http(s):// the expression
-         * tries to match the URL structure with a relaxed rule for TLDs. If the string does not start
-         * with http(s):// the TLDs are expected to be one of the known TLDs.
-         */
-        private val AUTOLINK_WEB_URL = Pattern.compile(
-            "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL)"
-        )
+        private const val WILDCARD_PROTOCOL = "(?i:[a-z]+)(://|:)"
+
+        private const val UNSUPPORTED_URL_WITH_PROTOCOL = ("(" +
+            WORD_BOUNDARY +
+            "(?:" +
+            "(?:" + WILDCARD_PROTOCOL + "(?:" + USER_INFO + ")?" + ")" +
+            "(?:" + RELAXED_DOMAIN_NAME + ")" +
+            "(?:" + PORT_NUMBER + ")?" +
+            ")" +
+            "(?:" + PATH_AND_QUERY + ")?" +
+            WORD_BOUNDARY +
+            ")")
+
+        // Taken from mozilla.components.support.utils.URLStringUtils. See documentation
+        // there for a complete description.
+        private const val autolinkWebUrlPattern = "(\\w+-)*\\w+(://[/]*|:|\\.)(\\w+-)*\\w+([\\S&&[^\\w-]]\\S*)?"
+
+        private val autolinkWebUrl by lazy {
+            Pattern.compile(autolinkWebUrlPattern, 0)
+        }
+
+        private val autolinkWebUrlExplicitUnicode by lazy {
+            // To run tests on a non-Android device (like a computer), Pattern.compile
+            // requires a flag to enable unicode support. Set a value like flags here with a local
+            // copy of UNICODE_CHARACTER_CLASS. Use a local copy because that constant is not
+            // available on Android platforms < 24 (Fenix targets 21). At runtime this is not an issue
+            // because, again, Android REs are always unicode compliant.
+            // NB: The value has to go through an intermediate variable; otherwise, the linter will
+            // complain that this value is not one of the predefined enums that are allowed.
+            @Suppress("MagicNumber")
+            val UNICODE_CHARACTER_CLASS: Int = 0x100
+            var regexFlags = UNICODE_CHARACTER_CLASS
+            Pattern.compile(autolinkWebUrlPattern, regexFlags)
+        }
+
+        internal val fuzzyUrlRegex by lazy {
+            ("^" +
+                    "\\s*" +
+                    "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL)" +
+                    "\\s*" +
+                    "$"
+                    ).toRegex(RegexOption.IGNORE_CASE)
+        }
+
+        internal val fuzzyUrlNonWebRegex by lazy {
+            ("^" +
+                    "\\s*" +
+                    "($WEB_URL_WITH_PROTOCOL|$WEB_URL_WITHOUT_PROTOCOL|$UNSUPPORTED_URL_WITH_PROTOCOL)" +
+                    "\\s*" +
+                    "$"
+                    ).toRegex(RegexOption.IGNORE_CASE)
+        }
 
         /**
          * Check if string is a Web URL.
@@ -310,7 +362,8 @@ class WebURLFinder {
          * @param string to check.
          * @return `true` if `string` is a Web URL.
          */
-        private fun isWebURL(string: String): Boolean {
+        @SuppressWarnings("TooGenericExceptionCaught")
+        fun isWebURL(string: String): Boolean {
             try {
                 URI(string)
             } catch (e: Exception) {
@@ -320,7 +373,7 @@ class WebURLFinder {
             return !(URLUtil.isFileUrl(string) || URLUtil.isJavaScriptUrl(string))
         }
 
-        private fun candidateWebURLs(strings: Collection<String?>): List<String> {
+        private fun candidateWebURLs(strings: Collection<String?>, explicitUnicode: Boolean = false): List<String> {
             val candidates = mutableListOf<String>()
 
             // no functional transformation lambdas (ie. flatMapNotNull) since it would turn an
@@ -330,14 +383,18 @@ class WebURLFinder {
                     continue
                 }
 
-                candidates.addAll(candidateWebURLs(string))
+                candidates.addAll(candidateWebURLs(string, explicitUnicode))
             }
 
             return candidates
         }
 
-        private fun candidateWebURLs(string: String): List<String> {
-            val matcher = AUTOLINK_WEB_URL.matcher(string)
+        private fun candidateWebURLs(string: String, explicitUnicode: Boolean = false): List<String> {
+            val matcher = when {
+                explicitUnicode -> autolinkWebUrlExplicitUnicode.matcher(string)
+                else -> autolinkWebUrl.matcher(string)
+            }
+
             val matches = LinkedList<String>()
 
             while (matcher.find()) {

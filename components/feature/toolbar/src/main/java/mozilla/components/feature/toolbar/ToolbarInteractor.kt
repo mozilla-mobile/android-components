@@ -25,18 +25,12 @@ class ToolbarInteractor(
      */
     fun start() {
         toolbar.setOnUrlCommitListener { text ->
-            if (text.isUrl()) {
-                loadUrlUseCase.invoke(text.toNormalizedUrl())
-            } else {
-                searchUseCase?.invoke(text) ?: loadUrlUseCase.invoke(text)
+            when {
+                text.isUrl() -> loadUrlUseCase.invoke(text.toNormalizedUrl())
+                searchUseCase != null -> searchUseCase.invoke(text)
+                else -> loadUrlUseCase.invoke(text)
             }
+            true
         }
-    }
-
-    /**
-     * Stops this interactor.
-     */
-    fun stop() {
-        toolbar.setOnUrlCommitListener { }
     }
 }

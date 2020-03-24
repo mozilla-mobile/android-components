@@ -22,7 +22,7 @@ Even if you are able to reproduce the scenario *inside* the repository you may s
 
 #### Setup version number
 
-In the *android-components* repository update the version number [in the configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt#L7) so that the app will be required to "download" this new version. Try to avoid picking a version number that was or will be officially released. Otherwise you may "pollute" your gradle cache with unofficial releases. To follow [the Maven convention](https://maven.apache.org/guides/getting-started/index.html#What_is_a_SNAPSHOT_version) you may want to use a `-SNAPSHOT` suffix.
+In the *android-components* repository update the version number [in the configuration](https://github.com/mozilla-mobile/android-components/blob/master/.buildconfig.yml#L1) so that the app will be required to "download" this new version. Try to avoid picking a version number that was or will be officially released. Otherwise you may "pollute" your gradle cache with unofficial releases. To follow [the Maven convention](https://maven.apache.org/guides/getting-started/index.html#What_is_a_SNAPSHOT_version) you may want to use a `-SNAPSHOT` suffix.
 
 #### Publish to local maven repository
 
@@ -30,10 +30,10 @@ After changing the components code you can publish your version to your local ma
 
 ```Bash
 # Publish all components to your local Maven repository:
-$ ./gradlew install
+$ ./gradlew publishToMavenLocal
 
 # Only publish a single component (ui-autocomplete):
-$ ./gradlew ui-autocomplete:install
+$ ./gradlew ui-autocomplete:publishToMavenLocal
 ```
 
 #### Using a component from the local maven repository
@@ -60,8 +60,6 @@ When using a snapshot version (see above) in an app Gradle should ignore its cac
 
 To enforce using the latest version of a dependency you can try the `--refresh-dependencies` Gradle command line option or setting up a [ResolutionStrategy with a cache time of 0](https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.ResolutionStrategy.html) in your app project.
 
-## Future enhancements
+## Automated Snapshots
 
-* [Automated snapshot releases](https://github.com/mozilla-mobile/android-components/issues/35): The _Android components_ team is planning to automatically publish SNAPSHOT versions of components in a separate repository for every successful _master_ merge.
-
-* [Creating an createArchives task](https://github.com/mozilla-mobile/android-components/issues/654): Generating a local maven repository with components from a gradle command.
+Snapshots are build daily from the `master` branch and published on [snapshots.maven.mozilla.org](https://snapshots.maven.mozilla.org).

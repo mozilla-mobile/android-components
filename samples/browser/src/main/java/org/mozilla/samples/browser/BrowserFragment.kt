@@ -5,47 +5,111 @@
 package org.mozilla.samples.browser
 
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_browser.*
-import mozilla.components.feature.session.SessionFeature
+import kotlinx.android.synthetic.main.fragment_browser.view.*
+import mozilla.components.feature.awesomebar.AwesomeBarFeature
+import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
+import mozilla.components.feature.search.SearchFeature
+import mozilla.components.feature.session.ThumbnailsFeature
+import mozilla.components.feature.tabs.WindowFeature
 import mozilla.components.feature.tabs.toolbar.TabsToolbarFeature
-import mozilla.components.feature.toolbar.ToolbarFeature
+import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
+import mozilla.components.feature.toolbar.WebExtensionToolbarFeature
+import mozilla.components.support.base.feature.UserInteractionHandler
+import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import org.mozilla.samples.browser.ext.components
+import org.mozilla.samples.browser.integration.ReaderViewIntegration
 
-class BrowserFragment : Fragment(), BackHandler {
-    private lateinit var sessionFeature: SessionFeature
-    private lateinit var toolbarFeature: ToolbarFeature
-    private lateinit var tabsToolbarFeature: TabsToolbarFeature
+/**
+ * Fragment used for browsing the web within the main app.
+ */
+class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
+    private val thumbnailsFeature = ViewBoundFeatureWrapper<ThumbnailsFeature>()
+    private val readerViewFeature = ViewBoundFeatureWrapper<ReaderViewIntegration>()
+    private val webExtToolbarFeature = ViewBoundFeatureWrapper<WebExtensionToolbarFeature>()
+    private val searchFeature = ViewBoundFeatureWrapper<SearchFeature>()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_browser, container, false)
-    }
+    @Suppress("LongMethod")
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        val layout = super.onCreateView(inflater, container, savedInstanceState)
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+        ToolbarAutocompleteFeature(layout.toolbar, components.engine).apply {
+            addHistoryStorageProvider(components.historyStorage)
+            addDomainProvider(components.shippedDomainsProvider)
+        }
 
-        toolbar.setMenuBuilder(components.menuBuilder)
+        TabsToolbarFeature(layout.toolbar, components.sessionManager, sessionId, ::showTabs)
 
-        val sessionId = arguments?.getString(SESSION_ID)
-
-        sessionFeature = SessionFeature(
-                components.sessionManager,
-                components.sessionUseCases,
-                engineView,
-                components.sessionStorage,
-                sessionId)
-
-        toolbarFeature = ToolbarFeature(
-                toolbar,
-                components.sessionManager,
+        AwesomeBarFeature(layout.awesomeBar, layout.toolbar, layout.engineView, components.icons)
+            .addHistoryProvider(
+                components.historyStorage,
                 components.sessionUseCases.loadUrl,
-                components.defaultSearchUseCase,
-                sessionId)
+                components.engine
+            )
+            .addSessionProvider(
+                resources,
+                components.store,
+                components.tabsUseCases.selectTab
+            )
+            .addSearchProvider(
+                requireContext(),
+                components.searchEngineManager,
+                components.searchUseCases.defaultSearch,
+                fetchClient = components.client,
+                mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS,
+                engine = components.engine
+            )
+            .addClipboardProvider(
+                requireContext(),
+                components.sessionUseCases.loadUrl,
+                components.engine
+            )
 
-        tabsToolbarFeature = TabsToolbarFeature(context!!, toolbar, ::showTabs)
+        readerViewFeature.set(
+            feature = ReaderViewIntegration(
+                requireContext(),
+                components.engine,
+                components.sessionManager,
+                layout.toolbar,
+                layout.readerViewBar,
+                layout.readerViewAppearanceButton
+            ),
+            owner = this,
+            view = layout
+        )
+
+        thumbnailsFeature.set(
+            feature = ThumbnailsFeature(requireContext(), layout.engineView, components.sessionManager),
+            owner = this,
+            view = layout
+        )
+
+        webExtToolbarFeature.set(
+            feature = WebExtensionToolbarFeature(
+                layout.toolbar,
+                components.store
+            ),
+            owner = this,
+            view = layout
+        )
+
+        searchFeature.set(
+            feature = SearchFeature(components.store) {
+                when (it.isPrivate) {
+                    true -> components.searchUseCases.newPrivateTabSearch.invoke(it.query)
+                    false -> components.searchUseCases.newTabSearch.invoke(it.query)
+                }
+            },
+            owner = this,
+            view = layout
+        )
+
+        val windowFeature = WindowFeature(components.store, components.tabsUseCases)
+        lifecycle.addObserver(windowFeature)
+
+        return layout
     }
 
     private fun showTabs() {
@@ -57,38 +121,13 @@ class BrowserFragment : Fragment(), BackHandler {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-
-        sessionFeature.start()
-        toolbarFeature.start()
-    }
-
-    override fun onStop() {
-        super.onStop()
-
-        sessionFeature.stop()
-        toolbarFeature.stop()
-    }
-
-    override fun onBackPressed(): Boolean {
-        if (toolbarFeature.handleBackPressed()) {
-            return true
-        }
-
-        if (sessionFeature.handleBackPressed()) {
-            return true
-        }
-
-        return false
-    }
+    override fun onBackPressed(): Boolean =
+        readerViewFeature.onBackPressed() || super.onBackPressed()
 
     companion object {
-        private const val SESSION_ID = "session_id"
-
-        fun create(sessionId: String? = null): BrowserFragment = BrowserFragment().apply {
+        fun create(sessionId: String? = null) = BrowserFragment().apply {
             arguments = Bundle().apply {
-                putString(SESSION_ID, sessionId)
+                putSessionId(sessionId)
             }
         }
     }

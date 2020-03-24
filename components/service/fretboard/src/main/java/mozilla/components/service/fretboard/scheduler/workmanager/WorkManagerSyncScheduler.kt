@@ -4,7 +4,9 @@
 
 package mozilla.components.service.fretboard.scheduler.workmanager
 
+import android.content.Context
 import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
@@ -14,7 +16,7 @@ import java.util.concurrent.TimeUnit
  * Class used to schedule sync of experiment
  * configuration from the server using WorkManager
  */
-class WorkManagerSyncScheduler {
+class WorkManagerSyncScheduler(private val context: Context) {
     /**
      * Schedule sync with the default constraints
      * (once a day and charging)
@@ -29,8 +31,13 @@ class WorkManagerSyncScheduler {
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
         val syncWork = PeriodicWorkRequest.Builder(worker, interval.first, interval.second)
+            .addTag(TAG)
             .setConstraints(constraints)
             .build()
-        WorkManager.getInstance().enqueue(syncWork)
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(TAG, ExistingPeriodicWorkPolicy.KEEP, syncWork)
+    }
+
+    companion object {
+        private const val TAG = "mozilla.components.service.fretboard"
     }
 }

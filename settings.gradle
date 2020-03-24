@@ -2,159 +2,110 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Concept
-////////////////////////////////////////////////////////////////////////////////////////////////////
+import org.yaml.snakeyaml.Yaml
 
-include ':concept-toolbar'
-project(':concept-toolbar').projectDir = new File(rootDir, 'components/concept/toolbar')
+buildscript {
+    repositories {
+        jcenter()
+    }
 
-include ':concept-tabstray'
-project(':concept-tabstray').projectDir = new File(rootDir, 'components/concept/tabstray')
+    dependencies {
+        classpath 'org.yaml:snakeyaml:1.23'
+    }
+}
 
-include ':concept-engine'
-project(':concept-engine').projectDir = new File(rootDir, 'components/concept/engine')
+def setupProject(name, path, description) {
+    settings.include(":$name")
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Features
-////////////////////////////////////////////////////////////////////////////////////////////////////
+    project(":$name").projectDir = new File(rootDir, path)
 
-include ':feature-intent'
-project(':feature-intent').projectDir = new File(rootDir, 'components/feature/intent')
+    // project(...) gives us a skeleton project that we can't set ext.* on
+    gradle.beforeProject { project ->
+        // However, the "afterProject" listener iterates over every project and gives us the actual project
+        // So, once we filter for the project we care about, we can set whatever we want
+        if (project.name == name) {
+            project.ext.description = description
+        }
+    }
+}
 
-include ':feature-search'
-project(':feature-search').projectDir = new File(rootDir, 'components/feature/search')
+def yaml = new Yaml()
+def buildconfig = yaml.load(new File(rootDir, '.buildconfig.yml').newInputStream())
+buildconfig.projects.each { project ->
+    setupProject(project.key, project.value.path, project.value.description)
+}
 
-include ':feature-session'
-project(':feature-session').projectDir = new File(rootDir, 'components/feature/session')
+gradle.projectsLoaded { ->
+    String version = buildconfig.componentsVersion
 
-include ':feature-tabs'
-project(':feature-tabs').projectDir = new File(rootDir, 'components/feature/tabs')
+    if (gradle.rootProject.hasProperty("nightlyVersion")) {
+        version = gradle.rootProject.nightlyVersion
+    }
+    // To support local auto-publication workflow, we use a version prefix we wouldn't normally encounter.
+    if (gradle.rootProject.hasProperty("local")) {
+        version = "0.0.1"
+    }
+    // Wait until root project is "loaded" before we set "config"
+    // Note that since this is set on "rootProject.ext", it will be "in scope" during the evaluation of all projects'
+    // gradle files. This means that they can just access "config.<value>", and it'll function properly
+    gradle.rootProject.ext.config = new Config(version)
+    gradle.rootProject.ext.buildConfig = buildconfig
+}
 
-include ':feature-toolbar'
-project(':feature-toolbar').projectDir = new File(rootDir, 'components/feature/toolbar')
+def runCmd(cmd, workingDir, successMessage) {
+    def proc = cmd.execute(null, new File(workingDir))
+    proc.consumeProcessOutput(System.out, System.err)
+    proc.waitFor()
+    if (proc.exitValue() != 0) {
+        throw new GradleException("Process '${cmd}' finished with non-zero exit value ${proc.exitValue()}")
+    } else {
+        logger.lifecycle(successMessage)
+    }
+}
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Browser components
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+// Local Development overrides
+//////////////////////////////////////////////////////////////////////////
 
-include ':browser-engine-gecko'
-project(':browser-engine-gecko').projectDir = new File(rootDir, 'components/browser/engine-gecko')
+Properties localProperties = null;
+String settingAppServicesPath = "autoPublish.application-services.dir"
+String settingGleanPath = "substitutions.glean.dir";
 
-include ':browser-engine-gecko-beta'
-project(':browser-engine-gecko-beta').projectDir = new File(rootDir, 'components/browser/engine-gecko-beta')
+if (file('local.properties').canRead()) {
+    localProperties = new Properties()
+    localProperties.load(file('local.properties').newDataInputStream())
+    logger.lifecycle('Local configuration: loaded local.properties')
+} else {
+    logger.lifecycle('Local configuration: absent local.properties; proceeding as normal.')
+}
 
-include ':browser-engine-gecko-nightly'
-project(':browser-engine-gecko-nightly').projectDir = new File(rootDir, 'components/browser/engine-gecko-nightly')
+if (localProperties != null) {
+    localProperties.each { prop ->
+        gradle.ext.set("localProperties.${prop.key}", prop.value)
+    }
 
-include ':browser-engine-system'
-project(':browser-engine-system').projectDir = new File(rootDir, 'components/browser/engine-system')
+    String appServicesLocalPath = localProperties.getProperty(settingAppServicesPath);
 
-include ':browser-errorpages'
-project(':browser-errorpages').projectDir = new File(rootDir, 'components/browser/errorpages')
+    if (appServicesLocalPath != null) {
+        logger.lifecycle("Enabling automatic publication of application-services from: $appServicesLocalPath")
+        def publishAppServicesCmd = ["./gradlew", "autoPublishForLocalDevelopment"]
+        runCmd(publishAppServicesCmd, appServicesLocalPath, "Published application-services for local development.")
+    } else {
+        logger.lifecycle("Disabled auto-publication of application-services. Enable it by settings '$settingAppServicesPath' in local.properties")
+    }
 
-include ':browser-menu'
-project(':browser-menu').projectDir = new File(rootDir, 'components/browser/menu')
+    String gleanLocalPath = localProperties.getProperty(settingGleanPath);
 
-include ':browser-search'
-project(':browser-search').projectDir = new File(rootDir, 'components/browser/search')
+    if (gleanLocalPath != null) {
+        logger.lifecycle("Local configuration: substituting glean module from path: $gleanLocalPath")
 
-include ':browser-session'
-project(':browser-session').projectDir = new File(rootDir, 'components/browser/session')
-
-include ':browser-tabstray'
-project(':browser-tabstray').projectDir = new File(rootDir, 'components/browser/tabstray')
-
-include ':browser-toolbar'
-project(':browser-toolbar').projectDir = new File(rootDir, 'components/browser/toolbar')
-
-include ':browser-domains'
-project(':browser-domains').projectDir = new File(rootDir, 'components/browser/domains')
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// UI components
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-include ':ui-autocomplete'
-project(':ui-autocomplete').projectDir = new File(rootDir, 'components/ui/autocomplete')
-
-include ':ui-colors'
-project(':ui-colors').projectDir = new File(rootDir, 'components/ui/colors')
-
-include ':ui-fonts'
-project(':ui-fonts').projectDir = new File('components/ui/fonts')
-
-include ':ui-icons'
-project(':ui-icons').projectDir = new File('components/ui/icons')
-
-include ':ui-progress'
-project(':ui-progress').projectDir = new File('components/ui/progress')
-
-include ':ui-tabcounter'
-project(':ui-tabcounter').projectDir = new File('components/ui/tabcounter')
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Services
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-include ':service-firefox-accounts'
-project(':service-firefox-accounts').projectDir = new File('components/service/firefox-accounts')
-
-include ':service-sync-logins'
-project(':service-sync-logins').projectDir = new File('components/service/sync-logins')
-
-include ':service-fretboard'
-project(':service-fretboard').projectDir = new File('components/service/fretboard')
-
-include ':service-telemetry'
-project(':service-telemetry').projectDir = new File('components/service/telemetry')
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Support components
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-include ':support-base'
-project(':support-base').projectDir = new File(rootDir, 'components/support/base')
-
-include ':support-ktx'
-project(':support-ktx').projectDir = new File(rootDir, 'components/support/ktx')
-
-include ':support-test'
-project(':support-test').projectDir = new File(rootDir, 'components/support/test')
-
-include ':support-utils'
-project(':support-utils').projectDir = new File(rootDir, 'components/support/utils')
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Standalone Libraries
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-include ':lib-dataprotect'
-project(':lib-dataprotect').projectDir = new File(rootDir, 'components/lib/dataprotect')
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Tooling
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-include ':tooling-lint'
-project(':tooling-lint').projectDir = new File(rootDir, 'components/tooling/lint')
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Samples
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-include ':samples-browser'
-project(':samples-browser').projectDir = new File(rootDir, 'samples/browser')
-
-include ':samples-firefox-accounts'
-project(':samples-firefox-accounts').projectDir = new File(rootDir, 'samples/firefox-accounts')
-
-include ':samples-sync-logins'
-project(':samples-sync-logins').projectDir = new File(rootDir, 'samples/sync-logins')
-
-include ':samples-toolbar'
-project(':samples-toolbar').projectDir = new File(rootDir, 'samples/toolbar')
-
-include ':samples-dataprotect'
-project(':samples-dataprotect').projectDir = new File(rootDir, 'samples/dataprotect')
+        includeBuild(gleanLocalPath) {
+            dependencySubstitution {
+                substitute module('org.mozilla.telemetry:glean') with project(':glean')
+                    substitute module('org.mozilla.telemetry:glean-forUnitTests') with project(':glean')
+            }
+        }
+    } else {
+        logger.lifecycle("Local configuration: glean substitution path missing. You may specify it via '$settingGleanPath' setting.")
+    }
+}

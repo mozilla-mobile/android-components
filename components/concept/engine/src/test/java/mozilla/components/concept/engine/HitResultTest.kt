@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.concept.engine
 
 import org.junit.Assert.assertEquals
@@ -6,7 +10,7 @@ import org.junit.Test
 
 class HitResultTest {
     @Test
-    fun testConstructor() {
+    fun constructor() {
         var result: HitResult = HitResult.UNKNOWN("file://foobar")
         assertTrue(result is HitResult.UNKNOWN)
         assertEquals(result.src, "file://foobar")

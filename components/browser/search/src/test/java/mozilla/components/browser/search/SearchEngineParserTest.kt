@@ -4,29 +4,30 @@
 
 package mozilla.components.browser.search
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import java.io.IOException
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class SearchEngineParserTest {
+
     @Test
     fun `SearchEngine can be parsed from assets`() {
         val searchEngine = SearchEngineParser().load(
-                RuntimeEnvironment.application.assets,
-                "google", "searchplugins/google-nocodes.xml")
+            testContext.assets,
+                "google", "searchplugins/google-b-m.xml")
 
         assertEquals("google", searchEngine.identifier)
         assertEquals("Google", searchEngine.name)
         assertNotNull(searchEngine.icon)
 
         val url = searchEngine.buildSearchUrl("HelloWorld")
-        assertEquals("https://www.google.com/search?q=HelloWorld&ie=utf-8&oe=utf-8", url)
+        assertEquals("https://www.google.com/search?q=HelloWorld&ie=utf-8&oe=utf-8&client=firefox-b-m", url)
 
         val suggestionURL = searchEngine.buildSuggestionsURL("Mozilla")
         assertEquals("https://www.google.com/complete/search?client=firefox&q=Mozilla", suggestionURL)
@@ -35,7 +36,7 @@ class SearchEngineParserTest {
     @Test
     fun `SearchEngine without SuggestUri wont build suggestionURL`() {
         val searchEngine = SearchEngineParser().load(
-                RuntimeEnvironment.application.assets,
+            testContext.assets,
                 "amazon", "searchplugins/amazon-au.xml")
 
         val suggestionURL = searchEngine.buildSuggestionsURL("Mozilla")
@@ -45,7 +46,7 @@ class SearchEngineParserTest {
     @Test(expected = IOException::class)
     fun `Parsing not existing file will throw exception`() {
         SearchEngineParser().load(
-                RuntimeEnvironment.application.assets,
+            testContext.assets,
                 "google", "does/not/exist.xml")
     }
 }

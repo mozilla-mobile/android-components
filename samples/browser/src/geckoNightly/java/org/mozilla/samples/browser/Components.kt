@@ -5,19 +5,36 @@ package org.mozilla.samples.browser
 
 import android.content.Context
 import mozilla.components.browser.engine.gecko.GeckoEngine
-import mozilla.components.concept.engine.DefaultSettings
+import mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient
+import mozilla.components.browser.engine.gecko.glean.GeckoAdapter
 import mozilla.components.concept.engine.Engine
+import mozilla.components.feature.webcompat.WebCompatFeature
+import mozilla.components.support.base.log.Log
 import org.mozilla.geckoview.GeckoRuntime
-import org.mozilla.samples.browser.request.SampleRequestInterceptor
+import org.mozilla.geckoview.GeckoRuntimeSettings
 
 /**
  * Helper class for lazily instantiating components needed by the application.
  */
 class Components(private val applicationContext: Context) : DefaultComponents(applicationContext) {
-    override val engine: Engine by lazy {
-        val defaultSettings = DefaultSettings().apply {
-            requestInterceptor = SampleRequestInterceptor(applicationContext)
-        }
-        GeckoEngine(applicationContext, defaultSettings)
+    private val runtime by lazy {
+        // Allow for exfiltrating Gecko metrics through the Glean SDK.
+        val builder = GeckoRuntimeSettings.Builder().aboutConfigEnabled(true)
+        builder.telemetryDelegate(GeckoAdapter())
+        GeckoRuntime.create(applicationContext, builder.build())
     }
+
+    override val engine: Engine by lazy {
+        GeckoEngine(applicationContext, engineSettings, runtime).also {
+            it.installWebExtension("mozacBorderify", "resource://android/assets/extensions/borderify/") {
+                ext, throwable -> Log.log(Log.Priority.ERROR, "SampleBrowser", throwable, "Failed to install $ext")
+            }
+            it.installWebExtension("mozacTest", "resource://android/assets/extensions/test/", supportActions = true) {
+                ext, throwable -> Log.log(Log.Priority.ERROR, "SampleBrowser", throwable, "Failed to install $ext")
+            }
+            WebCompatFeature.install(it)
+        }
+    }
+
+    override val client by lazy { GeckoViewFetchClient(applicationContext, runtime) }
 }

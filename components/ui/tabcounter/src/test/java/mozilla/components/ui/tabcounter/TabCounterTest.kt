@@ -4,6 +4,8 @@
 
 package mozilla.components.ui.tabcounter
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.ui.tabcounter.TabCounter.Companion.DEFAULT_TABS_COUNTER_TEXT
 import mozilla.components.ui.tabcounter.TabCounter.Companion.ONE_DIGIT_SIZE_RATIO
 import mozilla.components.ui.tabcounter.TabCounter.Companion.SO_MANY_TABS_OPEN
@@ -11,15 +13,13 @@ import mozilla.components.ui.tabcounter.TabCounter.Companion.TWO_DIGITS_SIZE_RAT
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class TabCounterTest {
 
     @Test
     fun `Default tab count is a smiley face`() {
-        val tabCounter = TabCounter(RuntimeEnvironment.application)
+        val tabCounter = TabCounter(testContext)
 
         assertEquals(DEFAULT_TABS_COUNTER_TEXT, tabCounter.getText())
 
@@ -28,7 +28,7 @@ class TabCounterTest {
 
     @Test
     fun `Set tab count as 1`() {
-        val tabCounter = TabCounter(RuntimeEnvironment.application)
+        val tabCounter = TabCounter(testContext)
 
         tabCounter.setCount(1)
 
@@ -39,7 +39,7 @@ class TabCounterTest {
 
     @Test
     fun `Set tab count as 99`() {
-        val tabCounter = TabCounter(RuntimeEnvironment.application)
+        val tabCounter = TabCounter(testContext)
 
         tabCounter.setCount(99)
 
@@ -50,7 +50,7 @@ class TabCounterTest {
 
     @Test
     fun `Set tab count as 100`() {
-        val tabCounter = TabCounter(RuntimeEnvironment.application)
+        val tabCounter = TabCounter(testContext)
 
         tabCounter.setCount(100)
 

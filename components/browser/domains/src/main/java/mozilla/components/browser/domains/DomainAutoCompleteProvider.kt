@@ -5,10 +5,10 @@
 package mozilla.components.browser.domains
 
 import android.content.Context
-import kotlinx.coroutines.experimental.CommonPool
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 import java.util.Locale
 
 /**
@@ -16,7 +16,13 @@ import java.util.Locale
  * of assets (see [Domains]) and/or a custom domain list managed by
  * [CustomDomains].
  */
+// FIXME delete this https://github.com/mozilla-mobile/android-components/issues/1358
+@Deprecated("Use `ShippedDomainsProvider` or `CustomDomainsProvider`",
+    ReplaceWith("ShippedDomainsProvider()/CustomDomainsProvider()",
+        "mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider",
+        "mozilla.components.browser.domains.autocomplete.CustomDomainsProvider"))
 class DomainAutoCompleteProvider {
+
     object AutocompleteSource {
         const val DEFAULT_LIST = "default"
         const val CUSTOM_LIST = "custom"
@@ -35,35 +41,11 @@ class DomainAutoCompleteProvider {
      */
     data class Result(val text: String, val url: String, val source: String, val size: Int)
 
-    internal data class Domain(val protocol: String, val hasWww: Boolean, val host: String) {
-        internal val url: String
-            get() = "$protocol${if (hasWww) "www." else "" }$host"
-
-        companion object {
-            private const val PROTOCOL_INDEX = 1
-            private const val WWW_INDEX = 2
-            private const val HOST_INDEX = 3
-
-            private const val DEFAULT_PROTOCOL = "http://"
-
-            private val urlMatcher = Regex("""(https?://)?(www.)?(.+)?""")
-
-            internal fun create(url: String): Domain {
-                val result = urlMatcher.find(url)
-
-                return result?.let {
-                    val protocol = it.groups[PROTOCOL_INDEX]?.value ?: DEFAULT_PROTOCOL
-                    val hasWww = it.groups[WWW_INDEX]?.value == "www."
-                    val host = it.groups[HOST_INDEX]?.value ?: throw IllegalStateException()
-
-                    return Domain(protocol, hasWww, host)
-                } ?: throw IllegalStateException()
-            }
-        }
-    }
-
-    private var customDomains = emptyList<Domain>()
-    private var shippedDomains = emptyList<Domain>()
+    // We compute these on worker threads; make sure results are immediately visible on the UI thread.
+    @Volatile
+    internal var customDomains = emptyList<Domain>()
+    @Volatile
+    internal var shippedDomains = emptyList<Domain>()
     private var useCustomDomains = false
     private var useShippedDomains = true
 
@@ -115,19 +97,22 @@ class DomainAutoCompleteProvider {
         this.useCustomDomains = useCustomDomains
         this.useShippedDomains = useShippedDomains
 
-        if (loadDomainsFromDisk) {
-            launch(UI) {
-                val domains = async(CommonPool) { Domains.load(context) }
-                val customDomains = async(CommonPool) { CustomDomains.load(context) }
+        if (!loadDomainsFromDisk) {
+            return
+        }
 
-                onDomainsLoaded(domains.await(), customDomains.await())
+        if (!useCustomDomains && !useShippedDomains) {
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            if (useCustomDomains) {
+                customDomains = async { CustomDomains.load(context).into() }.await()
+            }
+            if (useShippedDomains) {
+                shippedDomains = async { Domains.load(context).into() }.await()
             }
         }
-    }
-
-    internal fun onDomainsLoaded(domains: List<String>, customDomains: List<String>) {
-        this.shippedDomains = domains.map { Domain.create(it) }
-        this.customDomains = customDomains.map { Domain.create(it) }
     }
 
     @Suppress("ReturnCount")

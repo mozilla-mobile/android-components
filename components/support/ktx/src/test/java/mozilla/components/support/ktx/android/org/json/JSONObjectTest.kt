@@ -1,17 +1,22 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package mozilla.components.support.ktx.android.org.json
 
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class JSONObjectTest {
+
     @Test
-    fun testSortKeys() {
+    fun sortKeys() {
         val jsonObject = JSONObject()
         jsonObject.put("second-key", "second-value")
         jsonObject.put("third-key", JSONArray().apply {
@@ -28,7 +33,7 @@ class JSONObjectTest {
     }
 
     @Test
-    fun testPutIfNotNull() {
+    fun putIfNotNull() {
         val jsonObject = JSONObject()
         assertEquals(0, jsonObject.length())
         jsonObject.putIfNotNull("key", null)
@@ -39,41 +44,74 @@ class JSONObjectTest {
     }
 
     @Test
-    fun testTryGetStringNull() {
+    fun tryGetNull() {
+        val jsonObject = JSONObject("""{"key":null}""")
+        assertNull(jsonObject.tryGet("key"))
+        assertNull(jsonObject.tryGet("another-key"))
+    }
+
+    @Test
+    fun tryGetNotNull() {
+        val jsonObject = JSONObject("""{"key":"value"}""")
+        assertEquals("value", jsonObject.tryGet("key"))
+    }
+
+    @Test
+    fun tryGetStringNull() {
         val jsonObject = JSONObject("""{"key":null}""")
         assertNull(jsonObject.tryGetString("key"))
         assertNull(jsonObject.tryGetString("another-key"))
     }
 
     @Test
-    fun testTryGetStringNotNull() {
+    fun tryGetStringNotNull() {
         val jsonObject = JSONObject("""{"key":"value"}""")
         assertEquals("value", jsonObject.tryGetString("key"))
     }
 
     @Test
-    fun testTryGetLongNull() {
+    fun tryGetLongNull() {
         val jsonObject = JSONObject("""{"key":null}""")
         assertNull(jsonObject.tryGetLong("key"))
         assertNull(jsonObject.tryGetLong("another-key"))
     }
 
     @Test
-    fun testTryGetLongNotNull() {
+    fun tryGetLongNotNull() {
         val jsonObject = JSONObject("""{"key":218728173837192717}""")
         assertEquals(218728173837192717, jsonObject.tryGetLong("key"))
     }
 
     @Test
-    fun testTryGetIntNull() {
+    fun tryGetIntNull() {
         val jsonObject = JSONObject("""{"key":null}""")
         assertNull(jsonObject.tryGetInt("key"))
         assertNull(jsonObject.tryGetInt("another-key"))
     }
 
     @Test
-    fun testTryGetIntNotNull() {
+    fun tryGetIntNotNull() {
         val jsonObject = JSONObject("""{"key":3}""")
         assertEquals(3, jsonObject.tryGetInt("key"))
+    }
+
+    @Test
+    fun mergeWith() {
+        val merged = JSONObject(mapOf(
+            "toKeep" to 3,
+            "toOverride" to "OHNOZ"
+        ))
+
+        merged.mergeWith(JSONObject(mapOf(
+            "newKey" to 5,
+            "toOverride" to "YAY"
+        )))
+
+        val expectedObject = JSONObject(mapOf(
+            "toKeep" to 3,
+            "toOverride" to "YAY",
+            "newKey" to 5
+        ))
+        assertEquals(expectedObject.toString(), merged.toString())
     }
 }

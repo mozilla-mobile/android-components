@@ -1,0 +1,171 @@
+
+basepath = "."
+
+locales = [
+    "an",
+    "ar",
+    "ast",
+    "az",
+    "be",
+    "bg",
+    "bn",
+    "br",
+    "bs",
+    "ca",
+    "cak",
+    "co",
+    "cs",
+    "cy",
+    "da",
+    "de",
+    "dsb",
+    "el",
+    "en-CA",
+    "en-GB",
+    "eo",
+    "es",
+    "es-AR",
+    "es-CL",
+    "es-ES",
+    "es-MX",
+    "et",
+    "eu",
+    "fa",
+    "ff",
+    "fi",
+    "fr",
+    "fy-NL",
+    "ga-IE",
+    "gd",
+    "gn",
+    "gu-IN",
+    "he",
+    "hi-IN",
+    "hr",
+    "hsb",
+    "hu",
+    "hy-AM",
+    "id",
+    "is",
+    "it",
+    "ja",
+    "ka",
+    "kab",
+    "kk",
+    "kn",
+    "ko",
+    "lij",
+    "lo",
+    "lt",
+    "ml",
+    "mr",
+    "ms",
+    "my",
+    "nb-NO",
+    "ne-NP",
+    "nl",
+    "nn-NO",
+    "nv",
+    "oc",
+    "pa-IN",
+    "pl",
+    "pt-BR",
+    "pt-PT",
+    "rm",
+    "ro",
+    "ru",
+    "sk",
+    "sl",
+    "sq",
+    "sr",
+    "su",
+    "sv-SE",
+    "ta",
+    "te",
+    "th",
+    "tr",
+    "trs",
+    "uk",
+    "ur",
+    "uz",
+    "vec",
+    "vi",
+    "zh-CN",
+    "zh-TW",
+]
+
+# Expose the following branches to localization
+# Changes to this list should be announced to the l10n team ahead of time.
+branches = [
+    "master",
+]
+
+[env]
+
+[[paths]]
+  reference = "components/browser/engine-system/src/main/res/values/strings.xml"
+  l10n = "components/browser/engine-system/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/browser/errorpages/src/main/res/values/strings.xml"
+  l10n = "components/browser/errorpages/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/browser/toolbar/src/main/res/values/strings.xml"
+  l10n = "components/browser/toolbar/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/app-links/src/main/res/values/strings.xml"
+  l10n = "components/feature/app-links/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/contextmenu/src/main/res/values/strings.xml"
+  l10n = "components/feature/contextmenu/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/customtabs/src/main/res/values/strings.xml"
+  l10n = "components/feature/customtabs/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/downloads/src/main/res/values/strings.xml"
+  l10n = "components/feature/downloads/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/findinpage/src/main/res/values/strings.xml"
+  l10n = "components/feature/findinpage/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/media/src/main/res/values/strings.xml"
+  l10n = "components/feature/media/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/readerview/src/main/res/values/strings.xml"
+  l10n = "components/feature/readerview/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/prompts/src/main/res/values/strings.xml"
+  l10n = "components/feature/prompts/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/sitepermissions/src/main/res/values/strings.xml"
+  l10n = "components/feature/sitepermissions/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/tabs/src/main/res/values/strings.xml"
+  l10n = "components/feature/tabs/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/lib/crash/src/main/res/values/strings.xml"
+  l10n = "components/lib/crash/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/support/ktx/src/main/res/values/strings.xml"
+  l10n = "components/support/ktx/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/addons/src/main/res/values/strings.xml"
+  l10n = "components/feature/addons/src/main/res/values-{android_locale}/strings.xml"
+
+[[paths]]
+  reference = "components/feature/awesomebar/src/main/res/values/strings.xml"
+  l10n = "components/feature/awesomebar/src/main/res/values-{android_locale}/strings.xml"

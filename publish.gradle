@@ -8,132 +8,69 @@ def libVcsUrl = properties.libVcsUrl
 def libLicense = properties.libLicense
 def libLicenseUrl = properties.libLicenseUrl
 
+// Must match the implementation in components/tooling/glean-gradle-plugin/build.gradle
+static def getLocalPublicationTimestamp() {
+    def date = new Date()
+    return date.format('yyyyMMddHHmmss')
+}
+
 ext.configurePublish = { groupIdArg, artifactIdArg, descriptionArg ->
-    apply plugin: 'com.github.dcendents.android-maven'
-
-    group = groupIdArg
-
-    install {
-        repositories.mavenInstaller {
-            pom {
-                project {
-                    packaging 'aar'
-                    groupId groupIdArg
-                    artifactId artifactIdArg
-
-                    name libRepoName
-                    description descriptionArg
-                    url libUrl
-
-                    licenses {
-                        license {
-                            name libLicense
-                            url libLicenseUrl
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id 'mozact'
-                            name 'Mozilla Android Components Team'
-                            email 'android-components@lists.mozilla.org'
-                        }
-                    }
-
-                    scm {
-                        connection libVcsUrl
-                        developerConnection libVcsUrl
-                        url libUrl
-                    }
-                }
-            }
-        }
-    }
-
-    apply plugin: 'com.jfrog.bintray'
-
-    version = Config.componentsVersion
+    apply plugin: 'digital.wup.android-maven-publish'
 
     task sourcesJar(type: Jar) {
         from android.sourceSets.main.java.srcDirs
         classifier = 'sources'
     }
 
-    task javadoc(type: Javadoc) {
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    }
+    publishing {
+        publications {
+            aar(MavenPublication) {
+                from components.android
+                artifact sourcesJar
 
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier = 'javadoc'
-        from javadoc.destinationDir
-    }
+                pom {
+                    groupId = groupIdArg
+                    artifactId = artifactIdArg
+                    description = descriptionArg
+                    // 'local' is for streamlining local publication workflow.
+                    version = config.componentsVersion + (project.hasProperty('snapshot') ? '-SNAPSHOT' : (project.hasProperty('local') ? '-local' + getLocalPublicationTimestamp() : ''))
 
-    artifacts {
-        //archives javadocJar
-        archives sourcesJar
-    }
-
-    Properties localProperties = null;
-    if (project.rootProject.file('local.properties').canRead()) {
-        localProperties = new Properties()
-        localProperties.load(project.rootProject.file('local.properties').newDataInputStream())
-    }
-
-    bintray {
-        user = localProperties != null ? localProperties.getProperty("bintray.user") : ""
-        key = localProperties != null ? localProperties.getProperty("bintray.apikey") : ""
-
-        configurations = ['archives']
-        pkg {
-            repo = libRepoName
-            name = artifactIdArg
-            desc = descriptionArg
-            websiteUrl = libUrl
-            vcsUrl = libVcsUrl
-            licenses = [libLicense]
-            publish = true
-            publicDownloadNumbers = true
-        }
-    }
-
-    apply plugin: 'maven'
-
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                pom.groupId = groupIdArg
-                pom.artifactId = artifactIdArg
-                pom.version = Config.componentsVersion
-
-                pom.project {
                     licenses {
                         license {
-                            name libLicense
-                            url libLicenseUrl
-                            distribution 'repo'
+                            name = libLicense
+                            url = libLicenseUrl
                         }
                     }
+
+                    developers {
+                        developer {
+                            name = 'Mozilla Android Components Team'
+                            email = 'android-components@lists.mozilla.org'
+                        }
+                    }
+
+                    scm {
+                        connection = libVcsUrl
+                        developerConnection = libVcsUrl
+                        url = libUrl
+                    }
                 }
-                repository(url: "file://${project.buildDir}/maven")
+            }
+        }
+
+        repositories {
+            maven {
+                url = "$buildDir/maven"
             }
         }
     }
 
-    task zipMavenArtifacts(type: Zip) {
-        from "${project.buildDir}/maven"
+    task renameSnapshotArtifacts(type: Exec) {
+        dependsOn publish
 
-        include '**/*.aar'
-        include '**/*.jar'
-        include '**/*.pom'
-        include '**/*.md5'
-        include '**/*.sha1'
+        def renameScript = "${rootDir}/automation/taskcluster/rename_snapshot_artifacts.py"
+        def mavenBuildDir = "${project.buildDir}/maven"
 
-        // Metadata is generated by maven.mozilla.org directly
-        exclude '**/*maven-metadata.xml*'
-
-        archiveName "target.maven.zip"
-        includeEmptyDirs = false
-        destinationDir(file("${project.buildDir}"))
+        commandLine 'python', renameScript, '--path', mavenBuildDir, '--timestamp', (project.hasProperty('timestamp') ? timestamp : '')
     }
 }

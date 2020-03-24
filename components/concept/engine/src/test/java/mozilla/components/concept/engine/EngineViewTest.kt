@@ -5,21 +5,23 @@
 package mozilla.components.concept.engine
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.widget.FrameLayout
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.concept.engine.selection.SelectionActionDelegate
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-import java.lang.ClassCastException
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class EngineViewTest {
+
     @Test
     fun `asView method returns underlying Android view`() {
-        val engineView = createDummyEngineView(RuntimeEnvironment.application)
+        val engineView = createDummyEngineView(testContext)
 
         val view = engineView.asView()
 
@@ -33,8 +35,8 @@ class EngineViewTest {
     }
 
     @Test
-    fun testLifecycleObserver() {
-        val engineView = spy(createDummyEngineView(RuntimeEnvironment.application))
+    fun lifecycleObserver() {
+        val engineView = spy(createDummyEngineView(testContext))
         val observer = LifecycleObserver(engineView)
 
         observer.onCreate()
@@ -58,12 +60,22 @@ class EngineViewTest {
 
     private fun createDummyEngineView(context: Context): EngineView = DummyEngineView(context)
 
-    open class DummyEngineView(context: Context?) : FrameLayout(context), EngineView {
+    open class DummyEngineView(context: Context) : FrameLayout(context), EngineView {
+        override fun setVerticalClipping(clippingHeight: Int) {}
+        override fun setDynamicToolbarMaxHeight(height: Int) {}
+        override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
         override fun render(session: EngineSession) {}
+        override fun release() {}
+        override var selectionActionDelegate: SelectionActionDelegate? = null
     }
 
     // Class it not actually a View!
     open class BrokenEngineView : EngineView {
+        override fun setVerticalClipping(clippingHeight: Int) {}
+        override fun setDynamicToolbarMaxHeight(height: Int) {}
+        override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) = Unit
         override fun render(session: EngineSession) {}
+        override fun release() {}
+        override var selectionActionDelegate: SelectionActionDelegate? = null
     }
 }

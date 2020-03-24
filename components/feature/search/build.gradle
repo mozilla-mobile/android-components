@@ -6,11 +6,11 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -21,22 +21,29 @@ android {
     }
 }
 
-dependencies {
-    implementation project(':browser-search')
-    implementation project(':browser-session')
-    implementation project(':concept-engine')
-
-    implementation Deps.kotlin_stdlib
-
-    testImplementation Deps.testing_junit
-    testImplementation Deps.testing_robolectric
-    testImplementation Deps.testing_mockito
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.freeCompilerArgs += [
+            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
+    ]
 }
 
-archivesBaseName = "feature-search"
+dependencies {
+    api project(':browser-search')
+    implementation project(':browser-session')
+    implementation project(':concept-engine')
+    implementation project(':support-utils')
+
+    implementation Dependencies.kotlin_stdlib
+
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
+    testImplementation Dependencies.androidx_test_core
+    testImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_mockito
+    testImplementation Dependencies.testing_coroutines
+}
 
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.components',
-        'feature-search',
-        'Feature implementation connecting an engine implementation with the search module.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

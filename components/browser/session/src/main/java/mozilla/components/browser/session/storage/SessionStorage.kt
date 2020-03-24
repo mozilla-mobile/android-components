@@ -4,38 +4,93 @@
 
 package mozilla.components.browser.session.storage
 
+import android.content.Context
+import android.util.AtomicFile
+import androidx.annotation.CheckResult
+import androidx.annotation.VisibleForTesting
+import androidx.annotation.WorkerThread
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.ext.readSnapshot
+import mozilla.components.browser.session.ext.writeSnapshot
+import mozilla.components.concept.engine.Engine
+import java.io.File
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+
+private const val STORE_FILE_NAME_FORMAT = "mozilla_components_session_storage_%s.json"
+
+private val sessionFileLock = Any()
 
 /**
- * Storage component for browser and engine sessions.
+ * Session storage for persisting the state of a [SessionManager] to disk (browser and engine session states).
  */
-interface SessionStorage {
+class SessionStorage(
+    private val context: Context,
+    private val engine: Engine
+) : AutoSave.Storage {
+    private val serializer = SnapshotSerializer()
 
     /**
-     * Persists the session state of the provided [SessionManager].
-     *
-     * @param sessionManager the session manager to persist from.
-     * @return true if the state was persisted, otherwise false.
+     * Reads the saved state from disk. Returns null if no state was found on disk or if reading the file failed.
      */
-    fun persist(sessionManager: SessionManager): Boolean
+    @WorkerThread
+    fun restore(): SessionManager.Snapshot? {
+        synchronized(sessionFileLock) {
+            return getFileForEngine(context, engine)
+                .readSnapshot(engine, serializer)
+        }
+    }
 
     /**
-     * Restores the session state by reading from the latest persisted version.
-     *
-     * @param sessionManager the session manager to restore into.
-     * @return true if the state was restored, otherwise false.
+     * Clears the state saved on disk.
      */
-    fun restore(sessionManager: SessionManager): Boolean
+    @WorkerThread
+    fun clear() {
+        removeSnapshotFromDisk(context, engine)
+    }
 
     /**
-     * Starts persisting the state frequently and automatically.
-     *
-     * @param sessionManager the session manager to persist from.
+     * Saves the given state to disk.
      */
-    fun start(sessionManager: SessionManager)
+    @WorkerThread
+    override fun save(snapshot: SessionManager.Snapshot): Boolean {
+        if (snapshot.isEmpty()) {
+            clear()
+            return true
+        }
+
+        requireNotNull(snapshot.sessions.getOrNull(snapshot.selectedSessionIndex)) {
+            "SessionSnapshot's selected index must be in bounds"
+        }
+
+        synchronized(sessionFileLock) {
+            return getFileForEngine(context, engine)
+                .writeSnapshot(snapshot, serializer)
+        }
+    }
 
     /**
-     * Stops persisting the state automatically.
+     * Starts configuring automatic saving of the state.
      */
-    fun stop()
+    @CheckResult
+    fun autoSave(
+        sessionManager: SessionManager,
+        interval: Long = AutoSave.DEFAULT_INTERVAL_MILLISECONDS,
+        unit: TimeUnit = TimeUnit.MILLISECONDS
+    ): AutoSave {
+        return AutoSave(sessionManager, this, unit.toMillis(interval))
+    }
+}
+
+private fun removeSnapshotFromDisk(context: Context, engine: Engine) {
+    synchronized(sessionFileLock) {
+        getFileForEngine(context, engine)
+            .delete()
+    }
+}
+
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal fun getFileForEngine(context: Context, engine: Engine): AtomicFile {
+    return AtomicFile(File(context.filesDir, String.format(STORE_FILE_NAME_FORMAT, engine.name())
+        .toLowerCase(Locale.ROOT)))
 }

@@ -4,23 +4,53 @@
 
 package mozilla.components.concept.toolbar
 
-import android.support.annotation.DrawableRes
-import android.support.v7.widget.AppCompatImageButton
-import android.support.v7.widget.AppCompatImageView
-import android.util.TypedValue
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
+import androidx.annotation.Dimension
+import androidx.annotation.Dimension.DP
+import androidx.annotation.DrawableRes
+import androidx.appcompat.widget.AppCompatImageButton
+import androidx.appcompat.widget.AppCompatImageView
+import mozilla.components.support.base.android.Padding
+import mozilla.components.support.ktx.android.content.res.resolveAttribute
+import mozilla.components.support.ktx.android.view.setPadding
 import java.lang.ref.WeakReference
 
 /**
  * Interface to be implemented by components that provide browser toolbar functionality.
  */
+@Suppress("TooManyFunctions")
 interface Toolbar {
+    /**
+     * Sets/Gets the title to be displayed on the toolbar.
+     */
+    var title: String
+
     /**
      * Sets/Gets the URL to be displayed on the toolbar.
      */
-    var url: String
+    var url: CharSequence
+
+    /**
+     * Sets/gets private mode.
+     *
+     * In private mode the IME should not update any personalized data such as typing history and personalized language
+     * model based on what the user typed.
+     */
+    var private: Boolean
+
+    /**
+     * Sets/Gets the site security to be displayed on the toolbar.
+     */
+    var siteSecure: SiteSecurity
+
+    /**
+     * Sets/Gets the site tracking protection state to be displayed on the toolbar.
+     */
+    var siteTrackingProtection: SiteTrackingProtection
 
     /**
      * Displays the currently used search terms as part of this Toolbar.
@@ -42,12 +72,27 @@ interface Toolbar {
     fun onBackPressed(): Boolean
 
     /**
+     * Should be called by the host activity when it enters the stop state.
+     */
+    fun onStop()
+
+    /**
      * Registers the given function to be invoked when the user selected a new URL i.e. is done
      * editing.
      *
+     * If the function returns `true` then the toolbar will automatically switch to "display mode". Otherwise it
+     * remains in "edit mode".
+     *
      * @param listener the listener function
      */
-    fun setOnUrlCommitListener(listener: (String) -> Unit)
+    fun setOnUrlCommitListener(listener: (String) -> Boolean)
+
+    /**
+     * Registers the given function to be invoked when users changes text in the toolbar.
+     *
+     * @param filter A function which will perform autocompletion and send results to [AutocompleteDelegate].
+     */
+    fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit)
 
     /**
      * Adds an action to be displayed on the right side of the toolbar in display mode.
@@ -56,6 +101,28 @@ interface Toolbar {
      * https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action
      */
     fun addBrowserAction(action: Action)
+
+    /**
+     * Removes a previously added browser action (see [addBrowserAction]). If the the provided
+     * actions was never added, this method has no effect.
+     *
+     * @param action the action to remove.
+     */
+    fun removeBrowserAction(action: Action)
+
+    /**
+     * Removes a previously added page action (see [addBrowserAction]). If the the provided
+     * actions was never added, this method has no effect.
+     *
+     * @param action the action to remove.
+     */
+    fun removePageAction(action: Action)
+
+    /**
+     * Declare that the actions (navigation actions, browser actions, page actions) have changed and
+     * should be updated if needed.
+     */
+    fun invalidateActions()
 
     /**
      * Adds an action to be displayed on the right side of the URL in display mode.
@@ -71,9 +138,54 @@ interface Toolbar {
     fun addNavigationAction(action: Action)
 
     /**
+     * Adds an action to be displayed in edit mode.
+     */
+    fun addEditAction(action: Action)
+
+    /**
      * Casts this toolbar to an Android View object.
      */
     fun asView(): View = this as View
+
+    /**
+     * Registers the given listener to be invoked when the user edits the URL.
+     */
+    fun setOnEditListener(listener: OnEditListener)
+
+    /**
+     * Switches to URL displaying mode (from editing mode) if supported by the toolbar implementation.
+     */
+    fun displayMode()
+
+    /**
+     * Switches to URL editing mode (from displaying mode) if supported by the toolbar implementation.
+     */
+    fun editMode()
+
+    /**
+     * Listener to be invoked when the user edits the URL.
+     */
+    interface OnEditListener {
+        /**
+         * Fired when the toolbar switches to edit mode.
+         */
+        fun onStartEditing() = Unit
+
+        /**
+         * Fired when the user presses the back button while in edit mode.
+         */
+        fun onCancelEditing(): Boolean = true
+
+        /**
+         * Fired when the toolbar switches back to display mode.
+         */
+        fun onStopEditing() = Unit
+
+        /**
+         * Fired whenever the user changes the text in the address bar.
+         */
+        fun onTextChanged(text: String) = Unit
+    }
 
     /**
      * Generic interface for actions to be added to the toolbar.
@@ -90,34 +202,35 @@ interface Toolbar {
     /**
      * An action button to be added to the toolbar.
      *
-     * @param imageResource The drawable to be shown.
+     * @param imageDrawable The drawable to be shown.
      * @param contentDescription The content description to use.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
-     * @param background A custom (stateful) background drawable resource to be used.
+     * @param padding A optional custom padding.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
     open class ActionButton(
-        @DrawableRes private val imageResource: Int,
-        private val contentDescription: String,
+        val imageDrawable: Drawable? = null,
+        val contentDescription: String,
         override val visible: () -> Boolean = { true },
-        @DrawableRes private val background: Int? = null,
+        private val background: Int = 0,
+        private val padding: Padding? = null,
         private val listener: () -> Unit
     ) : Action {
-        override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also {
-            it.setImageResource(imageResource)
-            it.contentDescription = contentDescription
-            it.setOnClickListener { listener.invoke() }
 
-            if (background == null) {
-                val outValue = TypedValue()
-                parent.context.theme.resolveAttribute(
-                        android.R.attr.selectableItemBackgroundBorderless,
-                        outValue,
-                        true)
-                it.setBackgroundResource(outValue.resourceId)
+        override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also { imageButton ->
+            imageButton.setImageDrawable(imageDrawable)
+            imageButton.contentDescription = contentDescription
+            imageButton.setOnClickListener { listener.invoke() }
+
+            @DrawableRes
+            val backgroundResource = if (background == 0) {
+                parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
-                it.setBackgroundResource(background)
+                background
             }
+
+            imageButton.setBackgroundResource(backgroundResource)
+            padding?.let { imageButton.setPadding(it) }
         }
 
         override fun bind(view: View) = Unit
@@ -127,46 +240,46 @@ interface Toolbar {
      * An action button with two states, selected and unselected. When the button is pressed, the
      * state changes automatically.
      *
-     * @param imageResource The drawable to be shown if the button is in unselected state.
-     * @param imageResourceSelected The drawable to be shown if the button is in selected state.
+     * @param imageDrawable The drawable to be shown if the button is in unselected state.
+     * @param imageSelectedDrawable The  drawable to be shown if the button is in selected state.
      * @param contentDescription The content description to use if the button is in unselected state.
      * @param contentDescriptionSelected The content description to use if the button is in selected state.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param selected Sets whether this button should be selected initially.
-     * @param background A custom (stateful) background drawable resource to be used.
+     * @param padding A optional custom padding.
      * @param listener Callback that will be invoked whenever the checked state changes.
      */
     open class ActionToggleButton(
-        @DrawableRes private val imageResource: Int,
-        @DrawableRes private val imageResourceSelected: Int,
+        internal val imageDrawable: Drawable,
+        internal val imageSelectedDrawable: Drawable,
         private val contentDescription: String,
         private val contentDescriptionSelected: String,
         override val visible: () -> Boolean = { true },
         private var selected: Boolean = false,
-        @DrawableRes private val background: Int? = null,
+        @DrawableRes private val background: Int = 0,
+        private val padding: Padding? = null,
         private val listener: (Boolean) -> Unit
     ) : Action {
         private var view: WeakReference<ImageButton>? = null
 
-        override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also {
-            view = WeakReference(it)
+        override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also { imageButton ->
+            view = WeakReference(imageButton)
 
-            it.setOnClickListener { toggle() }
-            it.isSelected = selected
+            imageButton.scaleType = ImageView.ScaleType.CENTER
+            imageButton.setOnClickListener { toggle() }
+            imageButton.isSelected = selected
 
             updateViewState()
 
-            if (background == null) {
-                val outValue = TypedValue()
-                parent.context.theme.resolveAttribute(
-                        android.R.attr.selectableItemBackgroundBorderless,
-                        outValue,
-                        true)
-
-                it.setBackgroundResource(outValue.resourceId)
+            @DrawableRes
+            val backgroundResource = if (background == 0) {
+                parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
-                it.setBackgroundResource(background)
+                background
             }
+
+            imageButton.setBackgroundResource(backgroundResource)
+            padding?.let { imageButton.setPadding(it) }
         }
 
         /**
@@ -208,10 +321,10 @@ interface Toolbar {
                 it.isSelected = selected
 
                 if (selected) {
-                    it.setImageResource(imageResourceSelected)
+                    it.setImageDrawable(imageSelectedDrawable)
                     it.contentDescription = contentDescriptionSelected
                 } else {
-                    it.setImageResource(imageResource)
+                    it.setImageDrawable(imageDrawable)
                     it.contentDescription = contentDescription
                 }
             }
@@ -224,12 +337,15 @@ interface Toolbar {
      * An "empty" action with a desired width to be used as "placeholder".
      *
      * @param desiredWidth The desired width in density independent pixels for this action.
+     * @param padding A optional custom padding.
      */
     open class ActionSpace(
-        private val desiredWidth: Int
+        @Dimension(unit = DP) private val desiredWidth: Int,
+        private val padding: Padding? = null
     ) : Action {
         override fun createView(parent: ViewGroup): View = View(parent.context).apply {
             minimumWidth = desiredWidth
+            padding?.let { this.setPadding(it) }
         }
 
         override fun bind(view: View) = Unit
@@ -238,29 +354,58 @@ interface Toolbar {
     /**
      * An action that just shows a static, non-clickable image.
      *
-     * @param imageResource The drawable to be shown.
+     * @param imageDrawable The drawable to be shown.
      * @param contentDescription Optional content description to be used. If no content description
      *                           is provided then this view will be treated as not important for
      *                           accessibility.
+     * @param padding A optional custom padding.
      */
     open class ActionImage(
-        @DrawableRes private val imageResource: Int,
-        private val contentDescription: String? = null
+        private val imageDrawable: Drawable,
+        private val contentDescription: String? = null,
+        private val padding: Padding? = null
     ) : Action {
-        override fun createView(parent: ViewGroup): View = AppCompatImageView(parent.context).also {
-            val drawable = parent.context.resources.getDrawable(imageResource, parent.context.theme)
-            it.minimumWidth = drawable.intrinsicWidth
 
-            it.setImageDrawable(drawable)
+        override fun createView(parent: ViewGroup): View = AppCompatImageView(parent.context).also { image ->
+            image.minimumWidth = imageDrawable.intrinsicWidth
+            image.setImageDrawable(imageDrawable)
 
-            it.contentDescription = contentDescription
-            it.importantForAccessibility = if (contentDescription.isNullOrEmpty()) {
+            image.contentDescription = contentDescription
+            image.importantForAccessibility = if (contentDescription.isNullOrEmpty()) {
                 View.IMPORTANT_FOR_ACCESSIBILITY_NO
             } else {
                 View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
             }
+            padding?.let { pd -> image.setPadding(pd) }
         }
 
         override fun bind(view: View) = Unit
+    }
+
+    enum class SiteSecurity {
+        INSECURE,
+        SECURE,
+    }
+
+    /**
+     * Indicates which tracking protection status a site has.
+     */
+    enum class SiteTrackingProtection {
+        /**
+         * The site has tracking protection enabled, but none trackers have been blocked or detected.
+         */
+        ON_NO_TRACKERS_BLOCKED,
+        /**
+         * The site has tracking protection enabled, and trackers have been blocked or detected.
+         */
+        ON_TRACKERS_BLOCKED,
+        /**
+         * Tracking protection has been disabled for a specific site.
+         */
+        OFF_FOR_A_SITE,
+        /**
+         * Tracking protection has been disabled for all sites.
+         */
+        OFF_GLOBALLY,
     }
 }

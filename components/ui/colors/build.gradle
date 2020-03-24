@@ -5,11 +5,11 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion Config.compileSdkVersion
+    compileSdkVersion config.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion Config.minSdkVersion
-        targetSdkVersion Config.targetSdkVersion
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
     }
 
     buildTypes {
@@ -24,10 +24,5 @@ dependencies {
     // None
 }
 
-archivesBaseName = "colors"
-
 apply from: '../../../publish.gradle'
-ext.configurePublish(
-        'org.mozilla.photon',
-        'colors',
-        'The standard set of Photon colors.')
+ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

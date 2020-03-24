@@ -4,76 +4,41 @@
 
 package org.mozilla.samples.dataprotect
 
-import android.content.SharedPreferences
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.preference.PreferenceManager
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.util.Base64
-import android.util.Log
-import android.widget.Button
-import mozilla.components.lib.dataprotect.Keystore
-import mozilla.components.support.base.log.logger.Logger
-import java.nio.charset.StandardCharsets
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 
 class MainActivity : AppCompatActivity() {
-    private val logger: Logger = Logger("dataprotect")
-    private val keystore: Keystore = Keystore(KEYSTORE_LABEL)
-    private val itemKeys: List<String> = List(5) {"protected item ${it+1}" }
+    @Suppress("MagicNumber")
+    private val itemKeys: List<String> = List(5) { "protected item ${it + 1}" }
 
     private lateinit var listView: RecyclerView
     private lateinit var listAdapter: ProtectedDataAdapter
-    private lateinit var toggleBtn: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // initialize keystore label
-        keystore.generateKey()
+        val prefs = SecureAbove22Preferences(this, "secret-data-storage")
 
-        // setup protected data key/value pairs
-        val prefs = PreferenceManager.getDefaultSharedPreferences(this).apply {
-            prepareProtectedData(this)
-        }
+        prepareProtectedData(prefs)
 
         // setup recycler
-        listAdapter = ProtectedDataAdapter(prefs, keystore, itemKeys)
+        listAdapter = ProtectedDataAdapter(prefs, itemKeys)
         listView = findViewById(R.id.protecteddata_list)
         listView.apply {
             setHasFixedSize(true)
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = listAdapter
         }
-
-        toggleBtn = findViewById(R.id.toggle_locked_btn)
-        toggleBtn.setOnClickListener { onToggleLockedClicked() }
-        updateToggleButton()
     }
 
-    private fun prepareProtectedData(prefs: SharedPreferences) {
-        val editor = prefs.edit()
+    private fun prepareProtectedData(prefs: SecureAbove22Preferences) {
         for (datakey in itemKeys) {
-            if (!prefs.contains(datakey)) {
-                val plain = "value for ${datakey}"
-                val encrypted = keystore.encryptBytes(plain.toByteArray(StandardCharsets.UTF_8))
-                val dataval = Base64.encodeToString(encrypted, B64_FLAGS)
-                editor.putString(datakey, dataval)
-                logger.info("created pref item ${datakey} = ${dataval}")
-            }
+            val plain = "value for $datakey"
+            prefs.putString(datakey, plain)
         }
-        editor.apply()
-    }
-
-    private fun onToggleLockedClicked() {
-        listAdapter.toggleUnlock()
-        listAdapter.notifyDataSetChanged()
-        updateToggleButton()
-    }
-
-    private fun updateToggleButton() {
-        val res = if (listAdapter.unlocked) R.string.btn_toggle_lock else R.string.btn_toggle_unlock
-        toggleBtn.setText(res)
     }
 }

@@ -4,10 +4,10 @@
 
 package mozilla.components.browser.tabstray
 
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import mozilla.components.browser.session.Session
+import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.concept.tabstray.Tabs
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -24,55 +24,35 @@ class TabsAdapter(
 
     internal lateinit var tabsTray: BrowserTabsTray
 
-    private val holders = mutableListOf<TabViewHolder>()
-    private var sessions: List<Session> = listOf()
-    private var selectedIndex: Int = -1
+    private var tabs: Tabs? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TabViewHolder {
         return TabViewHolder(
             LayoutInflater.from(parent.context).inflate(
                 R.layout.mozac_browser_tabstray_item,
                 parent,
-                false)).also {
-            holders.add(it)
-        }
+                false),
+            tabsTray
+        )
     }
 
-    override fun getItemCount() = sessions.size
+    override fun getItemCount() = tabs?.list?.size ?: 0
 
     override fun onBindViewHolder(holder: TabViewHolder, position: Int) {
-        holder.bind(sessions[position], position == selectedIndex, this)
+        val tabs = tabs ?: return
+
+        holder.bind(tabs.list[position], position == tabs.selectedIndex, this)
     }
 
-    override fun onViewRecycled(holder: TabViewHolder) {
-        holder.unbind()
+    override fun updateTabs(tabs: Tabs) {
+        this.tabs = tabs
     }
 
-    fun unsubscribeHolders() {
-        holders.forEach { it.unbind() }
-        holders.clear()
-    }
+    override fun onTabsInserted(position: Int, count: Int) = notifyItemRangeInserted(position, count)
 
-    override fun displaySessions(sessions: List<Session>, selectedIndex: Int) {
-        this.sessions = sessions
-        this.selectedIndex = selectedIndex
-        notifyDataSetChanged()
-    }
+    override fun onTabsRemoved(position: Int, count: Int) = notifyItemRangeRemoved(position, count)
 
-    override fun updateSessions(sessions: List<Session>, selectedIndex: Int) {
-        this.sessions = sessions
-        this.selectedIndex = selectedIndex
-    }
+    override fun onTabsMoved(fromPosition: Int, toPosition: Int) = notifyItemMoved(fromPosition, toPosition)
 
-    override fun onSessionsInserted(position: Int, count: Int) =
-        notifyItemRangeInserted(position, count)
-
-    override fun onSessionsRemoved(position: Int, count: Int) =
-        notifyItemRangeRemoved(position, count)
-
-    override fun onSessionMoved(fromPosition: Int, toPosition: Int) =
-        notifyItemMoved(fromPosition, toPosition)
-
-    override fun onSessionsChanged(position: Int, count: Int) =
-        notifyItemRangeChanged(position, count, null)
+    override fun onTabsChanged(position: Int, count: Int) = notifyItemRangeChanged(position, count)
 }

@@ -5,22 +5,44 @@
 package mozilla.components.browser.engine.gecko
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.AttributeSet
 import android.widget.FrameLayout
+import androidx.annotation.VisibleForTesting
+import androidx.core.view.ViewCompat
+import mozilla.components.browser.engine.gecko.selection.GeckoSelectionActionDelegate
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
-import org.mozilla.geckoview.GeckoView
+import mozilla.components.concept.engine.permission.PermissionRequest
+import mozilla.components.concept.engine.selection.SelectionActionDelegate
+import org.mozilla.geckoview.BasicSelectionActionDelegate
+import org.mozilla.geckoview.GeckoResult
+import java.lang.IllegalStateException
 
 /**
  * Gecko-based EngineView implementation.
  */
+@Suppress("TooManyFunctions")
 class GeckoEngineView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var currentGeckoView = object : NestedGeckoView(context) {
 
-    internal var currentGeckoView = object : GeckoView(context) {
+        override fun onAttachedToWindow() {
+            try {
+                super.onAttachedToWindow()
+            } catch (e: IllegalStateException) {
+                // This is to debug "display already acquired" crashes
+                val otherActivityClassName =
+                    this.session?.accessibility?.view?.context?.javaClass?.simpleName
+                val activityClassName = context.javaClass.simpleName
+                val msg = "ATTACH VIEW: Current activity: $activityClassName Other activity: $otherActivityClassName"
+                throw IllegalStateException(msg, e)
+            }
+        }
         override fun onDetachedFromWindow() {
             // We are releasing the session before GeckoView gets detached from the window. Otherwise
             // GeckoView will close the session automatically and we do not want that.
@@ -28,7 +50,34 @@ class GeckoEngineView @JvmOverloads constructor(
 
             super.onDetachedFromWindow()
         }
+    }.apply {
+        // Explicitly mark this view as important for autofill. The default "auto" doesn't seem to trigger any
+        // autofill behavior for us here.
+        @Suppress("WrongConstant")
+        ViewCompat.setImportantForAutofill(this, ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_YES)
     }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal val observer = object : EngineSession.Observer {
+        override fun onCrash() {
+            rebind()
+        }
+
+        override fun onProcessKilled() {
+            rebind()
+        }
+
+        override fun onAppPermissionRequest(permissionRequest: PermissionRequest) = Unit
+        override fun onContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var currentSession: GeckoEngineSession? = null
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal var currentSelection: BasicSelectionActionDelegate? = null
+
+    override var selectionActionDelegate: SelectionActionDelegate? = null
 
     init {
         // Currently this is just a FrameLayout with a single GeckoView instance. Eventually this
@@ -39,17 +88,98 @@ class GeckoEngineView @JvmOverloads constructor(
     /**
      * Render the content of the given session.
      */
+    @Synchronized
     override fun render(session: EngineSession) {
         val internalSession = session as GeckoEngineSession
+
+        currentSession?.apply { unregister(observer) }
+
+        currentSession = session.apply {
+            register(observer)
+        }
 
         if (currentGeckoView.session != internalSession.geckoSession) {
             currentGeckoView.session?.let {
                 // Release a previously assigned session. Otherwise GeckoView will close it
                 // automatically.
                 currentGeckoView.releaseSession()
+                currentSelection = null
             }
 
-            currentGeckoView.session = internalSession.geckoSession
+            try {
+                currentGeckoView.setSession(internalSession.geckoSession)
+                currentSelection = GeckoSelectionActionDelegate.maybeCreate(context, selectionActionDelegate)
+                    ?: internalSession.geckoSession.selectionActionDelegate as? BasicSelectionActionDelegate
+                internalSession.geckoSession.selectionActionDelegate = currentSelection
+            } catch (e: IllegalStateException) {
+                // This is to debug "display already acquired" crashes
+                val otherActivityClassName =
+                    internalSession.geckoSession.accessibility.view?.context?.javaClass?.simpleName
+                val activityClassName = context.javaClass.simpleName
+                val msg =
+                    "SET SESSION: Current activity: $activityClassName Other activity: $otherActivityClassName"
+                throw IllegalStateException(msg, e)
+            }
         }
+    }
+
+    /**
+     * Rebinds the current session to this view. This may be required after the session crashed and
+     * the view needs to notified about a new underlying GeckoSession (created under the hood by
+     * GeckoEngineSession) - since the previous one is no longer usable.
+     */
+    private fun rebind() {
+        currentSession?.let { currentGeckoView.setSession(it.geckoSession) }
+    }
+
+    @Synchronized
+    override fun release() {
+        currentSession?.apply { unregister(observer) }
+
+        currentSelection = null
+        currentSession = null
+
+        currentGeckoView.releaseSession()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+
+        release()
+    }
+
+    override fun canClearSelection() = currentSelection?.selection != null
+
+    override fun canScrollVerticallyUp() = currentSession?.let { it.scrollY > 0 } != false
+
+    override fun canScrollVerticallyDown() = true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569
+
+    override fun setVerticalClipping(clippingHeight: Int) {
+        currentGeckoView.setVerticalClipping(clippingHeight)
+    }
+
+    override fun setDynamicToolbarMaxHeight(height: Int) {
+        currentGeckoView.setDynamicToolbarMaxHeight(height)
+    }
+
+    override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) {
+        // Do not capture pixels if no content has been rendered for this session yet. GeckoView
+        // might otherwise throw an IllegalStateException if the compositor isn't ready.
+        if (currentSession?.firstContentfulPaint == true) {
+            val geckoResult = currentGeckoView.capturePixels()
+            geckoResult.then({ bitmap ->
+                onFinish(bitmap)
+                GeckoResult<Void>()
+            }, {
+                onFinish(null)
+                GeckoResult<Void>()
+            })
+        } else {
+            onFinish(null)
+        }
+    }
+
+    override fun clearSelection() {
+        currentSelection?.clearSelection()
     }
 }

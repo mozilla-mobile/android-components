@@ -34,7 +34,7 @@ interface AwesomeBar {
     fun removeAllProviders()
 
     /**
-     * Returns true if this awesome bar contains the following [SuggestionProvider]
+     * Returns whether or not this awesome bar contains the following [SuggestionProvider]
      */
     fun containsProvider(provider: SuggestionProvider): Boolean
 

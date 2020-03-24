@@ -386,17 +386,7 @@ class BrowserAwesomeBarTest {
     }
 
     @Test
-    fun `provider exists for the awesome bar`() {
-        val awesomeBar = BrowserAwesomeBar(testContext)
-        val provider1 = mockProvider()
-        `when`(provider1.id).thenReturn("1")
-
-        awesomeBar.addProviders(provider1)
-        assertEquals(true, awesomeBar.containsProvider(provider1))
-    }
-
-    @Test
-    fun `provider does not exist for the awesome bar`() {
+    fun `containsProvider - checks if provider exists`() {
         val awesomeBar = BrowserAwesomeBar(testContext)
         val provider1 = mockProvider()
         `when`(provider1.id).thenReturn("1")
@@ -405,7 +395,8 @@ class BrowserAwesomeBarTest {
         `when`(provider2.id).thenReturn("2")
 
         awesomeBar.addProviders(provider1)
-        assertEquals(false, awesomeBar.containsProvider(provider2))
+        assertTrue(awesomeBar.containsProvider(provider1))
+        assertFalse(awesomeBar.containsProvider(provider2))
     }
 
     @Test(expected = IllegalStateException::class)

@@ -69,7 +69,7 @@ class MenuButtonTest {
 
         var isHighlighted = false
         val highlight = BrowserMenuHighlight.LowPriority(Color.YELLOW)
-        val highlightMenuBuilder = spy(BrowserMenuBuilder(listOf(
+        val highlightMenuBuilder = spy(BrowserMenuBuilder(mutableListOf(
             BrowserMenuHighlightableItem(
                 label = "Test",
                 startImageResource = 0,

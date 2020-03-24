@@ -7,9 +7,9 @@ package mozilla.components.browser.toolbar.display
 import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
-import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.ext.getHighlight
 import mozilla.components.browser.toolbar.facts.emitOpenMenuFact
+import mozilla.components.concept.menu.MenuBuilder
 
 internal class MenuButton(
     @VisibleForTesting
@@ -23,7 +23,7 @@ internal class MenuButton(
         }
     }
 
-    var menuBuilder: BrowserMenuBuilder?
+    var menuBuilder: MenuBuilder?
         get() = impl.menuBuilder
         set(value) {
             impl.menuBuilder = value

@@ -23,10 +23,13 @@ android {
 
 dependencies {
     api project(':concept-toolbar')
+
     api project(':ui-autocomplete')
     api project(':support-base')
 
     implementation project(':concept-engine')
+    implementation project(':concept-menu')
+
     implementation project(':browser-menu')
     implementation project(':ui-icons')
     implementation project(':ui-colors')

@@ -186,7 +186,7 @@ class DisplayToolbarTest {
 
         assertEquals(View.GONE, menuView.impl.visibility)
 
-        displayToolbar.menuBuilder = BrowserMenuBuilder(emptyList())
+        displayToolbar.menuBuilder = BrowserMenuBuilder(mutableListOf())
 
         assertEquals(View.VISIBLE, menuView.impl.visibility)
 
@@ -598,7 +598,7 @@ class DisplayToolbarTest {
             val menuView = displayToolbar.views.menu
 
             val menuBuilder = BrowserMenuBuilder(
-                listOf(SimpleBrowserMenuItem("Mozilla")), mapOf(
+                mutableListOf(SimpleBrowserMenuItem("Mozilla")), mutableMapOf(
                     "customTab" to true,
                     "test" to "23"
                 )
@@ -678,7 +678,7 @@ class DisplayToolbarTest {
         val (_, displayToolbar) = createDisplayToolbar()
         val menuView = displayToolbar.views.menu
         menuView.impl.onDismiss = { wasDismissed = true }
-        menuView.menuBuilder = BrowserMenuBuilder(emptyList())
+        menuView.menuBuilder = BrowserMenuBuilder(mutableListOf())
         menuView.impl.performClick()
 
         displayToolbar.onStop()
@@ -692,7 +692,7 @@ class DisplayToolbarTest {
         val (_, displayToolbar) = createDisplayToolbar()
         displayToolbar.setMenuDismissAction { wasDismissed = true }
         val menuView = displayToolbar.views.menu
-        menuView.menuBuilder = BrowserMenuBuilder(emptyList())
+        menuView.menuBuilder = BrowserMenuBuilder(mutableListOf())
         menuView.impl.performClick()
 
         menuView.dismissMenu()

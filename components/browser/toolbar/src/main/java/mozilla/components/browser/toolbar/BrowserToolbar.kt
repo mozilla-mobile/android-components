@@ -22,6 +22,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.browser.toolbar.edit.EditToolbar
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
@@ -285,6 +286,13 @@ class BrowserToolbar @JvmOverloads constructor(
      */
     override fun addEditAction(action: Toolbar.Action) {
         edit.addEditAction(action)
+    }
+
+    /**
+     * Adds a kebab menu with the items in the builder to be displayed in display mode.
+     */
+    override fun addMenu(menuBuilder: MenuBuilder) {
+        display.menuBuilder = menuBuilder
     }
 
     /**

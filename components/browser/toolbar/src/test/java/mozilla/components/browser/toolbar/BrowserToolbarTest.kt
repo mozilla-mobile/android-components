@@ -16,6 +16,7 @@ import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.AutocompleteDelegate
@@ -411,6 +412,20 @@ class BrowserToolbarTest {
     }
 
     @Test
+    fun `add menus will be forwarded to display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        val display: DisplayToolbar = mock()
+        toolbar.display = display
+
+        val menuBuilder: BrowserMenuBuilder = mock()
+
+        toolbar.addMenu(menuBuilder)
+
+        verify(display).menuBuilder = menuBuilder
+    }
+
+    @Test
     fun `cast to view`() {
         // Given
         val toolbar = BrowserToolbar(testContext)
@@ -625,6 +640,20 @@ class BrowserToolbarTest {
         toolbar.siteSecure = SiteSecurity.SECURE
 
         verify(toolbar.display).siteSecurity = SiteSecurity.SECURE
+    }
+
+    @Test
+    fun `colors updates the display and edit colors`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.display = spy(toolbar.display)
+        toolbar.edit = spy(toolbar.edit)
+        assertEquals(SiteSecurity.INSECURE, toolbar.siteSecure)
+
+        toolbar.colors = toolbar.colors.copy(display = toolbar.colors.display.copy(emptyIcon = 1234))
+        toolbar.colors = toolbar.colors.copy(edit = toolbar.colors.edit.copy(clear = 4567))
+
+        assertEquals(1234, toolbar.display.colors.emptyIcon)
+        assertEquals(4567, toolbar.edit.colors.clear)
     }
 
     @Test

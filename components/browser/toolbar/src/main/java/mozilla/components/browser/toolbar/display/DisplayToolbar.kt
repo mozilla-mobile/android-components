@@ -20,10 +20,10 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
 import mozilla.components.browser.toolbar.internal.ActionContainer
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.concept.toolbar.Toolbar
 
 /**
@@ -348,7 +348,7 @@ class DisplayToolbar internal constructor(
      * Sets a BrowserMenuBuilder that will be used to create a menu when the menu button is clicked.
      * The menu button will only be visible if a builder has been set.
      */
-    var menuBuilder: BrowserMenuBuilder?
+    var menuBuilder: MenuBuilder?
         get() = views.menu.menuBuilder
         set(value) {
             views.menu.menuBuilder = value

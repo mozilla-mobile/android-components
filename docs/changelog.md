@@ -4,13 +4,24 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 37.0.0-SNAPSHOT (In Development)
+# 38.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v36.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/96?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v37.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/97?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **service-accounts-push**
+  * Fixed a bug where the push subscription was incorrectly cached and caused some `GeneralError`s.
+
+# 37.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v36.0.0...v37.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/96?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v37.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v37.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/v37.0.0/master/buildSrc/src/main/java/Config.kt)
 
 * **lib-state**, **browser-state**
   * Added the ability to add `Middleware` instances to a `Store`. A `Middleware` can rewrite or intercept an `Action`, as well as dispatch additional `Action`s or perform side-effects when an `Action` gets dispatched.
@@ -24,6 +35,9 @@ permalink: /changelog/
   *  ⚠️ **This is a breaking change**: `FxaWebChannelFeature` takes a `ServerConfig` as 4th parameter to ensure incoming WebChannel messages
      are sent by the expected FxA host.
 
+* **feature-sitepermissions**
+  * Fixed issue [#6299](https://github.com/mozilla-mobile/android-components/issues/6299), from now on, any media requests like a microphone or a camera permission will require the system permissions to be granted before a dialog can be shown.
+
 * **service-sync-logins**
   * ⚠️ **This is a breaking change**: `DefaultLoginValidationDelegate`, `GeckoLoginStorageDelegate` constructors changed to take `Lazy<LoginsStorage>` instead of `LoginsStorage`, to facilitate late initialization.
 
@@ -32,6 +46,20 @@ permalink: /changelog/
 
 * **feature-session**
   * ⚠️ **This is a breaking change**: `HistoryDelegate` constructor changed to take `Lazy<HistoryStorage>` instead of `HistoryStorage`, to facilitate late initialization.
+
+* **concept-engine**
+  * Added: `DataCleanable` a new interface that decouples the behavior of clearing browser data from the `Engine` and `EngineSession`.
+
+* **feature-sitepermissions**
+  *  Fixed [#6322](https://github.com/mozilla-mobile/android-components/issues/6322), now  `SitePermissionsStorage` allows to indicate an optional reference to `DataCleanable`.
+
+* **browser-menu**
+  * Added `canPropagate` param to all `BrowserMenuHighlight`s, making it optional to be displayed in other components
+  * Changed `BrowserMenuItem.getHighlight` to filter the highlights which should not propagate.
+
+* **feature-share**
+    * Changed primary key of RecentAppEntity to activityName instead of packageName
+      * ⚠️ **This is a breaking change**: all calls to app.packageName should now use app.activityName
 
 # 36.0.0
 

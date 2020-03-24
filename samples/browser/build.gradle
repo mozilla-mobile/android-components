@@ -61,6 +61,7 @@ dependencies {
     implementation project(':concept-awesomebar')
     implementation project(':concept-fetch')
     implementation project(':concept-engine')
+    implementation project(':concept-menu')
     implementation project(':concept-tabstray')
     implementation project(':concept-toolbar')
     implementation project(':concept-storage')

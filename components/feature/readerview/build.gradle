@@ -28,7 +28,6 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 }
 
 dependencies {
-    implementation project(':browser-menu')
     implementation project(':browser-state')
     implementation project(':concept-engine')
     implementation project(':support-base')

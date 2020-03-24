@@ -15,6 +15,7 @@ import androidx.annotation.Dimension.DP
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.setPadding
@@ -155,6 +156,11 @@ interface Toolbar {
      * Adds an action to be displayed in edit mode.
      */
     fun addEditAction(action: Action)
+
+    /**
+     * Adds a kebab menu with the items in the builder to be displayed in display mode.
+     */
+    fun addMenu(menuBuilder: MenuBuilder)
 
     /**
      * Casts this toolbar to an Android View object.

@@ -26,6 +26,9 @@ permalink: /changelog/
 
 * **concept-storage**, **service-sync-logins**
   * 🆕 New API: `PlacesStorage#warmUp`, `SyncableLoginsStorage#warmUp` - allows consumers to ensure that underlying storage database connections are fully established.
+  
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * Updated `GeckoEngineView#canScrollVerticallyUp()` to also consider and return `true` when websites handle themselves the swipe down motion.
 
 # 37.0.0
 

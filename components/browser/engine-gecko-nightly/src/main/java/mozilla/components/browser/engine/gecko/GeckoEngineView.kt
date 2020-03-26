@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.ViewCompat
@@ -17,6 +18,7 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
 import org.mozilla.geckoview.BasicSelectionActionDelegate
 import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.PanZoomController.INPUT_RESULT_HANDLED_CONTENT
 
 /**
  * Gecko-based EngineView implementation.
@@ -49,6 +51,12 @@ class GeckoEngineView @JvmOverloads constructor(
 
             super.onDetachedFromWindow()
         }
+
+        override fun onTouchEventForResult(ev: MotionEvent): Int {
+            return super.onTouchEventForResult(ev).also {
+                isMotionEventHandledByWebContent = (it == INPUT_RESULT_HANDLED_CONTENT)
+            }
+        }
     }.apply {
         // Explicitly mark this view as important for autofill. The default "auto" doesn't seem to trigger any
         // autofill behavior for us here.
@@ -77,6 +85,8 @@ class GeckoEngineView @JvmOverloads constructor(
     internal var currentSelection: BasicSelectionActionDelegate? = null
 
     override var selectionActionDelegate: SelectionActionDelegate? = null
+
+    private var isMotionEventHandledByWebContent: Boolean = false
 
     init {
         // Currently this is just a FrameLayout with a single GeckoView instance. Eventually this
@@ -150,7 +160,13 @@ class GeckoEngineView @JvmOverloads constructor(
 
     override fun canClearSelection() = currentSelection?.selection != null
 
-    override fun canScrollVerticallyUp() = currentSession?.let { it.scrollY > 0 } != false
+    override fun canScrollVerticallyUp(): Boolean {
+        return (currentSession?.let { session ->
+            val canScrollVerticallyUp = session.scrollY > 0
+
+            canScrollVerticallyUp || isMotionEventHandledByWebContent
+        } ?: false)
+    }
 
     override fun canScrollVerticallyDown() = true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569
 

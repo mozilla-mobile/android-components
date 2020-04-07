@@ -54,7 +54,7 @@ permalink: /changelog/
   * Added `GeckoEngineView#getInputResult()` to return an EngineView.InputResult indicating how a MotionEvent was handled by an EngineView.
 
 * **concept-engine**
-  * Will expose a new `InputResult` enum through `getInputResult()` indicating how an EngineView handled user's MotionEvent.
+  * Expose a new `InputResult` enum through `getInputResult()` indicating how an EngineView handled user's MotionEvent.
   * See above changes to browser-engine-*.
 
 * **browser-toolbar**
@@ -74,7 +74,8 @@ permalink: /changelog/
 * **browser-tabstray**
  * Added ability to let consumers pass a custom layout of `TabViewHolder` in order to control layout inflation and view binding.
  * Added an optional URL view to the `TabViewHolder` to display the URL.
- * Will expose a new `layout` parameter which allows consumers to change the tabs tray layout.
+ * Expose a new `layout` parameter which allows consumers to change the tabs tray layout.
+ * Expose a new optional `itemDecoration` parameter which allows consumers to provide a divider item decorations to the item views.
 
 # 37.0.0
 

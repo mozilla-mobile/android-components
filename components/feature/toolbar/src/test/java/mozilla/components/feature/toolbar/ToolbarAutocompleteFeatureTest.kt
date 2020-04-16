@@ -11,6 +11,7 @@ import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompletePro
 import mozilla.components.browser.domains.autocomplete.DomainList
 import mozilla.components.browser.storage.memory.InMemoryHistoryStorage
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
@@ -37,6 +38,8 @@ class ToolbarAutocompleteFeatureTest {
     class TestToolbar : Toolbar {
         override var siteTrackingProtection: Toolbar.SiteTrackingProtection =
             Toolbar.SiteTrackingProtection.OFF_GLOBALLY
+        override var colors: Toolbar.Colors =
+            Toolbar.Colors(Toolbar.DisplayColors(0, 0, 0, 0, 0, 0, 0, 0, 0), Toolbar.EditColors(0, 0, 0, 0, 0, 0))
         override var title: String = ""
         override var url: CharSequence = ""
         override var siteSecure: Toolbar.SiteSecurity = Toolbar.SiteSecurity.INSECURE
@@ -62,6 +65,10 @@ class ToolbarAutocompleteFeatureTest {
         }
 
         override fun setOnUrlCommitListener(listener: (String) -> Boolean) {
+            fail()
+        }
+
+        override fun setOnUrlClicked(listener: () -> Boolean) {
             fail()
         }
 
@@ -102,6 +109,10 @@ class ToolbarAutocompleteFeatureTest {
         }
 
         override fun addEditAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun addMenu(menuBuilder: MenuBuilder) {
             fail()
         }
 

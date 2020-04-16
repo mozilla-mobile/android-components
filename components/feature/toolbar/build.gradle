@@ -32,6 +32,7 @@ dependencies {
     implementation project(':browser-state')
     implementation project(':browser-domains')
     implementation project(':concept-engine')
+    implementation project(':concept-menu')
     implementation project(':concept-toolbar')
     implementation project(':concept-storage')
     implementation project(':lib-publicsuffixlist')

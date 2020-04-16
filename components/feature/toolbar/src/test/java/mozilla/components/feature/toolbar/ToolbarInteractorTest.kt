@@ -6,6 +6,7 @@ package mozilla.components.feature.toolbar
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.menu.MenuBuilder
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.session.SessionUseCases
@@ -26,6 +27,8 @@ class ToolbarInteractorTest {
 
         override var siteTrackingProtection: Toolbar.SiteTrackingProtection =
             Toolbar.SiteTrackingProtection.OFF_GLOBALLY
+        override var colors: Toolbar.Colors =
+            Toolbar.Colors(Toolbar.DisplayColors(0, 0, 0, 0, 0, 0, 0, 0, 0), Toolbar.EditColors(0, 0, 0, 0, 0, 0))
 
         override fun setSearchTerms(searchTerms: String) {
             fail()
@@ -46,6 +49,10 @@ class ToolbarInteractorTest {
 
         override fun setOnUrlCommitListener(listener: (String) -> Boolean) {
             listener("https://mozilla.org")
+        }
+
+        override fun setOnUrlClicked(listener: () -> Boolean) {
+            fail()
         }
 
         override fun setAutocompleteListener(filter: suspend (String, AutocompleteDelegate) -> Unit) {
@@ -85,6 +92,10 @@ class ToolbarInteractorTest {
         }
 
         override fun addEditAction(action: Toolbar.Action) {
+            fail()
+        }
+
+        override fun addMenu(menuBuilder: MenuBuilder) {
             fail()
         }
 

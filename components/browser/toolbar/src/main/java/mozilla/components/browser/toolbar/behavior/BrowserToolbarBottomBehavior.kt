@@ -53,20 +53,6 @@ class BrowserToolbarBottomBehavior(
      */
     private var engineView: EngineView? = null
 
-    /**
-     * Depending on how user's touch was consumed by EngineView / current website,
-     *
-     * we will animate the dynamic navigation bar if:
-     * - touches were used for zooming / panning operations in the website.
-     *
-     * We will do nothing if:
-     * - the website is not scrollable
-     * - the website handles the touch events itself through it's own touch event listeners.
-     */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val shouldScroll: Boolean
-        get() = engineView?.getInputResult() == EngineView.InputResult.INPUT_RESULT_HANDLED
-
     override fun onStartNestedScroll(
         coordinatorLayout: CoordinatorLayout,
         child: BrowserToolbar,
@@ -75,19 +61,18 @@ class BrowserToolbarBottomBehavior(
         axes: Int,
         type: Int
     ): Boolean {
-        return if (shouldScroll && axes == ViewCompat.SCROLL_AXIS_VERTICAL) {
-            shouldSnapAfterScroll = type == ViewCompat.TYPE_TOUCH
+        val started = axes == ViewCompat.SCROLL_AXIS_VERTICAL
+        shouldSnapAfterScroll = type == ViewCompat.TYPE_TOUCH
+
+        if (snapAnimator.isRunning && started) {
             snapAnimator.cancel()
-            true
-        } else if (engineView?.getInputResult() == EngineView.InputResult.INPUT_RESULT_UNHANDLED) {
-            // Force expand the toolbar if event is unhandled, otherwise user could get stuck in a
-            // state where they cannot show the toolbar
-            snapAnimator.cancel()
-            forceExpand(child)
-            false
-        } else {
-            false
         }
+
+        if (engineView?.getInputResult() == EngineView.InputResult.INPUT_RESULT_UNHANDLED) {
+            forceExpand(child)
+        }
+
+        return started
     }
 
     override fun onStopNestedScroll(
@@ -114,8 +99,16 @@ class BrowserToolbarBottomBehavior(
         consumed: IntArray,
         type: Int
     ) {
-        if (shouldScroll) {
-            super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type)
+        super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type)
+        engineView?.let {
+            // If dy > 0 we are trying to scroll up (down on the site)
+            // If there is no scrollable area in that direction, don't hide the toolbar
+            // In this case we don't have to check if we can scroll vertically down since the
+            // toolbar can't hide
+            // Also check if the input is unhandled by engine view and don't hide toolbar when
+            // scrolling up
+            if ((dy > 0) and (!it.canScrollVerticallyUp()) or
+                    (engineView?.getInputResult() == EngineView.InputResult.INPUT_RESULT_UNHANDLED)) return
             child.translationY = max(0f, min(child.height.toFloat(), child.translationY + dy))
         }
     }

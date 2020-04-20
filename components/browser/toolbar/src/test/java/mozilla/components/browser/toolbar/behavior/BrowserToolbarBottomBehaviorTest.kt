@@ -29,7 +29,6 @@ class BrowserToolbarBottomBehaviorTest {
     @Test
     fun `Starting a nested scroll should cancel an ongoing snap animation`() {
         val behavior = spy(BrowserToolbarBottomBehavior(testContext, attrs = null))
-        doReturn(true).`when`(behavior).shouldScroll
 
         val animator: ValueAnimator = mock()
         behavior.snapAnimator = animator
@@ -65,7 +64,6 @@ class BrowserToolbarBottomBehaviorTest {
     @Test
     fun `Behavior will snap toolbar up if toolbar is more than 50% visible`() {
         val behavior = spy(BrowserToolbarBottomBehavior(testContext, attrs = null))
-        doReturn(true).`when`(behavior).shouldScroll
 
         val animator: ValueAnimator = mock()
         behavior.snapAnimator = animator
@@ -100,7 +98,6 @@ class BrowserToolbarBottomBehaviorTest {
     @Test
     fun `Behavior will snap toolbar down if toolbar is less than 50% visible`() {
         val behavior = spy(BrowserToolbarBottomBehavior(testContext, attrs = null))
-        doReturn(true).`when`(behavior).shouldScroll
 
         val animator: ValueAnimator = mock()
         behavior.snapAnimator = animator
@@ -135,7 +132,6 @@ class BrowserToolbarBottomBehaviorTest {
     @Test
     fun `Behavior will apply translation to toolbar for nested scroll`() {
         val behavior = spy(BrowserToolbarBottomBehavior(testContext, attrs = null))
-        doReturn(true).`when`(behavior).shouldScroll
 
         val child = mock<BrowserToolbar>()
         doReturn(100).`when`(child).height
@@ -179,7 +175,7 @@ class BrowserToolbarBottomBehaviorTest {
     @Test
     fun `Behavior will animateSnap UP when forceExpand is called`() {
         val behavior = spy(BrowserToolbarBottomBehavior(testContext, attrs = null))
-        doReturn(true).`when`(behavior).shouldScroll
+
         val toolbar: BrowserToolbar = mock()
 
         behavior.forceExpand(toolbar)

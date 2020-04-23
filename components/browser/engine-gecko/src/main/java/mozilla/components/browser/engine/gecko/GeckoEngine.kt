@@ -562,6 +562,10 @@ class GeckoEngine(
             }
         }
 
+        override var clearColor: Int?
+            get() = defaultSettings?.clearColor
+            set(value) { defaultSettings?.clearColor = value }
+
         override var remoteDebuggingEnabled: Boolean
             get() = runtime.settings.remoteDebuggingEnabled
             set(value) { runtime.settings.remoteDebuggingEnabled = value }
@@ -631,6 +635,7 @@ class GeckoEngine(
             this.fontInflationEnabled = it.fontInflationEnabled
             this.fontSizeFactor = it.fontSizeFactor
             this.forceUserScalableContent = it.forceUserScalableContent
+            this.clearColor = it.clearColor
         }
     }
 

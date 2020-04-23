@@ -846,6 +846,7 @@ class GeckoEngineSession(
     private fun createGeckoSession(shouldOpen: Boolean = true) {
         this.geckoSession = geckoSessionProvider()
 
+        defaultSettings?.clearColor?.let { geckoSession.compositorController.clearColor = it }
         defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }

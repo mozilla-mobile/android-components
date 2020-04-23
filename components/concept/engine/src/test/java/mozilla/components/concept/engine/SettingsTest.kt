@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.engine
 
+import android.graphics.Color
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
@@ -78,7 +79,8 @@ class SettingsTest {
             { settings.fontSizeFactor },
             { settings.fontSizeFactor = 1.0F },
             { settings.forceUserScalableContent },
-            { settings.forceUserScalableContent = true }
+            { settings.forceUserScalableContent = true },
+            { settings.clearColor = Color.YELLOW }
         )
     }
 
@@ -118,6 +120,7 @@ class SettingsTest {
         assertNull(settings.fontInflationEnabled)
         assertNull(settings.fontSizeFactor)
         assertFalse(settings.forceUserScalableContent)
+        assertNull(settings.clearColor)
 
         val interceptor: RequestInterceptor = mock()
         val historyTrackingDelegate: HistoryTrackingDelegate = mock()
@@ -150,7 +153,8 @@ class SettingsTest {
             suspendMediaWhenInactive = true,
             fontInflationEnabled = false,
             fontSizeFactor = 2.0F,
-            forceUserScalableContent = true)
+            forceUserScalableContent = true,
+            clearColor = Color.BLUE)
 
         assertFalse(defaultSettings.domStorageEnabled)
         assertFalse(defaultSettings.javascriptEnabled)
@@ -180,5 +184,6 @@ class SettingsTest {
         assertFalse(defaultSettings.fontInflationEnabled!!)
         assertEquals(2.0F, defaultSettings.fontSizeFactor)
         assertTrue(defaultSettings.forceUserScalableContent)
+        assertEquals(defaultSettings.clearColor, Color.BLUE)
     }
 }

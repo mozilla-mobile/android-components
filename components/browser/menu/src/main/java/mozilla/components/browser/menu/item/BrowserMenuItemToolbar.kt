@@ -5,6 +5,7 @@
 package mozilla.components.browser.menu.item
 
 import android.content.Context
+import android.os.SystemClock
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -21,6 +22,10 @@ import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
 import mozilla.components.browser.menu2.candidate.RowMenuCandidate
 import mozilla.components.browser.menu2.candidate.SmallMenuCandidate
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
+
+object MenuButtonClick {
+    var initialMillis = -1L
+}
 
 /**
  * A toolbar of buttons to show inside the browser menu.
@@ -49,6 +54,10 @@ class BrowserMenuItemToolbar(
             button.setFocusable(true)
             button.setBackgroundResource(selectableBackground)
             button.setOnClickListener {
+                MenuButtonClick.initialMillis = SystemClock.elapsedRealtime().also {
+                    android.util.Log.e("lol", "onBrowserMenuItemClick $it")
+                }
+
                 item.listener()
                 menu.dismiss()
             }

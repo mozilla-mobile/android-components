@@ -22,6 +22,7 @@ import kotlin.random.Random
  * @property referrerUrl The site that linked to this download.
  * @property skipConfirmation Whether or not the confirmation dialog should be shown before the download begins.
  * @property id The unique identifier of this download.
+ * @property dismissed Indicates that the user has dismissed the onDownloadStopped notification tab.
  */
 @Suppress("Deprecation")
 @Parcelize
@@ -34,7 +35,8 @@ data class DownloadState(
     val destinationDirectory: String = Environment.DIRECTORY_DOWNLOADS,
     val referrerUrl: String? = null,
     val skipConfirmation: Boolean = false,
-    val id: Long = Random.nextLong()
+    val id: Long = Random.nextLong(),
+    val dismissed: Boolean = false
 ) : Parcelable {
     val filePath: String get() =
         Environment.getExternalStoragePublicDirectory(destinationDirectory).path + "/" + fileName

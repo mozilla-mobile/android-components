@@ -34,7 +34,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -210,8 +209,44 @@ class DownloadsFeatureTest {
 
         verify(fragmentManager, never()).beginTransaction()
         verify(downloadManager).download(eq(download), anyString())
+    }
 
-        assertNull(store.state.findTab("test-tab")!!.content.download)
+    @Test
+    fun `Adding a Download with downloadState dismissed flag will not start download`() {
+        val fragmentManager: FragmentManager = mockFragmentManager()
+
+        grantPermissions()
+
+        val downloadManager: DownloadManager = mock()
+        doReturn(
+            arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE)
+        ).`when`(downloadManager).permissions
+
+        val feature = DownloadsFeature(
+            testContext,
+            store,
+            useCases = DownloadsUseCases(store),
+            fragmentManager = fragmentManager,
+            downloadManager = downloadManager
+        )
+
+        feature.start()
+
+        verify(fragmentManager, never()).beginTransaction()
+
+        val download = DownloadState(
+            url = "https://www.mozilla.org",
+            skipConfirmation = true,
+            dismissed = true
+        )
+
+        store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
+            .joinBlocking()
+
+        testDispatcher.advanceUntilIdle()
+
+        verify(fragmentManager, never()).beginTransaction()
+        verify(downloadManager, never()).download(any(), anyString())
     }
 
     @Test
@@ -313,8 +348,6 @@ class DownloadsFeatureTest {
             arrayOf(PackageManager.PERMISSION_GRANTED, PackageManager.PERMISSION_DENIED).toIntArray())
 
         store.waitUntilIdle()
-
-        assertNull(store.state.findTab("test-tab")!!.content.download)
 
         verify(downloadManager, never()).download(any(), anyString())
     }

@@ -339,9 +339,10 @@ class ContentActionTest {
     }
 
     @Test
-    fun `ConsumeDownloadAction removes download`() {
+    fun `ConsumeDownloadAction removes download if downloadState is dismissed`() {
         val download: DownloadState = mock()
         doReturn(1337L).`when`(download).id
+        doReturn(true).`when`(download).dismissed
 
         store.dispatch(
             ContentAction.UpdateDownloadAction(tab.id, download)

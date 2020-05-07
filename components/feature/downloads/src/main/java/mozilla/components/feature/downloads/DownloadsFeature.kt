@@ -94,7 +94,9 @@ class DownloadsFeature(
                 .ifChanged { it.content.download }
                 .collect { state ->
                     val download = state.content.download
-                    if (download != null) {
+                    // [dismissed] Indicates that the user has dismissed the onDownloadStopped
+                    // notification tab, so there is no need to process anything.
+                    if (download != null && !download.dismissed) {
                         processDownload(state, download)
                     }
                 }

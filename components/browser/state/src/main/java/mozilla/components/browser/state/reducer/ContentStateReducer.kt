@@ -63,7 +63,9 @@ internal object ContentStateReducer {
                 it.copy(download = action.download)
             }
             is ContentAction.ConsumeDownloadAction -> updateContentState(state, action.sessionId) {
-                if (it.download != null && it.download.id == action.downloadId) {
+                if (it.download != null && it.download.id == action.downloadId &&
+                    it.download.dismissed
+                ) {
                     it.copy(download = null)
                 } else {
                     it

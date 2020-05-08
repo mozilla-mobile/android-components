@@ -43,7 +43,11 @@ class TabsAdapter(
     private var tabs: Tabs? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TabViewHolder {
-        return viewHolderProvider.invoke(parent, tabsTray)
+        val result = viewHolderProvider.invoke(parent, tabsTray)
+        tabs?.let {
+            this.tabsTray.scrollToPosition(it.selectedIndex)
+        }
+        return result
     }
 
     override fun getItemCount() = tabs?.list?.size ?: 0

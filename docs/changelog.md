@@ -26,6 +26,7 @@ permalink: /changelog/
 
 * **browser-tabstray**
   * Added optional `itemDecoration` DividerItemDecoration parameter to `BrowserTabsTray` constructor to allow the clients to add their own dividers. This is used to ensure setting divider item decoration after setAdapter() is called.
+  * Added functionality to scroll to selected tab when tabs tray opens.
   
 # 40.0.0
 

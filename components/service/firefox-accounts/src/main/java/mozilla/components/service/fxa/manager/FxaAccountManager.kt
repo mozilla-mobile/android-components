@@ -6,16 +6,19 @@ package mozilla.components.service.fxa.manager
 
 import android.content.Context
 import androidx.annotation.GuardedBy
+import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mozilla.appservices.syncmanager.DeviceSettings
 import mozilla.components.concept.sync.AccountObserver
@@ -307,36 +310,37 @@ open class FxaAccountManager(
             throw IllegalArgumentException("Set of supported engines can't be empty")
         }
 
-        syncManager = createSyncManager(config).also { manager ->
-            // Observe account state changes.
-            syncManagerIntegration = AccountsToSyncIntegration(manager).also { accountToSync ->
-                this@FxaAccountManager.register(accountToSync)
-            }
-            // Observe sync status changes.
-            manager.registerSyncStatusObserver(internalSyncStatusObserver)
-            // If account is currently authenticated, 'enable' the sync manager.
-            if (authenticatedAccount() != null) {
-                CoroutineScope(coroutineContext).launch {
-                    // Make sure auth-info cache is populated before starting sync manager.
-                    maybeUpdateSyncAuthInfoCache()
+        val manager = runBlocking(Main) { createSyncManager(config) }
+        this.syncManager = manager
 
-                    // We enabled syncing for an authenticated account, and we now need to kick-off sync.
-                    // How do we know if this is going to be a first sync for an account?
-                    // We can make two assumptions, that are probably roughly correct most of the time:
-                    // - we know what the user data choices are
-                    //  - they were presented with CWTS ("choose what to sync") during sign-up/sign-in
-                    // - ... or we're enabling sync for an existing account, with data choices already
-                    //   recorded on some other client, e.g. desktop.
-                    // In either case, we need to behave as if we're in a "first sync":
-                    // - persist local choice, if we've signed for an account up locally and have CWTS
-                    // data from the user
-                    // - or fetch existing CWTS data from the server, if we don't have it locally.
-                    manager.start(SyncReason.FirstSync)
-                    result.complete(Unit)
-                }
-            } else {
+        // Observe account state changes.
+        syncManagerIntegration = AccountsToSyncIntegration(manager).also { accountToSync ->
+            this@FxaAccountManager.register(accountToSync)
+        }
+        // Observe sync status changes.
+        manager.registerSyncStatusObserver(internalSyncStatusObserver)
+        // If account is currently authenticated, 'enable' the sync manager.
+        if (authenticatedAccount() != null) {
+            CoroutineScope(coroutineContext).launch {
+                // Make sure auth-info cache is populated before starting sync manager.
+                maybeUpdateSyncAuthInfoCache()
+
+                // We enabled syncing for an authenticated account, and we now need to kick-off sync.
+                // How do we know if this is going to be a first sync for an account?
+                // We can make two assumptions, that are probably roughly correct most of the time:
+                // - we know what the user data choices are
+                //  - they were presented with CWTS ("choose what to sync") during sign-up/sign-in
+                // - ... or we're enabling sync for an existing account, with data choices already
+                //   recorded on some other client, e.g. desktop.
+                // In either case, we need to behave as if we're in a "first sync":
+                // - persist local choice, if we've signed for an account up locally and have CWTS
+                // data from the user
+                // - or fetch existing CWTS data from the server, if we don't have it locally.
+                manager.start(SyncReason.FirstSync)
                 result.complete(Unit)
             }
+        } else {
+            result.complete(Unit)
         }
 
         return result
@@ -1000,6 +1004,7 @@ open class FxaAccountManager(
         return FirefoxAccount(config)
     }
 
+    @UiThread
     @VisibleForTesting
     internal open fun createSyncManager(config: SyncConfig): SyncManager {
         return WorkManagerSyncManager(context, config)

@@ -58,7 +58,7 @@ private const val SYNC_WORKER_BACKOFF_DELAY_MINUTES = 3L
  *
  * Must be initialized on the main thread.
  */
-internal class WorkManagerSyncManager(
+internal class WorkManagerSyncManager @UiThread constructor(
     private val context: Context,
     syncConfig: SyncConfig
 ) : SyncManager(syncConfig) {

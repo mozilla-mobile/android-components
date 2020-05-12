@@ -60,9 +60,20 @@
         android:layout_height="40dp"
         android:layout_marginTop="8dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/mozac_browser_toolbar_clear_view"
+        app:layout_constraintEnd_toStartOf="@id/mozac_browser_toolbar_mic_button"
         mozac:actionContainerItemSize="40dp"
         tools:layout_width="48dp" />
+
+    <ImageButton
+        android:id="@+id/mozac_browser_toolbar_mic_button"
+        android:contentDescription="TODO"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        app:srcCompat="@drawable/mozac_ic_microphone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_clear_view"
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <ImageView
         android:id="@+id/mozac_browser_toolbar_clear_view"

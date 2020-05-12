@@ -4,18 +4,24 @@
 
 package mozilla.components.browser.toolbar.edit
 
+import android.app.Activity.RESULT_OK
 import android.content.Context
+import android.content.Intent
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.speech.RecognizerIntent
+import android.speech.RecognizerIntent.EXTRA_RESULTS
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.annotation.ColorInt
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.content.ContextCompat
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.isVisible
@@ -33,6 +39,7 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 import java.util.concurrent.Executors
+import mozilla.components.support.base.feature.ViewContainer
 
 private const val AUTOCOMPLETE_QUERY_THREADS = 3
 
@@ -55,6 +62,7 @@ class EditToolbar internal constructor(
     private val toolbar: BrowserToolbar,
     internal val rootView: View
 ) {
+    var container: ViewContainer? = null
     private val logger = Logger("EditToolbar")
 
     /**
@@ -84,12 +92,20 @@ class EditToolbar internal constructor(
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal val views = EditToolbarViews(
-        background = rootView.findViewById<ImageView>(R.id.mozac_browser_toolbar_background),
-        icon = rootView.findViewById<ImageView>(R.id.mozac_browser_toolbar_edit_icon),
-        editActions = rootView.findViewById<ActionContainer>(R.id.mozac_browser_toolbar_edit_actions),
+        background = rootView.findViewById(R.id.mozac_browser_toolbar_background),
+        icon = rootView.findViewById(R.id.mozac_browser_toolbar_edit_icon),
+        editActions = rootView.findViewById(R.id.mozac_browser_toolbar_edit_actions),
         clear = rootView.findViewById<ImageView>(R.id.mozac_browser_toolbar_clear_view).apply {
             setOnClickListener {
                 onClear()
+            }
+        },
+        mic = rootView.findViewById<ImageButton>(
+            R.id.mozac_browser_toolbar_mic_button
+        ).apply {
+            // visibility = View.GONE
+            setOnClickListener {
+                onMicPressed()
             }
         },
         url = rootView.findViewById<InlineAutocompleteEditText>(
@@ -257,6 +273,31 @@ class EditToolbar internal constructor(
         views.url.setText("")
     }
 
+    private fun onMicPressed() {
+        val speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now")
+        }
+        container?.startActivityForResult(speechIntent, SPEECH_REQUEST_CODE)
+    }
+
+    /**
+     * Notifies the feature of intent results for prompt requests handled by
+     * other apps like file chooser requests.
+     *
+     * @param requestCode The code of the app that requested the intent.
+     * @param intent The result of the request.
+     */
+    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
+            intent?.getStringArrayListExtra(EXTRA_RESULTS)?.first()?.also {
+                views.url.setText(it)
+                onTextChanged(it)
+                views.url.setSelection(0, it.count())
+            }
+        }
+    }
+
     private fun setUrlGoneMargin(anchor: Int, dimen: Int) {
         val set = ConstraintSet()
         val container = rootView.findViewById<ConstraintLayout>(
@@ -281,6 +322,10 @@ class EditToolbar internal constructor(
         }
         editListener?.onTextChanged(text)
     }
+
+    companion object {
+        const val SPEECH_REQUEST_CODE = 0
+    }
 }
 
 /**
@@ -291,5 +336,6 @@ internal class EditToolbarViews(
     val icon: ImageView,
     val editActions: ActionContainer,
     val clear: ImageView,
-    val url: InlineAutocompleteEditText
+    val url: InlineAutocompleteEditText,
+    val mic: ImageButton
 )

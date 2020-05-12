@@ -76,6 +76,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
         toolbarFeature.set(
             feature = ToolbarFeature(
                 layout.toolbar,
+                this,
                 components.store,
                 components.sessionUseCases.loadUrl,
                 components.defaultSearchUseCase,
@@ -241,6 +242,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
 
     @CallSuper
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        toolbarFeature.withFeature { it.onActivityResult(requestCode, resultCode, data) }
         promptFeature.withFeature { it.onActivityResult(requestCode, resultCode, data) }
     }
 

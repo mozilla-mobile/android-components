@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.toolbar
 
+import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +16,7 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
 import mozilla.components.support.base.android.Padding
+import mozilla.components.support.base.feature.ViewContainer
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.setPadding
 import java.lang.ref.WeakReference
@@ -24,6 +26,12 @@ import java.lang.ref.WeakReference
  */
 @Suppress("TooManyFunctions")
 interface Toolbar {
+
+    /**
+     * Sets/Gets the view container for the toolbar. Used for `onActivityResult` calls.
+     */
+    var container: ViewContainer?
+
     /**
      * Sets/Gets the title to be displayed on the toolbar.
      */
@@ -161,6 +169,11 @@ interface Toolbar {
      * Switches to URL editing mode (from displaying mode) if supported by the toolbar implementation.
      */
     fun editMode()
+
+    /**
+     * Notifies the toolbar of intent results for mic requests handled by the fragment or activity.
+     */
+    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?)
 
     /**
      * Listener to be invoked when the user edits the URL.

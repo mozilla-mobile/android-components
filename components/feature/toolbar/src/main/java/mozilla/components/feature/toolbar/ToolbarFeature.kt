@@ -4,13 +4,16 @@
 
 package mozilla.components.feature.toolbar
 
+import android.content.Intent
 import androidx.annotation.ColorInt
+import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.base.feature.ViewContainer
 
 /**
  * A function representing the search use case, accepting
@@ -23,6 +26,7 @@ typealias SearchUseCase = (String) -> Unit
  */
 class ToolbarFeature(
     private val toolbar: Toolbar,
+    private val fragment: Fragment,
     store: BrowserStore,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     searchUseCase: SearchUseCase? = null,
@@ -36,6 +40,7 @@ class ToolbarFeature(
      * Start feature: App is in the foreground.
      */
     override fun start() {
+        toolbar.container = ViewContainer.Fragment(fragment)
         interactor.start()
         presenter.start()
     }
@@ -53,6 +58,10 @@ class ToolbarFeature(
     override fun stop() {
         presenter.stop()
         toolbar.onStop()
+    }
+
+    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        toolbar.onActivityResult(requestCode, resultCode, intent)
     }
 
     /**

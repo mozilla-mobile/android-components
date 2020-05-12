@@ -5,6 +5,7 @@
 package mozilla.components.browser.toolbar
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -26,6 +27,7 @@ import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.base.android.Padding
+import mozilla.components.support.base.feature.ViewContainer
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.ui.autocomplete.AutocompleteView
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
@@ -88,6 +90,10 @@ class BrowserToolbar @JvmOverloads constructor(
         )
     )
     @VisibleForTesting(otherwise = PRIVATE) internal set
+
+    override var container: ViewContainer?
+        get() = null
+        set(value) { edit.container = value }
 
     override var title: String
         get() = display.title
@@ -285,6 +291,10 @@ class BrowserToolbar @JvmOverloads constructor(
         updateState(State.EDIT)
         edit.focus()
         edit.selectAll()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        edit.onActivityResult(requestCode, resultCode, intent)
     }
 
     /**

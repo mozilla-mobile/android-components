@@ -35,6 +35,7 @@ dependencies {
     implementation project(':concept-toolbar')
     implementation project(':concept-storage')
     implementation project(':lib-publicsuffixlist')
+    implementation project(':support-base')
     implementation project(':support-utils')
     implementation project(':support-ktx')
     implementation project(':ui-icons')

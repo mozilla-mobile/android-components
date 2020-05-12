@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.prompts
+package mozilla.components.support.base.feature
 
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.StringRes
 
 /**
- * Wrapper to hold shared functionality between activities and fragments for [PromptFeature].
+ * Wrapper to hold shared functionality between activities and fragments for `startActivityForResult`.
  */
-sealed class PromptContainer {
+sealed class ViewContainer {
 
     /**
      * Getter for [Context].
@@ -30,7 +30,7 @@ sealed class PromptContainer {
 
     internal class Activity(
         private val activity: android.app.Activity
-    ) : PromptContainer() {
+    ) : ViewContainer() {
 
         override val context get() = activity
 
@@ -42,7 +42,7 @@ sealed class PromptContainer {
 
     class Fragment(
         private val fragment: androidx.fragment.app.Fragment
-    ) : PromptContainer() {
+    ) : ViewContainer() {
 
         override val context get() = fragment.requireContext()
 

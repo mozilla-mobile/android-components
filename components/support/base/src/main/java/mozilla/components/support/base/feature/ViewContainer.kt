@@ -28,7 +28,10 @@ sealed class ViewContainer {
      */
     abstract fun getString(@StringRes res: Int): String
 
-    internal class Activity(
+    /**
+     * Wrapper for android activity
+     */
+    class Activity(
         private val activity: android.app.Activity
     ) : ViewContainer() {
 
@@ -40,6 +43,9 @@ sealed class ViewContainer {
         override fun getString(res: Int) = activity.getString(res)
     }
 
+    /**
+     * Wrapper for android fragment
+     */
     class Fragment(
         private val fragment: androidx.fragment.app.Fragment
     ) : ViewContainer() {

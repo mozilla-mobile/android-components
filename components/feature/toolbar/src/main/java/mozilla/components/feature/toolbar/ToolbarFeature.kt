@@ -60,6 +60,9 @@ class ToolbarFeature(
         toolbar.onStop()
     }
 
+    /**
+     * Notifies the toolbar of intent results for mic requests handled by the fragment or activity.
+     */
     fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         toolbar.onActivityResult(requestCode, resultCode, intent)
     }

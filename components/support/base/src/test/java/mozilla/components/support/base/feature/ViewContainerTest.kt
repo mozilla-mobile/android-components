@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.prompts
+package mozilla.components.support.base.feature
 
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.fragment.app.Fragment
+import mozilla.components.support.base.R
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -18,7 +19,7 @@ import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations.initMocks
 
-class PromptContainerTest {
+class ViewContainerTest {
 
     @Mock private lateinit var activity: Activity
     @Mock private lateinit var fragment: Fragment
@@ -30,14 +31,14 @@ class PromptContainerTest {
 
     @Test
     fun `get context from activity`() {
-        val container: PromptContainer = PromptContainer.Activity(activity)
+        val container: ViewContainer = ViewContainer.Activity(activity)
         assertEquals(activity, container.context)
     }
 
     @Test
     fun `get context from fragment`() {
         val mockContext: Context = mock()
-        val container = PromptContainer.Fragment(fragment)
+        val container = ViewContainer.Fragment(fragment)
         doReturn(mockContext).`when`(fragment).requireContext()
 
         assertEquals(mockContext, container.context)
@@ -48,11 +49,11 @@ class PromptContainerTest {
         val intent: Intent = mock()
         val code = 1
 
-        var container: PromptContainer = PromptContainer.Activity(activity)
+        var container: ViewContainer = ViewContainer.Activity(activity)
         container.startActivityForResult(intent, code)
         verify(activity).startActivityForResult(intent, code)
 
-        container = PromptContainer.Fragment(fragment)
+        container = ViewContainer.Fragment(fragment)
         container.startActivityForResult(intent, code)
         verify(fragment).startActivityForResult(intent, code)
     }
@@ -62,12 +63,12 @@ class PromptContainerTest {
         doReturn("").`when`(activity).getString(anyInt())
         doReturn("").`when`(fragment).getString(anyInt())
 
-        var container: PromptContainer = PromptContainer.Activity(activity)
-        container.getString(R.string.mozac_feature_prompts_ok)
-        verify(activity).getString(R.string.mozac_feature_prompts_ok)
+        var container: ViewContainer = ViewContainer.Activity(activity)
+        container.getString(R.string.mozac_support_base_locale_preference_key_locale)
+        verify(activity).getString(R.string.mozac_support_base_locale_preference_key_locale)
 
-        container = PromptContainer.Fragment(fragment)
-        container.getString(R.string.mozac_feature_prompts_ok)
-        verify(fragment).getString(R.string.mozac_feature_prompts_ok)
+        container = ViewContainer.Fragment(fragment)
+        container.getString(R.string.mozac_support_base_locale_preference_key_locale)
+        verify(fragment).getString(R.string.mozac_support_base_locale_preference_key_locale)
     }
 }

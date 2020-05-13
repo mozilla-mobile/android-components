@@ -59,6 +59,7 @@ import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
+import mozilla.components.support.base.feature.ViewContainer
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
@@ -104,7 +105,7 @@ private const val PROGRESS_ALMOST_COMPLETE = 90
  */
 @Suppress("TooManyFunctions", "LargeClass")
 class PromptFeature private constructor(
-    private val container: PromptContainer,
+    private val container: ViewContainer,
     private val store: BrowserStore,
     private var customTabId: String?,
     private val fragmentManager: FragmentManager,
@@ -134,7 +135,7 @@ class PromptFeature private constructor(
         isSaveLoginEnabled: () -> Boolean = { false },
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
-        container = PromptContainer.Activity(activity),
+        container = ViewContainer.Activity(activity),
         store = store,
         customTabId = customTabId,
         fragmentManager = fragmentManager,
@@ -154,7 +155,7 @@ class PromptFeature private constructor(
         isSaveLoginEnabled: () -> Boolean = { false },
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
-        container = PromptContainer.Fragment(fragment),
+        container = ViewContainer.Fragment(fragment),
         store = store,
         customTabId = customTabId,
         fragmentManager = fragmentManager,
@@ -173,8 +174,8 @@ class PromptFeature private constructor(
         fragmentManager: FragmentManager,
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
-        container = activity?.let { PromptContainer.Activity(it) }
-            ?: fragment?.let { PromptContainer.Fragment(it) }
+        container = activity?.let { ViewContainer.Activity(it) }
+            ?: fragment?.let { ViewContainer.Fragment(it) }
             ?: throw IllegalStateException(
                 "activity and fragment references " +
                         "must not be both null, at least one must be initialized."

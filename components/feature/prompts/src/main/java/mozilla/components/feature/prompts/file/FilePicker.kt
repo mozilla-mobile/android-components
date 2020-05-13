@@ -17,10 +17,10 @@ import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.File
-import mozilla.components.feature.prompts.PromptContainer
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
+import mozilla.components.support.base.feature.ViewContainer
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 
 /**
@@ -31,7 +31,7 @@ import mozilla.components.support.ktx.android.content.isPermissionGranted
  * Once the request is completed, [onPermissionsResult] needs to be invoked.
  */
 internal class FilePicker(
-    private val container: PromptContainer,
+    private val container: ViewContainer,
     private val store: BrowserStore,
     private var sessionId: String? = null,
     override val onNeedToRequestPermissions: OnNeedToRequestPermissions

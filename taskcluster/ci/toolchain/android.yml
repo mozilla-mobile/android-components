@@ -53,6 +53,10 @@ linux64-android-gradle-dependencies:
     treeherder:
         symbol: TL(gradle-dependencies)
     worker:
+        artifacts:
+            - type: directory
+              name: public/logs/nexus
+              path: /opt/sonatype/nexus/logs
         docker-image: {in-tree: android-build}
         env:
             # TODO do no hardcode

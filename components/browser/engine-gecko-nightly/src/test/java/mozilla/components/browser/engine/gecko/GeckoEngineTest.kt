@@ -476,6 +476,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install built-in web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -505,6 +506,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install built-in web extension successfully but do not allow content messaging`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -535,6 +537,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install external web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -572,6 +575,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation")
     fun `install built-in web extension failure`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -595,6 +599,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install external web extension failure`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -621,6 +626,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `uninstall web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val extensionController: WebExtensionController = mock()
@@ -662,6 +668,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `uninstall web extension failure`() {
         val runtime = mock<GeckoRuntime>()
         val extensionController: WebExtensionController = mock()
@@ -700,6 +707,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation")
     fun `web extension delegate handles installation`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
@@ -721,6 +729,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate handles install prompt`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
@@ -746,6 +755,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate handles update prompt`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
@@ -787,6 +797,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of browser actions from built-in extensions`() {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -822,6 +833,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of page actions from built-in extensions`() {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -857,6 +869,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified when built-in extension wants to open tab`() {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -887,6 +900,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of browser actions from external extensions`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -928,6 +942,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of page actions from external extensions`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -969,6 +984,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified when external extension wants to open tab`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -1023,6 +1039,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `update web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val extensionController: WebExtensionController = mock()
@@ -1645,6 +1662,56 @@ class GeckoEngineTest {
     }
 
     @Test
+    fun `fetch site with social trackers`() {
+        val runtime = mock<GeckoRuntime>()
+        val engine = GeckoEngine(context, runtime = runtime)
+        val mockSession = mock<GeckoEngineSession>()
+        val mockGeckoSetting = mock<GeckoRuntimeSettings>()
+        val mockGeckoContentBlockingSetting = mock<ContentBlocking.Settings>()
+        var trackersLog: List<TrackerLog>? = null
+
+        val mockContentBlockingController = mock<ContentBlockingController>()
+        var logEntriesResult = GeckoResult<List<ContentBlockingController.LogEntry>>()
+
+        whenever(runtime.settings).thenReturn(mockGeckoSetting)
+        whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)
+        whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)
+        whenever(mockContentBlockingController.getLog(any())).thenReturn(logEntriesResult)
+        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.recommended()
+
+        engine.getTrackersLog(mockSession, onSuccess = { trackersLog = it })
+        logEntriesResult.complete(createSocialTrackersLogEntryList())
+
+        var trackerLog = trackersLog!!.first()
+        assertTrue(trackerLog.cookiesHasBeenBlocked)
+        assertEquals("www.tracker.com", trackerLog.url)
+        assertTrue(trackerLog.blockedCategories.contains(TrackingCategory.MOZILLA_SOCIAL))
+
+        var trackerLog2 = trackersLog!![1]
+        assertFalse(trackerLog2.cookiesHasBeenBlocked)
+        assertEquals("www.tracker2.com", trackerLog2.url)
+        assertTrue(trackerLog2.loadedCategories.contains(TrackingCategory.MOZILLA_SOCIAL))
+
+        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
+
+        logEntriesResult = GeckoResult()
+        whenever(mockContentBlockingController.getLog(any())).thenReturn(logEntriesResult)
+
+        engine.getTrackersLog(mockSession, onSuccess = { trackersLog = it })
+        logEntriesResult.complete(createSocialTrackersLogEntryList())
+
+        trackerLog = trackersLog!!.first()
+        assertTrue(trackerLog.cookiesHasBeenBlocked)
+        assertEquals("www.tracker.com", trackerLog.url)
+        assertTrue(trackerLog.blockedCategories.contains(TrackingCategory.MOZILLA_SOCIAL))
+
+        trackerLog2 = trackersLog!![1]
+        assertFalse(trackerLog2.cookiesHasBeenBlocked)
+        assertEquals("www.tracker2.com", trackerLog2.url)
+        assertTrue(trackerLog2.loadedCategories.contains(TrackingCategory.MOZILLA_SOCIAL))
+    }
+
+    @Test
     fun `fetch trackers logged of the level 2 list`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -1714,11 +1781,33 @@ class GeckoEngineTest {
         assert(handler1 == handler2)
     }
 
+    private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {
+        val blockedLogEntry = object : ContentBlockingController.LogEntry() {}
+
+        ReflectionUtils.setField(blockedLogEntry, "origin", "www.tracker.com")
+        val blockedCookieSocialTracker = createBlockingData(Event.COOKIES_BLOCKED_SOCIALTRACKER)
+        val blockedSocialContent = createBlockingData(Event.BLOCKED_SOCIALTRACKING_CONTENT)
+
+        ReflectionUtils.setField(blockedLogEntry, "blockingData", listOf(blockedSocialContent, blockedCookieSocialTracker))
+
+        val loadedLogEntry = object : ContentBlockingController.LogEntry() {}
+        ReflectionUtils.setField(loadedLogEntry, "origin", "www.tracker2.com")
+
+        val loadedCookieSocialTracker = createBlockingData(Event.COOKIES_LOADED_SOCIALTRACKER)
+        val loadedSocialContent = createBlockingData(Event.LOADED_SOCIALTRACKING_CONTENT)
+
+        ReflectionUtils.setField(loadedLogEntry, "blockingData", listOf(loadedCookieSocialTracker, loadedSocialContent))
+
+        return listOf(blockedLogEntry, loadedLogEntry)
+    }
+
     private fun createDummyLogEntryList(): List<ContentBlockingController.LogEntry> {
         val addLogEntry = object : ContentBlockingController.LogEntry() {}
 
         ReflectionUtils.setField(addLogEntry, "origin", "www.tracker.com")
         val blockedCookiePermission = createBlockingData(Event.COOKIES_BLOCKED_BY_PERMISSION)
+        val loadedCookieSocialTracker = createBlockingData(Event.COOKIES_LOADED_SOCIALTRACKER)
+        val blockedCookieSocialTracker = createBlockingData(Event.COOKIES_BLOCKED_SOCIALTRACKER)
 
         val blockedTrackingContent = createBlockingData(Event.BLOCKED_TRACKING_CONTENT)
         val blockedFingerprintingContent = createBlockingData(Event.BLOCKED_FINGERPRINTING_CONTENT)
@@ -1741,7 +1830,9 @@ class GeckoEngineTest {
             loadedCyptominingContent,
             blockedCookiePermission,
             blockedSocialContent,
-            loadedSocialContent
+            loadedSocialContent,
+            loadedCookieSocialTracker,
+            blockedCookieSocialTracker
         )
 
         val addLogSecondEntry = object : ContentBlockingController.LogEntry() {}

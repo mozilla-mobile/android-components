@@ -18,6 +18,7 @@ import io.sentry.event.EventBuilder
 import io.sentry.event.interfaces.ExceptionInterface
 import mozilla.components.Build
 import mozilla.components.lib.crash.Crash
+import mozilla.components.support.base.crash.Breadcrumb as CrashBreadcrumb
 
 /**
  * A [CrashReporterService] implementation that uploads crash reports to a Sentry server.
@@ -38,6 +39,14 @@ class SentryService(
     private val sendEventForNativeCrashes: Boolean = false,
     clientFactory: SentryClientFactory? = null
 ) : CrashReporterService {
+    override val id: String = "sentry"
+
+    override val name: String = "Sentry"
+
+    override fun createCrashReportUrl(identifier: String): String? {
+        val id = identifier.replace("-", "")
+        return "https://sentry.prod.mozaws.net/operations/samples-crash/?query=$id"
+    }
 
     // Fenix perf note: Sentry init may negatively impact cold startup so it's important this is lazily init.
     @VisibleForTesting(otherwise = PRIVATE)
@@ -64,7 +73,7 @@ class SentryService(
         }
     }
 
-    override fun report(crash: Crash.UncaughtExceptionCrash) {
+    override fun report(crash: Crash.UncaughtExceptionCrash): String? {
         crash.breadcrumbs.forEach {
             client.context.recordBreadcrumb(it.toSentryBreadcrumb())
         }
@@ -72,27 +81,54 @@ class SentryService(
         val eventBuilder = EventBuilder().withMessage(createMessage(crash))
                 .withLevel(Event.Level.FATAL)
                 .withSentryInterface(ExceptionInterface(crash.throwable))
+
         client.sendEvent(eventBuilder)
+        client.context.clearBreadcrumbs()
+
+        return eventBuilder.event.id.toString()
     }
 
-    override fun report(crash: Crash.NativeCodeCrash) {
+    override fun report(crash: Crash.NativeCodeCrash): String? {
         if (sendEventForNativeCrashes) {
+            val level = when (crash.isFatal) {
+                true -> Event.Level.FATAL
+                else -> Event.Level.ERROR
+            }
+
             crash.breadcrumbs.forEach {
                 client.context.recordBreadcrumb(it.toSentryBreadcrumb())
             }
-            client.sendMessage(createMessage(crash))
+
+            val eventBuilder = EventBuilder()
+                .withMessage(createMessage(crash))
+                .withLevel(level)
+
+            client.sendEvent(eventBuilder)
+            client.context.clearBreadcrumbs()
+
+            return eventBuilder.event.id.toString()
         }
+
+        return null
     }
 
-    override fun report(throwable: Throwable) {
+    override fun report(throwable: Throwable, breadcrumbs: ArrayList<CrashBreadcrumb>): String? {
+        breadcrumbs.forEach {
+            client.context.recordBreadcrumb(it.toSentryBreadcrumb())
+        }
+
         val eventBuilder = EventBuilder().withMessage(createMessage(throwable))
                 .withLevel(Event.Level.INFO)
                 .withSentryInterface(ExceptionInterface(throwable))
+
         client.sendEvent(eventBuilder)
+        client.context.clearBreadcrumbs()
+
+        return eventBuilder.event.id.toString()
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun mozilla.components.lib.crash.Breadcrumb.toSentryBreadcrumb(): Breadcrumb {
+    internal fun CrashBreadcrumb.toSentryBreadcrumb(): Breadcrumb {
         return BreadcrumbBuilder()
                 .setMessage(this.message)
                 .setData(this.data)
@@ -104,20 +140,20 @@ class SentryService(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun mozilla.components.lib.crash.Breadcrumb.Level.toSentryBreadcrumbLevel() = when (this) {
-        mozilla.components.lib.crash.Breadcrumb.Level.CRITICAL -> Breadcrumb.Level.CRITICAL
-        mozilla.components.lib.crash.Breadcrumb.Level.ERROR -> Breadcrumb.Level.ERROR
-        mozilla.components.lib.crash.Breadcrumb.Level.WARNING -> Breadcrumb.Level.WARNING
-        mozilla.components.lib.crash.Breadcrumb.Level.INFO -> Breadcrumb.Level.INFO
-        mozilla.components.lib.crash.Breadcrumb.Level.DEBUG -> Breadcrumb.Level.DEBUG
+    internal fun CrashBreadcrumb.Level.toSentryBreadcrumbLevel() = when (this) {
+        CrashBreadcrumb.Level.CRITICAL -> Breadcrumb.Level.CRITICAL
+        CrashBreadcrumb.Level.ERROR -> Breadcrumb.Level.ERROR
+        CrashBreadcrumb.Level.WARNING -> Breadcrumb.Level.WARNING
+        CrashBreadcrumb.Level.INFO -> Breadcrumb.Level.INFO
+        CrashBreadcrumb.Level.DEBUG -> Breadcrumb.Level.DEBUG
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun mozilla.components.lib.crash.Breadcrumb.Type.toSentryBreadcrumbType() = when (this) {
-        mozilla.components.lib.crash.Breadcrumb.Type.DEFAULT -> Breadcrumb.Type.DEFAULT
-        mozilla.components.lib.crash.Breadcrumb.Type.HTTP -> Breadcrumb.Type.HTTP
-        mozilla.components.lib.crash.Breadcrumb.Type.NAVIGATION -> Breadcrumb.Type.NAVIGATION
-        mozilla.components.lib.crash.Breadcrumb.Type.USER -> Breadcrumb.Type.USER
+    internal fun CrashBreadcrumb.Type.toSentryBreadcrumbType() = when (this) {
+        CrashBreadcrumb.Type.DEFAULT -> Breadcrumb.Type.DEFAULT
+        CrashBreadcrumb.Type.HTTP -> Breadcrumb.Type.HTTP
+        CrashBreadcrumb.Type.NAVIGATION -> Breadcrumb.Type.NAVIGATION
+        CrashBreadcrumb.Type.USER -> Breadcrumb.Type.USER
     }
 }
 

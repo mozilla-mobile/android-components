@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.addons.ui
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Typeface
 import android.graphics.drawable.BitmapDrawable
@@ -15,12 +16,14 @@ import android.widget.ImageView
 import android.widget.RatingBar
 import android.widget.TextView
 import androidx.annotation.ColorRes
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.Main
@@ -56,14 +59,20 @@ class AddonsManagerAdapter(
     private val addonsManagerDelegate: AddonsManagerAdapterDelegate,
     addons: List<Addon>,
     private val style: Style? = null
-) : RecyclerView.Adapter<CustomViewHolder>() {
+) : ListAdapter<Any, CustomViewHolder>(DifferCallback) {
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val items: List<Any>
-    private val unsupportedAddons = ArrayList<Addon>()
+    private val unsupportedAddons = mutableSetOf<Addon>()
     private val logger = Logger("AddonsManagerAdapter")
+    /**
+     * Represents all the add-ons that will be distributed in multiple headers like
+     * enabled, recommended and unsupported, this help have the data source of the items,
+     * displayed in the UI.
+     */
+    @VisibleForTesting
+    internal var addonsMap: MutableMap<String, Addon> = addons.associateBy({ it.id }, { it }).toMutableMap()
 
     init {
-        items = createListWithSections(addons)
+        submitList(createListWithSections(addons))
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CustomViewHolder {
@@ -109,6 +118,7 @@ class AddonsManagerAdapter(
         val ratingAccessibleView = view.findViewById<TextView>(R.id.rating_accessibility)
         val userCountView = view.findViewById<TextView>(R.id.users_count)
         val addButton = view.findViewById<ImageView>(R.id.add_button)
+        val allowedInPrivateBrowsingLabel = view.findViewById<ImageView>(R.id.allowed_in_private_browsing_label)
         return AddonViewHolder(
             view,
             iconContainer,
@@ -118,14 +128,13 @@ class AddonsManagerAdapter(
             ratingView,
             ratingAccessibleView,
             userCountView,
-            addButton
+            addButton,
+            allowedInPrivateBrowsingLabel
         )
     }
 
-    override fun getItemCount() = items.size
-
     override fun getItemViewType(position: Int): Int {
-        return when (items[position]) {
+        return when (getItem(position)) {
             is Addon -> VIEW_HOLDER_TYPE_ADDON
             is Section -> VIEW_HOLDER_TYPE_SECTION
             is NotYetSupportedSection -> VIEW_HOLDER_TYPE_NOT_YET_SUPPORTED_SECTION
@@ -134,7 +143,7 @@ class AddonsManagerAdapter(
     }
 
     override fun onBindViewHolder(holder: CustomViewHolder, position: Int) {
-        val item = items[position]
+        val item = getItem(position)
 
         when (holder) {
             is SectionViewHolder -> bindSection(holder, item as Section)
@@ -171,7 +180,7 @@ class AddonsManagerAdapter(
             }
 
         holder.itemView.setOnClickListener {
-            addonsManagerDelegate.onNotYetSupportedSectionClicked(unsupportedAddons)
+            addonsManagerDelegate.onNotYetSupportedSectionClicked(unsupportedAddons.toList())
         }
     }
 
@@ -218,6 +227,9 @@ class AddonsManagerAdapter(
             }
         }
 
+        holder.allowedInPrivateBrowsingLabel.isVisible = addon.isAllowedInPrivateBrowsing()
+        style?.maybeSetPrivateBrowsingLabelDrawale(holder.allowedInPrivateBrowsingLabel)
+
         style?.addonBackgroundIconColor?.let {
             val backgroundColor = ContextCompat.getColor(holder.iconContainer.context, it)
             holder.iconContainer.setCardBackgroundColor(backgroundColor)
@@ -227,14 +239,25 @@ class AddonsManagerAdapter(
         style?.maybeSetAddonSummaryTextColor(holder.summaryView)
     }
 
+    @Suppress("MagicNumber")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun fetchIcon(addon: Addon, iconView: ImageView, scope: CoroutineScope = this.scope): Job {
         return scope.launch {
             try {
+                // We calculate how much time takes to fetch an icon,
+                // if takes less than a second, we assume it comes
+                // from a cache and we don't show any transition animation.
+                val startTime = System.currentTimeMillis()
                 val iconBitmap = addonCollectionProvider.getAddonIconBitmap(addon)
+                val timeToFetch: Double = (System.currentTimeMillis() - startTime) / 1000.0
+                val isFromCache = timeToFetch < 1
                 iconBitmap?.let {
                     scope.launch(Main) {
-                        iconView.setWithCrossFadeAnimation(it)
+                        if (isFromCache) {
+                            iconView.setImageDrawable(BitmapDrawable(iconView.resources, it))
+                        } else {
+                            setWithCrossFadeAnimation(iconView, it)
+                        }
                     }
                 }
             } catch (e: IOException) {
@@ -310,7 +333,9 @@ class AddonsManagerAdapter(
         val addonSummaryTextColor: Int? = null,
         val sectionsTypeFace: Typeface? = null,
         @ColorRes
-        val addonBackgroundIconColor: Int? = null
+        val addonBackgroundIconColor: Int? = null,
+        @DrawableRes
+        val addonAllowPrivateBrowsingLabelDrawableRes: Int? = null
     ) {
         internal fun maybeSetSectionsTextColor(textView: TextView) {
             sectionsTextColor?.let {
@@ -338,6 +363,59 @@ class AddonsManagerAdapter(
                 textView.setTextColor(color)
             }
         }
+
+        internal fun maybeSetPrivateBrowsingLabelDrawale(imageView: ImageView) {
+            addonAllowPrivateBrowsingLabelDrawableRes?.let {
+                imageView.setImageDrawable(ContextCompat.getDrawable(imageView.context, it))
+            }
+        }
+    }
+
+    /**
+     * Update the portion of the list that contains the provided [addon].
+     * @property addon The add-on to be updated.
+     */
+    fun updateAddon(addon: Addon) {
+        addonsMap[addon.id] = addon
+        submitList(createListWithSections(addonsMap.values.toList()))
+    }
+
+    /**
+     * Updates only the portion of the list that changes between the current list and the new provided [addons].
+     * Be aware that updating a subset of the visible list is not supported, [addons] will replace
+     * the current list, but only the add-ons that have been changed will be updated in the UI.
+     * If you provide a subset it will replace the current list.
+     * @property addons A list of add-on to replace the actual list.
+     */
+    fun updateAddons(addons: List<Addon>) {
+        addonsMap = addons.associateBy({ it.id }, { it }).toMutableMap()
+        submitList(createListWithSections(addons))
+    }
+
+    internal object DifferCallback : DiffUtil.ItemCallback<Any>() {
+        override fun areItemsTheSame(oldItem: Any, newItem: Any): Boolean {
+            return when {
+                oldItem is Addon && newItem is Addon -> oldItem.id == newItem.id
+                oldItem is Section && newItem is Section -> oldItem.title == newItem.title
+                oldItem is NotYetSupportedSection && newItem is NotYetSupportedSection -> oldItem.title == newItem.title
+                else -> false
+            }
+        }
+
+        @SuppressLint("DiffUtilEquals")
+        override fun areContentsTheSame(oldItem: Any, newItem: Any): Boolean {
+            return oldItem == newItem
+        }
+    }
+
+    internal fun setWithCrossFadeAnimation(image: ImageView, bitmap: Bitmap, durationMillis: Int = 1700) {
+        with(image) {
+            val bitmapDrawable = BitmapDrawable(context.resources, bitmap)
+            val animation = TransitionDrawable(arrayOf(drawable, bitmapDrawable))
+            animation.isCrossFadeEnabled = true
+            setImageDrawable(animation)
+            animation.startTransition(durationMillis)
+        }
     }
 }
 
@@ -345,10 +423,3 @@ private fun Addon.inUnsupportedSection() = isInstalled() && !isSupported()
 private fun Addon.inRecommendedSection() = !isInstalled()
 private fun Addon.inInstalledSection() = isInstalled() && isSupported() && isEnabled()
 private fun Addon.inDisabledSection() = isInstalled() && isSupported() && !isEnabled()
-private fun ImageView.setWithCrossFadeAnimation(bitmap: Bitmap, durationMillis: Int = 1700) {
-    val bitmapDrawable = BitmapDrawable(context.resources, bitmap)
-    val animation = TransitionDrawable(arrayOf(drawable, bitmapDrawable))
-    animation.isCrossFadeEnabled = true
-    setImageDrawable(animation)
-    animation.startTransition(durationMillis)
-}

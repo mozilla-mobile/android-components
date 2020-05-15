@@ -58,6 +58,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.lang.IllegalStateException
 import kotlin.random.Random
 
 /**
@@ -210,9 +211,13 @@ abstract class AbstractFetchDownloadService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        registerNotificationActionsReceiver()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val download = intent?.getDownloadExtra() ?: return START_REDELIVER_INTENT
-        registerForUpdates()
 
         // If the job already exists, then don't create a new ID. This can happen when calling tryAgain
         val foregroundServiceId = downloadJobs[download.id]?.foregroundServiceId ?: Random.nextInt()
@@ -247,9 +252,16 @@ abstract class AbstractFetchDownloadService : Service() {
     private fun updateDownloadNotification() {
         for (download in downloadJobs.values) {
             if (!download.canUpdateNotification()) { continue }
+            /*
+            * We want to keep a consistent state in the UI, download.status can be changed from
+            * another thread while we are posting updates to the UI, causing inconsistent UIs.
+            * For this reason, we ONLY use the latest status during an UI update, new changes
+            * will be posted in subsequent updates.
+            */
+            val uiStatus = getDownloadJobStatus(download)
 
             // Dispatch the corresponding notification based on the current status
-            val notification = when (getDownloadJobStatus(download)) {
+            val notification = when (uiStatus) {
                 DownloadJobStatus.ACTIVE -> {
                     DownloadNotification.createOngoingDownloadNotification(
                         context,
@@ -284,7 +296,7 @@ abstract class AbstractFetchDownloadService : Service() {
                 download.lastNotificationUpdate = System.currentTimeMillis()
             }
 
-            if (getDownloadJobStatus(download) != DownloadJobStatus.ACTIVE) {
+            if (uiStatus != DownloadJobStatus.ACTIVE) {
                 sendDownloadStopped(download)
             }
         }
@@ -296,21 +308,35 @@ abstract class AbstractFetchDownloadService : Service() {
         // stop and cannot be controlled via the notification anymore (until we persist enough data
         // to resume downloads from a new process).
 
-        val notificationManager = NotificationManagerCompat.from(context)
-
-        downloadJobs.values.forEach { state ->
-            notificationManager.cancel(state.foregroundServiceId)
-        }
+        clearAllDownloadsNotificationsAndJobs()
     }
 
+    // As we are not fulfilling the api contract of a foreground service, we can be easily killed
+    // by the system when low on memory, without any call to onDestroy().
+    // To fulfill the contract, we need a pinned notification and call startForeground().
+    // This means can be left with stuck notifications.
+    // https://developer.android.com/guide/components/services#Foreground
+    // https://github.com/mozilla-mobile/android-components/issues/6893
     override fun onDestroy() {
         super.onDestroy()
 
-        downloadJobs.values.forEach {
-            it.job?.cancel()
-        }
+        clearAllDownloadsNotificationsAndJobs()
+    }
 
+    // Cancels all running jobs and remove all notifications.
+    // Also cleans any resources that we were holding like broadcastReceivers
+    internal fun clearAllDownloadsNotificationsAndJobs() {
+        val notificationManager = NotificationManagerCompat.from(context)
+
+        // Before doing any cleaning, we have to stop the notification updater scope.
+        // To ensure we are not recreating the notifications.
         notificationUpdateScope.cancel()
+
+        downloadJobs.values.forEach { state ->
+            notificationManager.cancel(state.foregroundServiceId)
+            state.job?.cancel()
+        }
+        unregisterNotificationActionsReceiver()
     }
 
     internal fun startDownloadJob(downloadId: Long) {
@@ -328,7 +354,8 @@ abstract class AbstractFetchDownloadService : Service() {
         downloadedFile.delete()
     }
 
-    private fun registerForUpdates() {
+    @VisibleForTesting
+    internal fun registerNotificationActionsReceiver() {
         val filter = IntentFilter().apply {
             addAction(ACTION_PAUSE)
             addAction(ACTION_RESUME)
@@ -338,6 +365,11 @@ abstract class AbstractFetchDownloadService : Service() {
         }
 
         context.registerReceiver(broadcastReceiver, filter)
+    }
+
+    @VisibleForTesting
+    internal fun unregisterNotificationActionsReceiver() {
+        context.unregisterReceiver(broadcastReceiver)
     }
 
     @Suppress("ComplexCondition")
@@ -365,13 +397,13 @@ abstract class AbstractFetchDownloadService : Service() {
 
         response.body.useStream { inStream ->
             val newDownloadState = download.withResponse(response.headers, inStream)
-            downloadJobs[download.id]?.state = newDownloadState
+            currentDownloadJobState.state = newDownloadState
 
             useFileStream(newDownloadState, isResumingDownload) { outStream ->
-                copyInChunks(downloadJobs[download.id]!!, inStream, outStream)
+                copyInChunks(currentDownloadJobState, inStream, outStream)
             }
 
-            verifyDownload(downloadJobs[download.id]!!)
+            verifyDownload(currentDownloadJobState)
         }
     }
 
@@ -506,8 +538,9 @@ abstract class AbstractFetchDownloadService : Service() {
     @TargetApi(Build.VERSION_CODES.P)
     @Suppress("Deprecation")
     private fun useFileStreamLegacy(download: DownloadState, append: Boolean, block: (OutputStream) -> Unit) {
+        val fileName = download.fileName ?: throw IllegalStateException("A fileName for a download is required")
         val dir = Environment.getExternalStoragePublicDirectory(download.destinationDirectory)
-        val file = File(dir, download.fileName!!)
+        val file = File(dir, fileName)
 
         FileOutputStream(file, append).use(block)
 
@@ -515,8 +548,8 @@ abstract class AbstractFetchDownloadService : Service() {
         if (getDownloadJobStatus(downloadJobState) != DownloadJobStatus.COMPLETED) { return }
 
         addCompletedDownload(
-            title = download.fileName!!,
-            description = download.fileName!!,
+            title = fileName,
+            description = fileName,
             isMediaScannerScannable = true,
             mimeType = download.contentType ?: "*/*",
             path = file.absolutePath,

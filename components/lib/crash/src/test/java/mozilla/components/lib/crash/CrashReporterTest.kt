@@ -12,6 +12,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.lib.crash.service.CrashReporterService
+import mozilla.components.lib.crash.service.CrashTelemetryService
+import mozilla.components.support.base.crash.Breadcrumb
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.expectException
@@ -54,6 +56,7 @@ class CrashReporterTest {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         CrashReporter(
+            context = testContext,
             services = listOf(mock())
         ).install(testContext)
 
@@ -65,23 +68,26 @@ class CrashReporterTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `CrashReporter throws if no service is defined`() {
-        CrashReporter(emptyList())
-            .install(testContext)
+        CrashReporter(
+            context = testContext,
+            services = emptyList()
+        ).install(testContext)
     }
 
     @Test
     fun `CrashReporter will submit report immediately if setup with Prompt-NEVER`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.NEVER,
             scope = scope
         ).install(testContext))
 
-        val crash: Crash.UncaughtExceptionCrash = mock()
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
 
         reporter.onCrash(testContext, crash)
 
@@ -93,16 +99,17 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter will show prompt if setup with Prompt-ALWAYS`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             scope = scope
         ).install(testContext))
 
-        val crash: Crash.UncaughtExceptionCrash = mock()
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
 
         reporter.onCrash(testContext, crash)
 
@@ -114,16 +121,17 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter will submit report immediately for non native crash and with setup Prompt-ONLY_NATIVE_CRASH`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH,
             scope = scope
         ).install(testContext))
 
-        val crash: Crash.UncaughtExceptionCrash = mock()
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
 
         reporter.onCrash(testContext, crash)
 
@@ -135,9 +143,10 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter will show prompt for fatal native crash and with setup Prompt-ONLY_NATIVE_CRASH`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH,
@@ -162,15 +171,16 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter will submit crash telemetry even if crash report requires prompt`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.ALWAYS
         ).install(testContext))
 
-        val crash: Crash.UncaughtExceptionCrash = mock()
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
 
         reporter.onCrash(testContext, crash)
 
@@ -181,14 +191,15 @@ class CrashReporterTest {
 
     @Test
     fun `CrashReporter will not prompt the user if there is no crash services`() {
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.ALWAYS
         ).install(testContext))
 
-        val crash: Crash.UncaughtExceptionCrash = mock()
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
 
         reporter.onCrash(testContext, crash)
 
@@ -202,11 +213,12 @@ class CrashReporterTest {
         val service: CrashReporterService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             shouldPrompt = CrashReporter.Prompt.ALWAYS
         ).install(testContext))
 
-        val crash: Crash.UncaughtExceptionCrash = mock()
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
 
         reporter.onCrash(testContext, crash)
 
@@ -220,6 +232,7 @@ class CrashReporterTest {
 
         try {
             CrashReporter(
+                context = testContext,
                 shouldPrompt = CrashReporter.Prompt.ALWAYS
             ).install(testContext)
         } catch (e: IllegalArgumentException) {
@@ -235,6 +248,7 @@ class CrashReporterTest {
 
         try {
             CrashReporter(
+                context = testContext,
                 services = listOf(mock())
             ).install(testContext)
         } catch (e: IllegalArgumentException) {
@@ -244,6 +258,7 @@ class CrashReporterTest {
 
         try {
             CrashReporter(
+                context = testContext,
                 telemetryServices = listOf(mock())
             ).install(testContext)
         } catch (e: IllegalArgumentException) {
@@ -255,6 +270,7 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter is enabled by default`() {
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(mock()),
             shouldPrompt = CrashReporter.Prompt.ONLY_NATIVE_CRASH
         ).install(testContext))
@@ -267,6 +283,7 @@ class CrashReporterTest {
         val service: CrashReporterService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             scope = scope
@@ -285,10 +302,12 @@ class CrashReporterTest {
     }
 
     @Test
-    fun `CrashReporter submits crashes`() {
-        val crash = mock<Crash>()
+    fun `CrashReporter sends telemetry`() {
+        val crash = createUncaughtExceptionCrash()
+
         val service = mock<CrashReporterService>()
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             shouldPrompt = CrashReporter.Prompt.NEVER,
             scope = scope
@@ -303,18 +322,24 @@ class CrashReporterTest {
         var exceptionCrash = false
 
         val service = object : CrashReporterService {
-            override fun report(crash: Crash.UncaughtExceptionCrash) {
+            override val id: String = "test"
+
+            override val name: String = "TestReporter"
+
+            override fun createCrashReportUrl(identifier: String): String? = null
+
+            override fun report(crash: Crash.UncaughtExceptionCrash): String? {
                 exceptionCrash = true
+                return null
             }
 
-            override fun report(crash: Crash.NativeCodeCrash) {
-            }
+            override fun report(crash: Crash.NativeCodeCrash): String? = null
 
-            override fun report(throwable: Throwable) {
-            }
+            override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? = null
         }
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             shouldPrompt = CrashReporter.Prompt.NEVER
         ).install(testContext))
@@ -330,18 +355,24 @@ class CrashReporterTest {
         var nativeCrash = false
 
         val service = object : CrashReporterService {
-            override fun report(crash: Crash.UncaughtExceptionCrash) {
-            }
+            override val id: String = "test"
 
-            override fun report(crash: Crash.NativeCodeCrash) {
+            override val name: String = "TestReporter"
+
+            override fun createCrashReportUrl(identifier: String): String? = null
+
+            override fun report(crash: Crash.UncaughtExceptionCrash): String? = null
+
+            override fun report(crash: Crash.NativeCodeCrash): String? {
                 nativeCrash = true
+                return null
             }
 
-            override fun report(throwable: Throwable) {
-            }
+            override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? = null
         }
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             shouldPrompt = CrashReporter.Prompt.NEVER
         ).install(testContext))
@@ -354,49 +385,114 @@ class CrashReporterTest {
 
     @Test
     fun `CrashReporter forwards caught exception crashes to service`() {
+        val testMessage = "test_Message"
+        val testData = hashMapOf("1" to "one", "2" to "two")
+        val testCategory = "testing_category"
+        val testLevel = Breadcrumb.Level.CRITICAL
+        val testType = Breadcrumb.Type.USER
         var exceptionCrash = false
-
+        var exceptionThrowable: Throwable? = null
+        var exceptionBreadcrumb: ArrayList<Breadcrumb>? = null
         val service = object : CrashReporterService {
-            override fun report(crash: Crash.UncaughtExceptionCrash) {
-            }
+            override val id: String = "test"
 
-            override fun report(crash: Crash.NativeCodeCrash) {
-            }
+            override val name: String = "TestReporter"
 
-            override fun report(throwable: Throwable) {
+            override fun createCrashReportUrl(identifier: String): String? = null
+
+            override fun report(crash: Crash.UncaughtExceptionCrash): String? = null
+
+            override fun report(crash: Crash.NativeCodeCrash): String? = null
+
+            override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? {
                 exceptionCrash = true
+                exceptionThrowable = throwable
+                exceptionBreadcrumb = breadcrumbs
+                return null
             }
         }
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             shouldPrompt = CrashReporter.Prompt.NEVER
         ).install(testContext))
 
-        reporter.submitCaughtException(
-            RuntimeException()
-        ).joinBlocking()
+        val throwable = RuntimeException()
+        val breadcrumb = Breadcrumb(testMessage, testData, testCategory, testLevel, testType)
+        reporter.recordCrashBreadcrumb(breadcrumb)
+
+        reporter.submitCaughtException(throwable).joinBlocking()
 
         assertTrue(exceptionCrash)
+        assert(exceptionThrowable == throwable)
+        assert(exceptionBreadcrumb?.get(0) == breadcrumb)
+    }
+
+    @Test
+    fun `Caught exception with no stack trace should be reported as CrashReporterException`() {
+        val testMessage = "test_Message"
+        val testData = hashMapOf("1" to "one", "2" to "two")
+        val testCategory = "testing_category"
+        val testLevel = Breadcrumb.Level.CRITICAL
+        val testType = Breadcrumb.Type.USER
+        var exceptionCrash = false
+        var exceptionThrowable: Throwable? = null
+        var exceptionBreadcrumb: ArrayList<Breadcrumb>? = null
+        val service = object : CrashReporterService {
+            override val id: String = "test"
+
+            override val name: String = "TestReporter"
+
+            override fun createCrashReportUrl(identifier: String): String? = null
+
+            override fun report(crash: Crash.UncaughtExceptionCrash): String? = null
+
+            override fun report(crash: Crash.NativeCodeCrash): String? = null
+
+            override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? {
+                exceptionCrash = true
+                exceptionThrowable = throwable
+                exceptionBreadcrumb = breadcrumbs
+                return null
+            }
+        }
+
+        val reporter = spy(CrashReporter(
+            context = testContext,
+            services = listOf(service),
+            shouldPrompt = CrashReporter.Prompt.NEVER
+        ).install(testContext))
+
+        val throwable = RuntimeException()
+        throwable.stackTrace = emptyArray()
+        val breadcrumb = Breadcrumb(testMessage, testData, testCategory, testLevel, testType)
+        reporter.recordCrashBreadcrumb(breadcrumb)
+
+        reporter.submitCaughtException(throwable).joinBlocking()
+
+        assertTrue(exceptionCrash)
+        assert(exceptionThrowable is CrashReporterException.UnexpectedlyMissingStacktrace)
+        assert(exceptionThrowable?.cause is java.lang.RuntimeException)
+        assertEquals(exceptionBreadcrumb?.get(0), breadcrumb)
     }
 
     @Test
     fun `CrashReporter forwards native crashes to telemetry service`() {
         var nativeCrash = false
 
-        val telemetryService = object : CrashReporterService {
-            override fun report(crash: Crash.UncaughtExceptionCrash) {
-            }
+        val telemetryService = object : CrashTelemetryService {
+            override fun record(crash: Crash.UncaughtExceptionCrash) = Unit
 
-            override fun report(crash: Crash.NativeCodeCrash) {
+            override fun record(crash: Crash.NativeCodeCrash) {
                 nativeCrash = true
             }
 
-            override fun report(throwable: Throwable) {
-            }
+            override fun record(throwable: Throwable) = Unit
         }
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.NEVER
         ).install(testContext))
@@ -414,6 +510,7 @@ class CrashReporterTest {
         }
 
         val reporter = CrashReporter(
+            context = testContext,
             services = listOf(mock())
         )
 
@@ -434,6 +531,7 @@ class CrashReporterTest {
         val pendingIntent = spy(PendingIntent.getActivity(context, 0, intent, 0))
 
         val reporter = CrashReporter(
+            context = testContext,
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             services = listOf(mock()),
             nonFatalCrashIntent = pendingIntent
@@ -464,9 +562,10 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter sends telemetry but don't send native crash if the crash is non-fatal and nonFatalPendingIntent is not null`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.NEVER,
@@ -490,9 +589,10 @@ class CrashReporterTest {
     @Test
     fun `CrashReporter sends telemetry and crash if the crash is non-fatal and nonFatalPendingIntent is null`() {
         val service: CrashReporterService = mock()
-        val telemetryService: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
 
         val reporter = spy(CrashReporter(
+            context = testContext,
             services = listOf(service),
             telemetryServices = listOf(telemetryService),
             shouldPrompt = CrashReporter.Prompt.NEVER,
@@ -517,4 +617,10 @@ class CrashReporterTest {
         val instanceField = CrashReporter::class.java.getDeclaredField("instance")
         assertTrue(Modifier.isVolatile(instanceField.modifiers))
     }
+}
+
+private fun createUncaughtExceptionCrash(): Crash.UncaughtExceptionCrash {
+    return Crash.UncaughtExceptionCrash(
+        RuntimeException(), ArrayList()
+    )
 }

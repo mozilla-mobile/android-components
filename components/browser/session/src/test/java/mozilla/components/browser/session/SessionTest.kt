@@ -375,6 +375,37 @@ class SessionTest {
     }
 
     @Test
+    fun `action is dispatched when web app manifest is set`() {
+        val manifest = WebAppManifest(
+            name = "HackerWeb",
+            description = "A simply readable Hacker News app.",
+            startUrl = ".",
+            display = WebAppManifest.DisplayMode.STANDALONE,
+            icons = listOf(
+                WebAppManifest.Icon(
+                    src = "images/touch/homescreen192.png",
+                    sizes = listOf(Size(192, 192)),
+                    type = "image/png"
+                )
+            )
+        )
+
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+
+        session.webAppManifest = manifest
+        verify(store).dispatch(ContentAction.UpdateWebAppManifestAction(session.id, manifest))
+
+        session.webAppManifest = null
+        verify(store).dispatch(ContentAction.RemoveWebAppManifestAction(session.id))
+
+        verifyNoMoreInteractions(store)
+    }
+
+    @Test
     fun `session returns initial URL`() {
         val session = Session("https://www.mozilla.org")
 
@@ -931,5 +962,37 @@ class SessionTest {
 
         assertFalse(parentSession.hasParentSession)
         assertTrue(session.hasParentSession)
+    }
+
+    @Test
+    fun `action is dispatched when back navigation state changes`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+        session.canGoBack = true
+        verify(store).dispatch(ContentAction.UpdateBackNavigationStateAction(session.id, true))
+
+        session.canGoBack = false
+        verify(store).dispatch(ContentAction.UpdateBackNavigationStateAction(session.id, false))
+
+        verifyNoMoreInteractions(store)
+    }
+
+    @Test
+    fun `action is dispatched when forward navigation state changes`() {
+        val store: BrowserStore = mock()
+        `when`(store.dispatch(any())).thenReturn(mock())
+
+        val session = Session("https://www.mozilla.org")
+        session.store = store
+        session.canGoForward = true
+        verify(store).dispatch(ContentAction.UpdateForwardNavigationStateAction(session.id, true))
+
+        session.canGoForward = false
+        verify(store).dispatch(ContentAction.UpdateForwardNavigationStateAction(session.id, false))
+
+        verifyNoMoreInteractions(store)
     }
 }

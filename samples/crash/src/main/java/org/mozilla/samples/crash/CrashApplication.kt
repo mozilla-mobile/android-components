@@ -14,11 +14,17 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
+import mozilla.components.concept.fetch.Client
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.lib.crash.service.GleanCrashReporterService
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.glean.Glean
+import mozilla.components.support.base.crash.Breadcrumb
+import mozilla.components.service.glean.config.Configuration
+import mozilla.components.service.glean.net.ConceptFetchHttpUploader
+import java.util.UUID
 
 class CrashApplication : Application() {
     internal lateinit var crashReporter: CrashReporter
@@ -30,7 +36,11 @@ class CrashApplication : Application() {
         Log.addSink(AndroidLogSink())
 
         crashReporter = CrashReporter(
-            services = listOf(createDummyCrashService(this), GleanCrashReporterService(applicationContext)),
+            context = this,
+            services = listOf(
+                createDummyCrashService(this)
+            ),
+            telemetryServices = listOf(GleanCrashReporterService(applicationContext)),
             shouldPrompt = CrashReporter.Prompt.ALWAYS,
             promptConfiguration = CrashReporter.PromptConfiguration(
                 appName = "Sample App",
@@ -43,7 +53,9 @@ class CrashApplication : Application() {
         ).install(this)
 
         // Initialize Glean for recording by the GleanCrashReporterService
-        Glean.initialize(applicationContext, uploadEnabled = true)
+        val httpClient = ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() as Client })
+        val config = Configuration(httpClient = httpClient)
+        Glean.initialize(applicationContext, uploadEnabled = true, configuration = config)
     }
 
     companion object {
@@ -55,22 +67,37 @@ private fun createDummyCrashService(context: Context): CrashReporterService {
     // For this sample we create a dummy service. In a real application this would be an instance of SentryCrashService
     // or SocorroCrashService.
     return object : CrashReporterService {
-        override fun report(crash: Crash.UncaughtExceptionCrash) {
+        override val id: String = "dummy"
+
+        override val name: String = "Dummy"
+
+        override fun createCrashReportUrl(identifier: String): String? {
+            return "https://example.org/$identifier"
+        }
+
+        override fun report(crash: Crash.UncaughtExceptionCrash): String? {
             GlobalScope.launch(Dispatchers.Main) {
                 Toast.makeText(context, "Uploading uncaught exception crash...", Toast.LENGTH_SHORT).show()
             }
+            return createDummyId()
         }
 
-        override fun report(crash: Crash.NativeCodeCrash) {
+        override fun report(crash: Crash.NativeCodeCrash): String? {
             GlobalScope.launch(Dispatchers.Main) {
                 Toast.makeText(context, "Uploading native crash...", Toast.LENGTH_SHORT).show()
             }
+            return createDummyId()
         }
 
-        override fun report(throwable: Throwable) {
+        override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? {
             GlobalScope.launch(Dispatchers.Main) {
                 Toast.makeText(context, "Uploading caught exception...", Toast.LENGTH_SHORT).show()
             }
+            return createDummyId()
+        }
+
+        private fun createDummyId(): String {
+            return "dummy${UUID.randomUUID().toString().hashCode()}"
         }
     }
 }

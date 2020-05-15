@@ -25,6 +25,7 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.memory.MemoryConsumer
 import mozilla.components.support.base.observer.Observable
+import mozilla.components.support.ktx.kotlin.isExtensionUrl
 import java.lang.IllegalArgumentException
 
 /**
@@ -62,7 +63,14 @@ class SessionManager(
                 this.engineObserver = EngineObserver(session, store).also { observer ->
                     engineSession.register(observer)
                     if (!sessionRestored && !skipLoading) {
-                        engineSession.loadUrl(session.url, parentEngineSession)
+                        if (session.url.isExtensionUrl()) {
+                            // The parent tab/session is used as a referrer which is not accurate
+                            // for extension pages. The extension page is not loaded by the parent
+                            // tab, but opened by an extension e.g. via browser.tabs.update.
+                            engineSession.loadUrl(session.url)
+                        } else {
+                            engineSession.loadUrl(session.url, parentEngineSession)
+                        }
                     }
                 }
             }
@@ -80,6 +88,13 @@ class SessionManager(
 
             session.engineSessionHolder.engineSession = null
             session.engineSessionHolder.engineObserver = null
+
+            // Note: We could consider not clearing the engine session state here. Instead we could
+            // try to actively set it here by calling save() on the engine session (if we have one).
+            // That way adding the same Session again could restore the previous state automatically
+            // (although we would need to make sure we do not override it with null in link()).
+            // Clearing the engine session state would be left to the garbage collector whenever the
+            // session itself gets collected.
             session.engineSessionHolder.engineSessionState = null
 
             store?.syncDispatch(UnlinkEngineSessionAction(session.id))
@@ -292,6 +307,9 @@ class SessionManager(
             item.engineSessionState?.let { store?.syncDispatch(UpdateEngineSessionStateAction(item.session.id, it)) }
             item.readerState?.let {
                 store?.syncDispatch(ReaderAction.UpdateReaderActiveAction(item.session.id, it.active))
+                it.activeUrl?.let { activeUrl ->
+                    store?.syncDispatch(ReaderAction.UpdateReaderActiveUrlAction(item.session.id, activeUrl))
+                }
             }
         }
     }
@@ -408,15 +426,16 @@ class SessionManager(
                 }
 
                 if (closeEngineSessions) {
-                    val state = it.engineSessionHolder.engineSession?.saveState()
-                    linker.unlink(it)
+                    val engineSession = it.engineSessionHolder.engineSession
+                    if (engineSession != null) {
+                        val state = engineSession.saveState()
+                        linker.unlink(it)
 
-                    if (state != null) {
                         it.engineSessionHolder.engineSessionState = state
                         states[it.id] = state
-                    }
 
-                    unlinkedEngineSessions++
+                        unlinkedEngineSessions++
+                    }
                 }
             }
         }

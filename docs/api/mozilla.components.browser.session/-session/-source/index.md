@@ -2,7 +2,7 @@
 
 # Source
 
-`enum class Source` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/src/main/java/mozilla/components/browser/session/Session.kt#L128)
+`enum class Source` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/session/src/main/java/mozilla/components/browser/session/Session.kt#L132)
 
 Represents the origin of a session to describe how and why it was created.
 
@@ -20,3 +20,4 @@ Represents the origin of a session to describe how and why it was created.
 | [NONE](-n-o-n-e.md) | Default value and for testing purposes |
 | [TEXT_SELECTION](-t-e-x-t_-s-e-l-e-c-t-i-o-n.md) | Default value and for testing purposes |
 | [USER_ENTERED](-u-s-e-r_-e-n-t-e-r-e-d.md) | User entered a URL or search term |
+| [RESTORED](-r-e-s-t-o-r-e-d.md) | This session was restored |

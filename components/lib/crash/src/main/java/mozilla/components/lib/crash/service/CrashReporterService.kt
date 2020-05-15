@@ -5,6 +5,7 @@
 package mozilla.components.lib.crash.service
 
 import mozilla.components.lib.crash.Crash
+import mozilla.components.support.base.crash.Breadcrumb
 
 internal const val INFO_PREFIX = "[INFO]"
 
@@ -13,17 +14,41 @@ internal const val INFO_PREFIX = "[INFO]"
  */
 interface CrashReporterService {
     /**
-     * Submits a crash report for this [Crash.UncaughtExceptionCrash].
+     * A unique ID to identify this crash reporter service.
      */
-    fun report(crash: Crash.UncaughtExceptionCrash)
+    val id: String
+
+    /**
+     * A human-readable name for this crash reporter service (to be displayed in UI).
+     */
+    val name: String
+
+    /**
+     * Returns a URL to a website with the crash report if possible. Otherwise returns null.
+     */
+    fun createCrashReportUrl(identifier: String): String?
+
+    /**
+     * Submits a crash report for this [Crash.UncaughtExceptionCrash].
+     *
+     * @return Unique crash report identifier that can be used by/with this crash reporter service
+     * to find this reported crash - or null if no identifier can be provided.
+     */
+    fun report(crash: Crash.UncaughtExceptionCrash): String?
 
     /**
      * Submits a crash report for this [Crash.NativeCodeCrash].
+     *
+     * @return Unique crash report identifier that can be used by/with this crash reporter service
+     * to find this reported crash - or null if no identifier can be provided.
      */
-    fun report(crash: Crash.NativeCodeCrash)
+    fun report(crash: Crash.NativeCodeCrash): String?
 
     /**
      * Submits a caught exception report for this [Throwable].
+     *
+     * @return Unique crash report identifier that can be used by/with this crash reporter service
+     * to find this reported crash - or null if no identifier can be provided.
      */
-    fun report(throwable: Throwable)
+    fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String?
 }

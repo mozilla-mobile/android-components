@@ -1,4 +1,4 @@
-componentsVersion: 39.0.0
+componentsVersion: 42.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -212,6 +212,10 @@ projects:
     path: components/browser/tabstray
     description: 'A tabs tray component for browsers.'
     publish: true
+  browser-thumbnails:
+    path: components/browser/thumbnails
+    description: 'A component for loading and storing website thumbnails.'
+    publish: true
   browser-toolbar:
     path: components/browser/toolbar
     description: 'A customizable toolbar for browsers.'
@@ -223,6 +227,10 @@ projects:
   ui-colors:
     path: components/ui/colors
     description: 'The standard set of Photon colors.'
+    publish: true
+  ui-widgets:
+    path: components/ui/widgets
+    description: 'The standard set of Mozilla widgets.'
     publish: true
   ui-fonts:
     path: components/ui/fonts

@@ -8,11 +8,15 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.NotificationManagerCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -64,6 +68,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowNotificationManager
 import java.io.IOException
 import java.io.InputStream
+import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
 class AbstractFetchDownloadServiceTest {
@@ -687,11 +692,16 @@ class AbstractFetchDownloadServiceTest {
             putDownloadExtra(download)
         }
 
+        service.registerNotificationActionsReceiver()
         service.onStartCommand(downloadIntent, 0, 0)
         service.downloadJobs.values.forEach { assertTrue(it.job!!.isActive) }
 
         val providedDownload = argumentCaptor<DownloadState>()
         verify(service).performDownload(providedDownload.capture())
+
+        // Advance the clock so that the puller posts a notification.
+        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        assertEquals(1, shadowNotificationService.size())
 
         // Now destroy
         service.onDestroy()
@@ -701,6 +711,9 @@ class AbstractFetchDownloadServiceTest {
             assertTrue(it.job!!.isCancelled)
             assertFalse(it.job!!.isCompleted)
         }
+
+        // Assert that all currently shown notifications are gone.
+        assertEquals(0, shadowNotificationService.size())
     }
 
     @Test
@@ -718,6 +731,7 @@ class AbstractFetchDownloadServiceTest {
             putDownloadExtra(download)
         }
 
+        service.registerNotificationActionsReceiver()
         service.onStartCommand(downloadIntent, 0, 0)
         service.downloadJobs.values.forEach { it.job?.join() }
 
@@ -735,6 +749,80 @@ class AbstractFetchDownloadServiceTest {
 
         // Assert that all currently shown notifications are gone.
         assertEquals(0, shadowNotificationService.size())
+    }
+
+    @Test
+    fun `clearAllDownloadsNotificationsAndJobs cancels all running jobs and remove all notifications`() = runBlocking {
+        val download = DownloadState(id = 1, url = "https://example.com/file.txt", fileName = "file.txt")
+        val downloadState = AbstractFetchDownloadService.DownloadJobState(
+                state = download,
+                foregroundServiceId = Random.nextInt(),
+                status = ACTIVE,
+                job = CoroutineScope(IO).launch { while (true) { } }
+        )
+
+        service.registerNotificationActionsReceiver()
+        service.downloadJobs[download.id] = downloadState
+
+        val notification = DownloadNotification.createOngoingDownloadNotification(testContext, downloadState)
+
+        NotificationManagerCompat.from(testContext).notify(downloadState.foregroundServiceId, notification)
+
+        // We have a pending notification
+        assertEquals(1, shadowNotificationService.size())
+
+        service.clearAllDownloadsNotificationsAndJobs()
+
+        // Assert that all currently shown notifications are gone.
+        assertEquals(0, shadowNotificationService.size())
+
+        // Assert that jobs were cancelled rather than completed.
+        service.downloadJobs.values.forEach {
+            assertTrue(it.job!!.isCancelled)
+            assertFalse(it.job!!.isCompleted)
+        }
+    }
+
+    @Test
+    fun `onTaskRemoved and onDestroy will remove all download notifications and jobs`() = runBlocking {
+        val service = spy(object : AbstractFetchDownloadService() {
+            override val httpClient = client
+        })
+
+        doReturn(testContext).`when`(service).context
+
+        service.registerNotificationActionsReceiver()
+        service.onTaskRemoved(null)
+
+        service.registerNotificationActionsReceiver()
+        verify(service).clearAllDownloadsNotificationsAndJobs()
+
+        service.onDestroy()
+
+        verify(service, times(2)).clearAllDownloadsNotificationsAndJobs()
+    }
+
+    @Test
+    fun `register and unregister notification actions receiver`() = runBlocking {
+        val service = spy(object : AbstractFetchDownloadService() {
+            override val httpClient = client
+        })
+
+        doReturn(testContext).`when`(service).context
+
+        service.onCreate()
+
+        verify(service).registerNotificationActionsReceiver()
+
+        service.onTaskRemoved(null)
+
+        verify(service).unregisterNotificationActionsReceiver()
+
+        service.registerNotificationActionsReceiver()
+
+        service.onDestroy()
+
+        verify(service, times(2)).unregisterNotificationActionsReceiver()
     }
 
     @Test

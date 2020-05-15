@@ -21,7 +21,7 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * [List of good first issues](https://github.com/mozilla-mobile/android-components/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) (**New contributors start here!**) and [List of "help wanted" issues](https://github.com/mozilla-mobile/android-components/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).
 
-* Matrix: [android-components:mozilla.org chat room](https://chat.mozilla.org/#/room/#android-components:mozilla.org).
+* Matrix: [android-components:mozilla.org chat room](https://chat.mozilla.org/#/room/#android-components:mozilla.org) ([How to connect](https://wiki.mozilla.org/Matrix#Connect_to_Matrix)). 
 
 * Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
 
@@ -93,6 +93,8 @@ High-level components for building browser(-like) apps.
 * 🔵 [**Storage-Sync**](components/browser/storage-sync/README.md) - A syncable implementation of browser storage backed by [application-services' Places lib](https://github.com/mozilla/application-services).
 
 * ⚪ [**Tabstray**](components/browser/tabstray/README.md) - A customizable tabs tray for browsers.
+
+* 🔴 [**Thumbnails**](components/browser/thumbnails/README.md) - A component for loading and storing website thumbnails (screenshot of the website).
 
 * 🔵 [**Toolbar**](components/browser/toolbar/README.md) - A customizable toolbar for browsers.
 

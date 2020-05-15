@@ -22,6 +22,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
@@ -259,6 +260,34 @@ sealed class ContentAction : BrowserAction() {
      * @property layoutInDisplayCutoutMode value of defined in https://developer.android.com/reference/android/view/WindowManager.LayoutParams#layoutInDisplayCutoutMode
      */
     data class ViewportFitChangedAction(val sessionId: String, val layoutInDisplayCutoutMode: Int) : ContentAction()
+
+    /**
+     * Updates the [ContentState] of the given [sessionId] to indicate whether or not a back navigation is possible.
+     */
+    data class UpdateBackNavigationStateAction(val sessionId: String, val canGoBack: Boolean) : ContentAction()
+
+    /**
+     * Updates the [ContentState] of the given [sessionId] to indicate whether the first contentful paint has happened.
+     */
+    data class UpdateFirstContentfulPaintStateAction(
+        val sessionId: String,
+        val firstContentfulPaint: Boolean
+    ) : ContentAction()
+
+    /**
+     * Updates the [ContentState] of the given [sessionId] to indicate whether or not a forward navigation is possible.
+     */
+    data class UpdateForwardNavigationStateAction(val sessionId: String, val canGoForward: Boolean) : ContentAction()
+
+    /**
+     * Updates the [WebAppManifest] of the [ContentState] with the given [sessionId].
+     */
+    data class UpdateWebAppManifestAction(val sessionId: String, val webAppManifest: WebAppManifest) : ContentAction()
+
+    /**
+     * Removes the [WebAppManifest] of the [ContentState] with the given [sessionId].
+     */
+    data class RemoveWebAppManifestAction(val sessionId: String) : ContentAction()
 }
 
 /**
@@ -426,6 +455,21 @@ sealed class ReaderAction : BrowserAction() {
      * Updates the [ReaderState.connectRequired] flag.
      */
     data class UpdateReaderConnectRequiredAction(val tabId: String, val connectRequired: Boolean) : ReaderAction()
+
+    /**
+    * Updates the [ReaderState.readerBaseUrl].
+    */
+    data class UpdateReaderBaseUrlAction(val tabId: String, val baseUrl: String) : ReaderAction()
+
+    /**
+     * Updates the [ReaderState.activeUrl].
+     */
+    data class UpdateReaderActiveUrlAction(val tabId: String, val activeUrl: String) : ReaderAction()
+
+    /**
+     * Clears the [ReaderState.activeUrl].
+     */
+    data class ClearReaderActiveUrlAction(val tabId: String) : ReaderAction()
 }
 
 /**

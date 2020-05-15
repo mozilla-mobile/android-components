@@ -105,6 +105,21 @@ internal object ContentStateReducer {
             is ContentAction.ViewportFitChangedAction -> updateContentState(state, action.sessionId) {
                 it.copy(layoutInDisplayCutoutMode = action.layoutInDisplayCutoutMode)
             }
+            is ContentAction.UpdateBackNavigationStateAction -> updateContentState(state, action.sessionId) {
+                it.copy(canGoBack = action.canGoBack)
+            }
+            is ContentAction.UpdateForwardNavigationStateAction -> updateContentState(state, action.sessionId) {
+                it.copy(canGoForward = action.canGoForward)
+            }
+            is ContentAction.UpdateWebAppManifestAction -> updateContentState(state, action.sessionId) {
+                it.copy(webAppManifest = action.webAppManifest)
+            }
+            is ContentAction.RemoveWebAppManifestAction -> updateContentState(state, action.sessionId) {
+                it.copy(webAppManifest = null)
+            }
+            is ContentAction.UpdateFirstContentfulPaintStateAction -> updateContentState(state, action.sessionId) {
+                it.copy(firstContentfulPaint = action.firstContentfulPaint)
+            }
         }
     }
 }

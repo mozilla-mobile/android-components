@@ -9,9 +9,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.VisibleForTesting
-import mozilla.components.Build as AcBuild
 import mozilla.components.lib.crash.Crash
+import mozilla.components.support.base.crash.Breadcrumb
 import mozilla.components.support.base.log.logger.Logger
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.mozilla.geckoview.BuildConfig
@@ -30,8 +31,8 @@ import java.net.URL
 import java.nio.channels.Channels
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
-import kotlin.collections.HashMap
 import kotlin.random.Random
+import mozilla.components.Build as AcBuild
 
 /* This ID is used for all Mozilla products.  Setting as default if no ID is passed in */
 private const val MOZILLA_PRODUCT_ID = "{eeb82917-e434-4870-8148-5c03d4caa81b}"
@@ -43,6 +44,9 @@ internal const val FATAL_NATIVE_CRASH_TYPE = "fatal native crash"
 internal const val NON_FATAL_NATIVE_CRASH_TYPE = "non-fatal native crash"
 
 internal const val DEFAULT_VERSION_NAME = "N/A"
+
+private const val KEY_CRASH_ID = "CrashID"
+
 /**
  * A [CrashReporterService] implementation uploading crash reports to crash-stats.mozilla.com.
  *
@@ -73,15 +77,23 @@ class MozillaSocorroService(
     private val logger = Logger("mozac/MozillaSocorroCrashHelperService")
     private val startTime = System.currentTimeMillis()
 
+    override val id: String = "socorro"
+
+    override val name: String = "Socorro"
+
+    override fun createCrashReportUrl(identifier: String): String? {
+        return "https://crash-stats.mozilla.org/report/index/$identifier"
+    }
+
     init {
         if (versionName == DEFAULT_VERSION_NAME) {
             try {
                 versionName = applicationContext.packageManager
                     .getPackageInfo(applicationContext.packageName, 0).versionName
             } catch (e: PackageManager.NameNotFoundException) {
-                Logger.error("package name not found, failed to get application version")
+                logger.error("package name not found, failed to get application version")
             } catch (e: IllegalStateException) {
-                Logger.error("failed to get application version")
+                logger.error("failed to get application version")
             }
         }
 
@@ -91,29 +103,57 @@ class MozillaSocorroService(
         }
     }
 
-    override fun report(crash: Crash.UncaughtExceptionCrash) {
-        sendReport(crash.throwable, null, null, isNativeCodeCrash = false, isFatalCrash = true)
+    override fun report(crash: Crash.UncaughtExceptionCrash): String? {
+        return sendReport(
+            crash.throwable,
+            miniDumpFilePath = null,
+            extrasFilePath = null,
+            isNativeCodeCrash = false,
+            isFatalCrash = true,
+            breadcrumbs = crash.breadcrumbs
+        )
     }
 
-    override fun report(crash: Crash.NativeCodeCrash) {
-        sendReport(null, crash.minidumpPath, crash.extrasPath, isNativeCodeCrash = true, isFatalCrash = crash.isFatal)
+    override fun report(crash: Crash.NativeCodeCrash): String? {
+        return sendReport(
+            throwable = null,
+            miniDumpFilePath = crash.minidumpPath,
+            extrasFilePath = crash.extrasPath,
+            isNativeCodeCrash = true,
+            isFatalCrash = crash.isFatal,
+            breadcrumbs = crash.breadcrumbs
+        )
     }
 
-    override fun report(throwable: Throwable) {
-        sendReport(throwable, null, null, isNativeCodeCrash = false, isFatalCrash = false)
+    override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? {
+        return sendReport(
+            throwable,
+            miniDumpFilePath = null,
+            extrasFilePath = null,
+            isNativeCodeCrash = false,
+            isFatalCrash = false,
+            breadcrumbs = breadcrumbs
+        )
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @Suppress("LongParameterList")
     internal fun sendReport(
         throwable: Throwable?,
         miniDumpFilePath: String?,
         extrasFilePath: String?,
         isNativeCodeCrash: Boolean,
-        isFatalCrash: Boolean
-    ) {
+        isFatalCrash: Boolean,
+        breadcrumbs: ArrayList<Breadcrumb>
+    ): String? {
         val url = URL(serverUrl)
         val boundary = generateBoundary()
         var conn: HttpURLConnection? = null
+
+        val breadcrumbsJson = JSONArray()
+        for (breadcrumb in breadcrumbs) {
+            breadcrumbsJson.put(breadcrumb.toJson())
+        }
 
         try {
             conn = url.openConnection() as HttpURLConnection
@@ -123,23 +163,42 @@ class MozillaSocorroService(
             conn.setRequestProperty("Content-Encoding", "gzip")
 
             sendCrashData(conn.outputStream, boundary, throwable, miniDumpFilePath, extrasFilePath,
-                    isNativeCodeCrash, isFatalCrash)
+                    isNativeCodeCrash, isFatalCrash, breadcrumbsJson.toString())
 
-            BufferedReader(InputStreamReader(conn.inputStream)).use {
-                val response = StringBuffer()
-                var inputLine = it.readLine()
-                while (inputLine != null) {
-                    response.append(inputLine)
-                    inputLine = it.readLine()
+            BufferedReader(InputStreamReader(conn.inputStream)).use { reader ->
+                val map = parseResponse(reader)
+
+                val id = map?.get(KEY_CRASH_ID)
+
+                if (id != null) {
+                    logger.info("Crash reported to Socorro: $id")
+                } else {
+                    logger.info("Server rejected crash report")
                 }
 
-                Logger.info("Crash reported to Socorro: $response")
+                return id
             }
         } catch (e: IOException) {
-            Logger.error("failed to send report to Socorro", e)
+            logger.error("failed to send report to Socorro", e)
+            return null
         } finally {
             conn?.disconnect()
         }
+    }
+
+    private fun parseResponse(reader: BufferedReader): Map<String, String>? {
+        val map = mutableMapOf<String, String>()
+
+        reader.readLines().forEach { line ->
+            val position = line.indexOf("=")
+            if (position != -1) {
+                val key = line.substring(0, position)
+                val value = unescape(line.substring(position + 1))
+                map[key] = value
+            }
+        }
+
+        return map
     }
 
     @Suppress("LongParameterList", "LongMethod")
@@ -150,7 +209,8 @@ class MozillaSocorroService(
         miniDumpFilePath: String?,
         extrasFilePath: String?,
         isNativeCodeCrash: Boolean,
-        isFatalCrash: Boolean
+        isFatalCrash: Boolean,
+        breadcrumbs: String
     ) {
         val nameSet = mutableSetOf<String>()
         val gzipOs = GZIPOutputStream(os)
@@ -163,6 +223,7 @@ class MozillaSocorroService(
         sendPart(gzipOs, boundary, "GeckoViewVersion", version, nameSet)
         sendPart(gzipOs, boundary, "BuildID", buildId, nameSet)
         sendPart(gzipOs, boundary, "Vendor", vendor, nameSet)
+        sendPart(gzipOs, boundary, "Breadcrumbs", breadcrumbs, nameSet)
 
         extrasFilePath?.let {
             val extrasFile = File(it)
@@ -234,7 +295,7 @@ class MozillaSocorroService(
             sendPart(os, boundary, "InstallTime", TimeUnit.MILLISECONDS.toSeconds(
                     packageInfo.lastUpdateTime).toString(), nameSet)
         } catch (e: PackageManager.NameNotFoundException) {
-            Logger.error("Error getting package info", e)
+            logger.error("Error getting package info", e)
         }
     }
 
@@ -293,7 +354,7 @@ class MozillaSocorroService(
             fileInputStream.transferTo(0, fileInputStream.size(), Channels.newChannel(os))
             fileInputStream.close()
         } catch (e: IOException) {
-            Logger.error("failed to send file", e)
+            logger.error("failed to send file", e)
         }
     }
 
@@ -328,7 +389,7 @@ class MozillaSocorroService(
                 line = bufReader.readLine()
             }
         } catch (e: IOException) {
-            Logger.error("failed to convert extras to map", e)
+            logger.error("failed to convert extras to map", e)
         } finally {
             try {
                 fileReader?.close()
@@ -357,11 +418,11 @@ class MozillaSocorroService(
                 }
             }
         } catch (e: FileNotFoundException) {
-            Logger.error("failed to find extra file", e)
+            logger.error("failed to find extra file", e)
         } catch (e: IOException) {
-            Logger.error("failed read the extra file", e)
+            logger.error("failed read the extra file", e)
         } catch (e: JSONException) {
-            Logger.info("extras file JSON syntax error, trying legacy format")
+            logger.info("extras file JSON syntax error, trying legacy format")
             notJson = true
         }
 

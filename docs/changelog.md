@@ -4,13 +4,148 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 39.0.0-SNAPSHOT (In Development)
+# 42.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v38.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/98?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v41.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/102?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **browser-state**
+  * Adds `firstContentfulPaint` to `ContentState` to know if first contentful paint has happened.
+
+* **service-glean**
+  * ⚠️ **This is a breaking change**: Glean's configuration now requires explicitly setting an http client. Users need to pass one at construction.
+    A default `lib-fetch-httpurlconnection` implementation is available.
+    Add it to the configuration object like this:
+    `val config = Configuration(httpClient = ConceptFetchHttpUploader(lazy { HttpURLConnectionClient() as Client }))`.
+    See [PR #6875](https://github.com/mozilla-mobile/android-components/pull/6875) for details and full code examples.
+
+* **browser-store**
+  * Added `webAppManifest` property to `ContentState`.
+
+ * **feature-qr**
+   * Added `CustomViewFinder`, a `View` that shows a ViewFinder positioned in center of the camera view and draws an Overlay
+   * Added optional String resource `scanMessage` param to `QrFeature` for adding a message below the viewfinder
+
+* **service-experiments**
+  * ⚠️ **This is a breaking change**: Mako's configuration now requires explicitly setting an http client. Users need to pass one at construction.
+
+# 41.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v40.0.0...v41.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/101?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v41.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v41.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v41.0.0/buildSrc/src/main/java/Config.kt)
+
+* **feature-tabs**
+  * Fixed issue [#6907](https://github.com/mozilla-mobile/android-components/issues/6907). Uses MediaState when mapping BrowserState to tabs.
+
+* **concept-tabstray**
+  * For issue [#6907](https://github.com/mozilla-mobile/android-components/issues/6907). Adds `Media.State` to `Tab`
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**: Added optional `crashReporting` param to [PictureInPictureFeature] so we can record caught exceptions.
+
+* **feature-downloads**
+  * Fixed issue [#6881](https://github.com/mozilla-mobile/android-components/issues/6881).
+
+* **feature-addons**
+  * Added optional `addonAllowPrivateBrowsingLabelDrawableRes` DrawableRes parameter to `AddonPermissionsAdapter.Style` constructor to allow the clients to add their own drawable. This is used to clearly label the WebExtensions that run in private browsing.
+
+* **browser-menu**
+  * BrowserMenu will now support dynamic width based on two new attributes: `mozac_browser_menu_width_min` and `mozac_browser_menu_width_max`.
+
+* **browser-tabstray**
+  * Added optional `itemDecoration` DividerItemDecoration parameter to `BrowserTabsTray` constructor to allow the clients to add their own dividers. This is used to ensure setting divider item decoration after setAdapter() is called.
+
+* **service-glean**
+  * Glean was updated to v29.1.0
+    * ⚠️ **This is a breaking change**: glinter errors found during code generation will now return an error code.
+    * The minimum and maximum values of a timing distribution can now be controlled by the `time_unit` parameter. See [bug 1630997](https://bugzilla.mozilla.org/show_bug.cgi?id=1630997) for more details.
+
+* **feature-accounts**
+  *  ⚠️ **This is a breaking change**: Refactored component to use `browser-state` instead of `browser-session`. The `FxaWebChannelFeature`  now requires a `BrowserStore` instance instead of a `SessionManager`.
+
+* **lib-push-fcm**, **lib-push-adm**, **concept-push**
+  * Allow nullable encoding values in push messsages. If they are null, we attempt to use `aes128gcm` for encoding.
+
+* **browser-toolbar**
+  * It will only be animated for vertical scrolls inside the EngineView. Not for horizontal scrolls. Not for zoom gestures.
+
+* **browser-thumbnails**
+  * ⚠️ **This is a breaking change**: Migrated this component to use `browser-state` instead of `browser-session`. It is now required to pass a `BrowserStore` instance (instead of `SessionManager`) to `BrowserThumnails`.
+
+# 40.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v39.0.0...v40.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/100?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v40.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v40.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v40.0.0/buildSrc/src/main/java/Config.kt)
+
+* **browser-tabstray**
+  * Converts `TabViewHolder` to an abstract class with `DefaultTabViewHolder` as the default implementation.
+  * Replaces `layoutId` with `viewHolderProvider` in the `TabsAdapter` for allowing tab customization.
+
+* **concept-engine**
+  * Adds Fingerprinter to the recommended Tracking protection policy.
+
+* **support-locale**
+  * Adds Android 8.1 to the check in `setLayoutDirectionIfNeeded` inside `LocaleAwareAppCompatActivity`
+
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: Added `isDefault` to the top site entity, which allows application to specify a default top site that is added by the application. This is called through `TopSiteStorage.addTopSite`.
+    * If your application is using Nightly Snapshots of v40.0.0, please test that the Top Sites feature still works and update to the latest v40.0.0 if any schema errors are encountered.
+
+* **feature-push**
+  * Simplified error handling and reduced non-fatal exception reporting.
+
+* **support-base**
+  * ⚠️ **This is a breaking change**: `CrashReporting` allowing adding support for `recordCrashBreadcrumb` without `lib-crash` dependency.
+  * ⚠️ **This is a breaking change**: `Breadcrumb` has moved from `lib-crash` to this component.
+
+* **support-utils**
+  * `URLStringUtils.isURLLikeStrict` is now deprecated due to performance issues. Consider using the less strict `isURLLike` instead or creating a new method using `:lib-publicsuffixlist`.
+
+* **support-ktx**
+  * `String.isUrlStrict` is now deprecated due to performance issues. Consider using the less strict `isURL` instead or creating a new method using `:lib-publicsuffixlist`.
+
+* **browser-menu**
+  * Added `SimpleBrowserMenuHighlightableItem` which is a simple menu highlightable item (no images/icons).
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * Improve social trackers categorization see [ac#6851](https://github.com/mozilla-mobile/android-components/issues/6851) and [fenix#5921](https://github.com/mozilla-mobile/fenix/issues/5921)
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: `FxaAccountManager.withConstellation` puts the `DeviceConstellation` within the same scope as the block so you no longer need to use the `it` reference.
+
+* **feature-syncedtabs**
+  * Moved `SyncedTabsFeature` to `SyncedTabsStorage`.
+  * ⚠️ **This is a breaking change**: The new `SyncedTabsFeature` now orchestrates the correct state needed for consumers to handle by implementing the `SyncedTabsView`.
+
+* **browser-thumbnails**
+  * 🆕 New component for capturing browser thumbnails.
+  * `ThumbnailsFeature` will be deprecated for the new `BrowserThumbnails` in a future.
+
+# 39.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v38.0.0...v39.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/99?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v39.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v39.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v39.0.0/buildSrc/src/main/java/Config.kt)
+
+* **All components**
+  * Increased `targetSdkVersion` to 29 (Android Q)
+
+* **browser-session**
+  * `SnapshotSerializer` no longer restores source of a `Session`, added `Session.Source.RESTORED`
+
+* **feature-downloads**
+  * Fixed issue [#6764](https://github.com/mozilla-mobile/android-components/issues/6764).
 
 * **support-locale**
   * Added fix for respecting RTL/LTR changes when activity is recreated in Android 8
@@ -18,21 +153,36 @@ permalink: /changelog/
 * **feature-sitepermissions**
   * ⚠️ **This is a breaking change**: The `SitePermissionsFeature`'s constructor, now requires a new parameter `onShouldShowRequestPermissionRationale` a lambda to allow the feature to query [ActivityCompat.shouldShowRequestPermissionRationale](https://developer.android.com/reference/androidx/core/app/ActivityCompat#shouldShowRequestPermissionRationale(android.app.Activity,%20java.lang.String)) or [Fragment.shouldShowRequestPermissionRationale](https://developer.android.com/reference/androidx/fragment/app/Fragment#shouldShowRequestPermissionRationale(java.lang.String)). This allows the `SitePermissionsFeature` to handle when a user clicks "Deny & don't ask again" button in a system permission dialog, for more information see [issue #6565](https://github.com/mozilla-mobile/android-components/issues/6565).
 
+* **ui-widgets**
+  * 🆕 New component for standardized Mozilla widgets and styles. A living style guide will be published soon that helps explain design choices made.
+  * First version includes styling for buttons: `NeutralButton`, `PositiveButton`, and `DestructiveButton`
+
 * **feature-addons**
+  * Added `AddonsManagerAdapter.updateAddon` and `AddonsManagerAdapter.updateAddons` to allow partial updates.
+  * ⚠️ **This is a breaking change**: `AddonsManagerAdapterDelegate.onNotYetSupportedSectionClicked(unsupportedAddons: ArrayList<Addon>)` is changed to `AddonsManagerAdapterDelegate.onNotYetSupportedSectionClicked(unsupportedAddons: List<Addon>)`.
   * Fixed [issue #6685](https://github.com/mozilla-mobile/android-components/issues/6685), now `DefaultSupportedAddonsChecker` will marked any newly supported add-on as enabled.
   * Added `Addon.translatedSummary` and `Addon.translatedDescription` to ease add-on translations.
   * Added `Addon.defaultLocale` Indicates which locale will be always available to display translatable fields.
   * ⚠️ **This is a breaking change**: `AddonManager.enableAddon` and `AddonManager.disableAddon` have a new optional parameter  `source` that indicates why the extension is enabled/disabled.
   * ⚠️ **This is a breaking change**: `Map<String, String>.translate` now is marked as internal, if you are trying to translate the summary or the description of an add-on, use `Addon.translatedSummary` and `Addon.translatedDescription`.
 
+* **feature-toolbar**
+  * Disabled autocompleting when updating url upon entering edit mode in BrowserToolbar.
+
 * **feature-media**
   * Muted media will not start the media service anymore, causing no media notification to be shown and no audio focus getting requested.
 
 * **feature-fullscreen**
   * ⚠️ **This is a breaking change**: Added `viewportFitChanged` to support Android display cutouts.
-  
+
   * **feature-qr**
     * Moved `AutoFitTextureView` from `support-base` to `feature-qr`.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**: Added `viewportFitChanged` to `FullScreenFeature` for supporting Android display cutouts.
+
+* **feature-qr**
+  * Moved `AutoFitTextureView` from `support-base` to `feature-qr`.
 
 * **service-sync-logins**
   * Adds fun `LoginsStorage.getPotentialDupesIgnoringUsername` for fetching list of potential duplicate logins from the underlying storage layer, ignoring username.
@@ -43,9 +193,17 @@ permalink: /changelog/
 
 * **browser-tabstray**
   * The iconView is no longer required in the template.
+  * The URL text for items may be styled.
+
+* **service-glean**
+  * Glean was updated to v28.0.0
+    * The baseline ping is now sent when the application goes to foreground, in addition to background and dirty-startup.
 
 * **Developer ergonomics**
   * Improved autoPublication workflow. See https://mozac.org/contributing/testing-components-inside-app for updated documentation.
+
+* **browser-search**
+  * Added `getSearchTemplate` to reconstruct the user-entered search engine url template
 
 # 38.0.0
 
@@ -75,7 +233,6 @@ permalink: /changelog/
 
 * **service-accounts-push**
   * Fixed a bug where the push subscription was incorrectly cached and caused some `GeneralError`s.
-
 * **feature-addons**
   * Added `DefaultAddonUpdater.UpdateAttemptStorage` allows to query the last known state for a previous attempt to update an add-on.
 

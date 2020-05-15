@@ -66,6 +66,10 @@
     <string name="mozac_feature_addons_settings_on">Vklopljen</string>
     <!-- Indicates the add-on is disabled. -->
     <string name="mozac_feature_addons_settings_off">Izklopljen</string>
+    <!-- Indicates the add-on is allowed in private browsing mode. -->
+    <string name="mozac_feature_addons_settings_allow_in_private_browsing">Dovoli v zasebnem brskanju</string>
+    <!-- Indicates the add-on is allowed in private browsing mode. -->
+    <string name="mozac_feature_addons_settings_run_in_private_browsing">Zaženi v zasebnem brskanju</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">Omogočeno</string>
     <!-- Indicates the add-on is disabled. -->
@@ -128,6 +132,8 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Dodaj jih v %1$s</string>
     <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption">Tehnologija dodatkov za Firefox se posodablja. Ti dodatki uporabljajo ogrodja, ki niso združljivi s Firefoxom 75 in novejšimi.</string>
+    <!-- This is the caption for not yet supported screen caption -->
+    <string name="mozac_feature_addons_not_yet_supported_caption2">Trenutno pripravljamo podporo za začetni izbor priporočenih razširitev.</string>
     <!-- This is the caption for the add-on installation progress overlay -->
     <string name="mozac_add_on_install_progress_caption">Prenašanje in preverjanje dodatka …</string>
     <!-- Error shown when something unexpected happened while trying to get the add-on list from the server -->

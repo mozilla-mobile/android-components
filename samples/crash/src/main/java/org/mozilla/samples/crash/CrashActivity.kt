@@ -10,12 +10,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import androidx.core.content.ContextCompat
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_crash.*
 import mozilla.components.lib.crash.Crash
+import mozilla.components.support.base.crash.Breadcrumb
 
 class CrashActivity : AppCompatActivity(), View.OnClickListener {
     private val receiver = object : BroadcastReceiver() {
@@ -40,26 +41,52 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
         fatalCrashButton.setOnClickListener(this)
         crashButton.setOnClickListener(this)
         fatalServiceCrashButton.setOnClickListener(this)
+        crashList.setOnClickListener(this)
+
+        crashReporter.recordCrashBreadcrumb(
+            Breadcrumb("CrashActivity onCreate", emptyMap(), "sample", Breadcrumb.Level.DEBUG,
+                Breadcrumb.Type.NAVIGATION)
+        )
     }
 
     override fun onResume() {
         super.onResume()
-
         registerReceiver(receiver, IntentFilter(CrashApplication.NON_FATAL_CRASH_BROADCAST))
+
+        crashReporter.recordCrashBreadcrumb(
+            Breadcrumb("CrashActivity onResume", emptyMap(), "sample", Breadcrumb.Level.DEBUG,
+                Breadcrumb.Type.NAVIGATION)
+        )
     }
 
     override fun onPause() {
         super.onPause()
-
         unregisterReceiver(receiver)
+
+        crashReporter.recordCrashBreadcrumb(
+            Breadcrumb("CrashActivity onPause", emptyMap(), "sample", Breadcrumb.Level.DEBUG,
+                Breadcrumb.Type.NAVIGATION)
+        )
     }
 
     @Suppress("TooGenericExceptionThrown")
     override fun onClick(view: View) {
         when (view) {
-            fatalCrashButton -> throw RuntimeException("Boom!")
+            fatalCrashButton -> {
+                crashReporter.recordCrashBreadcrumb(
+                    Breadcrumb("fatal crash button clicked", emptyMap(), "sample",
+                        Breadcrumb.Level.INFO, Breadcrumb.Type.USER)
+                )
+
+                throw RuntimeException("Boom!")
+            }
 
             crashButton -> {
+                crashReporter.recordCrashBreadcrumb(
+                    Breadcrumb("crash button clicked", emptyMap(), "sample", Breadcrumb.Level.INFO,
+                        Breadcrumb.Type.USER)
+                )
+
                 // Pretend GeckoView has crashed by re-building a crash Intent and launching the CrashHandlerService.
                 val intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
                 intent.component = ComponentName(
@@ -81,9 +108,20 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
             }
 
             fatalServiceCrashButton -> {
+                crashReporter.recordCrashBreadcrumb(
+                    Breadcrumb("fatal service crash button clicked", emptyMap(), "sample",
+                        Breadcrumb.Level.INFO, Breadcrumb.Type.USER)
+                )
+
                 startService(Intent(this, CrashService::class.java))
                 finish()
             }
+
+            crashList -> {
+                startActivity(Intent(this, CrashListActivity::class.java))
+            }
+
+            else -> throw java.lang.RuntimeException("Unknown ID")
         }
     }
 }

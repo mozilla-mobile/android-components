@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
+import mozilla.components.support.base.crash.Breadcrumb
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -55,21 +56,31 @@ class SendCrashReportServiceTest {
     fun `Send crash report will forward same crash to crash service`() {
         var caughtCrash: Crash.NativeCodeCrash? = null
         val crashReporter = spy(CrashReporter(
-                shouldPrompt = CrashReporter.Prompt.NEVER,
+            context = testContext,
+            shouldPrompt = CrashReporter.Prompt.NEVER,
                 services = listOf(object : CrashReporterService {
-                    override fun report(crash: Crash.UncaughtExceptionCrash) {
+                    override val id: String = "test"
+
+                    override val name: String = "TestReporter"
+
+                    override fun createCrashReportUrl(identifier: String): String? = null
+
+                    override fun report(crash: Crash.UncaughtExceptionCrash): String? {
                         fail("Didn't expect uncaught exception crash")
+                        return null
                     }
 
-                    override fun report(crash: Crash.NativeCodeCrash) {
+                    override fun report(crash: Crash.NativeCodeCrash): String? {
                         caughtCrash = crash
+                        return null
                     }
 
-                    override fun report(throwable: Throwable) {
+                    override fun report(throwable: Throwable, breadcrumbs: ArrayList<Breadcrumb>): String? {
                         fail("Didn't expect caught exception")
+                        return null
                     }
-                }),
-                scope = scope
+            }),
+            scope = scope
         )).install(testContext)
         val originalCrash = Crash.NativeCodeCrash(
                 "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",

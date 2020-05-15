@@ -43,6 +43,7 @@ class StringTest {
         assertNotEquals("Tweet:", url)
     }
 
+    @Suppress("DEPRECATION") // the method under test is being removed so this test will be too.
     @Test
     fun isUrlStrict() {
         assertTrue("mozilla.org".isUrlStrict())
@@ -174,5 +175,13 @@ class StringTest {
         assertTrue("https://foo.bar/bobo".isSameOriginAs("https://foo.bar/obob"))
         assertTrue("https://foo.bar".isSameOriginAs("https://foo.bar:443"))
         assertTrue("https://foo.bar:333".isSameOriginAs("https://foo.bar:333"))
+    }
+
+    @Test
+    fun isExtensionUrl() {
+        assertTrue("moz-extension://1232-abcd".isExtensionUrl())
+        assertFalse("mozilla.org".isExtensionUrl())
+        assertFalse("https://mozilla.org".isExtensionUrl())
+        assertFalse("http://mozilla.org".isExtensionUrl())
     }
 }

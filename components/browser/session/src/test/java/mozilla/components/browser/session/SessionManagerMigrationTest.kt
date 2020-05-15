@@ -410,7 +410,10 @@ class SessionManagerMigrationTest {
         }
 
         store.dispatch(ReaderAction.UpdateReaderActiveAction(session2.id, true)).joinBlocking()
-        assertEquals(ReaderState(active = true), store.state.findTab(session2.id)?.readerState)
+        store.dispatch(ReaderAction.UpdateReaderActiveUrlAction(session2.id, "blog.mozilla.org/1")).joinBlocking()
+        assertEquals(ReaderState(active = true, activeUrl = "blog.mozilla.org/1"),
+            store.state.findTab(session2.id)?.readerState
+        )
 
         val snapshot = manager.createSnapshot()
         manager.removeAll()
@@ -419,7 +422,9 @@ class SessionManagerMigrationTest {
 
         manager.restore(snapshot)
         assertEquals(ReaderState(active = false), store.state.findTab(session1.id)?.readerState)
-        assertEquals(ReaderState(active = true), store.state.findTab(session2.id)?.readerState)
+        assertEquals(ReaderState(active = true, activeUrl = "blog.mozilla.org/1"),
+            store.state.findTab(session2.id)?.readerState
+        )
     }
 
     @Test
@@ -1079,7 +1084,7 @@ class SessionManagerMigrationTest {
     }
 
     @Test
-    fun `Trimming memory - RUNNING_CRITICAL - Removes thumbnails`() {
+    fun `Trimming memory - RUNNING_CRITICAL - Removes thumbnails and closes engine sessions`() {
         val store = BrowserStore()
         val manager = SessionManager(engine = mock(), store = store)
 
@@ -1221,7 +1226,139 @@ class SessionManagerMigrationTest {
     }
 
     @Test
-    fun `Trimming memory - RUNNING_ODERATE - Does not affect SessionManager`() {
+    fun `Trimming memory - RUNNING_CRITICAL - Does not remove existing state from session`() {
+        val store = BrowserStore()
+        val manager = SessionManager(engine = mock(), store = store)
+
+        val engineSession1 = createMockEngineSessionWithState()
+        val engineSession2 = createMockEngineSessionWithState()
+        val engineSessionState = mock<EngineSessionState>()
+
+        manager.add(Session("https://www.mozilla.org").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession1)
+
+        manager.add(Session("https://www.firefox.com").apply {
+            thumbnail = mock()
+        }, engineSession = engineSession2)
+
+        manager.add(Session("https://getpocket.com").apply {
+            thumbnail = mock()
+        }, engineSessionState = engineSessionState)
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        // Now trim memory
+
+        manager.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL)
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        // Now trim memory AGAIN
+
+        manager.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL)
+
+        // SessionManager:
+
+        manager.sessions[0].apply {
+            assertNotNull(engineSessionHolder.engineSession)
+            assertNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[1].apply {
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        manager.sessions[2].apply {
+            assertNull(engineSessionHolder.engineSession)
+            assertNotNull(engineSessionHolder.engineSessionState)
+        }
+
+        // BrowserStore:
+
+        store.state.tabs[0].apply {
+            assertNotNull(engineState.engineSession)
+            assertNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[1].apply {
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+
+        store.state.tabs[2].apply {
+            assertNull(engineState.engineSession)
+            assertNotNull(engineState.engineSessionState)
+        }
+    }
+
+    @Test
+    fun `Trimming memory - RUNNING_MODERATE - Does not affect SessionManager`() {
         val store = BrowserStore()
         val manager = SessionManager(engine = mock(), store = store)
 

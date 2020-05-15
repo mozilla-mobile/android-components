@@ -15,12 +15,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import mozilla.components.lib.crash.db.CrashDatabase
+import mozilla.components.lib.crash.db.insertCrashSafely
+import mozilla.components.lib.crash.db.insertReportSafely
+import mozilla.components.lib.crash.db.toEntity
+import mozilla.components.lib.crash.db.toReportEntity
 import mozilla.components.lib.crash.handler.ExceptionHandler
 import mozilla.components.lib.crash.notification.CrashNotification
 import mozilla.components.lib.crash.prompt.CrashPrompt
 import mozilla.components.lib.crash.service.CrashReporterService
+import mozilla.components.lib.crash.service.CrashTelemetryService
 import mozilla.components.lib.crash.service.SendCrashReportService
 import mozilla.components.lib.crash.service.SendCrashTelemetryService
+import mozilla.components.support.base.crash.Breadcrumb
 import mozilla.components.support.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
 
@@ -53,14 +60,17 @@ import mozilla.components.support.base.log.logger.Logger
  */
 @Suppress("TooManyFunctions")
 class CrashReporter(
+    context: Context,
     private val services: List<CrashReporterService> = emptyList(),
-    private val telemetryServices: List<CrashReporterService> = emptyList(),
+    private val telemetryServices: List<CrashTelemetryService> = emptyList(),
     private val shouldPrompt: Prompt = Prompt.NEVER,
     var enabled: Boolean = true,
     internal val promptConfiguration: PromptConfiguration = PromptConfiguration(),
     private val nonFatalCrashIntent: PendingIntent? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) : CrashReporting {
+    private val database: CrashDatabase by lazy { CrashDatabase.get(context) }
+
     internal val logger = Logger("mozac/CrashReporter")
     internal val crashBreadcrumbs = BreadcrumbPriorityQueue(BREADCRUMB_MAX_NUM)
 
@@ -89,9 +99,13 @@ class CrashReporter(
     fun submitReport(crash: Crash, then: () -> Unit = {}): Job {
         return scope.launch {
             services.forEach { service ->
-                when (crash) {
+                val reportId = when (crash) {
                     is Crash.NativeCodeCrash -> service.report(crash)
                     is Crash.UncaughtExceptionCrash -> service.report(crash)
+                }
+
+                if (reportId != null) {
+                    database.crashDao().insertReportSafely(service.toReportEntity(crash, reportId))
                 }
             }
 
@@ -109,12 +123,12 @@ class CrashReporter(
         return scope.launch {
             telemetryServices.forEach { telemetryService ->
                 when (crash) {
-                    is Crash.NativeCodeCrash -> telemetryService.report(crash)
-                    is Crash.UncaughtExceptionCrash -> telemetryService.report(crash)
+                    is Crash.NativeCodeCrash -> telemetryService.record(crash)
+                    is Crash.UncaughtExceptionCrash -> telemetryService.record(crash)
                 }
             }
 
-            logger.info("Crash report submitted to ${services.size} telemetry services")
+            logger.info("Crash report submitted to ${telemetryServices.size} telemetry services")
             withContext(Dispatchers.Main) {
                 then()
             }
@@ -125,11 +139,19 @@ class CrashReporter(
      * Submit a caught exception report to all registered services.
      */
     override fun submitCaughtException(throwable: Throwable): Job {
-        logger.info("Caught Exception report submitted to ${services.size} services")
+        /*
+         * if stacktrace is empty, replace throwable with UnexpectedlyMissingStacktrace exception so
+         * we can figure out which module is submitting caught exception reports without a stacktrace.
+         */
+        var reportThrowable = throwable
+        if (throwable.stackTrace.isEmpty()) {
+            reportThrowable = CrashReporterException.UnexpectedlyMissingStacktrace("Missing Stacktrace", throwable)
+        }
 
+        logger.info("Caught Exception report submitted to ${services.size} services")
         return scope.launch {
             services.forEach {
-                it.report(throwable)
+                it.report(reportThrowable, crashBreadcrumbs.toSortedArrayList())
             }
         }
     }
@@ -143,7 +165,7 @@ class CrashReporter(
      *   )
      * ```
      */
-    fun recordCrashBreadcrumb(breadcrumb: Breadcrumb) {
+    override fun recordCrashBreadcrumb(breadcrumb: Breadcrumb) {
         crashBreadcrumbs.add(breadcrumb)
     }
 
@@ -153,6 +175,8 @@ class CrashReporter(
         }
 
         logger.info("Received crash: $crash")
+
+        database.crashDao().insertCrashSafely(crash.toEntity())
 
         if (telemetryServices.isNotEmpty()) {
             sendCrashTelemetry(context, crash)
@@ -228,6 +252,10 @@ class CrashReporter(
         }
     }
 
+    internal fun getCrashReporterServiceById(id: String): CrashReporterService {
+        return services.first { it.id == id }
+    }
+
     enum class Prompt {
         /**
          * Never prompt the user. Always submit crash reports immediately.
@@ -271,4 +299,17 @@ class CrashReporter(
             get() = instance ?: throw IllegalStateException(
                 "You need to call install() on your CrashReporter instance from Application.onCreate().")
     }
+}
+
+/**
+ * A base class for exceptions describing crash reporter exception.
+ */
+internal abstract class CrashReporterException(message: String, cause: Throwable?) : Exception(message, cause) {
+    /**
+     * Stacktrace was expected to be present, but it wasn't.
+     */
+    internal class UnexpectedlyMissingStacktrace(
+        message: String,
+        cause: Throwable?
+    ) : CrashReporterException(message, cause)
 }

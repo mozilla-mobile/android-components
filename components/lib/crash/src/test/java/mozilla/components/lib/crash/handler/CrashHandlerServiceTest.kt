@@ -40,6 +40,7 @@ class CrashHandlerServiceTest {
     fun setUp() {
         val scope = TestCoroutineScope(testDispatcher)
         reporter = spy(CrashReporter(
+            context = testContext,
             shouldPrompt = CrashReporter.Prompt.NEVER,
             services = listOf(mock()),
             nonFatalCrashIntent = mock(),
@@ -50,6 +51,10 @@ class CrashHandlerServiceTest {
         intent?.component = ComponentName(
             "org.mozilla.samples.browser",
             "mozilla.components.lib.crash.handler.CrashHandlerService"
+        )
+        intent?.putExtra(
+            "uuid",
+            "94f66ed7-50c7-41d1-96a7-299139a8c2af"
         )
         intent?.putExtra(
             "minidumpPath",

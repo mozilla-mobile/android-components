@@ -51,6 +51,9 @@ class SnapshotSerializer(
 
         val sessionJson = serializeSession(item.session)
         sessionJson.put(Keys.SESSION_READER_MODE_KEY, item.readerState?.active ?: false)
+        if (item.readerState?.active == true && item.readerState.activeUrl != null) {
+            sessionJson.put(Keys.SESSION_READER_MODE_ACTIVE_URL_KEY, item.readerState.activeUrl)
+        }
         itemJson.put(Keys.SESSION_KEY, sessionJson)
 
         val engineSessionState = if (item.engineSessionState != null) {
@@ -82,11 +85,16 @@ class SnapshotSerializer(
 
     fun itemFromJSON(engine: Engine, json: JSONObject): SessionManager.Snapshot.Item {
         val sessionJson = json.getJSONObject(Keys.SESSION_KEY)
+        val engineSessionJson = json.getJSONObject(Keys.ENGINE_SESSION_KEY)
         val session = deserializeSession(sessionJson, restoreSessionIds, restoreParentIds)
-        val readerState = ReaderState(active = sessionJson.optBoolean(Keys.SESSION_READER_MODE_KEY, false))
-        val engineState = engine.createSessionState(sessionJson)
+        val readerState = ReaderState(
+            active = sessionJson.optBoolean(Keys.SESSION_READER_MODE_KEY, false),
+            activeUrl = sessionJson.tryGetString(Keys.SESSION_READER_MODE_ACTIVE_URL_KEY)
+        )
+        val engineState = engine.createSessionState(engineSessionJson)
 
-        return SessionManager.Snapshot.Item(session,
+        return SessionManager.Snapshot.Item(
+            session,
             engineSession = null,
             engineSessionState = engineState,
             readerState = readerState
@@ -99,7 +107,6 @@ class SnapshotSerializer(
 internal fun serializeSession(session: Session): JSONObject {
     return JSONObject().apply {
         put(Keys.SESSION_URL_KEY, session.url)
-        put(Keys.SESSION_SOURCE_KEY, session.source.name)
         put(Keys.SESSION_UUID_KEY, session.id)
         put(Keys.SESSION_PARENT_UUID_KEY, session.parentId ?: "")
         put(Keys.SESSION_TITLE, session.title)
@@ -109,17 +116,16 @@ internal fun serializeSession(session: Session): JSONObject {
 
 @Throws(JSONException::class)
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-internal fun deserializeSession(json: JSONObject, restoreId: Boolean, restoreParentId: Boolean): Session {
-    val source = try {
-        Session.Source.valueOf(json.getString(Keys.SESSION_SOURCE_KEY))
-    } catch (e: IllegalArgumentException) {
-        Session.Source.NONE
-    }
+internal fun deserializeSession(
+    json: JSONObject,
+    restoreId: Boolean,
+    restoreParentId: Boolean
+): Session {
     val session = Session(
         json.getString(Keys.SESSION_URL_KEY),
         // Currently, snapshot cannot contain private sessions.
         false,
-        source,
+        Session.Source.RESTORED,
         if (restoreId) {
             json.getString(Keys.SESSION_UUID_KEY)
         } else {
@@ -138,12 +144,12 @@ private object Keys {
     const val SELECTED_SESSION_INDEX_KEY = "selectedSessionIndex"
     const val SESSION_STATE_TUPLES_KEY = "sessionStateTuples"
 
-    const val SESSION_SOURCE_KEY = "source"
     const val SESSION_URL_KEY = "url"
     const val SESSION_UUID_KEY = "uuid"
     const val SESSION_CONTEXT_ID_KEY = "contextId"
     const val SESSION_PARENT_UUID_KEY = "parentUuid"
     const val SESSION_READER_MODE_KEY = "readerMode"
+    const val SESSION_READER_MODE_ACTIVE_URL_KEY = "readerModeArticleUrl"
     const val SESSION_TITLE = "title"
 
     const val SESSION_KEY = "session"

@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.AttributeSet
+import android.view.View
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.ViewCompat
@@ -67,6 +68,10 @@ class GeckoEngineView @JvmOverloads constructor(
             rebind()
         }
 
+        override fun onFirstContentfulPaint() {
+            visibility = View.VISIBLE
+        }
+
         override fun onAppPermissionRequest(permissionRequest: PermissionRequest) = Unit
         override fun onContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
     }
@@ -102,7 +107,7 @@ class GeckoEngineView @JvmOverloads constructor(
             currentGeckoView.session?.let {
                 // Release a previously assigned session. Otherwise GeckoView will close it
                 // automatically.
-                detachSelectionActionDelegate(currentGeckoView.session)
+                detachSelectionActionDelegate(it)
                 currentGeckoView.releaseSession()
             }
 
@@ -149,7 +154,9 @@ class GeckoEngineView @JvmOverloads constructor(
     override fun release() {
         detachSelectionActionDelegate(currentSession?.geckoSession)
 
-        currentSession?.apply { unregister(observer) }
+        currentSession?.apply {
+            unregister(observer)
+        }
 
         currentSession = null
 

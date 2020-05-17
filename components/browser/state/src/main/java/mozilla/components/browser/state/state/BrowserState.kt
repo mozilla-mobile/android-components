@@ -18,9 +18,12 @@ import mozilla.components.lib.state.State
  * @property media The state of all media elements and playback states for all tabs.
  */
 data class BrowserState(
-    val tabs: List<TabSessionState> = emptyList(),
+    val normalTabs: List<TabSessionState> = emptyList(),
+    val privateTabs: List<TabSessionState> = emptyList(),
     val selectedTabId: String? = null,
     val customTabs: List<CustomTabSessionState> = emptyList(),
     val extensions: Map<String, WebExtensionState> = emptyMap(),
     val media: MediaState = MediaState()
-) : State
+) : State {
+    val tabs get() = normalTabs + privateTabs
+}

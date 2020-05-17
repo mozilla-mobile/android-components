@@ -58,15 +58,15 @@ class BrowserStoreExceptionTest {
     fun `AddMultipleTabsAction - Exception is thrown in tab with id already exists`() {
         unwrapStoreExceptionAndRethrow {
             val store = BrowserStore(BrowserState(
-                    tabs = listOf(
-                            createTab(id = "a", url = "https://www.mozilla.org")
-                    )
+                normalTabs = listOf(
+                    createTab(id = "a", url = "https://www.mozilla.org")
+                )
             ))
 
             store.dispatch(TabListAction.AddMultipleTabsAction(
-                    tabs = listOf(
-                            createTab(id = "a", url = "https://www.example.org")
-                    )
+                tabs = listOf(
+                    createTab(id = "a", url = "https://www.example.org")
+                )
             )).joinBlocking()
         }
     }

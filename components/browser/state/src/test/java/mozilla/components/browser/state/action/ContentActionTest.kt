@@ -47,7 +47,7 @@ class ContentActionTest {
 
     @Before
     fun setUp() {
-        val state = BrowserState(tabs = listOf(
+        val state = BrowserState(normalTabs = listOf(
             createTab(url = "https://www.mozilla.org").also {
                 tabId = it.id
             },
@@ -57,6 +57,18 @@ class ContentActionTest {
         ))
 
         store = BrowserStore(state)
+    }
+
+    @Test
+    fun `nothing happens with invalid tab ID`() {
+        val newUrl = "https://www.example.org"
+        val state = store.state
+
+        store.dispatch(
+            ContentAction.UpdateUrlAction("not-an-id", newUrl)
+        ).joinBlocking()
+
+        assertEquals(state, store.state)
     }
 
     @Test

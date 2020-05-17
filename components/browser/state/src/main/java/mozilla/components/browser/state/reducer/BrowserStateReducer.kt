@@ -54,11 +54,40 @@ internal fun BrowserState.updateTabState(
     tabId: String,
     update: (SessionState) -> SessionState
 ): BrowserState {
-    val newTabs = tabs.updateTabs(tabId, update) as List<TabSessionState>?
-    if (newTabs != null) return copy(tabs = newTabs)
+    val newState = updateTabSessionState(tabId, update as (TabSessionState) -> TabSessionState)
+    if (newState !== this) {
+        // If state was updated, the tab was found.
+        return newState
+    }
 
-    val newCustomTabs = customTabs.updateTabs(tabId, update) as List<CustomTabSessionState>?
-    if (newCustomTabs != null) return copy(customTabs = newCustomTabs)
+    val newCustomTabs = customTabs.updateTabs(tabId, update as (CustomTabSessionState) -> CustomTabSessionState)
+    if (newCustomTabs != null) {
+        return copy(customTabs = newCustomTabs)
+    }
+
+    return this
+}
+
+/**
+ * Finds the corresponding tab in the [BrowserState] and replaces it using [update].
+ * @param tabId ID of the tab to change.
+ * @param update Returns a new version of the tab state. Must be the same class,
+ * preferably using [SessionState.createCopy].
+ */
+@Suppress("Unchecked_Cast")
+internal fun BrowserState.updateTabSessionState(
+    tabId: String,
+    update: (TabSessionState) -> TabSessionState
+): BrowserState {
+    val newNormalTabs = normalTabs.updateTabs(tabId, update)
+    if (newNormalTabs != null) {
+        return copy(normalTabs = newNormalTabs)
+    }
+
+    val newPrivateTabs = privateTabs.updateTabs(tabId, update)
+    if (newPrivateTabs != null) {
+        return copy(privateTabs = newPrivateTabs)
+    }
 
     return this
 }

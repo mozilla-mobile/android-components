@@ -27,7 +27,7 @@ class TrackingProtectionActionTest {
 
         store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab)
+                normalTabs = listOf(tab)
             )
         )
     }

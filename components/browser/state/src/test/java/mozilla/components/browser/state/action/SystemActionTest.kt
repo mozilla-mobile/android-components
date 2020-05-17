@@ -22,7 +22,7 @@ class SystemActionTest {
     @Test
     fun `LowMemoryAction removes thumbnails`() {
         val initialState = BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab(url = "https://www.mozilla.org", id = "0"),
                 createTab(url = "https://www.firefox.com", id = "1"),
                 createTab(url = "https://www.firefox.com", id = "2")
@@ -53,7 +53,7 @@ class SystemActionTest {
     @Test
     fun `LowMemoryAction removes EngineSession references and adds state`() {
         val initialState = BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTabWithMockEngineSession(url = "https://www.mozilla.org", id = "0"),
                 createTabWithMockEngineSession(url = "https://www.firefox.com", id = "1"),
                 createTabWithMockEngineSession(url = "https://www.firefox.com", id = "2")

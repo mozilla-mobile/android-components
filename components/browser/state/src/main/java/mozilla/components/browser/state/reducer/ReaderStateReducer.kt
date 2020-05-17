@@ -8,6 +8,7 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.ReaderAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.TabSessionState
 
 internal object ReaderStateReducer {
 
@@ -44,9 +45,15 @@ private fun BrowserState.copyWithReaderState(
     tabId: String,
     update: (ReaderState) -> ReaderState
 ): BrowserState {
-    return copy(
-        tabs = tabs.updateTabs(tabId) { current ->
-            current.copy(readerState = update.invoke(current.readerState))
-        } ?: tabs
-    )
+    val updater = { current: TabSessionState ->
+        current.copy(readerState = update.invoke(current.readerState))
+    }
+
+    val newNormalTabs = normalTabs.updateTabs(tabId, updater)
+    if (newNormalTabs != null) return copy(normalTabs = newNormalTabs)
+
+    val newPrivateTabs = privateTabs.updateTabs(tabId, updater)
+    if (newPrivateTabs != null) return copy(privateTabs = newPrivateTabs)
+
+    return this
 }

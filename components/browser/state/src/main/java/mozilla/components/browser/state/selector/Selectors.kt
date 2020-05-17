@@ -87,15 +87,3 @@ fun BrowserState.findTabOrCustomTabOrSelectedTab(tabId: String? = null): Session
 fun BrowserState.findTabByUrl(url: String): TabSessionState? {
     return tabs.firstOrNull { tab -> tab.content.url == url }
 }
-
-/**
- * List of private tabs.
- */
-val BrowserState.privateTabs: List<TabSessionState>
-    get() = tabs.filter { it.content.private }
-
-/**
- * List of normal (non-private) tabs.
- */
-val BrowserState.normalTabs: List<TabSessionState>
-    get() = tabs.filter { !it.content.private }

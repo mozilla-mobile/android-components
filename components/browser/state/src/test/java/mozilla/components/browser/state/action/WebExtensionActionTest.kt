@@ -65,7 +65,7 @@ class WebExtensionActionTest {
         val tab2 = createTab("url")
         val store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab1, tab2)
+                normalTabs = listOf(tab1, tab2)
             )
         )
 
@@ -105,7 +105,7 @@ class WebExtensionActionTest {
         val tab2 = createTab("url")
         val store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab1, tab2)
+                normalTabs = listOf(tab1, tab2)
             )
         )
         assertTrue(store.state.extensions.isEmpty())
@@ -152,7 +152,7 @@ class WebExtensionActionTest {
         val tab = createTab("url")
         val store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab)
+                normalTabs = listOf(tab)
             )
         )
         val mockedBrowserAction = mock<WebExtensionBrowserAction>()
@@ -193,7 +193,7 @@ class WebExtensionActionTest {
         )
         val store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab)
+                normalTabs = listOf(tab)
             )
         )
 
@@ -234,7 +234,7 @@ class WebExtensionActionTest {
         val tab = createTab("url")
         val store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab)
+                normalTabs = listOf(tab)
             )
         )
         val mockedPageAction = mock<WebExtensionPageAction>()
@@ -275,7 +275,7 @@ class WebExtensionActionTest {
         )
         val store = BrowserStore(
             initialState = BrowserState(
-                tabs = listOf(tab)
+                normalTabs = listOf(tab)
             )
         )
 

@@ -7,6 +7,7 @@ package mozilla.components.browser.state.reducer
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.WebExtensionState
 
 internal object WebExtensionReducer {
@@ -33,13 +34,15 @@ internal object WebExtensionReducer {
             is WebExtensionAction.UninstallWebExtensionAction -> {
                 state.copy(
                     extensions = state.extensions - action.extensionId,
-                    tabs = state.tabs.map { it.copy(extensionState = it.extensionState - action.extensionId) }
+                    normalTabs = state.tabs.map { it.copy(extensionState = it.extensionState - action.extensionId) },
+                    privateTabs = state.tabs.map { it.copy(extensionState = it.extensionState - action.extensionId) }
                 )
             }
             is WebExtensionAction.UninstallAllWebExtensionsAction -> {
                 state.copy(
                     extensions = emptyMap(),
-                    tabs = state.tabs.map { it.copy(extensionState = emptyMap()) }
+                    normalTabs = state.tabs.map { it.copy(extensionState = emptyMap()) },
+                    privateTabs = state.tabs.map { it.copy(extensionState = emptyMap()) }
                 )
             }
             is WebExtensionAction.UpdateWebExtensionEnabledAction -> {
@@ -88,13 +91,19 @@ internal object WebExtensionReducer {
         extensionId: String,
         update: (WebExtensionState) -> WebExtensionState
     ): BrowserState {
-        return copy(
-            tabs = tabs.updateTabs(tabId) { current ->
-                val existingExtension = current.extensionState[extensionId]
-                val newExtension = extensionId to update(existingExtension ?: WebExtensionState(extensionId))
-                current.copy(extensionState = current.extensionState + newExtension)
-            } ?: tabs
-        )
+        val updater = { current: TabSessionState ->
+            val existingExtension = current.extensionState[extensionId]
+            val newExtension = extensionId to update(existingExtension ?: WebExtensionState(extensionId))
+            current.copy(extensionState = current.extensionState + newExtension)
+        }
+
+        val newNormalTabs = normalTabs.updateTabs(tabId, updater)
+        if (newNormalTabs != null) return copy(normalTabs = newNormalTabs)
+
+        val newPrivateTabs = privateTabs.updateTabs(tabId, updater)
+        if (newPrivateTabs != null) return copy(privateTabs = newPrivateTabs)
+
+        return this
     }
 
     private fun BrowserState.updateWebExtensionState(

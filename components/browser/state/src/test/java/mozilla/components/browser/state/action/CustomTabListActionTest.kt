@@ -73,7 +73,7 @@ class CustomTabListActionTest {
         val customTab2 = createCustomTab("https://www.firefox.com")
         val regularTab = createTab(url = "https://www.mozilla.org")
 
-        val state = BrowserState(customTabs = listOf(customTab1, customTab2), tabs = listOf(regularTab))
+        val state = BrowserState(customTabs = listOf(customTab1, customTab2), normalTabs = listOf(regularTab))
         val store = BrowserStore(state)
 
         assertEquals(2, store.state.customTabs.size)

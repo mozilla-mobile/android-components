@@ -24,7 +24,7 @@ class BrowserStoreTest {
     @Test(expected = IllegalArgumentException::class)
     fun `Initial state is validated and rejected if selected tab does not exist`() {
         val initialState = BrowserState(
-            tabs = listOf(createTab("https://www.mozilla.org")),
+            normalTabs = listOf(createTab("https://www.mozilla.org")),
             selectedTabId = "invalid"
         )
         BrowserStore(initialState)

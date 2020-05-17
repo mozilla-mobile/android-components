@@ -21,7 +21,7 @@ class MediaActionTest {
     @Test
     fun `AddMediaAction - Adds media for tab`() {
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             )
@@ -46,7 +46,7 @@ class MediaActionTest {
     @Test
     fun `AddMediaAction - Not existing tab`() {
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             )
@@ -73,7 +73,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -112,7 +112,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -144,7 +144,7 @@ class MediaActionTest {
         val element4 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab"),
                 createTab("https;//getpocket.com", id = "pocket-tab")
@@ -175,7 +175,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -219,7 +219,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -253,7 +253,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -287,7 +287,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -331,7 +331,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -393,7 +393,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),
@@ -441,7 +441,7 @@ class MediaActionTest {
         val element3 = createMockMediaElement()
 
         val store = BrowserStore(BrowserState(
-            tabs = listOf(
+            normalTabs = listOf(
                 createTab("https://www.mozilla.org", id = "test-tab"),
                 createTab("https://www.firefox.com", id = "other-tab")
             ),

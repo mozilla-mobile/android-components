@@ -15,6 +15,11 @@ permalink: /changelog/
 * **feature-media**
   * Adds `MediaFullscreenOrientationFeature` to autorotate activity while in fullscreen based on media aspect ratio.
 
+* **browser-state**
+  * ⚠️ **This is a breaking change**: `BrowserState.tabs` has been split into two lists: `normalTabs` and `privateTabs`.
+    The `normalTabs` and `privateTabs` extension functions have been removed.
+    `tabs` is now a getter on `BrowserState` that always returns a list of normal tabs followed by private tabs.
+
 # 42.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v41.0.0...42.0.0)

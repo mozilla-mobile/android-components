@@ -7,6 +7,7 @@ package mozilla.components.browser.state.reducer
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.EngineState
+import mozilla.components.browser.state.state.TabSessionState
 
 internal object SystemReducer {
     /**
@@ -15,24 +16,28 @@ internal object SystemReducer {
     fun reduce(state: BrowserState, action: SystemAction): BrowserState {
         return when (action) {
             is SystemAction.LowMemoryAction -> {
-                val updatedTabs = state.tabs.map {
-                    if (state.selectedTabId != it.id) {
-                        it.copy(
-                            content = it.content.copy(thumbnail = null),
-                            engineState = if (it.id in action.states) {
+                val mapper = { tab: TabSessionState ->
+                    if (state.selectedTabId != tab.id) {
+                        tab.copy(
+                            content = tab.content.copy(thumbnail = null),
+                            engineState = if (tab.id in action.states) {
                                 EngineState(
                                     engineSession = null,
-                                    engineSessionState = action.states[it.id]
+                                    engineSessionState = action.states[tab.id]
                                 )
                             } else {
-                                it.engineState
+                                tab.engineState
                             }
                         )
                     } else {
-                        it
+                        tab
                     }
                 }
-                state.copy(tabs = updatedTabs)
+
+                state.copy(
+                    normalTabs = state.normalTabs.map(mapper),
+                    privateTabs = state.privateTabs.map(mapper)
+                )
             }
         }
     }

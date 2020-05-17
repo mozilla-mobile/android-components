@@ -11,8 +11,6 @@ import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.action.MediaAction
 import mozilla.components.browser.state.action.TabListAction
-import mozilla.components.browser.state.selector.normalTabs
-import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.MediaState
 import mozilla.components.feature.media.middleware.sideeffects.MediaAggregateUpdater

@@ -334,17 +334,19 @@ class GeckoWebExtensionTest {
     @Test
     fun `register global tab handler`() {
         val runtime: GeckoRuntime = mock()
+        whenever(runtime.settings).thenReturn(mock())
         whenever(runtime.webExtensionController).thenReturn(mock())
         val tabHandler: TabHandler = mock()
         val tabDelegateCaptor = argumentCaptor<WebExtension.TabDelegate>()
         val engineSessionCaptor = argumentCaptor<GeckoEngineSession>()
 
-        val nativeGeckoWebExt = spy(WebExtension(
-            "https://addons.mozilla.org/firefox/downloads/file/123/some_web_ext.xpi",
-            "test-webext",
-            WebExtension.Flags.NONE,
-            runtime.webExtensionController
-        ))
+        val metaDataBundle = GeckoBundle()
+        metaDataBundle.putStringArray("disabledFlags", emptyArray())
+        val bundle = GeckoBundle()
+        bundle.putString("webExtensionId", "test-webext")
+        bundle.putString("locationURI", "https://addons.mozilla.org/firefox/downloads/file/123/some_web_ext.xpi")
+
+        val nativeGeckoWebExt = spy(MockWebExtension(bundle))
         // Create extension and register global tab handler
         val extension = GeckoWebExtension(
             id = "mozacTest",
@@ -365,6 +367,20 @@ class GeckoWebExtensionTest {
         tabDelegateCaptor.value.onNewTab(nativeGeckoWebExt, tabDetails)
         verify(tabHandler).onNewTab(eq(extension), engineSessionCaptor.capture(), eq(true), eq("url"))
         assertNotNull(engineSessionCaptor.value)
+
+        tabDelegateCaptor.value.onOpenOptionsPage(nativeGeckoWebExt)
+        verify(tabHandler, never()).onNewTab(eq(extension), any(), eq(false), eq("http://options-page.moz"))
+
+        bundle.putBundle("metaData", metaDataBundle)
+        val nativeGeckoWebExtWithMetadata = MockWebExtension(bundle)
+        tabDelegateCaptor.value.onOpenOptionsPage(nativeGeckoWebExtWithMetadata)
+        verify(tabHandler, never()).onNewTab(eq(extension), any(), eq(false), eq("http://options-page.moz"))
+
+        metaDataBundle.putString("optionsPageURL", "http://options-page.moz")
+        bundle.putBundle("metaData", metaDataBundle)
+        val nativeGeckoWebExtWithOptionsPageUrl = MockWebExtension(bundle)
+        tabDelegateCaptor.value.onOpenOptionsPage(nativeGeckoWebExtWithOptionsPageUrl)
+        verify(tabHandler).onNewTab(eq(extension), any(), eq(false), eq("http://options-page.moz"))
     }
 
     @Test
@@ -397,6 +413,10 @@ class GeckoWebExtensionTest {
         )
         extension.registerTabHandler(session, tabHandler)
         verify(webExtensionSessionController).setTabDelegate(eq(nativeGeckoWebExt), tabDelegateCaptor.capture())
+
+        assertFalse(extension.hasTabHandler(session))
+        whenever(webExtensionSessionController.getTabDelegate(nativeGeckoWebExt)).thenReturn(tabDelegateCaptor.value)
+        assertTrue(extension.hasTabHandler(session))
 
         // Verify that tab methods are forwarded to the handler
         val tabBundle = GeckoBundle()
@@ -471,7 +491,6 @@ class GeckoWebExtensionTest {
 
         val metaDataBundle = GeckoBundle()
         metaDataBundle.putStringArray("promptPermissions", arrayOf("p1", "p2"))
-        metaDataBundle.putStringArray("origins", arrayOf("o1", "o2"))
         metaDataBundle.putString("version", "1.0")
         val bundle = GeckoBundle()
         bundle.putString("webExtensionId", "id")
@@ -486,7 +505,7 @@ class GeckoWebExtensionTest {
         assertNotNull(metadata!!)
         assertEquals("1.0", metadata.version)
         assertEquals(listOf("p1", "p2"), metadata.permissions)
-        assertEquals(listOf("o1", "o2"), metadata.hostPermissions)
+        assertEquals(emptyList<String>(), metadata.hostPermissions)
         assertEquals("moz-extension://123c5c5b-cd03-4bea-b23f-ac0b9ab40257/", metadata.baseUrl)
         assertNull(metadata.description)
         assertNull(metadata.developerName)

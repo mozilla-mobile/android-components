@@ -22,6 +22,7 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.manifest.WebAppManifestParser
 import mozilla.components.concept.engine.request.RequestInterceptor
@@ -32,6 +33,7 @@ import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
+import mozilla.components.support.ktx.kotlin.isExtensionUrl
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
@@ -70,10 +72,6 @@ class GeckoEngineSession(
     internal var currentUrl: String? = null
     internal var scrollY: Int = 0
 
-    // This is set once the first content paint has occurred and can be used to
-    // decide if it's safe to call capturePixels on the view.
-    internal var firstContentfulPaint = false
-
     internal var job: Job = Job()
     private var lastSessionState: GeckoSession.SessionState? = null
     private var stateBeforeCrash: GeckoSession.SessionState? = null
@@ -93,7 +91,7 @@ class GeckoEngineSession(
             set(value) { geckoSession.settings.suspendMediaWhenInactive = value }
     }
 
-    private var initialLoad = true
+    internal var initialLoad = true
 
     override val coroutineContext: CoroutineContext
         get() = context + job
@@ -196,10 +194,7 @@ class GeckoEngineSession(
         val shouldBlockContent =
             policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
-        geckoSession.settings.useTrackingProtection = shouldBlockContent
-        if (!enabled) {
-            disableTrackingProtectionOnGecko()
-        }
+        geckoSession.settings.useTrackingProtection = shouldBlockContent && enabled
         notifyAtLeastOneObserver { onTrackerBlockingEnabledChange(enabled) }
     }
 
@@ -207,7 +202,7 @@ class GeckoEngineSession(
      * See [EngineSession.disableTrackingProtection]
      */
     override fun disableTrackingProtection() {
-        disableTrackingProtectionOnGecko()
+        geckoSession.settings.useTrackingProtection = false
         notifyObservers { onTrackerBlockingEnabledChange(false) }
     }
 
@@ -224,16 +219,6 @@ class GeckoEngineSession(
                 onResult(false)
             }
         }
-    }
-
-    // To fully disable tracking protection we need to change the different tracking protection
-    // variables to none.
-    private fun disableTrackingProtectionOnGecko() {
-        geckoSession.settings.useTrackingProtection = false
-        runtime.settings.contentBlocking.setAntiTracking(ContentBlocking.AntiTracking.NONE)
-        runtime.settings.contentBlocking.cookieBehavior = ContentBlocking.CookieBehavior.ACCEPT_ALL
-        runtime.settings.contentBlocking.setStrictSocialTrackingProtection(false)
-        runtime.settings.contentBlocking.setEnhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.NONE)
     }
 
     /**
@@ -339,7 +324,6 @@ class GeckoEngineSession(
         super.close()
         job.cancel()
         geckoSession.close()
-        firstContentfulPaint = false
     }
 
     /**
@@ -352,7 +336,9 @@ class GeckoEngineSession(
                 return // ¯\_(ツ)_/¯
             }
 
-            // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
+            // Ignore initial loads of about:blank, see:
+            // https://github.com/mozilla-mobile/android-components/issues/403
+            // https://github.com/mozilla-mobile/android-components/issues/6832
             if (initialLoad && url == ABOUT_BLANK) {
                 return
             }
@@ -375,33 +361,16 @@ class GeckoEngineSession(
                 return GeckoResult.fromValue(AllowOrDeny.ALLOW)
             }
 
-            val interceptor = settings.requestInterceptor
-            val response = if (
-                interceptor != null && (!request.isDirectNavigation || interceptor.interceptsAppInitiatedRequests())
-            ) {
-                val engineSession = this@GeckoEngineSession
-                val isSameDomain = engineSession.currentUrl?.tryGetHostFromUrl() == request.uri.tryGetHostFromUrl()
-                interceptor.onLoadRequest(
-                    engineSession,
-                    request.uri,
-                    request.hasUserGesture,
-                    isSameDomain
-                )?.apply {
-                    when (this) {
-                        is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
-                        is InterceptionResponse.Url -> loadUrl(url)
-                        is InterceptionResponse.AppIntent -> {
-                            notifyObservers {
-                                onLaunchIntentRequest(url = url, appIntent = appIntent)
-                            }
-                        }
-                    }
-                }
-            } else {
-                null
+            // The process switch involved when loading extension pages will
+            // trigger an initial load of about:blank which we want to
+            // avoid:
+            // https://github.com/mozilla-mobile/android-components/issues/6832
+            // https://github.com/mozilla-mobile/android-components/issues/403
+            if (currentUrl?.isExtensionUrl() != request.uri.isExtensionUrl()) {
+                initialLoad = true
             }
 
-            return if (response != null) {
+            return if (maybeInterceptRequest(request) != null) {
                 GeckoResult.fromValue(AllowOrDeny.DENY)
             } else {
                 notifyObservers {
@@ -412,6 +381,23 @@ class GeckoEngineSession(
                     )
                 }
 
+                GeckoResult.fromValue(AllowOrDeny.ALLOW)
+            }
+        }
+
+        override fun onSubframeLoadRequest(
+            session: GeckoSession,
+            request: NavigationDelegate.LoadRequest
+        ): GeckoResult<AllowOrDeny> {
+            if (request.target == NavigationDelegate.TARGET_WINDOW_NEW) {
+                return GeckoResult.fromValue(AllowOrDeny.ALLOW)
+            }
+
+            return if (maybeInterceptRequest(request) != null) {
+                GeckoResult.fromValue(AllowOrDeny.DENY)
+            } else {
+                // Not notifying session observer because of performance concern and currently there
+                // is no use case.
                 GeckoResult.fromValue(AllowOrDeny.ALLOW)
             }
         }
@@ -454,6 +440,37 @@ class GeckoEngineSession(
                 }
             }
             return GeckoResult.fromValue(uriToLoad)
+        }
+
+        private fun maybeInterceptRequest(
+            request: NavigationDelegate.LoadRequest
+        ): InterceptionResponse? {
+            val interceptor = settings.requestInterceptor
+            return if (
+                interceptor != null && (!request.isDirectNavigation || interceptor.interceptsAppInitiatedRequests())
+            ) {
+                val engineSession = this@GeckoEngineSession
+                val isSameDomain = engineSession.currentUrl?.tryGetHostFromUrl() == request.uri.tryGetHostFromUrl()
+                interceptor.onLoadRequest(
+                    engineSession,
+                    request.uri,
+                    request.hasUserGesture,
+                    isSameDomain,
+                    request.isRedirect
+                )?.apply {
+                    when (this) {
+                        is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
+                        is InterceptionResponse.Url -> loadUrl(url)
+                        is InterceptionResponse.AppIntent -> {
+                            notifyObservers {
+                                onLaunchIntentRequest(url = url, appIntent = appIntent)
+                            }
+                        }
+                    }
+                }
+            } else {
+                null
+            }
         }
     }
 
@@ -580,6 +597,14 @@ class GeckoEngineSession(
                 visits.toBooleanArray()
             }
         }
+
+        override fun onHistoryStateChange(
+            session: GeckoSession,
+            historyList: GeckoSession.HistoryDelegate.HistoryList
+        ) {
+            val items = historyList.map { HistoryItem(title = it.title, uri = it.uri) }
+            notifyObservers { onHistoryStateChanged(items, historyList.currentIndex) }
+        }
     }
 
     @Suppress("ComplexMethod")
@@ -587,7 +612,7 @@ class GeckoEngineSession(
         override fun onFirstComposite(session: GeckoSession) = Unit
 
         override fun onFirstContentfulPaint(session: GeckoSession) {
-            firstContentfulPaint = true
+            notifyObservers { onFirstContentfulPaint() }
         }
 
         override fun onContextMenu(

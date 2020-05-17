@@ -15,6 +15,15 @@ buildscript {
             google()
         }
 
+        if (project.hasProperty("centralRepo")) {
+            maven {
+                name "MavenCentral"
+                url project.property("centralRepo")
+            }
+        } else {
+            mavenCentral()
+        }
+
         if (project.hasProperty("jcenterRepo")) {
             maven {
                 name "BintrayJCenter"
@@ -34,7 +43,7 @@ buildscript {
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("1.0.1")  // Check version number in `Versions.detekt`
+    id("io.gitlab.arturbosch.detekt").version("1.9.1")  // Check version number in `Versions.detekt`
 }
 
 allprojects {
@@ -46,6 +55,15 @@ allprojects {
             }
         } else {
             google()
+        }
+
+        if (project.hasProperty("centralRepo")) {
+            maven {
+                name "MavenCentral"
+                url project.property("centralRepo")
+            }
+        } else {
+            mavenCentral()
         }
 
         if (project.hasProperty("jcenterRepo")) {
@@ -74,15 +92,6 @@ subprojects {
     }
 
     project.configurations.all {
-        // Robolectric, through `com.google.android.apps.common.testing.accessibility.framework`
-        // depends on an old version of protobuf that conflict with the Application Services one.
-        // See:
-        // - https://github.com/mozilla/application-services/issues/2952
-        // - https://github.com/google/tink/issues/282
-        // - https://github.com/robolectric/robolectric/issues/2643
-        // The good news is the next version of Robolectric will not depend on this lib anymore.
-        // (https://github.com/robolectric/robolectric/pull/5547)
-        all*.exclude group: 'com.google.protobuf', module: 'protobuf-java'
         // Enforce that all (transitive) dependencies are using the same support library version as we do.
         resolutionStrategy.eachDependency { details ->
             if (details.requested.group == 'com.android.support'
@@ -105,7 +114,7 @@ subprojects {
             }
 
             // Format test output
-            tasks.matching {it instanceof Test}.all {
+            tasks.matching {it instanceof Test}.configureEach() {
                 systemProperty "robolectric.logging", "stdout"
                 systemProperty "logging.test-mode", "true"
 
@@ -185,13 +194,13 @@ subprojects {
             }
 
             if (project.hasProperty("coverage") && project.name != "support-test") {
-                tasks.withType(Test) {
+                tasks.withType(Test).configureEach() {
                     jacoco.includeNoLocationClasses = true
 
                     finalizedBy jacocoTestReport
                 }
 
-                task jacocoTestReport(type: JacocoReport) {
+                tasks.register("jacocoTestReport", JacocoReport) {
                     reports {
                         xml.enabled = true
                         html.enabled = true
@@ -224,7 +233,7 @@ subprojects {
 
 evaluationDependsOnChildren()
 
-task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
+tasks.register("docs", org.jetbrains.dokka.gradle.DokkaAndroidTask) {
     moduleName = "$rootProject.name"
     outputDirectory = "$buildDir/javadoc"
     outputFormat = "gfm"
@@ -235,7 +244,7 @@ task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
     }.each {
         classpath += files(it.android.getBootClasspath().join(File.pathSeparator))
         it.android.libraryVariants.all { variant ->
-            classpath += files(variant.javaCompile.classpath.files)
+            classpath += files(variant.javaCompileProvider.get().classpath.files)
         }
     }
 
@@ -259,7 +268,7 @@ task docs(type: org.jetbrains.dokka.gradle.DokkaAndroidTask, overwrite: true) {
     })
 }
 
-task clean(type: Delete) {
+tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
 
@@ -267,6 +276,8 @@ detekt {
     input = files("$projectDir/components", "$projectDir/buildSrc", "$projectDir/samples")
     config = files("$projectDir/config/detekt.yml")
     baseline = file("$projectDir/config/detekt-baseline.xml")
+
+    failFast = false
 
     reports {
         html {
@@ -276,10 +287,13 @@ detekt {
         xml {
             enabled = false
         }
+        txt {
+            enabled = false
+        }
     }
 }
 
-tasks.withType(io.gitlab.arturbosch.detekt.Detekt) {
+tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach() {
     // Custom detekt rules should be build before
     // See https://arturbosch.github.io/detekt/extensions.html#pitfalls
     dependsOn(":tooling-detekt:assemble")
@@ -297,7 +311,7 @@ tasks.withType(io.gitlab.arturbosch.detekt.Detekt) {
 }
 
 // Apply same path exclusions as for the main task
-tasks.withType(io.gitlab.arturbosch.detekt.DetektCreateBaselineTask) {
+tasks.withType(io.gitlab.arturbosch.detekt.DetektCreateBaselineTask).configureEach() {
     exclude "**/src/androidTest/**"
     exclude "**/src/test/**"
     exclude "**/test/src/**"
@@ -317,7 +331,8 @@ dependencies {
     detektPlugins project(":tooling-detekt")
 }
 
-task ktlint(type: JavaExec, group: "verification") {
+tasks.register("ktlint", JavaExec) {
+    group = "verification"
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     main = "com.github.shyiko.ktlint.Main"
@@ -328,7 +343,7 @@ apply plugin: GVVersionVerifierPlugin
 apply plugin: GitHubPlugin
 
 
-task listRepositories {
+tasks.register("listRepositories") {
     doLast {
         println "Repositories:"
         project.repositories.each { println "Name: " + it.name + "; url: " + it.url }

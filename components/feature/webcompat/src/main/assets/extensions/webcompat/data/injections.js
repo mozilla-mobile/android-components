@@ -205,20 +205,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1568256",
-    platform: "android",
-    domain: "zertifikate.commerzbank.de",
-    bug: "1568256",
-    contentScripts: {
-      matches: ["*://*.zertifikate.commerzbank.de/webforms/mobile/*"],
-      css: [
-        {
-          file: "injections/css/bug1568256-zertifikate.commerzbank.de-flex.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1568908",
     platform: "desktop",
     domain: "console.cloud.google.com",
@@ -273,20 +259,6 @@ const AVAILABLE_INJECTIONS = [
         {
           file:
             "injections/css/bug1575000-apply.lloydsbank.co.uk-radio-buttons-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1577270",
-    platform: "android",
-    domain: "binance.com",
-    bug: "1577270",
-    contentScripts: {
-      matches: ["*://*.binance.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1577270-binance.com-calc-height-fix.css",
         },
       ],
     },
@@ -411,20 +383,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1629926",
-    platform: "desktop",
-    domain: "GMail Hangouts microphone fix",
-    bug: "1629926",
-    contentScripts: {
-      matches: ["https://mail.google.com/*"],
-      js: [
-        {
-          file: "injections/js/bug1629926-mail.google.com-hangouts-mic-fix.js",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1631960",
     platform: "all",
     domain: "websube.ckbogazici.com.tr",
@@ -449,6 +407,51 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1632019-everyman.co-gallery-width-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1644830",
+    platform: "desktop",
+    domain: "usps.com",
+    bug: "1644830",
+    contentScripts: {
+      matches: ["https://*.usps.com/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1644830-missingmail.usps.com-checkboxes-not-visible.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1645064",
+    platform: "desktop",
+    domain: "s-kanava.fi",
+    bug: "1645064",
+    contentScripts: {
+      matches: ["https://www.s-kanava.fi/*"],
+      css: [
+        {
+          file: "injections/css/bug1645064-s-kanava.fi-invisible-charts.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1641998",
+    platform: "desktop",
+    domain: "twitter.com",
+    bug: "1641998",
+    contentScripts: {
+      matches: ["https://twitter.com/i/videos/tweet/*"],
+      allFrames: true,
+      js: [
+        {
+          file:
+            "injections/js/bug1641998-embedded-twitter-videos-etp-indexeddb.js",
         },
       ],
     },

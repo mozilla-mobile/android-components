@@ -8,6 +8,7 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
@@ -21,6 +22,7 @@ import mozilla.components.feature.media.ext.nonPrivateIcon
 import mozilla.components.feature.media.ext.nonPrivateUrl
 import mozilla.components.feature.media.service.AbstractMediaService
 import mozilla.components.support.base.ids.SharedIdsHelper
+import java.util.Locale
 
 /**
  * Helper to display a notification for web content playing media.
@@ -55,7 +57,15 @@ internal class MediaNotification(
             style.setShowActionsInCompactView(0)
         }
 
-        builder.setStyle(style)
+        // There is a known OEM crash with Huawei Devices on lollipop with setting a style
+        // see https://github.com/mozilla-mobile/android-components/issues/7468 and
+        // https://issuetracker.google.com/issues/37078372
+        val huaweiOnLollipop =
+            Build.MANUFACTURER.toLowerCase(Locale.getDefault()).contains("huawei") &&
+                    Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1
+        if (!huaweiOnLollipop) {
+            builder.setStyle(style)
+        }
 
         if (!state.isMediaStateForCustomTab()) {
             // We only set a content intent if this media notification is not for an "external app"
@@ -93,9 +103,12 @@ private fun BrowserState.toNotificationData(
                     AbstractMediaService.pauseIntent(context, cls),
                     0)
             ).build(),
-            contentIntent = PendingIntent.getActivity(context,
+            contentIntent = PendingIntent.getActivity(
+                context,
                 SharedIdsHelper.getIdForTag(context, AbstractMediaService.PENDING_INTENT_TAG),
-                intent?.apply { putExtra(AbstractMediaService.EXTRA_TAB_ID, mediaTab?.id) }, 0)
+                intent?.apply { putExtra(AbstractMediaService.EXTRA_TAB_ID, mediaTab?.id) },
+                PendingIntent.FLAG_UPDATE_CURRENT
+            )
         )
         MediaState.State.PAUSED -> NotificationData(
             title = mediaTab.getTitleOrUrl(context),
@@ -111,9 +124,12 @@ private fun BrowserState.toNotificationData(
                     AbstractMediaService.playIntent(context, cls),
                     0)
             ).build(),
-            contentIntent = PendingIntent.getActivity(context,
+            contentIntent = PendingIntent.getActivity(
+                context,
                 SharedIdsHelper.getIdForTag(context, AbstractMediaService.PENDING_INTENT_TAG),
-                intent?.apply { putExtra(AbstractMediaService.EXTRA_TAB_ID, mediaTab?.id) }, 0)
+                intent?.apply { putExtra(AbstractMediaService.EXTRA_TAB_ID, mediaTab?.id) },
+                PendingIntent.FLAG_UPDATE_CURRENT
+            )
         )
         // Dummy notification that is only used to satisfy the requirement to ALWAYS call
         // startForeground with a notification.

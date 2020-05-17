@@ -11,6 +11,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -122,6 +123,14 @@ abstract class EngineSession(
             cookie: String? = null,
             userAgent: String? = null
         ) = Unit
+
+        /**
+         * Event to indicate that this session has changed its history state.
+         *
+         * @param historyList The list of items in the session history.
+         * @param currentIndex Index of the current page in the history list.
+         */
+        fun onHistoryStateChanged(historyList: List<HistoryItem>, currentIndex: Int) = Unit
     }
 
     /**
@@ -260,7 +269,7 @@ abstract class EngineSession(
             /**
              * Blocks content like scripts and sub-resources.
              */
-            SCRIPTS_AND_SUB_RESOURCES(1 shl 9999),
+            SCRIPTS_AND_SUB_RESOURCES(1 shl 31),
 
             RECOMMENDED(AD.id + ANALYTICS.id + SOCIAL.id + TEST.id + MOZILLA_SOCIAL.id +
                 CRYPTOMINING.id + FINGERPRINTING.id),

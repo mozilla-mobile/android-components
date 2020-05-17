@@ -7,6 +7,7 @@ package mozilla.components.browser.state.state
 import android.graphics.Bitmap
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
+import mozilla.components.browser.state.state.content.HistoryState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.prompt.PromptRequest
@@ -40,6 +41,7 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property canGoForward whether or not there's an history item to navigate forward to.
  * @property webAppManifest the Web App Manifest for the currently visited page (or null).
  * @property firstContentfulPaint whether or not the first contentful paint has happened.
+ * @property pictureInPictureEnabled True if the session is being displayed in PIP mode.
  */
 data class ContentState(
     val url: String,
@@ -62,5 +64,7 @@ data class ContentState(
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
     val webAppManifest: WebAppManifest? = null,
-    val firstContentfulPaint: Boolean = false
+    val firstContentfulPaint: Boolean = false,
+    val history: HistoryState = HistoryState(),
+    val pictureInPictureEnabled: Boolean = false
 )

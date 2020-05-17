@@ -25,6 +25,7 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.verifyZeroInteractions
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
+import mozilla.components.concept.engine.history.HistoryItem
 import java.lang.reflect.Modifier
 
 class EngineSessionTest {
@@ -553,6 +554,28 @@ class EngineSessionTest {
     }
 
     @Test
+    fun `registered observer will be notified about history state`() {
+        val session = spy(DummyEngineSession())
+
+        val observer = mock(EngineSession.Observer::class.java)
+        session.register(observer)
+
+        session.notifyInternalObservers {
+            onHistoryStateChanged(
+                listOf(HistoryItem("Firefox download", "https://download.mozilla.org")),
+                currentIndex = 0
+            )
+        }
+
+        verify(observer).onHistoryStateChanged(
+            historyList = listOf(
+                HistoryItem("Firefox download", "https://download.mozilla.org")
+            ),
+            currentIndex = 0
+        )
+    }
+
+    @Test
     fun `tracking protection policies have correct categories`() {
 
         assertEquals(TrackingProtectionPolicy.RECOMMENDED, TrackingProtectionPolicy.recommended())
@@ -744,6 +767,44 @@ class EngineSessionTest {
             checkSavedFields(it, it.forPrivateSessionsOnly())
             checkSavedFields(it, it.forRegularSessionsOnly())
         }
+    }
+
+    @Test
+    fun `engine session observer has default methods`() {
+        val observer = object : EngineSession.Observer { }
+        val bitmap: Bitmap = mock()
+        val permissionRequest = mock(PermissionRequest::class.java)
+        val windowRequest = mock(WindowRequest::class.java)
+        val mediaAdded: Media = mock()
+        val mediaRemoved: Media = mock()
+        val tracker: Tracker = mock()
+
+        observer.onLocationChange("https://www.mozilla.org")
+        observer.onLocationChange("https://www.firefox.com")
+        observer.onProgress(25)
+        observer.onProgress(100)
+        observer.onLoadingStateChange(true)
+        observer.onSecurityChange(true, "mozilla.org", "issuer")
+        observer.onTrackerBlockingEnabledChange(true)
+        observer.onTrackerBlocked(tracker)
+        observer.onExcludedOnTrackingProtectionChange(true)
+        observer.onLongPress(unknownHitResult)
+        observer.onDesktopModeChange(true)
+        observer.onFind("search")
+        observer.onFindResult(0, 1, true)
+        observer.onFullScreenChange(true)
+        observer.onMetaViewportFitChanged(1)
+        observer.onThumbnailChange(bitmap)
+        observer.onContentPermissionRequest(permissionRequest)
+        observer.onCancelContentPermissionRequest(permissionRequest)
+        observer.onAppPermissionRequest(permissionRequest)
+        observer.onWindowRequest(windowRequest)
+        observer.onMediaAdded(mediaAdded)
+        observer.onMediaRemoved(mediaRemoved)
+        observer.onCrash()
+        observer.onLoadRequest("https://www.mozilla.org", true, true)
+        observer.onLaunchIntentRequest("https://www.mozilla.org", null)
+        observer.onProcessKilled()
     }
 }
 

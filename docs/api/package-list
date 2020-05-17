@@ -5,6 +5,7 @@ $dokka.location:mozilla.components.browser.engine.gecko$await(org.mozilla.geckov
 $dokka.location:mozilla.components.browser.engine.gecko$launchGeckoResult(kotlinx.coroutines.CoroutineScope, kotlin.coroutines.CoroutineContext, kotlinx.coroutines.CoroutineStart, kotlin.SuspendFunction1((kotlinx.coroutines.CoroutineScope, mozilla.components.browser.engine.gecko.launchGeckoResult.T)))mozilla.components.browser.engine.gecko/kotlinx.coroutines.-coroutine-scope/launch-gecko-result.md
 $dokka.location:mozilla.components.browser.engine.system.matcher$reverse(kotlin.String)mozilla.components.browser.engine.system.matcher/kotlin.-string/reverse.md
 $dokka.location:mozilla.components.browser.engine.system.matcher$reversible(kotlin.String)mozilla.components.browser.engine.system.matcher/kotlin.-string/reversible.md
+$dokka.location:mozilla.components.browser.menu.ext$asCandidateList(kotlin.collections.List((mozilla.components.browser.menu.BrowserMenuItem)), )mozilla.components.browser.menu.ext/kotlin.collections.-list/as-candidate-list.md
 $dokka.location:mozilla.components.browser.menu.ext$getHighlight(kotlin.collections.List((mozilla.components.browser.menu.BrowserMenuItem)))mozilla.components.browser.menu.ext/kotlin.collections.-list/get-highlight.md
 $dokka.location:mozilla.components.concept.fetch$toMutableHeaders(kotlin.collections.List((mozilla.components.concept.fetch.Header)))mozilla.components.concept.fetch/kotlin.collections.-list/to-mutable-headers.md
 $dokka.location:mozilla.components.feature.downloads$toMegabyteString(kotlin.Long)mozilla.components.feature.downloads/kotlin.-long/to-megabyte-string.md
@@ -30,7 +31,6 @@ $dokka.location:mozilla.components.service.fxa$into(mozilla.appservices.fxaclien
 $dokka.location:mozilla.components.service.fxa$toAuthType(kotlin.String)mozilla.components.service.fxa/kotlin.-string/to-auth-type.md
 $dokka.location:mozilla.components.service.fxa.sync$toSyncEngines(kotlin.collections.List((kotlin.String)))mozilla.components.service.fxa.sync/kotlin.collections.-list/to-sync-engines.md
 $dokka.location:mozilla.components.service.sync.logins$toLogin(mozilla.appservices.logins.ServerPassword)mozilla.components.service.sync.logins/mozilla.appservices.logins.-server-password/to-login.md
-$dokka.location:mozilla.components.support.android.test$awaitValue(androidx.lifecycle.LiveData((mozilla.components.support.android.test.awaitValue.T)), kotlin.Long, java.util.concurrent.TimeUnit)mozilla.components.support.android.test/androidx.lifecycle.-live-data/await-value.md
 $dokka.location:mozilla.components.support.android.test.espresso$assertHasFocus(androidx.test.espresso.ViewInteraction, kotlin.Boolean)mozilla.components.support.android.test.espresso/androidx.test.espresso.-view-interaction/assert-has-focus.md
 $dokka.location:mozilla.components.support.android.test.espresso$assertIsChecked(androidx.test.espresso.ViewInteraction, kotlin.Boolean)mozilla.components.support.android.test.espresso/androidx.test.espresso.-view-interaction/assert-is-checked.md
 $dokka.location:mozilla.components.support.android.test.espresso$assertIsDisplayed(androidx.test.espresso.ViewInteraction, kotlin.Boolean)mozilla.components.support.android.test.espresso/androidx.test.espresso.-view-interaction/assert-is-displayed.md
@@ -57,8 +57,8 @@ $dokka.location:mozilla.components.support.ktx.kotlin$isGeoLocation(kotlin.Strin
 $dokka.location:mozilla.components.support.ktx.kotlin$isPhone(kotlin.String)mozilla.components.support.ktx.kotlin/kotlin.-string/is-phone.md
 $dokka.location:mozilla.components.support.ktx.kotlin$isSameOriginAs(kotlin.String, kotlin.String)mozilla.components.support.ktx.kotlin/kotlin.-string/is-same-origin-as.md
 $dokka.location:mozilla.components.support.ktx.kotlin$isUrl(kotlin.String)mozilla.components.support.ktx.kotlin/kotlin.-string/is-url.md
-$dokka.location:mozilla.components.support.ktx.kotlin$isUrlStrict(kotlin.String)mozilla.components.support.ktx.kotlin/kotlin.-string/is-url-strict.md
 $dokka.location:mozilla.components.support.ktx.kotlin$pkcs7unpad(kotlin.ByteArray)mozilla.components.support.ktx.kotlin/kotlin.-byte-array/pkcs7unpad.md
+$dokka.location:mozilla.components.support.ktx.kotlin$sanitizeURL(kotlin.String)mozilla.components.support.ktx.kotlin/kotlin.-string/sanitize-u-r-l.md
 $dokka.location:mozilla.components.support.ktx.kotlin$sha1(kotlin.String)mozilla.components.support.ktx.kotlin/kotlin.-string/sha1.md
 $dokka.location:mozilla.components.support.ktx.kotlin$toBitmap(kotlin.ByteArray, )mozilla.components.support.ktx.kotlin/kotlin.-byte-array/to-bitmap.md
 $dokka.location:mozilla.components.support.ktx.kotlin$toBitmap(kotlin.ByteArray, kotlin.Int, kotlin.Int, )mozilla.components.support.ktx.kotlin/kotlin.-byte-array/to-bitmap.md
@@ -118,7 +118,6 @@ mozilla.components.browser.menu.facts
 mozilla.components.browser.menu.item
 mozilla.components.browser.menu.view
 mozilla.components.browser.menu2
-mozilla.components.browser.menu2.candidate
 mozilla.components.browser.search
 mozilla.components.browser.search.provider
 mozilla.components.browser.search.provider.filter
@@ -139,6 +138,10 @@ mozilla.components.browser.storage.sync
 mozilla.components.browser.tabstray
 mozilla.components.browser.tabstray.thumbnail
 mozilla.components.browser.thumbnails
+mozilla.components.browser.thumbnails.ext
+mozilla.components.browser.thumbnails.loader
+mozilla.components.browser.thumbnails.storage
+mozilla.components.browser.thumbnails.utils
 mozilla.components.browser.toolbar
 mozilla.components.browser.toolbar.behavior
 mozilla.components.browser.toolbar.display
@@ -163,6 +166,8 @@ mozilla.components.concept.engine.webpush
 mozilla.components.concept.engine.window
 mozilla.components.concept.fetch
 mozilla.components.concept.fetch.interceptor
+mozilla.components.concept.menu
+mozilla.components.concept.menu.candidate
 mozilla.components.concept.push
 mozilla.components.concept.storage
 mozilla.components.concept.sync
@@ -178,6 +183,7 @@ mozilla.components.feature.addons.update
 mozilla.components.feature.app.links
 mozilla.components.feature.awesomebar
 mozilla.components.feature.awesomebar.provider
+mozilla.components.feature.containers
 mozilla.components.feature.contextmenu
 mozilla.components.feature.contextmenu.ext
 mozilla.components.feature.contextmenu.facts
@@ -186,7 +192,6 @@ mozilla.components.feature.customtabs.feature
 mozilla.components.feature.customtabs.store
 mozilla.components.feature.customtabs.verify
 mozilla.components.feature.downloads
-mozilla.components.feature.downloads.ext
 mozilla.components.feature.downloads.facts
 mozilla.components.feature.downloads.manager
 mozilla.components.feature.findinpage
@@ -197,12 +202,14 @@ mozilla.components.feature.intent.processing
 mozilla.components.feature.media
 mozilla.components.feature.media.ext
 mozilla.components.feature.media.facts
+mozilla.components.feature.media.fullscreen
 mozilla.components.feature.media.middleware
 mozilla.components.feature.media.service
 mozilla.components.feature.p2p
 mozilla.components.feature.p2p.internal
 mozilla.components.feature.p2p.view
 mozilla.components.feature.privatemode.feature
+mozilla.components.feature.privatemode.notification
 mozilla.components.feature.prompts
 mozilla.components.feature.prompts.dialog
 mozilla.components.feature.prompts.share
@@ -234,6 +241,7 @@ mozilla.components.feature.tabs.toolbar
 mozilla.components.feature.toolbar
 mozilla.components.feature.top.sites
 mozilla.components.feature.webcompat
+mozilla.components.feature.webcompat.reporter
 mozilla.components.feature.webnotifications
 mozilla.components.lib.crash
 mozilla.components.lib.crash.handler
@@ -259,6 +267,10 @@ mozilla.components.lib.push.firebase
 mozilla.components.lib.state
 mozilla.components.lib.state.ext
 mozilla.components.lib.state.helpers
+mozilla.components.service.digitalassetlinks
+mozilla.components.service.digitalassetlinks.api
+mozilla.components.service.digitalassetlinks.ext
+mozilla.components.service.digitalassetlinks.local
 mozilla.components.service.experiments
 mozilla.components.service.experiments.debug
 mozilla.components.service.fretboard
@@ -301,6 +313,9 @@ mozilla.components.support.base.log.sink
 mozilla.components.support.base.memory
 mozilla.components.support.base.observer
 mozilla.components.support.base.utils
+mozilla.components.support.images
+mozilla.components.support.images.decoder
+mozilla.components.support.images.loader
 mozilla.components.support.ktx.android.arch.lifecycle
 mozilla.components.support.ktx.android.content
 mozilla.components.support.ktx.android.content.res

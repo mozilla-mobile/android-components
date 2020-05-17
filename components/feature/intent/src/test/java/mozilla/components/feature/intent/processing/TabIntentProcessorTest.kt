@@ -9,7 +9,6 @@ import android.content.Intent
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.search.SearchEngine
 import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
@@ -32,6 +31,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
+import org.mockito.ArgumentMatchers.anyList
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
@@ -55,7 +55,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun processViewIntent() = runBlockingTest {
+    fun processViewIntent() {
         val engine = mock<Engine>()
         val sessionManager = spy(SessionManager(engine))
         val useCases = SessionUseCases(sessionManager)
@@ -75,6 +75,14 @@ class TabIntentProcessorTest {
         handler.process(intent)
         verify(engineSession).loadUrl("http://mozilla.org", flags = LoadUrlFlags.external())
 
+        // try to send a request to open a tab with the same url as before
+        whenever(intent.dataString).thenReturn("http://mozilla.org")
+        handler.process(intent)
+        verify(sessionManager).select(any())
+        verify(sessionManager, never()).add(anyList())
+
+        assertEquals(sessionManager.sessions.size, 1)
+
         val session = sessionManager.all[0]
         assertNotNull(session)
         assertEquals("http://mozilla.org", session.url)
@@ -82,7 +90,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun processViewIntentUsingSelectedSession() = runBlockingTest {
+    fun processViewIntentUsingSelectedSession() {
         val handler = TabIntentProcessor(
             sessionManager,
             sessionUseCases.loadUrl,
@@ -98,7 +106,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun processViewIntentHavingNoSelectedSession() = runBlockingTest {
+    fun processViewIntentHavingNoSelectedSession() {
         whenever(sessionManager.selectedSession).thenReturn(null)
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
 
@@ -117,7 +125,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun processNfcIntent() = runBlockingTest {
+    fun processNfcIntent() {
         val engine = mock<Engine>()
         val sessionManager = spy(SessionManager(engine))
         val useCases = SessionUseCases(sessionManager)
@@ -144,7 +152,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun processNfcIntentUsingSelectedSession() = runBlockingTest {
+    fun processNfcIntentUsingSelectedSession() {
         val handler = TabIntentProcessor(
             sessionManager,
             sessionUseCases.loadUrl,
@@ -160,7 +168,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun processNfcIntentHavingNoSelectedSession() = runBlockingTest {
+    fun processNfcIntentHavingNoSelectedSession() {
         whenever(sessionManager.selectedSession).thenReturn(null)
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
 
@@ -179,7 +187,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `load URL on ACTION_SEND if text contains URL`() = runBlockingTest {
+    fun `load URL on ACTION_SEND if text contains URL`() {
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
 
         val handler = TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
@@ -209,7 +217,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `perform search on ACTION_SEND if text (no URL) provided`() = runBlockingTest {
+    fun `perform search on ACTION_SEND if text (no URL) provided`() {
         val engine = mock<Engine>()
         val sessionManager = spy(SessionManager(engine))
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
@@ -237,7 +245,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `processor handles ACTION_SEND with empty text`() = runBlockingTest {
+    fun `processor handles ACTION_SEND with empty text`() {
         val handler = TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
 
         val intent = mock<Intent>()
@@ -249,7 +257,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `processor handles ACTION_SEARCH with empty text`() = runBlockingTest {
+    fun `processor handles ACTION_SEARCH with empty text`() {
         val handler = TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
 
         val intent = mock<Intent>()
@@ -261,7 +269,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `load URL on ACTION_SEARCH if text is an URL`() = runBlockingTest {
+    fun `load URL on ACTION_SEARCH if text is an URL`() {
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
 
         val handler = TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
@@ -275,7 +283,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `perform search on ACTION_SEARCH if text (no URL) provided`() = runBlockingTest {
+    fun `perform search on ACTION_SEARCH if text (no URL) provided`() {
         val engine = mock<Engine>()
         val sessionManager = spy(SessionManager(engine))
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
@@ -303,7 +311,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `processor handles ACTION_WEB_SEARCH with empty text`() = runBlockingTest {
+    fun `processor handles ACTION_WEB_SEARCH with empty text`() {
         val handler = TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
 
         val intent = mock<Intent>()
@@ -315,7 +323,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `load URL on ACTION_WEB_SEARCH if text is an URL`() = runBlockingTest {
+    fun `load URL on ACTION_WEB_SEARCH if text is an URL`() {
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())
 
         val handler = TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
@@ -329,7 +337,7 @@ class TabIntentProcessorTest {
     }
 
     @Test
-    fun `perform search on ACTION_WEB_SEARCH if text (no URL) provided`() = runBlockingTest {
+    fun `perform search on ACTION_WEB_SEARCH if text (no URL) provided`() {
         val engine = mock<Engine>()
         val sessionManager = spy(SessionManager(engine))
         doReturn(engineSession).`when`(sessionManager).getOrCreateEngineSession(anySession(), anyBoolean())

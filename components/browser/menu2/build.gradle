@@ -22,6 +22,7 @@ android {
 }
 
 dependencies {
+    implementation project(':concept-menu')
     implementation project(':support-base')
     implementation project(':support-ktx')
     implementation project(':ui-icons')

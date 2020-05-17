@@ -29,21 +29,24 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.browser.storage.memory.InMemoryHistoryStorage
+import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.browser.thumbnails.ThumbnailsMiddleware
+import mozilla.components.browser.thumbnails.storage.ThumbnailStorage
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
-import mozilla.components.feature.addons.update.AddonUpdater
-import mozilla.components.feature.addons.update.DefaultAddonUpdater
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
 import mozilla.components.feature.addons.migration.SupportedAddonsChecker
+import mozilla.components.feature.addons.update.AddonUpdater
+import mozilla.components.feature.addons.update.DefaultAddonUpdater
 import mozilla.components.feature.app.links.AppLinksInterceptor
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuUseCases
 import mozilla.components.feature.customtabs.CustomTabIntentProcessor
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
+import mozilla.components.feature.downloads.DownloadMiddleware
 import mozilla.components.feature.downloads.DownloadsUseCases
 import mozilla.components.feature.intent.processing.TabIntentProcessor
 import mozilla.components.feature.media.RecordingDevicesNotificationFeature
@@ -57,15 +60,19 @@ import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.sitepermissions.SitePermissionsStorage
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.webnotifications.WebNotificationFeature
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.lib.nearby.NearbyConnection
+import mozilla.components.service.digitalassetlinks.local.StatementApi
+import mozilla.components.service.digitalassetlinks.local.StatementRelationChecker
 import org.mozilla.samples.browser.addons.AddonsActivity
+import org.mozilla.samples.browser.downloads.DownloadService
 import org.mozilla.samples.browser.ext.components
 import org.mozilla.samples.browser.integration.FindInPageIntegration
-import org.mozilla.samples.browser.media.MediaService
 import org.mozilla.samples.browser.integration.P2PIntegration
+import org.mozilla.samples.browser.media.MediaService
 import org.mozilla.samples.browser.request.SampleRequestInterceptor
 import java.util.concurrent.TimeUnit
 
@@ -104,15 +111,21 @@ open class DefaultComponents(private val applicationContext: Context) {
     val icons by lazy { BrowserIcons(applicationContext, client) }
 
     // Storage
-    private val lazyHistoryStorage = lazy { InMemoryHistoryStorage() }
+    private val lazyHistoryStorage = lazy { PlacesHistoryStorage(applicationContext) }
     val historyStorage by lazy { lazyHistoryStorage.value }
 
     private val sessionStorage by lazy { SessionStorage(applicationContext, engine) }
 
+    private val permissionStorage by lazy { SitePermissionsStorage(applicationContext) }
+
+    val thumbnailStorage by lazy { ThumbnailStorage(applicationContext) }
+
     val store by lazy {
         BrowserStore(middleware = listOf(
             MediaMiddleware(applicationContext, MediaService::class.java),
-            ReaderViewMiddleware()
+            DownloadMiddleware(applicationContext, DownloadService::class.java),
+            ReaderViewMiddleware(),
+            ThumbnailsMiddleware(thumbnailStorage)
         ))
     }
 
@@ -137,7 +150,7 @@ open class DefaultComponents(private val applicationContext: Context) {
                 .enable()
 
             WebNotificationFeature(applicationContext, engine, icons, R.drawable.ic_notification,
-                BrowserActivity::class.java)
+                permissionStorage, BrowserActivity::class.java)
         }
     }
 
@@ -152,7 +165,7 @@ open class DefaultComponents(private val applicationContext: Context) {
         AddonCollectionProvider(
             applicationContext,
             client,
-            collectionName = "16f6e5d9a40448b8955db57ced6d75",
+            collectionName = "3204bb44a6ef44d39ee34917f28055",
             maxCacheAgeInMinutes = DAY_IN_MINUTES
         )
     }
@@ -171,7 +184,15 @@ open class DefaultComponents(private val applicationContext: Context) {
     }
 
     val searchUseCases by lazy { SearchUseCases(applicationContext, searchEngineManager, sessionManager) }
-    val defaultSearchUseCase by lazy { { searchTerms: String -> searchUseCases.defaultSearch.invoke(searchTerms) } }
+    val defaultSearchUseCase by lazy {
+        { searchTerms: String ->
+            searchUseCases.defaultSearch.invoke(
+                searchTerms = searchTerms,
+                searchEngine = null,
+                parentSession = null
+            )
+        }
+    }
     val appLinksUseCases by lazy { AppLinksUseCases(applicationContext) }
 
     val appLinksInterceptor by lazy {
@@ -194,6 +215,11 @@ open class DefaultComponents(private val applicationContext: Context) {
         NearbyConnection(applicationContext)
     }
 
+    // Digital Asset Links checking
+    val relationChecker by lazy {
+        StatementRelationChecker(StatementApi(client))
+    }
+
     // Intent
     val tabIntentProcessor by lazy {
         TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
@@ -204,9 +230,8 @@ open class DefaultComponents(private val applicationContext: Context) {
             TrustedWebActivityIntentProcessor(
                 sessionManager,
                 sessionUseCases.loadUrl,
-                client,
                 applicationContext.packageManager,
-                null,
+                relationChecker,
                 customTabsStore
             ),
             CustomTabIntentProcessor(sessionManager, sessionUseCases.loadUrl, applicationContext.resources)
@@ -214,7 +239,18 @@ open class DefaultComponents(private val applicationContext: Context) {
     }
 
     // Menu
-    val menuBuilder by lazy { WebExtensionBrowserMenuBuilder(menuItems, store = store) }
+    val menuBuilder by lazy {
+        WebExtensionBrowserMenuBuilder(
+            menuItems,
+            store = store,
+            webExtIconTintColorResource = R.color.photonGrey90,
+            onAddonsManagerTapped = {
+                val intent = Intent(applicationContext, AddonsActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                applicationContext.startActivity(intent)
+            }
+        )
+    }
 
     private val menuItems by lazy {
         val items = mutableListOf(
@@ -232,11 +268,6 @@ open class DefaultComponents(private val applicationContext: Context) {
             },
             SimpleBrowserMenuItem("Settings") {
                 Toast.makeText(applicationContext, "Settings", Toast.LENGTH_SHORT).show()
-            },
-            SimpleBrowserMenuItem("Add-ons") {
-                val intent = Intent(applicationContext, AddonsActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                applicationContext.startActivity(intent)
             },
             SimpleBrowserMenuItem("Find In Page") {
                 FindInPageIntegration.launch?.invoke()

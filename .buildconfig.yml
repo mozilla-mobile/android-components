@@ -1,4 +1,4 @@
-componentsVersion: 42.0.0
+componentsVersion: 48.0.0
 projects:
   concept-awesomebar:
     path: components/concept/awesomebar
@@ -19,6 +19,10 @@ projects:
   concept-engine:
     path: components/concept/engine
     description: 'An abstract layer hiding the actual browser engine implementation.'
+    publish: true
+  concept-menu:
+    path: components/concept/menu
+    description: 'An abstract definition of a browser menu component.'
     publish: true
   concept-push:
     path: components/concept/push
@@ -47,6 +51,10 @@ projects:
   feature-app-links:
     path: components/feature/app-links
     description: 'Component opening URLs in other non-browser apps.'
+    publish: true
+  feature-containers:
+    path: components/feature/containers
+    description: 'Feature component for working with contextual identities also known as containers.'
     publish: true
   feature-contextmenu:
     path: components/feature/contextmenu
@@ -143,6 +151,10 @@ projects:
   feature-webcompat:
     path: components/feature/webcompat
     description: 'Feature that provides hotfixes for websites from Mozilla''s Web Compatibility team'
+    publish: true
+  feature-webcompat-reporter:
+    path: components/feature/webcompat-reporter
+    description: 'Feature that enables users to report site issues to Mozilla''s Web Compatibility team.'
     publish: true
   feature-addons:
     path: components/feature/addons
@@ -260,6 +272,10 @@ projects:
     path: components/service/fretboard
     description: 'An Android framework for segmenting users in order to run A/B tests and rollout features gradually.'
     publish: true
+  service-digitalassetlinks:
+    path: components/service/digitalassetlinks
+    description: 'A library for communicating with the Digital Asset Links API.'
+    publish: true
   service-experiments:
     path: components/service/experiments
     description: 'An Android SDK for running experiments on user segments in multiple branches.'
@@ -279,6 +295,10 @@ projects:
   support-base:
     path: components/support/base
     description: 'Base component containing building blocks for components.'
+    publish: true
+  support-images:
+    path: components/support/images
+    description: 'A collection of helpers for handling images such as icons and thumbnails.'
     publish: true
   support-ktx:
     path: components/support/ktx

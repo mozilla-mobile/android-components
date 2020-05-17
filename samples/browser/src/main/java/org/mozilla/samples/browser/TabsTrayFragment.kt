@@ -46,7 +46,8 @@ class TabsTrayFragment : Fragment(), UserInteractionHandler {
         tabsFeature = TabsFeature(
             tabsTray,
             components.store,
-            components.tabsUseCases,
+            components.tabsUseCases.selectTab,
+            components.tabsUseCases.removeTab,
             closeTabsTray = ::closeTabsTray
         ).also { lifecycle.addObserver(it) }
     }

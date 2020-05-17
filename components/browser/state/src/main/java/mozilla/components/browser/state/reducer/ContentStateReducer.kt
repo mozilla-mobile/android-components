@@ -9,6 +9,8 @@ import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.content.HistoryState
+import mozilla.components.support.ktx.android.net.sameSchemeAndHostAs
 
 internal object ContentStateReducer {
     /**
@@ -60,7 +62,7 @@ internal object ContentStateReducer {
                 it.copy(thumbnail = action.thumbnail)
             }
             is ContentAction.UpdateDownloadAction -> updateContentState(state, action.sessionId) {
-                it.copy(download = action.download)
+                it.copy(download = action.download.copy(sessionId = action.sessionId))
             }
             is ContentAction.ConsumeDownloadAction -> updateContentState(state, action.sessionId) {
                 if (it.download != null && it.download.id == action.downloadId) {
@@ -102,6 +104,9 @@ internal object ContentStateReducer {
             is ContentAction.FullScreenChangedAction -> updateContentState(state, action.sessionId) {
                 it.copy(fullScreen = action.fullScreenEnabled)
             }
+            is ContentAction.PictureInPictureChangedAction -> updateContentState(state, action.sessionId) {
+                it.copy(pictureInPictureEnabled = action.pipEnabled)
+            }
             is ContentAction.ViewportFitChangedAction -> updateContentState(state, action.sessionId) {
                 it.copy(layoutInDisplayCutoutMode = action.layoutInDisplayCutoutMode)
             }
@@ -120,38 +125,26 @@ internal object ContentStateReducer {
             is ContentAction.UpdateFirstContentfulPaintStateAction -> updateContentState(state, action.sessionId) {
                 it.copy(firstContentfulPaint = action.firstContentfulPaint)
             }
+            is ContentAction.UpdateHistoryStateAction -> updateContentState(state, action.sessionId) {
+                it.copy(history = HistoryState(action.historyList, action.currentIndex))
+            }
         }
     }
 }
 
-private fun updateContentState(
+private inline fun updateContentState(
     state: BrowserState,
     tabId: String,
-    update: (ContentState) -> ContentState
+    crossinline update: (ContentState) -> ContentState
 ): BrowserState {
-    // Currently we map over both lists (tabs and customTabs). We could optimize this away later on if we know what
-    // type we want to modify.
-    return state.copy(
-        tabs = state.tabs.map { current ->
-            if (current.id == tabId) {
-                current.copy(content = update.invoke(current.content))
-            } else {
-                current
-            }
-        },
-        customTabs = state.customTabs.map { current ->
-            if (current.id == tabId) {
-                current.copy(content = update.invoke(current.content))
-            } else {
-                current
-            }
-        }
-    )
+    return state.updateTabState(tabId) { current ->
+        current.createCopy(content = update(current.content))
+    }
 }
 
 private fun isHostEquals(sessionUrl: String, newUrl: String): Boolean {
     val sessionUri = Uri.parse(sessionUrl)
     val newUri = Uri.parse(newUrl)
 
-    return sessionUri.scheme == newUri.scheme && sessionUri.host == newUri.host
+    return sessionUri.sameSchemeAndHostAs(newUri)
 }

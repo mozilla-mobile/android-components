@@ -11,6 +11,7 @@ import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.feature.app.links.AppLinksUseCases.Companion.ALWAYS_DENY_SCHEMES
 import mozilla.components.feature.app.links.AppLinksUseCases.Companion.ENGINE_SUPPORTED_SCHEMES
 
 /**
@@ -40,13 +41,15 @@ import mozilla.components.feature.app.links.AppLinksUseCases.Companion.ENGINE_SU
  * have registered to open.
  * @param launchFromInterceptor If {true} then the interceptor will launch the link in third-party apps if available.
  */
+@Suppress("LongParameterList")
 class AppLinksInterceptor(
     private val context: Context,
     private val interceptLinkClicks: Boolean = false,
     private val engineSupportedSchemes: Set<String> = ENGINE_SUPPORTED_SCHEMES,
-    private val alwaysDeniedSchemes: Set<String> = setOf("javascript", "about"),
+    private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES,
     private val launchInApp: () -> Boolean = { false },
-    private val useCases: AppLinksUseCases = AppLinksUseCases(context, launchInApp),
+    private val useCases: AppLinksUseCases = AppLinksUseCases(context, launchInApp,
+        alwaysDeniedSchemes = alwaysDeniedSchemes),
     private val launchFromInterceptor: Boolean = false
 ) : RequestInterceptor {
 
@@ -54,16 +57,17 @@ class AppLinksInterceptor(
         engineSession: EngineSession,
         uri: String,
         hasUserGesture: Boolean,
-        isSameDomain: Boolean
+        isSameDomain: Boolean,
+        isRedirect: Boolean
     ): RequestInterceptor.InterceptionResponse? {
         val uriScheme = Uri.parse(uri).scheme
         val engineSupportsScheme = engineSupportedSchemes.contains(uriScheme)
 
         val doNotIntercept = when {
             uriScheme == null -> true
-            // If request not from user gesture or if we're already on the site,
-            // and we're clicking around then let's not go to an external app.
-            (!hasUserGesture || isSameDomain) && engineSupportsScheme -> true
+            // If request not from an user gesture and not from a redirect
+            // or if we're already on the site then let's not go to an external app.
+            ((!hasUserGesture && !isRedirect) || isSameDomain) && engineSupportsScheme -> true
             // If scheme not in whitelist then follow user preference
             (!interceptLinkClicks || !launchInApp()) && engineSupportsScheme -> true
             // Never go to an external app when scheme is in blacklist

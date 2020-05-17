@@ -11,6 +11,7 @@ import mozilla.components.concept.tabstray.Tabs
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import mozilla.components.support.images.loader.ImageLoader
 
 /**
  * Function responsible for creating a `TabViewHolder` in the `TabsAdapter`.
@@ -23,17 +24,19 @@ typealias ViewHolderProvider = (ViewGroup, BrowserTabsTray) -> TabViewHolder
  * @param viewHolderProvider a function that creates a `TabViewHolder`.
  */
 @Suppress("TooManyFunctions")
-class TabsAdapter(
-    delegate: Observable<TabsTray.Observer> = ObserverRegistry(),
+open class TabsAdapter(
+    thumbnailLoader: ImageLoader? = null,
     private val viewHolderProvider: ViewHolderProvider = { parent, tabsTray ->
         DefaultTabViewHolder(
                 LayoutInflater.from(parent.context).inflate(
                         R.layout.mozac_browser_tabstray_item,
                         parent,
                         false),
-                tabsTray
+                tabsTray,
+                thumbnailLoader
         )
-    }
+    },
+    delegate: Observable<TabsTray.Observer> = ObserverRegistry()
 ) : RecyclerView.Adapter<TabViewHolder>(),
     TabsTray,
     Observable<TabsTray.Observer> by delegate {

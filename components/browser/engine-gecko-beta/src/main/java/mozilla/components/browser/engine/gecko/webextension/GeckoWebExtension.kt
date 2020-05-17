@@ -36,6 +36,7 @@ class GeckoWebExtension(
     val runtime: GeckoRuntime,
     allowContentMessaging: Boolean = true,
     supportActions: Boolean = false,
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     val nativeExtension: GeckoNativeWebExtension = GeckoNativeWebExtension(
         url,
         id,
@@ -330,6 +331,14 @@ class GeckoWebExtension(
     }
 
     /**
+     * See [WebExtension.hasTabHandler].
+     */
+    override fun hasTabHandler(session: EngineSession): Boolean {
+        val geckoSession = (session as GeckoEngineSession).geckoSession
+        return geckoSession.webExtensionController.getTabDelegate(nativeExtension) != null
+    }
+
+    /**
      * See [WebExtension.getMetadata].
      */
     override fun getMetadata(): Metadata? {
@@ -342,7 +351,8 @@ class GeckoWebExtension(
                 homePageUrl = it.homepageUrl,
                 version = it.version,
                 permissions = it.permissions.toList(),
-                hostPermissions = it.origins.toList(),
+                // Origins is marked as @NonNull but may be null: https://bugzilla.mozilla.org/show_bug.cgi?id=1629957
+                hostPermissions = it.origins.orEmpty().toList(),
                 disabledFlags = DisabledFlags.select(it.disabledFlags),
                 optionsPageUrl = it.optionsPageUrl,
                 openOptionsPageInTab = it.openOptionsPageInTab,

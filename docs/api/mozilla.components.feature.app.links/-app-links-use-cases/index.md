@@ -2,7 +2,7 @@
 
 # AppLinksUseCases
 
-`class AppLinksUseCases` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksUseCases.kt#L43)
+`class AppLinksUseCases` [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/feature/app-links/src/main/java/mozilla/components/feature/app/links/AppLinksUseCases.kt#L45)
 
 These use cases allow for the detection of, and opening of links that other apps have registered
 an [IntentFilter](#)s to open.
@@ -23,9 +23,9 @@ apps that trigger a redirect to an external app.
 `launchInApp` - If {true} then launch app links in third party app(s). Default to false because
 of security concerns.
 
-`browserPackageNames` - Set of browser package names installed.
-
 `unguessableWebUrl` - URL is not likely to be opened by a native app but will fallback to a browser.
+
+`alwaysDeniedSchemes` - List of schemes that will never be opened in a third-party app.
 
 ### Types
 
@@ -38,7 +38,7 @@ of security concerns.
 
 | Name | Summary |
 |---|---|
-| [&lt;init&gt;](-init-.md) | `AppLinksUseCases(context: <ERROR CLASS>, launchInApp: () -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = { false }, browserPackageNames: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`>? = null, unguessableWebUrl: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "https://${UUID.randomUUID()}.net", alwaysDeniedSchemes: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`> = setOf("file"))`<br>These use cases allow for the detection of, and opening of links that other apps have registered an [IntentFilter](#)s to open. |
+| [&lt;init&gt;](-init-.md) | `AppLinksUseCases(context: <ERROR CLASS>, launchInApp: () -> `[`Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html)` = { false }, unguessableWebUrl: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)` = "https://${UUID.randomUUID()}.net", alwaysDeniedSchemes: `[`Set`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html)`<`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`> = ALWAYS_DENY_SCHEMES)`<br>These use cases allow for the detection of, and opening of links that other apps have registered an [IntentFilter](#)s to open. |
 
 ### Properties
 

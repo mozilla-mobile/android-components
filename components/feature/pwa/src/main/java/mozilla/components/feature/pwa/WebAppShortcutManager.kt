@@ -22,7 +22,6 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import mozilla.components.browser.icons.BrowserIcons
-import mozilla.components.browser.icons.decoder.AndroidIconDecoder
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
 import mozilla.components.browser.icons.extension.toIconRequest
 import mozilla.components.browser.icons.generator.DefaultIconGenerator
@@ -41,6 +40,7 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.pwa.WebAppLauncherActivity.Companion.ACTION_PWA_LAUNCHER
 import mozilla.components.feature.pwa.ext.hasLargeIcons
 import mozilla.components.feature.pwa.ext.installableManifest
+import mozilla.components.support.images.decoder.AndroidImageDecoder
 
 private val pwaIconMemoryCache = IconMemoryCache()
 
@@ -197,31 +197,33 @@ class WebAppShortcutManager(
         }
 
     /**
-     * Uninstalls a set of PWAs from the user's device by disabling their
-     * shortcuts and removing the associated manifest data.
-     *
-     * @param startUrls List of manifest startUrls to remove.
-     * @param disabledMessage Message to display when a disable shortcut is tapped.
-     */
-    suspend fun uninstallShortcuts(context: Context, startUrls: List<String>, disabledMessage: String? = null) {
-        if (SDK_INT >= VERSION_CODES.N_MR1) {
-            context.getSystemService<ShortcutManager>()?.disableShortcuts(startUrls, disabledMessage)
-        }
-        storage.removeManifests(startUrls)
-    }
-
-    /**
      * Checks if there is a currently installed web app to which this URL belongs.
      *
      * @param url url that is covered by the scope of a web app installed by the user
-     * @param currentTime the curent time in milliseconds
+     * @param currentTimeMs the current time in milliseconds, exposed for testing
      */
-    suspend fun getWebAppInstallState(url: String, currentTime: Long = System.currentTimeMillis()): WebAppInstallState {
-        if (storage.hasRecentManifest(url, currentTime = currentTime)) {
+    suspend fun getWebAppInstallState(
+        url: String,
+        @VisibleForTesting currentTimeMs: Long = System.currentTimeMillis()
+    ): WebAppInstallState {
+        if (storage.hasRecentManifest(url, currentTimeMs = currentTimeMs)) {
             return WebAppInstallState.Installed
         }
 
         return WebAppInstallState.NotInstalled
+    }
+
+    /**
+     * Counts number of recently used web apps. See [ManifestStorage.activeThresholdMs].
+     *
+     * @param activeThresholdMs defines a time window within which a web app is considered recently used.
+     * Defaults to [ManifestStorage.ACTIVE_THRESHOLD_MS].
+     * @return count of recently used web apps
+     */
+    suspend fun recentlyUsedWebAppsCount(
+        activeThresholdMs: Long = ManifestStorage.ACTIVE_THRESHOLD_MS
+    ): Int {
+        return storage.recentManifestsCount(activeThresholdMs = activeThresholdMs)
     }
 
     /**
@@ -263,7 +265,7 @@ private fun webAppIcons(
         DataUriIconLoader()
     ),
     decoders = listOf(
-        AndroidIconDecoder(),
+        AndroidImageDecoder(),
         ICOIconDecoder()
     ),
     processors = listOf(

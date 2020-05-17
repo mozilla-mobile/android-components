@@ -179,6 +179,14 @@ class GeckoEngine(
     }
 
     /**
+     * See [Engine.clearSpeculativeSession].
+     */
+    override fun clearSpeculativeSession() {
+        this.speculativeSession?.geckoSession?.close()
+        this.speculativeSession = null
+    }
+
+    /**
      * Opens a speculative connection to the host of [url].
      *
      * This is useful if an app thinks it may be making a request to that host in the near future. If no request
@@ -614,6 +622,10 @@ class GeckoEngine(
                 }
             }
 
+        override var loginAutofillEnabled: Boolean
+            get() = runtime.settings.loginAutofillEnabled
+            set(value) { runtime.settings.loginAutofillEnabled = value }
+
         override var forceUserScalableContent: Boolean
             get() = runtime.settings.forceUserScalableEnabled
             set(value) { runtime.settings.forceUserScalableEnabled = value }
@@ -632,6 +644,7 @@ class GeckoEngine(
             this.fontInflationEnabled = it.fontInflationEnabled
             this.fontSizeFactor = it.fontSizeFactor
             this.forceUserScalableContent = it.forceUserScalableContent
+            this.loginAutofillEnabled = it.loginAutofillEnabled
         }
     }
 

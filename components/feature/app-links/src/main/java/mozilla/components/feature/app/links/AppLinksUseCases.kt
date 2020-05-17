@@ -5,11 +5,13 @@
 package mozilla.components.feature.app.links
 
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.Uri
+import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
@@ -37,23 +39,15 @@ internal const val APP_LINKS_CACHE_INTERVAL = 30 * 1000L // 30 seconds
  * @param context Context the feature is associated with.
  * @param launchInApp If {true} then launch app links in third party app(s). Default to false because
  * of security concerns.
- * @param browserPackageNames Set of browser package names installed.
  * @param unguessableWebUrl URL is not likely to be opened by a native app but will fallback to a browser.
+ * @param alwaysDeniedSchemes List of schemes that will never be opened in a third-party app.
  */
 class AppLinksUseCases(
     private val context: Context,
     private val launchInApp: () -> Boolean = { false },
-    browserPackageNames: Set<String>? = null,
-    unguessableWebUrl: String = "https://${UUID.randomUUID()}.net",
-    private val alwaysDeniedSchemes: Set<String> = setOf("file")
+    private val unguessableWebUrl: String = "https://${UUID.randomUUID()}.net",
+    private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES
 ) {
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val browserPackageNames: Lazy<Set<String>>
-
-    init {
-        this.browserPackageNames = lazy { browserPackageNames ?: findExcludedPackages(unguessableWebUrl) }
-    }
-
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun findActivities(intent: Intent): List<ResolveInfo> {
         return context.packageManager
@@ -72,7 +66,8 @@ class AppLinksUseCases(
         }
     }
 
-    private fun findExcludedPackages(randomWebURLString: String): Set<String> {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun findExcludedPackages(randomWebURLString: String): Set<String> {
         val intent = safeParseUri(randomWebURLString, 0) ?: return emptySet()
         // We generate a URL is not likely to be opened by a native app
         // but will fallback to a browser.
@@ -80,6 +75,20 @@ class AppLinksUseCases(
         return findActivities(intent.addCategory(Intent.CATEGORY_BROWSABLE))
             .map { it.activityInfo.packageName }
             .toHashSet()
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun getBrowserPackageNames(): Set<String> {
+        val currentTimeStamp = SystemClock.elapsedRealtime()
+        val cache = browserNamesCache
+        if (cache != null && currentTimeStamp <= cache.cacheTimeStamp + APP_LINKS_CACHE_INTERVAL) {
+            return cache.cachedBrowserNames
+        }
+
+        val browserNames = findExcludedPackages(unguessableWebUrl)
+        browserNamesCache = AppLinkBrowserNamesCache(currentTimeStamp, browserNames)
+
+        return browserNames
     }
 
     /**
@@ -103,7 +112,7 @@ class AppLinksUseCases(
     ) {
         operator fun invoke(url: String): AppLinkRedirect {
             val urlHash = (url + includeHttpAppLinks + ignoreDefaultBrowser + includeHttpAppLinks).hashCode()
-            val currentTimeStamp = System.currentTimeMillis()
+            val currentTimeStamp = SystemClock.elapsedRealtime()
             // since redirectCache is mutable, get the latest
             val cache = redirectCache
             if (cache != null && urlHash == cache.cachedUrlHash &&
@@ -141,7 +150,7 @@ class AppLinksUseCases(
         private fun getNonBrowserActivities(intent: Intent): List<ResolveInfo> {
             return findActivities(intent)
                 .map { it.activityInfo.packageName to it }
-                .filter { !browserPackageNames.value.contains(it.first) || intent.`package` == it.first }
+                .filter { intent.`package` == it.first || !getBrowserPackageNames().contains(it.first) }
                 .map { it.second }
         }
 
@@ -170,7 +179,13 @@ class AppLinksUseCases(
                 marketplaceIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
 
-            val resolveInfoList = intent?.let {
+            val appIntent = when {
+                intent?.data == null -> null
+                alwaysDeniedSchemes.contains(intent.data?.scheme) -> null
+                else -> intent
+            }
+
+            val resolveInfoList = appIntent?.let {
                 getNonBrowserActivities(it)
             }
             val resolveInfo = resolveInfoList?.firstOrNull()
@@ -178,14 +193,8 @@ class AppLinksUseCases(
             // only target intent for specific app if only one non browser app is found
             if (resolveInfoList?.count() == 1) {
                 resolveInfo?.let {
-                    intent.`package` = it.activityInfo?.packageName
+                    appIntent.component = ComponentName(it.activityInfo.packageName, it.activityInfo.name)
                 }
-            }
-
-            val appIntent = when {
-                intent?.data == null -> null
-                alwaysDeniedSchemes.contains(intent.data?.scheme) -> null
-                else -> intent
             }
 
             return RedirectData(appIntent, fallbackIntent, marketplaceIntent, resolveInfo)
@@ -259,13 +268,23 @@ class AppLinksUseCases(
         var cachedAppLinkRedirect: AppLinkRedirect
     )
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal data class AppLinkBrowserNamesCache(
+        var cacheTimeStamp: Long,
+        var cachedBrowserNames: Set<String>
+    )
+
     companion object {
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         internal var redirectCache: AppLinkRedirectCache? = null
 
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+        internal var browserNamesCache: AppLinkBrowserNamesCache? = null
+
+        @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         // list of scheme from https://searchfox.org/mozilla-central/source/netwerk/build/components.conf
         internal val ENGINE_SUPPORTED_SCHEMES: Set<String> = setOf("about", "data", "file", "ftp", "http",
             "https", "moz-extension", "moz-safe-about", "resource", "view-source", "ws", "wss")
+        internal val ALWAYS_DENY_SCHEMES: Set<String> = setOf("file", "javascript", "data", "about")
     }
 }

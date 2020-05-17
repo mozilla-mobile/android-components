@@ -17,20 +17,25 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.action.ContentAction
-import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.selector.findTabOrCustomTab
+import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.PromptRequest.BeforeUnload
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
 import mozilla.components.concept.engine.prompt.PromptRequest.Color
+import mozilla.components.concept.engine.prompt.PromptRequest.Confirm
+import mozilla.components.concept.engine.prompt.PromptRequest.Dismissible
 import mozilla.components.concept.engine.prompt.PromptRequest.File
-import mozilla.components.concept.engine.prompt.PromptRequest.LoginPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
+import mozilla.components.concept.engine.prompt.PromptRequest.Popup
+import mozilla.components.concept.engine.prompt.PromptRequest.SaveLoginPrompt
+import mozilla.components.concept.engine.prompt.PromptRequest.SelectLoginPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.Share
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
@@ -200,7 +205,7 @@ class PromptFeature private constructor(
         promptAbuserDetector.resetJSAlertAbuseState()
 
         handlePromptScope = store.flowScoped { flow ->
-            flow.map { state -> state.findCustomTabOrSelectedTab(customTabId) }
+            flow.map { state -> state.findTabOrCustomTabOrSelectedTab(customTabId) }
                 .ifAnyChanged {
                     arrayOf(it?.content?.promptRequest, it?.content?.loading)
                 }
@@ -219,7 +224,7 @@ class PromptFeature private constructor(
         // Dismiss all prompts when page loads are nearly finished. This prevents prompts from the
         // previous page from covering content. See Fenix#5326
         dismissPromptScope = store.flowScoped { flow ->
-            flow.mapNotNull { state -> state.findCustomTabOrSelectedTab(customTabId) }
+            flow.mapNotNull { state -> state.findTabOrCustomTabOrSelectedTab(customTabId) }
                 .ifChanged { it.content.progress }
                 .filter { it.content.progress >= PROGRESS_ALMOST_COMPLETE }
                 .collect {
@@ -296,8 +301,9 @@ class PromptFeature private constructor(
     override fun onCancel(sessionId: String) {
         store.consumePromptFrom(sessionId, activePrompt) {
             when (it) {
-                is PromptRequest.Dismissible -> it.onDismiss()
-                is PromptRequest.Popup -> it.onDeny()
+                is BeforeUnload -> it.onStay()
+                is Dismissible -> it.onDismiss()
+                is Popup -> it.onDeny()
             }
         }
     }
@@ -312,47 +318,53 @@ class PromptFeature private constructor(
     @Suppress("UNCHECKED_CAST", "ComplexMethod")
     override fun onConfirm(sessionId: String, value: Any?) {
         store.consumePromptFrom(sessionId, activePrompt) {
-            when (it) {
-                is TimeSelection -> it.onConfirm(value as Date)
-                is Color -> it.onConfirm(value as String)
-                is Alert -> {
-                    val shouldNotShowMoreDialogs = value as Boolean
-                    promptAbuserDetector.userWantsMoreDialogs(!shouldNotShowMoreDialogs)
-                    it.onConfirm(!shouldNotShowMoreDialogs)
-                }
-                is SingleChoice -> it.onConfirm(value as Choice)
-                is MenuChoice -> it.onConfirm(value as Choice)
-                is PromptRequest.Popup -> it.onAllow()
-                is MultipleChoice -> it.onConfirm(value as Array<Choice>)
+            try {
+                when (it) {
+                    is TimeSelection -> it.onConfirm(value as Date)
+                    is Color -> it.onConfirm(value as String)
+                    is Alert -> {
+                        val shouldNotShowMoreDialogs = value as Boolean
+                        promptAbuserDetector.userWantsMoreDialogs(!shouldNotShowMoreDialogs)
+                        it.onConfirm(!shouldNotShowMoreDialogs)
+                    }
+                    is SingleChoice -> it.onConfirm(value as Choice)
+                    is MenuChoice -> it.onConfirm(value as Choice)
+                    is BeforeUnload -> it.onLeave()
+                    is Popup -> it.onAllow()
+                    is MultipleChoice -> it.onConfirm(value as Array<Choice>)
 
-                is Authentication -> {
-                    val (user, password) = value as Pair<String, String>
-                    it.onConfirm(user, password)
-                }
+                    is Authentication -> {
+                        val (user, password) = value as Pair<String, String>
+                        it.onConfirm(user, password)
+                    }
 
-                is TextPrompt -> {
-                    val (shouldNotShowMoreDialogs, text) = value as Pair<Boolean, String>
+                    is TextPrompt -> {
+                        val (shouldNotShowMoreDialogs, text) = value as Pair<Boolean, String>
 
-                    promptAbuserDetector.userWantsMoreDialogs(!shouldNotShowMoreDialogs)
-                    it.onConfirm(!shouldNotShowMoreDialogs, text)
-                }
+                        promptAbuserDetector.userWantsMoreDialogs(!shouldNotShowMoreDialogs)
+                        it.onConfirm(!shouldNotShowMoreDialogs, text)
+                    }
 
-                is Share -> it.onSuccess()
+                    is Share -> it.onSuccess()
 
-                is LoginPrompt -> it.onConfirm(value as Login)
+                    is SaveLoginPrompt -> it.onConfirm(value as Login)
 
-                is PromptRequest.Confirm -> {
-                    val (isCheckBoxChecked, buttonType) = value as Pair<Boolean, MultiButtonDialogFragment.ButtonType>
-                    promptAbuserDetector.userWantsMoreDialogs(!isCheckBoxChecked)
-                    when (buttonType) {
-                        MultiButtonDialogFragment.ButtonType.POSITIVE ->
-                            it.onConfirmPositiveButton(!isCheckBoxChecked)
-                        MultiButtonDialogFragment.ButtonType.NEGATIVE ->
-                            it.onConfirmNegativeButton(!isCheckBoxChecked)
-                        MultiButtonDialogFragment.ButtonType.NEUTRAL ->
-                            it.onConfirmNeutralButton(!isCheckBoxChecked)
+                    is Confirm -> {
+                        val (isCheckBoxChecked, buttonType) =
+                            value as Pair<Boolean, MultiButtonDialogFragment.ButtonType>
+                        promptAbuserDetector.userWantsMoreDialogs(!isCheckBoxChecked)
+                        when (buttonType) {
+                            MultiButtonDialogFragment.ButtonType.POSITIVE ->
+                                it.onConfirmPositiveButton(!isCheckBoxChecked)
+                            MultiButtonDialogFragment.ButtonType.NEGATIVE ->
+                                it.onConfirmNegativeButton(!isCheckBoxChecked)
+                            MultiButtonDialogFragment.ButtonType.NEUTRAL ->
+                                it.onConfirmNeutralButton(!isCheckBoxChecked)
+                        }
                     }
                 }
+            } catch (e: ClassCastException) {
+                throw IllegalArgumentException("PromptFeature onConsume cast failed with ${it.javaClass}", e)
             }
         }
     }
@@ -405,12 +417,12 @@ class PromptFeature private constructor(
         // Requests that are handled with dialogs
         val dialog = when (promptRequest) {
 
-            is LoginPrompt -> {
+            is SaveLoginPrompt -> {
                 if (!isSaveLoginEnabled.invoke()) return
 
                 if (loginValidationDelegate == null) {
                     logger.debug(
-                        "Ignoring received LoginPrompt because PromptFeature." +
+                        "Ignoring received SaveLoginPrompt because PromptFeature." +
                                 "loginValidationDelegate is null. If you are trying to autofill logins, " +
                                 "try attaching a LoginValidationDelegate to PromptFeature"
                     )
@@ -424,6 +436,12 @@ class PromptFeature private constructor(
                     login = promptRequest.logins[0]
                 )
             }
+
+            /**
+             * This feature isn't implemented yet
+             * see https://github.com/mozilla-mobile/android-components/issues/7134
+             */
+            is SelectLoginPrompt -> return
 
             is SingleChoice -> ChoiceDialogFragment.newInstance(
                 promptRequest.choices,
@@ -500,7 +518,7 @@ class PromptFeature private constructor(
                 promptRequest.defaultColor
             )
 
-            is PromptRequest.Popup -> {
+            is Popup -> {
 
                 val title = container.getString(R.string.mozac_feature_prompts_popup_dialog_title)
                 val positiveLabel = container.getString(R.string.mozac_feature_prompts_allow)
@@ -514,8 +532,23 @@ class PromptFeature private constructor(
                     negativeButtonText = negativeLabel
                 )
             }
+            is BeforeUnload -> {
 
-            is PromptRequest.Confirm -> {
+                val title = container.getString(R.string.mozac_feature_prompt_before_unload_dialog_title)
+                val body = container.getString(R.string.mozac_feature_prompt_before_unload_dialog_body)
+                val leaveLabel = container.getString(R.string.mozac_feature_prompts_before_unload_leave)
+                val stayLabel = container.getString(R.string.mozac_feature_prompts_before_unload_stay)
+
+                ConfirmDialogFragment.newInstance(
+                    sessionId = session.id,
+                    title = title,
+                    message = body,
+                    positiveButtonText = leaveLabel,
+                    negativeButtonText = stayLabel
+                )
+            }
+
+            is Confirm -> {
                 with(promptRequest) {
                     val positiveButton = if (positiveButtonTitle.isEmpty()) {
                         container.getString(R.string.mozac_feature_prompts_ok)
@@ -550,7 +583,7 @@ class PromptFeature private constructor(
             dialog.show(fragmentManager, FRAGMENT_TAG)
             activePrompt = WeakReference(dialog)
         } else {
-            (promptRequest as PromptRequest.Dismissible).onDismiss()
+            (promptRequest as Dismissible).onDismiss()
             store.dispatch(ContentAction.ConsumePromptRequestAction(session.id))
         }
         promptAbuserDetector.updateJSDialogAbusedState()
@@ -565,10 +598,12 @@ class PromptFeature private constructor(
             is File,
             is Color,
             is Authentication,
-            is PromptRequest.Popup,
-            is LoginPrompt,
+            is BeforeUnload,
+            is Popup,
+            is SaveLoginPrompt,
+            is SelectLoginPrompt,
             is Share -> true
-            is Alert, is TextPrompt, is PromptRequest.Confirm -> promptAbuserDetector.shouldShowMoreDialogs
+            is Alert, is TextPrompt, is Confirm -> promptAbuserDetector.shouldShowMoreDialogs
         }
     }
 }
@@ -581,7 +616,7 @@ internal fun BrowserStore.consumePromptFrom(
     if (sessionId == null) {
         state.selectedTab
     } else {
-        state.findTabOrCustomTab(sessionId)
+        state.findTabOrCustomTabOrSelectedTab(sessionId)
     }?.let { tab ->
         activePrompt?.clear()
         tab.content.promptRequest?.let {

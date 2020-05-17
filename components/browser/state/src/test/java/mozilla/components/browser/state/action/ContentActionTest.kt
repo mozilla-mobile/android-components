@@ -12,10 +12,12 @@ import mozilla.components.browser.state.state.SecurityInfoState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
+import mozilla.components.browser.state.state.content.HistoryState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
@@ -30,7 +32,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 
 @RunWith(AndroidJUnit4::class)
@@ -322,27 +323,35 @@ class ContentActionTest {
     fun `UpdateDownloadAction updates download`() {
         assertNull(tab.content.download)
 
-        val download1: DownloadState = mock()
+        val download1 = DownloadState(
+            url = "https://www.mozilla.org", sessionId = tab.id
+        )
 
         store.dispatch(
             ContentAction.UpdateDownloadAction(tab.id, download1)
         ).joinBlocking()
 
-        assertEquals(download1, tab.content.download)
+        assertEquals(download1.url, tab.content.download?.url)
+        assertEquals(download1.sessionId, tab.content.download?.sessionId)
 
-        val download2: DownloadState = mock()
+        val download2 = DownloadState(
+            url = "https://www.wikipedia.org", sessionId = tab.id
+        )
 
         store.dispatch(
             ContentAction.UpdateDownloadAction(tab.id, download2)
         ).joinBlocking()
 
-        assertEquals(download2, tab.content.download)
+        assertEquals(download2.url, tab.content.download?.url)
+        assertEquals(download2.sessionId, tab.content.download?.sessionId)
     }
 
     @Test
     fun `ConsumeDownloadAction removes download`() {
-        val download: DownloadState = mock()
-        doReturn(1337L).`when`(download).id
+        val download = DownloadState(
+            id = 1337L,
+            url = "https://www.mozilla.org", sessionId = tab.id
+        )
 
         store.dispatch(
             ContentAction.UpdateDownloadAction(tab.id, download)
@@ -359,8 +368,10 @@ class ContentActionTest {
 
     @Test
     fun `ConsumeDownloadAction does not remove download with different id`() {
-        val download: DownloadState = mock()
-        doReturn(1337L).`when`(download).id
+        val download = DownloadState(
+            id = 1337L,
+            url = "https://www.mozilla.org", sessionId = tab.id
+        )
 
         store.dispatch(
             ContentAction.UpdateDownloadAction(tab.id, download)
@@ -599,5 +610,26 @@ class ContentActionTest {
         ).joinBlocking()
 
         assertNull(tab.content.webAppManifest)
+    }
+
+    @Test
+    fun `UpdateHistoryStateAction updates history state`() {
+        val historyState = HistoryState(
+            items = listOf(
+                HistoryItem("Mozilla", "https://mozilla.org"),
+                HistoryItem("Firefox", "https://firefox.com")
+            ),
+            currentIndex = 1
+        )
+
+        assertNotEquals(historyState, tab.content.history)
+        assertNotEquals(historyState, otherTab.content.history)
+
+        store.dispatch(
+            ContentAction.UpdateHistoryStateAction(tab.id, historyState.items, historyState.currentIndex)
+        ).joinBlocking()
+
+        assertEquals(historyState, tab.content.history)
+        assertNotEquals(historyState, otherTab.content.history)
     }
 }

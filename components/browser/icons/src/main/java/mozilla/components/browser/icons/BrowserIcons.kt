@@ -23,9 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import mozilla.components.browser.icons.decoder.AndroidIconDecoder
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
-import mozilla.components.browser.icons.decoder.IconDecoder
 import mozilla.components.browser.icons.extension.IconMessageHandler
 import mozilla.components.browser.icons.generator.DefaultIconGenerator
 import mozilla.components.browser.icons.generator.IconGenerator
@@ -42,7 +40,7 @@ import mozilla.components.browser.icons.preparer.TippyTopIconPreparer
 import mozilla.components.browser.icons.processor.DiskIconProcessor
 import mozilla.components.browser.icons.processor.IconProcessor
 import mozilla.components.browser.icons.processor.MemoryIconProcessor
-import mozilla.components.browser.icons.utils.CancelOnDetach
+import mozilla.components.support.images.CancelOnDetach
 import mozilla.components.browser.icons.utils.IconDiskCache
 import mozilla.components.browser.icons.utils.IconMemoryCache
 import mozilla.components.browser.state.state.BrowserState
@@ -53,6 +51,9 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.memory.MemoryConsumer
+import mozilla.components.support.images.DesiredSize
+import mozilla.components.support.images.decoder.AndroidImageDecoder
+import mozilla.components.support.images.decoder.ImageDecoder
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
 import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
@@ -88,8 +89,8 @@ class BrowserIcons(
         HttpIconLoader(httpClient),
         DataUriIconLoader()
     ),
-    private val decoders: List<IconDecoder> = listOf(
-        AndroidIconDecoder(),
+    private val decoders: List<ImageDecoder> = listOf(
+        AndroidImageDecoder(),
         ICOIconDecoder()
     ),
     private val processors: List<IconProcessor> = listOf(
@@ -208,7 +209,25 @@ class BrowserIcons(
     }
 
     override fun onTrimMemory(level: Int) {
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+        val shouldClearMemoryCache = when (level) {
+            // Foreground: The device is running much lower on memory. The app is running and not killable, but the
+            // system wants us to release unused resources to improve system performance.
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW,
+            // Foreground: The device is running extremely low on memory. The app is not yet considered a killable
+            // process, but the system will begin killing background processes if apps do not release resources.
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> true
+
+            // Background: The system is running low on memory and our process is near the middle of the LRU list.
+            // If the system becomes further constrained for memory, there's a chance our process will be killed.
+            ComponentCallbacks2.TRIM_MEMORY_MODERATE,
+            // Background: The system is running low on memory and our process is one of the first to be killed
+            // if the system does not recover memory now.
+            ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> true
+
+            else -> false
+        }
+
+        if (shouldClearMemoryCache) {
             sharedMemoryCache.clear()
         }
     }
@@ -245,7 +264,7 @@ private fun load(
     context: Context,
     request: IconRequest,
     loaders: List<IconLoader>,
-    decoders: List<IconDecoder>,
+    decoders: List<ImageDecoder>,
     desiredSize: DesiredSize
 ): Pair<Icon, IconRequest.Resource>? {
     request.resources
@@ -269,7 +288,7 @@ private fun load(
 
 private fun decodeIconLoaderResult(
     result: IconLoader.Result,
-    decoders: List<IconDecoder>,
+    decoders: List<ImageDecoder>,
     desiredSize: DesiredSize
 ): Icon? = when (result) {
     IconLoader.Result.NoResult -> null
@@ -282,7 +301,7 @@ private fun decodeIconLoaderResult(
 
 private fun decodeBytes(
     data: ByteArray,
-    decoders: List<IconDecoder>,
+    decoders: List<ImageDecoder>,
     desiredSize: DesiredSize
 ): Bitmap? {
     decoders.forEach { decoder ->

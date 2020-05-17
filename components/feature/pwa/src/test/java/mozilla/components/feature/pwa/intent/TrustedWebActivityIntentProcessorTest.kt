@@ -12,7 +12,6 @@ import androidx.browser.customtabs.TrustedWebUtils.EXTRA_LAUNCH_AS_TRUSTED_WEB_A
 import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.store.BrowserStore
@@ -37,7 +36,6 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 class TrustedWebActivityIntentProcessorTest {
 
-    private val apiKey = "XXXXXXXXX"
     private lateinit var store: BrowserStore
     private lateinit var sessionManager: SessionManager
 
@@ -48,8 +46,8 @@ class TrustedWebActivityIntentProcessorTest {
     }
 
     @Test
-    fun `process checks if intent action is not valid`() = runBlockingTest {
-        val processor = TrustedWebActivityIntentProcessor(mock(), mock(), mock(), mock(), apiKey, mock())
+    fun `process checks if intent action is not valid`() {
+        val processor = TrustedWebActivityIntentProcessor(mock(), mock(), mock(), mock(), mock())
 
         assertFalse(processor.process(Intent(ACTION_VIEW_PWA)))
         assertFalse(processor.process(Intent(ACTION_VIEW)))
@@ -77,7 +75,7 @@ class TrustedWebActivityIntentProcessorTest {
     }
 
     @Test
-    fun `process adds custom tab config`() = runBlockingTest {
+    fun `process adds custom tab config`() {
         val intent = Intent(ACTION_VIEW, "https://example.com".toUri()).apply {
             putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true)
             putExtra(EXTRA_SESSION, null as Bundle?)
@@ -86,7 +84,7 @@ class TrustedWebActivityIntentProcessorTest {
         val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase = mock()
         val customTabsStore: CustomTabsServiceStore = mock()
 
-        val processor = TrustedWebActivityIntentProcessor(sessionManager, loadUrlUseCase, mock(), mock(), apiKey, customTabsStore)
+        val processor = TrustedWebActivityIntentProcessor(sessionManager, loadUrlUseCase, mock(), mock(), customTabsStore)
 
         assertTrue(processor.process(intent))
         val sessionState = store.state.customTabs.first()

@@ -18,14 +18,17 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatTextView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -33,7 +36,6 @@ import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.ext.onDone
-import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.toScope
 import java.util.concurrent.CopyOnWriteArrayList
@@ -84,10 +86,22 @@ internal class LoginDialogFragment : PromptDialogFragment() {
         return BottomSheetDialog(requireContext(), R.style.MozDialogStyle).apply {
             setCancelable(true)
             setOnShowListener {
-                val bottomSheet =
-                    findViewById<View>(MaterialR.id.design_bottom_sheet) as FrameLayout
-                val behavior = BottomSheetBehavior.from(bottomSheet)
-                behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                /*
+                 Note: we must include a short delay before expanding the bottom sheet.
+                 This is because the keyboard is still in the process of hiding when `onShowListener` is triggered.
+                 Because of this, we'll only be given a small portion of the screen to draw on which will set the bottom
+                 anchor of this view incorrectly to somewhere in the center of the view. If we delay a small amount we
+                 are given the correct amount of space and are properly anchored.
+                 */
+                CoroutineScope(IO).launch {
+                    delay(KEYBOARD_HIDING_DELAY)
+                    launch(Main) {
+                        val bottomSheet =
+                            findViewById<View>(MaterialR.id.design_bottom_sheet) as FrameLayout
+                        val behavior = BottomSheetBehavior.from(bottomSheet)
+                        behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                    }
+                }
             }
         }
     }
@@ -105,7 +119,7 @@ internal class LoginDialogFragment : PromptDialogFragment() {
         view.findViewById<AppCompatTextView>(R.id.host_name).text = origin
 
         view.findViewById<AppCompatTextView>(R.id.save_message).text =
-            getString(R.string.mozac_feature_prompt_logins_save_message, activity?.appName)
+            getString(R.string.mozac_feature_prompt_login_save_headline)
 
         view.findViewById<Button>(R.id.save_confirm).setOnClickListener {
             onPositiveClickAction()
@@ -254,12 +268,17 @@ internal class LoginDialogFragment : PromptDialogFragment() {
                 when (result) {
                     Result.CanBeCreated -> {
                         setViewState(
-                            confirmText =
-                            context?.getString(R.string.mozac_feature_prompt_save_confirmation)
+                            headline = context?.getString(R.string.mozac_feature_prompt_login_save_headline),
+                            negativeText = context?.getString(R.string.mozac_feature_prompt_dont_save),
+                            confirmText = context?.getString(R.string.mozac_feature_prompt_save_confirmation)
                         )
                     }
                     is Result.CanBeUpdated -> {
                         setViewState(
+                            headline = if (result.foundLogin.username.isEmpty()) context?.getString(
+                                R.string.mozac_feature_prompt_login_add_username_headline
+                            ) else context?.getString(R.string.mozac_feature_prompt_login_update_headline),
+                            negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
                             confirmText =
                             context?.getString(R.string.mozac_feature_prompt_update_confirmation)
                         )
@@ -275,10 +294,20 @@ internal class LoginDialogFragment : PromptDialogFragment() {
     }
 
     private fun setViewState(
+        headline: String? = null,
+        negativeText: String? = null,
         confirmText: String? = null,
         confirmButtonEnabled: Boolean? = null,
         passwordErrorText: String? = null
     ) {
+        if (headline != null) {
+            view?.findViewById<AppCompatTextView>(R.id.save_message)?.text = headline
+        }
+
+        if (negativeText != null) {
+            view?.findViewById<MaterialButton>(R.id.save_cancel)?.text = negativeText
+        }
+
         if (confirmText != null) {
             view?.findViewById<Button>(R.id.save_confirm)?.text = confirmText
         }
@@ -294,6 +323,8 @@ internal class LoginDialogFragment : PromptDialogFragment() {
     }
 
     companion object {
+        private const val KEYBOARD_HIDING_DELAY = 100L
+
         /**
          * A builder method for creating a [LoginDialogFragment]
          * @param sessionId the id of the session for which this dialog will be created.

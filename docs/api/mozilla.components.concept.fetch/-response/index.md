@@ -2,7 +2,7 @@
 
 # Response
 
-`data class Response : `[`Closeable`](https://developer.android.com/reference/java/io/Closeable.html) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/fetch/src/main/java/mozilla/components/concept/fetch/Response.kt#L33)
+`data class Response : `[`Closeable`](http://docs.oracle.com/javase/7/docs/api/java/io/Closeable.html) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/fetch/src/main/java/mozilla/components/concept/fetch/Response.kt#L33)
 
 The [Response](./index.md) data class represents a response to a [Request](../-request/index.md) send by a [Client](../-client/index.md).
 
@@ -11,7 +11,7 @@ being returned as the result of calling [Client.fetch](../-client/fetch.md).
 
 A [Response](./index.md) may hold references to other resources (e.g. streams). Therefore it's important to always close the
 [Response](./index.md) object or its [Body](-body/index.md). This can be done by either consuming the content of the [Body](-body/index.md) with one of the
-available methods or by using Kotlin's extension methods for using [Closeable](https://developer.android.com/reference/java/io/Closeable.html) implementations (like `use()`):
+available methods or by using Kotlin's extension methods for using [Closeable](http://docs.oracle.com/javase/7/docs/api/java/io/Closeable.html) implementations (like `use()`):
 
 ``` Kotlin
 val response = ...
@@ -24,7 +24,7 @@ response.use {
 
 | Name | Summary |
 |---|---|
-| [Body](-body/index.md) | `class Body : `[`Closeable`](https://developer.android.com/reference/java/io/Closeable.html)`, `[`AutoCloseable`](https://developer.android.com/reference/java/lang/AutoCloseable.html)<br>A [Body](-body/index.md) returned along with the [Request](../-request/index.md). |
+| [Body](-body/index.md) | `class Body : `[`Closeable`](http://docs.oracle.com/javase/7/docs/api/java/io/Closeable.html)`, `[`AutoCloseable`](http://docs.oracle.com/javase/7/docs/api/java/lang/AutoCloseable.html)<br>A [Body](-body/index.md) returned along with the [Request](../-request/index.md). |
 
 ### Constructors
 
@@ -69,3 +69,4 @@ response.use {
 | Name | Summary |
 |---|---|
 | [loadResourceAsString](../../mozilla.components.support.test.file/kotlin.-any/load-resource-as-string.md) | `fun `[`Any`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html)`.loadResourceAsString(path: `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`): `[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)<br>Loads a file from the resources folder and returns its content as a string object. |
+| [parseJsonBody](../../mozilla.components.service.digitalassetlinks.ext/parse-json-body.md) | `fun <T> `[`Response`](./index.md)`.parseJsonBody(parser: (`[`String`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html)`) -> `[`T`](../../mozilla.components.service.digitalassetlinks.ext/parse-json-body.md#T)`): `[`T`](../../mozilla.components.service.digitalassetlinks.ext/parse-json-body.md#T)`?`<br>Safely parse a JSON [Response](./index.md) returned by an API. |

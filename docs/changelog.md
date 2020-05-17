@@ -4,13 +4,294 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 42.0.0-SNAPSHOT (In Development)
+# 48.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v41.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/102?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v47.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/107?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
+
+* **feature-intent**
+   * ⚠️ **This is a breaking change**: `IntentProcessor.process` is not a suspend function anymore.
+
+* **feature-search**
+  * Adds optional `parentSession` to attach to a new search session in `SearchUseCases`
+
+* **feature-contextmenu**
+  * Add "Share image" to context menu.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**: `AbstractCustomTabsService` now requires `CustomTabsServiceStore`.
+  * ⚠️ **This is a breaking change**: `httpClient` and `apiKey` have been removed from `AbstractCustomTabsService`. They should be replaced with building `DigitalAssetLinksApi` and passing it to `relationChecker`.
+  * Added `relationChecker` to customize Digital Asset Links handling.
+
+* **feature-pwa**
+  * ⚠️ **This is a breaking change**: `TrustedWebActivityIntentProcessor` now requires a `RelationChecker` instead of `httpClient` and `apiKey`.
+  * ⚠️ **This is a breaking change**: Removed unused API from `WebAppShortcutManager`: uninstallShortcuts
+  * `WebAppShortcutManager` gained a new API: recentlyUsedWebAppsCount. Allows counting recently used web apps.
+
+* **browser-thumbnails**
+  * The `ThumbnailMiddleware` deletes the tab's thumbnail from the storage when the sessions are removed.
+  * `BrowserThumbnails` waits for the `firstContentfulPaint` before requesting a screenshot.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: Removes unused `ThumbnailsUseCases` since we now load thumbnails via `ThumbnailLoader`. See [#7313](https://github.com/mozilla-mobile/android-components/issues/7313).
+  * ⚠️ **This is a breaking change**: Removes `ThumbnailsUseCases` as a parameter in `TabsFeature` and `TabsTrayPresenter`.
+  * ⚠️ **This is a breaking change**: Change the id parameter to accept a new `ImageRequest` in `ImageLoader`, which
+    allows consumers of `ThumbnailLoader` to specify the preferred image size along with the id when loading an image.
+
+* **feature-privatemode**
+  * Add `PrivateNotificationFeature` to display a notification when private sessions are open.
+
+* **service-glean**
+  * Glean was updated to v31.2.2
+    * BUGFIX: Correctly format the date and time in the Date header
+    * Feature: Add rate limiting capabilities to the upload manager
+    * BUGFIX: baseline pings with reason "dirty startup" are no longer sent if Glean did not full initialize in the previous run
+    * BUGFIX: Compile dependencies with `NDEBUG` to avoid linking unavailable symbols.
+      This fixes a crash due to a missing `stderr` symbol on older Android.
+
+* **feature-webnotifications**
+  * `WebNotificationFeature` checks the site permissions first before showing a notification.
+
+# 47.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v46.0.0...v47.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/106?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v47.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v47.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v47.0.0/buildSrc/src/main/java/Config.kt)
+
+* **service-digitalassetlinks**
+  * Added new component for listing and checking Digital Asset Links. Contains a local checker and a version that uses Google's API.
+
+# 46.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v44.0.0...v46.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/105?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v46.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v46.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v46.0.0/buildSrc/src/main/java/Config.kt)
+
+* **concept-engine**
+  * Exposed `GeckoRuntimeSettings#setLoginAutofillEnabled` to control whether login forms should be automatically filled in suitable situations
+
+* **browser-icons**
+  * Fixed issue [#7142](https://github.com/mozilla-mobile/android-components/issues/7142)
+
+* **feature-downloads**
+  * On devices older than Q we were not adding downloads to the system download database for more information see [#7230](https://github.com/mozilla-mobile/android-components/issues/7230)
+
+* **browser-storage-sync**
+  * Added `getTopFrecentSites` to `PlacesHistoryStorage`, which returns a list of the top frecent site infos
+    sorted by most to least frecent.
+
+* **local development**
+  * Enable local Gradle Build Cache to speed-up local builds. Build cache is located in `.build-cache/`, clear it if you run into strange problems and please file an issue.
+
+* **support-rustlog**
+  * `RustLog.enable` now takes an optional [CrashReporting] instance which is used to submit error-level log messages as `RustErrorException`s.
+
+* **feature-push**
+  * Fixed a bug where we do not verify subscriptions on first attempt.
+
+* **feature-prompts**
+  * Select a regular tab first if that exists before checking custom tabs.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**: `SettingsUseCases` now requires an engine reference, to clear speculative sessions if engine settings change.
+  * ⚠️ **This is a breaking change**: `PictureInPictureFeature` now takes `BrowserStore` instead of `SessionManager`.
+  * ⚠️ **This is a breaking change**: The `pipChanged` callback has been removed. You should now observe `ContentState.pictureInPictureEnabled` instead.
+
+* **feature-containers**
+  * Adds a new storage component to store containers (contextual identities) in a Room database and provides the
+    necessary APIs to get, add and remove containers.
+
+* **feature-webnotifications**
+  * Adds support for displaying the `source` URL the WebNotification originated from.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: `TabsFeature` now supports providing custom use case implementations. Therefore, an instance of `SelectTabUseCase` and `RemoveTabUseCase` have to be provided.
+
+* **support-ktx**
+  * Added `Uri.sameHostAs` to check if two Uris have the same host (both http/https, both same domain).
+  * Added `Uri.sameOriginAs` to check if two Uris have the same origin (same host, same port).
+  * Added `Uri.isInScope` to check if a Uri is within one of the given scopes.
+
+* **browser-state**
+  * Added `ContentState.pictureInPictureEnabled` to track if Picture in Picture mode is in use.
+
+* **feature-pwa**
+  * ⚠️ **This is a breaking change**: `WebAppHideToolbarFeature` now takes `BrowserStore` instead of `SessionManager`. `trustedScopes` is now derived from `CustomTabsServiceStore` and `WebAppManifest`. `setToolbarVisibility` should now be used set the visibility of the toolbar.
+  * ⚠️ **This is a breaking change**: `onToolbarVisibilityChange` has been removed. You should now observe `BrowserStore` instead.
+
+* **feature-tab-collections**:
+  * ⚠️ **This is a breaking change**: `TabCollectionStorage.getCollections` now returns `Flow` instead of `LiveData`. Use `Flow.asLiveData` to convert the result into a `LiveData` again.
+
+* **feature-top-sites**:
+  * ⚠️ **This is a breaking change**: `TopSiteStorage.getTopSites` now returns `Flow` instead of `LiveData`. Use `Flow.asLiveData` to convert the result into a `LiveData` again.
+
+* **service-glean**
+  * Glean was updated to v31.1.1
+    * Smaller binary library after a big dependency was dropped
+    * Limit the number of upload retries in all implementations
+
+* **support-images**:
+  * Added `ImageLoader` API for loading images directly into an `ImageView`.
+
+* **browser-tabstray**:
+  * ⚠️ **This is a breaking change**: `TabsAdapter` and `DefaultTabViewHolder` take an optional `ImageLoader` for loading browser thumbnails.
+  * Fixed a bug in `TabsThumbnailView` where the `scaleFactor` was not applied all the time when expected.
+
+* **browser-menu**:
+  * DynamicWidthRecyclerView will still be able to have a dynamic width between xml set minWidth and maxWidth attributes but we'll now enforce the following:
+    - minimum width 112 dp
+    - maximum width - screen width minus a 48dp tappable “exit area”
+
+# 45.0.0
+
+* ⚠️ This release can't be used due to a bad build.
+
+# 44.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v43.0.0...v44.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/104?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v44.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v44.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v44.0.0/buildSrc/src/main/java/Config.kt)
+
+* **browser-engine-gecko-nightly**
+  * Added support for [onbeforeunload prompt](https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onbeforeunload)
+
+* **feature-tabs**
+  * Added an optional `ThumbnailsUseCases` to `TabsFeature` and `TabsTrayPresenter` for loading a
+    tab's thumbnail.
+
+* **browser-thumbnails**
+  * Adds `LoadThumbnailUseCase` in `ThumbnailsUseCases` for loading the thumbnail of a tab.
+  * Adds `ThumbnailStorage` as a storage layer for handling saving and loading a thumbnail from the
+    disk cache.
+
+* **feature-push**
+  * Adds the `getSubscription` call to check if a subscription exists.
+
+* **browser-engine-gecko-***
+  * Fixes GeckoWebPushDelegate to gracefully return when a subscription is not available.
+
+* **feature-session**
+  * Removes unused `ThumbnailsFeature` since this has been refactored into its own browser-thumbnails component in
+    [#6827](https://github.com/mozilla-mobile/android-components/issues/6827).
+
+* **browser-state**
+  * Adds `BrowserState.getNormalOrPrivateTabs(private: Boolean)` to get `normalTabs` or `privateTabs` based on a boolean condition.
+
+* **support-utils**
+  * `URLStringUtils.isURLLikeStrict`, deprecated in 40.0.0, was now removed due to performance issues. Use the less strict and much faster `isURLLike` instead or customize based on `:lib-publicsuffixlist`.
+
+* **support-ktx**
+  * `String.isUrlStrict`, deprecated in 40.0.0, was now removed due to performance issues. Use the less strict `isURL` instead or customize based on `:lib-publicsuffixlist`.
+
+* **service-glean**
+  * Glean was updated to v31.0.2
+    * Provide a new upload mechanism, now driven by internals. This has no impact to consumers of service-glean.
+    * Automatically Gzip-compress ping payloads before upload
+    * Upgrade `glean_parser` to v1.22.0
+
+# 43.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v42.0.0...v43.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/103?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v43.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v43.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v43.0.0/buildSrc/src/main/java/Config.kt)
+
+* **feature-downloads**
+  * ⚠️ **This is a breaking change**: DownloadManager and DownloadService are now using the browser store to keep track of queued downloads. Therefore, an instance of the store needs to be provided when constructing manager and service. There's also a new DownloadMiddleware which needs to be provided to the store.
+
+  ```kotlin
+   val store by lazy {
+        BrowserStore(middleware = listOf(
+            MediaMiddleware(applicationContext, MediaService::class.java),
+            DownloadMiddleware(applicationContext, DownloadService::class.java),
+            ...
+        ))
+    }
+  )
+
+  val feature = DownloadsFeature(
+      requireContext().applicationContext,
+      store = components.store,
+      useCases = components.downloadsUseCases,
+      fragmentManager = childFragmentManager,
+      onDownloadStopped = { download, id, status ->
+          Logger.debug("Download done. ID#$id $download with status $status")
+      },
+      downloadManager = FetchDownloadManager(
+          requireContext().applicationContext,
+          components.store, // Store needs to be provided now
+          DownloadService::class
+      ),
+      tabId = sessionId,
+      onNeedToRequestPermissions = { permissions ->
+          requestPermissions(permissions, REQUEST_CODE_DOWNLOAD_PERMISSIONS)
+      }
+  )
+
+  class DownloadService : AbstractFetchDownloadService() {
+    override val httpClient by lazy { components.core.client }
+    override val store: BrowserStore by lazy { components.core.store } // Store needs to be provided now
+  }
+  ```
+
+  * Fixed issue [#6893](https://github.com/mozilla-mobile/android-components/issues/6893).
+  * Add notification grouping to downloads Fenix issue [#4910](https://github.com/mozilla-mobile/android-components/issues/4910).
+
+* **feature-tabs**
+  * Makes `TabsAdapter` open to subclassing.
+
+* **feature-intent**
+  * Select existing tab by url when trying to open a new tab in `TabIntentProcessor`
+
+* **feature-media**
+  * Adds `MediaFullscreenOrientationFeature` to autorotate activity while in fullscreen based on media aspect ratio.
+
+* **support-images**
+  * ⚠️ **This is a breaking change**: Extracts `AndroidIconDecoder`, `IconDecoder` and `DesiredSize` out of `browser-icons`
+    into a new component `support-images`, which provides helpers for handling images. `AndroidIconDecoder` and `IconDecoder`
+    are renamed to `AndroidImageDecoder` and `ImageDecoder` in `support-images`.
+
+* **support-utils**
+  * `URLStringUtils.isURLLike()` will now consider URLs containing double dash ("--") as valid.
+
+* **browser-thumbnails**
+  * Adds `ThumbnailDiskCache` for storing and restoring thumbnail bitmaps into a disk cache.
+
+* **concept-engine**
+  * Adds `onHistoryStateChanged` method and corresponding `HistoryItem` data class.
+
+* **browser-state**
+  * Adds `history` to `ContentState` to check the back and forward history list.
+
+* **service-glean**
+  * BUGFIX: Fix a race condition that leads to a `ConcurrentModificationException`. [Bug 1635865](https://bugzilla.mozilla.org/1635865)
+
+* **browser-menu**
+  * Added `AbstractParentBrowserMenuItem` and `ParentBrowserMenuItem` for handling nested sub menu items on view click.
+  * ⚠️ **This is a breaking change**: `WebExtensionBrowserMenuBuilder` now returns as a sub menu entry for add-ons. The sub
+    menu also contains an access entry for Add-ons Manager, for which `onAddonsManagerTapped` needs to be passed in the
+    constructor.
+
+* **feature-syncedtabs**
+  * When the SyncedTabsFeature is started it syncs the devices and account first.
+
+# 42.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v41.0.0...42.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/102?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/42.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/42.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/42.0.0/buildSrc/src/main/java/Config.kt)
 
 * **browser-state**
   * Adds `firstContentfulPaint` to `ContentState` to know if first contentful paint has happened.
@@ -31,6 +312,9 @@ permalink: /changelog/
 
 * **service-experiments**
   * ⚠️ **This is a breaking change**: Mako's configuration now requires explicitly setting an http client. Users need to pass one at construction.
+
+* **feature-prompts**
+  * Added `mozacPromptLoginEditTextCursorColor` attribute to be able to change cursor color of TextInputEditTexts from `mozac_feature_prompt_login_prompt`.
 
 # 41.0.0
 

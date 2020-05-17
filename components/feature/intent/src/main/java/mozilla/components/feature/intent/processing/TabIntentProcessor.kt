@@ -50,8 +50,13 @@ class TabIntentProcessor(
         return if (url.isNullOrEmpty()) {
             false
         } else {
-            val session = createSession(url, private = isPrivate, source = Source.ACTION_VIEW)
-            loadUrlUseCase(url, session, LoadUrlFlags.external())
+            val existingSession = sessionManager.sessions.find { it.url == url }
+            if (existingSession != null) {
+                sessionManager.select(existingSession)
+            } else {
+                loadUrlUseCase(url, createSession(url, private = isPrivate,
+                        source = Source.ACTION_VIEW), LoadUrlFlags.external())
+            }
             true
         }
     }
@@ -107,7 +112,7 @@ class TabIntentProcessor(
      * @param intent the intent to process
      * @return true if the intent was processed, otherwise false.
      */
-    override suspend fun process(intent: Intent): Boolean {
+    override fun process(intent: Intent): Boolean {
         val safeIntent = SafeIntent(intent)
         return when (safeIntent.action) {
             ACTION_VIEW, ACTION_NDEF_DISCOVERED -> processViewIntent(safeIntent)

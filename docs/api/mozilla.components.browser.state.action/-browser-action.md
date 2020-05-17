@@ -2,7 +2,7 @@
 
 # BrowserAction
 
-`sealed class BrowserAction : `[`Action`](../mozilla.components.lib.state/-action.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/state/src/main/java/mozilla/components/browser/state/action/BrowserAction.kt#L37)
+`sealed class BrowserAction : `[`Action`](../mozilla.components.lib.state/-action.md) [(source)](https://github.com/mozilla-mobile/android-components/blob/master/components/browser/state/src/main/java/mozilla/components/browser/state/action/BrowserAction.kt#L38)
 
 [Action](../mozilla.components.lib.state/-action.md) implementation related to [BrowserState](../mozilla.components.browser.state.state/-browser-state/index.md).
 
@@ -18,6 +18,7 @@
 |---|---|
 | [ContentAction](-content-action/index.md) | `sealed class ContentAction : `[`BrowserAction`](./-browser-action.md)<br>[BrowserAction](./-browser-action.md) implementations related to updating the [ContentState](../mozilla.components.browser.state.state/-content-state/index.md) of a single [SessionState](../mozilla.components.browser.state.state/-session-state/index.md) inside [BrowserState](../mozilla.components.browser.state.state/-browser-state/index.md). |
 | [CustomTabListAction](-custom-tab-list-action/index.md) | `sealed class CustomTabListAction : `[`BrowserAction`](./-browser-action.md)<br>[BrowserAction](./-browser-action.md) implementations related to updating [BrowserState.customTabs](../mozilla.components.browser.state.state/-browser-state/custom-tabs.md). |
+| [DownloadAction](-download-action/index.md) | `sealed class DownloadAction : `[`BrowserAction`](./-browser-action.md)<br>[BrowserAction](./-browser-action.md) implementations related to updating the global download state. |
 | [EngineAction](-engine-action/index.md) | `sealed class EngineAction : `[`BrowserAction`](./-browser-action.md)<br>[BrowserAction](./-browser-action.md) implementations related to updating the [EngineState](../mozilla.components.browser.state.state/-engine-state/index.md) of a single [SessionState](../mozilla.components.browser.state.state/-session-state/index.md) inside [BrowserState](../mozilla.components.browser.state.state/-browser-state/index.md). |
 | [MediaAction](-media-action/index.md) | `sealed class MediaAction : `[`BrowserAction`](./-browser-action.md)<br>[BrowserAction](./-browser-action.md) implementations related to updating the [MediaState](../mozilla.components.browser.state.state/-media-state/index.md). |
 | [ReaderAction](-reader-action/index.md) | `sealed class ReaderAction : `[`BrowserAction`](./-browser-action.md)<br>[BrowserAction](./-browser-action.md) implementations related to updating the [ReaderState](../mozilla.components.browser.state.state/-reader-state/index.md) of a single [TabSessionState](../mozilla.components.browser.state.state/-tab-session-state/index.md) inside [BrowserState](../mozilla.components.browser.state.state/-browser-state/index.md). |

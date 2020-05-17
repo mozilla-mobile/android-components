@@ -5,6 +5,8 @@
 package mozilla.components.browser.engine.gecko
 
 import android.annotation.SuppressLint
+import android.os.Build
+import android.view.WindowManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,6 +22,7 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.manifest.WebAppManifestParser
 import mozilla.components.concept.engine.request.RequestInterceptor
@@ -67,10 +70,6 @@ class GeckoEngineSession(
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
     internal var scrollY: Int = 0
-
-    // This is set once the first content paint has occurred and can be used to
-    // decide if it's safe to call capturePixels on the view.
-    internal var firstContentfulPaint = false
 
     internal var job: Job = Job()
     private var lastSessionState: GeckoSession.SessionState? = null
@@ -194,10 +193,7 @@ class GeckoEngineSession(
         val shouldBlockContent =
             policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
-        geckoSession.settings.useTrackingProtection = shouldBlockContent
-        if (!enabled) {
-            disableTrackingProtectionOnGecko()
-        }
+        geckoSession.settings.useTrackingProtection = shouldBlockContent && enabled
         notifyAtLeastOneObserver { onTrackerBlockingEnabledChange(enabled) }
     }
 
@@ -205,7 +201,7 @@ class GeckoEngineSession(
      * See [EngineSession.disableTrackingProtection]
      */
     override fun disableTrackingProtection() {
-        disableTrackingProtectionOnGecko()
+        geckoSession.settings.useTrackingProtection = false
         notifyObservers { onTrackerBlockingEnabledChange(false) }
     }
 
@@ -222,16 +218,6 @@ class GeckoEngineSession(
                 onResult(false)
             }
         }
-    }
-
-    // To fully disable tracking protection we need to change the different tracking protection
-    // variables to none.
-    private fun disableTrackingProtectionOnGecko() {
-        geckoSession.settings.useTrackingProtection = false
-        runtime.settings.contentBlocking.setAntiTracking(ContentBlocking.AntiTracking.NONE)
-        runtime.settings.contentBlocking.cookieBehavior = ContentBlocking.CookieBehavior.ACCEPT_ALL
-        runtime.settings.contentBlocking.setStrictSocialTrackingProtection(false)
-        runtime.settings.contentBlocking.setEnhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.NONE)
     }
 
     /**
@@ -337,7 +323,6 @@ class GeckoEngineSession(
         super.close()
         job.cancel()
         geckoSession.close()
-        firstContentfulPaint = false
     }
 
     /**
@@ -354,6 +339,8 @@ class GeckoEngineSession(
             if (initialLoad && url == ABOUT_BLANK) {
                 return
             }
+
+            currentUrl = url
             initialLoad = false
             isIgnoredForTrackingProtection { ignored ->
                 notifyObservers {
@@ -381,7 +368,8 @@ class GeckoEngineSession(
                     engineSession,
                     request.uri,
                     request.hasUserGesture,
-                    isSameDomain
+                    isSameDomain,
+                    request.isRedirect
                 )?.apply {
                     when (this) {
                         is InterceptionResponse.Content -> loadData(data, mimeType, encoding)
@@ -477,8 +465,6 @@ class GeckoEngineSession(
         }
 
         override fun onPageStart(session: GeckoSession, url: String) {
-            currentUrl = url
-
             notifyObservers {
                 onProgress(PROGRESS_START)
                 onLoadingStateChange(true)
@@ -578,6 +564,14 @@ class GeckoEngineSession(
                 visits.toBooleanArray()
             }
         }
+
+        override fun onHistoryStateChange(
+            session: GeckoSession,
+            historyList: GeckoSession.HistoryDelegate.HistoryList
+        ) {
+            val items = historyList.map { HistoryItem(title = it.title, uri = it.uri) }
+            notifyObservers { onHistoryStateChanged(items, historyList.currentIndex) }
+        }
     }
 
     @Suppress("ComplexMethod")
@@ -585,7 +579,7 @@ class GeckoEngineSession(
         override fun onFirstComposite(session: GeckoSession) = Unit
 
         override fun onFirstContentfulPaint(session: GeckoSession) {
-            firstContentfulPaint = true
+            notifyObservers { onFirstContentfulPaint() }
         }
 
         override fun onContextMenu(
@@ -679,6 +673,18 @@ class GeckoEngineSession(
             val parsed = WebAppManifestParser().parse(manifest)
             if (parsed is WebAppManifestParser.Result.Success) {
                 notifyObservers { onWebAppManifestLoaded(parsed.manifest) }
+            }
+        }
+
+        override fun onMetaViewportFitChange(session: GeckoSession, viewportFit: String) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val layoutInDisplayCutoutMode = when (viewportFit) {
+                    "cover" -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    "contain" -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+                    else -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                }
+
+                notifyObservers { onMetaViewportFitChanged(layoutInDisplayCutoutMode) }
             }
         }
     }

@@ -15,10 +15,10 @@ import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuHighlight
 import mozilla.components.browser.menu.HighlightableMenuItem
 import mozilla.components.browser.menu.R
-import mozilla.components.browser.menu2.candidate.DrawableMenuIcon
-import mozilla.components.browser.menu2.candidate.HighPriorityHighlightEffect
-import mozilla.components.browser.menu2.candidate.LowPriorityHighlightEffect
-import mozilla.components.browser.menu2.candidate.TextMenuCandidate
+import mozilla.components.concept.menu.candidate.DrawableMenuIcon
+import mozilla.components.concept.menu.candidate.HighPriorityHighlightEffect
+import mozilla.components.concept.menu.candidate.LowPriorityHighlightEffect
+import mozilla.components.concept.menu.candidate.TextMenuCandidate
 
 @Suppress("Deprecation")
 private val defaultHighlight = BrowserMenuHighlightableItem.Highlight(0, 0, 0, 0)
@@ -146,7 +146,7 @@ class BrowserMenuHighlightableItem(
     }
 
     override fun asCandidate(context: Context): TextMenuCandidate {
-        val base = super.asCandidate(context)
+        val base = super.asCandidate(context) as TextMenuCandidate
         if (!isHighlighted()) return base
 
         @Suppress("Deprecation")

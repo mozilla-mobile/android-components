@@ -66,7 +66,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         verifyNoMoreInteractions(tabsTray)
 
@@ -97,7 +102,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
 
@@ -131,7 +141,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
 
@@ -167,7 +182,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
 
@@ -201,7 +221,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -224,26 +249,31 @@ class TabsTrayPresenterTest {
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(
-                        createTab("https://www.mozilla.org", id = "a"),
-                        createTab("https://getpocket.com", id = "b"),
-                        createTab("https://developer.mozilla.org", id = "c"),
-                        createTab("https://www.firefox.com", id = "d"),
-                        createTab("https://www.google.com", id = "e")
-                    ),
-                    selectedTabId = "a"
-                )
+                    createTab("https://www.mozilla.org", id = "a"),
+                    createTab("https://getpocket.com", id = "b"),
+                    createTab("https://developer.mozilla.org", id = "c"),
+                    createTab("https://www.firefox.com", id = "d"),
+                    createTab("https://www.google.com", id = "e")
+                ),
+                selectedTabId = "a"
+            )
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
 
         store.dispatch(
-                MediaAction.UpdateMediaAggregateAction(
-                    store.state.media.aggregate.copy(activeTabId = "a", state = MediaState.State.PLAYING)
-                )
+            MediaAction.UpdateMediaAggregateAction(
+                store.state.media.aggregate.copy(activeTabId = "a", state = MediaState.State.PLAYING)
+            )
         ).joinBlocking()
 
         testDispatcher.advanceUntilIdle()
@@ -269,7 +299,11 @@ class TabsTrayPresenterTest {
         var closed = false
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, tabsFilter = { true }, closeTabsTray = { closed = true })
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = { closed = true })
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -299,7 +333,11 @@ class TabsTrayPresenterTest {
         var closed = false
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, tabsFilter = { true }, closeTabsTray = { closed = true })
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = { closed = true })
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -332,7 +370,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { true }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { true },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -362,7 +405,12 @@ class TabsTrayPresenterTest {
         )
 
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { it.content.private }, mock())
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { it.content.private },
+            closeTabsTray = mock()
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -381,7 +429,11 @@ class TabsTrayPresenterTest {
 
         var invoked = false
         val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(tabsTray, store, { it.content.private }, { invoked = true })
+        val presenter = TabsTrayPresenter(
+            tabsTray,
+            store,
+            tabsFilter = { it.content.private },
+            closeTabsTray = { invoked = true })
 
         presenter.start()
         testDispatcher.advanceUntilIdle()

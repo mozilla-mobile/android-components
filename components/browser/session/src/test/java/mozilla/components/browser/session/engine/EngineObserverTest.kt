@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.session.engine
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.view.WindowManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,12 +13,14 @@ import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.engine.request.LoadRequestOption
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
+import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -530,6 +533,7 @@ class EngineObserverTest {
             override val controller: Controller = mock()
             override val metadata: Metadata = mock()
             override val volume: Volume = mock()
+            override val fullscreen: Boolean = false
         })
         observer.onMediaAdded(media1)
 
@@ -542,6 +546,7 @@ class EngineObserverTest {
             override val controller: Controller = mock()
             override val metadata: Metadata = mock()
             override val volume: Volume = mock()
+            override val fullscreen: Boolean = false
         })
         observer.onMediaAdded(media2)
 
@@ -554,6 +559,7 @@ class EngineObserverTest {
             override val controller: Controller = mock()
             override val metadata: Metadata = mock()
             override val volume: Volume = mock()
+            override val fullscreen: Boolean = false
         })
         observer.onMediaAdded(media3)
 
@@ -578,6 +584,7 @@ class EngineObserverTest {
             override val controller: Controller = mock()
             override val metadata: Metadata = mock()
             override val volume: Volume = mock()
+            override val fullscreen: Boolean = false
         })
         observer.onMediaAdded(media1)
 
@@ -585,6 +592,7 @@ class EngineObserverTest {
             override val controller: Controller = mock()
             override val metadata: Metadata = mock()
             override val volume: Volume = mock()
+            override val fullscreen: Boolean = false
         })
         observer.onMediaAdded(media2)
 
@@ -606,6 +614,56 @@ class EngineObserverTest {
 
         assertNull(store.state.media.elements["test-tab"])
         verify(media2).unregister(any())
+    }
+
+    @Test
+    fun `onExternalResource will update the store`() {
+        val store = BrowserStore()
+
+        val sessionManager = SessionManager(engine = mock(), store = store)
+
+        val session = Session("https://www.mozilla.org", id = "test-tab").also {
+            sessionManager.add(it)
+        }
+
+        val observer = EngineObserver(session, store)
+
+        observer.onExternalResource(
+                url = "mozilla.org/file.txt",
+                fileName = "file.txt",
+                userAgent = "userAgent",
+                contentType = "text/plain",
+                contentLength = 100L)
+
+        store.waitUntilIdle()
+
+        val tab = store.state.findTab("test-tab")!!
+
+        assertEquals("mozilla.org/file.txt", tab.content.download?.url)
+        assertEquals("file.txt", tab.content.download?.fileName)
+        assertEquals("userAgent", tab.content.download?.userAgent)
+        assertEquals("text/plain", tab.content.download?.contentType)
+        assertEquals(100L, tab.content.download?.contentLength)
+    }
+
+    @Test
+    fun `onExternalResource with negative contentLength`() {
+        val store = BrowserStore()
+
+        val sessionManager = SessionManager(engine = mock(), store = store)
+
+        val session = Session("https://www.mozilla.org", id = "test-tab").also {
+            sessionManager.add(it)
+        }
+        val observer = EngineObserver(session, store)
+
+        observer.onExternalResource(url = "mozilla.org/file.txt", contentLength = -1)
+
+        store.waitUntilIdle()
+
+        val tab = store.state.findTab("test-tab")!!
+
+        assertNull(tab.content.download?.contentLength)
     }
 
     @Test
@@ -688,6 +746,22 @@ class EngineObserverTest {
     }
 
     @Test
+    fun `onLaunchIntentRequest is set to launchIntentMetadata`() {
+        val url = "https://www.mozilla.org"
+        val session = Session(url)
+
+        val observer = EngineObserver(session)
+        val intent: Intent = mock()
+        observer.onLaunchIntentRequest(url = url, appIntent = intent)
+
+        val appUrl = session.launchIntentMetadata.url
+        val appIntent = session.launchIntentMetadata.appIntent
+
+        assertEquals(url, appUrl)
+        assertEquals(intent, appIntent)
+    }
+
+    @Test
     fun `onNavigateBack clears search terms when navigating back`() {
         val url = "https://www.mozilla.org"
         val session = Session(url)
@@ -698,5 +772,37 @@ class EngineObserverTest {
         observer.onNavigateBack()
 
         assertEquals("", session.searchTerms)
+    }
+
+    @Test
+    fun `onHistoryStateChanged dispatches UpdateHistoryStateAction`() {
+        val session = Session("")
+        val store = mock(BrowserStore::class.java)
+        val observer = EngineObserver(session, store)
+        whenever(store.dispatch(any())).thenReturn(mock())
+
+        observer.onHistoryStateChanged(emptyList(), 0)
+        verify(store).dispatch(
+            ContentAction.UpdateHistoryStateAction(
+                session.id,
+                emptyList(),
+                currentIndex = 0
+            )
+        )
+
+        observer.onHistoryStateChanged(listOf(
+            HistoryItem("Firefox", "https://firefox.com"),
+            HistoryItem("Mozilla", "http://mozilla.org")
+        ), 1)
+        verify(store).dispatch(
+            ContentAction.UpdateHistoryStateAction(
+                session.id,
+                listOf(
+                    HistoryItem("Firefox", "https://firefox.com"),
+                    HistoryItem("Mozilla", "http://mozilla.org")
+                ),
+                currentIndex = 1
+            )
+        )
     }
 }

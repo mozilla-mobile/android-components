@@ -86,8 +86,7 @@ class CrashReporter(
     fun install(applicationContext: Context): CrashReporter {
         instance = this
 
-        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
-        val handler = ExceptionHandler(applicationContext, this, defaultHandler)
+        val handler = ExceptionHandler(applicationContext, this)
         Thread.setDefaultUncaughtExceptionHandler(handler)
 
         return this
@@ -107,6 +106,10 @@ class CrashReporter(
                 if (reportId != null) {
                     database.crashDao().insertReportSafely(service.toReportEntity(crash, reportId))
                 }
+
+                val reportUrl = reportId?.let { service.createCrashReportUrl(it) }
+
+                logger.info("Submitted crash to ${service.name} (id=$reportId, url=$reportUrl)")
             }
 
             logger.info("Crash report submitted to ${services.size} services")
@@ -252,8 +255,8 @@ class CrashReporter(
         }
     }
 
-    internal fun getCrashReporterServiceById(id: String): CrashReporterService {
-        return services.first { it.id == id }
+    internal fun getCrashReporterServiceById(id: String): CrashReporterService? {
+        return services.firstOrNull { it.id == id }
     }
 
     enum class Prompt {

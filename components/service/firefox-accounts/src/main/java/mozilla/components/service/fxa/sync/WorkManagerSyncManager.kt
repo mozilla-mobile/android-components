@@ -294,7 +294,9 @@ class WorkManagerSyncWorker(
                 SyncEngine.Tabs.nativeName -> SyncEngine.Tabs
                 else -> throw IllegalStateException("Invalid syncable store: $it")
             }
-            engine to GlobalSyncableStoreProvider.getStore(engine.nativeName)!!
+            engine to checkNotNull(GlobalSyncableStoreProvider.getStore(engine.nativeName)) {
+                "SyncableStore missing from GlobalSyncableStoreProvider: ${engine.nativeName}"
+            }
         }.ifEmpty {
             // Short-circuit if there are no configured stores.
             // Don't update the "last-synced" timestamp because we haven't actually synced anything.
@@ -474,18 +476,23 @@ fun getLastSynced(context: Context): Long {
         .getLong(SYNC_LAST_SYNCED_KEY, 0)
 }
 
-internal fun setLastSynced(context: Context, ts: Long) {
-    context
-        .getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
-        .edit()
-        .putLong(SYNC_LAST_SYNCED_KEY, ts)
-        .apply()
+internal fun clearSyncState(context: Context) {
+    context.getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
+        .edit().clear().apply()
 }
 
 internal fun getSyncState(context: Context): String? {
     return context
         .getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
         .getString(SYNC_STATE_KEY, null)
+}
+
+internal fun setLastSynced(context: Context, ts: Long) {
+    context
+        .getSharedPreferences(SYNC_STATE_PREFS_KEY, Context.MODE_PRIVATE)
+        .edit()
+        .putLong(SYNC_LAST_SYNCED_KEY, ts)
+        .apply()
 }
 
 internal fun setSyncState(context: Context, state: String) {

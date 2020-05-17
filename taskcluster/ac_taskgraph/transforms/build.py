@@ -45,7 +45,8 @@ def handle_coverage(config, tasks):
     for task in tasks:
         if task.pop('include-coverage', False):
             task['run']['gradlew'].insert(0, '-Pcoverage')
-            task['run']['post-gradlew'] = [['automation/taskcluster/action/upload_coverage_report.sh']]
+            # Disabling codecov until the bug is resolved: https://github.com/mozilla-mobile/android-components/issues/7500
+            #task['run']['post-gradlew'] = [['automation/taskcluster/action/upload_coverage_report.sh']]
             task['run']['secrets'] = [{
                 'name': 'project/mobile/android-components/public-tokens',
                 'key': 'codecov',
@@ -103,10 +104,7 @@ def get_nightly_version(config, version):
 def craft_path_version(version, build_type, nightly_version):
     """Helper function to craft the correct version to bake in the artifacts full
     path section"""
-    path_version = "{}{}".format(
-        version,
-        "-SNAPSHOT" if build_type == "snapshot" else ''
-    )
+    path_version = version
     # XXX: for nightly releases we need to s/X.0.0/X.0.<buildid>/g in versions
     if build_type == 'nightly':
         path_version = path_version.replace(version, nightly_version)
@@ -140,16 +138,32 @@ def add_artifacts(config, tasks):
         artifact_template = task.pop("artifact-template", {})
         task["attributes"]["artifacts"] = artifacts = {}
 
-        if task.pop("expose-artifacts", False):
-            component = task["attributes"]["component"]
-            build_artifact_definitions = task.setdefault("worker", {}).setdefault("artifacts", [])
+        component = task["attributes"]["component"]
+        build_artifact_definitions = task.setdefault("worker", {}).setdefault("artifacts", [])
 
+        if "tests-artifact-template" in task:
+            tests_artifact_template = task.pop("tests-artifact-template", {})
+            build_artifact_definitions.append({
+                "type": tests_artifact_template["type"],
+                "name": tests_artifact_template["name"],
+                "path": tests_artifact_template["path"].format(component_path=get_path(component)),
+            })
+
+        if "lint-artifact-template" in task:
+            lint_artifact_template = task.pop("lint-artifact-template", {})
+            build_artifact_definitions.append({
+                "type": lint_artifact_template["type"],
+                "name": lint_artifact_template["name"],
+                "path": lint_artifact_template["path"].format(component_path=get_path(component)),
+            })
+
+        if task.pop("expose-artifacts", False):
             all_extensions = get_extensions(component)
             artifact_file_names_per_extension = {
                 extension: '{component}-{version}{timestamp}{extension}'.format(
                     component=component,
                     version=version,
-                    timestamp='-' + timestamp if task["attributes"]["build-type"] == "snapshot" else '',
+                    timestamp='',
                     extension=extension,
                 )
                 for extension in all_extensions
@@ -171,7 +185,7 @@ def add_artifacts(config, tasks):
                     "path": artifact_template["path"].format(
                         component_path=get_path(component),
                         component=component,
-                        version_with_snapshot=craft_path_version(version,
+                        version=craft_path_version(version,
                                 task["attributes"]["build-type"], nightly_version),
                         artifact_file_name=artifact_file_name,
                     ),

@@ -137,6 +137,20 @@ class GeckoEngineTest {
     }
 
     @Test
+    fun clearSpeculativeSession() {
+        val engine = GeckoEngine(context, runtime = runtime)
+        assertNull(engine.speculativeSession)
+
+        val mockGeckoSession: GeckoSession = mock()
+        val mockEngineSession: GeckoEngineSession = mock()
+        whenever(mockEngineSession.geckoSession).thenReturn(mockGeckoSession)
+        engine.speculativeSession = mockEngineSession
+        engine.clearSpeculativeSession()
+        verify(mockGeckoSession).close()
+        assertNull(engine.speculativeSession)
+    }
+
+    @Test
     fun `createSession with contextId`() {
         val engine = GeckoEngine(context, runtime = runtime)
 
@@ -476,6 +490,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install built-in web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -505,6 +520,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install built-in web extension successfully but do not allow content messaging`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -535,6 +551,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install external web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -572,6 +589,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation")
     fun `install built-in web extension failure`() {
         val runtime = mock<GeckoRuntime>()
         val engine = GeckoEngine(context, runtime = runtime)
@@ -595,6 +613,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `install external web extension failure`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -621,6 +640,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `uninstall web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val extensionController: WebExtensionController = mock()
@@ -662,6 +682,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `uninstall web extension failure`() {
         val runtime = mock<GeckoRuntime>()
         val extensionController: WebExtensionController = mock()
@@ -700,6 +721,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation")
     fun `web extension delegate handles installation`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
@@ -721,6 +743,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate handles install prompt`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
@@ -746,6 +769,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate handles update prompt`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
@@ -787,6 +811,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of browser actions from built-in extensions`() {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -822,6 +847,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of page actions from built-in extensions`() {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -857,6 +883,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified when built-in extension wants to open tab`() {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -887,6 +914,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of browser actions from external extensions`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -928,6 +956,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified of page actions from external extensions`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -969,6 +998,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `web extension delegate notified when external extension wants to open tab`() {
         val runtime = mock<GeckoRuntime>()
         val extId = "test-webext"
@@ -1023,6 +1053,7 @@ class GeckoEngineTest {
     }
 
     @Test
+    @Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
     fun `update web extension successfully`() {
         val runtime = mock<GeckoRuntime>()
         val extensionController: WebExtensionController = mock()

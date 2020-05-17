@@ -23,6 +23,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -30,6 +31,7 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.base.observer.Consumable
+import mozilla.components.support.ktx.android.net.isInScope
 
 /**
  * [EngineSession.Observer] implementation responsible to update the state of a [Session] from the events coming out of
@@ -82,13 +84,6 @@ internal class EngineObserver(
             uri.query == originalUri.query
     }
 
-    private fun isHostEquals(sessionUrl: String, newUrl: String): Boolean {
-        val sessionUri = sessionUrl.toUri()
-        val newUri = newUrl.toUri()
-
-        return sessionUri.scheme == newUri.scheme && sessionUri.host == newUri.host
-    }
-
     /**
      * Checks that the [newUrl] is in scope of the web app manifest.
      *
@@ -99,9 +94,7 @@ internal class EngineObserver(
         val scopeUri = scope.toUri()
         val newUri = newUrl.toUri()
 
-        return isHostEquals(scope, newUrl) &&
-            scopeUri.port == newUri.port &&
-            newUri.path.orEmpty().startsWith(scopeUri.path.orEmpty())
+        return newUri.isInScope(listOf(scopeUri))
     }
 
     override fun onLoadRequest(
@@ -189,11 +182,14 @@ internal class EngineObserver(
         cookie: String?,
         userAgent: String?
     ) {
+        // We want to avoid negative contentLength values
+        // For more info see https://bugzilla.mozilla.org/show_bug.cgi?id=1632594
+        val fileSize = if (contentLength != null && contentLength < 0) null else contentLength
         val download = DownloadState(
             url,
             fileName,
             contentType,
-            contentLength,
+            fileSize,
             userAgent,
             Environment.DIRECTORY_DOWNLOADS
         )
@@ -284,5 +280,13 @@ internal class EngineObserver(
 
     override fun onRecordingStateChanged(devices: List<RecordingDevice>) {
         session.recordingDevices = devices
+    }
+
+    override fun onHistoryStateChanged(historyList: List<HistoryItem>, currentIndex: Int) {
+        store?.dispatch(ContentAction.UpdateHistoryStateAction(
+            session.id,
+            historyList,
+            currentIndex
+        ))
     }
 }

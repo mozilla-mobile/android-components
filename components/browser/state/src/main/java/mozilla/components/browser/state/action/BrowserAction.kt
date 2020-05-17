@@ -22,6 +22,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.prompt.PromptRequest
@@ -249,9 +250,14 @@ sealed class ContentAction : BrowserAction() {
     data class ConsumeSearchRequestAction(val sessionId: String) : ContentAction()
 
     /**
-     * Updates the [fullScreenEnabled] with the given [sessionId].
+     * Updates [fullScreenEnabled] with the given [sessionId].
      */
     data class FullScreenChangedAction(val sessionId: String, val fullScreenEnabled: Boolean) : ContentAction()
+
+    /**
+     * Updates [pipEnabled] with the given [sessionId].
+     */
+    data class PictureInPictureChangedAction(val sessionId: String, val pipEnabled: Boolean) : ContentAction()
 
     /**
      * Updates the [layoutInDisplayCutoutMode] with the given [sessionId].
@@ -288,6 +294,15 @@ sealed class ContentAction : BrowserAction() {
      * Removes the [WebAppManifest] of the [ContentState] with the given [sessionId].
      */
     data class RemoveWebAppManifestAction(val sessionId: String) : ContentAction()
+
+    /**
+     * Updates the [ContentState] of the given [sessionId] to indicate the current history state.
+     */
+    data class UpdateHistoryStateAction(
+        val sessionId: String,
+        val historyList: List<HistoryItem>,
+        val currentIndex: Int
+    ) : ContentAction()
 }
 
 /**
@@ -532,9 +547,44 @@ sealed class MediaAction : BrowserAction() {
     ) : MediaAction()
 
     /**
+     * Updates the [Media.fullscreen] for the [MediaState.Element] with id [mediaId] owned by the tab
+     * with id [tabId].
+     */
+    data class UpdateMediaFullscreenAction(
+        val tabId: String,
+        val mediaId: String,
+        val fullScreen: Boolean
+    ) : MediaAction()
+
+    /**
      * Updates [MediaState.Aggregate] in the [MediaState].
      */
     data class UpdateMediaAggregateAction(
         val aggregate: MediaState.Aggregate
     ) : MediaAction()
+}
+
+/**
+ * [BrowserAction] implementations related to updating the global download state.
+ */
+sealed class DownloadAction : BrowserAction() {
+    /**
+     * Updates the [BrowserState] to track the provided [download] as queued.
+     */
+    data class QueueDownloadAction(val download: DownloadState) : DownloadAction()
+
+    /**
+     * Updates the [BrowserState] to remove the queued download with the provided [downloadId].
+     */
+    data class RemoveQueuedDownloadAction(val downloadId: Long) : DownloadAction()
+
+    /**
+     * Updates the [BrowserState] to remove all queued downloads.
+     */
+    object RemoveAllQueuedDownloadsAction : DownloadAction()
+
+    /**
+     * Updates the provided [download] on the [BrowserState].
+     */
+    data class UpdateQueuedDownloadAction(val download: DownloadState) : DownloadAction()
 }

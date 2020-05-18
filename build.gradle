@@ -54,7 +54,7 @@ allprojects {
                 url project.property("jcenterRepo")
             }
         } else {
-            jcenter()
+            mavenCentral()
         }
 
         maven {

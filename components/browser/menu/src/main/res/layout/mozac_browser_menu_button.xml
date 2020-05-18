@@ -10,6 +10,7 @@
     android:clickable="true"
     android:focusable="true"
     android:background="?android:selectableItemBackgroundBorderless"
+    tools:ignore="Overdraw"
     tools:parentTag="android.widget.FrameLayout">
 
     <androidx.appcompat.widget.AppCompatImageView

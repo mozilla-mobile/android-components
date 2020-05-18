@@ -188,6 +188,12 @@ subprojects {
 
                 packagingOptions {
                     exclude 'META-INF/atomicfu.kotlin_module'
+                    exclude 'META-INF/AL2.0'
+                    exclude 'META-INF/LGPL2.1'
+                }
+
+                lintOptions {
+                    lintConfig file("${rootProject.projectDir}${File.separatorChar}lint.xml")
                 }
 
                 compileOptions {

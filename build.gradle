@@ -15,6 +15,15 @@ buildscript {
             google()
         }
 
+        if (project.hasProperty("centralRepo")) {
+            maven {
+                name "MavenCentral"
+                url project.property("centralRepo")
+            }
+        } else {
+            mavenCentral()
+        }
+
         if (project.hasProperty("jcenterRepo")) {
             maven {
                 name "BintrayJCenter"
@@ -48,13 +57,22 @@ allprojects {
             google()
         }
 
+        if (project.hasProperty("centralRepo")) {
+            maven {
+                name "MavenCentral"
+                url project.property("centralRepo")
+            }
+        } else {
+            mavenCentral()
+        }
+
         if (project.hasProperty("jcenterRepo")) {
             maven {
                 name "BintrayJCenter"
                 url project.property("jcenterRepo")
             }
         } else {
-            mavenCentral()
+            jcenter()
         }
 
         maven {

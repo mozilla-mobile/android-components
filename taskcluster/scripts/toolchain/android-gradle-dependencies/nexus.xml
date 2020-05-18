@@ -41,7 +41,7 @@
         <provider>file</provider>
       </localStorage>
       <remoteStorage>
-        <url>https://jcenter.bintray.com/</url>
+        <url>https://repo.maven.apache.org/maven2/</url>
       </remoteStorage>
       <externalConfiguration>
         <repositoryPolicy>RELEASE</repositoryPolicy>

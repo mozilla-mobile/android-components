@@ -34,6 +34,8 @@ android {
 
 dependencies {
     implementation project(':support-ktx')
+    implementation project(':browser-icons')
+    implementation project(':support-base')
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines

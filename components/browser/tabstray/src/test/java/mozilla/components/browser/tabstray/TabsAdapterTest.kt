@@ -113,4 +113,16 @@ class TabsAdapterTest {
         adapter.onTabsChanged(42, 78)
         verify(adapter).notifyItemRangeChanged(42, 78)
     }
+
+    @Test
+    fun `scroll to selected tab when updating adapter`() {
+        val adapter = TabsAdapter()
+        val tray: BrowserTabsTray = mock()
+
+        adapter.tabsTray = tray
+
+        adapter.updateTabs(Tabs(listOf(mock()), 1))
+
+        verify(tray).scrollToPosition(1)
+    }
 }

@@ -56,6 +56,8 @@ class TabsAdapter(
 
     override fun updateTabs(tabs: Tabs) {
         this.tabs = tabs
+
+        tabsTray.scrollToPosition(tabs.selectedIndex)
     }
 
     override fun onTabsInserted(position: Int, count: Int) = notifyItemRangeInserted(position, count)

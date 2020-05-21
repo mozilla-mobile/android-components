@@ -14,8 +14,8 @@ import androidx.room.Insert
 @Dao
 internal interface TabDao {
     @Insert
-    fun insertTab(tab: TabEntity): Long
+    suspend fun insertTabs(tab: List<TabEntity>): List<Long>
 
     @Delete
-    fun deleteTab(tab: TabEntity)
+    suspend fun deleteTab(tab: TabEntity)
 }

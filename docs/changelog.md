@@ -26,6 +26,10 @@ permalink: /changelog/
 * **browser-thumbnails**
   * Adds `ThumbnailDiskCache` for storing and restoring thumbnail bitmaps into a disk cache.
 
+* **feature-tab-collections**
+  * ⚠️ **This is a breaking change**: Methods on `TabCollectionStorage` are now suspend functions.
+    `TabCollectionStorage.getCollections` now returns `Flow` instead of `LiveData`.
+
 # 42.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v41.0.0...42.0.0)

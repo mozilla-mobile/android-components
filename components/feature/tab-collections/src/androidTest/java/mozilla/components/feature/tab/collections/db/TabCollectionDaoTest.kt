@@ -9,7 +9,9 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.paging.PagedList
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import mozilla.components.support.android.test.awaitValue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -19,6 +21,7 @@ import org.junit.Test
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+@ExperimentalCoroutinesApi
 class TabCollectionDaoTest {
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
@@ -44,7 +47,7 @@ class TabCollectionDaoTest {
     }
 
     @Test
-    fun testInsertingAndReadingCollections() {
+    fun testInsertingAndReadingCollections() = runBlockingTest {
         val collection1 = TabCollectionEntity(title = "Collection One", updatedAt = 10)
         val collection2 = TabCollectionEntity(title = "Collection Two", updatedAt = 50)
 
@@ -66,7 +69,7 @@ class TabCollectionDaoTest {
     }
 
     @Test
-    fun testUpdatingCollections() {
+    fun testUpdatingCollections() = runBlockingTest {
         val collection1 = TabCollectionEntity(title = "Collection One", createdAt = 10)
         val collection2 = TabCollectionEntity(title = "Collection Two", createdAt = 50)
 
@@ -93,7 +96,7 @@ class TabCollectionDaoTest {
     }
 
     @Test
-    fun testRemovingCollections() {
+    fun testRemovingCollections() = runBlockingTest {
         val collection1 = TabCollectionEntity(title = "Collection One", updatedAt = 10)
         val collection2 = TabCollectionEntity(title = "Collection Two", updatedAt = 50)
         val collection3 = TabCollectionEntity(title = "Collection Three", updatedAt = 75)
@@ -119,7 +122,7 @@ class TabCollectionDaoTest {
     }
 
     @Test
-    fun testGettingCollectionsWithLimit() {
+    fun testGettingCollectionsWithLimit() = runBlockingTest {
         val collection1 = TabCollectionEntity(title = "Collection One", updatedAt = 10)
         val collection2 = TabCollectionEntity(title = "Collection Two", updatedAt = 50)
 
@@ -128,15 +131,15 @@ class TabCollectionDaoTest {
 
         val data = tabCollectionDao.getTabCollections(4)
 
-        val collections = data.awaitValue()
-        assertNotNull(collections!!)
+        val collections = data.first()
+        assertNotNull(collections)
         assertEquals(2, collections.size)
         assertEquals("Collection Two", collections[1].collection.title)
         assertEquals("Collection One", collections[0].collection.title)
     }
 
     @Test
-    fun testCountingTabCollections() {
+    fun testCountingTabCollections() = runBlockingTest {
         assertEquals(0, tabCollectionDao.countTabCollections())
 
         val collection1 = TabCollectionEntity(title = "Collection One", createdAt = 10)

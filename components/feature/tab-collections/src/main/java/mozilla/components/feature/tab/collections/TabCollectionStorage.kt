@@ -5,9 +5,11 @@
 package mozilla.components.feature.tab.collections
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.Transformations
 import androidx.paging.DataSource
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.ext.writeSnapshotItem
@@ -28,18 +30,22 @@ class TabCollectionStorage(
     private val sessionManager: SessionManager,
     private val filesDir: File = context.filesDir
 ) {
+
+    @VisibleForTesting
     internal var database: Lazy<TabCollectionDatabase> = lazy { TabCollectionDatabase.get(context) }
+    private val tabCollectionDao by lazy { database.value.tabCollectionDao() }
+    private val tabDao by lazy { database.value.tabDao() }
 
     /**
      * Creates a new [TabCollection] and save the state of the given [Session]s in it.
      */
-    fun createCollection(title: String, sessions: List<Session> = emptyList()) {
+    suspend fun createCollection(title: String, sessions: List<Session> = emptyList()) {
         val entity = TabCollectionEntity(
             title = title,
             updatedAt = System.currentTimeMillis(),
             createdAt = System.currentTimeMillis()
         ).also { entity ->
-            entity.id = database.value.tabCollectionDao().insertTabCollection(entity)
+            entity.id = tabCollectionDao.insertTabCollection(entity)
         }
 
         addTabsToCollection(entity, sessions)
@@ -48,13 +54,13 @@ class TabCollectionStorage(
     /**
      * Adds the state of the given [Session]s to the [TabCollection].
      */
-    fun addTabsToCollection(collection: TabCollection, sessions: List<Session>) {
+    suspend fun addTabsToCollection(collection: TabCollection, sessions: List<Session>) {
         val collectionEntity = (collection as TabCollectionAdapter).entity.collection
         addTabsToCollection(collectionEntity, sessions)
     }
 
-    private fun addTabsToCollection(collection: TabCollectionEntity, sessions: List<Session>) {
-        sessions.forEach { session ->
+    private suspend fun addTabsToCollection(collection: TabCollectionEntity, sessions: List<Session>) {
+        val tabs = sessions.mapNotNull { session ->
             val fileName = UUID.randomUUID().toString()
 
             val entity = TabEntity(
@@ -68,29 +74,28 @@ class TabCollectionStorage(
             val snapshot = sessionManager.createSessionSnapshot(session)
 
             val success = entity.getStateFile(filesDir).writeSnapshotItem(snapshot)
-            if (success) {
-                database.value.tabDao().insertTab(entity)
-            }
+            if (success) entity else null
         }
 
+        tabDao.insertTabs(tabs)
         collection.updatedAt = System.currentTimeMillis()
-        database.value.tabCollectionDao().updateTabCollection(collection)
+        tabCollectionDao.updateTabCollection(collection)
     }
 
     /**
      * Removes the given [Tab] from the [TabCollection].
      */
-    fun removeTabFromCollection(collection: TabCollection, tab: Tab) {
+    suspend fun removeTabFromCollection(collection: TabCollection, tab: Tab) {
         val collectionEntity = (collection as TabCollectionAdapter).entity.collection
         val tabEntity = (tab as TabAdapter).entity
 
         tabEntity.getStateFile(filesDir)
             .delete()
 
-        database.value.tabDao().deleteTab(tabEntity)
+        tabDao.deleteTab(tabEntity)
 
         collectionEntity.updatedAt = System.currentTimeMillis()
-        database.value.tabCollectionDao().updateTabCollection(collectionEntity)
+        tabCollectionDao.updateTabCollection(collectionEntity)
     }
 
     /**
@@ -102,8 +107,7 @@ class TabCollectionStorage(
      * - https://developer.android.com/topic/libraries/architecture/paging/data
      * - https://developer.android.com/topic/libraries/architecture/paging/ui
      */
-    fun getCollectionsPaged(): DataSource.Factory<Int, TabCollection> = database.value
-        .tabCollectionDao()
+    fun getCollectionsPaged(): DataSource.Factory<Int, TabCollection> = tabCollectionDao
         .getTabCollectionsPaged()
         .map { entity -> TabCollectionAdapter(entity) }
 
@@ -112,11 +116,10 @@ class TabCollectionStorage(
      *
      * @param limit (Optional) Maximum number of [TabCollection] instances that should be returned.
      */
-    fun getCollections(limit: Int = 20): LiveData<List<TabCollection>> {
+    fun getCollections(limit: Int = 20): Flow<List<TabCollection>> {
         limit.hashCode()
-        return Transformations.map(
-            database.value.tabCollectionDao().getTabCollections(limit)
-        ) { list ->
+
+        return tabCollectionDao.getTabCollections(limit).map { list ->
             list.map { entity -> TabCollectionAdapter(entity) }
         }
     }
@@ -124,23 +127,22 @@ class TabCollectionStorage(
     /**
      * Renames a collection.
      */
-    fun renameCollection(collection: TabCollection, title: String) {
+    suspend fun renameCollection(collection: TabCollection, title: String) {
         val collectionEntity = (collection as TabCollectionAdapter).entity.collection
 
         collectionEntity.title = title
         collectionEntity.updatedAt = System.currentTimeMillis()
 
-        database.value.tabCollectionDao().updateTabCollection(collectionEntity)
+        tabCollectionDao.updateTabCollection(collectionEntity)
     }
 
     /**
      * Removes a collection and all its tabs.
      */
-    fun removeCollection(collection: TabCollection) {
+    suspend fun removeCollection(collection: TabCollection) {
         val collectionWithTabs = (collection as TabCollectionAdapter).entity
 
-        database.value
-            .tabCollectionDao()
+        tabCollectionDao
             .deleteTabCollection(collectionWithTabs.collection)
 
         collectionWithTabs.tabs.forEach { tab ->
@@ -161,7 +163,7 @@ class TabCollectionStorage(
     /**
      * Returns the number of tab collections.
      */
-    fun getTabCollectionsCount(): Int {
-        return database.value.tabCollectionDao().countTabCollections()
+    suspend fun getTabCollectionsCount(): Int {
+        return tabCollectionDao.countTabCollections()
     }
 }

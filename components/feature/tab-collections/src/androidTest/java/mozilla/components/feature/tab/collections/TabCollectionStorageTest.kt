@@ -10,6 +10,9 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.paging.PagedList
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.DefaultSettings
@@ -21,7 +24,6 @@ import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.feature.tab.collections.db.TabCollectionDatabase
 import mozilla.components.feature.tab.collections.db.TabEntity
-import mozilla.components.support.android.test.awaitValue
 import mozilla.components.support.ktx.java.io.truncateDirectory
 import org.json.JSONObject
 import org.junit.After
@@ -34,8 +36,9 @@ import org.junit.Test
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+@ExperimentalCoroutinesApi
 @Suppress("LargeClass") // Large test is large
-class TabCollectionStorageTest {
+class TabCollectionStorageAndroidTest {
     private lateinit var context: Context
     private lateinit var sessionManager: SessionManager
     private lateinit var storage: TabCollectionStorage
@@ -66,7 +69,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testCreatingCollections() {
+    fun testCreatingCollections() = runBlockingTest {
         storage.createCollection("Empty")
         storage.createCollection("Recipes", listOf(
             Session("https://www.mozilla.org").apply { title = "Mozilla" },
@@ -90,7 +93,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testAddingTabsToExistingCollection() {
+    fun testAddingTabsToExistingCollection() = runBlockingTest {
         storage.createCollection("Articles")
 
         getAllCollections().let { collections ->
@@ -115,7 +118,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testRemovingTabsFromCollection() {
+    fun testRemovingTabsFromCollection() = runBlockingTest {
         storage.createCollection("Articles", listOf(
             Session("https://www.mozilla.org").apply { title = "Mozilla" },
             Session("https://www.firefox.com").apply { title = "Firefox" }
@@ -138,7 +141,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testRenamingCollection() {
+    fun testRenamingCollection() = runBlockingTest {
         storage.createCollection("Articles")
 
         getAllCollections().let { collections ->
@@ -153,7 +156,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testRemovingCollection() {
+    fun testRemovingCollection() = runBlockingTest {
         storage.createCollection("Articles")
         storage.createCollection("Recipes")
 
@@ -173,7 +176,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testCreatingCollectionAndRestoringState() {
+    fun testCreatingCollectionAndRestoringState() = runBlockingTest {
         val session1 = Session("https://www.mozilla.org").apply { title = "Mozilla" }
         val session2 = Session("https://www.firefox.com").apply { title = "Firefox" }
 
@@ -220,7 +223,7 @@ class TabCollectionStorageTest {
 
     @Test
     @Suppress("ComplexMethod")
-    fun testGettingCollectionsWithLimit() {
+    fun testGettingCollectionsWithLimit() = runBlockingTest {
         storage.createCollection(
             "Articles", listOf(
                 Session("https://www.mozilla.org").apply { title = "Mozilla" }
@@ -249,10 +252,9 @@ class TabCollectionStorageTest {
             )
         )
 
-        val collections = storage.getCollections(limit = 4)
-            .awaitValue()
+        val collections = storage.getCollections(limit = 4).first()
 
-        assertNotNull(collections!!)
+        assertNotNull(collections)
         assertEquals(4, collections.size)
 
         with(collections[0]) {
@@ -290,7 +292,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testGettingTabCollectionCount() {
+    fun testGettingTabCollectionCount() = runBlockingTest {
         assertEquals(0, storage.getTabCollectionsCount())
 
         storage.createCollection(
@@ -306,9 +308,8 @@ class TabCollectionStorageTest {
 
         assertEquals(2, storage.getTabCollectionsCount())
 
-        val collections = storage.getCollections(limit = 2)
-            .awaitValue()
-        assertNotNull(collections!!)
+        val collections = storage.getCollections(limit = 2).first()
+        assertNotNull(collections)
         assertEquals(2, collections.size)
 
         storage.removeCollection(collections[0])
@@ -317,7 +318,7 @@ class TabCollectionStorageTest {
     }
 
     @Test
-    fun testRemovingAllCollections() {
+    fun testRemovingAllCollections() = runBlockingTest {
         storage.createCollection(
             "Articles", listOf(
                 Session("https://www.mozilla.org").apply { title = "Mozilla" }
@@ -351,7 +352,7 @@ class TabCollectionStorageTest {
     }
 }
 
-class FakeEngine : Engine {
+private class FakeEngine : Engine {
     override val version: EngineVersion
         get() = throw NotImplementedError("Not needed for test")
 
@@ -372,6 +373,6 @@ class FakeEngine : Engine {
     override val settings: Settings = DefaultSettings()
 }
 
-class FakeEngineSessionState : EngineSessionState {
+private class FakeEngineSessionState : EngineSessionState {
     override fun toJSON() = JSONObject()
 }

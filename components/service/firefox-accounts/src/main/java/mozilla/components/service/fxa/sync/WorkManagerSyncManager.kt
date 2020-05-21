@@ -5,7 +5,7 @@
 package mozilla.components.service.fxa.sync
 
 import android.content.Context
-import androidx.annotation.UiThread
+import androidx.lifecycle.asFlow
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -20,9 +20,11 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import mozilla.appservices.syncmanager.SyncParams
 import mozilla.appservices.syncmanager.SyncServiceStatus
-import mozilla.appservices.syncmanager.SyncManager as RustSyncManager
 import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.service.fxa.FxaDeviceSettingsCache
 import mozilla.components.service.fxa.SyncAuthInfoCache
@@ -36,6 +38,7 @@ import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.sync.telemetry.SyncTelemetry
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
+import mozilla.appservices.syncmanager.SyncManager as RustSyncManager
 
 private enum class SyncWorkerTag {
     Common,
@@ -55,8 +58,6 @@ private const val SYNC_WORKER_BACKOFF_DELAY_MINUTES = 3L
 
 /**
  * A [SyncManager] implementation which uses WorkManager APIs to schedule sync tasks.
- *
- * Must be initialized on the main thread.
  */
 internal class WorkManagerSyncManager(
     private val context: Context,
@@ -90,37 +91,31 @@ internal class WorkManagerSyncManager(
  * single LiveData instance.
  */
 internal object WorkersLiveDataObserver {
-    private lateinit var workManager: WorkManager
-    private val workersLiveData by lazy {
-        workManager.getWorkInfosByTagLiveData(SyncWorkerTag.Common.name)
-    }
 
+    private val scope = MainScope()
     private var dispatcher: SyncDispatcher? = null
+    private var initialized = false
 
     /**
      * Initializes the Observer.
      *
      * @param context the context that will be used to with the [WorkManager] to observe workers.
      */
-    @UiThread
     fun init(context: Context) {
-        workManager = WorkManager.getInstance(context)
+        if (initialized) return
 
-        // Only set our observer once.
-        if (workersLiveData.hasObservers()) return
+        val workManager = WorkManager.getInstance(context)
+        val liveData = workManager.getWorkInfosByTagLiveData(SyncWorkerTag.Common.name)
+        scope.launch {
+            liveData.asFlow().collect { workers ->
+                val isRunning = workers.any { worker -> worker.state == WorkInfo.State.RUNNING }
 
-        // This must be called on the UI thread.
-        workersLiveData.observeForever {
-            val isRunning = when (it?.any { worker -> worker.state == WorkInfo.State.RUNNING }) {
-                null -> false
-                false -> false
-                true -> true
+                dispatcher?.workersStateChanged(isRunning)
+
+                // TODO process errors coming out of worker.outputData
             }
-
-            dispatcher?.workersStateChanged(isRunning)
-
-            // TODO process errors coming out of worker.outputData
         }
+        initialized = true
     }
 
     fun setDispatcher(dispatcher: SyncDispatcher) {

@@ -198,7 +198,6 @@ abstract class AbstractFetchDownloadService : Service() {
                             )) {
                             Toast.makeText(applicationContext,
                                 applicationContext.getString(R.string.mozac_feature_downloads_could_not_open_file),
-                                Toast.LENGTH_SHORT
                             ).show()
                         }
 
@@ -467,6 +466,9 @@ abstract class AbstractFetchDownloadService : Service() {
         if (SDK_INT >= Build.VERSION_CODES.Q) {
             useFileStreamScopedStorage(downloadWithUniqueFileName, block)
         } else {
+            if (android.os.Build.DEVICE.contains("Samsung") || android.os.Build.MANUFACTURER.contains("Samsung") || android.os.Build.DEVICE.contains("Nokia")){
+                useFileStreamScopedStorage(downloadWithUniqueFileName, block)
+            }
             useFileStreamLegacy(downloadWithUniqueFileName, append, block)
         }
     }

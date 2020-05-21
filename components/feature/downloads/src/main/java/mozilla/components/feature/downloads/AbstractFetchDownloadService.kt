@@ -197,7 +197,7 @@ abstract class AbstractFetchDownloadService : Service() {
                                 contentType = currentDownloadJobState.state.contentType
                             )) {
                             Toast.makeText(applicationContext,
-                                applicationContext.getString(R.string.mozac_feature_downloads_could_not_open_file),
+                                applicationContext.getString(R.string.mozac_feature_downloads_could_not_open_file), Toast.LENGTH_SHORT
                             ).show()
                         }
 

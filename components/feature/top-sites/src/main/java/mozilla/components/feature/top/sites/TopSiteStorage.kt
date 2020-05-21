@@ -5,9 +5,10 @@
 package mozilla.components.feature.top.sites
 
 import android.content.Context
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.Transformations
+import androidx.annotation.VisibleForTesting
 import androidx.paging.DataSource
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import mozilla.components.feature.top.sites.adapter.TopSiteAdapter
 import mozilla.components.feature.top.sites.db.TopSiteDatabase
 import mozilla.components.feature.top.sites.db.TopSiteEntity
@@ -15,10 +16,11 @@ import mozilla.components.feature.top.sites.db.TopSiteEntity
 /**
  * A storage implementation for organizing top sites.
  */
-class TopSiteStorage(
-    context: Context
-) {
+class TopSiteStorage(context: Context) {
+
+    @VisibleForTesting
     internal var database: Lazy<TopSiteDatabase> = lazy { TopSiteDatabase.get(context) }
+    private val topSiteDao by lazy { database.value.topSiteDao() }
 
     /**
      * Adds a new [TopSite].
@@ -28,24 +30,22 @@ class TopSiteStorage(
      * @param isDefault Whether or not the top site added should be a default top site. This is
      * used to identify top sites that are added by the application.
      */
-    fun addTopSite(title: String, url: String, isDefault: Boolean = false) {
+    suspend fun addTopSite(title: String, url: String, isDefault: Boolean = false) {
         TopSiteEntity(
             title = title,
             url = url,
             isDefault = isDefault,
             createdAt = System.currentTimeMillis()
         ).also { entity ->
-            entity.id = database.value.topSiteDao().insertTopSite(entity)
+            entity.id = topSiteDao.insertTopSite(entity)
         }
     }
 
     /**
-     * Returns a [LiveData] list of all the [TopSite] instances.
+     * Returns a [Flow] list of all the [TopSite] instances.
      */
-    fun getTopSites(): LiveData<List<TopSite>> {
-        return Transformations.map(
-            database.value.topSiteDao().getTopSites()
-        ) { list ->
+    fun getTopSites(): Flow<List<TopSite>> {
+        return topSiteDao.getTopSites().map { list ->
             list.map { entity -> TopSiteAdapter(entity) }
         }
     }
@@ -53,16 +53,15 @@ class TopSiteStorage(
     /**
      * Returns all [TopSite]s as a [DataSource.Factory].
      */
-    fun getTopSitesPaged(): DataSource.Factory<Int, TopSite> = database.value
-        .topSiteDao()
+    fun getTopSitesPaged(): DataSource.Factory<Int, TopSite> = topSiteDao
         .getTopSitesPaged()
         .map { entity -> TopSiteAdapter(entity) }
 
     /**
      * Removes the given [TopSite].
      */
-    fun removeTopSite(site: TopSite) {
+    suspend fun removeTopSite(site: TopSite) {
         val topSiteEntity = (site as TopSiteAdapter).entity
-        database.value.topSiteDao().deleteTopSite(topSiteEntity)
+        topSiteDao.deleteTopSite(topSiteEntity)
     }
 }

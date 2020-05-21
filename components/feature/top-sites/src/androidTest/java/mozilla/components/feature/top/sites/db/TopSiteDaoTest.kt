@@ -9,6 +9,8 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.paging.PagedList
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runBlockingTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -17,6 +19,7 @@ import org.junit.Test
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+@ExperimentalCoroutinesApi
 class TopSiteDaoTest {
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
@@ -42,7 +45,7 @@ class TopSiteDaoTest {
     }
 
     @Test
-    fun testAddingTopSite() {
+    fun testAddingTopSite() = runBlockingTest {
         val topSite = TopSiteEntity(
             title = "Mozilla",
             url = "https://www.mozilla.org",
@@ -64,7 +67,7 @@ class TopSiteDaoTest {
     }
 
     @Test
-    fun testRemovingTopSite() {
+    fun testRemovingTopSite() = runBlockingTest {
         val topSite1 = TopSiteEntity(
             title = "Mozilla",
             url = "https://www.mozilla.org",

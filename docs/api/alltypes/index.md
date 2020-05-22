@@ -768,6 +768,7 @@
 | [mozilla.components.support.utils.ThreadUtils](../mozilla.components.support.utils/-thread-utils/index.md) |  |
 | [mozilla.components.support.test.ThrowProperty](../mozilla.components.support.test/-throw-property/index.md) | A [ReadWriteProperty](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.properties/-read-write-property/index.html) implementation for creating stub properties. |
 | [kotlin.Throwable](../mozilla.components.support.base.ext/kotlin.-throwable/index.md) (extensions in package mozilla.components.support.base.ext) |  |
+| [mozilla.components.browser.thumbnails.utils.ThumbnailDiskCache](../mozilla.components.browser.thumbnails.utils/-thumbnail-disk-cache/index.md) | Caching thumbnail bitmaps on disk. |
 | [mozilla.components.feature.session.ThumbnailsFeature](../mozilla.components.feature.session/-thumbnails-feature/index.md) | Feature implementation for automatically taking thumbnails of sites. The feature will take a screenshot when the page finishes loading, and will add it to the [Session.thumbnail](../mozilla.components.browser.session/-session/thumbnail.md) property. |
 | [mozilla.components.service.glean.private.TimeUnit](../mozilla.components.service.glean.private/-time-unit.md) |  |
 | [mozilla.components.service.glean.private.TimespanMetricType](../mozilla.components.service.glean.private/-timespan-metric-type.md) |  |

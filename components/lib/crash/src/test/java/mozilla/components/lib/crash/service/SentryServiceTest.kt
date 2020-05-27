@@ -124,7 +124,7 @@ class SentryServiceTest {
     }
 
     @Test
-    fun `SentryService sends event for native code crashes`() {
+    fun `SentryService do not send event for native code crashes`() {
         val client: SentryClient = mock()
         val clientContext: Context = mock()
         doReturn(clientContext).`when`(client).context
@@ -141,60 +141,9 @@ class SentryServiceTest {
 
         service.report(Crash.NativeCodeCrash("", true, "", false, arrayListOf()))
 
-        verify(client).sendEvent(any<EventBuilder>())
-        verify(clientContext).clearBreadcrumbs()
-    }
-
-    @Test
-    fun `Fatal native code crashes are reported as level FATAL`() {
-        val client: SentryClient = mock()
-        val clientContext: Context = mock()
-        doReturn(clientContext).`when`(client).context
-        doNothing().`when`(clientContext).clearBreadcrumbs()
-
-        val service = SentryService(
-            testContext,
-            "https://not:real6@sentry.prod.example.net/405",
-            clientFactory = object : SentryClientFactory() {
-                override fun createSentryClient(dsn: Dsn?): SentryClient = client
-            },
-            sendEventForNativeCrashes = true
-        )
-
-        service.report(Crash.NativeCodeCrash("", true, "", true, arrayListOf()))
-
-        val eventBuilderCaptor: ArgumentCaptor<EventBuilder> = ArgumentCaptor.forClass(EventBuilder::class.java)
-        verify(client, times(1)).sendEvent(eventBuilderCaptor.capture())
-
-        val capturedEvent: List<EventBuilder> = eventBuilderCaptor.allValues
-        assertEquals(Event.Level.FATAL, capturedEvent[0].event.level)
-        verify(clientContext).clearBreadcrumbs()
-    }
-
-    @Test
-    fun `Non-fatal native code crashes are reported as level ERROR`() {
-        val client: SentryClient = mock()
-        val clientContext: Context = mock()
-        doReturn(clientContext).`when`(client).context
-        doNothing().`when`(clientContext).clearBreadcrumbs()
-
-        val service = SentryService(
-            testContext,
-            "https://not:real6@sentry.prod.example.net/405",
-            clientFactory = object : SentryClientFactory() {
-                override fun createSentryClient(dsn: Dsn?): SentryClient = client
-            },
-            sendEventForNativeCrashes = true
-        )
-
-        service.report(Crash.NativeCodeCrash("", true, "", false, arrayListOf()))
-
-        val eventBuilderCaptor: ArgumentCaptor<EventBuilder> = ArgumentCaptor.forClass(EventBuilder::class.java)
-        verify(client, times(1)).sendEvent(eventBuilderCaptor.capture())
-
-        val capturedEvent: List<EventBuilder> = eventBuilderCaptor.allValues
-        assertEquals(Event.Level.ERROR, capturedEvent[0].event.level)
-        verify(clientContext).clearBreadcrumbs()
+        verify(client, never()).sendEvent(any<EventBuilder>())
+        verify(client.context, never()).recordBreadcrumb(any())
+        verify(clientContext, never()).clearBreadcrumbs()
     }
 
     @Test
@@ -247,22 +196,6 @@ class SentryServiceTest {
         val capturedEvent: List<EventBuilder> = eventBuilderCaptor.allValues
         assertEquals(Event.Level.INFO, capturedEvent[0].event.level)
         verify(clientContext).clearBreadcrumbs()
-    }
-
-    @Test
-    fun `SentryService does not send event for native code crashes by default`() {
-        val client: SentryClient = mock()
-
-        val service = SentryService(
-            testContext,
-            "https://not:real6@sentry.prod.example.net/405",
-            clientFactory = object : SentryClientFactory() {
-                override fun createSentryClient(dsn: Dsn?): SentryClient = client
-            })
-
-        service.report(Crash.NativeCodeCrash("", true, "", false, arrayListOf()))
-
-        verify(client, never()).sendEvent(any<EventBuilder>())
     }
 
     @Test
@@ -359,7 +292,6 @@ class SentryServiceTest {
                 breadcrumbs = crashBreadCrumbs)
 
         service.report(nativeCrash)
-        verify(clientContext).recordBreadcrumb(any())
     }
 
     @Test

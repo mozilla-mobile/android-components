@@ -16,13 +16,23 @@ permalink: /changelog/
   * Added support for [onbeforeunload prompt](https://developer.mozilla.org/en-US/docs/Web/API/WindowEventHandlers/onbeforeunload)
 
 * **feature-tabs**
-  * ⚠️ **This is a breaking change**: Added a dependency on `ThumbnailsUseCases` to `TabsFeature` and `TabsTrayPresenter`
-    for loading a tab's thumbnail.
+  * Added an optional `ThumbnailsUseCases` to `TabsFeature` and `TabsTrayPresenter` for loading a
+    tab's thumbnail.
 
 * **browser-thumbnails**
   * Adds `LoadThumbnailUseCase` in `ThumbnailsUseCases` for loading the thumbnail of a tab.
   * Adds `ThumbnailStorage` as a storage layer for handling saving and loading a thumbnail from the
     disk cache.
+
+* **feature-push**
+  * Adds the `getSubscription` call to check if a subscription exists.
+
+* **browser-engine-gecko-***
+  * Fixes GeckoWebPushDelegate to gracefully return when a subscription is not available.
+
+* **feature-session**
+  * Removes unused `ThumbnailsFeature` since this has been refactored into its own browser-thumbnails component in
+    [#6827](https://github.com/mozilla-mobile/android-components/issues/6827).
 
 # 43.0.0
 

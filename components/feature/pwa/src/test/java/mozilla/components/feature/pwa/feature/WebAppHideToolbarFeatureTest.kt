@@ -28,12 +28,14 @@ class WebAppHideToolbarFeatureTest {
         val toolbar: View = mock()
         var changeResult = true
 
-        WebAppHideToolbarFeature(mock(), toolbar, "id", listOf(mock())) { changeResult = it }
+        var feature = WebAppHideToolbarFeature(mock(), toolbar, "id", listOf(mock())) { changeResult = it }
         verify(toolbar).visibility = View.GONE
+        assertFalse(feature.toolbarVisible)
         assertFalse(changeResult)
 
-        WebAppHideToolbarFeature(mock(), toolbar, "id", emptyList()) { changeResult = it }
+        feature = WebAppHideToolbarFeature(mock(), toolbar, "id", emptyList()) { changeResult = it }
         verify(toolbar).visibility = View.VISIBLE
+        assertTrue(feature.toolbarVisible)
         assertTrue(changeResult)
     }
 
@@ -59,15 +61,19 @@ class WebAppHideToolbarFeatureTest {
         val feature = WebAppHideToolbarFeature(mock(), toolbar, "id", trusted)
 
         feature.onUrlChanged(mock(), "https://mozilla.com/example-page")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://firefox.com/out-of-scope")
+        assertTrue(feature.toolbarVisible)
         assertEquals(View.VISIBLE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://mozilla.com/back-in-scope")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://m.mozilla.com/second-origin")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
     }
 
@@ -78,15 +84,19 @@ class WebAppHideToolbarFeatureTest {
         val feature = WebAppHideToolbarFeature(mock(), toolbar, "id", trusted)
 
         feature.onUrlChanged(mock(), "https://mozilla.github.io/my-app/")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://firefox.com/out-of-scope")
+        assertTrue(feature.toolbarVisible)
         assertEquals(View.VISIBLE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://mozilla.github.io/my-app-almost-in-scope")
+        assertTrue(feature.toolbarVisible)
         assertEquals(View.VISIBLE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://mozilla.github.io/my-app/sub-page")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
     }
 
@@ -97,9 +107,11 @@ class WebAppHideToolbarFeatureTest {
         val feature = WebAppHideToolbarFeature(mock(), toolbar, "id", trusted)
 
         feature.onUrlChanged(mock(), "https://mozilla.github.io/prefix/")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
 
         feature.onUrlChanged(mock(), "https://mozilla.github.io/prefix-of/resource.html")
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
     }
 
@@ -115,9 +127,11 @@ class WebAppHideToolbarFeatureTest {
         doReturn("https://mozilla.com/example-page").`when`(session).url
 
         feature.onTrustedScopesChange(listOf("https://m.mozilla.com".toUri()))
+        assertTrue(feature.toolbarVisible)
         assertEquals(View.VISIBLE, toolbar.visibility)
 
         feature.onTrustedScopesChange(listOf("https://mozilla.com".toUri()))
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
     }
 
@@ -133,12 +147,15 @@ class WebAppHideToolbarFeatureTest {
         doReturn("https://mozilla.github.io/my-app/").`when`(session).url
 
         feature.onTrustedScopesChange(listOf("https://mozilla.github.io/my-app/".toUri()))
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
 
         feature.onTrustedScopesChange(listOf("https://firefox.com/out-of-scope/".toUri()))
+        assertTrue(feature.toolbarVisible)
         assertEquals(View.VISIBLE, toolbar.visibility)
 
         feature.onTrustedScopesChange(listOf("https://mozilla.github.io/my-app-almost-in-scope".toUri()))
+        assertTrue(feature.toolbarVisible)
         assertEquals(View.VISIBLE, toolbar.visibility)
     }
 
@@ -154,9 +171,11 @@ class WebAppHideToolbarFeatureTest {
         doReturn("https://mozilla.github.io/prefix-of/resource.html").`when`(session).url
 
         feature.onTrustedScopesChange(listOf("https://mozilla.github.io/prefix".toUri()))
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
 
         feature.onTrustedScopesChange(listOf("https://mozilla.github.io/prefix-of/".toUri()))
+        assertFalse(feature.toolbarVisible)
         assertEquals(View.GONE, toolbar.visibility)
     }
 }

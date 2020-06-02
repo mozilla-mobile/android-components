@@ -33,22 +33,27 @@ class WebAppHideToolbarFeature(
     private val onToolbarVisibilityChange: (visible: Boolean) -> Unit = {}
 ) : Session.Observer, LifecycleAwareFeature {
 
+    /**
+     * Reports if the toolbar should be visible or hidden according to the feature.
+     */
+    var toolbarVisible: Boolean = false
+        private set(visible) {
+            field = visible
+            toolbar.isVisible = visible
+            onToolbarVisibilityChange(visible)
+        }
+
     init {
         // Hide the toolbar by default to prevent a flash.
         // If trusted scopes is empty, we're probably a normal custom tab so don't hide the toolbar.
-        setToolbarVisible(trustedScopes.isEmpty())
-    }
-
-    private fun setToolbarVisible(visible: Boolean) {
-        toolbar.isVisible = visible
-        onToolbarVisibilityChange(visible)
+        toolbarVisible = trustedScopes.isEmpty()
     }
 
     /**
      * Hides or reveals the toolbar when the session navigates to a new URL.
      */
     override fun onUrlChanged(session: Session, url: String) {
-        setToolbarVisible(!isInScope(url.toUri(), trustedScopes))
+        toolbarVisible = !isInScope(url.toUri(), trustedScopes)
     }
 
     /**
@@ -58,10 +63,10 @@ class WebAppHideToolbarFeature(
         val session = sessionManager.findSessionById(sessionId)
         this.trustedScopes = trustedScopes
 
-        if (session != null) {
-            setToolbarVisible(!isInScope(session.url.toUri(), trustedScopes))
+        toolbarVisible = if (session != null) {
+            !isInScope(session.url.toUri(), trustedScopes)
         } else {
-            setToolbarVisible(true)
+            true
         }
     }
 

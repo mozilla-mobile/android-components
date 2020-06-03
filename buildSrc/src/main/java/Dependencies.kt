@@ -27,9 +27,9 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "1.6.3"
 
-    const val mozilla_appservices = "0.59.0"
+    const val mozilla_appservices = "60.0.0"
 
-    const val mozilla_glean = "29.1.1"
+    const val mozilla_glean = "31.0.2"
 
     const val material = "1.1.0"
     const val nearby = "17.0.0"

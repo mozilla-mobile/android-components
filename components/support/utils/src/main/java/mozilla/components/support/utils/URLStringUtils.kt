@@ -13,25 +13,6 @@ object URLStringUtils {
     /**
      * Determine whether a string is a URL.
      *
-     * This method performs a strict check to determine whether a string is a URL. It takes longer
-     * to execute than isURLLike() but checks whether, e.g., the TLD is ICANN-recognized. Consider
-     * using isURLLike() unless these guarantees are required.
-     */
-    @Deprecated(
-        "Consider using the less strict isURLLike or creating a new method using" +
-            ":lib-publicsuffixlist instead. This method is being removed for performance issues"
-    )
-    @Suppress("DEPRECATION") // we've also deprecated the elements this method relies on.
-    fun isURLLikeStrict(string: String, safe: Boolean = false) =
-        if (safe) {
-            string.matches(WebURLFinder.fuzzyUrlRegex)
-        } else {
-            string.matches(WebURLFinder.fuzzyUrlNonWebRegex)
-        }
-
-    /**
-     * Determine whether a string is a URL.
-     *
      * This method performs a lenient check to determine whether a string is a URL. Anything that
      * contains a :, ://, or . and has no internal spaces is potentially a URL. If you need a
      * stricter check, consider using isURLLikeStrict().
@@ -59,9 +40,9 @@ object URLStringUtils {
 
     private val isURLLenient by lazy {
         // Be lenient about what is classified as potentially a URL.
-        // (\w+-)*\w+(://[/]*|:|\.)(\w+-)*\w+([\S&&[^\w-]]\S*)?
+        // (\w+-+)*\w+(://[/]*|:|\.)(\w+-+)*\w+([\S&&[^\w-]]\S*)?
         // -------                 -------
-        // 0 or more pairs of consecutive word letters followed by a dash
+        // 0 or more pairs of consecutive word letters or dashes
         //        ---                     ---
         // followed by at least a single word letter.
         // -----------             ----------
@@ -91,7 +72,7 @@ object URLStringUtils {
         // http://www-.com
         // www.c-c-
         // 3-3
-        Pattern.compile("^\\s*(\\w+-)*\\w+(://[/]*|:|\\.)(\\w+-)*\\w+([\\S&&[^\\w-]]\\S*)?\\s*$", flags)
+        Pattern.compile("^\\s*(\\w+-+)*\\w+(://[/]*|:|\\.)(\\w+-+)*\\w+([\\S&&[^\\w-]]\\S*)?\\s*$", flags)
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

@@ -531,7 +531,7 @@ class ReaderViewFeatureTest {
         store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
 
         val ext: WebExtension = mock()
-        whenever(ext.getConnectedPort(eq(ReaderViewFeature.READER_VIEW_EXTENSION_ID), any())).thenReturn(port)
+        whenever(ext.getConnectedPort(eq(ReaderViewFeature.READER_VIEW_MESSAGING_ID), any())).thenReturn(port)
         WebExtensionController.installedExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
 
         val feature = ReaderViewFeature(testContext, engine, store, mock())

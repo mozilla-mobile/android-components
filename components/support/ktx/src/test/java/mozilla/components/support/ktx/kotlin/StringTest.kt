@@ -155,4 +155,12 @@ class StringTest {
         assertFalse("https://mozilla.org".isExtensionUrl())
         assertFalse("http://mozilla.org".isExtensionUrl())
     }
+
+    @Test
+    fun isResourceUrl() {
+        assertTrue("resource://1232-abcd".isResourceUrl())
+        assertFalse("mozilla.org".isResourceUrl())
+        assertFalse("https://mozilla.org".isResourceUrl())
+        assertFalse("http://mozilla.org".isResourceUrl())
+    }
 }

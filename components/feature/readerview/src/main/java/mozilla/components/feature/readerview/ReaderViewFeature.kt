@@ -62,7 +62,11 @@ class ReaderViewFeature(
 
     @VisibleForTesting
     // This is an internal var to make it mutable for unit testing purposes only
-    internal var extensionController = WebExtensionController(READER_VIEW_EXTENSION_ID, READER_VIEW_EXTENSION_URL)
+    internal var extensionController = WebExtensionController(
+        READER_VIEW_EXTENSION_ID,
+        READER_VIEW_EXTENSION_URL,
+        READER_VIEW_MESSAGING_ID
+    )
 
     @VisibleForTesting
     internal val config = Config(context.getSharedPreferences(SHARED_PREF_NAME, Context.MODE_PRIVATE))
@@ -273,7 +277,8 @@ class ReaderViewFeature(
 
     @VisibleForTesting
     companion object {
-        internal const val READER_VIEW_EXTENSION_ID = "mozacReaderview"
+        internal const val READER_VIEW_EXTENSION_ID = "readerview@mozac.org"
+        internal const val READER_VIEW_MESSAGING_ID = "mozacReaderview"
         internal const val READER_VIEW_EXTENSION_URL = "resource://android/assets/extensions/readerview/"
 
         // Constants for building messages sent to the web extension:

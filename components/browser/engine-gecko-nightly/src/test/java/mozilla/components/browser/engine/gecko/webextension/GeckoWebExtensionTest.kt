@@ -26,7 +26,6 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -40,23 +39,18 @@ import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.WebExtensionController
 
 @RunWith(AndroidJUnit4::class)
-@Suppress("Deprecation") // https://github.com/mozilla-mobile/android-components/issues/6356
 class GeckoWebExtensionTest {
 
     @Test
     fun `register background message handler`() {
         val runtime: GeckoRuntime = mock()
-        val nativeGeckoWebExt: WebExtension = mock()
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         val messageHandler: MessageHandler = mock()
         val messageDelegateCaptor = argumentCaptor<WebExtension.MessageDelegate>()
         val portCaptor = argumentCaptor<Port>()
         val portDelegateCaptor = argumentCaptor<WebExtension.PortDelegate>()
 
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -102,7 +96,7 @@ class GeckoWebExtensionTest {
     fun `register content message handler`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionSessionController: WebExtension.SessionController = mock()
-        val nativeGeckoWebExt: WebExtension = mock()
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         val messageHandler: MessageHandler = mock()
         val session: GeckoEngineSession = mock()
         val geckoSession: GeckoSession = mock()
@@ -114,10 +108,6 @@ class GeckoWebExtensionTest {
         whenever(session.geckoSession).thenReturn(geckoSession)
 
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -166,7 +156,7 @@ class GeckoWebExtensionTest {
     fun `disconnect port from content script`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionSessionController: WebExtension.SessionController = mock()
-        val nativeGeckoWebExt: WebExtension = mock()
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         val messageHandler: MessageHandler = mock()
         val session: GeckoEngineSession = mock()
         val geckoSession: GeckoSession = mock()
@@ -176,10 +166,6 @@ class GeckoWebExtensionTest {
         whenever(session.geckoSession).thenReturn(geckoSession)
 
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -200,14 +186,10 @@ class GeckoWebExtensionTest {
     @Test
     fun `disconnect port from background script`() {
         val runtime: GeckoRuntime = mock()
-        val nativeGeckoWebExt: WebExtension = mock()
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         val messageHandler: MessageHandler = mock()
         val messageDelegateCaptor = argumentCaptor<WebExtension.MessageDelegate>()
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -229,7 +211,7 @@ class GeckoWebExtensionTest {
     @Test
     fun `register global default action handler`() {
         val runtime: GeckoRuntime = mock()
-        val nativeGeckoWebExt: WebExtension = mock()
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         val actionHandler: ActionHandler = mock()
         val actionDelegateCaptor = argumentCaptor<WebExtension.ActionDelegate>()
         val browserActionCaptor = argumentCaptor<Action>()
@@ -237,24 +219,8 @@ class GeckoWebExtensionTest {
         val nativeBrowserAction: WebExtension.Action = mock()
         val nativePageAction: WebExtension.Action = mock()
 
-        // Verify actions will not be acted on when not supported
-        val extensionWithActions = GeckoWebExtension(
-            "mozacTest",
-            "url",
-            runtime,
-            false,
-            false,
-            nativeGeckoWebExt
-        )
-        extensionWithActions.registerActionHandler(actionHandler)
-        verify(nativeGeckoWebExt, never()).setActionDelegate(actionDelegateCaptor.capture())
-
         // Create extension and register global default action handler
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -291,7 +257,7 @@ class GeckoWebExtensionTest {
         whenever(geckoSession.webExtensionController).thenReturn(webExtensionSessionController)
         whenever(session.geckoSession).thenReturn(geckoSession)
 
-        val nativeGeckoWebExt: WebExtension = mock()
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         val actionHandler: ActionHandler = mock()
         val actionDelegateCaptor = argumentCaptor<WebExtension.ActionDelegate>()
         val browserActionCaptor = argumentCaptor<Action>()
@@ -301,10 +267,6 @@ class GeckoWebExtensionTest {
 
         // Create extension and register action handler for session
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -339,18 +301,9 @@ class GeckoWebExtensionTest {
         val tabDelegateCaptor = argumentCaptor<WebExtension.TabDelegate>()
         val engineSessionCaptor = argumentCaptor<GeckoEngineSession>()
 
-        val nativeGeckoWebExt = spy(WebExtension(
-            "https://addons.mozilla.org/firefox/downloads/file/123/some_web_ext.xpi",
-            "test-webext",
-            WebExtension.Flags.NONE,
-            runtime.webExtensionController
-        ))
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         // Create extension and register global tab handler
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -380,18 +333,9 @@ class GeckoWebExtensionTest {
         val tabHandler: TabHandler = mock()
         val tabDelegateCaptor = argumentCaptor<WebExtension.SessionTabDelegate>()
 
-        val nativeGeckoWebExt = spy(WebExtension(
-            "https://addons.mozilla.org/firefox/downloads/file/123/some_web_ext.xpi",
-            "test-webext",
-            WebExtension.Flags.NONE,
-            runtime.webExtensionController
-        ))
+        val nativeGeckoWebExt: WebExtension = mockNativeExtension()
         // Create extension and register tab handler for session
         val extension = GeckoWebExtension(
-            id = "mozacTest",
-            url = "url",
-            allowContentMessaging = true,
-            supportActions = true,
             runtime = runtime,
             nativeExtension = nativeGeckoWebExt
         )
@@ -415,7 +359,7 @@ class GeckoWebExtensionTest {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
         val extensionWithoutMetadata = GeckoWebExtension(
-            WebExtension("url", "id", WebExtension.Flags.NONE, webExtensionController),
+            mockNativeExtension(),
             runtime
         )
         assertNull(extensionWithoutMetadata.getMetadata())
@@ -464,7 +408,7 @@ class GeckoWebExtensionTest {
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
         val extensionWithoutMetadata = GeckoWebExtension(
-            WebExtension("url", "id", WebExtension.Flags.NONE, webExtensionController),
+            mockNativeExtension(),
             runtime
         )
         assertNull(extensionWithoutMetadata.getMetadata())
@@ -497,17 +441,25 @@ class GeckoWebExtensionTest {
     }
 
     @Test
-    fun `isBuiltIn depends on URI scheme`() {
+    fun `isBuiltIn depends on native state`() {
         val runtime: GeckoRuntime = mock()
-        val webExtensionController: WebExtensionController = mock()
+
+        val builtInBundle = GeckoBundle()
+        builtInBundle.putBoolean("isBuiltIn", true)
+        builtInBundle.putString("webExtensionId", "id")
+        builtInBundle.putString("locationURI", "uri")
         val builtInExtension = GeckoWebExtension(
-            WebExtension("resource://url", "id", WebExtension.Flags.NONE, webExtensionController),
+            mockNativeExtension(builtInBundle),
             runtime
         )
         assertTrue(builtInExtension.isBuiltIn())
 
+        val externalBundle = GeckoBundle()
+        externalBundle.putBoolean("isBuiltIn", false)
+        externalBundle.putString("webExtensionId", "id")
+        externalBundle.putString("locationURI", "uri")
         val externalExtension = GeckoWebExtension(
-            WebExtension("https://url", "id", WebExtension.Flags.NONE, webExtensionController),
+            mockNativeExtension(externalBundle),
             runtime
         )
         assertFalse(externalExtension.isBuiltIn())
@@ -544,9 +496,14 @@ class GeckoWebExtensionTest {
     fun `isAllowedInPrivateBrowsing depends on native state and defaults to false if state unknown`() {
         val runtime: GeckoRuntime = mock()
         whenever(runtime.webExtensionController).thenReturn(mock())
+
+        val builtInBundle = GeckoBundle()
+        builtInBundle.putBoolean("isBuiltIn", true)
+        builtInBundle.putString("webExtensionId", "id")
+        builtInBundle.putString("locationURI", "uri")
         val builtInExtension = GeckoWebExtension(
-                WebExtension("resource://url", "id", WebExtension.Flags.NONE, mock()),
-                runtime
+            mockNativeExtension(builtInBundle),
+            runtime
         )
         assertTrue(builtInExtension.isAllowedInPrivateBrowsing())
 
@@ -571,5 +528,13 @@ class GeckoWebExtensionTest {
         val nativeWebExtensionWithoutPrivateBrowsing = MockWebExtension(bundle)
         val webExtensionWithoutPrivateBrowsing = GeckoWebExtension(nativeWebExtensionWithoutPrivateBrowsing, runtime)
         assertFalse(webExtensionWithoutPrivateBrowsing.isAllowedInPrivateBrowsing())
+    }
+
+    private fun mockNativeExtension(useBundle: GeckoBundle? = null): WebExtension {
+        val bundle = useBundle ?: GeckoBundle().apply {
+            putString("webExtensionId", "id")
+            putString("locationURI", "uri")
+        }
+        return spy(MockWebExtension(bundle))
     }
 }

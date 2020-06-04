@@ -22,6 +22,9 @@ internal class TopSiteAdapter(
     override val isDefault: Boolean
         get() = entity.isDefault
 
+    override val isPinned: Boolean
+        get() = entity.isPinned
+
     override fun equals(other: Any?): Boolean {
         if (other !is TopSiteAdapter) {
             return false

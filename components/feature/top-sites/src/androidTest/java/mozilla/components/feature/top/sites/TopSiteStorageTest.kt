@@ -247,6 +247,67 @@ class TopSiteStorageTest {
         }
     }
 
+    @Test
+    fun migrate3to4() {
+        val dbVersion3 = helper.createDatabase(MIGRATION_TEST_DB, 3).apply {
+            execSQL(
+                "INSERT INTO " +
+                    "top_sites " +
+                    "(title, url, is_default, created_at) " +
+                    "VALUES " +
+                    "('Mozilla','mozilla.org',0,1)," +
+                    "('Top Articles','https://getpocket.com/fenix-top-articles',0,2)," +
+                    "('Wikipedia','https://www.wikipedia.org/',0,3)," +
+                    "('YouTube','https://www.youtube.com/',0,4)"
+            )
+        }
+
+        dbVersion3.query("SELECT * FROM top_sites").use { cursor ->
+            assertEquals(5, cursor.columnCount)
+        }
+
+        val dbVersion4 = helper.runMigrationsAndValidate(
+            MIGRATION_TEST_DB, 4, true, Migrations.migration_3_4
+        ).apply {
+            execSQL(
+                "INSERT INTO  " +
+                    "top_sites " +
+                    "(title, url, is_default, is_pinned, created_at) " +
+                    "VALUES " +
+                    "('Firefox','firefox.com',1,1,5)," +
+                    "('Monitor','https://monitor.firefox.com/',0,0,5)"
+            )
+        }
+
+        dbVersion4.query("SELECT * FROM top_sites").use { cursor ->
+            assertEquals(6, cursor.columnCount)
+
+            // Check is_pinned for Mozilla
+            cursor.moveToFirst()
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_pinned")))
+
+            // Check is_pinned for Top Articles
+            cursor.moveToNext()
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_pinned")))
+
+            // Check is_pinned for Wikipedia
+            cursor.moveToNext()
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_pinned")))
+
+            // Check is_pinned for YouTube
+            cursor.moveToNext()
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_pinned")))
+
+            // Check is_pinned for Firefox
+            cursor.moveToNext()
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_pinned")))
+
+            // Check is_pinned for Monitor
+            cursor.moveToNext()
+            assertEquals(0, cursor.getInt(cursor.getColumnIndexOrThrow("is_pinned")))
+        }
+    }
+
     private fun getAllTopSites(): List<TopSite> {
         val dataSource = storage.getTopSitesPaged().create()
 

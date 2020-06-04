@@ -26,6 +26,9 @@ internal data class TopSiteEntity(
     @ColumnInfo(name = "is_default")
     var isDefault: Boolean = false,
 
+    @ColumnInfo(name = "is_pinned")
+    var isPinned: Boolean = false,
+
     @ColumnInfo(name = "created_at")
     var createdAt: Long = System.currentTimeMillis()
 )

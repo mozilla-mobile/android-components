@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Internal database for storing top sites.
  */
-@Database(entities = [TopSiteEntity::class], version = 3)
+@Database(entities = [TopSiteEntity::class], version = 4)
 internal abstract class TopSiteDatabase : RoomDatabase() {
     abstract fun topSiteDao(): TopSiteDao
 
@@ -34,6 +34,8 @@ internal abstract class TopSiteDatabase : RoomDatabase() {
                 Migrations.migration_1_2
             ).addMigrations(
                 Migrations.migration_2_3
+            ).addMigrations(
+                Migrations.migration_3_4
             ).build().also {
                 instance = it
             }
@@ -101,6 +103,19 @@ internal object Migrations {
                     "('https://getpocket.com/fenix-top-articles', " +
                     "'https://www.wikipedia.org/', " +
                     "'https://www.youtube.com/')"
+            )
+        }
+    }
+
+    @Suppress("MagicNumber")
+    val migration_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Add the new is_pinned column and set is_pinned to 1 (true) for every entry.
+            database.execSQL(
+                "ALTER TABLE top_sites ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 1"
+            )
+            database.execSQL(
+                "UPDATE top_sites SET is_pinned = 1"
             )
         }
     }

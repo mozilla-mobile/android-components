@@ -27,4 +27,10 @@ interface TopSite {
      * Whether or not the top site is a default top site (added as a default by the application).
      */
     val isDefault: Boolean
+
+    /**
+     * Whether or not the top site is pinned by the user. This helps the application differentiate
+     * between user pinned top sites and top sites generated from frequently visited sites.
+     */
+    val isPinned: Boolean
 }

@@ -27,12 +27,16 @@ class TopSiteStorage(
      * @param url The URL string.
      * @param isDefault Whether or not the top site added should be a default top site. This is
      * used to identify top sites that are added by the application.
+     * @param isPinned Whether or not the top site is pinned by the user. This helps the application
+     * differentiate between user pinned top sites and top sites generated from frequently visited
+     * sites.
      */
-    fun addTopSite(title: String, url: String, isDefault: Boolean = false) {
+    fun addTopSite(title: String, url: String, isDefault: Boolean = false, isPinned: Boolean = true) {
         TopSiteEntity(
             title = title,
             url = url,
             isDefault = isDefault,
+            isPinned = isPinned,
             createdAt = System.currentTimeMillis()
         ).also { entity ->
             entity.id = database.value.topSiteDao().insertTopSite(entity)

@@ -42,6 +42,9 @@ permalink: /changelog/
 * **browser-menu**
   * Added an optional `longClickListener` parameter to `BrowserMenuItemToolbar.Button` and `BrowserMenuItemToolbar.TwoStateButton` to handle long click events.
 
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: Added `isPinned` to the top site entity, which allows application to specify top sites that are pinned by the user. This is called through `TopSiteStorage.addTopSite`.
+
 # 49.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v48.0.0...v49.0.0)

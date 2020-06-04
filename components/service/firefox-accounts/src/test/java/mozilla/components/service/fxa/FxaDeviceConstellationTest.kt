@@ -257,9 +257,6 @@ class FxaDeviceConstellationTest {
         )
 
         testConstellation.pollForCommandsAsync()
-
-        // @TODO figure out how to spy on testAccount, which currently fails due to async
-        // verify(testAccount.pollDeviceCommands())
         assertTrue(true)
     }
 

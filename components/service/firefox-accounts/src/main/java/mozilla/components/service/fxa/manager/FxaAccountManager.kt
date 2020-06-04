@@ -147,10 +147,10 @@ open class FxaAccountManager(
     private val coroutineContext: CoroutineContext = Executors
         .newSingleThreadExecutor().asCoroutineDispatcher() + SupervisorJob()
 ) : Closeable, Observable<AccountObserver> by ObserverRegistry() {
-    private val logger = Logger("FirefoxAccountStateMachine")
+    public val logger = Logger("FirefoxAccountStateMachine")
 
     @Volatile
-    private var latestAuthState: String? = null
+    public var latestAuthState: String? = null
 
     // This is used during 'beginAuthenticationAsync' call, which returns a Deferred<String>.
     // 'deferredAuthUrl' is set on this observer and returned, and resolved once state machine goes
@@ -536,7 +536,7 @@ open class FxaAccountManager(
     /**
      * Pumps the state machine until all events are processed and their side-effects resolve.
      */
-    private fun processQueueAsync(event: Event): Deferred<Unit> = CoroutineScope(coroutineContext).async {
+    public fun processQueueAsync(event: Event): Deferred<Unit> = CoroutineScope(coroutineContext).async {
         eventQueue.add(event)
         do {
             val toProcess: Event = eventQueue.poll()!!

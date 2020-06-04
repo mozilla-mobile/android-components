@@ -24,13 +24,13 @@ enum class AccountState {
  * Base class for [FxaAccountManager] state machine events.
  * Events aren't a simple enum class because we might want to pass data along with some of the events.
  */
-internal sealed class Event {
+open class Event {
     override fun toString(): String {
         // For a better logcat experience.
         return this.javaClass.simpleName
     }
 
-    internal object Init : Event()
+    object Init : Event()
 
     object AccountNotFound : Event()
     object AccountRestored : Event()

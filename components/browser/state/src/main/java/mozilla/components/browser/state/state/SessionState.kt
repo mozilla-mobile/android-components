@@ -15,6 +15,7 @@ package mozilla.components.browser.state.state
  * specific to this [SessionState].
  * @property contextId the session context ID of the session. The session context ID specifies the
  * contextual identity to use for the session's cookie store.
+ * @property lastAccess the timestamp specifies last use/access time of the session
  * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Work_with_contextual_identities
  */
 interface SessionState {
@@ -24,6 +25,7 @@ interface SessionState {
     val engineState: EngineState
     val extensionState: Map<String, WebExtensionState>
     val contextId: String?
+    var lastAccess: Long
 
     /**
      * Copy the class and override some parameters.

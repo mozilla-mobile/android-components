@@ -30,7 +30,8 @@ data class TabSessionState(
     val parentId: String? = null,
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
     val readerState: ReaderState = ReaderState(),
-    override val contextId: String? = null
+    override val contextId: String? = null,
+    override var lastAccess: Long = System.currentTimeMillis()
 ) : SessionState {
 
     override fun createCopy(
@@ -63,7 +64,8 @@ fun createTab(
     readerState: ReaderState = ReaderState(),
     title: String = "",
     thumbnail: Bitmap? = null,
-    contextId: String? = null
+    contextId: String? = null,
+    lastAccess: Long = System.currentTimeMillis()
 ): TabSessionState {
     return TabSessionState(
         id = id,
@@ -76,6 +78,7 @@ fun createTab(
         parentId = parent?.id,
         extensionState = extensions,
         readerState = readerState,
-        contextId = contextId
+        contextId = contextId,
+        lastAccess = lastAccess
     )
 }

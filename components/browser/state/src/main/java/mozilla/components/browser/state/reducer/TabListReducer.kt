@@ -9,6 +9,7 @@ import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.support.base.log.Log
 import kotlin.math.max
 
 internal object TabListReducer {
@@ -62,7 +63,16 @@ internal object TabListReducer {
             }
 
             is TabListAction.SelectTabAction -> {
-                state.copy(selectedTabId = action.tabId)
+
+                val updatedTabsList = state.tabs.map {
+                    if (it.id == action.tabId) {
+                        it.lastAccess = System.currentTimeMillis()
+                        Log.log(Log.Priority.DEBUG, "")
+                    }
+                    it
+                }
+
+                state.copy(tabs = updatedTabsList, selectedTabId = action.tabId)
             }
 
             is TabListAction.RemoveTabAction -> {

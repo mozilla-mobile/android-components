@@ -27,6 +27,7 @@ import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -48,9 +49,9 @@ class SyncedTabsStorageTest {
     fun setup() {
         store = spy(BrowserStore(BrowserState(
             tabs = listOf(
-                createTab(id = "tab1", url = "https://www.mozilla.org"),
-                createTab(id = "tab2", url = "https://www.foo.bar"),
-                createTab(id = "private", url = "https://private.tab", private = true)
+                createTab(id = "tab1", url = "https://www.mozilla.org", lastAccess = 123L),
+                createTab(id = "tab2", url = "https://www.foo.bar", lastAccess = 124L),
+                createTab(id = "private", url = "https://private.tab", private = true, lastAccess = 125L)
             ),
             selectedTabId = "tab1"
         )))
@@ -66,11 +67,11 @@ class SyncedTabsStorageTest {
             tabsStorage
         )
         feature.start()
-        // This action won't change the state, but will run the flow.
+        // This action will change the state due to lastUsed timestamp, but will run the flow.
         store.dispatch(TabListAction.RemoveAllPrivateTabsAction)
         verify(tabsStorage).store(listOf(
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 0),
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 0)
+            Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 123L),
+            Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 124L)
             // Private tab is absent.
         ))
     }
@@ -86,8 +87,8 @@ class SyncedTabsStorageTest {
         // Run the flow.
         store.dispatch(TabListAction.RemoveAllPrivateTabsAction)
         verify(tabsStorage).store(listOf(
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 0),
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 0)
+            Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 123L),
+            Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 124L)
         ))
 
         feature.stop()

@@ -12,8 +12,24 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **concept-engine**
+  * Exposed `GeckoRuntimeSettings#setLoginAutofillEnabled` to control whether login forms should be automatically filled in suitable situations
+
 * **browser-icons**
   * Fixed issue [#7142](https://github.com/mozilla-mobile/android-components/issues/7142)
+
+* **feature-downloads**
+  * On devices older than Q we were not adding downloads to the system download database for more information see [#7230](https://github.com/mozilla-mobile/android-components/issues/7230)
+
+* **browser-storage-sync**
+  * Added `getTopFrecentSites` to `PlacesHistoryStorage`, which returns a list of the top frecent site infos
+    sorted by most to least frecent.
+
+* **local development**
+  * Enable local Gradle Build Cache to speed-up local builds. Build cache is located in `.build-cache/`, clear it if you run into strange problems and please file an issue.
+
+* **support-rustlog**
+  * `RustLog.enable` now takes an optional [CrashReporting] instance which is used to submit error-level log messages as `RustErrorException`s.
 
 # 44.0.0
 

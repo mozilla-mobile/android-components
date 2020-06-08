@@ -299,7 +299,7 @@ class DisplayToolbar internal constructor(
      * Sets the background that should be drawn behind the URL, page actions an indicators.
      */
     fun setUrlBackground(background: Drawable?) {
-        views.background.setImageDrawable(background)
+        views.background.background = background
     }
 
     /**
@@ -596,11 +596,12 @@ class DisplayToolbar internal constructor(
 /**
  * Internal holder for view references.
  */
+@SuppressWarnings("LongParameterList")
 internal class DisplayToolbarViews(
     val browserActions: ActionContainer,
     val pageActions: ActionContainer,
     val navigationActions: ActionContainer,
-    val background: ImageView,
+    val background: ConstraintLayout,
     val separator: ImageView,
     val emptyIndicator: ImageView,
     val menu: MenuButton,

@@ -25,8 +25,9 @@
 
     <!-- URL container -->
 
-    <ImageView
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/mozac_browser_toolbar_background"
+        android:clipChildren="false"
         android:layout_width="0dp"
         android:layout_height="40dp"
         android:layout_marginTop="8dp"
@@ -34,7 +35,7 @@
         app:layout_goneMarginStart="8dp"
         app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_browser_actions"
         app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_navigation_actions"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- URL indicators (lock, tracking protection, ..) -->
 
@@ -46,7 +47,7 @@
             android:scaleType="center"
             android:visibility="gone"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="@id/mozac_browser_toolbar_background"
+            app:layout_constraintStart_toStartOf="parent"
             app:srcCompat="@drawable/mozac_ic_search"
             tools:ignore="ContentDescription" />
 
@@ -54,32 +55,32 @@
             android:id="@+id/mozac_browser_toolbar_tracking_protection_indicator"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginTop="8dp"
             android:scaleType="center"
             android:visibility="gone"
             app:srcCompat="@drawable/mozac_ic_tracking_protection_on_no_trackers_blocked"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/mozac_browser_toolbar_empty_indicator" />
 
         <ImageView
             android:id="@+id/mozac_browser_toolbar_separator"
             android:layout_width="@dimen/mozac_browser_toolbar_icons_separator_width"
             android:layout_height="40dp"
-            android:layout_marginTop="8dp"
             android:scaleType="center"
             android:importantForAccessibility="no"
             app:srcCompat="@drawable/mozac_browser_toolbar_icons_vertical_separator"
             android:visibility="gone"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_tracking_protection_indicator" />
 
         <mozilla.components.browser.toolbar.display.SiteSecurityIconView
             android:id="@+id/mozac_browser_toolbar_security_indicator"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginTop="8dp"
             android:scaleType="center"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_separator"
             android:contentDescription="@string/mozac_browser_toolbar_content_description_site_info"
             app:srcCompat="@drawable/mozac_ic_site_security" />
@@ -90,12 +91,11 @@
             android:id="@+id/mozac_browser_toolbar_origin_view"
             android:layout_width="0dp"
             android:layout_height="40dp"
-            android:layout_marginTop="8dp"
             app:layout_goneMarginStart="8dp"
-            app:layout_goneMarginTop="8dp"
             app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_security_indicator"
             app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_page_actions"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
 
         <!-- Page actions -->
 
@@ -103,11 +103,13 @@
             android:id="@+id/mozac_browser_toolbar_page_actions"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
-            android:layout_marginTop="8dp"
-            app:layout_constraintEnd_toEndOf="@+id/mozac_browser_toolbar_background"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             mozac:actionContainerItemSize="40dp"
             tools:layout_width="48dp" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Browser Actions -->
 

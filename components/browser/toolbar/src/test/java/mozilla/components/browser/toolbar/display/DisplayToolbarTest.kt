@@ -475,17 +475,17 @@ class DisplayToolbarTest {
     fun `url background will be added and removed from display layout`() {
         val (_, displayToolbar) = createDisplayToolbar()
 
-        assertNull(displayToolbar.views.background.drawable)
+        assertNull(displayToolbar.views.background.background)
 
         displayToolbar.setUrlBackground(
             ContextCompat.getDrawable(testContext, R.drawable.mozac_ic_broken_lock)
         )
 
-        assertNotNull(displayToolbar.views.background.drawable)
+        assertNotNull(displayToolbar.views.background.background)
 
         displayToolbar.setUrlBackground(null)
 
-        assertNull(displayToolbar.views.background.drawable)
+        assertNull(displayToolbar.views.background.background)
     }
 
     @Test

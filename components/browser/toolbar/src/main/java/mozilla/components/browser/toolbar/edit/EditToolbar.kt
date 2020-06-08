@@ -84,7 +84,7 @@ class EditToolbar internal constructor(
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal val views = EditToolbarViews(
-        background = rootView.findViewById<ImageView>(R.id.mozac_browser_toolbar_background),
+        background = rootView.findViewById<ConstraintLayout>(R.id.mozac_browser_toolbar_background),
         icon = rootView.findViewById<ImageView>(R.id.mozac_browser_toolbar_edit_icon),
         editActions = rootView.findViewById<ActionContainer>(R.id.mozac_browser_toolbar_edit_actions),
         clear = rootView.findViewById<ImageView>(R.id.mozac_browser_toolbar_clear_view).apply {
@@ -149,7 +149,7 @@ class EditToolbar internal constructor(
      * Sets the background that will be drawn behind the URL, icon and edit actions.
      */
     fun setUrlBackground(background: Drawable?) {
-        views.background.setImageDrawable(background)
+        views.background.background = background
     }
 
     /**
@@ -295,7 +295,7 @@ class EditToolbar internal constructor(
  * Internal holder for view references.
  */
 internal class EditToolbarViews(
-    val background: ImageView,
+    val background: ConstraintLayout,
     val icon: ImageView,
     val editActions: ActionContainer,
     val clear: ImageView,

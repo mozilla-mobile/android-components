@@ -31,7 +31,7 @@ open class Event {
         return this.javaClass.simpleName
     }
 
-    object Init : Event()
+    internal object Init : Event()
 
     object AccountNotFound : Event()
     object AccountRestored : Event()

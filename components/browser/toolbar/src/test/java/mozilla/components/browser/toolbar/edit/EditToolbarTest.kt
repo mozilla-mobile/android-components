@@ -193,4 +193,10 @@ class EditToolbarTest {
         clearView.performClick()
         assertTrue(editToolbar.views.url.text.isBlank())
     }
+
+    @Test
+    fun `dispatchKeyEventPreIme on urlView returns true for KEYCODE_BACK`() {
+        val (_, editToolbar) = createEditToolbar()
+        assertTrue(editToolbar.views.url.dispatchKeyEventPreIme(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK)))
+    }
 }

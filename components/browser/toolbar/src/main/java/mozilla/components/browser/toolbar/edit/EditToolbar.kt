@@ -49,7 +49,7 @@ private const val AUTOCOMPLETE_QUERY_THREADS = 3
  * - actions: Optional action icons injected by other components (e.g. barcode scanner)
  * - exit: Button that switches back to display mode or invoke an app-defined callback.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class EditToolbar internal constructor(
     context: Context,
     private val toolbar: BrowserToolbar,
@@ -111,10 +111,14 @@ class EditToolbar internal constructor(
                     context.resources.getDimensionPixelSize(R.dimen.mozac_browser_toolbar_url_gone_margin_end))
 
             setOnDispatchKeyEventPreImeListener { event ->
-                if (event?.keyCode == KeyEvent.KEYCODE_BACK && editListener?.onCancelEditing() != false) {
-                    toolbar.displayMode()
+                if (event?.keyCode == KeyEvent.KEYCODE_BACK) {
+                    if (editListener?.onCancelEditing() != false) {
+                        toolbar.displayMode()
+                    }
+                    true
+                } else {
+                    false
                 }
-                false
             }
         }
     )

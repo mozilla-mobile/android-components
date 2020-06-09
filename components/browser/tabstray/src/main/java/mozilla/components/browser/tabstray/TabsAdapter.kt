@@ -4,6 +4,10 @@
 
 package mozilla.components.browser.tabstray
 
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +20,16 @@ import mozilla.components.support.base.observer.ObserverRegistry
  * Function responsible for creating a `TabViewHolder` in the `TabsAdapter`.
  */
 typealias ViewHolderProvider = (ViewGroup, BrowserTabsTray) -> TabViewHolder
+
+object Timings {
+    var tabsStart = -1L
+
+    var tabsTrayEnd = -1L
+    var tabsTrayTabsEnd = -1L // loaded async
+
+    val trayDuration get() = tabsTrayEnd - tabsStart
+    val trayTabsDuration get() = tabsTrayTabsEnd - tabsStart
+}
 
 /**
  * RecyclerView adapter implementation to display a list/grid of tabs.
@@ -48,10 +62,32 @@ open class TabsAdapter(
 
     override fun getItemCount() = tabs?.list?.size ?: 0
 
+    var listenerAdded = false
+    var frame = 1
+
     override fun onBindViewHolder(holder: TabViewHolder, position: Int) {
         val tabs = tabs ?: return
 
         holder.bind(tabs.list[position], position == tabs.selectedIndex, this)
+
+        Log.e("lol", "onBind")
+        if (!listenerAdded) {
+            listenerAdded = true
+            holder.itemView.viewTreeObserver.addOnPreDrawListener {
+                if (frame == 4) {
+                    // On the 4th frame with animations enabled, the tabs in the tray start to fade in:
+                    // tested with 1 tab & 8 tabs.
+                    Handler(Looper.getMainLooper()).post {
+                        Timings.tabsTrayTabsEnd = SystemClock.elapsedRealtime()
+                        Log.e("lol tabsEnd", "average ${Timings.trayTabsDuration}")
+//                        Thread.sleep(5000)
+                    }
+                    // If this code became permanent, we should remove the listener.
+                }
+                frame++
+                true
+            }
+        }
     }
 
     override fun updateTabs(tabs: Tabs) {

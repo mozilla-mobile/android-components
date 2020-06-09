@@ -5,7 +5,9 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import datetime
+import errno
 import re
+import os
 
 from six import text_type
 
@@ -127,6 +129,29 @@ def _deep_format(object, field, **format_kwargs):
         raise ValueError('Unsupported type for object: {}'.format(object))
 
 
+def _write_checkrun_text(path, task_id):
+    directory = os.path.dirname(path)
+    try:
+        os.makedirs(directory)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+    with open(path, 'w') as file:
+        def listitem(text, path):
+            file.write('- [{text}](https://firefoxci.taskcluster-artifacts.net/{task_id}/0/{path})'.format(
+                text=text,
+                task_id=task_id,
+                path=path,
+            ))
+
+        file.write('## Reports')
+        file.write('_Links will 404 if the corresponding task did not run_')
+        listitem('Unit Tests (Debug)', 'public/reports/tests/testDebugUnitTest/index.html')
+        listitem('Unit Tests (Release)', 'public/reports/tests/testReleaseUnitTest/index.html')
+        listitem('Android Lint', 'public/reports/lint-results-release.html')
+        listitem('Jacoco', 'public/reports/jacoco/jacocoTestReport/html/index.html')
+
+
 @transforms.add
 def add_artifacts(config, tasks):
     timestamp = _get_timestamp(config)
@@ -137,10 +162,28 @@ def add_artifacts(config, tasks):
         artifact_template = task.pop("artifact-template", {})
         task["attributes"]["artifacts"] = artifacts = {}
 
-        if task.pop("expose-artifacts", False):
-            component = task["attributes"]["component"]
-            build_artifact_definitions = task.setdefault("worker", {}).setdefault("artifacts", [])
+        component = task["attributes"]["component"]
+        build_artifact_definitions = task.setdefault("worker", {}).setdefault("artifacts", [])
 
+        if "reports-artifact-template" in task:
+            reports_artifact_template = task.pop("reports-artifact-template", {})
+            build_artifact_definitions.append({
+                "type": reports_artifact_template["type"],
+                "name": reports_artifact_template["name"],
+                "path": reports_artifact_template["path"].format(component_path=get_path(component)),
+            })
+
+        if "checkruntext-artifact-template" in task:
+            checkruntext_artifact_template = task.pop("checkruntext-artifact-template", {})
+            path = checkruntext_artifact_template["path"].format(component_path=get_path(component))
+            build_artifact_definitions.append({
+                "type": checkruntext_artifact_template["type"],
+                "name": checkruntext_artifact_template["name"],
+                "path": path,
+            })
+            _write_checkrun_text(path, os.environ['TASK_ID'])
+
+        if task.pop("expose-artifacts", False):
             all_extensions = get_extensions(component)
             artifact_file_names_per_extension = {
                 extension: '{component}-{version}{timestamp}{extension}'.format(

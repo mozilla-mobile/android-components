@@ -114,7 +114,7 @@ subprojects {
             }
 
             // Format test output
-            tasks.matching {it instanceof Test}.configureEach() {
+            tasks.matching {it instanceof Test}.configureEach() { testTask ->
                 systemProperty "robolectric.logging", "stdout"
                 systemProperty "logging.test-mode", "true"
 

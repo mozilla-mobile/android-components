@@ -22,6 +22,14 @@ job-defaults:
         type: file
         name: public/build/{artifact_file_name}
         path: '/builds/worker/checkouts/src/{component_path}/build/maven/org/mozilla/components/{component}/{version}/{artifact_file_name}'
+    reports-artifact-template:
+        type: directory
+        name: public/reports
+        path: '/builds/worker/checkouts/src/{component_path}/build/reports'
+    checkruntext-artifact-template:
+        type: file
+        name: public/github/customCheckRunText.md
+        path: '/builds/worker/checkouts/src/{component_path}/build/customCheckRunText.md'
     attributes:
         code-review:
             by-build-type:

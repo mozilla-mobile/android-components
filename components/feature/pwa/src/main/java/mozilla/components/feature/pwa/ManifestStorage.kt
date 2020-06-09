@@ -32,7 +32,9 @@ class ManifestStorage(context: Context, private val usedAtTimeout: Long = DEFAUL
      * @param startUrl URL of site. Should correspond to manifest's start_url.
      */
     suspend fun loadManifest(startUrl: String): WebAppManifest? = withContext(Dispatchers.IO) {
-        manifestDao.value.getManifest(startUrl)?.manifest
+        manifestDao.value.getManifest(startUrl)?.manifest.also {
+            throw IllegalStateException("Intentionally break tests")
+        }
     }
 
     /**

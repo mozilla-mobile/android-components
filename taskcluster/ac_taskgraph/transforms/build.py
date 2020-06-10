@@ -129,29 +129,6 @@ def _deep_format(object, field, **format_kwargs):
         raise ValueError('Unsupported type for object: {}'.format(object))
 
 
-def _write_checkrun_text(path, task_id):
-    directory = os.path.dirname(path)
-    try:
-        os.makedirs(directory)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-    with open(path, 'w') as file:
-        def listitem(text, path):
-            file.write('- [{text}](https://firefoxci.taskcluster-artifacts.net/{task_id}/0/{path})'.format(
-                text=text,
-                task_id=task_id,
-                path=path,
-            ))
-
-        file.write('## Reports')
-        file.write('_Links will 404 if the corresponding task did not run_')
-        listitem('Unit Tests (Debug)', 'public/reports/tests/testDebugUnitTest/index.html')
-        listitem('Unit Tests (Release)', 'public/reports/tests/testReleaseUnitTest/index.html')
-        listitem('Android Lint', 'public/reports/lint-results-release.html')
-        listitem('Jacoco', 'public/reports/jacoco/jacocoTestReport/html/index.html')
-
-
 @transforms.add
 def add_artifacts(config, tasks):
     timestamp = _get_timestamp(config)
@@ -181,7 +158,6 @@ def add_artifacts(config, tasks):
                 "name": checkruntext_artifact_template["name"],
                 "path": path,
             })
-            _write_checkrun_text(path, os.environ['TASK_ID'])
 
         if task.pop("expose-artifacts", False):
             all_extensions = get_extensions(component)

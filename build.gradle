@@ -227,6 +227,20 @@ subprojects {
                     }
                 }
             }
+
+            tasks.register("githubCheckText") {
+                ext.file = new File("$project.projectDir/build/customCheckRunText.md")
+                ext.pathPrefix = "https://firefoxci.taskcluster-artifacts.net/$System.env.HOME/0"
+
+                doLast {
+                    file.text = '#### Reports\n' +
+                        '_Links will 404 if the corresponding task did not run_\n' +
+                        "- [Unit Tests (Debug)]($pathPrefix/public/reports/tests/testDebugUnitTest/index.html)\n" +
+                        "- [Unit Tests (Release)]($pathPrefix/public/reports/tests/testReleaseUnitTest/index.html)\n" +
+                        "- [Android Lint]($pathPrefix/public/reports/lint-results-release.html)\n" +
+                        "- [Jacoco]($pathPrefix/public/reports/jacoco/jacocoTestReport/html/index.html)\n"
+                }
+            }
         }
     }
 }

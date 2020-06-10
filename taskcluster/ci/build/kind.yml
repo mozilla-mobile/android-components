@@ -73,11 +73,13 @@ job-defaults:
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:test'
                             - ':{component}:lint'
+                            - ':{component}:githubCheckText'
                         default:
                             - ':{component}:assemble'
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:test'
                             - ':{component}:lintRelease'
+                            - ':{component}:githubCheckText'
         using: gradlew
         use-caches: false
     run-on-tasks-for:

@@ -150,13 +150,12 @@ def add_artifacts(config, tasks):
                 "path": reports_artifact_template["path"].format(component_path=get_path(component)),
             })
 
-        if "checkruntext-artifact-template" in task and task['attributes']['build-type'] == 'default':
-            checkruntext_artifact_template = task.pop("checkruntext-artifact-template", {})
-            path = checkruntext_artifact_template["path"].format(component_path=get_path(component))
+        if "github-artifact-template" in task:
+            github_artifact_template = task.pop("github-artifact-template", {})
             build_artifact_definitions.append({
-                "type": checkruntext_artifact_template["type"],
-                "name": checkruntext_artifact_template["name"],
-                "path": path,
+                "type": github_artifact_template["type"],
+                "name": github_artifact_template["name"],
+                "path": github_artifact_template["path"].format(component_path=get_path(component)),
             })
 
         if task.pop("expose-artifacts", False):

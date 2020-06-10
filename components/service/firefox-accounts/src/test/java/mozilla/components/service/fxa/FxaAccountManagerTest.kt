@@ -32,9 +32,9 @@ import mozilla.components.service.fxa.manager.Event
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.manager.SCOPE_SYNC
 import mozilla.components.service.fxa.manager.SignInWithShareableAccountResult
+import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.service.fxa.sharing.ShareableAccount
 import mozilla.components.service.fxa.sharing.ShareableAuthInfo
-import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.service.fxa.sync.SyncManager
 import mozilla.components.service.fxa.sync.SyncDispatcher
 import mozilla.components.service.fxa.sync.SyncReason
@@ -388,8 +388,8 @@ class FxaAccountManagerTest {
         val accountObserver: AccountObserver = mock()
 
         val manager = TestableFxaAccountManager(
-            testContext, ServerConfig(Server.RELEASE, "dummyId", "http://auth-url/redirect"), accountStorage,
-            setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
+                testContext, ServerConfig(Server.RELEASE, "dummyId", "http://auth-url/redirect"), accountStorage,
+                setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
         ) {
             account
         }
@@ -699,7 +699,7 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext, ServerConfig(Server.RELEASE, "dummyId", "http://auth-url/redirect"), accountStorage,
-            setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
+                setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
         ) {
             account
         }
@@ -733,7 +733,7 @@ class FxaAccountManagerTest {
         val accountObserver: AccountObserver = mock()
         val manager = TestableFxaAccountManager(
             testContext, ServerConfig(Server.RELEASE, "dummyId", "http://auth-url/redirect"), accountStorage,
-            setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
+                setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
         ) {
             account
         }
@@ -773,7 +773,7 @@ class FxaAccountManagerTest {
         val accountObserver: AccountObserver = mock()
         val manager = TestableFxaAccountManager(
             testContext, ServerConfig(Server.RELEASE, "dummyId", "http://auth-url/redirect"), accountStorage,
-            setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
+                setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
         ) {
             account
         }
@@ -806,9 +806,9 @@ class FxaAccountManagerTest {
         // but an actual implementation of the interface.
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage,
-            setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage,
+                setOf(DeviceCapability.SEND_TAB), null, this.coroutineContext
         ) {
             account
         }
@@ -929,12 +929,10 @@ class FxaAccountManagerTest {
 
         override fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<JSONObject?> {
             latestMigrateAuthInfo = ShareableAuthInfo(sessionToken, kSync, kXCS)
-            return CompletableDeferred(
-                when (migrationResult) {
-                    SignInWithShareableAccountResult.Failure, SignInWithShareableAccountResult.WillRetry -> null
-                    SignInWithShareableAccountResult.Success -> JSONObject()
-                }
-            )
+            return CompletableDeferred(when (migrationResult) {
+                SignInWithShareableAccountResult.Failure, SignInWithShareableAccountResult.WillRetry -> null
+                SignInWithShareableAccountResult.Success -> JSONObject()
+            })
         }
 
         override fun isInMigrationState(): InFlightMigrationState {
@@ -945,22 +943,18 @@ class FxaAccountManagerTest {
         }
 
         override fun retryMigrateFromSessionTokenAsync(): Deferred<JSONObject?> {
-            return CompletableDeferred(
-                when (migrationRetrySuccess) {
-                    true -> JSONObject()
-                    false -> null
-                }
-            )
+            return CompletableDeferred(when (migrationRetrySuccess) {
+                true -> JSONObject()
+                false -> null
+            })
         }
 
         override fun copyFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<JSONObject?> {
             latestMigrateAuthInfo = ShareableAuthInfo(sessionToken, kSync, kXCS)
-            return CompletableDeferred(
-                when (migrationResult) {
-                    SignInWithShareableAccountResult.Failure, SignInWithShareableAccountResult.WillRetry -> null
-                    SignInWithShareableAccountResult.Success -> JSONObject()
-                }
-            )
+            return CompletableDeferred(when (migrationResult) {
+                SignInWithShareableAccountResult.Failure, SignInWithShareableAccountResult.WillRetry -> null
+                SignInWithShareableAccountResult.Success -> JSONObject()
+            })
         }
 
         override fun getAccessTokenAsync(singleScope: String): Deferred<AccessTokenInfo?> {
@@ -1055,8 +1049,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = this.coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = this.coroutineContext
         )
 
         val accountObserver: AccountObserver = mock()
@@ -1082,8 +1076,7 @@ class FxaAccountManagerTest {
         val mockAccount: OAuthAccount = mock()
         val constellation: DeviceConstellation = mock()
         val profile = Profile(
-            "testUid", "test@example.com", null, "Test Profile"
-        )
+            "testUid", "test@example.com", null, "Test Profile")
         `when`(mockAccount.getProfileAsync(ignoreCache = false)).thenReturn(CompletableDeferred(profile))
         `when`(mockAccount.isInMigrationState()).thenReturn(InFlightMigrationState.NONE)
         // We have an account at the start.
@@ -1094,9 +1087,9 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage,
-            emptySet(), null, this.coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage,
+                emptySet(), null, this.coroutineContext
         )
 
         val accountObserver: AccountObserver = mock()
@@ -1225,8 +1218,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = coroutineContext
         ) {
             mockAccount
         }
@@ -1488,8 +1481,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = this.coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = this.coroutineContext
         ) {
             mockAccount
         }
@@ -1523,8 +1516,7 @@ class FxaAccountManagerTest {
         // Make sure we can re-try fetching a profile. This time, let's have it succeed.
         reset(accountObserver)
         val profile = Profile(
-            uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile"
-        )
+            uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
 
         `when`(mockAccount.getProfileAsync(ignoreCache = false)).thenReturn(CompletableDeferred(profile))
 
@@ -1555,9 +1547,9 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(null)
 
         val manager = TestableFxaAccountManager(
-            testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = this.coroutineContext
+                testContext,
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = this.coroutineContext
         ) {
             mockAccount
         }
@@ -1613,8 +1605,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = this.coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = this.coroutineContext
         ) {
             mockAccount
         }
@@ -1662,8 +1654,7 @@ class FxaAccountManagerTest {
         `when`(constellation.initDeviceAsync(any(), any(), any())).thenReturn(CompletableDeferred(true))
 
         val profile = Profile(
-            uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile"
-        )
+                uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
 
         // Recovery flow will hit this API, return a success.
         `when`(mockAccount.checkAuthorizationStatusAsync(eq("profile"))).thenReturn(CompletableDeferred(true))
@@ -1674,9 +1665,9 @@ class FxaAccountManagerTest {
         `when`(accountStorage.read()).thenReturn(null)
 
         val manager = TestableFxaAccountManager(
-            testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = this.coroutineContext
+                testContext,
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = this.coroutineContext
         ) {
             mockAccount
         }
@@ -1747,8 +1738,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = this.coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = this.coroutineContext
         ) {
             mockAccount
         }
@@ -1816,24 +1807,22 @@ class FxaAccountManagerTest {
 
         // Build our dependencies for creating an account manager
         val tServerConfig = ServerConfig(
-            "https://localhost/contentUrl",
-            "testClientId",
-            "https://localhost/redirectUrl"
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
         )
         val tDeviceConfig = DeviceConfig(
-            "testDevice",
-            DeviceType.MOBILE,
-            setOf()
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(
-            FxaAccountManager(
+        val manager = spy(FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-            )
-        )
+        ))
         val pairingUrl = "https://localhost/pairingUrl".toString()
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
         assertTrue(beginResponse is CompletableDeferred<String?>)
@@ -1847,24 +1836,22 @@ class FxaAccountManagerTest {
 
         // Build our dependencies for creating an account manager
         val tServerConfig = ServerConfig(
-            "https://localhost/contentUrl",
-            "testClientId",
-            "https://localhost/redirectUrl"
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
         )
         val tDeviceConfig = DeviceConfig(
-            "testDevice",
-            DeviceType.MOBILE,
-            setOf()
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(
-            FxaAccountManager(
+        val manager = spy(FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-            )
-        )
+        ))
         val beginResponse = manager.beginAuthenticationAsync(null)
         assertTrue(beginResponse is CompletableDeferred<String?>)
         verify(manager).processQueueAsync(Event.Authenticate)
@@ -1877,33 +1864,31 @@ class FxaAccountManagerTest {
 
         // Build our dependencies for creating an account manager
         val tServerConfig = ServerConfig(
-            "https://localhost/contentUrl",
-            "testClientId",
-            "https://localhost/redirectUrl"
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
         )
         val tDeviceConfig = DeviceConfig(
-            "testDevice",
-            DeviceType.MOBILE,
-            setOf()
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(
-            FxaAccountManager(
+        val manager = spy(FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-            )
-        )
+        ))
         manager.latestAuthState = "testState1"
         val pairingUrl = "https://localhost/pairingUrl".toString()
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
         assertTrue(beginResponse is CompletableDeferred<String?>)
         val expectedAuthData = FxaAuthData(
-            authType = AuthType.Signin,
-            code = "testCode1",
-            state = "testState1",
-            declinedEngines = emptySet()
+                authType = AuthType.Signin,
+                code = "testCode1",
+                state = "testState1",
+                declinedEngines = emptySet()
         )
         val finishResponse = manager.finishAuthenticationAsync(expectedAuthData)
         verify(manager).processQueueAsync(Event.Pair(pairingUrl))
@@ -1917,32 +1902,30 @@ class FxaAccountManagerTest {
 
         // Build our dependencies for creating an account manager
         val tServerConfig = ServerConfig(
-            "https://localhost/contentUrl",
-            "testClientId",
-            "https://localhost/redirectUrl"
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
         )
         val tDeviceConfig = DeviceConfig(
-            "testDevice",
-            DeviceType.MOBILE,
-            setOf()
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(
-            FxaAccountManager(
+        val manager = spy(FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-            )
-        )
+        ))
         val pairingUrl = "https://localhost/pairingUrl".toString()
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
         assertTrue(beginResponse is CompletableDeferred<String?>)
         val expectedAuthData = FxaAuthData(
-            authType = AuthType.Signin,
-            code = "testCode1",
-            state = "testState",
-            declinedEngines = emptySet()
+                authType = AuthType.Signin,
+                code = "testCode1",
+                state = "testState",
+                declinedEngines = emptySet()
         )
         // Override lastAuthState
         manager.latestAuthState = null
@@ -1960,21 +1943,21 @@ class FxaAccountManagerTest {
 
         // Build our dependencies for creating an account manager
         val tServerConfig = ServerConfig(
-            "https://localhost/contentUrl",
-            "testClientId",
-            "https://localhost/redirectUrl"
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
         )
         val tDeviceConfig = DeviceConfig(
-            "testDevice",
-            DeviceType.MOBILE,
-            setOf()
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
         val manager = FxaAccountManager(
-            testContext,
-            serverConfig = tServerConfig,
-            deviceConfig = tDeviceConfig,
-            syncConfig = tSyncConfig
+                testContext,
+                serverConfig = tServerConfig,
+                deviceConfig = tDeviceConfig,
+                syncConfig = tSyncConfig
         )
         // Override lastAuthState
         manager.latestAuthState = "integrationState"
@@ -1983,10 +1966,10 @@ class FxaAccountManagerTest {
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
         assertTrue(beginResponse is CompletableDeferred<String?>)
         val expectedAuthData = FxaAuthData(
-            authType = AuthType.Signin,
-            code = "testCode1",
-            state = "testState",
-            declinedEngines = emptySet()
+                authType = AuthType.Signin,
+                code = "testCode1",
+                state = "testState",
+                declinedEngines = emptySet()
         )
 
         // Make sure the logger is triggered
@@ -2013,8 +1996,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, capabilities, coroutineContext = coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, capabilities, coroutineContext = coroutineContext
         ) {
             mockAccount
         }
@@ -2045,8 +2028,8 @@ class FxaAccountManagerTest {
 
         val manager = TestableFxaAccountManager(
             testContext,
-            ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
-            accountStorage, coroutineContext = coroutineContext
+                ServerConfig(Server.RELEASE, "dummyId", "bad://url"),
+                accountStorage, coroutineContext = coroutineContext
         ) {
             mockAccount
         }

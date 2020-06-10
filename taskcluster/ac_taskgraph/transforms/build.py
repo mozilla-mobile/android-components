@@ -150,7 +150,7 @@ def add_artifacts(config, tasks):
                 "path": reports_artifact_template["path"].format(component_path=get_path(component)),
             })
 
-        if "checkruntext-artifact-template" in task:
+        if "checkruntext-artifact-template" in task and task['attributes']['build-type'] == 'default':
             checkruntext_artifact_template = task.pop("checkruntext-artifact-template", {})
             path = checkruntext_artifact_template["path"].format(component_path=get_path(component))
             build_artifact_definitions.append({

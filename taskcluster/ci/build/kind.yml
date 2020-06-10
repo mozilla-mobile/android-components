@@ -69,17 +69,17 @@ job-defaults:
                     by-component:
                         # No lintRelease on this job, gradle task isn't defined
                         tooling-lint:
+                            - ':{component}:githubCheckText'
                             - ':{component}:assemble'
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:test'
                             - ':{component}:lint'
-                            - ':{component}:githubCheckText'
                         default:
+                            - ':{component}:githubCheckText'
                             - ':{component}:assemble'
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:test'
                             - ':{component}:lintRelease'
-                            - ':{component}:githubCheckText'
         using: gradlew
         use-caches: false
     run-on-tasks-for:

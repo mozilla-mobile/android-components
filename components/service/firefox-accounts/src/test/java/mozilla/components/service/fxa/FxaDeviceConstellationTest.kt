@@ -290,7 +290,6 @@ class FxaDeviceConstellationTest {
         assertNotNull(response)
     }
 
-
     @Test
     @ExperimentalCoroutinesApi
     fun `polling for commands triggers observers`() = runBlocking(coroutinesTestRule.testDispatcher) {

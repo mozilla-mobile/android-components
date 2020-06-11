@@ -293,7 +293,6 @@ class FxaDeviceConstellationTest {
         // verify(testAccount.sendSingleTab(targetDeviceId, title, url))
     }
 
-
     @Test
     @ExperimentalCoroutinesApi
     fun `polling for commands triggers observers`() = runBlocking(coroutinesTestRule.testDispatcher) {

@@ -11,8 +11,8 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.plus
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.appservices.Megazord
 import mozilla.appservices.fxaclient.AccountEvent as ASAccountEvent // the app-services variation
@@ -257,6 +257,9 @@ class FxaDeviceConstellationTest {
         )
 
         testConstellation.pollForCommandsAsync()
+
+        // @TODO figure out how to spy on testAccount, which currently fails due to async
+        // verify(testAccount.pollDeviceCommands())
         assertTrue(true)
     }
 
@@ -285,8 +288,8 @@ class FxaDeviceConstellationTest {
 
         // Assert
         assertNotNull(response)
-        //verify(testAccount.sendSingleTab(targetDeviceId, title, url))
     }
+
 
     @Test
     @ExperimentalCoroutinesApi

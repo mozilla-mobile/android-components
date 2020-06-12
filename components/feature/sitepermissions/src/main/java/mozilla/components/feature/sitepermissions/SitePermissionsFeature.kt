@@ -94,6 +94,7 @@ class SitePermissionsFeature(
 
     override fun start() {
         observer.observeIdOrSelected(sessionId)
+        if (fragmentManager.isDestroyed) return
         fragmentManager.findFragmentByTag(FRAGMENT_TAG)?.let { fragment ->
             // There's still a [SitePermissionsDialogFragment] visible from the last time. Re-attach
             // this feature so that the fragment can invoke the callback on this feature once the user
@@ -574,11 +575,13 @@ class SitePermissionsFeature(
     /**
      * Re-attaches a fragment that is still visible but not linked to this feature anymore.
      */
+    @Suppress("ComplexCondition")
     private fun reattachFragment(fragment: SitePermissionsDialogFragment) {
         val session = sessionManager.findSessionById(fragment.sessionId)
         if (session == null ||
             session.contentPermissionRequest.isConsumed() &&
-            session.appPermissionRequest.isConsumed()
+            session.appPermissionRequest.isConsumed() &&
+            !fragmentManager.isDestroyed
         ) {
             fragmentManager.beginTransaction()
                 .remove(fragment)

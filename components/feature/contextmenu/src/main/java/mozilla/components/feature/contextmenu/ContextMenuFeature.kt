@@ -81,6 +81,7 @@ class ContextMenuFeature(
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun showContextMenu(tab: SessionState, hitResult: HitResult) {
+        if (fragmentManager.isDestroyed) return
         fragmentManager.findFragmentByTag(FRAGMENT_TAG)?.let { fragment ->
             // There's already a ContextMenuFragment being displayed. Let's only make sure it has
             // a reference to this feature instance.
@@ -111,6 +112,7 @@ class ContextMenuFeature(
     }
 
     private fun hideContextMenu() {
+        if (fragmentManager.isDestroyed) return
         fragmentManager.findFragmentByTag(FRAGMENT_TAG)?.let { fragment ->
             fragmentManager.beginTransaction()
                 .remove(fragment)

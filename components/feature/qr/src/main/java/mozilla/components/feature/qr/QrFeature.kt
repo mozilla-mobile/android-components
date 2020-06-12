@@ -53,6 +53,7 @@ class QrFeature(
     }
 
     override fun start() {
+        if (fragmentManager.isDestroyed) return
         (fragmentManager.findFragmentByTag(QR_FRAGMENT_TAG) as? QrFragment)?.let {
             it.scanCompleteListener = scanCompleteListener
         }
@@ -78,7 +79,7 @@ class QrFeature(
     fun scan(containerViewId: Int = android.R.id.content): Boolean {
         this.containerViewId = containerViewId
 
-        return if (context.isPermissionGranted(CAMERA)) {
+        return if (!fragmentManager.isDestroyed && context.isPermissionGranted(CAMERA)) {
             fragmentManager.beginTransaction()
                 .add(containerViewId, QrFragment.newInstance(scanCompleteListener, scanMessage), QR_FRAGMENT_TAG)
                 .commit()

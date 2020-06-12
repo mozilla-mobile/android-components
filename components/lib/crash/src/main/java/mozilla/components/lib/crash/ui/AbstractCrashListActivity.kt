@@ -21,7 +21,7 @@ abstract class AbstractCrashListActivity : AppCompatActivity() {
         setTitle(R.string.mozac_lib_crash_activity_title)
         setContentView(R.layout.mozac_lib_crash_activity_crashlist)
 
-        if (savedInstanceState == null) {
+        if (savedInstanceState == null && !supportFragmentManager.isDestroyed) {
             supportFragmentManager.beginTransaction()
                 .add(R.id.container, CrashListFragment())
                 .commit()

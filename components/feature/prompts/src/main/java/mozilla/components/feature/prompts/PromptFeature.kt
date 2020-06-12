@@ -236,6 +236,7 @@ class PromptFeature private constructor(
                 }
         }
 
+        if (fragmentManager.isDestroyed) return
         fragmentManager.findFragmentByTag(FRAGMENT_TAG)?.let { fragment ->
             // There's still a [PromptDialogFragment] visible from the last time. Re-attach this feature so that the
             // fragment can invoke the callback on this feature once the user makes a selection. This can happen when
@@ -388,7 +389,7 @@ class PromptFeature private constructor(
      */
     private fun reattachFragment(fragment: PromptDialogFragment) {
         val session = store.state.findTabOrCustomTab(fragment.sessionId)
-        if (session?.content?.promptRequest == null) {
+        if (!fragmentManager.isDestroyed && session?.content?.promptRequest == null) {
             fragmentManager.beginTransaction()
                 .remove(fragment)
                 .commitAllowingStateLoss()

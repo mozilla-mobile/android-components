@@ -72,6 +72,10 @@ class GeckoEngineView @JvmOverloads constructor(
             visibility = View.VISIBLE
         }
 
+        override fun onReleaseFromView() {
+            release()
+        }
+
         override fun onAppPermissionRequest(permissionRequest: PermissionRequest) = Unit
         override fun onContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
     }

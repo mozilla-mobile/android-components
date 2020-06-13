@@ -2527,6 +2527,24 @@ class GeckoEngineSessionTest {
         engineSession.goBack()
         assertFalse(observedOnNavigateBack)
     }
+
+    @Test
+    fun `releaseFromView notifies observers`() {
+        var observerCalled = false
+        val engineSession = GeckoEngineSession(mock(),
+                geckoSessionProvider = geckoSessionProvider)
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onReleaseFromView() {
+                observerCalled = true
+            }
+        })
+
+        engineSession.releaseFromView()
+
+        assertTrue(observerCalled)
+    }
+
     private fun mockGeckoSession(): GeckoSession {
         val session = mock<GeckoSession>()
         whenever(session.settings).thenReturn(

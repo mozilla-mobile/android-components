@@ -6,6 +6,7 @@ package org.mozilla.samples.browser
 
 import androidx.fragment.app.Fragment
 import mozilla.components.feature.pwa.ext.getWebAppManifest
+import org.mozilla.samples.browser.ext.components
 
 /**
  * Activity that holds the [BrowserFragment] that is launched within an external app,
@@ -17,6 +18,8 @@ class ExternalAppBrowserActivity : BrowserActivity() {
         return if (sessionId != null) {
             val manifest = intent.getWebAppManifest()
 
+            ensureSessionIsReleased(sessionId)
+
             ExternalAppBrowserFragment.create(
                 sessionId,
                 manifest = manifest
@@ -25,5 +28,12 @@ class ExternalAppBrowserActivity : BrowserActivity() {
             // Fall back to browser fragment
             super.createBrowserFragment(sessionId)
         }
+    }
+
+    private fun ensureSessionIsReleased(sessionId: String) {
+        val session = components.sessionManager.findSessionById(sessionId) ?: return
+        val engineSession = components.sessionManager.getOrCreateEngineSession(session)
+
+        engineSession.releaseFromView()
     }
 }

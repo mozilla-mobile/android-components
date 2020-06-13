@@ -95,6 +95,7 @@ class EngineSessionTest {
         verify(observer).onMediaAdded(mediaAdded)
         verify(observer).onMediaRemoved(mediaRemoved)
         verify(observer).onCrash()
+        verify(observer).onReleaseFromView()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
         verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null)
         verify(observer).onProcessKilled()
@@ -133,6 +134,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
         session.notifyInternalObservers { onCrash() }
+        session.notifyInternalObservers { onReleaseFromView() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
         session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null) }
         session.unregister(observer)
@@ -160,6 +162,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onMediaAdded(mediaAdded) }
         session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onCrash() }
+        session.notifyInternalObservers { onReleaseFromView() }
         session.notifyInternalObservers { onLoadRequest("https://www.mozilla.org", true, true) }
         session.notifyInternalObservers { onLaunchIntentRequest("https://www.firefox.com", null) }
 
@@ -181,6 +184,7 @@ class EngineSessionTest {
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
         verify(observer).onWindowRequest(windowRequest)
         verify(observer).onCrash()
+        verify(observer).onReleaseFromView()
         verify(observer).onLoadRequest("https://www.mozilla.org", true, true)
         verify(observer).onLaunchIntentRequest("https://www.mozilla.org", null)
         verify(observer, never()).onLocationChange("https://www.firefox.com")
@@ -240,6 +244,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onReleaseFromView() }
 
         session.unregisterObservers()
 
@@ -260,6 +265,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onReleaseFromView() }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -278,6 +284,7 @@ class EngineSessionTest {
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
         verify(observer).onWindowRequest(windowRequest)
+        verify(observer).onReleaseFromView()
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -295,6 +302,7 @@ class EngineSessionTest {
         verify(observer, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onWindowRequest(otherWindowRequest)
+        verify(observer, never()).onReleaseFromView()
         verify(otherObserver, never()).onLocationChange("https://www.firefox.com")
         verify(otherObserver, never()).onProgress(100)
         verify(otherObserver, never()).onLoadingStateChange(false)
@@ -312,6 +320,7 @@ class EngineSessionTest {
         verify(otherObserver, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(otherObserver, never()).onCancelContentPermissionRequest(otherPermissionRequest)
         verify(otherObserver, never()).onWindowRequest(otherWindowRequest)
+        verify(otherObserver, never()).onReleaseFromView()
     }
 
     @Test
@@ -345,6 +354,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onReleaseFromView() }
 
         session.close()
 
@@ -365,6 +375,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onWindowRequest(otherWindowRequest) }
+        session.notifyInternalObservers { onReleaseFromView() }
 
         verify(observer).onLocationChange("https://www.mozilla.org")
         verify(observer).onProgress(25)
@@ -383,6 +394,7 @@ class EngineSessionTest {
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
         verify(observer).onWindowRequest(windowRequest)
+        verify(observer).onReleaseFromView()
         verify(observer, never()).onLocationChange("https://www.firefox.com")
         verify(observer, never()).onProgress(100)
         verify(observer, never()).onLoadingStateChange(false)
@@ -400,6 +412,7 @@ class EngineSessionTest {
         verify(observer, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onWindowRequest(otherWindowRequest)
+        verify(observer, never()).onReleaseFromView()
         verifyNoMoreInteractions(observer)
     }
 
@@ -432,6 +445,7 @@ class EngineSessionTest {
         otherSession.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         otherSession.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
         otherSession.notifyInternalObservers { onWindowRequest(windowRequest) }
+        otherSession.notifyInternalObservers { onReleaseFromView() }
         verify(observer, never()).onLocationChange("https://www.mozilla.org")
         verify(observer, never()).onProgress(25)
         verify(observer, never()).onLoadingStateChange(true)
@@ -449,6 +463,7 @@ class EngineSessionTest {
         verify(observer, never()).onContentPermissionRequest(permissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(permissionRequest)
         verify(observer, never()).onWindowRequest(windowRequest)
+        verify(observer, never()).onReleaseFromView()
 
         session.notifyInternalObservers { onLocationChange("https://www.mozilla.org") }
         session.notifyInternalObservers { onProgress(25) }
@@ -467,6 +482,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
+        session.notifyInternalObservers { onReleaseFromView() }
         verify(observer, times(1)).onLocationChange("https://www.mozilla.org")
         verify(observer, times(1)).onProgress(25)
         verify(observer, times(1)).onLoadingStateChange(true)
@@ -484,6 +500,7 @@ class EngineSessionTest {
         verify(observer, times(1)).onContentPermissionRequest(permissionRequest)
         verify(observer, times(1)).onCancelContentPermissionRequest(permissionRequest)
         verify(observer, times(1)).onWindowRequest(windowRequest)
+        verify(observer, times(1)).onReleaseFromView()
         verifyNoMoreInteractions(observer)
     }
 
@@ -699,6 +716,7 @@ class EngineSessionTest {
         defaultObserver.onMediaAdded(mock())
         defaultObserver.onMediaRemoved(mock())
         defaultObserver.onCrash()
+        defaultObserver.onReleaseFromView()
     }
 
     @Test
@@ -805,6 +823,7 @@ class EngineSessionTest {
         observer.onLoadRequest("https://www.mozilla.org", true, true)
         observer.onLaunchIntentRequest("https://www.mozilla.org", null)
         observer.onProcessKilled()
+        observer.onReleaseFromView()
     }
 }
 
@@ -850,6 +869,8 @@ open class DummyEngineSession : EngineSession() {
     override fun recoverFromCrash(): Boolean {
         return false
     }
+
+    override fun releaseFromView() {}
 
     // Helper method to access the protected method from test cases.
     fun notifyInternalObservers(block: Observer.() -> Unit) {

@@ -387,6 +387,12 @@ class SystemEngineSession(
         fullScreenCallback?.onCustomViewHidden()
     }
 
+    override fun releaseFromView() {
+        notifyObservers {
+            onReleaseFromView()
+        }
+    }
+
     internal fun toggleDesktopUA(userAgent: String, requestDesktop: Boolean): String {
         return if (requestDesktop) {
             userAgent.replace("Mobile", "eliboM").replace("Android", "diordnA")

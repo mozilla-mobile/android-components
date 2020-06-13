@@ -986,4 +986,20 @@ class SystemEngineSessionTest {
         engineSession.goBack()
         assertTrue(observedOnNavigateBack)
     }
+
+    @Test
+    fun `releaseFromView notifies observers`() {
+        var observerCalled = false
+        val engineSession = SystemEngineSession(testContext)
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onReleaseFromView() {
+                observerCalled = true
+            }
+        })
+
+        engineSession.releaseFromView()
+
+        assertTrue(observerCalled)
+    }
 }

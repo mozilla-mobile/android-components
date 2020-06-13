@@ -313,6 +313,13 @@ class GeckoEngineSession(
         }
     }
 
+    @Synchronized
+    override fun releaseFromView() {
+        notifyObservers {
+            onReleaseFromView()
+        }
+    }
+
     /**
      * See [EngineSession.markActiveForWebExtensions].
      */

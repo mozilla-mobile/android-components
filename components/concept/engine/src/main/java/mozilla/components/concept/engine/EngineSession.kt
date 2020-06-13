@@ -131,6 +131,11 @@ abstract class EngineSession(
          * @param currentIndex Index of the current page in the history list.
          */
         fun onHistoryStateChanged(historyList: List<HistoryItem>, currentIndex: Int) = Unit
+
+        /**
+         * The session want's to be released from it's current view.
+         */
+        fun onReleaseFromView() = Unit
     }
 
     /**
@@ -532,6 +537,11 @@ abstract class EngineSession(
      * Returns true if a last known state was restored, otherwise false.
      */
     abstract fun recoverFromCrash(): Boolean
+
+    /**
+     * Requests from all observers to be released from its current view.
+     */
+    abstract fun releaseFromView()
 
     /**
      * Marks this session active/inactive for web extensions to support

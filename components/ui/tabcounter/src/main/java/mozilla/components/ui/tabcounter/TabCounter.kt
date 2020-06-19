@@ -26,6 +26,7 @@ class TabCounter @JvmOverloads constructor(
 ) : RelativeLayout(context, attrs, defStyle) {
 
     private val box: ImageView
+    private val bar: ImageView
     private val text: TextView
 
     private val animationSet: AnimatorSet
@@ -42,6 +43,7 @@ class TabCounter @JvmOverloads constructor(
         inflater.inflate(R.layout.mozac_ui_tabcounter_layout, this)
 
         box = findViewById(R.id.counter_box)
+        bar = findViewById(R.id.counter_bar)
         text = findViewById(R.id.counter_text)
 
         setCount(INTERNAL_COUNT)
@@ -89,6 +91,9 @@ class TabCounter @JvmOverloads constructor(
         val tabCounterBox = DrawableUtils.loadAndTintDrawable(context,
             R.drawable.mozac_ui_tabcounter_box, tabCounterTint)
         box.setImageDrawable(tabCounterBox)
+        val tabCounterBar = DrawableUtils.loadAndTintDrawable(context,
+                R.drawable.mozac_ui_tabcounter_bar, tabCounterTint)
+        bar.setImageDrawable(tabCounterBar)
 
         text.setTextColor(tabCounterTint)
     }

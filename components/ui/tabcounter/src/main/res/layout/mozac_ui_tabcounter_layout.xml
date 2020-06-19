@@ -34,4 +34,14 @@
             android:textStyle="bold"
             tools:text="16" />
     </FrameLayout>
+
+    <ImageView
+        android:id="@+id/counter_bar"
+        android:layout_width="20dp"
+        android:layout_height="2dp"
+        android:layout_below="@id/counter_root"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="1dp"
+        android:importantForAccessibility="no"
+        app:srcCompat="@drawable/mozac_ui_tabcounter_bar" />
 </merge>

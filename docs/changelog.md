@@ -34,6 +34,8 @@ permalink: /changelog/
     * Feature: Add rate limiting capabilities to the upload manager
     * BUGFIX: baseline pings with reason "dirty startup" are no longer sent if Glean did not full initialize in the previous run
 
+* **concept-toolbar**
+  * Added `setOnInterceptTouchListener` to allow intercepting touch events before they are handled by child views within the `Toolbar`.
 
 # 47.0.0
 

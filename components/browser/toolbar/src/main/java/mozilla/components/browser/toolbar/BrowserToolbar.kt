@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -64,6 +65,7 @@ class BrowserToolbar @JvmOverloads constructor(
 ) : ViewGroup(context, attrs, defStyleAttr), Toolbar {
     private var state: State = State.DISPLAY
     private var searchTerms: String = ""
+    private var interceptTouchEventListener: ((MotionEvent?) -> Boolean)? = null
     private var urlCommitListener: ((String) -> Boolean)? = null
 
     /**
@@ -151,6 +153,10 @@ class BrowserToolbar @JvmOverloads constructor(
         updateState(State.DISPLAY)
     }
 
+    override fun onInterceptTouchEvent(ev: MotionEvent?): Boolean {
+        return interceptTouchEventListener?.invoke(ev) ?: super.onInterceptTouchEvent(ev)
+    }
+
     // We layout the toolbar ourselves to avoid the overhead from using complex ViewGroup implementations
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         forEach { child ->
@@ -203,6 +209,10 @@ class BrowserToolbar @JvmOverloads constructor(
 
     override fun displayProgress(progress: Int) {
         display.updateProgress(progress)
+    }
+
+    override fun setOnInterceptTouchListener(listener: (MotionEvent?) -> Boolean) {
+        this.interceptTouchEventListener = listener
     }
 
     override fun setOnUrlCommitListener(listener: (String) -> Boolean) {

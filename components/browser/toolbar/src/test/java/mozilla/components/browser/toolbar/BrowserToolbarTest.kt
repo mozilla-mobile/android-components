@@ -7,6 +7,7 @@ package mozilla.components.browser.toolbar
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
@@ -696,5 +697,19 @@ class BrowserToolbarTest {
         toolbar.onStop()
 
         verify(toolbar.display).onStop()
+    }
+
+    @Test
+    fun `onInterceptTouchEvent is forwarded to the interceptTouchEventListener`() {
+        val toolbar = BrowserToolbar(testContext)
+        var called = false
+        val interceptTouchListener: (MotionEvent?) -> Boolean = {
+            called = true
+            true
+        }
+
+        toolbar.setOnInterceptTouchListener(interceptTouchListener)
+        toolbar.onInterceptTouchEvent(mock())
+        assertEquals(true, called)
     }
 }

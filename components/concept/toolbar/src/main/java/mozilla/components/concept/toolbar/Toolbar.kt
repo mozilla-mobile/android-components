@@ -5,6 +5,7 @@
 package mozilla.components.concept.toolbar
 
 import android.graphics.drawable.Drawable
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -86,6 +87,19 @@ interface Toolbar {
      * @param listener the listener function
      */
     fun setOnUrlCommitListener(listener: (String) -> Boolean)
+
+    /**
+     * Registers the given function to be invoked when the toolbar viewgroup receives a touch
+     * event. This is called before the touch event is dispatched to any child views that might
+     * handle the event.
+     *
+     * If the function returns `true` then the touch event will not be dispatched to any child view.
+     * Otherwise, the touch event will be dispatched to any child view that can handle it.
+     *
+     * @param listener the listener function
+     * @see ViewGroup.onInterceptTouchEvent
+     */
+    fun setOnInterceptTouchListener(listener: (MotionEvent?) -> Boolean)
 
     /**
      * Registers the given function to be invoked when users changes text in the toolbar.

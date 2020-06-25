@@ -216,19 +216,6 @@ open class DefaultComponents(private val applicationContext: Context) {
     val tabIntentProcessor by lazy {
         TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
     }
-    val externalAppIntentProcessors by lazy {
-        listOf(
-            WebAppIntentProcessor(sessionManager, sessionUseCases.loadUrl, webAppManifestStorage),
-            TrustedWebActivityIntentProcessor(
-                sessionManager,
-                sessionUseCases.loadUrl,
-                applicationContext.packageManager,
-                relationChecker,
-                customTabsStore
-            ),
-            CustomTabIntentProcessor(sessionManager, sessionUseCases.loadUrl, applicationContext.resources)
-        )
-    }
 
     // Menu
     val menuBuilder by lazy {

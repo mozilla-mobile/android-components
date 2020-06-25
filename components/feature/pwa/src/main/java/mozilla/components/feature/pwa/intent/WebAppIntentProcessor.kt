@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.pwa.intent
 
+import android.app.Activity
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT
 import kotlinx.coroutines.runBlocking
@@ -23,6 +24,7 @@ import mozilla.components.support.utils.toSafeIntent
  * Processor for intents which trigger actions related to web apps.
  */
 class WebAppIntentProcessor(
+    private val activity: Activity,
     private val sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val storage: ManifestStorage
@@ -48,7 +50,9 @@ class WebAppIntentProcessor(
 
             val session = Session(url, private = false, source = Source.HOME_SCREEN)
             session.webAppManifest = webAppManifest
-            session.customTabConfig = webAppManifest.toCustomTabConfig()
+            session.customTabConfig = webAppManifest.toCustomTabConfig().copy(
+                taskId = activity.taskId
+            )
 
             sessionManager.add(session)
             loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external())

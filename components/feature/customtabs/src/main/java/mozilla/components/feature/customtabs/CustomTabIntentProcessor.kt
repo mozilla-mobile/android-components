@@ -4,9 +4,9 @@
 
 package mozilla.components.feature.customtabs
 
+import android.app.Activity
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
-import android.content.res.Resources
 import android.provider.Browser
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.session.Session
@@ -22,9 +22,9 @@ import mozilla.components.support.utils.toSafeIntent
  * Processor for intents which trigger actions related to custom tabs.
  */
 class CustomTabIntentProcessor(
+    private val activity: Activity,
     private val sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
-    private val resources: Resources,
     private val isPrivate: Boolean = false
 ) : IntentProcessor {
 
@@ -58,7 +58,7 @@ class CustomTabIntentProcessor(
 
         return if (!url.isNullOrEmpty() && matches(intent)) {
             val session = Session(url, private = isPrivate, source = Session.Source.CUSTOM_TAB)
-            session.customTabConfig = createCustomTabConfigFromIntent(intent, resources)
+            session.customTabConfig = createCustomTabConfigFromIntent(intent, activity)
 
             sessionManager.add(session)
             loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external(), getAdditionalHeaders(safeIntent))

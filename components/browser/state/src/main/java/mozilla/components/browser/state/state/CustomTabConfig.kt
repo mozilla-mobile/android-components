@@ -28,6 +28,7 @@ import java.util.UUID
  * @property titleVisible Whether the title should be shown in the custom tab.
  * @property sessionToken The token associated with the custom tab.
  * @property externalAppType How this custom tab is being displayed.
+ * @property taskId ID of the task that this custom tab was started in.
  */
 data class CustomTabConfig(
     val id: String = UUID.randomUUID().toString(),
@@ -42,7 +43,8 @@ data class CustomTabConfig(
     @ColorInt val navigationBarColor: Int? = null,
     val titleVisible: Boolean = false,
     val sessionToken: CustomTabsSessionToken? = null,
-    val externalAppType: ExternalAppType = ExternalAppType.CUSTOM_TAB
+    val externalAppType: ExternalAppType = ExternalAppType.CUSTOM_TAB,
+    val taskId: Int? = null
 )
 
 /**

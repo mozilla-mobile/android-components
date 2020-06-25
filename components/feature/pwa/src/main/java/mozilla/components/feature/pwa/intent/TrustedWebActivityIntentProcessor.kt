@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.pwa.intent
 
+import android.app.Activity
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.content.pm.PackageManager
@@ -36,6 +37,7 @@ import mozilla.components.support.utils.toSafeIntent
  * Processor for intents which open Trusted Web Activities.
  */
 class TrustedWebActivityIntentProcessor(
+    private val activity: Activity,
     private val sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     packageManager: PackageManager,
@@ -57,7 +59,7 @@ class TrustedWebActivityIntentProcessor(
 
         return if (!url.isNullOrEmpty() && matches(intent)) {
             val session = Session(url, private = false, source = Session.Source.HOME_SCREEN)
-            val customTabConfig = createCustomTabConfigFromIntent(intent, null)
+            val customTabConfig = createCustomTabConfigFromIntent(intent, activity)
             session.customTabConfig = customTabConfig.copy(externalAppType = ExternalAppType.TRUSTED_WEB_ACTIVITY)
 
             sessionManager.add(session)

@@ -9,16 +9,46 @@ import android.content.Intent
 import android.os.Bundle
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import mozilla.components.feature.customtabs.CustomTabIntentProcessor
+import mozilla.components.feature.pwa.intent.TrustedWebActivityIntentProcessor
+import mozilla.components.feature.pwa.intent.WebAppIntentProcessor
 import org.mozilla.samples.browser.ext.components
 
 class IntentReceiverActivity : Activity() {
+
+    private val externalAppIntentProcessors by lazy {
+        val sessionManager = components.sessionManager
+        val sessionUseCases = components.sessionUseCases
+
+        listOf(
+            WebAppIntentProcessor(
+                this,
+                sessionManager,
+                sessionUseCases.loadUrl,
+                components.webAppManifestStorage
+            ),
+            TrustedWebActivityIntentProcessor(
+                this,
+                sessionManager,
+                sessionUseCases.loadUrl,
+                applicationContext.packageManager,
+                components.relationChecker,
+                components.customTabsStore
+            ),
+            CustomTabIntentProcessor(
+                this,
+                sessionManager,
+                sessionUseCases.loadUrl
+            )
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         MainScope().launch {
             val intent = intent?.let { Intent(it) } ?: Intent()
-            val intentProcessors = components.externalAppIntentProcessors + components.tabIntentProcessor
+            val intentProcessors = externalAppIntentProcessors + components.tabIntentProcessor
 
             // Explicitly remove the new task and clear task flags (Our browser activity is a single
             // task activity and we never want to start a second task here).
@@ -31,7 +61,7 @@ class IntentReceiverActivity : Activity() {
 
             val processor = intentProcessors.firstOrNull { it.process(intent) }
 
-            val activityClass = if (processor in components.externalAppIntentProcessors) {
+            val activityClass = if (processor in externalAppIntentProcessors) {
                 ExternalAppBrowserActivity::class
             } else {
                 BrowserActivity::class

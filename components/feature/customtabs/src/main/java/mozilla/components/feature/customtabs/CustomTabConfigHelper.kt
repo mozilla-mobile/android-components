@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.customtabs
 
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.res.Resources
@@ -81,10 +82,7 @@ fun isTrustedWebActivityIntent(safeIntent: SafeIntent) = isCustomTabIntent(safeI
  * @param resources needed in-order to verify that icons of a max size are only provided.
  * @return the CustomTabConfig instance.
  */
-fun createCustomTabConfigFromIntent(
-    intent: Intent,
-    resources: Resources?
-): CustomTabConfig {
+fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): CustomTabConfig {
     val safeIntent = intent.toSafeIntent()
 
     return CustomTabConfig(
@@ -104,6 +102,12 @@ fun createCustomTabConfigFromIntent(
             null
         },
         externalAppType = ExternalAppType.CUSTOM_TAB
+    )
+}
+
+fun createCustomTabConfigFromIntent(intent: Intent, activity: Activity?): CustomTabConfig {
+    return createCustomTabConfigFromIntent(intent, activity?.resources).copy(
+        taskId = activity?.taskId
     )
 }
 

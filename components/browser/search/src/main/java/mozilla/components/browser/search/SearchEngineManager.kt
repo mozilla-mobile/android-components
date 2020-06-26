@@ -130,8 +130,8 @@ class SearchEngineManager(
         val providedDefault = getProvidedDefaultSearchEngineAsync(context)
 
         return when (name) {
-            EMPTY -> defaultSearchEngine ?: providedDefault
-            else -> searchEngineList.list.find { it.name == name } ?: providedDefault
+            EMPTY -> defaultSearchEngine ?: providedDefault!!
+            else -> searchEngineList.list.find { it.name == name } ?: providedDefault!!
         }
     }
 
@@ -149,9 +149,9 @@ class SearchEngineManager(
      * Returns the provided default search engine or the first search engine if the default
      * is not set.
      */
-    suspend fun getProvidedDefaultSearchEngineAsync(context: Context): SearchEngine {
+    suspend fun getProvidedDefaultSearchEngineAsync(context: Context): SearchEngine? {
         val searchEngineList = getSearchEngineListAsync(context)
-        return searchEngineList.default ?: searchEngineList.list[0]
+        return searchEngineList.default ?: searchEngineList.list.getOrNull(0)
     }
 
     /**

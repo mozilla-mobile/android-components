@@ -78,13 +78,11 @@ fun isTrustedWebActivityIntent(safeIntent: SafeIntent) = isCustomTabIntent(safeI
 /**
  * Creates a [CustomTabConfig] instance based on the provided intent.
  *
- * @param intent the intent, wrapped as a SafeIntent, which is processed to extract configuration data.
+ * @param safeIntent the intent, wrapped as a SafeIntent, which is processed to extract configuration data.
  * @param resources needed in-order to verify that icons of a max size are only provided.
  * @return the CustomTabConfig instance.
  */
-fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): CustomTabConfig {
-    val safeIntent = intent.toSafeIntent()
-
+fun createCustomTabConfigFromIntent(safeIntent: SafeIntent, resources: Resources?): CustomTabConfig {
     return CustomTabConfig(
         toolbarColor = safeIntent.getColorExtra(EXTRA_TOOLBAR_COLOR),
         navigationBarColor = safeIntent.getColorExtra(EXTRA_NAVIGATION_BAR_COLOR),
@@ -95,9 +93,9 @@ fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): Cust
         menuItems = getMenuItems(safeIntent),
         exitAnimations = safeIntent.getBundleExtra(EXTRA_EXIT_ANIMATION_BUNDLE)?.unsafe,
         titleVisible = safeIntent.getIntExtra(EXTRA_TITLE_VISIBILITY_STATE, NO_TITLE) == SHOW_PAGE_TITLE,
-        sessionToken = if (intent.extras != null) {
+        sessionToken = if (safeIntent.extras != null) {
             // getSessionTokenFromIntent throws if extras is null
-            CustomTabsSessionToken.getSessionTokenFromIntent(intent)
+            CustomTabsSessionToken.getSessionTokenFromIntent(safeIntent.unsafe)
         } else {
             null
         },
@@ -105,7 +103,11 @@ fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): Cust
     )
 }
 
-fun createCustomTabConfigFromIntent(intent: Intent, activity: Activity?): CustomTabConfig {
+fun createCustomTabConfigFromIntent(intent: Intent, resources: Resources?): CustomTabConfig {
+    return createCustomTabConfigFromIntent(intent.toSafeIntent(), resources)
+}
+
+fun createCustomTabConfigFromIntent(intent: SafeIntent, activity: Activity?): CustomTabConfig {
     return createCustomTabConfigFromIntent(intent, activity?.resources).copy(
         taskId = activity?.taskId
     )

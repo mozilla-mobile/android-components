@@ -12,29 +12,28 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.Session.Source
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.feature.intent.ext.putSessionId
-import mozilla.components.feature.intent.processing.IntentProcessor
+import mozilla.components.feature.customtabs.ExternalAppIntentProcessor
 import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.ext.putWebAppManifest
 import mozilla.components.feature.pwa.ext.toCustomTabConfig
 import mozilla.components.feature.session.SessionUseCases
-import mozilla.components.support.utils.toSafeIntent
+import mozilla.components.support.utils.SafeIntent
 
 /**
  * Processor for intents which trigger actions related to web apps.
  */
 class WebAppIntentProcessor(
-    private val activity: Activity,
-    private val sessionManager: SessionManager,
+    activity: Activity,
+    sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val storage: ManifestStorage
-) : IntentProcessor {
+) : ExternalAppIntentProcessor(activity, sessionManager) {
 
     /**
      * Returns true if this intent should launch a progressive web app.
      */
-    private fun matches(intent: Intent) =
-        intent.toSafeIntent().action == ACTION_VIEW_PWA
+    override fun matches(intent: SafeIntent) =
+        intent.action == ACTION_VIEW_PWA
 
     /**
      * Processes the given [Intent] by creating a [Session] with a corresponding web app manifest.
@@ -42,28 +41,22 @@ class WebAppIntentProcessor(
      * A custom tab config is also set so a custom tab toolbar can be shown when the user leaves
      * the scope defined in the manifest.
      */
-    override fun process(intent: Intent): Boolean {
-        val url = intent.toSafeIntent().dataString
+    override fun process(intent: SafeIntent, url: String): Session? {
+        val webAppManifest = runBlocking { storage.loadManifest(url) } ?: return null
+        val session = existingSession()?.also {
+            it.webAppManifest = webAppManifest
+            it.customTabConfig = webAppManifest.toCustomTabConfig().copy(taskId = activity.taskId)
+        } ?: Session(url, private = false, source = Source.HOME_SCREEN).also {
+            it.webAppManifest = webAppManifest
+            it.customTabConfig = webAppManifest.toCustomTabConfig().copy(taskId = activity.taskId)
 
-        return if (!url.isNullOrEmpty() && matches(intent)) {
-            val webAppManifest = runBlocking { storage.loadManifest(url) } ?: return false
-
-            val session = Session(url, private = false, source = Source.HOME_SCREEN)
-            session.webAppManifest = webAppManifest
-            session.customTabConfig = webAppManifest.toCustomTabConfig().copy(
-                taskId = activity.taskId
-            )
-
-            sessionManager.add(session)
-            loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external())
-            intent.flags = FLAG_ACTIVITY_NEW_DOCUMENT
-            intent.putSessionId(session.id)
-            intent.putWebAppManifest(webAppManifest)
-
-            true
-        } else {
-            false
+            sessionManager.add(it)
+            loadUrlUseCase(url, it, EngineSession.LoadUrlFlags.external())
         }
+
+        intent.unsafe.flags = FLAG_ACTIVITY_NEW_DOCUMENT
+        intent.unsafe.putWebAppManifest(webAppManifest)
+        return session
     }
 
     companion object {

@@ -6,9 +6,9 @@ package mozilla.components.feature.intent.processing
 
 import android.app.SearchManager
 import android.content.Intent
+import android.content.Intent.ACTION_SEARCH
 import android.content.Intent.ACTION_SEND
 import android.content.Intent.ACTION_VIEW
-import android.content.Intent.ACTION_SEARCH
 import android.content.Intent.ACTION_WEB_SEARCH
 import android.content.Intent.EXTRA_TEXT
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
@@ -54,8 +54,8 @@ class TabIntentProcessor(
             if (existingSession != null) {
                 sessionManager.select(existingSession)
             } else {
-                loadUrlUseCase(url, createSession(url, private = isPrivate,
-                        source = Source.ACTION_VIEW), LoadUrlFlags.external())
+                val session = createSession(url, source = Source.ACTION_VIEW)
+                loadUrlUseCase(url, session, LoadUrlFlags.external())
             }
             true
         }
@@ -73,7 +73,7 @@ class TabIntentProcessor(
         } else {
             val url = WebURLFinder(extraText).bestWebURL()
             if (url != null) {
-                val session = createSession(url, private = isPrivate, source = Source.ACTION_SEND)
+                val session = createSession(url, source = Source.ACTION_SEND)
                 loadUrlUseCase(url, session, LoadUrlFlags.external())
             } else {
                 newTabSearchUseCase(extraText, Source.ACTION_SEND, openNewTab)
@@ -89,7 +89,7 @@ class TabIntentProcessor(
             false
         } else {
             if (searchQuery.isUrl()) {
-                val session = createSession(searchQuery, private = isPrivate, source = Source.ACTION_SEARCH)
+                val session = createSession(searchQuery, source = Source.ACTION_SEARCH)
                 loadUrlUseCase(searchQuery, session, LoadUrlFlags.external())
             } else {
                 newTabSearchUseCase(searchQuery, Source.ACTION_SEARCH, openNewTab)
@@ -98,11 +98,11 @@ class TabIntentProcessor(
         }
     }
 
-    private fun createSession(url: String, private: Boolean = false, source: Source): Session {
+    private fun createSession(url: String, source: Source): Session {
         return if (openNewTab) {
-            Session(url, private, source).also { sessionManager.add(it, selected = true) }
+            Session(url, isPrivate, source).also { sessionManager.add(it, selected = true) }
         } else {
-            sessionManager.selectedSession ?: Session(url, private, source)
+            sessionManager.selectedSession ?: Session(url, isPrivate, source)
         }
     }
 

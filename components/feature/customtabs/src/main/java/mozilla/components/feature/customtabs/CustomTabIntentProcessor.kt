@@ -5,68 +5,50 @@
 package mozilla.components.feature.customtabs
 
 import android.app.Activity
-import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.provider.Browser
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.feature.intent.ext.putSessionId
-import mozilla.components.feature.intent.processing.IntentProcessor
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.utils.SafeIntent
-import mozilla.components.support.utils.toSafeIntent
 
 /**
  * Processor for intents which trigger actions related to custom tabs.
  */
 class CustomTabIntentProcessor(
-    private val activity: Activity,
-    private val sessionManager: SessionManager,
+    activity: Activity,
+    sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val isPrivate: Boolean = false
-) : IntentProcessor {
+) : ExternalAppIntentProcessor(activity, sessionManager) {
 
-    private fun matches(intent: Intent): Boolean {
-        val safeIntent = intent.toSafeIntent()
-        return safeIntent.action == ACTION_VIEW && isCustomTabIntent(safeIntent)
+    override fun matches(intent: SafeIntent): Boolean {
+        return intent.action == ACTION_VIEW && isCustomTabIntent(intent)
     }
 
     @VisibleForTesting
     internal fun getAdditionalHeaders(intent: SafeIntent): Map<String, String>? {
         val pairs = intent.getBundleExtra(Browser.EXTRA_HEADERS)
-        val headers = mutableMapOf<String, String>()
-        pairs?.keySet()?.forEach { key ->
+        return pairs?.keySet()?.map { key ->
             val header = pairs.getString(key)
             if (header != null) {
-                headers[key] = header
+                key to header
             } else {
                 throw IllegalArgumentException("getAdditionalHeaders() intent bundle contains wrong key value pair")
             }
-        }
-        return if (headers.isEmpty()) {
-            null
-        } else {
-            headers
-        }
+        }?.toMap()
     }
 
-    override fun process(intent: Intent): Boolean {
-        val safeIntent = SafeIntent(intent)
-        val url = safeIntent.dataString
+    override fun process(intent: SafeIntent, url: String): Session {
+        return existingSession()?.also {
+            it.customTabConfig = createCustomTabConfigFromIntent(intent, activity)
+        } ?: Session(url, private = isPrivate, source = Session.Source.CUSTOM_TAB).also {
+            it.customTabConfig = createCustomTabConfigFromIntent(intent, activity)
+            sessionManager.add(it)
 
-        return if (!url.isNullOrEmpty() && matches(intent)) {
-            val session = Session(url, private = isPrivate, source = Session.Source.CUSTOM_TAB)
-            session.customTabConfig = createCustomTabConfigFromIntent(intent, activity)
-
-            sessionManager.add(session)
-            loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external(), getAdditionalHeaders(safeIntent))
-            intent.putSessionId(session.id)
-
-            true
-        } else {
-            false
+            loadUrlUseCase(url, it, EngineSession.LoadUrlFlags.external(), getAdditionalHeaders(intent))
         }
     }
 }

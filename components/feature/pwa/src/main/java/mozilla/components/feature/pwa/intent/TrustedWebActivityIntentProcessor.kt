@@ -5,7 +5,6 @@
 package mozilla.components.feature.pwa.intent
 
 import android.app.Activity
-import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -21,68 +20,61 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.feature.customtabs.ExternalAppIntentProcessor
 import mozilla.components.feature.customtabs.createCustomTabConfigFromIntent
 import mozilla.components.feature.customtabs.feature.OriginVerifierFeature
 import mozilla.components.feature.customtabs.isTrustedWebActivityIntent
 import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
-import mozilla.components.feature.intent.ext.putSessionId
-import mozilla.components.feature.intent.processing.IntentProcessor
 import mozilla.components.feature.pwa.ext.toOrigin
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.service.digitalassetlinks.RelationChecker
 import mozilla.components.support.utils.SafeIntent
-import mozilla.components.support.utils.toSafeIntent
 
 /**
  * Processor for intents which open Trusted Web Activities.
  */
 class TrustedWebActivityIntentProcessor(
-    private val activity: Activity,
-    private val sessionManager: SessionManager,
+    activity: Activity,
+    sessionManager: SessionManager,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     packageManager: PackageManager,
     relationChecker: RelationChecker,
     private val store: CustomTabsServiceStore
-) : IntentProcessor {
+) : ExternalAppIntentProcessor(activity, sessionManager) {
 
     private val verifier = OriginVerifierFeature(packageManager, relationChecker) { store.dispatch(it) }
     private val scope = MainScope()
 
-    private fun matches(intent: Intent): Boolean {
-        val safeIntent = intent.toSafeIntent()
-        return safeIntent.action == ACTION_VIEW && isTrustedWebActivityIntent(safeIntent)
-    }
+    override fun matches(intent: SafeIntent) =
+        intent.action == ACTION_VIEW && isTrustedWebActivityIntent(intent)
 
-    override fun process(intent: Intent): Boolean {
-        val safeIntent = SafeIntent(intent)
-        val url = safeIntent.dataString
+    override fun process(intent: SafeIntent, url: String): Session {
+        val customTabConfig = createCustomTabConfigFromIntent(intent, activity)
+            .copy(externalAppType = ExternalAppType.TRUSTED_WEB_ACTIVITY)
 
-        return if (!url.isNullOrEmpty() && matches(intent)) {
-            val session = Session(url, private = false, source = Session.Source.HOME_SCREEN)
-            val customTabConfig = createCustomTabConfigFromIntent(intent, activity)
-            session.customTabConfig = customTabConfig.copy(externalAppType = ExternalAppType.TRUSTED_WEB_ACTIVITY)
+        val session = existingSession()?.also {
+            it.customTabConfig = customTabConfig
+        } ?: Session(url, private = false, source = Session.Source.HOME_SCREEN).also {
+            it.customTabConfig = customTabConfig
 
-            sessionManager.add(session)
-            loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external())
-            intent.putSessionId(session.id)
-
-            customTabConfig.sessionToken?.let { token ->
-                val origin = listOfNotNull(safeIntent.data?.toOrigin())
-                val additionalOrigins = safeIntent
-                    .getStringArrayListExtra(EXTRA_ADDITIONAL_TRUSTED_ORIGINS)
-                    .orEmpty()
-                    .mapNotNull { it.toUri().toOrigin() }
-
-                // Launch verification separately so the intent processing isn't held up
-                scope.launch {
-                    verify(token, origin + additionalOrigins)
-                }
-            }
-
-            true
-        } else {
-            false
+            sessionManager.add(it)
+            loadUrlUseCase(url, it, EngineSession.LoadUrlFlags.external())
         }
+
+        customTabConfig.sessionToken?.let { token ->
+            val origin = listOfNotNull(intent.data?.toOrigin())
+            val additionalOrigins = intent
+                .getStringArrayListExtra(EXTRA_ADDITIONAL_TRUSTED_ORIGINS)
+                .orEmpty()
+                .mapNotNull { it.toUri().toOrigin() }
+
+            // Launch verification separately so the intent processing isn't held up
+            scope.launch {
+                verify(token, origin + additionalOrigins)
+            }
+        }
+
+        return session
     }
 
     private suspend fun verify(token: CustomTabsSessionToken, origins: List<Uri>) {

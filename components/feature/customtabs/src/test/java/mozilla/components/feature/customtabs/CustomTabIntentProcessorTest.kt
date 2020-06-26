@@ -22,10 +22,9 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
-import mozilla.components.support.utils.toSafeIntent
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -98,7 +97,7 @@ class CustomTabIntentProcessorTest {
             putString("X-Extra-Header", "true")
         }
         whenever(intent.getBundleExtra(Browser.EXTRA_HEADERS)).thenReturn(headersBundle)
-        val headers = handler.getAdditionalHeaders(intent.toSafeIntent())
+        val headers = mapOf("X-Extra-Header" to "true")
 
         handler.process(intent)
         verify(sessionManager).add(anySession(), eq(false), eq(null), eq(null), eq(null))

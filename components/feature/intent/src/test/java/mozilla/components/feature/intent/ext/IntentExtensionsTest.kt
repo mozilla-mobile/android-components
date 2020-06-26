@@ -5,8 +5,11 @@
 package mozilla.components.feature.intent.ext
 
 import android.content.Intent
+import android.os.Bundle
+import android.provider.Browser
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.whenever
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeIntent
 import org.junit.Assert.assertEquals
@@ -39,5 +42,19 @@ class IntentExtensionsTest {
 
         assertEquals(id, intent.getSessionId())
         assertEquals(id, intent.toSafeIntent().getSessionId())
+    }
+
+    @Test
+    fun `getExtraHeaders returns headers map`() {
+        val intent = mock<Intent>()
+        val headersBundle = Bundle().apply {
+            putString("X-Extra-Header", "true")
+        }
+        whenever(intent.getBundleExtra(Browser.EXTRA_HEADERS)).thenReturn(headersBundle)
+
+        assertEquals(
+            mapOf("X-Extra-Header" to "true"),
+            intent.toSafeIntent().getExtraHeaders()
+        )
     }
 }

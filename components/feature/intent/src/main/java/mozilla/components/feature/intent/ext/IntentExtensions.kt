@@ -5,6 +5,7 @@
 package mozilla.components.feature.intent.ext
 
 import android.content.Intent
+import android.provider.Browser
 import mozilla.components.support.utils.SafeIntent
 
 const val EXTRA_SESSION_ID = "activeSessionId"
@@ -37,4 +38,18 @@ fun SafeIntent.getSessionId(): String? = getStringExtra(EXTRA_SESSION_ID)
  */
 fun Intent.putSessionId(sessionId: String?): Intent {
     return putExtra(EXTRA_SESSION_ID, sessionId)
+}
+
+/**
+ * Retrieves headers from the given browsing intent.
+ *
+ * @return Headers to include in the HTTP request for the intent URL.
+ */
+fun SafeIntent.getExtraHeaders(): Map<String, String>? {
+    val pairs = getBundleExtra(Browser.EXTRA_HEADERS)
+    return pairs?.keySet()?.mapNotNull { key ->
+        pairs.getString(key)?.let { header ->
+            key to header
+        }
+    }?.toMap()
 }

@@ -19,7 +19,8 @@ import org.mozilla.geckoview.BasicSelectionActionDelegate
 open class GeckoSelectionActionDelegate(
     activity: Activity,
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val customDelegate: SelectionActionDelegate
+    internal val customDelegate: SelectionActionDelegate,
+    private val actionSorter: ((Array<String>) -> Array<String>)? = null
 ) : BasicSelectionActionDelegate(activity) {
 
     companion object {
@@ -27,9 +28,9 @@ open class GeckoSelectionActionDelegate(
          * @returns a [GeckoSelectionActionDelegate] if [customDelegate] is non-null and [context]
          * is an instance of [Activity]. Otherwise, returns null.
          */
-        fun maybeCreate(context: Context, customDelegate: SelectionActionDelegate?): GeckoSelectionActionDelegate? {
+        fun maybeCreate(context: Context, customDelegate: SelectionActionDelegate?, actionSorter: ((Array<String>) -> Array<String>)? = null): GeckoSelectionActionDelegate? {
             return if (context is Activity && customDelegate != null) {
-                GeckoSelectionActionDelegate(context, customDelegate)
+                GeckoSelectionActionDelegate(context, customDelegate, actionSorter)
             } else {
                 null
             }
@@ -37,7 +38,11 @@ open class GeckoSelectionActionDelegate(
     }
 
     override fun getAllActions(): Array<String> {
-        return super.getAllActions() + customDelegate.getAllActions()
+        return if (actionSorter != null) {
+            actionSorter.invoke(super.getAllActions() + customDelegate.getAllActions())
+        } else {
+            super.getAllActions() + customDelegate.getAllActions()
+        }
     }
 
     override fun isActionAvailable(id: String): Boolean {

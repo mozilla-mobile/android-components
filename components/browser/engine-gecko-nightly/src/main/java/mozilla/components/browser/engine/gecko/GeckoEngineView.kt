@@ -27,7 +27,9 @@ import org.mozilla.geckoview.GeckoSession
 class GeckoEngineView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+    defStyleAttr: Int = 0,
+    private val actionSorter: ((Array<String>) -> Array<String>)? = null
+
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var currentGeckoView = object : NestedGeckoView(context) {
@@ -127,7 +129,11 @@ class GeckoEngineView @JvmOverloads constructor(
     }
 
     private fun attachSelectionActionDelegate(session: GeckoSession) {
-        val delegate = GeckoSelectionActionDelegate.maybeCreate(context, selectionActionDelegate)
+        val delegate = GeckoSelectionActionDelegate.maybeCreate(
+            context,
+            selectionActionDelegate,
+            actionSorter
+        )
         if (delegate != null) {
             session.selectionActionDelegate = delegate
             currentSelection = delegate

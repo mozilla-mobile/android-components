@@ -60,7 +60,8 @@ class GeckoEngine(
     private val runtime: GeckoRuntime = GeckoRuntime.getDefault(context),
     executorProvider: () -> GeckoWebExecutor = { GeckoWebExecutor(runtime) },
     override val trackingProtectionExceptionStore: TrackingProtectionExceptionStorage =
-        TrackingProtectionExceptionFileStorage(context, runtime)
+        TrackingProtectionExceptionFileStorage(context, runtime),
+    private val actionSorter: ((Array<String>) -> Array<String>)? = null
 ) : Engine, WebExtensionRuntime {
     private val executor by lazy { executorProvider.invoke() }
     private val localeUpdater = LocaleSettingUpdater(context, runtime)
@@ -137,7 +138,7 @@ class GeckoEngine(
      * Creates a new Gecko-based EngineView.
      */
     override fun createView(context: Context, attrs: AttributeSet?): EngineView {
-        return GeckoEngineView(context, attrs)
+        return GeckoEngineView(context, attrs, actionSorter = actionSorter)
     }
 
     /**

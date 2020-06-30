@@ -8,7 +8,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.testing.WorkManagerTestInitHelper
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.appservices.Megazord
 import mozilla.appservices.fxaclient.AccountEvent as ASAccountEvent // the app-services variation
@@ -256,7 +262,7 @@ class FxaDeviceConstellationTest {
                     scope = CoroutineScope(coroutinesTestRule.testDispatcher) + SupervisorJob()
             )
 
-            testConstellation.pollForCommandsAsync().await()
+            testConstellation.pollForCommandsAsync()
             verify(testAccount.pollDeviceCommands())
         }
     }

@@ -28,7 +28,6 @@ import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.OAuthScopedKey
 import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.StatePersistenceCallback
-import mozilla.components.service.fxa.manager.Event
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.manager.SCOPE_SYNC
 import mozilla.components.service.fxa.manager.SignInWithShareableAccountResult
@@ -62,7 +61,6 @@ import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
-import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
@@ -1817,16 +1815,15 @@ class FxaAccountManagerTest {
                 setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(FxaAccountManager(
+        val manager = FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-        ))
+        )
         val pairingUrl = "https://localhost/pairingUrl".toString()
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
         assertTrue(beginResponse is CompletableDeferred<String?>)
-        verify(manager).processQueueAsync(Event.Pair(pairingUrl))
     }
 
     @Test
@@ -1846,15 +1843,14 @@ class FxaAccountManagerTest {
                 setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(FxaAccountManager(
+        val manager = FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-        ))
+        )
         val beginResponse = manager.beginAuthenticationAsync(null)
         assertTrue(beginResponse is CompletableDeferred<String?>)
-        verify(manager).processQueueAsync(Event.Authenticate)
     }
 
     @Test
@@ -1874,12 +1870,12 @@ class FxaAccountManagerTest {
                 setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(FxaAccountManager(
+        val manager = FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-        ))
+        )
         manager.latestAuthState = "testState1"
         val pairingUrl = "https://localhost/pairingUrl".toString()
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
@@ -1891,12 +1887,11 @@ class FxaAccountManagerTest {
                 declinedEngines = emptySet()
         )
         val finishResponse = manager.finishAuthenticationAsync(expectedAuthData)
-        verify(manager).processQueueAsync(Event.Pair(pairingUrl))
         assertTrue(finishResponse is CompletableDeferred<Boolean>)
     }
 
     @Test
-    fun `integration test with latest auth state set to null`() {
+    fun `integration test with latest auth state getting set to null`() {
         // Initialize things so the test can run
         WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
 
@@ -1912,12 +1907,13 @@ class FxaAccountManagerTest {
                 setOf()
         )
         val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
-        val manager = spy(FxaAccountManager(
+        val manager = FxaAccountManager(
                 testContext,
                 serverConfig = tServerConfig,
                 deviceConfig = tDeviceConfig,
                 syncConfig = tSyncConfig
-        ))
+        )
+        manager.latestAuthState = null
         val pairingUrl = "https://localhost/pairingUrl".toString()
         val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
         assertTrue(beginResponse is CompletableDeferred<String?>)
@@ -1927,8 +1923,6 @@ class FxaAccountManagerTest {
                 state = "testState",
                 declinedEngines = emptySet()
         )
-        // Override lastAuthState
-        manager.latestAuthState = null
 
         // Make sure the logger is triggered
         val finishResponse = manager.finishAuthenticationAsync(expectedAuthData)

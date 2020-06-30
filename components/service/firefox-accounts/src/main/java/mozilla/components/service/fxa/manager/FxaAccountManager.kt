@@ -159,7 +159,7 @@ open class FxaAccountManager(
     private val coroutineContext: CoroutineContext = Executors
         .newSingleThreadExecutor().asCoroutineDispatcher() + SupervisorJob()
 ) : Closeable, Observable<AccountObserver> by ObserverRegistry() {
-    public val logger = Logger("FirefoxAccountStateMachine")
+    private val logger = Logger("FirefoxAccountStateMachine")
 
     @Volatile
     public var latestAuthState: String? = null
@@ -543,7 +543,7 @@ open class FxaAccountManager(
     /**
      * Pumps the state machine until all events are processed and their side-effects resolve.
      */
-    public fun processQueueAsync(event: Event): Deferred<Unit> = CoroutineScope(coroutineContext).async {
+    private fun processQueueAsync(event: Event): Deferred<Unit> = CoroutineScope(coroutineContext).async {
         eventQueue.add(event)
         do {
             val toProcess: Event = eventQueue.poll()!!

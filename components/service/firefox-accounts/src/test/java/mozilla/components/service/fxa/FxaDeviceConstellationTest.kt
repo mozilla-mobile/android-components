@@ -301,7 +301,6 @@ class FxaDeviceConstellationTest {
         }
     }
 
-
     @Test
     @ExperimentalCoroutinesApi
     fun `polling for commands triggers observers`() = runBlocking(coroutinesTestRule.testDispatcher) {

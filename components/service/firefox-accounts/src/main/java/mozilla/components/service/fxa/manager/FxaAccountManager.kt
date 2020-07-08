@@ -150,7 +150,7 @@ open class FxaAccountManager(
     private val logger = Logger("FirefoxAccountStateMachine")
 
     @Volatile
-    private var latestAuthState: String? = null
+    var latestAuthState: String? = null
 
     // This is used during 'beginAuthenticationAsync' call, which returns a Deferred<String>.
     // 'deferredAuthUrl' is set on this observer and returned, and resolved once state machine goes

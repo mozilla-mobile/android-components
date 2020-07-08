@@ -7,11 +7,16 @@ package mozilla.components.service.fxa
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.test.runBlockingTest
+import mozilla.appservices.Megazord
 import mozilla.appservices.fxaclient.AccountEvent as ASAccountEvent // the app-services variation
 import mozilla.appservices.fxaclient.IncomingDeviceCommand
 import mozilla.appservices.fxaclient.TabHistoryEntry
@@ -33,11 +38,13 @@ import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import mozilla.appservices.fxaclient.Device as NativeDevice
@@ -231,6 +238,69 @@ class FxaDeviceConstellationTest {
         assertEquals(ConstellationState(currentDeviceExpired.into(), listOf(testDevice2.into())), observer.state)
         assertEquals(ConstellationState(currentDeviceExpired.into(), listOf(testDevice2.into())), constellation.state())
     }
+
+    @Test
+    @ExperimentalCoroutinesApi
+    fun `polling for commands with real account`() = runBlockingTest {
+        val testScope = GlobalScope
+
+        testScope.launch {
+            // Initialize things so the megazord is happy
+            WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+            Megazord.init()
+
+            // Create a test account
+            val testAccount = spy(NativeFirefoxAccount(
+                    handle = Long.MIN_VALUE,
+                    persistCallback = null
+            ))
+
+            // Create out device constellation object that accepts the account
+            val testConstellation = FxaDeviceConstellation(
+                    account = testAccount,
+                    scope = CoroutineScope(coroutinesTestRule.testDispatcher) + SupervisorJob()
+            )
+
+            testConstellation.pollForCommandsAsync().await()
+
+            verify(testAccount.pollDeviceCommands())
+        }
+    }
+
+    @Test
+    fun `test sending one tab`() = runBlockingTest {
+        // Create a scope to run this test inside
+        val testScope = GlobalScope
+
+        testScope.launch {
+            // Initialize things so the megazord is happy
+            WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+            Megazord.init()
+
+            // Create a test account
+            val testAccount = spy(NativeFirefoxAccount(
+                    handle = Long.MIN_VALUE,
+                    persistCallback = null
+            ))
+
+            // Create our device constellation object that accepts the account
+            val testConstellation = FxaDeviceConstellation(
+                    account = testAccount,
+                    scope = CoroutineScope(coroutinesTestRule.testDispatcher) + SupervisorJob()
+            )
+            val targetDeviceId = "testDevice"
+            val title = "Mozilla"
+            val url = "https://mozilla.org"
+            val response = testConstellation.sendCommandToDeviceAsync(
+                    targetDeviceId = targetDeviceId,
+                    outgoingCommand = DeviceCommandOutgoing.SendTab(title, url)
+            )
+
+            assertNotNull(response)
+            verify(testAccount.sendSingleTab(targetDeviceId, title, url))
+        }
+    }
+
 
     @Test
     @ExperimentalCoroutinesApi

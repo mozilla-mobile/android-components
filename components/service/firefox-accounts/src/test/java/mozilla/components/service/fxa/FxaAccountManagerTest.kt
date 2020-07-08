@@ -8,6 +8,7 @@ import android.content.Context
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.work.testing.WorkManagerTestInitHelper
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -1885,6 +1886,180 @@ class FxaAccountManagerTest {
         integration.onLoggedOut()
         verify(syncManager, times(2)).stop()
         verifyNoMoreInteractions(syncManager)
+    }
+    @Test
+    fun `beginAuthenticationAuthSync handles any pairingUrl correctly`() {
+        // Initialize things so the test can run
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+
+        // Build our dependencies for creating an account manager
+        val tServerConfig = ServerConfig(
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
+        )
+        val tDeviceConfig = DeviceConfig(
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
+        )
+        val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
+        val manager = FxaAccountManager(
+                testContext,
+                serverConfig = tServerConfig,
+                deviceConfig = tDeviceConfig,
+                syncConfig = tSyncConfig
+        )
+        val pairingUrl = "https://localhost/pairingUrl".toString()
+        val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
+        assertTrue(beginResponse is CompletableDeferred<String?>)
+    }
+
+    @Test
+    fun `beginAuthenticationAsync with null URL handled correctly`() {
+        // Initialize things so the test can run
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+
+        // Build our dependencies for creating an account manager
+        val tServerConfig = ServerConfig(
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
+        )
+        val tDeviceConfig = DeviceConfig(
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
+        )
+        val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
+        val manager = FxaAccountManager(
+                testContext,
+                serverConfig = tServerConfig,
+                deviceConfig = tDeviceConfig,
+                syncConfig = tSyncConfig
+        )
+        val beginResponse = manager.beginAuthenticationAsync(null)
+        assertTrue(beginResponse is CompletableDeferred<String?>)
+    }
+
+    @Test
+    fun `integration test with latest auth state matching current auth state`() {
+        // Initialize things so the test can run
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+
+        // Build our dependencies for creating an account manager
+        val tServerConfig = ServerConfig(
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
+        )
+        val tDeviceConfig = DeviceConfig(
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
+        )
+        val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
+        val manager = FxaAccountManager(
+                testContext,
+                serverConfig = tServerConfig,
+                deviceConfig = tDeviceConfig,
+                syncConfig = tSyncConfig
+        )
+        manager.latestAuthState = "testState1"
+        val pairingUrl = "https://localhost/pairingUrl".toString()
+        val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
+        assertTrue(beginResponse is CompletableDeferred<String?>)
+        val expectedAuthData = FxaAuthData(
+                authType = AuthType.Signin,
+                code = "testCode1",
+                state = "testState1",
+                declinedEngines = emptySet()
+        )
+        val finishResponse = manager.finishAuthenticationAsync(expectedAuthData)
+        assertTrue(finishResponse is CompletableDeferred<Boolean>)
+    }
+
+    @Test
+    fun `integration test with latest auth state set to null`() {
+        // Initialize things so the test can run
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+
+        // Build our dependencies for creating an account manager
+        val tServerConfig = ServerConfig(
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
+        )
+        val tDeviceConfig = DeviceConfig(
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
+        )
+        val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
+        val manager = FxaAccountManager(
+                testContext,
+                serverConfig = tServerConfig,
+                deviceConfig = tDeviceConfig,
+                syncConfig = tSyncConfig
+        )
+        val pairingUrl = "https://localhost/pairingUrl".toString()
+        val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
+        assertTrue(beginResponse is CompletableDeferred<String?>)
+        val expectedAuthData = FxaAuthData(
+                authType = AuthType.Signin,
+                code = "testCode1",
+                state = "testState",
+                declinedEngines = emptySet()
+        )
+        // Override lastAuthState
+        manager.latestAuthState = null
+
+        // Make sure the logger is triggered
+        val finishResponse = manager.finishAuthenticationAsync(expectedAuthData)
+        assertTrue(finishResponse is CompletableDeferred<Boolean>)
+        assertEquals(false, finishResponse.isCancelled)
+    }
+
+    @Test
+    fun `integration test with latest auth state not matching auth state`() {
+        // Initialize things so the test can run
+        WorkManagerTestInitHelper.initializeTestWorkManager(testContext)
+
+        // Build our dependencies for creating an account manager
+        val tServerConfig = ServerConfig(
+                "https://localhost/contentUrl",
+                "testClientId",
+                "https://localhost/redirectUrl"
+        )
+        val tDeviceConfig = DeviceConfig(
+                "testDevice",
+                DeviceType.MOBILE,
+                setOf()
+        )
+        val tSyncConfig = SyncConfig(setOf(SyncEngine.Bookmarks))
+        val manager = FxaAccountManager(
+                testContext,
+                serverConfig = tServerConfig,
+                deviceConfig = tDeviceConfig,
+                syncConfig = tSyncConfig
+        )
+        // Override lastAuthState
+        manager.latestAuthState = "integrationState"
+
+        val pairingUrl = "https://localhost/pairingUrl".toString()
+        val beginResponse = manager.beginAuthenticationAsync(pairingUrl)
+        assertTrue(beginResponse is CompletableDeferred<String?>)
+        val expectedAuthData = FxaAuthData(
+                authType = AuthType.Signin,
+                code = "testCode1",
+                state = "testState",
+                declinedEngines = emptySet()
+        )
+
+        // Make sure the logger is triggered
+        val finishResponse = manager.finishAuthenticationAsync(expectedAuthData)
+        assertTrue(finishResponse is CompletableDeferred<Boolean>)
+        assertEquals(false, finishResponse.isCancelled)
     }
 
     private fun prepareHappyAuthenticationFlow(

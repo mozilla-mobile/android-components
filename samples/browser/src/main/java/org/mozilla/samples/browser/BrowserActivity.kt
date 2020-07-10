@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.AttributeSet
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -66,6 +67,17 @@ open class BrowserActivity : AppCompatActivity(), ComponentCallbacks2 {
         }
 
         super.onBackPressed()
+    }
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            supportFragmentManager.fragments.forEach {
+                if (it is UserInteractionHandler && it.onBackLongPressed()) {
+                    return true
+                }
+            }
+        }
+        return super.onKeyLongPress(keyCode, event)
     }
 
     override fun onCreateView(parent: View?, name: String, context: Context, attrs: AttributeSet): View? =

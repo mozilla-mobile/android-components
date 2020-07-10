@@ -55,6 +55,26 @@ class ViewBoundFeatureWrapperTest {
     }
 
     @Test
+    fun `onBackLongPressed is forwarded to feature`() {
+        val feature = MockFeatureWithUserInteractionHandler(onBackLongPressed = true)
+
+        val wrapper = ViewBoundFeatureWrapper(
+            feature = feature,
+            owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
+            view = mock()
+        )
+
+        assertTrue(wrapper.onBackLongPressed())
+        assertTrue(feature.onBackLongPressedInvoked)
+
+        assertFalse(ViewBoundFeatureWrapper(
+            feature = MockFeatureWithUserInteractionHandler(onBackLongPressed = false),
+            owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
+            view = mock()
+        ).onBackLongPressed())
+    }
+
+    @Test
     fun `Setting feature registers lifecycle and view observers`() {
         val lifecycle = spy(MockedLifecycle(Lifecycle.State.CREATED))
         val owner = MockedLifecycleOwner(lifecycle)
@@ -380,14 +400,23 @@ private open class MockFeature : LifecycleAwareFeature {
 }
 
 private class MockFeatureWithUserInteractionHandler(
-    private val onBackPressed: Boolean = false
+    private val onBackPressed: Boolean = false,
+    private val onBackLongPressed: Boolean = false
 ) : MockFeature(), UserInteractionHandler {
     var onBackPressedInvoked = false
+        private set
+
+    var onBackLongPressedInvoked = false
         private set
 
     override fun onBackPressed(): Boolean {
         onBackPressedInvoked = true
         return onBackPressed
+    }
+
+    override fun onBackLongPressed(): Boolean {
+        onBackLongPressedInvoked = true
+        return onBackLongPressed
     }
 }
 

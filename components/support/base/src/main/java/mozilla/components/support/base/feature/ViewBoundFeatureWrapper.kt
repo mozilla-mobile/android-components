@@ -155,6 +155,24 @@ class ViewBoundFeatureWrapper<T : LifecycleAwareFeature>() {
         return feature.onBackPressed()
     }
 
+    /**
+     * Convenient method for invoking [UserInteractionHandler.onBackLongPressed] on a wrapped
+     * [LifecycleAwareFeature] that implements [UserInteractionHandler]. Returns false if
+     * the [LifecycleAwareFeature] was cleared already.
+     */
+    @Synchronized
+    fun onBackLongPressed(): Boolean {
+        val feature = feature ?: return false
+
+        if (feature !is UserInteractionHandler) {
+            throw IllegalAccessError(
+                "Feature does not implement ${UserInteractionHandler::class.java.simpleName} interface"
+            )
+        }
+
+        return feature.onBackLongPressed()
+    }
+
     @Synchronized
     internal fun start() {
         feature?.start()

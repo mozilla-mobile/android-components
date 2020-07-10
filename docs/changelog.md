@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **support-base**
+  * Added `UserInteractionHandler.onBackLongPressed` for fragments, features, and other components that want to handle the user long pressing the system back button.
+  
 
 # 50.0.0
 

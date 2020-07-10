@@ -19,6 +19,14 @@ interface UserInteractionHandler {
     fun onBackPressed(): Boolean
 
     /**
+     * Called when this [UserInteractionHandler] gets the option to handle the user long pressing the back key.
+     * Note: This will never be called when system gesture navigation is enabled on Android 10+.
+     *
+     * Returns true if this [UserInteractionHandler] consumed the event and no other components need to be notified.
+     */
+    fun onBackLongPressed(): Boolean = false
+
+    /**
      * In most cases, when the home button is pressed, we invoke this callback to inform the app that the user
      * is going to leave the app.
      *

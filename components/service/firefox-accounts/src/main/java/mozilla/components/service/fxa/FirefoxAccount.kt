@@ -11,6 +11,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.plus
+import mozilla.appservices.fxaclient.AuthorizationParams
 import mozilla.appservices.fxaclient.FirefoxAccount as InternalFxAcct
 import mozilla.components.concept.sync.AccessType
 import mozilla.components.concept.sync.AuthFlowUrl
@@ -101,7 +102,7 @@ class FirefoxAccount internal constructor(
 
     override fun beginOAuthFlowAsync(scopes: Set<String>) = scope.async {
         handleFxaExceptions(logger, "begin oauth flow", { null }) {
-            val url = inner.beginOAuthFlow(scopes.toTypedArray())
+            val url = inner.beginOAuthFlow(scopes.toTypedArray(), "none")
             val state = Uri.parse(url).getQueryParameter("state")!!
             AuthFlowUrl(state, url)
         }
@@ -109,7 +110,7 @@ class FirefoxAccount internal constructor(
 
     override fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>) = scope.async {
         handleFxaExceptions(logger, "begin oauth pairing flow", { null }) {
-            val url = inner.beginPairingFlow(pairingUrl, scopes.toTypedArray())
+            val url = inner.beginPairingFlow(pairingUrl, scopes.toTypedArray(), "none")
             val state = Uri.parse(url).getQueryParameter("state")!!
             AuthFlowUrl(state, url)
         }
@@ -140,7 +141,8 @@ class FirefoxAccount internal constructor(
         accessType: AccessType
     ) = scope.async {
         handleFxaExceptions(logger, "authorizeOAuthCode", { null }) {
-            inner.authorizeOAuthCode(clientId, scopes, state, accessType.msg)
+            val authParams = AuthorizationParams(clientId, scopes, state, accessType.msg)
+            inner.authorizeOAuthCode(authParams)
         }
     }
 

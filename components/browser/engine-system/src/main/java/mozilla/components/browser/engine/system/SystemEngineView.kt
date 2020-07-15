@@ -620,6 +620,9 @@ class SystemEngineView @JvmOverloads constructor(
                 val fileName = DownloadUtils.guessFileName(contentDisposition, null, url, mimetype)
                 val cookie = CookieManager.getInstance().getCookie(url)
                 onExternalResource(url, fileName, contentLength, mimetype, cookie, userAgent)
+                runBlocking {
+                    session?.settings?.downloadsTrackingDelegate?.onDownloaded(fileName, mimetype)
+                }
             }
         }
     }

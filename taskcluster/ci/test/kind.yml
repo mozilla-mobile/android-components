@@ -105,3 +105,17 @@ jobs:
                 - ['automation/taskcluster/androidTest/ui-test.sh', 'feature-top-sites', 'arm', '1']
         treeherder:
             symbol: 'unit-feature-top-sites'
+    android-feature-prompts:
+        description: 'Run unit tests on device for feature prompts'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'feature-prompts', 'arm', '1']
+        treeherder:
+            symbol: 'unit-feature-prompts'
+    android-support-ktx:
+        description: 'Run unit tests on device for support ktx'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'support-ktx', 'arm', '1']
+        treeherder:
+            symbol: 'unit-support-ktx'

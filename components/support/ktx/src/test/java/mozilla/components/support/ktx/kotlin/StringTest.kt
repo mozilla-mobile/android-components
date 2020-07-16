@@ -161,4 +161,16 @@ class StringTest {
         val expectedUrl = "http://mozilla.org"
         assertEquals(expectedUrl, "\nhttp://mozilla.org\n".sanitizeURL())
     }
+
+    @Test
+    fun sanitizeFileName() {
+        var file = "/../../../../../../../../../../directory/file.txt"
+        val fileName = "file.txt"
+
+        assertEquals(fileName, file.sanitizeFileName())
+
+        file = "/root/directory/file.txt"
+
+        assertEquals(fileName, file.sanitizeFileName())
+    }
 }

@@ -1,5 +1,7 @@
 package mozilla.components.concept.engine.history
 
+import mozilla.components.concept.storage.DownloadsStorage.DownloadInfo
+
 /**
  * An interface used for providing history information to an engine (e.g. for link highlighting),
  * and receiving history updates from the engine (visits to URLs, title changes).
@@ -11,6 +13,6 @@ interface DownloadsTrackingDelegate {
     /**
      * A URI visit happened that an engine considers worthy of being recorded in browser's history.
      */
-    suspend fun onDownloaded(filepath: String, contentType: String)
+    suspend fun onDownloaded(filepath: String, downloadInfo: DownloadInfo)
 
 }

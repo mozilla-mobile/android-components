@@ -575,6 +575,11 @@ sealed class DownloadAction : BrowserAction() {
     data class QueueDownloadAction(val download: DownloadState) : DownloadAction()
 
     /**
+     * Updates the [BrowserState] to track the provided [download] as added.
+     */
+    data class AddDownloadAction(val download: DownloadState) : DownloadAction()
+
+    /**
      * Updates the [BrowserState] to remove the queued download with the provided [downloadId].
      */
     data class RemoveQueuedDownloadAction(val downloadId: Long) : DownloadAction()
@@ -588,6 +593,11 @@ sealed class DownloadAction : BrowserAction() {
      * Updates the provided [download] on the [BrowserState].
      */
     data class UpdateQueuedDownloadAction(val download: DownloadState) : DownloadAction()
+
+    /**
+     * Updates the [BrowserState] to track the provided [download] as added.
+     */
+    data class UpdateAllDownloadAction(val download: DownloadState) : DownloadAction()
 }
 
 /**

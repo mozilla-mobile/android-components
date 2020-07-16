@@ -1,19 +1,10 @@
 package mozilla.components.browser.storage.memory
 
 import androidx.annotation.VisibleForTesting
-import mozilla.components.concept.storage.HistoryAutocompleteResult
 import mozilla.components.concept.storage.DownloadsStorage
-import mozilla.components.concept.storage.PageObservation
-import mozilla.components.concept.storage.SearchResult
-import mozilla.components.concept.storage.PageVisit
-import mozilla.components.concept.storage.RedirectSource
-import mozilla.components.concept.storage.TopFrecentSiteInfo
-import mozilla.components.concept.storage.VisitInfo
-import mozilla.components.concept.storage.VisitType
-import mozilla.components.support.utils.StorageUtils.levenshteinDistance
-import mozilla.components.support.utils.segmentAwareDomainMatch
+import mozilla.components.concept.storage.DownloadsStorage.DownloadInfo
 
-data class Download(val timestamp: Long, val type: VisitType)
+data class Download(val timestamp: Long, val downloadInfo: DownloadInfo)
 
 /**
  * An in-memory implementation of [mozilla.components.concept.storage.HistoryStorage].
@@ -21,24 +12,47 @@ data class Download(val timestamp: Long, val type: VisitType)
 @SuppressWarnings("TooManyFunctions")
 class InMemoryDownloadsStorage : DownloadsStorage {
     @VisibleForTesting
-    internal var downloads: HashMap<String, String> = linkedMapOf()
-    @VisibleForTesting
-    internal val pageMeta: HashMap<String, PageObservation> = hashMapOf()
+    internal var downloads: HashMap<String, MutableList<Download>> = linkedMapOf()
 
     override suspend fun warmUp() {
         // No-op for an in-memory store
     }
 
-    override suspend fun recordDownload(filepath:String, contentType: String) {
+    override suspend fun recordDownload(filepath: String, downloadInfo: DownloadInfo) {
         val now = System.currentTimeMillis()
 
         synchronized(downloads) {
-                downloads[filepath] = contentType
+            if (!downloads.containsKey(filepath)) {
+                downloads[filepath] = mutableListOf(Download(now, downloadInfo))
+            } else {
+                downloads[filepath]!!.add(Download(now, downloadInfo))
+            }
         }
     }
 
-    override suspend fun getDownloads(): List<String> = synchronized(downloads) {
-        return downloads.keys.toList()
+    override suspend fun getDownloadsPaginated(offset: Long, count: Long): List<DownloadInfo> {
+        throw UnsupportedOperationException("Pagination is not yet supported by the in-memory history storage")
+    }
+
+    override suspend fun getDetailedDownloads(
+            start: Long,
+            end: Long
+    ): List<DownloadInfo> = synchronized(downloads) {
+        val downloadInfos = mutableListOf<DownloadInfo>()
+
+        downloads.forEach {
+            it.value.forEach { download ->
+                if (download.timestamp >= start && download.timestamp <= end) {
+                    downloadInfos.add(DownloadInfo(
+                            filepath = it.key,
+                            contentType = download.downloadInfo.contentType,
+                            downloadTime = download.downloadInfo.downloadTime
+                    ))
+                }
+            }
+        }
+
+        return downloadInfos
     }
 
     override suspend fun runMaintenance() {

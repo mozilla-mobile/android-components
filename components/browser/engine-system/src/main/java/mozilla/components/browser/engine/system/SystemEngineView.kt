@@ -59,6 +59,7 @@ import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
 import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.concept.storage.DownloadsStorage.DownloadInfo
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
@@ -621,7 +622,7 @@ class SystemEngineView @JvmOverloads constructor(
                 val cookie = CookieManager.getInstance().getCookie(url)
                 onExternalResource(url, fileName, contentLength, mimetype, cookie, userAgent)
                 runBlocking {
-                    session?.settings?.downloadsTrackingDelegate?.onDownloaded(fileName, mimetype)
+                    session?.settings?.downloadsTrackingDelegate?.onDownloaded(fileName, DownloadInfo(fileName, mimetype, System.currentTimeMillis()))
                 }
             }
         }

@@ -69,6 +69,7 @@ class AndroidDownloadManager(
         val request = download.toAndroidRequest(cookie)
         val downloadID = androidDownloadManager.enqueue(request)
         store.dispatch(DownloadAction.QueueDownloadAction(download.copy(id = downloadID)))
+        store.dispatch(DownloadAction.AddDownloadAction(download.copy(id=downloadID)))
         downloadRequests[downloadID] = request
         registerBroadcastReceiver()
         return downloadID

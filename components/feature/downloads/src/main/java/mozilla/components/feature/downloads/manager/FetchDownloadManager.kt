@@ -61,6 +61,7 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
         // The middleware will notify the service to start the download
         // once this action is processed.
         store.dispatch(DownloadAction.QueueDownloadAction(download))
+        store.dispatch(DownloadAction.AddDownloadAction(download))
 
         registerBroadcastReceiver()
         return download.id

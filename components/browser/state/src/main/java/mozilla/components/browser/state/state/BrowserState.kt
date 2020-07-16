@@ -27,5 +27,6 @@ data class BrowserState(
     val containers: Map<String, ContainerState> = emptyMap(),
     val extensions: Map<String, WebExtensionState> = emptyMap(),
     val media: MediaState = MediaState(),
-    val queuedDownloads: Map<Long, DownloadState> = emptyMap()
+    val queuedDownloads: Map<Long, DownloadState> = emptyMap(),
+    val allDownloads: Map<Long, DownloadState> = emptyMap()
 ) : State

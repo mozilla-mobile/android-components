@@ -16,6 +16,10 @@ internal object DownloadStateReducer {
     fun reduce(state: BrowserState, action: DownloadAction): BrowserState {
         return when (action) {
             is DownloadAction.QueueDownloadAction -> updateQueuedDownloads(state, action.download)
+            is DownloadAction.AddDownloadAction -> updateAllDownloads(state, action.download)
+            is DownloadAction.UpdateAllDownloadAction -> {
+                updateAllDownloads(state, action.download)
+            }
             is DownloadAction.UpdateQueuedDownloadAction -> {
                 updateQueuedDownloads(state, action.download)
             }
@@ -30,4 +34,7 @@ internal object DownloadStateReducer {
 
     private fun updateQueuedDownloads(state: BrowserState, download: DownloadState) =
             state.copy(queuedDownloads = state.queuedDownloads + (download.id to download))
+
+    private fun updateAllDownloads(state: BrowserState, download: DownloadState) =
+            state.copy(allDownloads = state.allDownloads + (download.id to download))
 }

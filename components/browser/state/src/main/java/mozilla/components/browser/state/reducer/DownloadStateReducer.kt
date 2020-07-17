@@ -37,4 +37,8 @@ internal object DownloadStateReducer {
 
     private fun updateAllDownloads(state: BrowserState, download: DownloadState) =
             state.copy(allDownloads = state.allDownloads + (download.id to download))
+
+    private fun getDownloadsFromStorage() {
+
+    }
 }

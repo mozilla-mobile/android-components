@@ -4,6 +4,8 @@
 
 package mozilla.components.browser.state.state
 
+import mozilla.components.browser.state.state.content.DownloadState
+
 /**
  * Interface for states that contain a [ContentState] and can be accessed via an [id].
  *

@@ -10,8 +10,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
+import android.widget.RemoteViews
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -25,12 +27,9 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService.Compani
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_RESUME
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_TRY_AGAIN
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobState
-import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.CANCELLED
-import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.COMPLETED
-import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.ACTIVE
-import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.FAILED
-import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.PAUSED
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.*
 import kotlin.random.Random
+
 
 @Suppress("LargeClass", "TooManyFunctions")
 internal object DownloadNotification {
@@ -78,17 +77,23 @@ internal object DownloadNotification {
         downloadJobState: DownloadJobState
     ): Notification {
         val downloadState = downloadJobState.state
-        val bytesCopied = downloadJobState.currentBytesCopied
         val channelId = ensureChannelExists(context)
-        val isIndeterminate = downloadState.contentLength == null
+
+        val notificationLayout =
+                if (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                        == Configuration.UI_MODE_NIGHT_YES) {
+                    RemoteViews(context.packageName, R.layout.download_notification_layout_dark)
+                } else {
+                    RemoteViews(context.packageName, R.layout.download_notification_layout_light)
+                }
+
+        notificationLayout.setTextViewText(R.id.title, downloadState.fileName)
+        notificationLayout.setTextViewText(R.id.text , downloadJobState.getProgress())
 
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
-            .setContentTitle(downloadState.fileName)
-            .setContentText(downloadJobState.getProgress())
-            .setColor(ContextCompat.getColor(context, R.color.mozac_feature_downloads_notification))
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setProgress(downloadState.contentLength?.toInt() ?: 0, bytesCopied.toInt(), isIndeterminate)
+            .setCustomBigContentView(notificationLayout)
             .setOngoing(true)
             .setWhen(downloadJobState.createdTime)
             .setOnlyAlertOnce(true)

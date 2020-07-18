@@ -1,11 +1,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
-    android:paddingTop="16dp"
+    android:padding="16dp"
     android:background="@color/mozac_feature_downloads_notification_background_color_dark">
 
     <ImageView
@@ -28,24 +25,24 @@
         tools:text="Firefox Preview · now" />
 
     <TextView
-        android:id="@+id/title"
+        android:id="@+id/download_filename"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:layout_toStartOf="@+id/text"
+        android:layout_toStartOf="@+id/downloaded_file"
         android:layout_alignParentStart="true"
-        android:layout_below="@id/notification_title"
+        android:layout_below="@id/image"
         android:textColor="@color/mozac_feature_downloads_notification_text_color_dark"
         tools:text="com.google.android.apps.ringer.apk" />
 
     <TextView
-        android:id="@+id/text"
+        android:id="@+id/downloaded_file"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:layout_alignParentEnd="true"
-        android:layout_below="@id/notification_title"
+        android:layout_below="@id/image"
+        android:layout_marginTop="8dp"
         android:textColor="@color/mozac_feature_downloads_notification_text_color_dark"
         tools:text="85 MB / 200 MB" />
 
@@ -54,7 +51,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
-        android:layout_below="@id/text"
+        android:layout_below="@id/download_filename"
         android:progressTint="@color/mozac_feature_downloads_notification_accent_color_dark"
         style="?android:attr/progressBarStyleHorizontal" />
 
@@ -64,8 +61,11 @@
         android:layout_height="wrap_content"
         android:textColor="@color/mozac_feature_downloads_notification_accent_color_dark"
         android:layout_alignParentStart="true"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
         android:layout_below="@id/progress"
-        tools:text="PAUSE" />
+        style="@style/Widget.AppCompat.Button.Borderless"
+        tools:text="Pause" />
 
     <Button
         android:id="@+id/cancel"
@@ -73,6 +73,9 @@
         android:layout_height="wrap_content"
         android:textColor="@color/mozac_feature_downloads_notification_accent_color_dark"
         android:layout_toEndOf="@id/pause"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
         android:layout_below="@id/progress"
-        tools:text="CANCEL" />
+        style="@style/Widget.AppCompat.Button.Borderless"
+        tools:text="Cancel" />
 </RelativeLayout>

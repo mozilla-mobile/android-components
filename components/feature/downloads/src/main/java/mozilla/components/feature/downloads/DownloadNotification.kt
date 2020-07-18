@@ -94,14 +94,16 @@ internal object DownloadNotification {
                 }
 
         notificationLayout.setTextViewText(R.id.notification_title, "Firefox Preview · now")
-        notificationLayout.setTextViewText(R.id.title, downloadState.fileName)
+        notificationLayout.setTextViewText(R.id.download_filename, downloadState.fileName)
+        notificationLayout.setTextViewText(R.id.pause, "Pause")
+        notificationLayout.setTextViewText(R.id.cancel, "Cancel")
 
         val progress = if (isIndeterminate) {
             ""
         } else {
             "${convertToMB(bytesCopied)}MB / ${convertToMB(downloadState.contentLength!!)}MB"
         }
-        notificationLayout.setTextViewText(R.id.text, progress)
+        notificationLayout.setTextViewText(R.id.downloaded_file, progress)
 
         notificationLayout.setProgressBar(
                 R.id.progress,

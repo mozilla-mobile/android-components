@@ -63,6 +63,7 @@
         android:layout_alignParentStart="true"
         android:minHeight="0dp"
         android:minWidth="0dp"
+        android:layout_marginStart="-12dp"
         android:layout_below="@id/progress"
         style="@style/Widget.AppCompat.Button.Borderless"
         tools:text="Pause" />

@@ -2,35 +2,77 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/layout"
     android:layout_width="match_parent"
-    android:layout_height="96dp"
-    android:padding="8dp"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="16dp"
     android:background="@color/mozac_feature_downloads_notification_background_color_dark">
 
     <ImageView
         android:id="@+id/image"
-        android:layout_centerVertical="true"
-        android:layout_width="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:importantForAccessibility="no"
+        android:tint="@color/mozac_feature_downloads_notification_text_color_dark"
+        android:src="@drawable/mozac_feature_download_ic_download" />
+
+    <TextView
+        android:id="@+id/notification_title"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:src="@drawable/mozac_feature_download_ic_ongoing_download" />
+        android:layout_marginStart="8dp"
+        android:layout_toEndOf="@id/image"
+        android:textColor="@color/mozac_feature_downloads_notification_text_color_dark"
+        android:textSize="12sp"
+        tools:text="Firefox Preview · now" />
 
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_toEndOf="@id/image"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_toStartOf="@+id/text"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/notification_title"
         android:textColor="@color/mozac_feature_downloads_notification_text_color_dark"
-        android:layout_marginTop="20dp"
-        tools:text="DOWNLOAD" />
+        tools:text="com.google.android.apps.ringer.apk" />
 
     <TextView
         android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="2dp"
-        android:layout_toEndOf="@id/image"
+        android:layout_marginTop="8dp"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@id/notification_title"
         android:textColor="@color/mozac_feature_downloads_notification_text_color_dark"
-        android:layout_below="@id/title"
-        tools:text="DOWNLOADTEXT" />
+        tools:text="85 MB / 200 MB" />
+
+    <ProgressBar
+        android:id="@+id/progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/text"
+        android:progressTint="@color/mozac_feature_downloads_notification_accent_color_dark"
+        style="?android:attr/progressBarStyleHorizontal" />
+
+    <Button
+        android:id="@+id/pause"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/mozac_feature_downloads_notification_accent_color_dark"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/progress"
+        tools:text="PAUSE" />
+
+    <Button
+        android:id="@+id/cancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/mozac_feature_downloads_notification_accent_color_dark"
+        android:layout_toEndOf="@id/pause"
+        android:layout_below="@id/progress"
+        tools:text="CANCEL" />
 </RelativeLayout>

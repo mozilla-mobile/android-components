@@ -27,9 +27,12 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService.Compani
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_RESUME
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.ACTION_TRY_AGAIN
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobState
-import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.*
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.ACTIVE
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.CANCELLED
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.COMPLETED
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.FAILED
+import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobStatus.PAUSED
 import kotlin.random.Random
-
 
 @Suppress("LargeClass", "TooManyFunctions")
 internal object DownloadNotification {
@@ -39,6 +42,7 @@ internal object DownloadNotification {
     internal const val NOTIFICATION_DOWNLOAD_GROUP_ID = 100
     private const val LEGACY_NOTIFICATION_CHANNEL_ID = "Downloads"
     internal const val PERCENTAGE_MULTIPLIER = 100
+    private const val CONVERT_TO_MB_MULTIPLIER = 1024
 
     internal const val EXTRA_DOWNLOAD_ID = "downloadId"
 
@@ -77,7 +81,9 @@ internal object DownloadNotification {
         downloadJobState: DownloadJobState
     ): Notification {
         val downloadState = downloadJobState.state
+        val bytesCopied = downloadJobState.currentBytesCopied
         val channelId = ensureChannelExists(context)
+        val isIndeterminate = downloadState.contentLength == null
 
         val notificationLayout =
                 if (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -87,8 +93,28 @@ internal object DownloadNotification {
                     RemoteViews(context.packageName, R.layout.download_notification_layout_light)
                 }
 
+        notificationLayout.setTextViewText(R.id.notification_title, "Firefox Preview · now")
         notificationLayout.setTextViewText(R.id.title, downloadState.fileName)
-        notificationLayout.setTextViewText(R.id.text , downloadJobState.getProgress())
+
+        val progress = if (isIndeterminate) {
+            ""
+        } else {
+            "${convertToMB(bytesCopied)}MB / ${convertToMB(downloadState.contentLength!!)}MB"
+        }
+        notificationLayout.setTextViewText(R.id.text, progress)
+
+        notificationLayout.setProgressBar(
+                R.id.progress,
+                downloadState.contentLength?.toInt() ?: 0,
+                bytesCopied.toInt(),
+                isIndeterminate
+        )
+
+        val pauseIntent = createPendingIntent(context, ACTION_PAUSE, downloadState.id)
+        val cancelIntent = createPendingIntent(context, ACTION_CANCEL, downloadState.id)
+
+        notificationLayout.setOnClickPendingIntent(R.id.pause, pauseIntent)
+        notificationLayout.setOnClickPendingIntent(R.id.cancel, cancelIntent)
 
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.mozac_feature_download_ic_ongoing_download)
@@ -97,8 +123,6 @@ internal object DownloadNotification {
             .setOngoing(true)
             .setWhen(downloadJobState.createdTime)
             .setOnlyAlertOnce(true)
-            .addAction(getPauseAction(context, downloadState.id))
-            .addAction(getCancelAction(context, downloadState.id))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCompatGroup(NOTIFICATION_GROUP_KEY)
             .build()
@@ -220,16 +244,6 @@ internal object DownloadNotification {
         return NOTIFICATION_CHANNEL_ID
     }
 
-    private fun getPauseAction(context: Context, downloadStateId: Long): NotificationCompat.Action {
-        val pauseIntent = createPendingIntent(context, ACTION_PAUSE, downloadStateId)
-
-        return NotificationCompat.Action.Builder(
-            0,
-            context.getString(R.string.mozac_feature_downloads_button_pause),
-            pauseIntent
-        ).build()
-    }
-
     private fun getResumeAction(context: Context, downloadStateId: Long): NotificationCompat.Action {
         val resumeIntent = createPendingIntent(context, ACTION_RESUME, downloadStateId)
 
@@ -258,6 +272,10 @@ internal object DownloadNotification {
             context.getString(R.string.mozac_feature_downloads_button_try_again),
             tryAgainIntent
         ).build()
+    }
+
+    private fun convertToMB(num: Long): Long {
+        return num.div(CONVERT_TO_MB_MULTIPLIER * CONVERT_TO_MB_MULTIPLIER)
     }
 
     private fun createDismissPendingIntent(context: Context, downloadStateId: Long): PendingIntent {

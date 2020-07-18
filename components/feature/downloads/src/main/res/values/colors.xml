@@ -6,8 +6,10 @@
     <color name="mozac_feature_downloads_notification">#607D8B</color>
     <color name="mozac_feature_downloads_notification_text_color_dark">#fbfbfe</color>
     <color name="mozac_feature_downloads_notification_background_color_dark">#32313c</color>
+    <color name="mozac_feature_downloads_notification_accent_color_dark">#592acb</color>
 
 
     <color name="mozac_feature_downloads_notification_background_color_light">#ffffff</color>
     <color name="mozac_feature_downloads_notification_text_color_light">#20123a</color>
+    <color name="mozac_feature_downloads_notification_accent_color_light">#ab71ff</color>
 </resources>

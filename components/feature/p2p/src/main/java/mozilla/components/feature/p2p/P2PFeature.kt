@@ -132,9 +132,16 @@ class P2PFeature(
             return
         }
 
-        val engineSession = sessionManager.getOrCreateEngineSession(session)
-        val messageHandler = P2PContentMessageHandler()
-        extensionController?.registerContentMessageHandler(engineSession, messageHandler)
+        // TODO: Action for registering content message handler? Do we really need that?
+        /*
+        store.dispatch(EngineAction.CreateEngineSessionAction(
+            session.id,
+            sideEffect = { engineSession ->
+                val messageHandler = P2PContentMessageHandler()
+                extensionController?.registerContentMessageHandler(engineSession, messageHandler)
+            }
+        ))
+         */
     }
 
     private inner class P2PContentMessageHandler : MessageHandler {
@@ -160,12 +167,19 @@ class P2PFeature(
         }
 
         private fun sendMessage(json: JSONObject) {
-            activeSession?.let {
-                extensionController?.sendContentMessage(
-                    json,
-                    sessionManager.getOrCreateEngineSession(it)
-                )
-            }
+            val session = activeSession ?: return
+
+            // TODO: Action for sending content message. Do we really need that?
+            json.hashCode()
+            session.hashCode()
+            /*
+            store.dispatch(EngineAction.CreateEngineSessionAction(
+                session.id,
+                sideEffect = { engineSession ->
+                    extensionController?.sendContentMessage(json, engineSession)
+                }
+            ))
+             */
         }
     }
 

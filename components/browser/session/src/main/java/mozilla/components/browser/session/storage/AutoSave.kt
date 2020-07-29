@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.base.log.logger.Logger
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -25,12 +27,13 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 class AutoSave(
+    private val store: BrowserStore,
     private val sessionManager: SessionManager,
     private val sessionStorage: Storage,
     private val minimumIntervalMs: Long
 ) {
     interface Storage {
-        fun save(snapshot: SessionManager.Snapshot): Boolean
+        fun save(state: BrowserState): Boolean
     }
 
     internal val logger = Logger("SessionStorage/AutoSave")
@@ -111,8 +114,8 @@ class AutoSave(
             val start = now()
 
             try {
-                val snapshot = sessionManager.createSnapshot()
-                sessionStorage.save(snapshot)
+                val state = store.state
+                sessionStorage.save(state)
             } finally {
                 val took = now() - start
                 logger.debug("Saved state to disk [${took}ms]")

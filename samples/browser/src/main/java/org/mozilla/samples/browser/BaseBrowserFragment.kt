@@ -67,7 +67,6 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             feature = SessionFeature(
                 components.store,
                 components.sessionUseCases.goBack,
-                components.engineSessionUseCases,
                 layout.engineView,
                 sessionId),
             owner = this,

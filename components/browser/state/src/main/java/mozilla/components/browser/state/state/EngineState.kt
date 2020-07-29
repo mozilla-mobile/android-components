@@ -13,8 +13,10 @@ import mozilla.components.concept.engine.EngineSessionState
  * @property engineSession the engine's representation of this session.
  * @property engineSessionState serializable and restorable state of an engine session, see
  * [EngineSession.saveState] and [EngineSession.restoreState].
+ * @property engineObserver TODO
  */
 data class EngineState(
     val engineSession: EngineSession? = null,
-    val engineSessionState: EngineSessionState? = null
+    val engineSessionState: EngineSessionState? = null,
+    val engineObserver: EngineSession.Observer? = null
 )

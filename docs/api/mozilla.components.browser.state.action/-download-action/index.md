@@ -10,10 +10,10 @@
 
 | Name | Summary |
 |---|---|
-| [QueueDownloadAction](-queue-download-action/index.md) | `data class QueueDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to track the provided [download](-queue-download-action/download.md) as queued. |
-| [RemoveAllQueuedDownloadsAction](-remove-all-queued-downloads-action.md) | `object RemoveAllQueuedDownloadsAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove all queued downloads. |
-| [RemoveQueuedDownloadAction](-remove-queued-download-action/index.md) | `data class RemoveQueuedDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove the queued download with the provided [downloadId](-remove-queued-download-action/download-id.md). |
-| [UpdateQueuedDownloadAction](-update-queued-download-action/index.md) | `data class UpdateQueuedDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the provided [download](-update-queued-download-action/download.md) on the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md). |
+| [AddDownloadAction](-add-download-action/index.md) | `data class AddDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to track the provided [download](-add-download-action/download.md) as added. |
+| [RemoveAllDownloadsAction](-remove-all-downloads-action.md) | `object RemoveAllDownloadsAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove all downloads. |
+| [RemoveDownloadAction](-remove-download-action/index.md) | `data class RemoveDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove the download with the provided [downloadId](-remove-download-action/download-id.md). |
+| [UpdateDownloadAction](-update-download-action/index.md) | `data class UpdateDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the provided [download](-update-download-action/download.md) on the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md). |
 
 ### Extension Functions
 
@@ -25,7 +25,7 @@
 
 | Name | Summary |
 |---|---|
-| [QueueDownloadAction](-queue-download-action/index.md) | `data class QueueDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to track the provided [download](-queue-download-action/download.md) as queued. |
-| [RemoveAllQueuedDownloadsAction](-remove-all-queued-downloads-action.md) | `object RemoveAllQueuedDownloadsAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove all queued downloads. |
-| [RemoveQueuedDownloadAction](-remove-queued-download-action/index.md) | `data class RemoveQueuedDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove the queued download with the provided [downloadId](-remove-queued-download-action/download-id.md). |
-| [UpdateQueuedDownloadAction](-update-queued-download-action/index.md) | `data class UpdateQueuedDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the provided [download](-update-queued-download-action/download.md) on the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md). |
+| [AddDownloadAction](-add-download-action/index.md) | `data class AddDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to track the provided [download](-add-download-action/download.md) as added. |
+| [RemoveAllDownloadsAction](-remove-all-downloads-action.md) | `object RemoveAllDownloadsAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove all downloads. |
+| [RemoveDownloadAction](-remove-download-action/index.md) | `data class RemoveDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md) to remove the download with the provided [downloadId](-remove-download-action/download-id.md). |
+| [UpdateDownloadAction](-update-download-action/index.md) | `data class UpdateDownloadAction : `[`DownloadAction`](./index.md)<br>Updates the provided [download](-update-download-action/download.md) on the [BrowserState](../../mozilla.components.browser.state.state/-browser-state/index.md). |

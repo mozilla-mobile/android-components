@@ -24,6 +24,7 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Renamed the following data classes from `BrowserAction`: `QueuedDownloadAction` to `AddDownloadAction`, `RemoveQueuedDownloadAction` to `RemoveDownloadAction`, `RemoveAllQueuedDownloadsAction` to `RemoveAllDownloadsAction`, and `UpdateQueuedDownloadAction` to `UpdateDownloadAction`.
   * ⚠️ **This is a breaking change**: Renamed `queuedDownloads` from `BrowserState` to `downloads` .
   * Removed automatic deletion of `downloads` upon a completed download.
+  * Fixed [#7939](https://github.com/mozilla-mobile/android-components/issues/7939) prevent `SimpleDownloadDialogFragment` from being added multiple times.
 
 * **browser-menu**
   * ⚠️ **This is a breaking change**: `BrowserMenuItemToolbar.Button.longClickListener` is now nullable and defaults to null.

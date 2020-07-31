@@ -178,7 +178,8 @@ class DownloadsFeature(
         ).show()
     }
 
-    private fun showDialog(tab: SessionState, download: DownloadState) {
+    @VisibleForTesting
+    internal fun showDialog(tab: SessionState, download: DownloadState) {
         dialog.setDownload(download)
 
         dialog.onStartDownload = {
@@ -191,12 +192,15 @@ class DownloadsFeature(
             useCases.consumeDownload.invoke(tab.id, download.id)
         }
 
-        if (!isAlreadyADialogCreated() && fragmentManager != null) {
-            dialog.show(fragmentManager, FRAGMENT_TAG)
+        if (!dialog.isAdded && !isAlreadyADialogCreated() && fragmentManager != null) {
+            // We want to explicitly show the dialog and commit the transaction now
+            // to avoid adding the fragment multiple times.
+            dialog.showNow(fragmentManager, FRAGMENT_TAG)
         }
     }
 
-    private fun isAlreadyADialogCreated(): Boolean {
+    @VisibleForTesting
+    internal fun isAlreadyADialogCreated(): Boolean {
         return findPreviousDialogFragment() != null
     }
 

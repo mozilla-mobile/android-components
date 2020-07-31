@@ -45,6 +45,7 @@ import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.times
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(AndroidJUnit4::class)
@@ -410,6 +411,31 @@ class DownloadsFeatureTest {
         val toast = ShadowToast.getTextOfLatestToast()
         assertNotNull(toast)
         assertTrue(toast.contains("can’t download this file type"))
+    }
+
+    @Test
+    fun `download dialog must be added once`() {
+        val fragmentManager = mockFragmentManager()
+        val dialog = mock<DownloadDialogFragment>()
+        val feature = spy(DownloadsFeature(
+            testContext,
+            store,
+            useCases = mock(),
+            downloadManager = mock(),
+            dialog = dialog,
+            fragmentManager = fragmentManager
+        ))
+
+        feature.showDialog(mock(), mock())
+
+        verify(dialog).showNow(fragmentManager, DownloadDialogFragment.FRAGMENT_TAG)
+
+        doReturn(true).`when`(dialog).isAdded
+        doReturn(true).`when`(feature).isAlreadyADialogCreated()
+
+        feature.showDialog(mock(), mock())
+
+        verify(dialog, times(1)).showNow(fragmentManager, DownloadDialogFragment.FRAGMENT_TAG)
     }
 }
 

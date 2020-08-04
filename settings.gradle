@@ -42,6 +42,26 @@ buildconfig.projects.each { project ->
     setupProject(project.key, project.value.path, project.value.description)
 }
 
+// Synchronized library configuration for all modules
+// This "componentsVersion" number is defined in ".buildconfig.yml" and should follow
+// semantic versioning (MAJOR.MINOR.PATCH). See https://semver.org/
+class Config {
+
+    public final String componentsVersion
+
+    Config(String componentsVersion) {
+        this.componentsVersion = componentsVersion;
+    }
+
+    // Maven group ID used for all components
+    static final String componentsGroupId = "org.mozilla.components"
+
+    // Synchronized build configuration for all modules
+    static final int compileSdkVersion = 29
+    static final int minSdkVersion = 21
+    static final int targetSdkVersion = 29
+}
+
 gradle.projectsLoaded { ->
     String version = buildconfig.componentsVersion
 

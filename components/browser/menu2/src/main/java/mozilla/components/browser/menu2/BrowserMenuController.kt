@@ -36,7 +36,8 @@ class BrowserMenuController(
         notifyObservers { onDismiss() }
     }
 
-    override fun show(anchor: View): PopupWindow = show(anchor, orientation = null)
+    override fun show(anchor: View, orientation: Orientation?): PopupWindow =
+        show(anchor, orientation, defaultWidth(anchor.resources))
 
     /**
      * @param anchor The view on which to pin the popup window.
@@ -46,7 +47,7 @@ class BrowserMenuController(
     fun show(
         anchor: View,
         orientation: Orientation? = null,
-        @Px width: Int = anchor.resources.getDimensionPixelSize(R.dimen.mozac_browser_menu2_width)
+        @Px width: Int = defaultWidth(anchor.resources)
     ): PopupWindow {
         val desiredOrientation = orientation ?: determineMenuOrientation(anchor.parent as? View?)
         val view = MenuView(anchor.context).apply {
@@ -127,6 +128,10 @@ class BrowserMenuController(
 
         notifyObservers { onMenuListSubmit(list) }
     }
+
+    @Px
+    private fun defaultWidth(resources: Resources) =
+        resources.getDimensionPixelSize(R.dimen.mozac_browser_menu2_width)
 
     private class MenuPopupWindow(
         val view: MenuView,

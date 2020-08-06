@@ -286,6 +286,19 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     /**
+     * Removes an action that was displayed on the right of the URL in edit mode.
+     */
+    override fun removeEditAction(action: Toolbar.Action) {
+        edit.removeEditAction(action)
+    }
+
+    /**
+     * Checks if an action was displayed on the right of the URL in edit mode.
+     */
+    override fun containsEditAction(action: Toolbar.Action): Boolean =
+        edit.containsEditAction(action)
+
+    /**
      * Switches to URL editing mode.
      */
     override fun editMode() {

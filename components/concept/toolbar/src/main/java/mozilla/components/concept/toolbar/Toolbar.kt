@@ -143,6 +143,16 @@ interface Toolbar {
     fun addEditAction(action: Action)
 
     /**
+     * Remove an action that was displayed in edit mode.
+     */
+    fun removeEditAction(action: Action)
+
+    /**
+     * Checks if an action was displayed in edit mode.
+     */
+    fun containsEditAction(action: Action): Boolean
+
+    /**
      * Casts this toolbar to an Android View object.
      */
     fun asView(): View = this as View

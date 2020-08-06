@@ -61,6 +61,9 @@ internal class ActionContainer @JvmOverloads constructor(
         }
     }
 
+    fun containsAction(action: Toolbar.Action): Boolean =
+        actions.find { it.actual == action } != null
+
     fun invalidateActions() {
         TransitionManager.beginDelayedTransition(this)
 

@@ -15,8 +15,10 @@ import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Action
 import mozilla.components.support.base.facts.processor.CollectionProcessor
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -217,5 +219,19 @@ class EditToolbarTest {
         assertTrue(callbackCalled)
         assertEquals("firefox".length, url.selectionStart)
         assertTrue(url.hasFocus())
+    }
+
+    @Test
+    fun `edit action is not found after removal `() {
+        val (_, editToolbar) = createEditToolbar()
+        val action: Toolbar.ActionButton = mock()
+        whenever(action.visible).thenReturn { true }
+        whenever(action.createView(any())).thenReturn(mock())
+
+        editToolbar.addEditAction(action)
+        assertTrue(editToolbar.containsEditAction(action))
+
+        editToolbar.removeEditAction(action)
+        assertFalse(editToolbar.containsEditAction(action))
     }
 }

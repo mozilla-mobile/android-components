@@ -712,4 +712,26 @@ class BrowserToolbarTest {
 
         verify(toolbar.display).onStop()
     }
+
+    @Test
+    fun `removeEditAction is forwarded to edit toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.edit = mock()
+        val action: Toolbar.ActionButton = mock()
+
+        toolbar.removeEditAction(action)
+
+        verify(toolbar.edit).removeEditAction(action)
+    }
+
+    @Test
+    fun `containsEditAction is forwarded to edit toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.edit = mock()
+        val action: Toolbar.ActionButton = mock()
+
+        toolbar.containsEditAction(action)
+
+        verify(toolbar.edit).containsEditAction(action)
+    }
 }

@@ -14,6 +14,7 @@ kind-dependencies:
 
 job-defaults:
     attributes:
+        resource-monitor: true
         build-type: debug
         code-review: true
     fetches:

@@ -45,6 +45,7 @@ job-defaults:
         name: public/github/customCheckRunText.md
         path: '/builds/worker/github/customCheckRunText.md'
     attributes:
+        resource-monitor: true
         code-review:
             by-build-type:
                 release: false

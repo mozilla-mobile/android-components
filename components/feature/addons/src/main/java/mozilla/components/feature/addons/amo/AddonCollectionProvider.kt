@@ -49,6 +49,7 @@ internal const val DEFAULT_READ_TIMEOUT_IN_SECONDS = 20L
  * should remain valid. Defaults to -1, meaning no cache is being used by default.
  * @property client A reference of [Client] for interacting with the AMO HTTP api.
  */
+@Suppress("LongParameterList")
 class AddonCollectionProvider(
     private val context: Context,
     private val client: Client,

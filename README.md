@@ -294,6 +294,26 @@ $ cd android-components
 $ ./gradlew assemble
 ```
 
+### Configuring the Android SDK ###
+
+You will need the Android SDK installed (i.e. pointed to by the `ANDROID_SDK_ROOT` environment variable), and configured to indicate acceptance of the Android SDK licenses. This can be accomplished on Linux as follows:
+
+```
+$ wget http://dl.google.com/android/android-sdk_r24.2-linux.tgz
+$ tar -xvf android-sdk_r24.2-linux.tgz
+$ cd android-sdk-linux
+$ mkdir -p licenses
+$ echo "8933bad161af4178b1185d1a37fbf41ea5269c55" >> licenses/android-sdk-license
+$ echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> licenses/android-sdk-license
+$ echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> licenses/android-sdk-license
+```
+
+Then run `pwd` and use the resulting value as `ANDROID_SDK_ROOT`
+
+### Configuring Java ###
+
+You will need `JAVA_HOME` set to a path to a JDK (which should not end in `/jre`).
+
 ## Android Studio ##
 
 If the environment variable `JAVA_HOME` is not defined, you will need to set it. If you would like to use the JDK installed by Android Studio, here's how to find it:

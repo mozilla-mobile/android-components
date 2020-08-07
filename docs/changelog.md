@@ -32,6 +32,9 @@ permalink: /changelog/
 
 * **browser-menu**
   * ⚠️ **This is a breaking change**: Removed `SimpleBrowserMenuHighlightableItem.itemType`. Use a WeakMap instead if you need to attach private data.
+  
+* **feature-addons**
+  * ⚠️ **This is a breaking change**: Added a `collectionAccount` constructor argument to `AddonCollectionProvider` to override the default of `mozilla`. It has been inserted into the middle of the argument list, before `collectionName`, so code that passed later arguments positionally will need to change.
 
 # 53.0.0
 

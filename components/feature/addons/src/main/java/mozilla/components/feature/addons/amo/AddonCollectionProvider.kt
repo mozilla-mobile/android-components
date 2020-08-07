@@ -86,7 +86,15 @@ class AddonCollectionProvider(
 
         return cachedAddons ?: client.fetch(
                 Request(
-                    url = "$serverURL/$API_VERSION/accounts/account/$collectionAccount/collections/$collectionName/addons",
+                    url = listOf(
+                        serverURL,
+                        API_VERSION,
+                        "accounts/account",
+                        collectionAccount,
+                        "collections",
+                        collectionName,
+                        "addons"
+                    ).joinToString("/"),
                     readTimeout = Pair(readTimeoutInSeconds ?: DEFAULT_READ_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS)
                 )
             )

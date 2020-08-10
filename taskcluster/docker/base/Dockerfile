@@ -46,7 +46,7 @@ RUN apt-get update -qq \
 
 RUN pip install --upgrade pip
 RUN pip install \
-    taskcluster
+    taskcluster \
     # Required to manipulate archiving operations in fetch tasks for git repos
     zstandard
 

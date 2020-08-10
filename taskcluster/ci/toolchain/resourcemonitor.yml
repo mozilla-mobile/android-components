@@ -8,11 +8,22 @@ job-defaults:
             - go-1.14.4
             - resource-monitor
     run:
+        using: toolchain-script
         script: build-resourcemonitor.sh
         sparse-profile: null
         toolchain-artifact: public/build/resource-monitor.tar.xz
+    treeherder:
+        kind: build
+        platform: toolchains/opt
+        tier: 1
+    worker-type: b-android
+    worker:
+        docker-image: {in-tree: base}
+        max-run-time: 600
 
 linux64-resource-monitor:
     description: "linux64 resourcemonitor toolchain build"
     run:
         arguments: ['linux64']
+    treeherder:
+        symbol: TL(linux-resource-monitor)

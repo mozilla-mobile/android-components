@@ -45,7 +45,10 @@ RUN apt-get update -qq \
     && apt-get clean
 
 RUN pip install --upgrade pip
-RUN pip install taskcluster
+RUN pip install \
+    taskcluster
+    # Required to manipulate archiving operations in fetch tasks for git repos
+    zstandard
 
 RUN locale-gen "$LANG"
 

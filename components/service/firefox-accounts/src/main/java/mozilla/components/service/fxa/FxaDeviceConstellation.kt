@@ -12,16 +12,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.appservices.fxaclient.FirefoxAccount
+import mozilla.components.concept.sync.AccountEvent
+import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceConstellationObserver
-import mozilla.components.concept.sync.AccountEvent
-import mozilla.components.concept.sync.AccountEventsObserver
-import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DevicePushSubscription
 import mozilla.components.concept.sync.DeviceType
+import mozilla.components.concept.sync.FxaOperationResult
 import mozilla.components.support.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
@@ -108,9 +109,9 @@ class FxaDeviceConstellation(
     override fun sendCommandToDeviceAsync(
         targetDeviceId: String,
         outgoingCommand: DeviceCommandOutgoing
-    ): Deferred<Boolean> {
+    ): Deferred<FxaOperationResult> {
         return scope.async {
-            handleFxaExceptions(logger, "sending device command") {
+            executeFxaOperationAndGetResult(logger, "sending device command") {
                 when (outgoingCommand) {
                     is DeviceCommandOutgoing.SendTab -> {
                         account.sendSingleTab(targetDeviceId, outgoingCommand.title, outgoingCommand.url)

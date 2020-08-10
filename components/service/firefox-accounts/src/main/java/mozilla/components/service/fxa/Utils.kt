@@ -4,6 +4,7 @@
 
 package mozilla.components.service.fxa
 
+import mozilla.components.concept.sync.FxaOperationResult
 import mozilla.components.service.fxa.manager.GlobalAccountManager
 import mozilla.components.support.base.log.logger.Logger
 
@@ -68,6 +69,18 @@ suspend fun handleFxaExceptions(logger: Logger, operation: String, block: () -> 
         block()
         true
     })
+}
+
+/**
+ * Helper method that executes a FXA operation and returns a [FxaOperationResult]
+ * for success / failure allowing clients more granularity in how to handle such cases.
+ */
+suspend fun executeFxaOperationAndGetResult(logger: Logger, operation: String, block: () -> Unit):
+    FxaOperationResult {
+    return handleFxaExceptions(logger, operation, { it.toFxaOperationResult() }) {
+        block()
+        FxaOperationResult.Success
+    }
 }
 
 private fun shouldThrow(e: FxaException): Boolean {

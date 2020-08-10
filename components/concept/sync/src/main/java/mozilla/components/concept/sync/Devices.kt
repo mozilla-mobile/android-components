@@ -70,7 +70,10 @@ interface DeviceConstellation : Observable<AccountEventsObserver> {
      * @param outgoingCommand An event to send.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun sendCommandToDeviceAsync(targetDeviceId: String, outgoingCommand: DeviceCommandOutgoing): Deferred<Boolean>
+    fun sendCommandToDeviceAsync(
+        targetDeviceId: String,
+        outgoingCommand: DeviceCommandOutgoing
+    ): Deferred<FxaOperationResult>
 
     /**
      * Process a raw event, obtained via a push message or some other out-of-band mechanism.

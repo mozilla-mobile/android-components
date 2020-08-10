@@ -34,6 +34,9 @@ permalink: /changelog/
 * **feature-prompts**
   * Replaced generic icon in `LoginDialogFragment` with site icon (keep the generic one as fallback)
 
+* **feature-accounts-push**
+  **This is a breaking change**: Changed the return type of sending tabs from a Boolean to FxaOperationResult that exposes more data about the end status of the operation.
+
 # 56.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v55.0.0...v56.0.0)

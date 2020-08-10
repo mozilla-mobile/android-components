@@ -18,6 +18,7 @@ import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.Avatar
 import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceType
+import mozilla.components.concept.sync.FxaOperationResult
 import mozilla.components.concept.sync.InFlightMigrationState
 import mozilla.components.concept.sync.OAuthScopedKey
 import mozilla.components.concept.sync.SyncAuthInfo
@@ -247,4 +248,20 @@ fun MigrationState.into(): InFlightMigrationState {
         MigrationState.COPY_SESSION_TOKEN -> InFlightMigrationState.COPY_SESSION_TOKEN
         MigrationState.REUSE_SESSION_TOKEN -> InFlightMigrationState.REUSE_SESSION_TOKEN
     }
+}
+
+/**
+ * Simple mapper allowing FxaExceptions to be exposed to client of this module.
+ */
+fun FxaException.toFxaOperationResult(): FxaOperationResult {
+    return FxaOperationResult.Failure(
+        when (this) {
+            is FxaNetworkException ->
+                mozilla.components.concept.sync.FxaException.FxaNetworkException(stackTrace.toString())
+            is FxaUnauthorizedException ->
+                mozilla.components.concept.sync.FxaException.FxaUnauthorizedException(stackTrace.toString())
+            else ->
+                mozilla.components.concept.sync.FxaException.FxaUnspecifiedException(stackTrace.toString())
+        }
+    )
 }

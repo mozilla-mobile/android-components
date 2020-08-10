@@ -16,6 +16,8 @@ import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceCommandOutgoing.SendTab
+import mozilla.components.concept.sync.FxaException
+import mozilla.components.concept.sync.FxaOperationResult
 import mozilla.components.concept.sync.TabData
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.support.ktx.kotlin.crossProduct
@@ -59,17 +61,15 @@ class SendTabUseCases(
          * @param tabs The list of tabs to send.
          * @return a deferred boolean as true if the combined result was successful or not.
          */
-        operator fun invoke(deviceId: String, tabs: List<TabData>): Deferred<Boolean> {
+        operator fun invoke(deviceId: String, tabs: List<TabData>): Deferred<List<FxaOperationResult>> {
             return scope.async {
                 tabs.map { tab ->
                     send(deviceId, tab)
-                }.fold(true) { acc, result ->
-                    acc and result
                 }
             }
         }
 
-        private suspend fun send(deviceId: String, tab: TabData): Boolean {
+        private suspend fun send(deviceId: String, tab: TabData): FxaOperationResult {
             filterSendTabDevices(accountManager) { constellation, devices ->
                 val device = devices.firstOrNull {
                     it.id == deviceId
@@ -82,7 +82,9 @@ class SendTabUseCases(
                 }
             }
 
-            return false
+            return FxaOperationResult.Failure(
+                FxaException.FxaUnspecifiedException("Invalid deviceId")
+            )
         }
     }
 
@@ -97,7 +99,7 @@ class SendTabUseCases(
          * @param tab The tab to send.
          * @return a deferred boolean as true if the combined result was successful or not.
          */
-        operator fun invoke(tab: TabData): Deferred<Boolean> {
+        operator fun invoke(tab: TabData): Deferred<List<FxaOperationResult>> {
             return scope.async {
                 sendToAll { devices ->
                     devices.map { device ->
@@ -113,7 +115,7 @@ class SendTabUseCases(
          * @param tabs a collection of tabs to send.
          * @return a deferred boolean as true if the combined result was successful or not.
          */
-        operator fun invoke(tabs: Collection<TabData>): Deferred<Boolean> {
+        operator fun invoke(tabs: Collection<TabData>): Deferred<List<FxaOperationResult>> {
             return scope.async {
                 sendToAll { devices ->
                     devices.crossProduct(tabs) { device, tab ->
@@ -125,7 +127,7 @@ class SendTabUseCases(
 
         private suspend inline fun sendToAll(
             block: (Collection<Device>) -> List<Pair<Device, TabData>>
-        ): Boolean {
+        ): List<FxaOperationResult> {
             // Filter devices to send tab capable ones.
             filterSendTabDevices(accountManager) { constellation, devices ->
                 // Get a list of device-tab combinations that we want to send.
@@ -135,12 +137,14 @@ class SendTabUseCases(
                         device.id,
                         SendTab(tab.title, tab.url)
                     ).await()
-                }.fold(true) { acc, result ->
-                    // Collect the results and reduce them into one final result.
-                    acc and result
                 }
             }
-            return false
+
+            return listOf(
+                FxaOperationResult.Failure(
+                    FxaException.FxaUnspecifiedException("Invalid deviceId")
+                )
+            )
         }
     }
 

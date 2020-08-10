@@ -25,6 +25,7 @@ import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.AccountEvent
 import mozilla.components.concept.sync.DevicePushSubscription
 import mozilla.components.concept.sync.DeviceType
+import mozilla.components.concept.sync.FxaOperationResult
 import mozilla.components.concept.sync.TabData
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -168,9 +169,13 @@ class FxaDeviceConstellationTest {
     @Test
     fun `send command to device`() = runBlocking(coroutinesTestRule.testDispatcher) {
         `when`(account.gatherTelemetry()).thenReturn("{}")
-        assertTrue(constellation.sendCommandToDeviceAsync(
-            "targetID", DeviceCommandOutgoing.SendTab("Mozilla", "https://www.mozilla.org")
-        ).await())
+
+        assertEquals(
+            FxaOperationResult.Success,
+            constellation.sendCommandToDeviceAsync(
+                "targetID", DeviceCommandOutgoing.SendTab("Mozilla", "https://www.mozilla.org")
+            ).await()
+        )
 
         verify(account).sendSingleTab("targetID", "Mozilla", "https://www.mozilla.org")
     }

@@ -12,6 +12,27 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Config.kt)
 
+* **concept-menu**
+  * Added `orientation` parameter to `MenuController.show`. Passing null (the default) tells the menu to determine the best orientation itself.
+
+* **browser-menu2**
+  * ⚠️ **This is a breaking change**: `BrowserMenuController.show` no longer supports the width parameter.
+
+* **feature-app-links**
+  * Added `loadUrlUseCase` as a parameter for `AppLinksFeature`.  This is used to load the URL if the user decides to not launch the link in the external app.
+  
+* **concept-awesomebar**
+  * Added `AwesomeBar.setOnEditSuggestionListener()` to register a callback when a search term is selected to be edited further.
+
+* **browser-toolbar**
+  * `BrowserToolbar.setSearchTerms()` can now be called during `State.EDIT`
+  
+* **browser-awesomebar**
+  * The view of `DefaultSuggestionViewHolder` now contains a button to select a search term for further editing. Clicking it will invoke the callback registered in `BrowserAwesomeBar.setOnEditSuggestionListener()`
+
+* **browser-menu**
+  * ⚠️ **This is a breaking change**: Removed `SimpleBrowserMenuHighlightableItem.itemType`. Use a WeakMap instead if you need to attach private data.
+
 # 53.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v52.0.0...v53.0.0)
@@ -35,7 +56,6 @@ permalink: /changelog/
 
 * **browser-menu**
   * ⚠️ **This is a breaking change**: `BrowserMenuItemToolbar.Button.longClickListener` is now nullable and defaults to null.
-  * ⚠️ **This is a breaking change**: Removed `SimpleBrowserMenuHighlightableItem.itemType`. Use a WeakMap instead if you need to attach private data.
 
 * **concept-menu**
   * Added `SmallMenuCandidate.onLongClick` to handle long click of row menu buttons.
@@ -109,6 +129,9 @@ permalink: /changelog/
 
 * **feature-app-links**
   * ⚠️ **This is a breaking change**: add `lastUri` as a parameter for `AppLinksInterceptor`.
+
+* **concept-engine**, **browser-engine-***
+  * ⚠️ **This is a breaking change**: add `lastUri` as a parameter for `RequestInterceptor.onLoadRequest`.
 
 * **support-ktx**
   * Added `Vibrator.vibrateOneShot` compat method.

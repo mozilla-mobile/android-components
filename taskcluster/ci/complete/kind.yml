@@ -18,7 +18,6 @@ transforms:
 
 job-defaults:
     attributes:
-        resource-monitor: true
         code-review: true
     worker-type: b-android
     worker:

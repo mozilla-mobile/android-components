@@ -67,7 +67,7 @@ internal class NativeNotificationBridge(
                 .setWhen(timestamp)
                 .setAutoCancel(true)
 
-            loadIcon(iconUrl?.toUri(), Size.DEFAULT)?.let { iconBitmap ->
+            loadIcon(iconUrl?.toUri(), Size.DEFAULT, true)?.let { iconBitmap ->
                 builder.setLargeIcon(iconBitmap)
             }
         }
@@ -78,7 +78,7 @@ internal class NativeNotificationBridge(
     /**
      * Load an icon for a notification.
      */
-    private suspend fun loadIcon(url: Uri?, size: Size): Bitmap? {
+    private suspend fun loadIcon(url: Uri?, size: Size, isPrivate: Boolean): Bitmap? {
         url ?: return null
         val icon = icons.loadIcon(IconRequest(
             url = url.toString(),
@@ -86,7 +86,8 @@ internal class NativeNotificationBridge(
             resources = listOf(IconRequest.Resource(
                 url = url.toString(),
                 type = IconRequest.Resource.Type.MANIFEST_ICON
-            ))
+            )),
+            isPrivate = isPrivate
         )).await()
 
         return if (icon.source == Source.GENERATOR) null else icon.bitmap

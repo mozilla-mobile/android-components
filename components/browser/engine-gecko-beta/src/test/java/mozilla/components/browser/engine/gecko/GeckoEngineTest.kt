@@ -6,6 +6,7 @@ package mozilla.components.browser.engine.gecko
 
 import android.app.Activity
 import android.content.Context
+import android.os.Environment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
@@ -238,6 +239,10 @@ class GeckoEngineTest {
         assertEquals(PreferredColorScheme.System, engine.settings.preferredColorScheme)
         engine.settings.preferredColorScheme = PreferredColorScheme.Dark
         verify(runtimeSettings).preferredColorScheme = PreferredColorScheme.Dark.toGeckoValue()
+
+        assertEquals(Environment.DIRECTORY_DOWNLOADS, engine.settings.downloadPath)
+        engine.settings.downloadPath = "new_download_path"
+        assertEquals("new_download_path", engine.settings.downloadPath)
 
         assertFalse(engine.settings.suspendMediaWhenInactive)
         engine.settings.suspendMediaWhenInactive = true

@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.engine
 
+import android.os.Environment
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
@@ -174,6 +175,11 @@ abstract class Settings {
      * Setting to force the ability to scale the content
      */
     open var forceUserScalableContent: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control the download path.
+     */
+    open var downloadPath: String by UnsupportedSetting()
 }
 
 /**
@@ -208,7 +214,8 @@ data class DefaultSettings(
     override var fontInflationEnabled: Boolean? = null,
     override var fontSizeFactor: Float? = null,
     override var forceUserScalableContent: Boolean = false,
-    override var loginAutofillEnabled: Boolean = false
+    override var loginAutofillEnabled: Boolean = false,
+    override var downloadPath: String = Environment.DIRECTORY_DOWNLOADS
 ) : Settings()
 
 class UnsupportedSetting<T> {

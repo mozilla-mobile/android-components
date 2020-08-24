@@ -213,7 +213,7 @@ internal class EngineObserver(
             0,
             INITIATED,
             userAgent,
-            Environment.DIRECTORY_DOWNLOADS
+            pathFromSettings
         )
 
         store?.dispatch(ContentAction.UpdateDownloadAction(

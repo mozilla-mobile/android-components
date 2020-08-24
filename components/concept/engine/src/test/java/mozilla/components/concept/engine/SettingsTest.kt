@@ -4,6 +4,8 @@
 
 package mozilla.components.concept.engine
 
+import android.os.Environment
+import android.os.Environment.DIRECTORY_DOWNLOADS
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
@@ -11,12 +13,18 @@ import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.test.expectException
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class SettingsTest {
+
+    @Before
+    fun setup() {
+        Environment.DIRECTORY_DOWNLOADS = "test-download-path"
+    }
 
     @Test
     fun settingsThrowByDefault() {
@@ -80,7 +88,8 @@ class SettingsTest {
             { settings.forceUserScalableContent },
             { settings.forceUserScalableContent = true },
             { settings.loginAutofillEnabled },
-            { settings.loginAutofillEnabled = false }
+            { settings.loginAutofillEnabled = false },
+            { settings.downloadPath = "" }
         )
     }
 
@@ -121,6 +130,7 @@ class SettingsTest {
         assertNull(settings.fontSizeFactor)
         assertFalse(settings.forceUserScalableContent)
         assertFalse(settings.loginAutofillEnabled)
+        assertEquals(DIRECTORY_DOWNLOADS, settings.downloadPath)
 
         val interceptor: RequestInterceptor = mock()
         val historyTrackingDelegate: HistoryTrackingDelegate = mock()
@@ -154,7 +164,8 @@ class SettingsTest {
             fontInflationEnabled = false,
             fontSizeFactor = 2.0F,
             forceUserScalableContent = true,
-            loginAutofillEnabled = true
+            loginAutofillEnabled = true,
+            downloadPath = "MYPATH"
         )
 
         assertFalse(defaultSettings.domStorageEnabled)
@@ -186,5 +197,6 @@ class SettingsTest {
         assertEquals(2.0F, defaultSettings.fontSizeFactor)
         assertTrue(defaultSettings.forceUserScalableContent)
         assertTrue(defaultSettings.loginAutofillEnabled)
+        assertEquals("MYPATH", defaultSettings.downloadPath)
     }
 }

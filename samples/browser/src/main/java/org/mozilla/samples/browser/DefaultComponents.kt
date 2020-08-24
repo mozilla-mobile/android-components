@@ -28,7 +28,6 @@ import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.storage.SessionStorage
-import mozilla.components.browser.session.usecases.EngineSessionUseCases
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.browser.thumbnails.ThumbnailsMiddleware
@@ -157,8 +156,6 @@ open class DefaultComponents(private val applicationContext: Context) {
     }
 
     val sessionUseCases by lazy { SessionUseCases(sessionManager) }
-
-    val engineSessionUseCases by lazy { EngineSessionUseCases(sessionManager) }
 
     // Addons
     val addonManager by lazy {

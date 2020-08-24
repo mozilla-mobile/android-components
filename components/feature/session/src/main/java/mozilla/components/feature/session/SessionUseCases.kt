@@ -159,15 +159,6 @@ class SessionUseCases(
                 sessionManager.getOrCreateEngineSession(session).goBack()
             }
         }
-
-        /**
-         * Navigates back in the history of the tab with the given [tabId].
-         */
-        operator fun invoke(tabId: String) {
-            sessionManager.findSessionById(tabId)?.let {
-                invoke(it)
-            }
-        }
     }
 
     class GoForwardUseCase internal constructor(

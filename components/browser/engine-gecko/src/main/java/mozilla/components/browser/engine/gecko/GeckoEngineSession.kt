@@ -232,15 +232,7 @@ class GeckoEngineSession(
             policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
         geckoSession.settings.useTrackingProtection = shouldBlockContent && enabled
-        notifyAtLeastOneObserver {
-            // We now register engine observers in a middleware using a dedicated
-            // store thread. Since this notification can be delayed until an observer
-            // is registered we switch to the main scope to make sure we're not notifying
-            // on the store thread.
-            MainScope().launch {
-                onTrackerBlockingEnabledChange(enabled)
-            }
-        }
+        notifyAtLeastOneObserver { onTrackerBlockingEnabledChange(enabled) }
     }
 
     /**
@@ -764,7 +756,7 @@ class GeckoEngineSession(
                         contentLength = response.contentLength,
                         contentType = response.contentType,
                         fileName = response.filename,
-                        defaultDownloadPath = settings.downloadPath
+                        path = settings.downloadPath
                 )
             }
         }

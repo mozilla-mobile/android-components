@@ -6,7 +6,6 @@ package mozilla.components.concept.engine
 
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Environment
 import androidx.annotation.CallSuper
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.Companion.RECOMMENDED
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
@@ -121,13 +120,13 @@ abstract class EngineSession(
 
         @Suppress("LongParameterList")
         fun onExternalResource(
-                url: String,
-                fileName: String? = null,
-                contentLength: Long? = null,
-                contentType: String? = null,
-                defaultDownloadPath: String = Environment.DIRECTORY_DOWNLOADS,
-                cookie: String? = null,
-                userAgent: String? = null
+            url: String,
+            fileName: String? = null,
+            contentLength: Long? = null,
+            contentType: String? = null,
+            path: String? = null,
+            cookie: String? = null,
+            userAgent: String? = null
         ) = Unit
 
         /**

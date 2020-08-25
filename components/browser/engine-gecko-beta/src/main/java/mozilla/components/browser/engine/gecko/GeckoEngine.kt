@@ -616,12 +616,6 @@ class GeckoEngine(
         override var forceUserScalableContent: Boolean
             get() = runtime.settings.forceUserScalableEnabled
             set(value) { runtime.settings.forceUserScalableEnabled = value }
-
-        override var downloadPath: String
-            get() = defaultSettings?.downloadPath ?: Environment.DIRECTORY_DOWNLOADS
-            set(value) {
-                defaultSettings?.downloadPath = value
-            }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -638,7 +632,6 @@ class GeckoEngine(
             this.fontSizeFactor = it.fontSizeFactor
             this.forceUserScalableContent = it.forceUserScalableContent
             this.loginAutofillEnabled = it.loginAutofillEnabled
-            this.downloadPath = it.downloadPath
         }
     }
 

@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.view.WindowManager
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineScope
@@ -767,7 +768,9 @@ class GeckoEngineSession(
                         url = response.uri,
                         contentLength = response.contentLength,
                         contentType = response.contentType,
-                        fileName = response.filename)
+                        fileName = response.filename,
+                        defaultDownloadPath = defaultSettings?.downloadPath ?: Environment.DIRECTORY_DOWNLOADS
+                )
             }
         }
 

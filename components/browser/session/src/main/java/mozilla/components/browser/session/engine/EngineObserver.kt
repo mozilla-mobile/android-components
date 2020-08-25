@@ -199,6 +199,7 @@ internal class EngineObserver(
         fileName: String?,
         contentLength: Long?,
         contentType: String?,
+        path: String?,
         cookie: String?,
         userAgent: String?
     ) {
@@ -213,7 +214,7 @@ internal class EngineObserver(
             0,
             INITIATED,
             userAgent,
-            pathFromSettings
+            path ?: Environment.DIRECTORY_DOWNLOADS
         )
 
         store?.dispatch(ContentAction.UpdateDownloadAction(

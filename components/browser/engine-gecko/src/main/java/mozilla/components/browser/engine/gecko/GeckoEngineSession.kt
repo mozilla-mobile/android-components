@@ -763,7 +763,9 @@ class GeckoEngineSession(
                         url = response.uri,
                         contentLength = response.contentLength,
                         contentType = response.contentType,
-                        fileName = response.filename)
+                        fileName = response.filename,
+                        path = settings.downloadPath
+                )
             }
         }
 

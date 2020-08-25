@@ -124,6 +124,7 @@ abstract class EngineSession(
             fileName: String? = null,
             contentLength: Long? = null,
             contentType: String? = null,
+            path: String? = null,
             cookie: String? = null,
             userAgent: String? = null
         ) = Unit

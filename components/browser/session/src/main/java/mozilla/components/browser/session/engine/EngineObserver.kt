@@ -195,13 +195,13 @@ internal class EngineObserver(
     }
 
     override fun onExternalResource(
-        url: String,
-        fileName: String?,
-        contentLength: Long?,
-        contentType: String?,
-        path: String?,
-        cookie: String?,
-        userAgent: String?
+            url: String,
+            fileName: String?,
+            contentLength: Long?,
+            contentType: String?,
+            defaultDownloadPath: String,
+            cookie: String?,
+            userAgent: String?
     ) {
         // We want to avoid negative contentLength values
         // For more info see https://bugzilla.mozilla.org/show_bug.cgi?id=1632594
@@ -214,7 +214,7 @@ internal class EngineObserver(
             0,
             INITIATED,
             userAgent,
-            path ?: Environment.DIRECTORY_DOWNLOADS
+            defaultDownloadPath
         )
 
         store?.dispatch(ContentAction.UpdateDownloadAction(

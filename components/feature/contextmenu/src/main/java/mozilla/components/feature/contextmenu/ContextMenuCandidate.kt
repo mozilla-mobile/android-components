@@ -46,7 +46,8 @@ data class ContextMenuCandidate(
             tabsUseCases: TabsUseCases,
             contextMenuUseCases: ContextMenuUseCases,
             snackBarParentView: View,
-            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate()
+            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate(),
+            getDefaultDownloadPath: () -> String
         ): List<ContextMenuCandidate> = listOf(
             createOpenInNewTabCandidate(
                 context,
@@ -61,7 +62,7 @@ data class ContextMenuCandidate(
                 snackbarDelegate
             ),
             createCopyLinkCandidate(context, snackBarParentView, snackbarDelegate),
-            createDownloadLinkCandidate(context, contextMenuUseCases),
+            createDownloadLinkCandidate(context, contextMenuUseCases, getDefaultDownloadPath()),
             createShareLinkCandidate(context),
             createShareImageCandidate(context),
             createOpenImageInNewTabCandidate(
@@ -70,8 +71,8 @@ data class ContextMenuCandidate(
                 snackBarParentView,
                 snackbarDelegate
             ),
-            createSaveImageCandidate(context, contextMenuUseCases),
-            createSaveVideoAudioCandidate(context, contextMenuUseCases),
+            createSaveImageCandidate(context, contextMenuUseCases, getDefaultDownloadPath()),
+            createSaveVideoAudioCandidate(context, contextMenuUseCases, getDefaultDownloadPath()),
             createCopyImageLocationCandidate(context, snackBarParentView, snackbarDelegate),
             createAddContactCandidate(context),
             createShareEmailAddressCandidate(context),
@@ -250,7 +251,8 @@ data class ContextMenuCandidate(
          */
         fun createSaveImageCandidate(
             context: Context,
-            contextMenuUseCases: ContextMenuUseCases
+            contextMenuUseCases: ContextMenuUseCases,
+            defaultDownloadPath: String
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.save_image",
             label = context.getString(R.string.mozac_feature_contextmenu_save_image),
@@ -258,7 +260,11 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
-                    DownloadState(hitResult.src, skipConfirmation = true)
+                    DownloadState(
+                        hitResult.src,
+                        skipConfirmation = true,
+                        destinationDirectory = defaultDownloadPath
+                    )
                 )
             }
         )
@@ -268,7 +274,8 @@ data class ContextMenuCandidate(
          */
         fun createSaveVideoAudioCandidate(
             context: Context,
-            contextMenuUseCases: ContextMenuUseCases
+            contextMenuUseCases: ContextMenuUseCases,
+            defaultDownloadPath: String
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.save_video",
             label = context.getString(R.string.mozac_feature_contextmenu_save_file_to_device),
@@ -276,7 +283,11 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
-                    DownloadState(hitResult.src, skipConfirmation = true)
+                    DownloadState(
+                        hitResult.src,
+                        skipConfirmation = true,
+                        destinationDirectory = defaultDownloadPath
+                    )
                 )
             }
         )
@@ -286,7 +297,8 @@ data class ContextMenuCandidate(
          */
         fun createDownloadLinkCandidate(
             context: Context,
-            contextMenuUseCases: ContextMenuUseCases
+            contextMenuUseCases: ContextMenuUseCases,
+            defaultDownloadPath: String
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.download_link",
             label = context.getString(R.string.mozac_feature_contextmenu_download_link),
@@ -294,7 +306,11 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
-                    DownloadState(hitResult.src, skipConfirmation = true)
+                    DownloadState(
+                        hitResult.src,
+                        skipConfirmation = true,
+                        destinationDirectory = defaultDownloadPath
+                    )
                 )
             }
         )

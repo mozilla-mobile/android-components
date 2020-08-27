@@ -7,7 +7,6 @@ package mozilla.components.browser.session.engine
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Environment
 import androidx.core.net.toUri
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.engine.request.LaunchIntentMetadata
@@ -193,13 +192,13 @@ internal class EngineObserver(
     }
 
     override fun onExternalResource(
-            url: String,
-            fileName: String?,
-            contentLength: Long?,
-            contentType: String?,
-            defaultDownloadPath: String,
-            cookie: String?,
-            userAgent: String?
+        url: String,
+        fileName: String?,
+        contentLength: Long?,
+        contentType: String?,
+        defaultDownloadPath: String,
+        cookie: String?,
+        userAgent: String?
     ) {
         // We want to avoid negative contentLength values
         // For more info see https://bugzilla.mozilla.org/show_bug.cgi?id=1632594

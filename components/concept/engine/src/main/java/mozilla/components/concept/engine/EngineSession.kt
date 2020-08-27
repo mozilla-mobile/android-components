@@ -119,15 +119,15 @@ abstract class EngineSession(
             appIntent: Intent?
         ) = Unit
 
-        @Suppress("LongParameterList")
+        @Suppress("LongParameterList", "UndocumentedPublicFunction")
         fun onExternalResource(
-                url: String,
-                fileName: String? = null,
-                contentLength: Long? = null,
-                contentType: String? = null,
-                defaultDownloadPath: String = Environment.DIRECTORY_DOWNLOADS,
-                cookie: String? = null,
-                userAgent: String? = null
+            url: String,
+            fileName: String? = null,
+            contentLength: Long? = null,
+            contentType: String? = null,
+            defaultDownloadPath: String = Environment.DIRECTORY_DOWNLOADS,
+            cookie: String? = null,
+            userAgent: String? = null
         ) = Unit
 
         /**

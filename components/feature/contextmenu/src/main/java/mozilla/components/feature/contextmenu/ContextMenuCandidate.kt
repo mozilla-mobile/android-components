@@ -41,6 +41,7 @@ data class ContextMenuCandidate(
          *
          * Use this list if you do not intend to customize the context menu items to be displayed.
          */
+        @Suppress("LongParameterList")
         fun defaultCandidates(
             context: Context,
             tabsUseCases: TabsUseCases,

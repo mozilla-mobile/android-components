@@ -5,7 +5,6 @@
 package mozilla.components.browser.engine.gecko
 
 import android.content.Context
-import android.os.Environment
 import android.util.AttributeSet
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy

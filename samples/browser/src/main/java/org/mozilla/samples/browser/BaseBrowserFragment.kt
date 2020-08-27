@@ -4,13 +4,16 @@
 
 package org.mozilla.samples.browser
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.fragment.app.Fragment
+import kotlinx.android.synthetic.main.activity_installed_add_on_details.*
 import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
@@ -137,7 +140,8 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
                 tabsUseCases = components.tabsUseCases,
                 contextMenuUseCases = components.contextMenuUseCases,
                 parentView = layout,
-                sessionId = sessionId
+                sessionId = sessionId,
+                getDefaultDownloadPath = { getDownloadPath() }
             ),
             owner = this,
             view = layout)
@@ -212,6 +216,10 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
         )
 
         return layout
+    }
+
+    private fun getDownloadPath(): String {
+        return components.engineSettings.downloadPath
     }
 
     @CallSuper

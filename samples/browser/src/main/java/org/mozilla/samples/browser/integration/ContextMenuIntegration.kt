@@ -33,7 +33,8 @@ class ContextMenuIntegration(
     tabsUseCases: TabsUseCases,
     contextMenuUseCases: ContextMenuUseCases,
     parentView: View,
-    sessionId: String? = null
+    sessionId: String? = null,
+    getDefaultDownloadPath: () -> String
 ) : LifecycleAwareFeature {
 
     private val candidates = run {
@@ -43,7 +44,7 @@ class ContextMenuIntegration(
                 createCopyLinkCandidate(context, parentView, snackbarDelegate),
                 createShareLinkCandidate(context),
                 createOpenImageInNewTabCandidate(context, tabsUseCases, parentView, snackbarDelegate),
-                createSaveImageCandidate(context, contextMenuUseCases),
+                createSaveImageCandidate(context, contextMenuUseCases, getDefaultDownloadPath()),
                 createCopyImageLocationCandidate(context, parentView, snackbarDelegate),
                 createAddContactCandidate(context),
                 createShareEmailAddressCandidate(context),
@@ -61,7 +62,8 @@ class ContextMenuIntegration(
                 context,
                 tabsUseCases,
                 contextMenuUseCases,
-                parentView
+                parentView,
+                getDefaultDownloadPath = getDefaultDownloadPath
             ) + appLinksCandidate
         }
     }

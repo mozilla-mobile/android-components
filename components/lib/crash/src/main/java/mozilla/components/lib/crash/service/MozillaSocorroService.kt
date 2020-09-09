@@ -92,7 +92,7 @@ class MozillaSocorroService(
         if (versionName == DEFAULT_VERSION_NAME) {
             try {
                 versionName = applicationContext.packageManager
-                    .getPackageInfo(applicationContext.packageName, 0).versionName
+                    .getPackageInfo(applicationContext.packageName, 0).versionName ?: DEFAULT_VERSION_NAME
             } catch (e: PackageManager.NameNotFoundException) {
                 logger.error("package name not found, failed to get application version")
             } catch (e: IllegalStateException) {

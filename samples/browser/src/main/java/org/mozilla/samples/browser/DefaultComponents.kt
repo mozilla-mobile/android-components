@@ -30,6 +30,7 @@ import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.engine.EngineMiddleware
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.browser.thumbnails.ThumbnailsMiddleware
 import mozilla.components.browser.thumbnails.storage.ThumbnailStorage
@@ -120,6 +121,9 @@ open class DefaultComponents(private val applicationContext: Context) {
     private val lazyHistoryStorage = lazy { PlacesHistoryStorage(applicationContext) }
     val historyStorage by lazy { lazyHistoryStorage.value }
 
+    private val lazyBookmarksStorage = lazy { PlacesBookmarksStorage(applicationContext) }
+    val bookmarksStorage by lazy { lazyBookmarksStorage.value }
+
     private val sessionStorage by lazy { SessionStorage(applicationContext, engine) }
 
     val permissionStorage by lazy { SitePermissionsStorage(applicationContext) }
@@ -195,7 +199,9 @@ open class DefaultComponents(private val applicationContext: Context) {
         }
     }
 
-    val searchUseCases by lazy { SearchUseCases(applicationContext, store, searchEngineManager, sessionManager) }
+    val searchUseCases by lazy {
+        SearchUseCases(applicationContext, store, searchEngineManager, sessionManager, bookmarksStorage)
+    }
     val defaultSearchUseCase by lazy {
         { searchTerms: String ->
             searchUseCases.defaultSearch.invoke(

@@ -35,6 +35,18 @@ interface BookmarksStorage : Storage {
     suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode>
 
     /**
+     * Returns the URL for the provided search keyword, if one exists.
+     *
+     * @param searchTerms A string containing one or more words (first and second space delimited)
+     * which we'll try to match against a bookmark keyword.
+     *
+     * @return The bookmarked URL for the keyword, if set.
+     *  If [searchTerms] contains more words will return a valid URL only if the bookmark URL
+     *  contains a "%s" placeholder.
+     */
+    suspend fun getBookmarkUrlForKeyword(searchTerms: String): String?
+
+    /**
      * Searches bookmarks with a query string.
      *
      * @param query The query string to search.

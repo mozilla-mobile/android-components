@@ -15,6 +15,12 @@ permalink: /changelog/
 * **feature-recentlyclosed**
   * Added a new [RecentlyClosedTabsStorage] and a [RecentlyClosedMiddleware] to maintain a list of restorable recently closed tabs.
 
+* **concept-storage**
+  * BookmarksStorage now exposes a new `getBookmarkUrlForKeyword` metod that allows querying bookmarks for if they have a particular keyword set. Also supports placeholders.
+
+* **feature-search**
+  * ⚠️ **This is a breaking change**: SearchUseCases now require a new parameter of type BookmarksStorage to be used to automatically recognize and load bookmarks depending on the user entered url (when that is a bookmark keyword).
+
 # 57.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v56.0.0...v57.0.0)
@@ -64,7 +70,6 @@ permalink: /changelog/
   * 🌟 Added support for persisting/restoring downloads see issue [#7762](https://github.com/mozilla-mobile/android-components/issues/7762).
   * 🌟 Added `DownloadStorage` for querying stored download metadata.
   * 🚒 Bug [issue #8190](https://github.com/mozilla-mobile/android-components/issues/8190) ArithmeticException: divide by zero in Download notification.
-  * 🚒 Bug [issue #8363](https://github.com/mozilla-mobile/android-components/issues/8363) IllegalStateException: Not allowed to start service Intent.
 
 
 * **ui-widgets**

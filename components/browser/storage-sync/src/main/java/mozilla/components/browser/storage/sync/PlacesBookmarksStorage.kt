@@ -16,6 +16,7 @@ import mozilla.components.concept.sync.SyncAuthInfo
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.utils.URLStringUtils
 import org.json.JSONObject
 
 /**
@@ -60,6 +61,50 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
     override suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode> {
         return withContext(readScope.coroutineContext) {
             reader.getBookmarksWithURL(url).map { it.asBookmarkNode() }
+        }
+    }
+
+    /**
+     * Returns the URL for the provided search keyword, if one exists.
+     *
+     * @param searchTerms A string containing one or more words (first and second space delimited)
+     * which we'll try to match against a bookmark keyword.
+     *
+     * @return The bookmarked URL for the keyword, if set.
+     *  If [searchTerms] contains more words will return a valid URL only if the bookmark URL
+     *  contains a "%s" placeholder.
+     */
+    @Suppress("ComplexMethod")
+    override suspend fun getBookmarkUrlForKeyword(searchTerms: String): String? {
+        return withContext(readScope.coroutineContext) {
+            if (searchTerms.isBlank()) {
+                return@withContext null
+            }
+
+            if (URLStringUtils.isURLLike(searchTerms)) {
+                return@withContext null
+            }
+
+            // The location for a bookmark keyword can include optional parameters.
+            // If "searchTerms" contains more words the user probably wants to use a parameter.
+            // We need to distinguish between the intended keyword and optional parameters.
+            val (keyword, query) = when (searchTerms.contains(" ")) {
+                true -> searchTerms.split(" ", limit = 2)
+                false -> listOf(searchTerms, "")
+            }
+
+            val keywordLocation =
+                reader.getBookmarkUrlForKeyword(keyword) ?: return@withContext null
+
+            // Try to use parameters only if the bookmark location contain such a placeholder.
+            if (keywordLocation.isBlank() ||
+                (query.isNotEmpty() && !keywordLocation.contains("%s", true))) {
+                return@withContext null
+            }
+
+            // Finally return the bookmark URL with optional parameters set
+            // or with the placeholder removed.
+            return@withContext keywordLocation.replace("%s", query, true)
         }
     }
 

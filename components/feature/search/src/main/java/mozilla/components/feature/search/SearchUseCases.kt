@@ -5,6 +5,9 @@
 package mozilla.components.feature.search
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import mozilla.components.browser.search.SearchEngine
 import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
@@ -12,6 +15,7 @@ import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.storage.BookmarksStorage
 
 /**
  * Contains use cases related to the search feature.
@@ -20,15 +24,19 @@ import mozilla.components.browser.state.store.BrowserStore
  * this (optional) lambda will be invoked to create a [Session]. The default implementation creates a [Session] and adds
  * it to the [SessionManager].
  */
+@Suppress("LongParameterList")
 class SearchUseCases(
     context: Context,
     store: BrowserStore,
     searchEngineManager: SearchEngineManager,
     sessionManager: SessionManager,
+    private val bookmarksStorage: BookmarksStorage,
     onNoSession: (String) -> Session = { url ->
         Session(url).apply { sessionManager.add(this) }
     }
 ) {
+    val scope = CoroutineScope(Dispatchers.IO)
+
     interface SearchUseCase {
         /**
          * Triggers a search.
@@ -40,7 +48,7 @@ class SearchUseCases(
         )
     }
 
-    class DefaultSearchUseCase(
+    inner class DefaultSearchUseCase(
         private val context: Context,
         private val store: BrowserStore,
         private val searchEngineManager: SearchEngineManager,
@@ -71,22 +79,27 @@ class SearchUseCases(
             session: Session? = sessionManager.selectedSession,
             searchEngine: SearchEngine? = null
         ) {
-            val searchUrl = searchEngine?.let {
-                searchEngine.buildSearchUrl(searchTerms)
-            } ?: searchEngineManager.getDefaultSearchEngine(context).buildSearchUrl(searchTerms)
+            scope.launch {
+                val searchUrl = bookmarksStorage.getBookmarkUrlForKeyword(searchTerms)
+                    ?: searchEngine?.let { searchEngine.buildSearchUrl(searchTerms) }
+                    ?: searchEngineManager.getDefaultSearchEngine(context)
+                        .buildSearchUrl(searchTerms)
 
-            val searchSession = session ?: onNoSession.invoke(searchUrl)
+                val searchSession = session ?: onNoSession.invoke(searchUrl)
 
-            searchSession.searchTerms = searchTerms
+                searchSession.searchTerms = searchTerms
 
-            store.dispatch(EngineAction.LoadUrlAction(
-                searchSession.id,
-                searchUrl
-            ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        searchSession.id,
+                        searchUrl
+                    )
+                )
+            }
         }
     }
 
-    class NewTabSearchUseCase(
+    inner class NewTabSearchUseCase(
         private val context: Context,
         private val store: BrowserStore,
         private val searchEngineManager: SearchEngineManager,
@@ -127,19 +140,24 @@ class SearchUseCases(
             searchEngine: SearchEngine? = null,
             parentSession: Session? = null
         ) {
-            val searchUrl = searchEngine?.let {
-                searchEngine.buildSearchUrl(searchTerms)
-            } ?: searchEngineManager.getDefaultSearchEngine(context).buildSearchUrl(searchTerms)
+            scope.launch {
+                val searchUrl = bookmarksStorage.getBookmarkUrlForKeyword(searchTerms)
+                    ?: searchEngine?.let { searchEngine.buildSearchUrl(searchTerms) }
+                    ?: searchEngineManager.getDefaultSearchEngine(context)
+                        .buildSearchUrl(searchTerms)
 
-            val session = Session(searchUrl, private, source)
-            session.searchTerms = searchTerms
+                val session = Session(searchUrl, private, source)
+                session.searchTerms = searchTerms
 
-            sessionManager.add(session, selected, parent = parentSession)
+                sessionManager.add(session, selected, parent = parentSession)
 
-            store.dispatch(EngineAction.LoadUrlAction(
-                session.id,
-                searchUrl
-            ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        session.id,
+                        searchUrl
+                    )
+                )
+            }
         }
     }
 

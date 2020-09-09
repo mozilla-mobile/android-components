@@ -8,9 +8,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.appservices.places.PlacesException
+import mozilla.appservices.places.PlacesReaderConnection
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -21,6 +23,8 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.spy
 
 @RunWith(AndroidJUnit4::class)
 class PlacesBookmarksStorageTest {
@@ -153,6 +157,56 @@ class PlacesBookmarksStorageTest {
         with(bookmarks.searchBookmarks("mozilla")) {
             assertTrue(this.isEmpty())
         }
+    }
+
+    @Test
+    fun `getBookmarkUrlForKeyword returns early if searchTerms is empty or blank`() = runBlocking {
+        assertNull(bookmarks.getBookmarkUrlForKeyword(""))
+        assertNull(bookmarks.getBookmarkUrlForKeyword("   "))
+    }
+
+    @Test
+    fun `getBookmarkUrlForKeyword returns early if searchTerms look like an actual URL`() = runBlocking {
+        assertNull(bookmarks.getBookmarkUrlForKeyword("mozilla.com"))
+        assertNull(bookmarks.getBookmarkUrlForKeyword("http://mozilla"))
+        assertNull(bookmarks.getBookmarkUrlForKeyword("http://mozilla"))
+        assertNull(bookmarks.getBookmarkUrlForKeyword("www.mozilla"))
+    }
+
+    @Test
+    fun `getBookmarkUrlForKeyword returns a bookmark url if it has a keyword set for`() = runBlocking {
+        bookmarks = spy(bookmarks)
+        val reader: PlacesReaderConnection? = mock()
+        val mozillaKeyword = "moz"
+        val mozillaUrl = "https://mozilla.com"
+        doReturn(reader).`when`(bookmarks).reader
+        doReturn(mozillaUrl).`when`(reader!!).getBookmarkUrlForKeyword(mozillaKeyword)
+        assertTrue(System.currentTimeMillis() > 0)
+
+        assertNull(bookmarks.getBookmarkUrlForKeyword("qwerty"))
+        assertEquals(mozillaUrl, bookmarks.getBookmarkUrlForKeyword(mozillaKeyword))
+    }
+
+    @Test
+    fun `getBookmarkUrlForKeyword returns a bookmark url with placeholders set if it has a keyword set for`() = runBlocking {
+        bookmarks = spy(bookmarks)
+        val reader = mock<PlacesReaderConnection>()
+        val mozillaKeyword = "moz"
+        val mozillaUrl = "https://mozilla.com/s=%s"
+        val query = "query"
+        val noQuery = ""
+        doReturn(reader).`when`(bookmarks).reader
+        doReturn(mozillaUrl).`when`(reader).getBookmarkUrlForKeyword(mozillaKeyword)
+
+        assertNull(bookmarks.getBookmarkUrlForKeyword("qwerty"))
+        assertEquals(
+            mozillaUrl.replace("%s", query),
+            bookmarks.getBookmarkUrlForKeyword("$mozillaKeyword $query")
+        )
+        assertEquals(
+            mozillaUrl.replace("%s", noQuery),
+            bookmarks.getBookmarkUrlForKeyword(mozillaKeyword)
+        )
     }
 
     @Test

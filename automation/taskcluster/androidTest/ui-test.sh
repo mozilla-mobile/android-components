@@ -52,6 +52,8 @@ fi
 JAVA_BIN="/usr/bin/java"
 PATH_TEST="./automation/taskcluster/androidTest"
 FLANK_BIN="/builds/worker/test-tools/flank.jar"
+ARTIFACT_DIR="/builds/worker/artifacts"
+RESULTS_DIR="${ARTIFACT_DIR}/results"
 FLANK_CONF_ARM="${PATH_TEST}/flank-arm.yml"
 FLANK_CONF_X86="${PATH_TEST}/flank-x86.yml"
 
@@ -117,22 +119,53 @@ function failure_check() {
 
     echo
     echo "COPY ARTIFACTS"
-    echo
-    cp -r ./results /builds/worker/artifacts
-
-    echo
     echo "RESULTS"
     echo
+    echo
+    cp -r ./results /builds/worker/artifacts
+    ls -la "${RESULTS_DIR}" 
+
+    echo
+    echo
+    echo "RESULTS"
+    echo "RESULTS"
+    echo
+    echo
     ls -la ./results
+
     echo
+    mkdir -p /builds/worker/artifacts/github
     echo
+    chmod +x $PATH_TEST/parse-ui-test.py
+    $PATH_TEST/parse-ui-test.py \
+        --exit-code "${exitcode}" \
+        --log flank.log \
+        --results "${RESULTS_DIR}" \
+        --output-md "${ARTIFACT_DIR}/github/customCheckRunText.md" \
+	--device-type "${device_type}"
 }
+
+echo
+echo "FLANK VERSION"
+echo
+$JAVA_BIN -jar $FLANK_BIN --version
+echo
+echo
 
 echo
 echo "EXECUTE TEST(S)"
 echo
-$JAVA_BIN -jar $FLANK_BIN android run --config=$flank_template --max-test-shards=$num_shards --app=$APK_APP --test=$APK_TEST --project=$GOOGLE_PROJECT
-exitcode=$?
+# Note that if --local-results-dir is "results", timestamped sub-directory will
+# contain the results. For any other value, the directory itself will have the results.
+$JAVA_BIN -jar $FLANK_BIN android run \
+	--config=$flank_template \
+	--max-test-shards=$num_shards \
+	--app=$APK_APP --test=$APK_TEST \
+	--local-result-dir="${RESULTS_DIR}" \
+	--project=$GOOGLE_PROJECT \
+	| tee flank.log
 
+exitcode=$?
 failure_check
+
 exit $exitcode

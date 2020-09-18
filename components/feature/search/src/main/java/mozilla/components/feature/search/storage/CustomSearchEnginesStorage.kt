@@ -8,7 +8,12 @@ import android.content.Context
 import android.util.AtomicFile
 import android.util.Base64
 import androidx.annotation.VisibleForTesting
+import androidx.annotation.WorkerThread
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.feature.search.middleware.SearchMiddleware
@@ -30,17 +35,17 @@ internal class CustomSearchEngineStorage(
     private val writer = SearchEngineWriter()
 
     override suspend fun loadSearchEngineList(): List<SearchEngine> = withContext(coroutineContext) {
-        val searchEngineList = mutableListOf<SearchEngine>()
-        getFileDirectory().listFiles()?.forEach {
+        val result = getFileDirectory().listFiles()?.map {
             val filename = it.name.removeSuffix(SEARCH_FILE_EXTENSION)
             val identifier = String(Base64.decode(filename, Base64.NO_WRAP or Base64.URL_SAFE))
-            searchEngineList.add(loadSearchEngine(identifier))
-        }
-        searchEngineList.toList()
+            loadSearchEngineAsync(identifier)
+        } ?: emptyList()
+
+        result.awaitAll()
     }
 
     suspend fun loadSearchEngine(identifier: String): SearchEngine = withContext(coroutineContext) {
-        reader.loadFile(identifier, getSearchFile(identifier))
+        loadSearchEngineAsync(identifier).await()
     }
 
     override suspend fun saveSearchEngine(searchEngine: SearchEngine): Boolean = withContext(coroutineContext) {
@@ -55,6 +60,13 @@ internal class CustomSearchEngineStorage(
     internal fun getSearchFile(identifier: String): AtomicFile {
         val encodedId = Base64.encodeToString(identifier.toByteArray(), Base64.NO_WRAP or Base64.URL_SAFE)
         return AtomicFile(File(getFileDirectory(), encodedId + SEARCH_FILE_EXTENSION))
+    }
+
+    @WorkerThread
+    private fun loadSearchEngineAsync(
+        identifier: String
+    ): Deferred<SearchEngine> = GlobalScope.async(coroutineContext) {
+        reader.loadFile(identifier, getSearchFile(identifier))
     }
 
     private fun getFileDirectory(): File =

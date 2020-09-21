@@ -19,6 +19,8 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Removed `TabsUseCases.removeAllTabsOfType()`.
 * **browser-session**
   * Added `SessionManager.removeNormalSessions()` and `SessionManager.removePrivateSessions()`.
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8456](https://github.com/mozilla-mobile/android-components/issues/8456) Crash SQLiteConstraintException UNIQUE constraint failed: downloads.id (code 1555).
 
 # 59.0.0
 

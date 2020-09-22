@@ -4,13 +4,28 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 60.0.0-SNAPSHOT (In Development)
+# 61.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v59.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/120?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v60.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/121?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **browser-session**
+  * Added "undo" functionality via `UndoMiddleware`.
+* **feature-tabs**
+  * Added `TabsUseCases.UndoTabRemovalUseCase` for undoing the removal of tabs.
+* **feature-webcompat-reporter**
+  * Added the ability to automatically add a screenshot as well as more technical details when submitting a WebCompat report.  
+
+# 60.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v59.0.0...v60.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/120?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v60.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v60.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v60.0.0/.config.yml)
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * 🚒 Bug fixed [issue #8431](https://github.com/mozilla-mobile/android-components/issues/8431) update `Session.trackerBlockingEnabled` and `SessionState#trackingProtection#enabled` with the initial tracking protection state.
@@ -21,6 +36,18 @@ permalink: /changelog/
   * Added `SessionManager.removeNormalSessions()` and `SessionManager.removePrivateSessions()`.
 * **feature-downloads**
   * 🚒 Bug fixed [issue #8456](https://github.com/mozilla-mobile/android-components/issues/8456) Crash SQLiteConstraintException UNIQUE constraint failed: downloads.id (code 1555).
+
+* **service-glean**
+  * Glean was upgraded to v32.4.0
+    * Allow using quantity metric type outside of Gecko ([#1198](https://github.com/mozilla/glean/pull/1198))
+    * Update `glean_parser` to 1.28.5
+      * The `SUPERFLUOUS_NO_LINT` warning has been removed from the glinter. It likely did more harm than good, and makes it hard to make metrics.yaml files that pass across different versions of `glean_parser`.
+      * Expired metrics will now produce a linter warning, `EXPIRED_METRIC`.
+      * Expiry dates that are more than 730 days (~2 years) in the future will produce a linter warning, `EXPIRATION_DATE_TOO_FAR`.
+      * Allow using the Quantity metric type outside of Gecko.
+      * New parser configs `custom_is_expired` and `custom_validate_expires` added. These are both functions that take the expires value of the metric and return a bool. (See `Metric.is_expired` and `Metric.validate_expires`). These will allow FOG to provide custom validation for its version-based `expires` values.
+    * Add a limit of 250 pending ping files. ([#1217](https://github.com/mozilla/glean/pull/1217)).
+    * Don't retry the ping uploader when waiting, sleep instead. This avoids a never-ending increase of the backoff time ([#1217](https://github.com/mozilla/glean/pull/1217)).
 
 # 59.0.0
 

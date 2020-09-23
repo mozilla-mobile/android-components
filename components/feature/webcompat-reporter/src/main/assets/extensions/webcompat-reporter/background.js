@@ -115,7 +115,12 @@ function getWebCompatInfoForTab(tab) {
     browser.browserInfo.getGraphicsPrefs(),
     browser.browserInfo.getUpdateChannel(),
     browser.browserInfo.hasTouchScreen(),
+    browser.tabExtras.getWebcompatInfo(id),
     checkForFrameworks(id),
+    browser.tabs.captureVisibleTab(null, Config.screenshotFormat).catch(e => {
+      console.error("WebCompat Reporter: getting a screenshot failed", e);
+      return Promise.resolve(undefined);
+    }),
   ]).then(
     ([
       blockList,
@@ -123,26 +128,37 @@ function getWebCompatInfoForTab(tab) {
       graphicsPrefs,
       channel,
       hasTouchScreen,
+      frameInfo,
       frameworks,
+      screenshot,
     ]) => {
       if (channel !== "linux") {
         delete graphicsPrefs["layers.acceleration.force-enabled"];
       }
 
-      return Object.assign(
-        {},
-        {
+      const consoleLog = frameInfo.log;
+      delete frameInfo.log;
+
+      return Object.assign(frameInfo, {
           tabId: id,
           blockList,
           details: Object.assign(graphicsPrefs, {
             buildID,
             channel,
+          consoleLog,
             frameworks,
             hasTouchScreen,
+          "mixed active content blocked":
+            frameInfo.hasMixedActiveContentBlocked,
+          "mixed passive content blocked":
+            frameInfo.hasMixedDisplayContentBlocked,
+          "tracking content blocked": frameInfo.hasTrackingContentBlocked
+            ? `true (${blockList})`
+            : "false",
           }),
+          screenshot,
           url,
-        }
-      );
+      });
     }
   );
 }
@@ -188,14 +204,16 @@ async function openWebCompatTab(compatInfo) {
   await browser.tabs.executeScript(tab.id, {
     runAt: "document_end",
     code: `(function() {
-      async function postMessageData(metadata) {
+      async function postMessageData(dataURI, metadata) {
+        const res = await fetch(dataURI);
+        const blob = await res.blob();
         const data = {
-           screenshot: null,
+           screenshot: blob,
            message: metadata
         };
         postMessage(data, "${url.origin}");
       }
-      postMessageData(${json});
+      postMessageData("${compatInfo.screenshot}", ${json});
     })()`,
   });
 }

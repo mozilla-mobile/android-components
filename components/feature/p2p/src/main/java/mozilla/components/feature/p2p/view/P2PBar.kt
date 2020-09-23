@@ -90,8 +90,8 @@ class P2PBar @JvmOverloads constructor(
         AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.mozac_feature_p2p_accept_connection, neighborName))
             .setMessage(context.getString(R.string.mozac_feature_p2p_accept_token, token))
-            .setPositiveButton(android.R.string.yes) { _, _ -> listener?.onAccept(token) }
-            .setNegativeButton(android.R.string.no) { _, _ -> listener?.onReject(token) }
+            .setPositiveButton(R.string.mozac_feature_p2p_ok) { _, _ -> listener?.onAccept(token) }
+            .setNegativeButton(R.string.mozac_feature_p2p_cancel) { _, _ -> listener?.onReject(token) }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
     }
@@ -123,7 +123,7 @@ class P2PBar @JvmOverloads constructor(
                     newTab = true
                 )
             }
-            .setNegativeButton(android.R.string.no) { _, _ -> }
+            .setNegativeButton(R.string.mozac_feature_p2p_cancel) { _, _ -> }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
     }
@@ -151,7 +151,7 @@ class P2PBar @JvmOverloads constructor(
                     true
                 )
             }
-            .setNegativeButton(android.R.string.no) { _, _ -> }
+            .setNegativeButton(R.string.mozac_feature_p2p_cancel) { _, _ -> }
             .setIcon(android.R.drawable.ic_dialog_alert)
             .show()
     }

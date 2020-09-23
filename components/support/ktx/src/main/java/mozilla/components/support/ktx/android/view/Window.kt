@@ -8,6 +8,8 @@ import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.view.View
 import android.view.Window
+import android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+import android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
 import androidx.annotation.ColorInt
 import mozilla.components.support.utils.ColorUtils.isDark
 
@@ -15,8 +17,11 @@ import mozilla.components.support.utils.ColorUtils.isDark
  * Colors the status bar.
  * If the color is light enough, a light status bar with dark icons will be used.
  */
+@Suppress("DEPRECATION")
 fun Window.setStatusBarTheme(@ColorInt color: Int) {
-    if (SDK_INT >= Build.VERSION_CODES.M) {
+    if (SDK_INT >= Build.VERSION_CODES.R) {
+        insetsController?.setSystemBarsAppearance(color, APPEARANCE_LIGHT_STATUS_BARS)
+    } else if (SDK_INT >= Build.VERSION_CODES.M) {
         val flags = decorView.systemUiVisibility
         decorView.systemUiVisibility =
             flags.useLightFlag(color, View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
@@ -28,8 +33,11 @@ fun Window.setStatusBarTheme(@ColorInt color: Int) {
  * Colors the navigation bar.
  * If the color is light enough, a light navigation bar with dark icons will be used.
  */
+@Suppress("DEPRECATION")
 fun Window.setNavigationBarTheme(@ColorInt color: Int) {
-    if (SDK_INT >= Build.VERSION_CODES.O) {
+    if (SDK_INT >= Build.VERSION_CODES.R) {
+        insetsController?.setSystemBarsAppearance(color, APPEARANCE_LIGHT_NAVIGATION_BARS)
+    } else if (SDK_INT >= Build.VERSION_CODES.O) {
         val flags = decorView.systemUiVisibility
         decorView.systemUiVisibility =
             flags.useLightFlag(color, View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)

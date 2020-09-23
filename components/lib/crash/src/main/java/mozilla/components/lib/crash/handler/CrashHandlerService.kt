@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8511
+@file:Suppress("DEPRECATION")
+
 package mozilla.components.lib.crash.handler
+
+// This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8511
 
 import android.app.IntentService
 import android.content.Intent
@@ -14,6 +19,8 @@ private const val WORKER_THREAD_NAME = "CrashHandlerService"
 /**
  * Service receiving native code crashes (from GeckoView).
  */
+// This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8511
+@Suppress("Deprecation")
 class CrashHandlerService : IntentService(WORKER_THREAD_NAME) {
     private val logger by lazy { CrashReporter
         .requireInstance

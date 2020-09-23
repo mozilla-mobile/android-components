@@ -295,6 +295,7 @@ class Browsers private constructor(
          * Finds all the [ResolveInfo] for the installed browsers.
          * @return A list of all [ResolveInfo] for the installed browsers.
          */
+
         fun findResolvers(
             context: Context,
             packageManager: PackageManager,

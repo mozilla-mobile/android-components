@@ -9,6 +9,7 @@ import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Shader.TileMode
+import android.os.Build
 import android.util.Base64
 import androidx.annotation.CheckResult
 import java.io.ByteArrayOutputStream
@@ -70,4 +71,17 @@ fun Bitmap.arePixelsAllTheSame(): Boolean {
     }
 
     return true
+}
+
+/**
+ * Returns a value for [Bitmap.CompressFormat.WEBP] that is supported compatible with
+ * [Build.VERSION_CODES.R] and above.
+ */
+@Suppress("Deprecation")
+fun getCompressFormatWEPBCompat(): Bitmap.CompressFormat {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        Bitmap.CompressFormat.WEBP_LOSSY
+    } else {
+        Bitmap.CompressFormat.WEBP
+    }
 }

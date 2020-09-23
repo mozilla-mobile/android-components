@@ -763,6 +763,8 @@ abstract class AbstractFetchDownloadService : Service() {
         // based on existing files on the device, but we might already have a row
         // for the download in the content resolver.
         var downloadUri: Uri? = null
+        @Suppress("Deprecation")
+        // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8515
         resolver.query(
             MediaStore.setIncludePending(collection),
             arrayOf(MediaStore.Downloads._ID),

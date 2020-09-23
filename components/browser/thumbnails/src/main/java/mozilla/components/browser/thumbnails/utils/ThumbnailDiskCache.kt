@@ -10,6 +10,7 @@ import com.jakewharton.disklrucache.DiskLruCache
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.images.ImageLoadRequest
 import mozilla.components.support.images.ImageSaveRequest
+import mozilla.components.support.ktx.android.graphics.getCompressFormatWEPBCompat
 import java.io.File
 import java.io.IOException
 
@@ -66,7 +67,7 @@ class ThumbnailDiskCache {
                     .edit(request) ?: return
 
                 editor.newOutputStream(0).use { stream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, WEBP_QUALITY, stream)
+                    bitmap.compress(getCompressFormatWEPBCompat(), WEBP_QUALITY, stream)
                 }
 
                 editor.commit()

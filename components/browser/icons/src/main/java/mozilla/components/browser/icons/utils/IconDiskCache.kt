@@ -15,6 +15,7 @@ import mozilla.components.browser.icons.loader.DiskIconLoader
 import mozilla.components.browser.icons.preparer.DiskIconPreparer
 import mozilla.components.browser.icons.processor.DiskIconProcessor
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.android.graphics.getCompressFormatWEPBCompat
 import mozilla.components.support.ktx.kotlin.sha1
 import org.json.JSONArray
 import org.json.JSONException
@@ -107,7 +108,7 @@ class IconDiskCache :
                     .edit(createKey(resource.url)) ?: return
 
                 editor.newOutputStream(0).use { stream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, WEBP_QUALITY, stream)
+                    bitmap.compress(getCompressFormatWEPBCompat(), WEBP_QUALITY, stream)
                 }
 
                 editor.commit()

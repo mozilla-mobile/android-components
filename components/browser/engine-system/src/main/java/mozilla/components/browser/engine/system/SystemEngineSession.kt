@@ -139,7 +139,11 @@ class SystemEngineSession(
             throw IllegalArgumentException("Can only restore from SystemEngineSessionState")
         }
 
-        return webView.restoreState(state.bundle) != null
+        var restored = false
+        state.bundle?.let {
+            restored = webView.restoreState(it) != null
+        }
+        return restored
     }
 
     /**
@@ -243,9 +247,12 @@ class SystemEngineSession(
         operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) = set(value)
     }
 
+    @Suppress("UNNECESSARY_SAFE_CALL")
     private fun initSettings() {
         webView.settings?.let { webSettings ->
             // Explicitly set global defaults.
+            @Suppress("Deprecation")
+            // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8512
             webSettings.setAppCacheEnabled(false)
             webSettings.databaseEnabled = false
 
@@ -290,8 +297,13 @@ class SystemEngineSession(
                 get() = this@SystemEngineSession.useWideViewPort
                 set(value) = setUseWideViewPort(s, value)
             override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
+
+            // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8513
+            @Suppress("DEPRECATION")
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
+            // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8513
+            @Suppress("DEPRECATION")
             override var allowUniversalAccessFromFileURLs by WebSetting(
                     s::getAllowUniversalAccessFromFileURLs, s::setAllowUniversalAccessFromFileURLs)
             override var mediaPlaybackRequiresUserGesture by WebSetting(

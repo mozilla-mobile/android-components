@@ -78,4 +78,9 @@
     <!-- String to be displayed when a page has been sent to a neighboring device. -->
     <string name="mozac_feature_p2p_page_sent">Page sent</string>
 
+    <!-- String positive action of the AlertDialog asking if the user wants to accept a connection to a neighbor. -->
+    <string name="mozac_feature_p2p_ok">OK</string>
+
+    <!-- String negative action of the AlertDialog asking if the user wants to accept a connection to a neighbor. -->
+    <string name="mozac_feature_p2p_cancel">Cancel</string>
 </resources>

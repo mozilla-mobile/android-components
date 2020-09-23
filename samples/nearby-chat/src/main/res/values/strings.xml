@@ -31,4 +31,9 @@
     <!-- Brief string indicating that a message was successfully delivered to a neighbor. -->
     <string name="mozac_samples_nearby_chat_message_delivered">Message delivered</string>
 
+    <!-- String positive action of the AlertDialog asking if the user wants to accept a connection to a neighbor. -->
+    <string name="mozac_samples_nearby_chat_accept_connection_positive">OK</string>
+
+    <!-- String negative action of the AlertDialog asking if the user wants to accept a connection to a neighbor. -->
+    <string name="mozac_samples_nearby_chat_accept_connection_negative">Cancel</string>
 </resources>

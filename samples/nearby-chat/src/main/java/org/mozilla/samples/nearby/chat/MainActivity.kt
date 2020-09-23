@@ -138,8 +138,12 @@ class MainActivity : AppCompatActivity() {
                             auth.neighborName))
                     .setMessage(getString(R.string.mozac_samples_nearby_chat_confirm_token,
                         auth.token))
-                    .setPositiveButton(android.R.string.yes) { _, _ -> auth.accept() }
-                    .setNegativeButton(android.R.string.no) { _, _ -> auth.reject() }
+                    .setPositiveButton(
+                            R.string.mozac_samples_nearby_chat_accept_connection_positive
+                    ) { _, _ -> auth.accept() }
+                    .setNegativeButton(
+                            R.string.mozac_samples_nearby_chat_accept_connection_negative
+                    ) { _, _ -> auth.reject() }
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .show()
             }

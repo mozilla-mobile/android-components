@@ -30,11 +30,13 @@ import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.media.Image
 import android.media.ImageReader
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.util.Size
+import android.view.Display
 import android.view.LayoutInflater
 import android.view.Surface
 import android.view.TextureView
@@ -298,7 +300,7 @@ class QrFragment : Fragment() {
                     .apply { setOnImageAvailableListener(imageAvailableListener, backgroundHandler) }
 
             // Find out if we need to swap dimension to get the preview size relative to sensor coordinate.
-            val displayRotation = activity?.windowManager?.defaultDisplay?.rotation
+            val displayRotation = context?.getRotationCompat()
 
             sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) as Int
 
@@ -310,6 +312,8 @@ class QrFragment : Fragment() {
             }
 
             val displaySize = Point()
+            @Suppress("Deprecation")
+            // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8518
             activity?.windowManager?.defaultDisplay?.getSize(displaySize)
             var rotatedPreviewWidth = width
             var rotatedPreviewHeight = height
@@ -425,9 +429,9 @@ class QrFragment : Fragment() {
      * @param viewHeight The height of `textureView`
      */
     private fun configureTransform(viewWidth: Int, viewHeight: Int) {
-        val activity = activity ?: return
+        activity ?: return
         val size = previewSize ?: return
-        val rotation = activity.windowManager.defaultDisplay.rotation
+        val rotation = context?.getRotationCompat()
         val matrix = Matrix()
         val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
         val bufferRect = RectF(0f, 0f, size.height.toFloat(), size.width.toFloat())
@@ -450,13 +454,13 @@ class QrFragment : Fragment() {
     /**
      * Creates a new [CameraCaptureSession] for camera preview.
      */
-    @Suppress("ComplexMethod")
+    @Suppress("ComplexMethod", "Deprecation")
     internal fun createCameraPreviewSession() {
         val texture = textureView.surfaceTexture
 
         val size = previewSize as Size
         // We configure the size of default buffer to be the size of camera preview we want.
-        texture.setDefaultBufferSize(size.width, size.height)
+        texture?.setDefaultBufferSize(size.width, size.height)
 
         val surface = Surface(texture)
         val mImageSurface = imageReader?.surface
@@ -493,6 +497,7 @@ class QrFragment : Fragment() {
                     }
                 }
 
+                // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8510
                 it.createCaptureSession(Arrays.asList(mImageSurface, surface), stateCallback, null)
             }
         }
@@ -638,5 +643,18 @@ class QrFragment : Fragment() {
         } finally {
             multiFormatReader.reset()
         }
+    }
+
+    @Suppress("Deprecation")
+    internal fun Context.getDisplayCompat(): Display? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display
+        } else {
+            activity?.windowManager?.defaultDisplay
+        }
+    }
+
+    private fun Context.getRotationCompat(): Int? {
+        return getDisplayCompat()?.rotation
     }
 }

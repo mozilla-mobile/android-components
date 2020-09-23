@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+@file:Suppress("DEPRECATION")
 package mozilla.components.feature.addons.update
+// This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8516
 
 import android.app.IntentService
 import android.app.Notification
@@ -407,7 +409,8 @@ class DefaultAddonUpdater(
      * Handles notification actions related to addons that require additional permissions
      * to be updated.
      */
-    /** @suppress */
+    @Suppress("DEPRECATION")
+    // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8516
     class NotificationHandlerService : IntentService("NotificationHandlerService") {
 
         private val logger = Logger("NotificationHandlerService")

@@ -49,6 +49,7 @@ class AppLinksUseCases(
     private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES
 ) {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @Suppress("USELESS_ELVIS")
     internal fun findActivities(intent: Intent): List<ResolveInfo> {
         return context.packageManager
             .queryIntentActivities(intent, PackageManager.GET_RESOLVED_FILTER) ?: emptyList()

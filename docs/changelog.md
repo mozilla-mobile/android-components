@@ -12,6 +12,13 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-session**
+  * Added "undo" functionality via `UndoMiddleware`.
+* **feature-tabs**
+  * Added `TabsUseCases.UndoTabRemovalUseCase` for undoing the removal of tabs.
+* **feature-webcompat-reporter**
+  * Added the ability to automatically add a screenshot as well as more technical details when submitting a WebCompat report.  
+
 # 60.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v59.0.0...v60.0.0)
@@ -27,6 +34,8 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Removed `TabsUseCases.removeAllTabsOfType()`.
 * **browser-session**
   * Added `SessionManager.removeNormalSessions()` and `SessionManager.removePrivateSessions()`.
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8456](https://github.com/mozilla-mobile/android-components/issues/8456) Crash SQLiteConstraintException UNIQUE constraint failed: downloads.id (code 1555).
 
 * **service-glean**
   * Glean was upgraded to v32.4.0

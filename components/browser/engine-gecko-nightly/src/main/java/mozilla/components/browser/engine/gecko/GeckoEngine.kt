@@ -488,7 +488,6 @@ class GeckoEngine(
         override var automaticFontSizeAdjustment: Boolean
             get() = runtime.settings.automaticFontSizeAdjustment
             set(value) { runtime.settings.automaticFontSizeAdjustment = value }
-            }
 
         override var automaticLanguageAdjustment: Boolean
             get() = localeUpdater.enabled

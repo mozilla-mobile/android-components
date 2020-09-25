@@ -47,6 +47,11 @@ import mozilla.components.lib.state.Action
 sealed class BrowserAction : Action
 
 /**
+ * TODO: ...
+ */
+object InitAction : BrowserAction()
+
+/**
  * [BrowserAction] implementations to react to system events.
  */
 sealed class SystemAction : BrowserAction() {

@@ -5,21 +5,21 @@
 package mozilla.components.service.fxa
 
 import android.net.Uri
-import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.plus
+import mozilla.appservices.fxaclient.AuthorizationParams
+import kotlinx.coroutines.withContext
 import mozilla.appservices.fxaclient.FirefoxAccount as InternalFxAcct
 import mozilla.components.concept.sync.AccessType
 import mozilla.components.concept.sync.AuthFlowUrl
+import mozilla.components.concept.sync.MigratingAccountInfo
 import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.StatePersistenceCallback
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
-import org.json.JSONObject
 
 typealias PersistCallback = mozilla.appservices.fxaclient.FirefoxAccount.PersistCallback
 
@@ -29,7 +29,7 @@ typealias PersistCallback = mozilla.appservices.fxaclient.FirefoxAccount.Persist
 @Suppress("TooManyFunctions")
 class FirefoxAccount internal constructor(
     private val inner: InternalFxAcct,
-    private val crashReporter: CrashReporting? = null
+    crashReporter: CrashReporting? = null
 ) : OAuthAccount {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO) + job
@@ -76,14 +76,6 @@ class FirefoxAccount internal constructor(
     /**
      * Construct a FirefoxAccount from a [Config], a clientId, and a redirectUri.
      *
-     * @param persistCallback This callback will be called every time the [FirefoxAccount]
-     * internal state has mutated.
-     * The FirefoxAccount instance can be later restored using the
-     * [FirefoxAccount.fromJSONString]` class method.
-     * It is the responsibility of the consumer to ensure the persisted data
-     * is saved in a secure location, as it can contain Sync Keys and
-     * OAuth tokens.
-     *
      * @param crashReporter A crash reporter instance.
      *
      * Note that it is not necessary to `close` the Config if this constructor is used (however
@@ -91,9 +83,8 @@ class FirefoxAccount internal constructor(
      */
     constructor(
         config: ServerConfig,
-        persistCallback: PersistCallback? = null,
         crashReporter: CrashReporting? = null
-    ) : this(InternalFxAcct(config, persistCallback), crashReporter)
+    ) : this(InternalFxAcct(config), crashReporter)
 
     override fun close() {
         job.cancel()
@@ -101,26 +92,34 @@ class FirefoxAccount internal constructor(
     }
 
     override fun registerPersistenceCallback(callback: StatePersistenceCallback) {
+        logger.info("Registering persistence callback")
         persistCallback.setCallback(callback)
     }
 
-    override fun beginOAuthFlowAsync(scopes: Set<String>) = scope.async {
+    override suspend fun beginOAuthFlow(scopes: Set<String>, entryPoint: String) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "begin oauth flow", { null }) {
-            val url = inner.beginOAuthFlow(scopes.toTypedArray())
+            val url = inner.beginOAuthFlow(scopes.toTypedArray(), entryPoint)
             val state = Uri.parse(url).getQueryParameter("state")!!
             AuthFlowUrl(state, url)
         }
     }
 
-    override fun beginPairingFlowAsync(pairingUrl: String, scopes: Set<String>) = scope.async {
+    override suspend fun beginPairingFlow(
+        pairingUrl: String,
+        scopes: Set<String>,
+        entryPoint: String
+    ) = withContext(scope.coroutineContext) {
+        // Eventually we should specify this as a param here, but for now, let's
+        // use a generic value (it's used only for server-side telemetry, so the
+        // actual value doesn't matter much)
         handleFxaExceptions(logger, "begin oauth pairing flow", { null }) {
-            val url = inner.beginPairingFlow(pairingUrl, scopes.toTypedArray())
+            val url = inner.beginPairingFlow(pairingUrl, scopes.toTypedArray(), entryPoint)
             val state = Uri.parse(url).getQueryParameter("state")!!
             AuthFlowUrl(state, url)
         }
     }
 
-    override fun getProfileAsync(ignoreCache: Boolean) = scope.async {
+    override suspend fun getProfile(ignoreCache: Boolean) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "getProfile", { null }) {
             inner.getProfile(ignoreCache).into()
         }
@@ -138,21 +137,22 @@ class FirefoxAccount internal constructor(
         }
     }
 
-    override fun authorizeOAuthCodeAsync(
+    override suspend fun authorizeOAuthCode(
         clientId: String,
         scopes: Array<String>,
         state: String,
         accessType: AccessType
-    ) = scope.async {
+    ) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "authorizeOAuthCode", { null }) {
-            inner.authorizeOAuthCode(clientId, scopes, state, accessType.msg)
+            val params = AuthorizationParams(clientId, scopes, state, accessType.msg)
+            inner.authorizeOAuthCode(params)
         }
     }
 
     override fun getSessionToken(): String? {
-        // This is awkward, yes. Underlying method simply reads some data from in-memory state, and yet it throws
-        // in case that data isn't there. See https://github.com/mozilla/application-services/issues/2202.
         return try {
+            // This is awkward, yes. Underlying method simply reads some data from in-memory state, and yet it throws
+            // in case that data isn't there. See https://github.com/mozilla/application-services/issues/2202.
             inner.getSessionToken()
         } catch (e: FxaPanicException) {
             throw e
@@ -161,28 +161,33 @@ class FirefoxAccount internal constructor(
         }
     }
 
-    override fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String) = scope.async {
-        handleFxaExceptions(logger, "migrateFromSessionToken", { null }) {
-            inner.migrateFromSessionToken(sessionToken, kSync, kXCS)
-        }
-    }
-
-    override fun copyFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String) = scope.async {
-        handleFxaExceptions(logger, "copyFromSessionToken", { null }) {
-            inner.copyFromSessionToken(sessionToken, kSync, kXCS)
+    override suspend fun migrateFromAccount(
+        authInfo: MigratingAccountInfo,
+        reuseSessionToken: Boolean
+    ) = withContext(scope.coroutineContext) {
+        if (reuseSessionToken) {
+            handleFxaExceptions(logger, "migrateFromSessionToken", { null }) {
+                inner.migrateFromSessionToken(authInfo.sessionToken, authInfo.kSync, authInfo.kXCS)
+            }
+        } else {
+            handleFxaExceptions(logger, "copyFromSessionToken", { null }) {
+                inner.copyFromSessionToken(authInfo.sessionToken, authInfo.kSync, authInfo.kXCS)
+            }
         }
     }
 
     override fun isInMigrationState() = inner.isInMigrationState().into()
 
-    override fun retryMigrateFromSessionTokenAsync(): Deferred<JSONObject?> = scope.async {
+    override suspend fun retryMigrateFromSessionToken() = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "retryMigrateFromSessionToken", { null }) {
             inner.retryMigrateFromSessionToken()
         }
     }
 
-    override fun getTokenServerEndpointURL(): String {
-        return inner.getTokenServerEndpointURL()
+    override suspend fun getTokenServerEndpointURL() = withContext(scope.coroutineContext) {
+        handleFxaExceptions(logger, "getTokenServerEndpointURL", { null }) {
+            inner.getTokenServerEndpointURL()
+        }
     }
 
     override fun getPairingAuthorityURL(): String {
@@ -196,13 +201,13 @@ class FirefoxAccount internal constructor(
         return inner.getConnectionSuccessURL()
     }
 
-    override fun completeOAuthFlowAsync(code: String, state: String) = scope.async {
+    override suspend fun completeOAuthFlow(code: String, state: String) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "complete oauth flow") {
             inner.completeOAuthFlow(code, state)
         }
     }
 
-    override fun getAccessTokenAsync(singleScope: String) = scope.async {
+    override suspend fun getAccessToken(singleScope: String) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "get access token", { null }) {
             inner.getAccessToken(singleScope).into()
         }
@@ -214,7 +219,7 @@ class FirefoxAccount internal constructor(
         inner.clearAccessTokenCache()
     }
 
-    override fun checkAuthorizationStatusAsync(singleScope: String) = scope.async {
+    override suspend fun checkAuthorizationStatus(singleScope: String) = withContext(scope.coroutineContext) {
         // Now that internal token caches are cleared, we can perform a connectivity check.
         // Do so by requesting a new access token using an internally-stored "refresh token".
         // Success here means that we're still able to connect - our cached access token simply expired.
@@ -237,7 +242,7 @@ class FirefoxAccount internal constructor(
         // Re-throw all other exceptions.
     }
 
-    override fun disconnectAsync() = scope.async {
+    override suspend fun disconnect() = withContext(scope.coroutineContext) {
         // TODO can this ever throw FxaUnauthorizedException? would that even make sense? or is that a bug?
         handleFxaExceptions(logger, "disconnect", { false }) {
             inner.disconnect()

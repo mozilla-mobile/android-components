@@ -8,6 +8,7 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.action.EngineAction
+import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
@@ -224,17 +225,45 @@ class TabsUseCases(
         }
     }
 
-    class RemoveAllTabsOfTypeUseCase internal constructor(
+    /**
+     * Use case for removing all normal (non-private) tabs.
+     */
+    class RemoveNormalTabsUseCase internal constructor(
         private val sessionManager: SessionManager
     ) {
-
         /**
-         * @param private pass true if only private tabs should be removed otherwise normal tabs will be removed
+         * Removes all normal (non-private) tabs.
          */
-        operator fun invoke(private: Boolean) {
-            sessionManager.sessions.filter { it.private == private }.forEach {
-                sessionManager.remove(it)
-            }
+        operator fun invoke() {
+            sessionManager.removeNormalSessions()
+        }
+    }
+
+    /**
+     * Use case for removing all private tabs.
+     */
+    class RemovePrivateTabsUseCase internal constructor(
+        private val sessionManager: SessionManager
+    ) {
+        /**
+         * Removes all private tabs.
+         */
+        operator fun invoke() {
+            sessionManager.removePrivateSessions()
+        }
+    }
+
+    /**
+     * Use case for restoring removed tabs ("undo").
+     */
+    class UndoTabRemovalUseCase(
+        private val store: BrowserStore
+    ) {
+        /**
+         * Restores the list of tabs in the undo history.
+         */
+        operator fun invoke() {
+            store.dispatch(UndoAction.RestoreRecoverableTabs)
         }
     }
 
@@ -243,9 +272,7 @@ class TabsUseCases(
     val addTab: AddNewTabUseCase by lazy { AddNewTabUseCase(store, sessionManager) }
     val addPrivateTab: AddNewPrivateTabUseCase by lazy { AddNewPrivateTabUseCase(store, sessionManager) }
     val removeAllTabs: RemoveAllTabsUseCase by lazy { RemoveAllTabsUseCase(sessionManager) }
-    val removeAllTabsOfType: RemoveAllTabsOfTypeUseCase by lazy {
-        RemoveAllTabsOfTypeUseCase(
-            sessionManager
-        )
-    }
+    val removeNormalTabs: RemoveNormalTabsUseCase by lazy { RemoveNormalTabsUseCase(sessionManager) }
+    val removePrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(sessionManager) }
+    val undo by lazy { UndoTabRemovalUseCase(store) }
 }

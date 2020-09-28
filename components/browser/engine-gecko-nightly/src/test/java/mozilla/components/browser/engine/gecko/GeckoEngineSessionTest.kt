@@ -266,7 +266,7 @@ class GeckoEngineSessionTest {
     @Test
     fun contentDelegateNotifiesObserverAboutDownloads() {
         val engineSession = GeckoEngineSession(mock(),
-                geckoSessionProvider = geckoSessionProvider)
+                geckoSessionProvider = geckoSessionProvider, privateMode = true)
 
         val observer: EngineSession.Observer = mock()
         engineSession.register(observer)
@@ -286,6 +286,7 @@ class GeckoEngineSessionTest {
             fileName = "image.png",
             contentLength = 42,
             contentType = "image/png",
+            isPrivate = true,
             userAgent = null,
             cookie = null)
     }
@@ -1151,6 +1152,37 @@ class GeckoEngineSessionTest {
         engineSession.disableTrackingProtection()
         assertTrue(trackerBlockingDisabledObserved)
         assertFalse(engineSession.geckoSession.settings.useTrackingProtection)
+    }
+
+    @Test
+    fun `changes to enableTrackingProtection will be notified to all new observers`() {
+        whenever(runtime.settings).thenReturn(mock())
+        whenever(runtime.settings.contentBlocking).thenReturn(mock())
+        val session = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
+        val observers = mutableListOf<EngineSession.Observer>()
+        val policy = TrackingProtectionPolicy.strict()
+
+        for (x in 1..5) {
+            observers.add(spy(object : EngineSession.Observer {}))
+        }
+
+        session.enableTrackingProtection(policy)
+
+        observers.forEach { session.register(it) }
+
+        observers.forEach {
+            verify(it).onTrackerBlockingEnabledChange(true)
+        }
+
+        observers.forEach { session.unregister(it) }
+
+        session.enableTrackingProtection(policy.forPrivateSessionsOnly())
+
+        observers.forEach { session.register(it) }
+
+        observers.forEach {
+            verify(it).onTrackerBlockingEnabledChange(false)
+        }
     }
 
     @Test

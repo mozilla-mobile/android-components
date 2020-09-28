@@ -15,6 +15,7 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.LastAccessAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
@@ -167,6 +168,34 @@ class SessionManager(
     }
 
     /**
+     * Restores the given list of [RecoverableTab].
+     */
+    fun restore(tabs: List<RecoverableTab>) {
+        // As a workaround we squint here and pretend this is a Snapshot..
+
+        val items = tabs.map {
+            Snapshot.Item(
+                session = Session(
+                    id = it.id,
+                    initialUrl = it.url,
+                    contextId = it.contextId,
+                    private = it.private
+                ).apply {
+                    title = it.title
+                    parentId = it.parentId
+                },
+                engineSessionState = it.state,
+                readerState = it.readerState,
+                lastAccess = it.lastAccess
+            )
+        }
+
+        val snapshot = Snapshot(items, NO_SELECTION)
+
+        restore(snapshot, updateSelection = false)
+    }
+
+    /**
      * Restores sessions from the provided [Snapshot].
      *
      * Notification behaviour is as follows:
@@ -256,6 +285,40 @@ class SessionManager(
         store?.syncDispatch(
             TabListAction.RemoveAllTabsAction
         )
+    }
+
+    /**
+     * Removes all normal (non-private) sessions (excluding custom tabs).
+     *
+     * Avoid calling this method directly and use `TabsUseCases.removeNormalTabs` instead.
+     */
+    fun removeNormalSessions() {
+        // This method was introduced to map the removal of all normal tabs to a single action to
+        // be dispatched on the store. Since we didn't want to introduce a new
+        // SessionManager.Observer function, we map this internally to multiple normal removes.
+        // https://github.com/mozilla-mobile/android-components/issues/8406
+        sessions.filter { !it.private }.forEach {
+            delegate.remove(it)
+        }
+
+        store?.syncDispatch(TabListAction.RemoveAllNormalTabsAction)
+    }
+
+    /**
+     * Removes all private sessions (excluding custom tabs).
+     *
+     * Avoid calling this method directly and use `TabsUseCases.removePrivateTabs` instead.
+     */
+    fun removePrivateSessions() {
+        // This method was introduced to map the removal of all normal tabs to a single action to
+        // be dispatched on the store. Since we didn't want to introduce a new
+        // SessionManager.Observer function, we map this internally to multiple normal removes.
+        // https://github.com/mozilla-mobile/android-components/issues/8406
+        sessions.filter { it.private }.forEach {
+            delegate.remove(it)
+        }
+
+        store?.syncDispatch(TabListAction.RemoveAllPrivateTabsAction)
     }
 
     /**

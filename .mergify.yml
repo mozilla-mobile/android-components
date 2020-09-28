@@ -1,0 +1,37 @@
+pull_request_rules:
+  - name: MickeyMoz - Auto Merge
+    conditions:
+      - author=MickeyMoz
+      - status-success=complete-pr
+      - files~=(Gecko.kt|publicsuffixes)
+    actions:
+      review:
+        type: APPROVE
+        message: MickeyMoz 💪
+      merge:
+        method: rebase
+        strict: smart
+  - name: L10N - Auto Merge
+    conditions:
+      - author=mozilla-l10n-automation-bot
+      - status-success=complete-pr
+      - files~=(strings.xml)
+    actions:
+      review:
+        type: APPROVE
+        message: LGTM 😎
+      merge:
+        method: rebase
+        strict: smart
+  - name: Needs landing - Merge
+    conditions:
+      - status-success=complete-pr
+      - label=🛬 needs landing
+      - "#approved-reviews-by>=1"
+      - -draft
+      - label!=work in progress
+      - label!=do not land
+    actions:
+      merge:
+        method: rebase
+        strict: smart

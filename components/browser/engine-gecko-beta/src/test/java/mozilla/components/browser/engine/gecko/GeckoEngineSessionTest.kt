@@ -19,6 +19,7 @@ import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.UnsupportedSettingException
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -80,7 +81,6 @@ import org.mozilla.geckoview.WebRequestError.ERROR_MALFORMED_URI
 import org.mozilla.geckoview.WebRequestError.ERROR_UNKNOWN
 import java.security.Principal
 import java.security.cert.X509Certificate
-
 typealias GeckoAntiTracking = ContentBlocking.AntiTracking
 typealias GeckoSafeBrowsing = ContentBlocking.SafeBrowsing
 typealias GeckoCookieBehavior = ContentBlocking.CookieBehavior
@@ -261,10 +261,12 @@ class GeckoEngineSessionTest {
         assertEquals(true, observedCanGoForward)
     }
 
+    // This will be addressed on https://github.com/mozilla-mobile/android-components/issues/8312
+    @Suppress("deprecation")
     @Test
     fun contentDelegateNotifiesObserverAboutDownloads() {
         val engineSession = GeckoEngineSession(mock(),
-                geckoSessionProvider = geckoSessionProvider)
+                geckoSessionProvider = geckoSessionProvider, privateMode = true)
 
         val observer: EngineSession.Observer = mock()
         engineSession.register(observer)
@@ -285,6 +287,7 @@ class GeckoEngineSessionTest {
             contentLength = 42,
             contentType = "image/png",
             userAgent = null,
+            isPrivate = true,
             cookie = null)
     }
 
@@ -1149,6 +1152,37 @@ class GeckoEngineSessionTest {
         engineSession.disableTrackingProtection()
         assertTrue(trackerBlockingDisabledObserved)
         assertFalse(engineSession.geckoSession.settings.useTrackingProtection)
+    }
+
+    @Test
+    fun `changes to enableTrackingProtection will be notified to all new observers`() {
+        whenever(runtime.settings).thenReturn(mock())
+        whenever(runtime.settings.contentBlocking).thenReturn(mock())
+        val session = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
+        val observers = mutableListOf<EngineSession.Observer>()
+        val policy = TrackingProtectionPolicy.strict()
+
+        for (x in 1..5) {
+            observers.add(spy(object : EngineSession.Observer {}))
+        }
+
+        session.enableTrackingProtection(policy)
+
+        observers.forEach { session.register(it) }
+
+        observers.forEach {
+            verify(it).onTrackerBlockingEnabledChange(true)
+        }
+
+        observers.forEach { session.unregister(it) }
+
+        session.enableTrackingProtection(policy.forPrivateSessionsOnly())
+
+        observers.forEach { session.register(it) }
+
+        observers.forEach {
+            verify(it).onTrackerBlockingEnabledChange(false)
+        }
     }
 
     @Test
@@ -2143,6 +2177,32 @@ class GeckoEngineSessionTest {
         assertEquals("https://www.example.com", observedLoadUrl)
         assertEquals(true, observedTriggeredByRedirect)
         assertEquals(false, observedTriggeredByWebContent)
+    }
+
+    @Test
+    fun `State provided through delegate will be returned from saveState`() {
+        val engineSession = GeckoEngineSession(mock(),
+            geckoSessionProvider = geckoSessionProvider)
+
+        captureDelegates()
+
+        val state: GeckoSession.SessionState = mock()
+
+        var observedState: EngineSessionState? = null
+
+        engineSession.register(object : EngineSession.Observer {
+            override fun onStateUpdated(state: EngineSessionState) {
+                observedState = state
+            }
+        })
+
+        progressDelegate.value.onSessionStateChange(mock(), state)
+
+        assertNotNull(observedState)
+        assertTrue(observedState is GeckoEngineSessionState)
+
+        val actualState = (observedState as GeckoEngineSessionState).actualState
+        assertEquals(state, actualState)
     }
 
     @Test

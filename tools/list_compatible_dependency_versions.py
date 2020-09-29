@@ -3,18 +3,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-"""See USAGE for details.
+"""A script to help build fenix with a local ac or ac with a local GV without
+build errors. See USAGE and script output for details.
+
+This script has some fragile hard-coded bits: these are documented in the
+test file.
 
 Potential script improvements:
-- (later) Support more than nightly
+- (later) Support more than AC nightly builds and GV nightly builds
 - (later) Would this be more usable as a website?
-
-Fragile assumptions in implementation:
-- Hard-coded path: AndroidComponents.kt
-- Hard-coded format: AndroidComponents.kt
-- Hard-coded path: Gecko.kt
-- Hard-coded format: Gecko.kt
-- Hard-coded format: POM XML
 """
 
 import os
@@ -26,17 +23,19 @@ from urllib.request import urlopen
 SCRIPT_NAME=os.path.basename(__file__)
 SCRIPT_DIR=os.path.dirname(os.path.realpath(__file__))
 
-USAGE="""usage: ./{script_name} [-h] [--help] fenix_path|--no-fenix
-  fenix_path: a path to a local fenix repository; see also --no-fenix
-  --no-fenix: disables mapping a fenix checkout -> ac hash; see also fenix_path
+USAGE="""usage: ./{script_name} path-to-fenix-repository
 
+For secondary use cases:
+  --no-fenix: pass instead of path-to-fenix-repository to disable fenix functionality
   --help, -h: prints this information and exits.
 
-Purpose: when building across repositories, e.g. fenix with a local a-c,
-sometimes the build will fail with errors unrelated to your changes because of
-a version mismatch: there were breaking changes in the dependency repository
-that are not represented in the dependent repository. This script aims to
-address that.""".format(script_name=SCRIPT_NAME)
+When building across repositories, e.g. fenix with a local a-c, sometimes the
+build will fail with errors unrelated to your changes because of a version
+mismatch: e.g. there were breaking changes in ac that are not represented in
+fenix. This script will print changeset information to help fix these build errors.
+
+Does the script work correctly? Is it intuitive?
+Please send feedback to @mcomella.""".format(script_name=SCRIPT_NAME)
 
 INDENT= '  '
 INDENT2=INDENT * 2
@@ -66,7 +65,7 @@ def maybe_display_usage():
 def validate_args():
     if len(sys.argv) != 2: # argv[0] == script invocation.
         # We intentionally require one or the other to ensure folks are opting in to the chosen behavior.
-        raise Exception('expected one argument: fenix_path | --no-fenix. See usage above.')
+        raise Exception('expected one argument: path-to-fenix-repository or --no-fenix. See usage above.')
 
     if sys.argv[1] == '--no-fenix':
         return None, True
@@ -158,6 +157,9 @@ def ac_checkout_to_gv_versions(ac_root):
                 beta_version = extract_str_inside_quotes(line)
             elif stripped.startswith('const val release_version = "'):
                 release_version = extract_str_inside_quotes(line)
+
+        if not nightly_version or not beta_version or not release_version:
+            raise Exception('Unable to find gv versions from ac repository file "{}". This is likely a bug where the file path or format has changed.'.format(gv_version_path))
     return release_version, beta_version, nightly_version
 
 def ac_checkout_to_mc_hash(ac_root):
@@ -169,24 +171,34 @@ def ac_checkout_to_mc_hash(ac_root):
 
 ### SECTION: MAIN ###
 def main_repo_to_hash(fenix_path, is_no_fenix_passed):
-    header = 'fenix_checkout -> ac hash'
+    header = 'Building fenix with a local ac?'
     if is_no_fenix_passed:
-        print('Skipping {}'.format(header))
+        print('Skipping "{}"'.format(header))
     else:
         ac_hash, ac_version = fenix_checkout_to_ac_hash(fenix_path)
         print(header)
-        print(INDENT + ac_hash.decode('utf-8'))
-        print(INDENT + 'derived from:')
-        print(INDENT2 + 'ac version: {}'.format(ac_version))
+        print(INDENT + 'The last known ac nightly version that cleanly builds with your fenix checkout is...')
+        print(INDENT2 + ac_version)
+        print(INDENT + 'To build with this version, checkout ac commit...')
+        print(INDENT2 + ac_hash.decode('utf-8'))
     print()
 
-    mc_hash, releasev, betav, nightlyv, = ac_checkout_to_mc_hash(PATH_AC_ROOT)
-    print('ac checkout -> mc hash')
-    print(INDENT + mc_hash.decode('utf-8'))
-    print(INDENT + 'derived from:')
-    print(INDENT2 + 'GV nightly: ' + nightlyv)
-    print(INDENT2 + 'GV beta:    ' + betav)
-    print(INDENT2 + 'GV release: ' + releasev)
+    mc_hash, _, _, nightlyv, = ac_checkout_to_mc_hash(PATH_AC_ROOT)
+    print('Building ac with a local GeckoView?')
+    print(INDENT + 'The last known GV nightly version that cleanly builds with your ac checkout is...')
+    print(INDENT2 + nightlyv)
+    print(INDENT + 'To build with this version, checkout mozilla-central commit...')
+    print(INDENT2 + mc_hash.decode('utf-8'))
+    print()
+
+    print('Building fenix with a local GeckoView?')
+    print(INDENT + 'To ensure a clean build, 1) checkout the suggested ac commit,')
+    print(INDENT + '2) re-run this script, and 3) checkout the suggested m-c commit')
+    print()
+
+    print('Building fenix with a local ac that has a local GeckoView?')
+    print(INDENT + 'This functionality is currently broken. See:')
+    print(INDENT + 'https://github.com/mozilla-mobile/android-components/issues/8386')
 
 def main():
     maybe_display_usage()

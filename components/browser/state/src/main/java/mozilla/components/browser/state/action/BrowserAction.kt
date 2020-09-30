@@ -6,6 +6,7 @@ package mozilla.components.browser.state.action
 
 import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
+import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ClosedTab
@@ -885,6 +886,11 @@ sealed class ContainerAction : BrowserAction() {
  * [BrowserAction] implementations related to updating search engines in [SearchState].
  */
 sealed class SearchAction : BrowserAction() {
+    /**
+     * Sets the [RegionState] (region of the user).
+     */
+    data class SetRegionAction(val regionState: RegionState) : SearchAction()
+
     /**
      * Updates [BrowserState.search] to add/modify [SearchState.searchEngines].
      */

@@ -260,6 +260,8 @@ class RecentlyClosedMiddlewareTest {
             dispatcher.advanceUntilIdle()
             store.waitUntilIdle()
 
+            dispatcher.advanceUntilIdle()
+            store.waitUntilIdle()
             verify(storage).removeTab(closedTab)
         }
 
@@ -282,6 +284,8 @@ class RecentlyClosedMiddlewareTest {
             dispatcher.advanceUntilIdle()
             store.waitUntilIdle()
 
+            dispatcher.advanceUntilIdle()
+            store.waitUntilIdle()
             verify(storage).removeAllTabs()
         }
 }

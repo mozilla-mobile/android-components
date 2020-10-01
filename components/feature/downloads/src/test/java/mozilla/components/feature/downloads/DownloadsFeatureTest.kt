@@ -215,6 +215,8 @@ class DownloadsFeatureTest {
             sessionId = "test-tab"
         )
 
+        doReturn("id").`when`(downloadManager).download(eq(download), anyString())
+
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
 

@@ -4,6 +4,7 @@
 [![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
 [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/19637)
 [![chat.mozilla.org](https://img.shields.io/badge/chat-on%20matrix-51bb9c)](https://chat.mozilla.org/#/room/#android-components:mozilla.org)
+[![Open Source Helpers](https://www.codetriage.com/mozilla-mobile/android-components/badges/users.svg)](https://www.codetriage.com/mozilla-mobile/android-components)
 
 _A collection of Android libraries to build browsers or browser-like applications._
 

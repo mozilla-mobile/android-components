@@ -32,6 +32,9 @@ permalink: /changelog/
     * Add a limit of 250 pending ping files. ([#1217](https://github.com/mozilla/glean/pull/1217)).
     * Don't retry the ping uploader when waiting, sleep instead. This avoids a never-ending increase of the backoff time ([#1217](https://github.com/mozilla/glean/pull/1217)).
 
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8585](https://github.com/mozilla-mobile/android-components/issues/8585) fixed regression files not been added to the downloads database system.
+
 # 59.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v58.0.0...v59.0.0)

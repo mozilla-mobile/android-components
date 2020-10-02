@@ -215,10 +215,13 @@ class DownloadsFeatureTest {
             sessionId = "test-tab"
         )
 
+        doReturn("id").`when`(downloadManager).download(eq(download), anyString())
+
         store.dispatch(ContentAction.UpdateDownloadAction("test-tab", download))
             .joinBlocking()
 
         testDispatcher.advanceUntilIdle()
+        store.waitUntilIdle()
 
         verify(fragmentManager, never()).beginTransaction()
         verify(downloadManager).download(eq(download), anyString())
@@ -322,7 +325,6 @@ class DownloadsFeatureTest {
 
         feature.start()
 
-        println(store.state.findTab("test-tab"))
         assertNotNull(store.state.findTab("test-tab")!!.content.download)
 
         feature.onPermissionsResult(

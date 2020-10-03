@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
+import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Constraints
@@ -408,16 +409,14 @@ class DefaultAddonUpdater(
      * to be updated.
      */
     /** @suppress */
-    class NotificationHandlerService : IntentService("NotificationHandlerService") {
+    class NotificationHandlerService : JobIntentService() {
 
         private val logger = Logger("NotificationHandlerService")
 
         @VisibleForTesting
         internal var context: Context = this
 
-        public override fun onHandleIntent(intent: Intent?) {
-            if (intent == null) return
-
+        public override fun onHandleWork(intent: Intent) {
             when (intent.action) {
                 NOTIFICATION_ACTION_ALLOW -> {
                     handleAllowAction(intent)

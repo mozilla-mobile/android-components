@@ -39,7 +39,7 @@ class NotificationHandlerServiceTest {
         handler.context = testContext
         GlobalAddonDependencyProvider.initialize(mock(), updater)
 
-        handler.onHandleIntent(allowIntent)
+        handler.onHandleWork(allowIntent)
 
         verify(handler).handleAllowAction(allowIntent)
         verify(handler).removeNotification()
@@ -63,7 +63,7 @@ class NotificationHandlerServiceTest {
         handler.context = testContext
         GlobalAddonDependencyProvider.initialize(mock(), updater)
 
-        handler.onHandleIntent(allowIntent)
+        handler.onHandleWork(allowIntent)
 
         verify(handler).removeNotification()
         verify(handler, times(0)).handleAllowAction(allowIntent)

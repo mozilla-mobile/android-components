@@ -122,7 +122,7 @@ function failure_check() {
     echo "RESULTS"
     echo
     echo
-    cp -r ./results /builds/worker/artifacts
+    cp -r ./results "${ARTIFACT_DIR}"
     ls -la "${RESULTS_DIR}" 
 
     echo

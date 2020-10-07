@@ -30,7 +30,11 @@ def extract_android_args(log):
 
 def format_test_results_to_markdown(devices, matrix_results_per_id):
     markdown_lines = [
-        # insert each print statement without \n, here
+        "# Devices",
+        devices,
+        "# Results",
+        "| matrix | result | logs |",
+        "| --- | --- | --- |",
     ]
 
     markdown_lines.extend([
@@ -47,18 +51,8 @@ def main():
     android_args = extract_android_args(log)
 
     matrix_ids = json.loads(args.results.joinpath("matrix_ids.json").read_text())
-
-    print("# Devices\n")
-    print(yaml.safe_dump(android_args["gcloud"]["device"]))
-
-    print("# Results\n")
-    print("| matrix | result | logs |\n")
-    print("| --- | --- | --- |\n")
-    #for matrix, matrix_result in matrix_ids.items():
-    for matrix, matrix_results_per_id in matrix_ids.items():
-        #print("| {matrixId} | {outcome} | [logs]({webLink}) |\n".format(**matrix_result))
-        markdown = format_test_results_to_markdown(devices, matrix_results_per_id):
-        args.output_md.write(markdown)
+    markdown = format_test_results_to_markdown(android_args["gcloud"]["device"], matrix_results_per_id)
+    args.output_md.write(markdown)
 
 
 if __name__ == "__main__":

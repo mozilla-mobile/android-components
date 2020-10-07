@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 
-from __future__ import print_function
-
 import sys
 import argparse
 from pathlib import Path
@@ -22,12 +20,6 @@ def parse_args(cmdln_args):
         help="Log output of flank.",
         required=True,
     )
-    parser.add_argument(
-        "--results", type=Path, help="Directory containing flank results", required=True
-    )
-    parser.add_argument(
-        "--exit-code", type=int, help="Exit code of flank.", required=True
-    )
     parser.add_argument("--device-type", help="Type of device ", required=True)
     return parser.parse_args(args=cmdln_args)
 
@@ -36,17 +28,25 @@ def extract_android_args(log):
     return yaml.safe_load(log.split("AndroidArgs\n")[1].split("RunTests\n")[0])
 
 
+def format_test_results_to_markdown(devices, matrix_results_per_id):
+    markdown_lines = [
+        # insert each print statement without \n, here
+    ]
+
+    markdown_lines.extend([
+        "| {matrixId} | {outcome} | [logs]({webLink}) |".format(**matrix_result)
+        for matrix_results in matrix_results_per_id.values()
+    ])
+
+    return "\n".join(markdown_lines)
+
+
 def main():
-    args = parse_args(sys.argv[1:])
-
+    args = parse_args()
     log = args.log.read()
-    matrix_ids = json.loads(args.results.joinpath("matrix_ids.json").read_text())
-    #with args.results.joinpath("flank.yml") as f:
-    #    flank_config = yaml.safe_load(f)
-
     android_args = extract_android_args(log)
 
-    print = args.output_md.write
+    matrix_ids = json.loads(args.results.joinpath("matrix_ids.json").read_text())
 
     print("# Devices\n")
     print(yaml.safe_dump(android_args["gcloud"]["device"]))
@@ -54,8 +54,11 @@ def main():
     print("# Results\n")
     print("| matrix | result | logs |\n")
     print("| --- | --- | --- |\n")
-    for matrix, matrix_result in matrix_ids.items():
-        print("| {matrixId} | {outcome} | [logs]({webLink}) |\n".format(**matrix_result))
+    #for matrix, matrix_result in matrix_ids.items():
+    for matrix, matrix_result_per_id in matrix_ids.items():
+        #print("| {matrixId} | {outcome} | [logs]({webLink}) |\n".format(**matrix_result))
+        markdown = format_test_results_to_markdown(devices, matrix_results_per_id):
+        args.output_md.write(markdown)
 
 
 if __name__ == "__main__":

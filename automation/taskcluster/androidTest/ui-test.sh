@@ -26,13 +26,13 @@ display_help() {
     echo
     echo "Examples:"
     echo "To run component/browser tests on ARM device shard (1 test / shard)"
-    echo "$ execute-firebase-test.sh component arm"
+    echo "$ ui-test.sh component arm"
     echo
     echo "To run component/feature tests on X86 device (on 3 shards)"
-    echo "$ execute-firebase-test.sh feature x86 3"
+    echo "$ ui-test.sh feature x86 3"
     echo
     echo "To run UI samples/sampleName tests"
-    echo "$ execute-firebase-test.sh sample-sampleName arm 1"
+    echo "$ ui-test.sh sample-sampleName arm 1"
     echo
 }
 
@@ -46,7 +46,7 @@ fi
 component="$1" # browser, concept, feature
 device_type="$2"  # arm | x86
 if [[ ! -z "$3" ]]; then
-    num_shards=$3
+    num_shards="$3"
 fi
 
 JAVA_BIN="/usr/bin/java"
@@ -61,10 +61,10 @@ echo
 echo "ACTIVATE SERVICE ACCT"
 echo
 # this is where the Google Testcloud project ID is set
-gcloud config set project "$GOOGLE_PROJECT"
+gcloud config set project "${GOOGLE_PROJECT}"
 echo
 
-gcloud auth activate-service-account --key-file "$GOOGLE_APPLICATION_CREDENTIALS"
+gcloud auth activate-service-account --key-file "${GOOGLE_APPLICATION_CREDENTIALS}"
 echo
 echo
 
@@ -74,9 +74,9 @@ set +e
 
 if [[ "${device_type,,}" == "x86" ]]
 then
-    flank_template="$FLANK_CONF_X86"
+    flank_template="${FLANK_CONF_X86}"
 else
-    flank_template="$FLANK_CONF_ARM"
+    flank_template="${FLANK_CONF_ARM}"
 fi
 
 # Remove samples- from the component for each APK path
@@ -111,7 +111,7 @@ fi
 function failure_check() {
     echo
     echo
-    if [[ $exitcode -ne 0 ]]; then
+    if [[ "${exitcode}" -ne 0 ]]; then
         echo "ERROR: UI test run failed, please check above URL"
     else
     echo "All UI test(s) have passed!"
@@ -128,16 +128,16 @@ function failure_check() {
     echo
     echo
     echo "RESULTS"
-    echo "RESULTS"
     echo
     echo
     ls -la ./results
 
     echo
-    mkdir -p /builds/worker/artifacts/github
+    mkdir -p "${ARTIFACT_DIR}/github"
     echo
-    chmod +x $PATH_TEST/parse-ui-test.py
-    $PATH_TEST/parse-ui-test.py \
+    chmod +x "${PATH_TEST}/parse-ui-test.py"
+
+    "${PATH_TEST}/parse-ui-test.py" \
         --exit-code "${exitcode}" \
         --log flank.log \
         --results "${RESULTS_DIR}" \
@@ -148,7 +148,7 @@ function failure_check() {
 echo
 echo "FLANK VERSION"
 echo
-$JAVA_BIN -jar $FLANK_BIN --version
+"${JAVA_BIN}" -jar "${FLANK_BIN}" --version
 echo
 echo
 
@@ -157,15 +157,16 @@ echo "EXECUTE TEST(S)"
 echo
 # Note that if --local-results-dir is "results", timestamped sub-directory will
 # contain the results. For any other value, the directory itself will have the results.
-$JAVA_BIN -jar $FLANK_BIN android run \
-	--config=$flank_template \
-	--max-test-shards=$num_shards \
-	--app=$APK_APP --test=$APK_TEST \
+"${JAVA_BIN}" -jar "${FLANK_BIN}" android run \
+	--config="${flank_template}" \
+	--max-test-shards="${num_shards}" \
+	--app="${APK_APP}" \
+        --test="${APK_TEST}" \
 	--local-result-dir="${RESULTS_DIR}" \
-	--project=$GOOGLE_PROJECT \
+	--project="${GOOGLE_PROJECT}" \
 	| tee flank.log
 
 exitcode=$?
 failure_check
 
-exit $exitcode
+exit "${exitcode}"

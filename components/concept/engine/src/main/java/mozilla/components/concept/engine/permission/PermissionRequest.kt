@@ -74,6 +74,7 @@ sealed class Permission {
     data class ContentVideoOther(override val id: String? = "", override val desc: String? = "") : Permission()
     data class ContentAutoPlayAudible(override val id: String? = "", override val desc: String? = "") : Permission()
     data class ContentAutoPlayInaudible(override val id: String? = "", override val desc: String? = "") : Permission()
+    data class ContentPersistentStorage(override val id: String? = "", override val desc: String? = "") : Permission()
 
     data class AppCamera(override val id: String? = "", override val desc: String? = "") : Permission()
     data class AppAudio(override val id: String? = "", override val desc: String? = "") : Permission()
@@ -81,9 +82,4 @@ sealed class Permission {
     data class AppLocationFine(override val id: String? = "", override val desc: String? = "") : Permission()
 
     data class Generic(override val id: String?, override val desc: String? = "") : Permission()
-
-    // Removed in GeckoView 68.0:
-    data class ContentVideoApplication(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoBrowser(override val id: String? = "", override val desc: String? = "") : Permission()
-    data class ContentVideoWindow(override val id: String? = "", override val desc: String? = "") : Permission()
 }

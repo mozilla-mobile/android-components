@@ -11,6 +11,21 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **concept-engine**
+  * Added `MediaSession` for the media session API.
+  * 🌟 Added a new `TrackingCategory`.`SHIMMED` to indicate that content that would have been blocked has instead been replaced with a shimmed file. See more on [Fenix #14071](https://github.com/mozilla-mobile/fenix/issues/14071)
+
+* **browser-engine-gecko(-nightly)**
+  * Added `GeckoMediaSessionController` and `GeckoMediaSessionDelegate` for the media session API.
+
+* **browser-state**
+  * Added `MediaSessionState` to `SessionState`.
+  * Added `MediaSessionAction` to `BrowserAction`.
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsRules`'s constructor, now requires a new parameter `persistentStorage`.
+  * 🌟 Added support for the local storage site permission see [#3153](https://github.com/mozilla-mobile/android-components/issues/3153).
+
 # 62.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v61.0.0...v62.0.0)

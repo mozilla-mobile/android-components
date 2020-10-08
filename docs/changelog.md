@@ -3,14 +3,82 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
+# 63.0.0-SNAPSHOT (In Development)
 
-# 62.0.0-SNAPSHOT (In Development)
-
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v61.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/122?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v62.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/123?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **concept-engine**
+  * Added `MediaSession` for the media session API.
+  * 🌟 Added a new `TrackingCategory`.`SHIMMED` to indicate that content that would have been blocked has instead been replaced with a shimmed file. See more on [Fenix #14071](https://github.com/mozilla-mobile/fenix/issues/14071)
+
+* **browser-engine-gecko(-nightly)**
+  * Added `GeckoMediaSessionController` and `GeckoMediaSessionDelegate` for the media session API.
+
+* **browser-state**
+  * Added `MediaSessionState` to `SessionState`.
+  * Added `MediaSessionAction` to `BrowserAction`.
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsRules`'s constructor, now requires a new parameter `persistentStorage`.
+  * 🌟 Added support for the local storage site permission see [#3153](https://github.com/mozilla-mobile/android-components/issues/3153).
+
+# 62.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v61.0.0...v62.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/122?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v62.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v62.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v62.0.0/.config.yml)
+
+* **browser-state**
+  * ⚠️ **This is a breaking change**: `DownloadState` doesn't support [Parcelable](https://developer.android.com/reference/android/os/Parcelable) anymore.
+
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8585](https://github.com/mozilla-mobile/android-components/issues/8585) fixed regression files not been added to the downloads database system.
+  * 🌟 Added new use cases for removing individual downloads (`removeDownload`) and all downloads (`removeAllDownloads`).
+  * 🌟 Added support for new download [GeckoView API](https://mozilla.github.io/geckoview/javadoc/mozilla-central/org/mozilla/geckoview/GeckoSession.ContentDelegate.html#onExternalResponse-org.mozilla.geckoview.GeckoSession-org.mozilla.geckoview.GeckoResult-).
+
+* **service-glean**
+  * Glean was upgraded to v32.4.1
+    * Update `glean_parser` to 1.28.6
+      * BUGFIX: Ensure Kotlin arguments are deterministically ordered
+    * BUGFIX: Transform ping directory size from bytes to kilobytes before accumulating to `glean.upload.pending_pings_directory_size`
+
+* **feature-customtabs**
+  * The drawable for the Action button icon in custom tabs is now scaled to 24dp width an 24dp height.
+
+* **support-images**
+  * ⚠️ **This is a breaking change**: `ImageLoader` and `ImageRequest` have moved to the `concept-base` component.
+
+* **browser-session**
+  * 🚒 Bug fixed: Having a larger number of tabs slows down cold startup see more on [#8535](https://github.com/mozilla-mobile/android-components/issues/8535) and [#7304](https://github.com/mozilla-mobile/android-components/issues/7304).
+
+* **browser-toolbar**
+  * 🚒 Bug fixed: Crash IllegalArgumentException BrowserGestureDetector$CustomScrollDetectorListener see more on [#8356](https://github.com/mozilla-mobile/android-components/issues/8356)
+
+* **feature-qr**
+  * 🚒 Bug fixed: Pair message show at every scan after you try to login using scan qr see [#8537](https://github.com/mozilla-mobile/android-components/issues/8537)
+
+* **feature-addons**
+  * ⚠️ This is a breaking change for call sites that don't rely on named arguments:
+    * `AddonCollectionProvider` now supports configuring a custom collection owner (via AMO user ID or name).
+    * `AddonCollectionProvider` now supports configuring the sort order of recommended collections, defaulting to sorting descending by popularity
+  ```kotlin
+   val addonCollectionProvider by lazy {
+        AddonCollectionProvider(
+            applicationContext,
+            client,
+            collectionUser = "16314372"
+            collectionName = "myCollection",
+            sortOption = SortOption.NAME
+            maxCacheAgeInMinutes = DAY_IN_MINUTES
+        )
+    }
+  * Temporary add-ons installed via web-ext are no longer displayed as unsupported.
 
 # 61.0.0
 
@@ -27,20 +95,6 @@ permalink: /changelog/
 * **feature-webcompat-reporter**
   * Added the ability to automatically add a screenshot as well as more technical details when submitting a WebCompat report.
 * **feature-addons**
-  * ⚠️ This is a breaking change for call sites that don't rely on named arguments: 
-    * `AddonCollectionProvider` now supports configuring a custom collection owner (via AMO user ID or name).
-    * `AddonCollectionProvider` now supports configuring the sort order of recommended collections, defaulting to sorting descending by popularity
-  ```kotlin
-   val addonCollectionProvider by lazy {
-        AddonCollectionProvider(
-            applicationContext,
-            client,
-            collectionUser = "16314372"
-            collectionName = "myCollection",
-            sortOption = SortOption.NAME
-            maxCacheAgeInMinutes = DAY_IN_MINUTES
-        )
-    }
   * Temporary add-ons installed via web-ext are no longer displayed as unsupported.
   * 🚒 Bug fixed [issue #8267](https://github.com/mozilla-mobile/android-components/issues/8267) Devtools permission had wrong translation.
   ```

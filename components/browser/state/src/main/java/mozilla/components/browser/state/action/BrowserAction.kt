@@ -6,6 +6,7 @@ package mozilla.components.browser.state.action
 
 import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
+import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ClosedTab
@@ -14,6 +15,7 @@ import mozilla.components.browser.state.state.ContainerState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.EngineState
+import mozilla.components.browser.state.state.MediaSessionState
 import mozilla.components.browser.state.state.MediaState
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.SecurityInfoState
@@ -34,6 +36,7 @@ import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
 import mozilla.components.concept.engine.webextension.WebExtensionBrowserAction
@@ -53,6 +56,11 @@ sealed class BrowserAction : Action
  * in middlewares. The action itself has no effect on the [BrowserState].
  */
 object InitAction : BrowserAction()
+
+/**
+ * [BrowserAction] to indicate that restoring [BrowserState] is complete.
+ */
+object RestoreCompleteAction : BrowserAction()
 
 /**
  * [BrowserAction] implementations to react to system events.
@@ -817,6 +825,75 @@ sealed class MediaAction : BrowserAction() {
 }
 
 /**
+ * [BrowserAction] implementations related to updating the [MediaSessionState].
+ */
+sealed class MediaSessionAction : BrowserAction() {
+    /**
+     * Activates [MediaSession] owned by the tab with id [tabId].
+     */
+    data class ActivatedMediaSessionAction(
+        val tabId: String,
+        val mediaSessionController: MediaSession.Controller
+    ) : MediaSessionAction()
+
+    /**
+     * Activates [MediaSession] owned by the tab with id [tabId].
+     */
+    data class DeactivatedMediaSessionAction(
+        val tabId: String
+    ) : MediaSessionAction()
+
+    /**
+     * Updates the [MediaSession.Metadata] owned by the tab with id [tabId].
+     */
+    data class UpdateMediaMetadataAction(
+        val tabId: String,
+        val metadata: MediaSession.Metadata
+    ) : MediaSessionAction()
+
+    /**
+     * Updates the [MediaSession.PlaybackState] owned by the tab with id [tabId].
+     */
+    data class UpdateMediaPlaybackStateAction(
+        val tabId: String,
+        val playbackState: MediaSession.PlaybackState
+    ) : MediaSessionAction()
+
+    /**
+     * Updates the [MediaSession.Feature] owned by the tab with id [tabId].
+     */
+    data class UpdateMediaFeatureAction(
+        val tabId: String,
+        val features: MediaSession.Feature
+    ) : MediaSessionAction()
+
+    /**
+     * Updates the [MediaSession.PositionState] owned by the tab with id [tabId].
+     */
+    data class UpdateMediaPositionStateAction(
+        val tabId: String,
+        val positionState: MediaSession.PositionState
+    ) : MediaSessionAction()
+
+    /**
+     * Updates the [muted] owned by the tab with id [tabId].
+     */
+    data class UpdateMediaMutedAction(
+        val tabId: String,
+        val muted: Boolean
+    ) : MediaSessionAction()
+
+    /**
+     * Updates the [fullScreen] and [MediaSession.ElementMetadata] owned by the tab with id [tabId].
+     */
+    data class UpdateMediaFullscreenAction(
+        val tabId: String,
+        val fullScreen: Boolean,
+        val elementMetadata: MediaSession.ElementMetadata?
+    ) : MediaSessionAction()
+}
+
+/**
  * [BrowserAction] implementations related to updating the global download state.
  */
 sealed class DownloadAction : BrowserAction() {
@@ -880,6 +957,11 @@ sealed class ContainerAction : BrowserAction() {
  * [BrowserAction] implementations related to updating search engines in [SearchState].
  */
 sealed class SearchAction : BrowserAction() {
+    /**
+     * Sets the [RegionState] (region of the user).
+     */
+    data class SetRegionAction(val regionState: RegionState) : SearchAction()
+
     /**
      * Updates [BrowserState.search] to add/modify [SearchState.searchEngines].
      */

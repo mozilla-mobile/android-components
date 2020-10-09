@@ -30,7 +30,7 @@ job-defaults:
               json: true
         using: gradlew
         use-caches: false
-    run-on-tasks-for: [github-push]
+    run-on-tasks-for: [github-push, github-pull-request]
     treeherder:
             kind: test
             platform: 'ui-test/opt'

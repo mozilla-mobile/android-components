@@ -9,6 +9,7 @@ permalink: /contributing/release-checklist
 - Make sure version number is correct or update version in `.buildconfig.yml`.
 - Update [CHANGELOG](https://github.com/mozilla-mobile/android-components/blob/master/docs/changelog.md)
   - Use milestone and commit log for identifying interesting changes.
+  - Add the milestone to any related issue that doesn't have it.
 - Close milestone
   - Milestone should be 100% complete. Incomplete issues should have been moved in planning meeting.
 
@@ -32,7 +33,7 @@ Making a minor release has a couple extra steps to do before a regular release:
 
 - Send release message to the [Matrix channel](https://chat.mozilla.org/#/room/#android-components:mozilla.org):
 ```
-*Android Components 0.17 Release* (:ocean:)
+**Android Components 0.17 Release (:ocean:)**
 Release notes: https://mozilla-mobile.github.io/android-components/changelog/
 Milestone: https://github.com/mozilla-mobile/android-components/milestone/15?closed=1
 ```

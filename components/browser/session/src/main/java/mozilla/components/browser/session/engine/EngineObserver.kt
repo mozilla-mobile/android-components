@@ -19,6 +19,7 @@ import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.MediaAction
+import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.DownloadState
@@ -32,9 +33,11 @@ import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
+import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.concept.fetch.Response
 import mozilla.components.lib.state.Store
 import mozilla.components.support.base.observer.Consumable
 import mozilla.components.support.ktx.android.net.isInScope
@@ -203,7 +206,8 @@ internal class EngineObserver(
         contentType: String?,
         cookie: String?,
         userAgent: String?,
-        isPrivate: Boolean
+        isPrivate: Boolean,
+        response: Response?
     ) {
         // We want to avoid negative contentLength values
         // For more info see https://bugzilla.mozilla.org/show_bug.cgi?id=1632594
@@ -217,7 +221,8 @@ internal class EngineObserver(
             INITIATED,
             userAgent,
             Environment.DIRECTORY_DOWNLOADS,
-            private = isPrivate
+            private = isPrivate,
+            response = response
         )
 
         store?.dispatch(ContentAction.UpdateDownloadAction(
@@ -303,6 +308,60 @@ internal class EngineObserver(
         }
 
         mediaMap.remove(media)
+    }
+
+    override fun onMediaActivated(mediaSessionController: MediaSession.Controller) {
+        store?.dispatch(MediaSessionAction.ActivatedMediaSessionAction(
+            session.id,
+            mediaSessionController
+        ))
+    }
+
+    override fun onMediaDeactivated() {
+        store?.dispatch(MediaSessionAction.DeactivatedMediaSessionAction(session.id))
+    }
+
+    override fun onMediaMetadataChanged(metadata: MediaSession.Metadata) {
+        store?.dispatch(MediaSessionAction.UpdateMediaMetadataAction(session.id, metadata))
+    }
+
+    override fun onMediaPlaybackStateChanged(playbackState: MediaSession.PlaybackState) {
+        store?.dispatch(MediaSessionAction.UpdateMediaPlaybackStateAction(
+            session.id,
+            playbackState
+        ))
+    }
+
+    override fun onMediaFeatureChanged(features: MediaSession.Feature) {
+        store?.dispatch(MediaSessionAction.UpdateMediaFeatureAction(
+            session.id,
+            features
+        ))
+    }
+
+    override fun onMediaPositionStateChanged(positionState: MediaSession.PositionState) {
+        store?.dispatch(MediaSessionAction.UpdateMediaPositionStateAction(
+            session.id,
+            positionState
+        ))
+    }
+
+    override fun onMediaMuteChanged(muted: Boolean) {
+        store?.dispatch(MediaSessionAction.UpdateMediaMutedAction(
+            session.id,
+            muted
+        ))
+    }
+
+    override fun onMediaFullscreenChanged(
+        fullscreen: Boolean,
+        elementMetadata: MediaSession.ElementMetadata?
+    ) {
+        store?.dispatch(MediaSessionAction.UpdateMediaFullscreenAction(
+            session.id,
+            fullscreen,
+            elementMetadata
+        ))
     }
 
     override fun onWebAppManifestLoaded(manifest: WebAppManifest) {

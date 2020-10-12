@@ -22,6 +22,10 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.webextension.MessageHandler
 import mozilla.components.concept.engine.webextension.Port
 import mozilla.components.concept.engine.webextension.WebExtension
+import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_ACTIVE_CONTENT_PORT
+import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_CONTENT_PORT
+import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_EXTENSION_ID
+import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_EXTENSION_URL
 import mozilla.components.feature.readerview.view.ReaderViewControlsBar
 import mozilla.components.feature.readerview.view.ReaderViewControlsView
 import mozilla.components.support.test.any
@@ -93,17 +97,29 @@ class ReaderViewFeatureTest {
     }
 
     @Test
-    fun `extension page is reloaded if install finishes after initial load`() {
+    fun `start registers content message handlers for selected session`() {
         val engine: Engine = mock()
+        val view: ReaderViewControlsView = mock()
         val engineSession: EngineSession = mock()
+        val controller = spy(WebExtensionController(
+            READER_VIEW_EXTENSION_ID,
+            READER_VIEW_EXTENSION_URL,
+            READER_VIEW_CONTENT_PORT
+        ))
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "test-tab",
+            engineSession = engineSession
+        )
+        val store = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id
+            )
+        )
 
-        val tab = createTab("https://www.mozilla.org", id = "test-tab")
-        val store = spy(BrowserStore(initialState = BrowserState(tabs = listOf(tab))))
-        val readerViewFeature = ReaderViewFeature(testContext, engine, store, mock())
-        store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession)).joinBlocking()
-        store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
-        store.dispatch(ReaderAction.UpdateReaderActiveAction(tab.id, true)).joinBlocking()
-
+        val readerViewFeature = ReaderViewFeature(testContext, engine, store, view)
+        readerViewFeature.extensionController = controller
         readerViewFeature.start()
 
         val onSuccess = argumentCaptor<((WebExtension) -> Unit)>()
@@ -114,28 +130,9 @@ class ReaderViewFeatureTest {
             onSuccess.capture(),
             onError.capture()
         )
-
         onSuccess.value.invoke(mock())
-        verify(engineSession).reload()
-    }
-
-    @Test
-    fun `start registers content message handler for selected session`() {
-        val engine: Engine = mock()
-        val view: ReaderViewControlsView = mock()
-        val engineSession: EngineSession = mock()
-        val controller: WebExtensionController = mock()
-
-        val tab = createTab("https://www.mozilla.org", id = "test-tab")
-        val store = spy(BrowserStore(initialState = BrowserState(tabs = listOf(tab))))
-        store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession)).joinBlocking()
-        store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
-
-        val readerViewFeature = spy(ReaderViewFeature(testContext, engine, store, view))
-        readerViewFeature.extensionController = controller
-
-        readerViewFeature.start()
-        verify(controller).registerContentMessageHandler(eq(engineSession), any(), any())
+        verify(controller).registerContentMessageHandler(eq(engineSession), any(), eq(READER_VIEW_ACTIVE_CONTENT_PORT))
+        verify(controller).registerContentMessageHandler(eq(engineSession), any(), eq(READER_VIEW_CONTENT_PORT))
     }
 
     @Test
@@ -205,16 +202,15 @@ class ReaderViewFeatureTest {
     fun `connects content script port when required`() {
         val engine: Engine = mock()
         val tab = createTab("https://www.mozilla.org", id = "test-tab")
-        val store = BrowserStore(initialState = BrowserState(tabs = listOf(tab)))
+        val store = BrowserStore(initialState = BrowserState(tabs = listOf(tab), selectedTabId = tab.id))
         val readerViewFeature = spy(ReaderViewFeature(testContext, engine, store, mock()))
         readerViewFeature.start()
-        verify(readerViewFeature).connectReaderViewContentScript()
 
         store.dispatch(ReaderAction.UpdateReaderConnectRequiredAction(tab.id, true)).joinBlocking()
         testDispatcher.advanceUntilIdle()
         val tabCaptor = argumentCaptor<TabSessionState>()
-        verify(readerViewFeature, times(2)).connectReaderViewContentScript(tabCaptor.capture())
-        assertEquals(tab.id, tabCaptor.allValues[1].id)
+        verify(readerViewFeature).connectReaderViewContentScript(tabCaptor.capture())
+        assertEquals(tab.id, tabCaptor.value.id)
     }
 
     @Test
@@ -273,12 +269,18 @@ class ReaderViewFeatureTest {
     fun `show reader view updates state`() {
         val engine: Engine = mock()
         val engineSession: EngineSession = mock()
-        val tab = createTab("https://www.mozilla.org", id = "test-tab")
-        val store = spy(BrowserStore(initialState = BrowserState(tabs = listOf(tab))))
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "test-tab",
+            engineSession = engineSession
+        )
+        val store = spy(BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id)
+            )
+        )
         val readerViewFeature = ReaderViewFeature(testContext, engine, store, mock())
-        store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession)).joinBlocking()
-        store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
-
         readerViewFeature.showReaderView()
         verify(store).dispatch(ReaderAction.UpdateReaderActiveAction(tab.id, true))
     }
@@ -304,8 +306,8 @@ class ReaderViewFeatureTest {
         val port = mock<Port>()
         val message = argumentCaptor<JSONObject>()
         val readerViewFeature = prepareFeatureForTest(
-            port,
-            createTab("https://www.mozilla.org", id = "test-tab", readerState = ReaderState(active = true))
+            readerActivePort = port,
+            tab = createTab("https://www.mozilla.org", id = "test-tab", readerState = ReaderState(active = true))
         )
 
         readerViewFeature.hideReaderView()
@@ -316,14 +318,19 @@ class ReaderViewFeatureTest {
     @Test
     fun `hide reader view updates state`() {
         val engine: Engine = mock()
-        val engineSession: EngineSession = mock()
-        val tab = createTab("https://www.mozilla.org", id = "test-tab", readerState = ReaderState(active = true))
-        val store = spy(BrowserStore(initialState = BrowserState(tabs = listOf(tab))))
-        val readerViewFeature = ReaderViewFeature(testContext, engine, store, mock())
-        store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession)).joinBlocking()
-        store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
-        testDispatcher.advanceUntilIdle()
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "test-tab",
+            readerState = ReaderState(active = true)
+        )
 
+        val store = spy(BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id)
+            )
+        )
+        val readerViewFeature = ReaderViewFeature(testContext, engine, store, mock())
         readerViewFeature.hideReaderView()
         verify(store).dispatch(ReaderAction.UpdateReaderActiveAction(tab.id, false))
         verify(store).dispatch(ReaderAction.UpdateReaderableAction(tab.id, false))
@@ -346,7 +353,7 @@ class ReaderViewFeatureTest {
         val port = mock<Port>()
         val message = argumentCaptor<JSONObject>()
 
-        val readerViewFeature = prepareFeatureForTest(port)
+        val readerViewFeature = prepareFeatureForTest(readerActivePort = port)
         val prefs = testContext.getSharedPreferences(ReaderViewFeature.SHARED_PREF_NAME, Context.MODE_PRIVATE)
 
         readerViewFeature.config.colorScheme = ReaderViewFeature.ColorScheme.DARK
@@ -366,7 +373,7 @@ class ReaderViewFeatureTest {
         val port = mock<Port>()
         val message = argumentCaptor<JSONObject>()
 
-        val readerViewFeature = prepareFeatureForTest(port)
+        val readerViewFeature = prepareFeatureForTest(readerActivePort = port)
         val prefs = testContext.getSharedPreferences(ReaderViewFeature.SHARED_PREF_NAME, Context.MODE_PRIVATE)
 
         readerViewFeature.config.fontType = ReaderViewFeature.FontType.SANSSERIF
@@ -386,7 +393,7 @@ class ReaderViewFeatureTest {
         val port = mock<Port>()
         val message = argumentCaptor<JSONObject>()
 
-        val readerViewFeature = prepareFeatureForTest(port)
+        val readerViewFeature = prepareFeatureForTest(readerActivePort = port)
         val prefs = testContext.getSharedPreferences(ReaderViewFeature.SHARED_PREF_NAME, Context.MODE_PRIVATE)
 
         readerViewFeature.config.fontSize = 4
@@ -437,11 +444,17 @@ class ReaderViewFeatureTest {
         val engineSession: EngineSession = mock()
         val ext: WebExtension = mock()
         val controller: WebExtensionController = mock()
-
-        val tab = createTab("https://www.mozilla.org", id = "test-tab")
-        val store = spy(BrowserStore(initialState = BrowserState(tabs = listOf(tab))))
-        store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession)).joinBlocking()
-        store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "test-tab",
+            engineSession = engineSession
+        )
+        val store = spy(BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id)
+            )
+        )
 
         WebExtensionController.installedExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
 
@@ -456,7 +469,11 @@ class ReaderViewFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val message = argumentCaptor<JSONObject>()
         readerViewFeature.start()
-        verify(controller).registerContentMessageHandler(eq(engineSession), messageHandler.capture(), any())
+        store.dispatch(ReaderAction.UpdateReaderConnectRequiredAction(tab.id, true)).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+        verify(controller).registerContentMessageHandler(
+            eq(engineSession), messageHandler.capture(), eq(READER_VIEW_ACTIVE_CONTENT_PORT)
+        )
 
         messageHandler.value.onPortConnected(port)
         verify(port).postMessage(message.capture())
@@ -479,13 +496,19 @@ class ReaderViewFeatureTest {
         val engineSession: EngineSession = mock()
         val ext: WebExtension = mock()
         val controller: WebExtensionController = mock()
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "test-tab",
+            engineSession = engineSession
+        )
+        val store = spy(BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id)
+            )
+        )
 
-        val tab = createTab("https://www.mozilla.org", id = "test-tab")
-        val store = spy(BrowserStore(initialState = BrowserState(tabs = listOf(tab))))
-        store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession)).joinBlocking()
-        store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
-
-        WebExtensionController.installedExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
+        WebExtensionController.installedExtensions[READER_VIEW_EXTENSION_ID] = ext
 
         val port: Port = mock()
         whenever(port.engineSession).thenReturn(engineSession)
@@ -498,8 +521,12 @@ class ReaderViewFeatureTest {
         val messageHandler = argumentCaptor<MessageHandler>()
         val message = argumentCaptor<JSONObject>()
         readerViewFeature.start()
-        verify(controller).registerContentMessageHandler(eq(engineSession), messageHandler.capture(), any())
 
+        store.dispatch(ReaderAction.UpdateReaderConnectRequiredAction(tab.id, true)).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+        verify(controller).registerContentMessageHandler(
+            eq(engineSession), messageHandler.capture(), eq(READER_VIEW_ACTIVE_CONTENT_PORT)
+        )
         messageHandler.value.onPortConnected(port)
 
         val readerStateMessage = JSONObject()
@@ -513,7 +540,8 @@ class ReaderViewFeatureTest {
     }
 
     private fun prepareFeatureForTest(
-        port: Port,
+        contentPort: Port? = null,
+        readerActivePort: Port? = null,
         tab: TabSessionState = createTab("https://www.mozilla.org", id = "test-tab"),
         engineSession: EngineSession = mock(),
         controller: WebExtensionController? = null
@@ -525,7 +553,14 @@ class ReaderViewFeatureTest {
         store.dispatch(TabListAction.SelectTabAction(tab.id)).joinBlocking()
 
         val ext: WebExtension = mock()
-        whenever(ext.getConnectedPort(eq(ReaderViewFeature.READER_VIEW_MESSAGING_ID), any())).thenReturn(port)
+        contentPort?.let {
+            whenever(ext.getConnectedPort(eq(ReaderViewFeature.READER_VIEW_CONTENT_PORT), any()))
+                .thenReturn(contentPort)
+        }
+        readerActivePort?.let {
+            whenever(ext.getConnectedPort(eq(ReaderViewFeature.READER_VIEW_ACTIVE_CONTENT_PORT), any()))
+                .thenReturn(readerActivePort)
+        }
         WebExtensionController.installedExtensions[ReaderViewFeature.READER_VIEW_EXTENSION_ID] = ext
 
         val feature = ReaderViewFeature(testContext, engine, store, mock())

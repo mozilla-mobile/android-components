@@ -13,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.PackageInfoCompat
 import mozilla.components.lib.crash.Crash
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.support.base.ext.getStacktraceAsString
 import mozilla.components.support.base.log.logger.Logger
 import org.json.JSONArray
 import org.json.JSONException
@@ -26,8 +27,6 @@ import java.io.FileReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStream
-import java.io.PrintWriter
-import java.io.StringWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.channels.Channels
@@ -49,6 +48,10 @@ internal const val DEFAULT_VERSION_NAME = "N/A"
 internal const val DEFAULT_VERSION_CODE = "N/A"
 
 private const val KEY_CRASH_ID = "CrashID"
+
+private const val MINI_DUMP_FILE_EXT = "dmp"
+private const val EXTRAS_FILE_EXT = "extra"
+private const val FILE_REGEX = "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\."
 
 /**
  * A [CrashReporterService] implementation uploading crash reports to crash-stats.mozilla.com.
@@ -256,12 +259,15 @@ class MozillaSocorroService(
         sendPart(gzipOs, boundary, "Breadcrumbs", breadcrumbs, nameSet)
 
         extrasFilePath?.let {
-            val extrasFile = File(it)
-            val extrasMap = readExtrasFromFile(extrasFile)
-            for (key in extrasMap.keys) {
-                sendPart(gzipOs, boundary, key, extrasMap[key], nameSet)
+            val regex = "$FILE_REGEX$EXTRAS_FILE_EXT".toRegex()
+            if (regex.matchEntire(it.substringAfterLast("/")) != null) {
+                val extrasFile = File(it)
+                val extrasMap = readExtrasFromFile(extrasFile)
+                for (key in extrasMap.keys) {
+                    sendPart(gzipOs, boundary, key, extrasMap[key], nameSet)
+                }
+                extrasFile.delete()
             }
-            extrasFile.delete()
         }
 
         if (throwable?.stackTrace?.isEmpty() == false) {
@@ -270,9 +276,12 @@ class MozillaSocorroService(
         }
 
         miniDumpFilePath?.let {
-            val minidumpFile = File(it)
-            sendFile(gzipOs, boundary, "upload_file_minidump", minidumpFile, nameSet)
-            minidumpFile.delete()
+            val regex = "$FILE_REGEX$MINI_DUMP_FILE_EXT".toRegex()
+            if (regex.matchEntire(it.substringAfterLast("/")) != null) {
+                val minidumpFile = File(it)
+                sendFile(gzipOs, boundary, "upload_file_minidump", minidumpFile, nameSet)
+                minidumpFile.delete()
+            }
         }
 
         when {
@@ -478,14 +487,9 @@ class MozillaSocorroService(
     }
 
     private fun getExceptionStackTrace(throwable: Throwable, isCaughtException: Boolean): String {
-        val stringWriter = StringWriter()
-        val printWriter = PrintWriter(stringWriter)
-        throwable.printStackTrace(printWriter)
-        printWriter.flush()
-
         return when (isCaughtException) {
-            true -> "$INFO_PREFIX $stringWriter"
-            false -> stringWriter.toString()
+            true -> "$INFO_PREFIX ${throwable.getStacktraceAsString()}"
+            false -> throwable.getStacktraceAsString()
         }
     }
 }

@@ -4,13 +4,13 @@
 
 package mozilla.components.feature.addons.amo
 
+import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.WebExtensionState
@@ -18,20 +18,20 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.webextension.EnableSource
 import mozilla.components.concept.engine.webextension.ActionHandler
 import mozilla.components.concept.engine.webextension.DisabledFlags
+import mozilla.components.concept.engine.webextension.EnableSource
 import mozilla.components.concept.engine.webextension.Metadata
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
+import mozilla.components.feature.addons.AddonManager.Companion.TEMPORARY_ADDON_ICON_SIZE
 import mozilla.components.feature.addons.AddonManagerException
 import mozilla.components.feature.addons.AddonsProvider
 import mozilla.components.feature.addons.update.AddonUpdater.Status
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
-import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
@@ -51,7 +51,6 @@ import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
-import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 @ExperimentalCoroutinesApi
@@ -113,15 +112,18 @@ class AddonManagerTest {
         whenever(newlySupportedExtension.getMetadata()).thenReturn(metadata)
         WebExtensionSupport.installedExtensions["ext3"] = newlySupportedExtension
 
+        // Add unsupported extension
         val unsupportedExtension: WebExtension = mock()
         val unsupportedExtensionMetadata: Metadata = mock()
         whenever(unsupportedExtensionMetadata.name).thenReturn("name")
+        whenever(unsupportedExtensionMetadata.description).thenReturn("description")
         whenever(unsupportedExtension.id).thenReturn("unsupported_ext")
         whenever(unsupportedExtension.url).thenReturn("site_url")
         whenever(unsupportedExtension.getMetadata()).thenReturn(unsupportedExtensionMetadata)
         WebExtensionSupport.installedExtensions["unsupported_ext"] = unsupportedExtension
 
         // Verify add-ons were updated with state provided by the engine/store
+        // Extension (ext1) should be installed
         val addons = AddonManager(store, mock(), addonsProvider, mock()).getAddons()
         assertEquals(4, addons.size)
         assertEquals("ext1", addons[0].id)
@@ -132,11 +134,11 @@ class AddonManagerTest {
         assertNull(addons[0].installedState!!.optionsPageUrl)
         assertFalse(addons[0].installedState!!.openOptionsPageInTab)
 
+        // Extension (ext2) should not be installed
         assertEquals("ext2", addons[1].id)
         assertNull(addons[1].installedState)
 
-        // This extension should now be marked as supported but still be
-        // disabled as unsupported.
+        // Extension (ext3) should now be marked as supported but still be disabled as unsupported.
         assertEquals("ext3", addons[2].id)
         assertNotNull(addons[2].installedState)
         assertEquals("ext3", addons[2].installedState!!.id)
@@ -146,12 +148,57 @@ class AddonManagerTest {
         assertEquals("http://options-page.moz", addons[2].installedState!!.optionsPageUrl)
         assertTrue(addons[2].installedState!!.openOptionsPageInTab)
 
-        // Verify the unsupported add-on was included in addons
+        // Extension (unsupported_ext) should be included but marked as unsupported
         assertEquals("unsupported_ext", addons[3].id)
         assertEquals(1, addons[3].translatableName.size)
         assertNotNull(addons[3].translatableName[addons[3].defaultLocale])
         assertTrue(addons[3].translatableName.containsValue("name"))
+        assertTrue(addons[3].translatableDescription.containsValue("description"))
+        assertTrue(addons[3].translatableSummary.containsValue("description"))
         assertFalse(addons[3].installedState!!.supported)
+    }
+
+    @Test
+    fun `getAddons - returns temporary add-ons as supported`() = runBlocking {
+        val addonsProvider: AddonsProvider = mock()
+        whenever(addonsProvider.getAvailableAddons(anyBoolean(), eq(null))).thenReturn(listOf())
+
+        // Prepare engine
+        val engine: Engine = mock()
+        val callbackCaptor = argumentCaptor<((List<WebExtension>) -> Unit)>()
+        whenever(engine.listInstalledWebExtensions(callbackCaptor.capture(), any())).thenAnswer {
+            callbackCaptor.value.invoke(emptyList())
+        }
+
+        val store = BrowserStore()
+        WebExtensionSupport.initialize(engine, store)
+
+        // Add temporary extension
+        val temporaryExtension: WebExtension = mock()
+        val temporaryExtensionIcon: Bitmap = mock()
+        val temporaryExtensionMetadata: Metadata = mock()
+        whenever(temporaryExtensionMetadata.temporary).thenReturn(true)
+        whenever(temporaryExtensionMetadata.name).thenReturn("name")
+        whenever(temporaryExtension.id).thenReturn("temp_ext")
+        whenever(temporaryExtension.url).thenReturn("site_url")
+        whenever(temporaryExtension.getMetadata()).thenReturn(temporaryExtensionMetadata)
+        whenever(temporaryExtension.loadIcon(TEMPORARY_ADDON_ICON_SIZE)).thenReturn(temporaryExtensionIcon)
+        WebExtensionSupport.installedExtensions["temp_ext"] = temporaryExtension
+
+        val addonManager = spy(AddonManager(store, mock(), addonsProvider, mock()))
+        whenever(addonManager.getIconDispatcher()).thenReturn(Dispatchers.Main)
+
+        val addons = addonManager.getAddons()
+        assertEquals(1, addons.size)
+
+        // Temporary extension should be returned and marked as supported
+        assertEquals("temp_ext", addons[0].id)
+        assertEquals(1, addons[0].translatableName.size)
+        assertNotNull(addons[0].translatableName[addons[0].defaultLocale])
+        assertTrue(addons[0].translatableName.containsValue("name"))
+        assertNotNull(addons[0].installedState)
+        assertTrue(addons[0].isSupported())
+        assertEquals(temporaryExtensionIcon, addons[0].installedState!!.icon)
     }
 
     @Test(expected = AddonManagerException::class)
@@ -259,18 +306,18 @@ class AddonManagerTest {
 
     @Test
     fun `updateAddon - when a extension is updated successfully`() {
+        val engine: Engine = mock()
+        val engineSession: EngineSession = mock()
         val store = spy(
             BrowserStore(
                 BrowserState(
                     tabs = listOf(
-                        createTab(id = "1", url = "https://www.mozilla.org")
+                        createTab(id = "1", url = "https://www.mozilla.org", engineSession = engineSession)
                     ),
                     extensions = mapOf("extensionId" to mock())
                 )
             )
         )
-        val engine: Engine = mock()
-        val engineSession: EngineSession = mock()
         val onSuccessCaptor = argumentCaptor<((WebExtension?) -> Unit)>()
         var updateStatus: Status? = null
         val manager = AddonManager(store, engine, mock(), mock())
@@ -280,7 +327,6 @@ class AddonManagerTest {
         whenever(updatedExt.url).thenReturn("url")
         whenever(updatedExt.supportActions).thenReturn(true)
 
-        store.dispatch(EngineAction.LinkEngineSessionAction("1", engineSession)).joinBlocking()
         WebExtensionSupport.installedExtensions["extensionId"] = mock()
 
         val oldExt = WebExtensionSupport.installedExtensions["extensionId"]
@@ -302,7 +348,7 @@ class AddonManagerTest {
         assertEquals(updatedExt, WebExtensionSupport.installedExtensions["extensionId"])
 
         // Verifying we updated the extension in the store
-        verify(store, times(2)).dispatch(actionCaptor.capture())
+        verify(store).dispatch(actionCaptor.capture())
         assertEquals(
             WebExtensionState(updatedExt.id, updatedExt.url, updatedExt.getMetadata()?.name, updatedExt.isEnabled()),
             actionCaptor.allValues.last().updatedExtension

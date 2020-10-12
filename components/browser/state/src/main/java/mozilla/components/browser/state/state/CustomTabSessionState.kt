@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.state.state
 
+import mozilla.components.concept.engine.EngineSession
 import java.util.UUID
 
 /**
@@ -15,6 +16,7 @@ import java.util.UUID
  * @property config the [CustomTabConfig] used to create this custom tab.
  * @property extensionState a map of web extension ids and extensions, that contains the overridden
  * values for this tab.
+ * @property mediaSessionState the [MediaSessionState] of this session.
  * @property contextId the session context ID of this custom tab.
  */
 data class CustomTabSessionState(
@@ -24,6 +26,7 @@ data class CustomTabSessionState(
     val config: CustomTabConfig,
     override val engineState: EngineState = EngineState(),
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
+    override val mediaSessionState: MediaSessionState? = null,
     override val contextId: String? = null,
     override val source: SessionState.Source = SessionState.Source.CUSTOM_TAB
 ) : SessionState {
@@ -34,6 +37,7 @@ data class CustomTabSessionState(
         trackingProtection: TrackingProtectionState,
         engineState: EngineState,
         extensionState: Map<String, WebExtensionState>,
+        mediaSessionState: MediaSessionState?,
         contextId: String?
     ) = copy(
         id = id,
@@ -41,6 +45,7 @@ data class CustomTabSessionState(
         trackingProtection = trackingProtection,
         engineState = engineState,
         extensionState = extensionState,
+        mediaSessionState = mediaSessionState,
         contextId = contextId
     )
 }
@@ -48,16 +53,23 @@ data class CustomTabSessionState(
 /**
  * Convenient function for creating a custom tab.
  */
+@Suppress("LongParameterList")
 fun createCustomTab(
     url: String,
     id: String = UUID.randomUUID().toString(),
     config: CustomTabConfig = CustomTabConfig(),
-    contextId: String? = null
+    contextId: String? = null,
+    engineSession: EngineSession? = null,
+    crashed: Boolean = false
 ): CustomTabSessionState {
     return CustomTabSessionState(
         id = id,
         content = ContentState(url),
         config = config,
-        contextId = contextId
+        contextId = contextId,
+        engineState = EngineState(
+            engineSession = engineSession,
+            crashed = crashed
+        )
     )
 }

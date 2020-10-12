@@ -23,13 +23,13 @@ object Versions {
     const val sentry = "1.7.21"
     const val okhttp = "3.13.1"
     const val zxing = "3.3.0"
-    const val jna = "5.2.0"
+    const val jna = "5.5.0"
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
     const val mozilla_appservices = "63.0.0"
 
-    const val mozilla_glean = "32.4.0"
+    const val mozilla_glean = "32.4.1"
 
     const val material = "1.1.0"
     const val nearby = "17.0.0"

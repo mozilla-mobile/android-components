@@ -69,14 +69,17 @@ import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.isNull
 import org.mockito.Mock
+import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.doCallRealMethod
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.never
+import org.mockito.Mockito.verifyZeroInteractions
 import org.mockito.MockitoAnnotations.initMocks
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -1029,6 +1032,36 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
+    fun `performDownload - use the download response when available`() {
+        val responseFromDownloadState = mock<Response>()
+        val responseFromClient = mock<Response>()
+        val download = DownloadState("https://example.com/file.txt", "file.txt", response = responseFromDownloadState)
+        val downloadJob = DownloadJobState(state = download, status = DOWNLOADING)
+
+        doReturn(404).`when`(responseFromDownloadState).status
+        doReturn(responseFromClient).`when`(client).fetch(any())
+
+        service.performDownload(downloadJob)
+
+        verify(responseFromDownloadState, atLeastOnce()).status
+        verifyZeroInteractions(client)
+    }
+
+    @Test
+    fun `performDownload - use the client response when the download response NOT available`() {
+        val responseFromClient = mock<Response>()
+        val download = spy(DownloadState("https://example.com/file.txt", "file.txt", response = null))
+        val downloadJob = DownloadJobState(state = download, status = DOWNLOADING)
+
+        doReturn(404).`when`(responseFromClient).status
+        doReturn(responseFromClient).`when`(client).fetch(any())
+
+        service.performDownload(downloadJob)
+
+        verify(responseFromClient, atLeastOnce()).status
+    }
+
+    @Test
     fun `onDestroy cancels all running jobs`() = runBlocking {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val response = Response(
@@ -1200,7 +1233,7 @@ class AbstractFetchDownloadServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.P])
-    fun `WHEN a download is completed on devices older than Q the file MUST be added manually to the download system database`() {
+    fun `WHEN a download is completed and the scoped storage is not used it MUST be added manually to the download system database`() {
         val download = DownloadState(
                 url = "http://www.mozilla.org",
                 fileName = "example.apk",
@@ -1217,7 +1250,60 @@ class AbstractFetchDownloadServiceTest {
         doReturn(testContext).`when`(service).context
         service.updateDownloadNotification(DownloadState.Status.COMPLETED, downloadJobState)
 
-        verify(service).addToDownloadSystemDatabaseCompat(any())
+        verify(service).addCompletedDownload(
+            title = any(),
+            description = any(),
+            isMediaScannerScannable = eq(true),
+            mimeType = any(),
+            path = any(),
+            length = anyLong(),
+            showNotification = anyBoolean(),
+            uri = any(),
+            referer = any()
+        )
+    }
+
+    @Test
+    fun `WHEN a download is completed and the scoped storage is used addToDownloadSystemDatabaseCompat MUST NOT be called`() {
+        val download = DownloadState(
+            url = "http://www.mozilla.org",
+            fileName = "example.apk",
+            destinationDirectory = folder.root.path,
+            status = DownloadState.Status.COMPLETED
+        )
+        val service = spy(object : AbstractFetchDownloadService() {
+            override val httpClient = client
+            override val store = browserStore
+        })
+
+        val downloadJobState = DownloadJobState(state = download, status = DownloadState.Status.COMPLETED)
+
+        doReturn(testContext).`when`(service).context
+        doNothing().`when`(service).addCompletedDownload(
+            title = any(),
+            description = any(),
+            isMediaScannerScannable = eq(true),
+            mimeType = any(),
+            path = any(),
+            length = anyLong(),
+            showNotification = anyBoolean(),
+            uri = any(),
+            referer = any())
+        doReturn(true).`when`(service).shouldUseScopedStorage()
+
+        service.updateDownloadNotification(DownloadState.Status.COMPLETED, downloadJobState)
+
+        verify(service, never()).addCompletedDownload(
+            title = any(),
+            description = any(),
+            isMediaScannerScannable = eq(true),
+            mimeType = any(),
+            path = any(),
+            length = anyLong(),
+            showNotification = anyBoolean(),
+            uri = any(),
+            referer = any()
+        )
     }
 
     @Test

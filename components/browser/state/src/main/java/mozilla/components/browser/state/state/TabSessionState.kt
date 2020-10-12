@@ -5,6 +5,7 @@
 package mozilla.components.browser.state.state
 
 import android.graphics.Bitmap
+import mozilla.components.concept.engine.EngineSession
 import java.util.UUID
 
 /**
@@ -29,6 +30,7 @@ data class TabSessionState(
     override val trackingProtection: TrackingProtectionState = TrackingProtectionState(),
     override val engineState: EngineState = EngineState(),
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
+    override val mediaSessionState: MediaSessionState? = null,
     override val contextId: String? = null,
     override val source: SessionState.Source = SessionState.Source.NONE,
     val parentId: String? = null,
@@ -42,6 +44,7 @@ data class TabSessionState(
         trackingProtection: TrackingProtectionState,
         engineState: EngineState,
         extensionState: Map<String, WebExtensionState>,
+        mediaSessionState: MediaSessionState?,
         contextId: String?
     ): SessionState = copy(
         id = id,
@@ -49,6 +52,7 @@ data class TabSessionState(
         trackingProtection = trackingProtection,
         engineState = engineState,
         extensionState = extensionState,
+        mediaSessionState = mediaSessionState,
         contextId = contextId
     )
 }
@@ -68,7 +72,9 @@ fun createTab(
     thumbnail: Bitmap? = null,
     contextId: String? = null,
     lastAccess: Long = 0L,
-    source: SessionState.Source = SessionState.Source.NONE
+    source: SessionState.Source = SessionState.Source.NONE,
+    engineSession: EngineSession? = null,
+    crashed: Boolean = false
 ): TabSessionState {
     return TabSessionState(
         id = id,
@@ -83,6 +89,10 @@ fun createTab(
         readerState = readerState,
         contextId = contextId,
         lastAccess = lastAccess,
-        source = source
+        source = source,
+        engineState = EngineState(
+            engineSession = engineSession,
+            crashed = crashed
+        )
     )
 }

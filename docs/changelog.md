@@ -21,9 +21,10 @@ permalink: /changelog/
   * Added `SessionManager.removeNormalSessions()` and `SessionManager.removePrivateSessions()`.
 
 * **service-glean**
-  * Glean was upgraded to v32.4.0
+  * Glean was upgraded to v32.4.1
     * Allow using quantity metric type outside of Gecko ([#1198](https://github.com/mozilla/glean/pull/1198))
-    * Update `glean_parser` to 1.28.5
+    * Update `glean_parser` to 1.28.6
+        * BUGFIX: Ensure Kotlin arguments are deterministically ordered
       * The `SUPERFLUOUS_NO_LINT` warning has been removed from the glinter. It likely did more harm than good, and makes it hard to make metrics.yaml files that pass across different versions of `glean_parser`.
       * Expired metrics will now produce a linter warning, `EXPIRED_METRIC`.
       * Expiry dates that are more than 730 days (~2 years) in the future will produce a linter warning, `EXPIRATION_DATE_TOO_FAR`.
@@ -31,6 +32,7 @@ permalink: /changelog/
       * New parser configs `custom_is_expired` and `custom_validate_expires` added. These are both functions that take the expires value of the metric and return a bool. (See `Metric.is_expired` and `Metric.validate_expires`). These will allow FOG to provide custom validation for its version-based `expires` values.
     * Add a limit of 250 pending ping files. ([#1217](https://github.com/mozilla/glean/pull/1217)).
     * Don't retry the ping uploader when waiting, sleep instead. This avoids a never-ending increase of the backoff time ([#1217](https://github.com/mozilla/glean/pull/1217)).
+    * BUGFIX: Transform ping directory size from bytes to kilobytes before accumulating to `glean.upload.pending_pings_directory_size`.
 
 * **feature-downloads**
   * 🚒 Bug fixed [issue #8585](https://github.com/mozilla-mobile/android-components/issues/8585) fixed regression files not been added to the downloads database system.

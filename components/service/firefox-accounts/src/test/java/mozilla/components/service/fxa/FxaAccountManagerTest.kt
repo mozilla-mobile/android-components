@@ -63,7 +63,7 @@ import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import java.lang.Exception
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
@@ -1378,7 +1378,7 @@ class FxaAccountManagerTest {
             // Since we've recovered, outside observers should not have witnessed the momentary problem state.
             verify(accountObserver, never()).onAuthenticationProblems()
             assertFalse(manager.accountNeedsReauth())
-            verifyZeroInteractions(crashReporter)
+            verifyNoInteractions(crashReporter)
         } else {
             // We were unable to recover, outside observers should have been told.
             verify(accountObserver, times(1)).onAuthenticationProblems()

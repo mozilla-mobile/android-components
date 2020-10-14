@@ -21,7 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 
 @RunWith(AndroidJUnit4::class)
 class MigrationObserverTest {
@@ -37,7 +37,7 @@ class MigrationObserverTest {
         val listener: MigrationStateListener = mock()
         val observer = MigrationObserver(store, listener)
 
-        verifyZeroInteractions(listener)
+        verifyNoInteractions(listener)
 
         observer.start()
 
@@ -55,7 +55,7 @@ class MigrationObserverTest {
         val listener: MigrationStateListener = mock()
         val observer = MigrationObserver(store, listener)
 
-        verifyZeroInteractions(listener)
+        verifyNoInteractions(listener)
 
         observer.start()
         observer.stop()

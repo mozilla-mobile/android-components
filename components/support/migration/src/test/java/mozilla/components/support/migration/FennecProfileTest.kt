@@ -16,7 +16,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
@@ -32,7 +32,7 @@ class FennecProfileTest {
         assertEquals("default", profile.name)
         Log.w("SKDBG", profile.path)
         assertTrue(profile.path.endsWith("/profiles/10aaayu4.default"))
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -45,7 +45,7 @@ class FennecProfileTest {
         assertFalse(profile.default)
         assertEquals("default", profile.name)
         assertTrue(profile.path.endsWith("/profiles/Profiles/qioxtndq.default"))
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -58,7 +58,7 @@ class FennecProfileTest {
         assertTrue(profile.default)
         assertEquals("alicew", profile.name)
         assertEquals("D:\\Mozilla\\Firefox\\Profiles\\alicew", profile.path)
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -71,7 +71,7 @@ class FennecProfileTest {
         assertTrue(profile.default)
         assertEquals("default", profile.name)
         assertTrue(profile.path.endsWith("/profiles/Profiles/xvcf5yup.default"))
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -79,7 +79,7 @@ class FennecProfileTest {
         val crashReporter: CrashReporting = mock()
         val profile = FennecProfile.findDefault(testContext, crashReporter, getTestPath("profiles"))
         assertNull(profile)
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -92,7 +92,7 @@ class FennecProfileTest {
         assertTrue(profile.default)
         assertEquals("default", profile.name)
         assertTrue(profile.path.endsWith("/profiles/10aaayu4.default"))
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -105,7 +105,7 @@ class FennecProfileTest {
         assertEquals("Fennec", profile.name)
         assertTrue(profile.default)
         assertTrue(profile.path.endsWith("/profiles/fennec-default"))
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Test
@@ -118,7 +118,7 @@ class FennecProfileTest {
         assertEquals("default", profile.name)
         assertFalse(profile.default)
         assertTrue(profile.path.endsWith("/profiles/Profiles/default"))
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 }
 

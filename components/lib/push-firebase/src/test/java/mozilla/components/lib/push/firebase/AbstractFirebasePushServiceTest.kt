@@ -24,7 +24,7 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.gms.Shadows
@@ -104,14 +104,14 @@ class AbstractFirebasePushServiceTest {
 
         service.onMessageReceived(remoteMessage)
 
-        verifyZeroInteractions(processor)
+        verifyNoInteractions(processor)
     }
 
     @Test
     fun `processor is not called when no remote message provided`() {
         service.onMessageReceived(null)
 
-        verifyZeroInteractions(processor)
+        verifyNoInteractions(processor)
     }
 
     @Test

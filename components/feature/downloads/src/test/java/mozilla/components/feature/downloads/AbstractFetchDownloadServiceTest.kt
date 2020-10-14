@@ -82,7 +82,8 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.MockitoAnnotations.initMocks
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -1100,7 +1101,7 @@ class AbstractFetchDownloadServiceTest {
         service.performDownload(downloadJob)
 
         verify(responseFromDownloadState, atLeastOnce()).status
-        verifyZeroInteractions(client)
+        verifyNoInteractions(client)
     }
 
     @Test
@@ -1130,7 +1131,7 @@ class AbstractFetchDownloadServiceTest {
         service.performDownload(downloadJob)
 
         verify(responseFromClient, atLeastOnce()).status
-        verifyZeroInteractions(responseFromDownloadState)
+        verifyNoInteractions(responseFromDownloadState)
     }
 
     @Test

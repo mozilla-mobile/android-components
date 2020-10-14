@@ -29,6 +29,7 @@ import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment.Companion.
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment.Companion.MULTIPLE_CHOICE_DIALOG_TYPE
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment.Companion.SINGLE_CHOICE_DIALOG_TYPE
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment.Companion.newInstance
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.ext.appCompatContext
 import org.junit.Assert.assertEquals
@@ -38,25 +39,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 
 @RunWith(AndroidJUnit4::class)
 class ChoiceDialogFragmentTest {
 
-    @Mock private lateinit var mockFeature: Prompter
+    private lateinit var mockFeature: Prompter
     private val item = Choice(id = "", label = "item1")
     private val subItem = Choice(id = "", label = "sub-item1")
     private val separator = Choice(id = "", label = "item1", isASeparator = true)
 
     @Before
     fun setup() {
-        initMocks(this)
+        mockFeature = mock()
     }
 
     @Test

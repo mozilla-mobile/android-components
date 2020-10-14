@@ -7,6 +7,7 @@ package mozilla.components.support.ktx.android.content
 import android.content.SharedPreferences
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -15,19 +16,18 @@ import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyFloat
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyLong
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 
 class SharedPreferencesTest {
-    @Mock private lateinit var sharedPrefs: SharedPreferences
-    @Mock private lateinit var editor: SharedPreferences.Editor
+    private lateinit var sharedPrefs: SharedPreferences
+    private lateinit var editor: SharedPreferences.Editor
 
     @Before
     fun setup() {
-        initMocks(this)
+        sharedPrefs = mock()
+        editor = mock()
 
         `when`(sharedPrefs.edit()).thenReturn(editor)
         `when`(editor.putBoolean(anyString(), anyBoolean())).thenReturn(editor)

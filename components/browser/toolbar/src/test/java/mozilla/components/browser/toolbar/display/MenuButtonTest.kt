@@ -25,25 +25,27 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations
 
 @RunWith(AndroidJUnit4::class)
 class MenuButtonTest {
-    @Mock private lateinit var menuBuilder: BrowserMenuBuilder
-    @Mock private lateinit var menuController: MenuController
-    @Mock private lateinit var menu: BrowserMenu
-    @Mock private lateinit var menuButtonInternal: mozilla.components.browser.menu.view.MenuButton
+    private lateinit var menuBuilder: BrowserMenuBuilder
+    private lateinit var menuController: MenuController
+    private lateinit var menu: BrowserMenu
+    private lateinit var menuButtonInternal: mozilla.components.browser.menu.view.MenuButton
     private lateinit var menuButton: MenuButton
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
+        menuBuilder = mock()
+        menuController = mock()
+        menu = mock()
+        menuButtonInternal = mock()
+
         `when`(menuBuilder.build(testContext)).thenReturn(menu)
         `when`(menuButtonInternal.context).thenReturn(testContext)
 

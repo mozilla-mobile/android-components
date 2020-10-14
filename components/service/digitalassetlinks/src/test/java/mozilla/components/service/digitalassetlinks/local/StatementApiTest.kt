@@ -22,16 +22,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
-import org.mockito.MockitoAnnotations
 import java.io.ByteArrayInputStream
 import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class StatementApiTest {
 
-    @Mock private lateinit var httpClient: Client
+    private lateinit var httpClient: Client
     private lateinit var listFetcher: StatementListFetcher
     private val jsonHeaders = MutableHeaders(
         CONTENT_TYPE to CONTENT_TYPE_APPLICATION_JSON
@@ -39,7 +37,7 @@ class StatementApiTest {
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
+        httpClient = mock()
         listFetcher = StatementApi(httpClient)
     }
 

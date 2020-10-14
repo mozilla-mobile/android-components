@@ -13,6 +13,7 @@ import mozilla.components.feature.readerview.ReaderViewFeature.Companion.FONT_SI
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.FONT_SIZE_KEY
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.FONT_TYPE_KEY
 import mozilla.components.support.test.eq
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -20,25 +21,27 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mock
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations
 
 @RunWith(AndroidJUnit4::class)
 class ReaderViewConfigTest {
 
-    @Mock private lateinit var context: Context
-    @Mock private lateinit var prefs: SharedPreferences
-    @Mock private lateinit var editor: SharedPreferences.Editor
-    @Mock private lateinit var sendConfigMessage: (JSONObject) -> Unit
+    private lateinit var context: Context
+    private lateinit var prefs: SharedPreferences
+    private lateinit var editor: SharedPreferences.Editor
+    private lateinit var sendConfigMessage: (JSONObject) -> Unit
     private lateinit var config: ReaderViewConfig
 
     @Before
     fun setup() {
-        MockitoAnnotations.initMocks(this)
+        context = mock()
+        prefs = mock()
+        editor = mock()
+        sendConfigMessage = mock()
+
         whenever(context.getSharedPreferences(anyString(), anyInt())).thenReturn(prefs)
         whenever(prefs.edit()).thenReturn(editor)
 

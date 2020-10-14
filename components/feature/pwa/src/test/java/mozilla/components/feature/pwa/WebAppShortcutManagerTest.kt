@@ -32,14 +32,12 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.clearInvocations
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 import org.robolectric.util.ReflectionHelpers.setStaticField
 import kotlin.reflect.jvm.javaField
 
@@ -47,11 +45,11 @@ import kotlin.reflect.jvm.javaField
 @RunWith(AndroidJUnit4::class)
 class WebAppShortcutManagerTest {
     private lateinit var context: Context
-    @Mock private lateinit var httpClient: Client
-    @Mock private lateinit var packageManager: PackageManager
-    @Mock private lateinit var shortcutManager: ShortcutManager
-    @Mock private lateinit var storage: ManifestStorage
-    @Mock private lateinit var icons: BrowserIcons
+    private lateinit var httpClient: Client
+    private lateinit var packageManager: PackageManager
+    private lateinit var shortcutManager: ShortcutManager
+    private lateinit var storage: ManifestStorage
+    private lateinit var icons: BrowserIcons
     private lateinit var manager: WebAppShortcutManager
     private val baseManifest = WebAppManifest(
         name = "Demo",
@@ -61,7 +59,13 @@ class WebAppShortcutManagerTest {
     @Before
     fun setup() {
         setSdkInt(0)
-        initMocks(this)
+
+        httpClient = mock()
+        packageManager = mock()
+        shortcutManager = mock()
+        storage = mock()
+        icons = mock()
+
         context = spy(testContext)
 
         doReturn(packageManager).`when`(context).packageManager

@@ -13,26 +13,25 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.WebAppShortcutManager
 import mozilla.components.support.test.any
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class ManifestUpdateFeatureTest {
 
-    @Mock private lateinit var sessionManager: SessionManager
-    @Mock private lateinit var session: Session
-    @Mock private lateinit var shortcutManager: WebAppShortcutManager
-    @Mock private lateinit var storage: ManifestStorage
+    private lateinit var sessionManager: SessionManager
+    private lateinit var session: Session
+    private lateinit var shortcutManager: WebAppShortcutManager
+    private lateinit var storage: ManifestStorage
     private val sessionId = "external-app-session-id"
     private val baseManifest = WebAppManifest(
         name = "Mozilla",
@@ -42,7 +41,10 @@ class ManifestUpdateFeatureTest {
 
     @Before
     fun setup() {
-        initMocks(this)
+        sessionManager = mock()
+        session = mock()
+        shortcutManager = mock()
+        storage = mock()
         `when`(sessionManager.findSessionById(sessionId)).thenReturn(session)
     }
 

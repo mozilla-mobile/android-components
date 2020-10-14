@@ -18,13 +18,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
@@ -32,14 +30,16 @@ class AndroidAssetFinderTest {
 
     private lateinit var assetFinder: AndroidAssetFinder
     private lateinit var packageInfo: PackageInfo
-    @Mock lateinit var packageManager: PackageManager
-    @Mock lateinit var signingInfo: SigningInfo
+    lateinit var packageManager: PackageManager
+    lateinit var signingInfo: SigningInfo
 
     @Before
     fun setup() {
         assetFinder = spy(AndroidAssetFinder())
 
-        MockitoAnnotations.initMocks(this)
+        packageManager = mock()
+        signingInfo = mock()
+
         packageInfo = PackageInfo()
         `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenReturn(packageInfo)
     }

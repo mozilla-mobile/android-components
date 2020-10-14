@@ -19,23 +19,24 @@ import mozilla.components.support.test.mock
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 
 @RunWith(AndroidJUnit4::class)
 class WebAppActivityFeatureTest {
 
-    @Mock private lateinit var activity: Activity
-    @Mock private lateinit var window: Window
-    @Mock private lateinit var decorView: View
-    @Mock private lateinit var icons: BrowserIcons
+    private lateinit var activity: Activity
+    private lateinit var window: Window
+    private lateinit var decorView: View
+    private lateinit var icons: BrowserIcons
 
     @Before
     fun setup() {
-        initMocks(this)
+        activity = mock()
+        window = mock()
+        decorView = mock()
+        icons = mock()
 
         `when`(activity.window).thenReturn(window)
         `when`(window.decorView).thenReturn(decorView)

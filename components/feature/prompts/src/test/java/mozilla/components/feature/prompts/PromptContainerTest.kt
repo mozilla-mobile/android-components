@@ -13,19 +13,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mock
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 
 class PromptContainerTest {
 
-    @Mock private lateinit var activity: Activity
-    @Mock private lateinit var fragment: Fragment
+    private lateinit var activity: Activity
+    private lateinit var fragment: Fragment
 
     @Before
     fun setup() {
-        initMocks(this)
+        activity = mock()
+        fragment = mock()
     }
 
     @Test

@@ -9,15 +9,14 @@ import android.os.Build
 import android.view.View
 import android.view.Window
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.mock
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
-import org.mockito.MockitoAnnotations.initMocks
 import org.robolectric.util.ReflectionHelpers.setStaticField
 import kotlin.reflect.jvm.javaField
 
@@ -28,13 +27,14 @@ class WindowTest {
         private const val BIT_MASK = 0xFFFFFFFF.toInt()
     }
 
-    @Mock private lateinit var window: Window
-    @Mock private lateinit var decorView: View
+    private lateinit var window: Window
+    private lateinit var decorView: View
 
     @Before
     fun setup() {
         setStaticField(Build.VERSION::SDK_INT.javaField, 0)
-        initMocks(this)
+        window = mock()
+        decorView = mock()
         `when`(window.decorView).thenReturn(decorView)
     }
 

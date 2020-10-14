@@ -17,12 +17,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -60,18 +60,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.isNull
-import org.mockito.Mock
 import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doCallRealMethod
@@ -82,9 +81,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.never
 import org.mockito.Mockito.verifyNoInteractions
-import org.mockito.MockitoAnnotations.initMocks
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNotificationManager
@@ -99,9 +96,9 @@ class AbstractFetchDownloadServiceTest {
     @Rule @JvmField
     val folder = TemporaryFolder()
 
-    @Mock private lateinit var client: Client
+    private lateinit var client: Client
     private lateinit var browserStore: BrowserStore
-    @Mock private lateinit var broadcastManager: LocalBroadcastManager
+    private lateinit var broadcastManager: LocalBroadcastManager
     private lateinit var service: AbstractFetchDownloadService
 
     private val testDispatcher = TestCoroutineDispatcher()
@@ -110,7 +107,10 @@ class AbstractFetchDownloadServiceTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        initMocks(this)
+
+        client = mock()
+        broadcastManager = mock()
+
         browserStore = BrowserStore()
         service = spy(object : AbstractFetchDownloadService() {
             override val httpClient = client

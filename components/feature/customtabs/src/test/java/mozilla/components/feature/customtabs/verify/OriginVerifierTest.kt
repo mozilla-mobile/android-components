@@ -15,15 +15,14 @@ import mozilla.components.concept.fetch.Response
 import mozilla.components.service.digitalassetlinks.AssetDescriptor
 import mozilla.components.service.digitalassetlinks.Relation
 import mozilla.components.service.digitalassetlinks.RelationChecker
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
-import org.mockito.MockitoAnnotations.initMocks
 
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
@@ -33,15 +32,18 @@ class OriginVerifierTest {
         packageName = "com.app.name",
         sha256CertFingerprint = "AA:BB:CC:10:20:30:01:02"
     )
-    @Mock private lateinit var packageManager: PackageManager
-    @Mock private lateinit var response: Response
-    @Mock private lateinit var body: Response.Body
-    @Mock private lateinit var checker: RelationChecker
+    private lateinit var packageManager: PackageManager
+    private lateinit var response: Response
+    private lateinit var body: Response.Body
+    private lateinit var checker: RelationChecker
 
     @Suppress("Deprecation")
     @Before
     fun setup() {
-        initMocks(this)
+        packageManager = mock()
+        response = mock()
+        body = mock()
+        checker = mock()
 
         doReturn(body).`when`(response).body
         doReturn(200).`when`(response).status

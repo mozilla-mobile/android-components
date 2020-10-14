@@ -12,7 +12,7 @@ object Versions {
 
     const val junit = "4.12"
     const val robolectric = "4.1"
-    const val mockito = "2.24.5"
+    const val mockito = "3.5.13"
     const val maven_ant_tasks = "2.1.3"
 
     const val mockwebserver = "3.10.0"
@@ -78,7 +78,7 @@ object Dependencies {
     const val testing_junit = "junit:junit:${Versions.junit}"
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"
     const val testing_robolectric_playservices = "org.robolectric:shadows-playservices:${Versions.robolectric}"
-    const val testing_mockito = "org.mockito:mockito-core:${Versions.mockito}"
+    const val testing_mockito = "org.mockito:mockito-android:${Versions.mockito}"
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.mockwebserver}"
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
     const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"

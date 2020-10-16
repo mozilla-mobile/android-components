@@ -9,8 +9,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider
@@ -24,7 +22,6 @@ import mozilla.components.browser.menu.item.BrowserMenuHighlightableItem
 import mozilla.components.browser.menu.item.BrowserMenuImageText
 import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
-import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.engine.EngineMiddleware
@@ -34,6 +31,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.browser.thumbnails.ThumbnailsMiddleware
 import mozilla.components.browser.thumbnails.storage.ThumbnailStorage
+import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
@@ -61,6 +59,9 @@ import mozilla.components.feature.pwa.intent.TrustedWebActivityIntentProcessor
 import mozilla.components.feature.pwa.intent.WebAppIntentProcessor
 import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.feature.search.SearchUseCases
+import mozilla.components.feature.search.ext.toDefaultSearchEngineProvider
+import mozilla.components.feature.search.middleware.SearchMiddleware
+import mozilla.components.feature.search.region.RegionMiddleware
 import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.sitepermissions.SitePermissionsStorage
@@ -73,7 +74,7 @@ import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.lib.nearby.NearbyConnection
 import mozilla.components.service.digitalassetlinks.local.StatementApi
 import mozilla.components.service.digitalassetlinks.local.StatementRelationChecker
-import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.service.location.LocationService
 import org.mozilla.samples.browser.addons.AddonsActivity
 import org.mozilla.samples.browser.downloads.DownloadService
 import org.mozilla.samples.browser.ext.components
@@ -133,7 +134,12 @@ open class DefaultComponents(private val applicationContext: Context) {
             DownloadMiddleware(applicationContext, DownloadService::class.java),
             ReaderViewMiddleware(),
             ThumbnailsMiddleware(thumbnailStorage),
-            UndoMiddleware(::sessionManagerLookup)
+            UndoMiddleware(::sessionManagerLookup),
+            RegionMiddleware(
+                applicationContext,
+                LocationService.default()
+            ),
+            SearchMiddleware(applicationContext)
         ) + EngineMiddleware.create(engine, ::findSessionById))
     }
 
@@ -192,16 +198,10 @@ open class DefaultComponents(private val applicationContext: Context) {
         DefaultSupportedAddonsChecker(applicationContext, SupportedAddonsChecker.Frequency(1, TimeUnit.DAYS))
     }
 
-    // Search
-    val searchEngineManager by lazy {
-        SearchEngineManager().apply {
-            CoroutineScope(Dispatchers.IO).launch {
-                loadAsync(applicationContext).await()
-            }
-        }
+    val searchUseCases by lazy {
+        SearchUseCases(applicationContext, store, store.toDefaultSearchEngineProvider(), sessionManager)
     }
 
-    val searchUseCases by lazy { SearchUseCases(applicationContext, store, searchEngineManager, sessionManager) }
     val defaultSearchUseCase by lazy {
         { searchTerms: String ->
             searchUseCases.defaultSearch.invoke(

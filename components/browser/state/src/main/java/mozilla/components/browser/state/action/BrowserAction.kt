@@ -6,6 +6,7 @@ package mozilla.components.browser.state.action
 
 import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
+import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ClosedTab
@@ -14,6 +15,7 @@ import mozilla.components.browser.state.state.ContainerState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.EngineState
+import mozilla.components.browser.state.state.LoadRequestState
 import mozilla.components.browser.state.state.MediaSessionState
 import mozilla.components.browser.state.state.MediaState
 import mozilla.components.browser.state.state.ReaderState
@@ -438,6 +440,11 @@ sealed class ContentAction : BrowserAction() {
         val historyList: List<HistoryItem>,
         val currentIndex: Int
     ) : ContentAction()
+
+    /**
+     * Updates the [LoadRequestState] of the [ContentState] with the given [sessionId].
+     */
+    data class UpdateLoadRequestAction(val sessionId: String, val loadRequest: LoadRequestState) : ContentAction()
 }
 
 /**
@@ -957,14 +964,29 @@ sealed class ContainerAction : BrowserAction() {
  */
 sealed class SearchAction : BrowserAction() {
     /**
-     * Updates [BrowserState.search] to add/modify [SearchState.searchEngines].
+     * Sets the [RegionState] (region of the user).
      */
-    data class AddSearchEngineListAction(val searchEngineList: List<SearchEngine>) : SearchAction()
+    data class SetRegionAction(val regionState: RegionState) : SearchAction()
+
+    /**
+     * Sets the list of [SearchEngine]s for the current "home" region of the user.
+     */
+    data class SetRegionSearchEngines(
+        val searchEngines: List<SearchEngine>,
+        val regionDefaultSearchEngineId: String
+    ) : SearchAction()
+
+    /**
+     * Sets the list of custom [SearchEngine]s for this user.
+     */
+    data class SetCustomSearchEngines(
+        val searchEngines: List<SearchEngine>
+    ) : SearchAction()
 
     /**
      * Updates [BrowserState.search] to add/modify a custom [SearchEngine].
      */
-    data class SetCustomSearchEngineAction(val searchEngine: SearchEngine) : SearchAction()
+    data class UpdateCustomSearchEngineAction(val searchEngine: SearchEngine) : SearchAction()
 
     /**
      * Updates [BrowserState.search] to remove a custom [SearchEngine].

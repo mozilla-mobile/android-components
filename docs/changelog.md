@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-toolbar**
+  * Clear tint of tracking protection icon when animatable
+
 * **concept-engine**
   * Added `MediaSession` for the media session API.
   * 🌟 Added a new `TrackingCategory`.`SHIMMED` to indicate that content that would have been blocked has instead been replaced with a shimmed file. See more on [Fenix #14071](https://github.com/mozilla-mobile/fenix/issues/14071)
@@ -28,6 +31,9 @@ permalink: /changelog/
 
 * **browser-toolbar**
   * 🌟 Added API to add a click listener to the iconView.
+
+* **feature-prompts**
+  * The repost prompt now has different text and will also dismiss the pull to refresh throbber.
 
 # 62.0.0
 

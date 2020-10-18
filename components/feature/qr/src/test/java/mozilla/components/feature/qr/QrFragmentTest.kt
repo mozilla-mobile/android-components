@@ -56,11 +56,12 @@ class QrFragmentTest {
     }
 
     @Test
-    fun `onPause closes camera and stops background thread`() {
+    fun `onPause closes camera and stops background thread and executor service`() {
         val qrFragment = spy(QrFragment.newInstance(mock()))
         qrFragment.onPause()
 
         verify(qrFragment).stopBackgroundThread()
+        verify(qrFragment).stopExecutorService()
         verify(qrFragment).closeCamera()
     }
 

@@ -28,12 +28,15 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
 import android.media.Image
 import android.media.ImageReader
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.os.Build
 import android.util.Size
 import android.view.LayoutInflater
 import android.view.Surface
@@ -62,6 +65,9 @@ import java.util.ArrayList
 import java.util.Arrays
 import java.util.Collections
 import java.util.Comparator
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
@@ -168,11 +174,13 @@ class QrFragment : Fragment() {
     /**
      * An additional thread for running tasks that shouldn't block the UI.
      * A [Handler] for running tasks in the background.
+     * An [Executor] for executing capture session callback and listener events.
      */
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
     private var previewRequestBuilder: CaptureRequest.Builder? = null
     private var previewRequest: CaptureRequest? = null
+    private var captureSessionExecutor: ExecutorService? = null
 
     /**
      * A [Semaphore] to prevent the app from exiting before closing the camera.
@@ -230,6 +238,9 @@ class QrFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         startBackgroundThread()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            captureSessionExecutor = Executors.newSingleThreadExecutor()
+        }
         // When the screen is turned off and turned back on, the SurfaceTexture is already
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
@@ -244,6 +255,9 @@ class QrFragment : Fragment() {
     override fun onPause() {
         closeCamera()
         stopBackgroundThread()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            stopExecutorService()
+        }
         super.onPause()
     }
 
@@ -269,6 +283,26 @@ class QrFragment : Fragment() {
             backgroundHandler = null
         } catch (e: InterruptedException) {
             logger.debug("Interrupted while stopping background thread", e)
+        }
+    }
+
+    internal fun stopExecutorService() {
+        captureSessionExecutor?.shutdown()
+
+        if (captureSessionExecutor != null) {
+            try {
+                if (!(captureSessionExecutor as ExecutorService)
+                                .awaitTermination(EXECUTOR_TERMINATION_WAIT_MS, TimeUnit.MILLISECONDS)) {
+                    captureSessionExecutor?.shutdownNow()
+                }
+
+            } catch (e: InterruptedException) {
+                logger.debug("Interrupted while stopping executor service", e)
+                captureSessionExecutor?.shutdownNow()
+                Thread.currentThread().interrupt()
+            }
+
+            captureSessionExecutor = null
         }
     }
 
@@ -491,7 +525,18 @@ class QrFragment : Fragment() {
                     }
                 }
 
-                it.createCaptureSession(Arrays.asList(mImageSurface, surface), stateCallback, null)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    val sessionConfig = SessionConfiguration(
+                        SessionConfiguration.SESSION_REGULAR,
+                        listOf(OutputConfiguration(mImageSurface as Surface), OutputConfiguration(surface)),
+                        captureSessionExecutor as Executor,
+                        stateCallback
+                    )
+
+                    it.createCaptureSession(sessionConfig)
+                } else {
+                    it.createCaptureSession(Arrays.asList(mImageSurface, surface), stateCallback, null)
+                }
             }
         }
     }
@@ -528,6 +573,8 @@ class QrFragment : Fragment() {
         internal const val MAX_PREVIEW_HEIGHT = 786
 
         private const val CAMERA_CLOSE_LOCK_TIMEOUT_MS = 2500L
+
+        private const val EXECUTOR_TERMINATION_WAIT_MS = 800L
 
         /**
          * Returns a new instance of QR Fragment

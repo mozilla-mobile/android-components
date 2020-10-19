@@ -400,7 +400,7 @@ class GeckoEngineSessionTest {
             "http://mozilla.org",
             null as GeckoSession?,
             GeckoSession.LOAD_FLAGS_NONE,
-            null as Map<String, String>?
+            emptyMap()
         )
 
         engineSession.loadUrl("http://www.mozilla.org", flags = LoadUrlFlags.select(LoadUrlFlags.EXTERNAL))
@@ -408,7 +408,7 @@ class GeckoEngineSessionTest {
             "http://www.mozilla.org",
             null as GeckoSession?,
             GeckoSession.LOAD_FLAGS_EXTERNAL,
-            null as Map<String, String>?
+            emptyMap()
         )
 
         engineSession.loadUrl("http://www.mozilla.org", parent = parentEngineSession)
@@ -416,7 +416,7 @@ class GeckoEngineSessionTest {
             "http://www.mozilla.org",
             parentEngineSession.geckoSession,
             GeckoSession.LOAD_FLAGS_NONE,
-            null as Map<String, String>?
+            emptyMap()
         )
 
         val extraHeaders = mapOf("X-Extra-Header" to "true")
@@ -486,7 +486,7 @@ class GeckoEngineSessionTest {
             "http://mozilla.org",
             null as GeckoSession?,
             GeckoSession.LOAD_FLAGS_NONE,
-            null
+            emptyMap()
         )
 
         // Subsequent reloads should simply call reload on the gecko session.
@@ -557,9 +557,19 @@ class GeckoEngineSessionTest {
                 geckoSessionProvider = geckoSessionProvider)
 
         var observedSecurityChange = false
+        var progressObserved = false
+        var loadingStateChangeObserved = false
         engineSession.register(object : EngineSession.Observer {
             override fun onSecurityChange(secure: Boolean, host: String?, issuer: String?) {
                 observedSecurityChange = true
+            }
+
+            override fun onProgress(progress: Int) {
+                progressObserved = true
+            }
+
+            override fun onLoadingStateChange(loading: Boolean) {
+                loadingStateChangeObserved = true
             }
         })
 
@@ -572,6 +582,22 @@ class GeckoEngineSessionTest {
         progressDelegate.value.onSecurityChange(mock(),
                 MockSecurityInformation("https://www.mozilla.org"))
         assertTrue(observedSecurityChange)
+
+        progressDelegate.value.onPageStart(mock(), "about:blank")
+        assertFalse(progressObserved)
+        assertFalse(loadingStateChangeObserved)
+
+        progressDelegate.value.onPageStop(mock(), true)
+        assertFalse(progressObserved)
+        assertFalse(loadingStateChangeObserved)
+
+        progressDelegate.value.onPageStart(mock(), "https://www.mozilla.org")
+        assertTrue(progressObserved)
+        assertTrue(loadingStateChangeObserved)
+
+        progressDelegate.value.onPageStop(mock(), true)
+        assertTrue(progressObserved)
+        assertTrue(loadingStateChangeObserved)
     }
 
     @Test
@@ -1372,7 +1398,7 @@ class GeckoEngineSessionTest {
             "https://mozilla.org",
             null as GeckoSession?,
             GeckoSession.LOAD_FLAGS_NONE,
-            null as Map<String, String>?
+            emptyMap()
         )
     }
 
@@ -2602,7 +2628,7 @@ class GeckoEngineSessionTest {
         // loadUrl(url: String)
         engineSession.loadUrl(fakeUrl)
         verify(geckoSession).loadUri(
-            fakeUrl, null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE, null as Map<String, String>?
+            fakeUrl, null as GeckoSession?, GeckoSession.LOAD_FLAGS_NONE, emptyMap()
         )
         fakePageLoad(false)
 

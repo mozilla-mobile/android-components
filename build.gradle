@@ -206,6 +206,8 @@ subprojects {
                     exclude 'META-INF/atomicfu.kotlin_module'
                     exclude 'META-INF/AL2.0'
                     exclude 'META-INF/LGPL2.1'
+                    exclude 'META-INF/licenses/ASM'
+                    exclude "**/attach_hotspot_windows.dll"
                 }
 
                 aaptOptions {

@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import androidx.annotation.VisibleForTesting
@@ -16,6 +17,7 @@ import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.profiler.Profiler
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionFactory
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
+import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtensionException
 import mozilla.components.browser.engine.gecko.webnotifications.GeckoWebNotificationDelegate
 import mozilla.components.browser.engine.gecko.webpush.GeckoWebPushDelegate
 import mozilla.components.browser.engine.gecko.webpush.GeckoWebPushHandler
@@ -266,7 +268,7 @@ class GeckoEngine(
             onSuccess(updatedExtension)
             GeckoResult<Void>()
         }, { throwable ->
-            onError(extension.id, throwable)
+            onError(extension.id, GeckoWebExtensionException(throwable))
             GeckoResult<Void>()
         })
     }
@@ -296,12 +298,11 @@ class GeckoEngine(
                 newPermissions: Array<out String>,
                 newOrigins: Array<out String>
             ): GeckoResult<AllowOrDeny>? {
-                // NB: We don't have a user flow for handling updated origins so we ignore them for now.
                 val result = GeckoResult<AllowOrDeny>()
                 webExtensionDelegate.onUpdatePermissionRequest(
                     GeckoWebExtension(current, runtime),
                     GeckoWebExtension(updated, runtime),
-                    newPermissions.toList()
+                    newPermissions.toList() + newOrigins.toList()
                 ) {
                     allow -> if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
                 }
@@ -487,15 +488,7 @@ class GeckoEngine(
 
         override var automaticFontSizeAdjustment: Boolean
             get() = runtime.settings.automaticFontSizeAdjustment
-            set(value) {
-                try {
-                    runtime.settings.automaticFontSizeAdjustment = value
-                } catch (e: IllegalArgumentException) {
-                    // Catching exception here as a temporary workaround for:
-                    // - https://github.com/mozilla-mobile/android-components/issues/7922
-                    // - https://bugzilla.mozilla.org/show_bug.cgi?id=1656078
-                }
-            }
+            set(value) { runtime.settings.automaticFontSizeAdjustment = value }
 
         override var automaticLanguageAdjustment: Boolean
             get() = localeUpdater.enabled
@@ -692,12 +685,17 @@ internal fun ContentBlockingController.LogEntry.BlockingData.hasBlockedCookies()
         category == Event.COOKIES_BLOCKED_SOCIALTRACKER
 }
 
+// There is going to be a patch from GV for adding [REPLACED_UNSAFE_CONTENT] as
+// a valid option for [BlockingData.category]
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1669577
+@SuppressLint("SwitchIntDef")
 internal fun ContentBlockingController.LogEntry.BlockingData.getBlockedCategory(): TrackingCategory {
     return when (category) {
         Event.BLOCKED_FINGERPRINTING_CONTENT -> TrackingCategory.FINGERPRINTING
         Event.BLOCKED_CRYPTOMINING_CONTENT -> TrackingCategory.CRYPTOMINING
         Event.BLOCKED_SOCIALTRACKING_CONTENT, Event.COOKIES_BLOCKED_SOCIALTRACKER -> TrackingCategory.MOZILLA_SOCIAL
         Event.BLOCKED_TRACKING_CONTENT -> TrackingCategory.SCRIPTS_AND_SUB_RESOURCES
+        Event.REPLACED_TRACKING_CONTENT -> TrackingCategory.SHIMMED
         else -> TrackingCategory.NONE
     }
 }

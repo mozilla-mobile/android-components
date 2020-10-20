@@ -17,6 +17,7 @@ import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.profiler.Profiler
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionFactory
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
+import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtensionException
 import mozilla.components.browser.engine.gecko.webnotifications.GeckoWebNotificationDelegate
 import mozilla.components.browser.engine.gecko.webpush.GeckoWebPushDelegate
 import mozilla.components.browser.engine.gecko.webpush.GeckoWebPushHandler
@@ -267,7 +268,7 @@ class GeckoEngine(
             onSuccess(updatedExtension)
             GeckoResult<Void>()
         }, { throwable ->
-            onError(extension.id, throwable)
+            onError(extension.id, GeckoWebExtensionException(throwable))
             GeckoResult<Void>()
         })
     }
@@ -297,12 +298,11 @@ class GeckoEngine(
                 newPermissions: Array<out String>,
                 newOrigins: Array<out String>
             ): GeckoResult<AllowOrDeny>? {
-                // NB: We don't have a user flow for handling updated origins so we ignore them for now.
                 val result = GeckoResult<AllowOrDeny>()
                 webExtensionDelegate.onUpdatePermissionRequest(
                     GeckoWebExtension(current, runtime),
                     GeckoWebExtension(updated, runtime),
-                    newPermissions.toList()
+                    newPermissions.toList() + newOrigins.toList()
                 ) {
                     allow -> if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
                 }
@@ -695,7 +695,7 @@ internal fun ContentBlockingController.LogEntry.BlockingData.getBlockedCategory(
         Event.BLOCKED_CRYPTOMINING_CONTENT -> TrackingCategory.CRYPTOMINING
         Event.BLOCKED_SOCIALTRACKING_CONTENT, Event.COOKIES_BLOCKED_SOCIALTRACKER -> TrackingCategory.MOZILLA_SOCIAL
         Event.BLOCKED_TRACKING_CONTENT -> TrackingCategory.SCRIPTS_AND_SUB_RESOURCES
-        Event.REPLACED_UNSAFE_CONTENT -> TrackingCategory.SHIMMED
+        Event.REPLACED_TRACKING_CONTENT -> TrackingCategory.SHIMMED
         else -> TrackingCategory.NONE
     }
 }

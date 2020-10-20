@@ -3,13 +3,42 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
-# 63.0.0-SNAPSHOT (In Development)
+# 64.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v62.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/123?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/125?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+# 63.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v62.0.0...v63.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/124?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v63.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v63.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v63.0.0/.config.yml)
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * **Merge day!**
+    * `browser-engine-gecko-release`: GeckoView 82.0
+    * `browser-engine-gecko-beta`: GeckoView 83.0
+    * `browser-engine-gecko-nightly`: GeckoView 84.0
+
+* **feature-addons**
+  * 🚒 Bug fixed [issue #8681](https://github.com/mozilla-mobile/android-components/issues/8681) Fenix was consuming a lot of extra space on disk, when an add-on update requires a new permission, more info can be found [here](https://github.com/mozilla-mobile/android-components/issues/8681)
+  ```
+
+* All components
+ * Updated to Kotlin 1.4.10 and Coroutines 1.3.9.
+ * Updated to Android Gradle plugin 4.0.1 (downstream projects need to update too).
+
+* **service-glean**
+  * Glean was upgraded to v33.0.0
+    * ⚠️ **This is a breaking change**: Updated to the Android Gradle Plugin v4.0.1 and Gradle 6.5.1. Projects using older versions of these components will need to update in order to use newer versions of the Glean SDK.
+
+* **browser-toolbar**
+  * Clear tint of tracking protection icon when animatable
 
 * **concept-engine**
   * Added `MediaSession` for the media session API.
@@ -28,6 +57,9 @@ permalink: /changelog/
 
 * **browser-toolbar**
   * 🌟 Added API to add a click listener to the iconView.
+
+* **feature-prompts**
+  * The repost prompt now has different text and will also dismiss the pull to refresh throbber.
 
 # 62.0.0
 
@@ -121,7 +153,6 @@ permalink: /changelog/
   * Added `SessionManager.removeNormalSessions()` and `SessionManager.removePrivateSessions()`.
 * **feature-downloads**
   * 🚒 Bug fixed [issue #8456](https://github.com/mozilla-mobile/android-components/issues/8456) Crash SQLiteConstraintException UNIQUE constraint failed: downloads.id (code 1555).
-
 * **service-glean**
   * Glean was upgraded to v32.4.0
     * Allow using quantity metric type outside of Gecko ([#1198](https://github.com/mozilla/glean/pull/1198))

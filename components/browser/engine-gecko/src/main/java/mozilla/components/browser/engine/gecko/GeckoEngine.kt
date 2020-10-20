@@ -16,6 +16,7 @@ import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.profiler.Profiler
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionFactory
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
+import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtensionException
 import mozilla.components.browser.engine.gecko.webnotifications.GeckoWebNotificationDelegate
 import mozilla.components.browser.engine.gecko.webpush.GeckoWebPushDelegate
 import mozilla.components.browser.engine.gecko.webpush.GeckoWebPushHandler
@@ -150,7 +151,6 @@ class GeckoEngine(
      */
     override fun createSession(private: Boolean, contextId: String?): EngineSession {
         ThreadUtils.assertOnUiThread()
-
         val speculativeSession = speculativeConnectionFactory.get(private, contextId)
         return speculativeSession ?: GeckoEngineSession(runtime, private, defaultSettings, contextId)
     }
@@ -166,6 +166,7 @@ class GeckoEngine(
      * See [Engine.speculativeCreateSession].
      */
     override fun speculativeCreateSession(private: Boolean, contextId: String?) {
+        ThreadUtils.assertOnUiThread()
         speculativeConnectionFactory.create(runtime, private, contextId, defaultSettings)
     }
 
@@ -266,7 +267,7 @@ class GeckoEngine(
             onSuccess(updatedExtension)
             GeckoResult<Void>()
         }, { throwable ->
-            onError(extension.id, throwable)
+            onError(extension.id, GeckoWebExtensionException(throwable))
             GeckoResult<Void>()
         })
     }
@@ -296,12 +297,11 @@ class GeckoEngine(
                 newPermissions: Array<out String>,
                 newOrigins: Array<out String>
             ): GeckoResult<AllowOrDeny>? {
-                // NB: We don't have a user flow for handling updated origins so we ignore them for now.
                 val result = GeckoResult<AllowOrDeny>()
                 webExtensionDelegate.onUpdatePermissionRequest(
                     GeckoWebExtension(current, runtime),
                     GeckoWebExtension(updated, runtime),
-                    newPermissions.toList()
+                    newPermissions.toList() + newOrigins.toList()
                 ) {
                     allow -> if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
                 }

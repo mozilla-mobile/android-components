@@ -13,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.PackageInfoCompat
 import mozilla.components.lib.crash.Crash
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.support.base.ext.getStacktraceAsJsonString
 import mozilla.components.support.base.ext.getStacktraceAsString
 import mozilla.components.support.base.log.logger.Logger
 import org.json.JSONArray
@@ -110,7 +111,7 @@ class MozillaSocorroService(
         packageInfo?.let {
             if (versionName == DEFAULT_VERSION_NAME) {
                 try {
-                    versionName = packageInfo.versionName
+                    versionName = packageInfo.versionName ?: DEFAULT_VERSION_NAME
                 } catch (e: IllegalStateException) {
                     logger.error("failed to get application version")
                 }
@@ -276,6 +277,8 @@ class MozillaSocorroService(
         if (throwable?.stackTrace?.isEmpty() == false) {
             sendPart(gzipOs, boundary, "JavaStackTrace", getExceptionStackTrace(throwable,
                 !isNativeCodeCrash && !isFatalCrash), nameSet)
+
+            sendPart(gzipOs, boundary, "JavaException", throwable.getStacktraceAsJsonString(), nameSet)
         }
 
         miniDumpFilePath?.let {

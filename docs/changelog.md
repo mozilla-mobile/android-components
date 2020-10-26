@@ -21,8 +21,11 @@ permalink: /changelog/
 * **concept-engine**
   * ⚠️ Removed `TrackingCategory`.`SHIMMED`, for user usability reasons, we are going to mark SHIMMED categories as blocked, to follow the same pattern as Firefox desktop for more information see [#8769](https://github.com/mozilla-mobile/android-components/issues/8769)
 
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8585](https://github.com/mozilla-mobile/android-components/issues/8784) create download directory when it doesn't exists for more information see [mozilla-mobile/fenix#15527](https://github.com/mozilla-mobile/fenix/issues/5829).
+
 * **feature-top-sites**
-  * Added methods to rename top site entries
+  * Added methods to rename top site entries.
 
 # 63.0.0
 

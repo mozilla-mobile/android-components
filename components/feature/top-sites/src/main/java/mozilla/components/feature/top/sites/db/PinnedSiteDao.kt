@@ -5,11 +5,7 @@
 package mozilla.components.feature.top.sites.db
 
 import androidx.annotation.WorkerThread
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.Query
-import androidx.room.Transaction
+import androidx.room.*
 
 /**
  * Internal DAO for accessing [PinnedSiteEntity] instances.
@@ -19,6 +15,10 @@ internal interface PinnedSiteDao {
     @WorkerThread
     @Insert
     fun insertPinnedSite(site: PinnedSiteEntity): Long
+
+    @WorkerThread
+    @Update
+    fun updatePinnedSite(site: PinnedSiteEntity)
 
     @WorkerThread
     @Delete

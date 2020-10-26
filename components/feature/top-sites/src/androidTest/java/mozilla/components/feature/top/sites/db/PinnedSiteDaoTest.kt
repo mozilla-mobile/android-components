@@ -56,7 +56,7 @@ class PinnedSiteDaoTest {
         assertEquals(1, pinnedSites.size)
         assertEquals(topSite, pinnedSites[0])
     }
-    
+
     @Test
     fun testUpdatingTopSite() {
         val topSite = PinnedSiteEntity(
@@ -78,7 +78,6 @@ class PinnedSiteDaoTest {
         assertEquals(topSite, pinnedSites[0])
         assertEquals(topSite.title, pinnedSites[0].title)
         assertEquals(topSite.url, pinnedSites[0].url)
-        
     }
 
     @Test

@@ -5,7 +5,12 @@
 package mozilla.components.feature.top.sites.db
 
 import androidx.annotation.WorkerThread
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 
 /**
  * Internal DAO for accessing [PinnedSiteEntity] instances.

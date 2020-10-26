@@ -21,6 +21,14 @@ interface TopSitesStorage : Observable<TopSitesStorage.Observer> {
     fun addTopSite(title: String, url: String, isDefault: Boolean = false)
 
     /**
+     * Renames the given [TopSite].
+     *
+     * @param topSite The top site.
+     * @param title The new title for the top site.
+     */
+    fun renameTopSite(topSite: TopSite, title: String)
+
+    /**
      * Removes the given [TopSite].
      *
      * @param topSite The top site.

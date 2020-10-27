@@ -3,13 +3,22 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
-# 64.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/125?closed=1)
+# 65.0.0-SNAPSHOT (In Development)
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v64.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/126?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+# 64.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...v64.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/125?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v64.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v64.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v64.0.0/.config.yml)
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * Exposes GeckoView `CompositorController#ClearColor` as Setting
@@ -17,6 +26,10 @@ permalink: /changelog/
 * **browser-engine-system**
   * ⚠️ **This is a breaking change**: Renames `blackListFile` to `blocklistFile`.
   * ⚠️ **This is a breaking change**: Renames `whiteListFile` to `safelistFile`.
+
+* **feature-addons**
+  * 🚒 Bug fixed [issue #7879](https://github.com/mozilla-mobile/android-components/issues/7879) Crash when the default locale is not part of the translations fields of an add-on
+  * ⚠️ Removed `Addon.translatedName`, `Addon.translatedSummary` and `Addon.translatedDescription` and added `Addon.translateName(context: Context)`, `Addon.translateSummary(context: Context)` and `Addon.translateDescription(context: Context)`
 
 * **concept-engine**
   * ⚠️ Removed `TrackingCategory`.`SHIMMED`, for user usability reasons, we are going to mark SHIMMED categories as blocked, to follow the same pattern as Firefox desktop for more information see [#8769](https://github.com/mozilla-mobile/android-components/issues/8769)
@@ -2923,7 +2936,7 @@ permalink: /changelog/
   * Added custom notification icon for `FetchDownloadManager`.
 
 * **feature-app-links**
-  * Added safelist for schemes of URLs to open with an external app. This defaults to `mailto`, `market`, `sms` and `tel`.
+  * Added whitelist for schemes of URLs to open with an external app. This defaults to `mailto`, `market`, `sms` and `tel`.
 
 * **feature-accounts**
   * ⚠️ **This is a breaking change**: Public API for interacting with `FxaAccountManager` and sync changes

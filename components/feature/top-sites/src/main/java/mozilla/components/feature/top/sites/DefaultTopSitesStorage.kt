@@ -51,16 +51,6 @@ class DefaultTopSitesStorage(
         }
     }
 
-    override fun renameTopSite(topSite: TopSite, title: String) {
-        scope.launch {
-            if (topSite.type != FRECENT) {
-                pinnedSitesStorage.renamePinnedSite(topSite, title)
-            }
-
-            notifyObservers { onStorageUpdated() }
-        }
-    }
-
     override fun removeTopSite(topSite: TopSite) {
         scope.launch {
             if (topSite.type != FRECENT) {
@@ -70,6 +60,16 @@ class DefaultTopSitesStorage(
             // Remove the top site from both history and pinned sites storage to avoid having it
             // show up as a frecent site if it is a pinned site.
             historyStorage.deleteVisitsFor(topSite.url)
+
+            notifyObservers { onStorageUpdated() }
+        }
+    }
+
+    override fun renameTopSite(topSite: TopSite, title: String) {
+        scope.launch {
+            if (topSite.type != FRECENT) {
+                pinnedSitesStorage.renamePinnedSite(topSite, title)
+            }
 
             notifyObservers { onStorageUpdated() }
         }

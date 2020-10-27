@@ -24,6 +24,20 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
     }
 
     /**
+     * Remove a top site use case.
+     */
+    class RemoveTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
+        /**
+         * Removes the given [TopSite].
+         *
+         * @param topSite The top site.
+         */
+        operator fun invoke(topSite: TopSite) {
+            storage.removeTopSite(topSite)
+        }
+    }
+
+    /**
      * Rename a top site use case.
      */
     class RenameTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
@@ -38,29 +52,15 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
         }
     }
 
-    /**
-     * Remove a top site use case.
-     */
-    class RemoveTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
-        /**
-         * Removes the given [TopSite].
-         *
-         * @param topSite The top site.
-         */
-        operator fun invoke(topSite: TopSite) {
-            storage.removeTopSite(topSite)
-        }
-    }
-
     val addPinnedSites: AddPinnedSiteUseCase by lazy {
         AddPinnedSiteUseCase(topSitesStorage)
     }
 
-    val renameTopSites: RenameTopSiteUseCase by lazy {
-        RenameTopSiteUseCase(topSitesStorage)
-    }
-
     val removeTopSites: RemoveTopSiteUseCase by lazy {
         RemoveTopSiteUseCase(topSitesStorage)
+    }
+
+    val renameTopSites: RenameTopSiteUseCase by lazy {
+        RenameTopSiteUseCase(topSitesStorage)
     }
 }

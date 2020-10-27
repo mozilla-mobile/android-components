@@ -68,6 +68,15 @@ class PinnedSiteStorage(context: Context) {
     }
 
     /**
+     * Removes the given pinned site.
+     *
+     * @param site The pinned site.
+     */
+    suspend fun removePinnedSite(site: TopSite) = withContext(IO) {
+        pinnedSiteDao.deletePinnedSite(site.toPinnedSite())
+    }
+
+    /**
      * Renames the given pinned site.
      *
      * @param site The pinned site.
@@ -77,14 +86,5 @@ class PinnedSiteStorage(context: Context) {
         val pinnedSite = site.toPinnedSite()
         pinnedSite.title = title
         pinnedSiteDao.updatePinnedSite(pinnedSite)
-    }
-
-    /**
-     * Removes the given pinned site.
-     *
-     * @param site The pinned site.
-     */
-    suspend fun removePinnedSite(site: TopSite) = withContext(IO) {
-        pinnedSiteDao.deletePinnedSite(site.toPinnedSite())
     }
 }

@@ -28,6 +28,17 @@ class TopSitesUseCasesTest {
     }
 
     @Test
+    fun `RemoveTopSiteUseCase`() = runBlocking {
+        val topSitesStorage: TopSitesStorage = mock()
+        val topSite: TopSite = mock()
+        val useCases = TopSitesUseCases(topSitesStorage)
+
+        useCases.removeTopSites(topSite)
+
+        verify(topSitesStorage).removeTopSite(topSite)
+    }
+
+    @Test
     fun `RenameTopSiteUseCase`() = runBlocking {
         val topSitesStorage: TopSitesStorage = mock()
         val topSite: TopSite = mock()
@@ -37,16 +48,5 @@ class TopSitesUseCasesTest {
         useCases.renameTopSites(topSite, title)
 
         verify(topSitesStorage).renameTopSite(topSite, title)
-    }
-
-    @Test
-    fun `RemoveTopSiteUseCase`() = runBlocking {
-        val topSitesStorage: TopSitesStorage = mock()
-        val topSite: TopSite = mock()
-        val useCases = TopSitesUseCases(topSitesStorage)
-
-        useCases.removeTopSites(topSite)
-
-        verify(topSitesStorage).removeTopSite(topSite)
     }
 }

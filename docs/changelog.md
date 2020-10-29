@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-state**
+  * Reversed the way new child tabs are added in TabListReducer.kt. New child tabs are now added after their siblings.
+
 # 64.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...v64.0.0)

@@ -27,9 +27,18 @@ internal object TabListReducer {
                         throw IllegalArgumentException("The parent does not exist")
                     }
 
-                    // Add the child tab next to its parent
-                    val childIndex = parentIndex + 1
-                    state.tabs.subList(0, childIndex) + action.tab + state.tabs.subList(childIndex, state.tabs.size)
+                    // Add new child tab after the youngest sibling, or next to parent
+                    val youngestSiblingIndex = state.tabs.indexOfLast {
+                        it.parentId == action.tab.parentId
+                    }
+
+                    val newChildIndex: Int =
+                        if (youngestSiblingIndex >= 0) youngestSiblingIndex + 1 else parentIndex + 1
+
+                    state.tabs.subList(0, newChildIndex) + action.tab + state.tabs.subList(
+                        newChildIndex,
+                        state.tabs.size
+                    )
                 } else {
                     state.tabs + action.tab
                 }

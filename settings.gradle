@@ -148,7 +148,9 @@ if (localProperties != null) {
         includeBuild(gleanLocalPath) {
             dependencySubstitution {
                 substitute module('org.mozilla.telemetry:glean') with project(':glean')
-                    substitute module('org.mozilla.telemetry:glean-forUnitTests') with project(':glean')
+                substitute module('org.mozilla.appservices:glean') with project(':glean')
+                // Unfortunately, we don't appear to be able to replace the `forUnitTests` variant
+                // in this fashion, since `project()` doesn't take the name of a configuration.
             }
         }
     } else {

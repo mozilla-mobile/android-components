@@ -79,6 +79,7 @@ allprojects {
             name "Mozilla"
             url "https://maven.mozilla.org/maven2"
         }
+        mavenLocal()
     }
 }
 

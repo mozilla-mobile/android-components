@@ -77,6 +77,11 @@ abstract class EngineSession(
         fun onPromptRequest(promptRequest: PromptRequest) = Unit
 
         /**
+         * User cancelled a repost prompt. Page will not be reloaded.
+         */
+        fun onRepostPromptCancelled() = Unit
+
+        /**
          * The engine received a request to open or close a window.
          *
          * @param windowRequest the request to describing the required window action.
@@ -358,13 +363,6 @@ abstract class EngineSession(
              * Blocks content like scripts and sub-resources.
              */
             SCRIPTS_AND_SUB_RESOURCES(1 shl 31),
-
-            /**
-             * Indicates that content that would have been blocked has instead been replaced with a shim.
-             * This category is only used for categorization purposes ie. for checking the state of blocked content.
-             * It can not be used to actively configure a tracking protection policy.
-             */
-            SHIMMED(NONE.id),
 
             RECOMMENDED(AD.id + ANALYTICS.id + SOCIAL.id + TEST.id + MOZILLA_SOCIAL.id +
                 CRYPTOMINING.id + FINGERPRINTING.id),

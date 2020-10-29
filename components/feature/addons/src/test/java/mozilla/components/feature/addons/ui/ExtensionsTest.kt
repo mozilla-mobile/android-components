@@ -2,17 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.addons.amo.mozilla.components.feature.addons.ui
+package mozilla.components.feature.addons.ui
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
-import mozilla.components.feature.addons.ui.createdAtDate
-import mozilla.components.feature.addons.ui.getFormattedAmount
-import mozilla.components.feature.addons.ui.toLocalizedString
-import mozilla.components.feature.addons.ui.translate
-import mozilla.components.feature.addons.ui.translatedName
-import mozilla.components.feature.addons.ui.updatedAtDate
 import mozilla.components.feature.addons.update.AddonUpdater
 import mozilla.components.feature.addons.update.AddonUpdater.Status.Error
 import mozilla.components.feature.addons.update.AddonUpdater.Status.NoUpdateAvailable
@@ -49,15 +43,15 @@ class ExtensionsTest {
 
         Locale.setDefault(Locale("es"))
 
-        assertEquals("nombre", addon.translatedName)
+        assertEquals("nombre", addon.translateName(testContext))
 
         Locale.setDefault(Locale.GERMAN)
 
-        assertEquals("Name", addon.translatedName)
+        assertEquals("Name", addon.translateName(testContext))
 
         Locale.setDefault(Locale.ENGLISH)
 
-        assertEquals("name", addon.translatedName)
+        assertEquals("name", addon.translateName(testContext))
     }
 
     @Test
@@ -67,15 +61,24 @@ class ExtensionsTest {
 
         Locale.setDefault(Locale("es"))
 
-        assertEquals("Hola", map.translate(addon))
+        assertEquals("Hola", map.translate(addon, testContext))
 
         Locale.setDefault(Locale.GERMAN)
 
-        assertEquals("Hallo", map.translate(addon))
+        assertEquals("Hallo", map.translate(addon, testContext))
 
         Locale.setDefault(Locale.ITALIAN)
 
-        assertEquals("Hello", map.translate(addon))
+        assertEquals("Hello", map.translate(addon, testContext))
+
+        Locale.setDefault(Locale.CHINESE)
+
+        val locales = mapOf("es" to "Hola", "de" to "Hallo")
+
+        val lang = Locale.getDefault().language
+        val notFoundTranslation = testContext.getString(R.string.mozac_feature_addons_failed_to_translate, lang, addon.defaultLocale)
+
+        assertEquals(notFoundTranslation, locales.translate(addon, testContext))
     }
 
     @Test

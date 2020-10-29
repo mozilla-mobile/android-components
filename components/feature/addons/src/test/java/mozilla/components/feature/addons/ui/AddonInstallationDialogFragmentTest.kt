@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.addons.amo.mozilla.components.feature.addons.ui
+package mozilla.components.feature.addons.ui
 
 import android.graphics.Bitmap
 import android.view.Gravity
@@ -21,10 +21,6 @@ import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
-import mozilla.components.feature.addons.ui.AddonInstallationDialogFragment
-import mozilla.components.feature.addons.ui.KEY_ICON
-import mozilla.components.feature.addons.ui.KEY_INSTALLED_ADDON
-import mozilla.components.feature.addons.ui.translatedName
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -66,7 +62,7 @@ class AddonInstallationDialogFragmentTest {
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
-        val name = addon.translatedName
+        val name = addon.translateName(testContext)
         val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val description = dialog.findViewById<TextView>(R.id.description)
         val allowedInPrivateBrowsing = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)

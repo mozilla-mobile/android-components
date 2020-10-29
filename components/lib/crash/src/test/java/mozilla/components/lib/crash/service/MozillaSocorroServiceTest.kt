@@ -138,6 +138,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=Android_Device\r\n\r\nrobolectric"))
             assert(request.contains("name=CrashType\r\n\r\n$FATAL_NATIVE_CRASH_TYPE"))
             assert(request.contains("name=CrashTime\r\n\r\n123"))
+            assert(request.contains("name=useragent_locale\r\n\r\nen_US"))
 
             verify(service).report(crash)
             verify(service).sendReport(123456, null, "dump.path", "extras.path", true, true, crash.breadcrumbs)
@@ -324,6 +325,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=BuildID\r\n\r\ntest build id"))
             assert(request.contains("name=Version\r\n\r\n1.0.1"))
             assert(request.contains("name=ApplicationBuildID\r\n\r\n1000"))
+            assert(request.contains("name=useragent_locale\r\n\r\nen_US"))
 
             verify(service).report(crash)
             verify(service).sendReport(123456, null, "dump.path", "extras.path", true, true, crash.breadcrumbs)
@@ -379,6 +381,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=Android_Device\r\n\r\nrobolectric"))
             assert(request.contains("name=CrashType\r\n\r\n$NON_FATAL_NATIVE_CRASH_TYPE"))
             assert(request.contains("name=CrashTime\r\n\r\n123"))
+            assert(request.contains("name=useragent_locale\r\n\r\nen_US"))
 
             verify(service).report(crash)
             verify(service).sendReport(123456, null, "dump.path", "extras.path", true, false, crash.breadcrumbs)
@@ -420,6 +423,7 @@ class MozillaSocorroServiceTest {
             val request = bufferedReader.readText()
 
             assert(request.contains("name=JavaStackTrace\r\n\r\njava.lang.RuntimeException: Test"))
+            assert(request.contains("name=JavaException\r\n\r\n{\"exception\":{\"values\":[{\"stacktrace\":{\"frames\":[{\"module\":\"mozilla.components.lib.crash.service.MozillaSocorroServiceTest\",\"function\":\"MozillaSocorroService uncaught exception request is correct\",\"in_app\":true"))
             assert(request.contains("name=Android_ProcessName\r\n\r\nmozilla.components.lib.crash.test"))
             assert(request.contains("name=ProductID\r\n\r\n{aa3c5121-dab2-40e2-81ca-7ea25febc110}"))
             assert(request.contains("name=Vendor\r\n\r\nMozilla"))
@@ -428,6 +432,7 @@ class MozillaSocorroServiceTest {
             assert(request.contains("name=Android_Device\r\n\r\nrobolectric"))
             assert(request.contains("name=CrashType\r\n\r\n$UNCAUGHT_EXCEPTION_TYPE"))
             assert(request.contains("name=CrashTime\r\n\r\n123"))
+            assert(request.contains("name=useragent_locale\r\n\r\nen_US"))
 
             verify(service).report(crash)
             verify(service).sendReport(123456, crash.throwable, null, null, false, true, crash.breadcrumbs)

@@ -37,6 +37,7 @@ import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
@@ -445,6 +446,52 @@ sealed class ContentAction : BrowserAction() {
      * Updates the [LoadRequestState] of the [ContentState] with the given [sessionId].
      */
     data class UpdateLoadRequestAction(val sessionId: String, val loadRequest: LoadRequestState) : ContentAction()
+
+    /**
+     * Adds a new content permission request to the [ContentState] list.
+     * */
+    data class UpdatePermissionsRequest(
+        val sessionId: String,
+        val permissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Deletes a content permission request from the [ContentState] list.
+     * */
+    data class ConsumePermissionsRequest(
+        val sessionId: String,
+        val permissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Removes all content permission requests from the [ContentState] list.
+     * */
+    data class ClearPermissionRequests(
+        val sessionId: String
+    ) : ContentAction()
+
+    /**
+     * Adds a new app permission request to the [ContentState] list.
+     * */
+    data class UpdateAppPermissionsRequest(
+        val sessionId: String,
+        val appPermissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Deletes an app permission request from the [ContentState] list.
+     * */
+    data class ConsumeAppPermissionsRequest(
+        val sessionId: String,
+        val appPermissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Removes all app permission requests from the [ContentState] list.
+     * */
+    data class ClearAppPermissionRequests(
+        val sessionId: String
+    ) : ContentAction()
 }
 
 /**
@@ -969,18 +1016,14 @@ sealed class SearchAction : BrowserAction() {
     data class SetRegionAction(val regionState: RegionState) : SearchAction()
 
     /**
-     * Sets the list of [SearchEngine]s for the current "home" region of the user.
+     * Sets the list of search engines and default search engine IDs.
      */
-    data class SetRegionSearchEngines(
-        val searchEngines: List<SearchEngine>,
+    data class SetSearchEnginesAction(
+        val regionSearchEngines: List<SearchEngine>,
+        val customSearchEngines: List<SearchEngine>,
+        val hiddenSearchEngines: List<SearchEngine>,
+        val userSelectedSearchEngineId: String?,
         val regionDefaultSearchEngineId: String
-    ) : SearchAction()
-
-    /**
-     * Sets the list of custom [SearchEngine]s for this user.
-     */
-    data class SetCustomSearchEngines(
-        val searchEngines: List<SearchEngine>
     ) : SearchAction()
 
     /**
@@ -994,7 +1037,19 @@ sealed class SearchAction : BrowserAction() {
     data class RemoveCustomSearchEngineAction(val searchEngineId: String) : SearchAction()
 
     /**
-     * Updates [BrowserState.search] to update [SearchState.defaultSearchEngineId].
+     * Updates [BrowserState.search] to update [SearchState.userSelectedSearchEngineId].
      */
-    data class SetDefaultSearchEngineAction(val searchEngineId: String) : SearchAction()
+    data class SelectSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Shows a previously hidden, bundled search engine in [SearchState.regionSearchEngines] again
+     * and removes it from [SearchState.hiddenSearchEngines].
+     */
+    data class ShowSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Hides a bundled search engine in [SearchState.regionSearchEngines] and adds it to
+     * [SearchState.hiddenSearchEngines] instead.
+     */
+    data class HideSearchEngineAction(val searchEngineId: String) : SearchAction()
 }

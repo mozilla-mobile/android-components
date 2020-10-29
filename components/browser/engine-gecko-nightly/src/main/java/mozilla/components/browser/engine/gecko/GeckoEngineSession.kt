@@ -87,6 +87,7 @@ class GeckoEngineSession(
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
     internal var lastLoadRequestUri: String? = null
+    internal var pageLoadingUrl: String? = null
     internal var scrollY: Int = 0
 
     internal var job: Job = Job()
@@ -145,18 +146,30 @@ class GeckoEngineSession(
         if (initialLoad) {
             initialLoadRequest = LoadRequest(url, parent, flags, additionalHeaders)
         }
-        @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/8710
-        geckoSession.loadUri(url, (parent as? GeckoEngineSession)?.geckoSession, flags.value, additionalHeaders)
+
+        val loader = GeckoSession.Loader()
+            .uri(url)
+            .flags(flags.value)
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders)
+                .headerFilter(GeckoSession.HEADER_FILTER_CORS_SAFELISTED)
+        }
+
+        if (parent != null) {
+            loader.referrer((parent as GeckoEngineSession).geckoSession)
+        }
+
+        geckoSession.load(loader)
     }
 
     /**
      * See [EngineSession.loadData]
      */
     override fun loadData(data: String, mimeType: String, encoding: String) {
-        @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/8710
         when (encoding) {
-            "base64" -> geckoSession.loadData(data.toByteArray(), mimeType)
-            else -> geckoSession.loadString(data, mimeType)
+            "base64" -> geckoSession.load(GeckoSession.Loader().data(data.toByteArray(), mimeType))
+            else -> geckoSession.load(GeckoSession.Loader().data(data, mimeType))
         }
     }
 
@@ -594,6 +607,14 @@ class GeckoEngineSession(
             // This log statement is temporary and parsed by FNPRMS for performance measurements. It can be
             // removed once FNPRMS is replaced: https://github.com/mozilla-mobile/android-components/issues/8662
             fnprmsLogger.info("handleMessage GeckoView:PageStart uri=") // uri intentionally blank
+
+            pageLoadingUrl = url
+
+            // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
+            if (initialLoad && url == ABOUT_BLANK) {
+                return
+            }
+
             notifyObservers {
                 onProgress(PROGRESS_START)
                 onLoadingStateChange(true)
@@ -607,6 +628,12 @@ class GeckoEngineSession(
             // by the time we reach here, any new request will come from web content.
             // If it comes from the chrome, loadUrl(url) or loadData(string) will set it to
             // false.
+
+            // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
+            if (initialLoad && pageLoadingUrl == ABOUT_BLANK) {
+                return
+            }
+
             notifyObservers {
                 onProgress(PROGRESS_STOP)
                 onLoadingStateChange(false)
@@ -1016,6 +1043,7 @@ class GeckoEngineSession(
         defaultSettings?.testingModeEnabled?.let { geckoSession.settings.fullAccessibilityTree = it }
         defaultSettings?.userAgentString?.let { geckoSession.settings.userAgentOverride = it }
         defaultSettings?.suspendMediaWhenInactive?.let { geckoSession.settings.suspendMediaWhenInactive = it }
+        defaultSettings?.clearColor?.let { geckoSession.compositorController.clearColor = it }
 
         if (shouldOpen) {
             geckoSession.open(runtime)

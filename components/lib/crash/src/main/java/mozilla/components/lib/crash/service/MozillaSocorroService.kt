@@ -13,6 +13,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.core.content.pm.PackageInfoCompat
 import mozilla.components.lib.crash.Crash
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.support.base.ext.getStacktraceAsJsonString
 import mozilla.components.support.base.ext.getStacktraceAsString
 import mozilla.components.support.base.log.logger.Logger
 import org.json.JSONArray
@@ -29,6 +30,7 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.channels.Channels
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPOutputStream
 import kotlin.random.Random
@@ -61,9 +63,9 @@ private const val FILE_REGEX = "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}
  *
  * @param applicationContext The application [Context].
  * @param appName A human-readable app name. This name is used on crash-stats.mozilla.com to filter crashes by app.
- *                The name needs to be whitelisted for the server to accept the crash.
+ *                The name needs to be safelisted for the server to accept the crash.
  *                [File a bug](https://bugzilla.mozilla.org/enter_bug.cgi?product=Socorro) if you would like to get your
- *                app added to the whitelist.
+ *                app added to the safelist.
  * @param appId The application ID assigned by Socorro server.
  * @param version The engine version.
  * @param buildId The engine build ID.
@@ -110,7 +112,7 @@ class MozillaSocorroService(
         packageInfo?.let {
             if (versionName == DEFAULT_VERSION_NAME) {
                 try {
-                    versionName = packageInfo.versionName
+                    versionName = packageInfo.versionName ?: DEFAULT_VERSION_NAME
                 } catch (e: IllegalStateException) {
                     logger.error("failed to get application version")
                 }
@@ -260,6 +262,7 @@ class MozillaSocorroService(
         sendPart(gzipOs, boundary, "BuildID", buildId, nameSet)
         sendPart(gzipOs, boundary, "Vendor", vendor, nameSet)
         sendPart(gzipOs, boundary, "Breadcrumbs", breadcrumbs, nameSet)
+        sendPart(gzipOs, boundary, "useragent_locale", Locale.getDefault().toString(), nameSet)
 
         extrasFilePath?.let {
             val regex = "$FILE_REGEX$EXTRAS_FILE_EXT".toRegex()
@@ -276,6 +279,8 @@ class MozillaSocorroService(
         if (throwable?.stackTrace?.isEmpty() == false) {
             sendPart(gzipOs, boundary, "JavaStackTrace", getExceptionStackTrace(throwable,
                 !isNativeCodeCrash && !isFatalCrash), nameSet)
+
+            sendPart(gzipOs, boundary, "JavaException", throwable.getStacktraceAsJsonString(), nameSet)
         }
 
         miniDumpFilePath?.let {

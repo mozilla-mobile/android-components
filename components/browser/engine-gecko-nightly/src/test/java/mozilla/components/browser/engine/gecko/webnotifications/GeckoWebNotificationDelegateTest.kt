@@ -5,43 +5,114 @@
 package mozilla.components.browser.engine.gecko.webnotifications
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.concept.engine.webnotifications.WebNotification
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
-import mozilla.components.support.test.any
+import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.doNothing
-import java.lang.IllegalStateException
+import org.mockito.Mockito.verify
+import org.mozilla.geckoview.MockWebNotification
 import org.mozilla.geckoview.WebNotification as GeckoViewWebNotification
 
 @RunWith(AndroidJUnit4::class)
 class GeckoWebNotificationDelegateTest {
 
     @Test
-    fun `register background message handler`() {
+    fun `onShowNotification is forwarded to delegate`() {
         val webNotificationDelegate: WebNotificationDelegate = mock()
-        val geckoViewWebNotification: GeckoViewWebNotification = mock()
+        val geckoViewWebNotification: GeckoViewWebNotification = MockWebNotification(
+            title = "title",
+            tag = "tag",
+            cookie = "cookie",
+            text = "text",
+            imageUrl = "imageUrl",
+            textDirection = "textDirection",
+            lang = "lang",
+            requireInteraction = true,
+            source = "source"
+        )
         val geckoWebNotificationDelegate = GeckoWebNotificationDelegate(webNotificationDelegate)
-        var message: String? = null
 
-        doNothing().`when`(webNotificationDelegate).onShowNotification(any())
-        try {
-            geckoWebNotificationDelegate.onShowNotification(geckoViewWebNotification)
-        } catch (e: IllegalStateException) {
-            message = e.localizedMessage
-        }
+        val notificationCaptor = argumentCaptor<WebNotification>()
+        geckoWebNotificationDelegate.onShowNotification(geckoViewWebNotification)
+        verify(webNotificationDelegate).onShowNotification(notificationCaptor.capture())
 
-        assertEquals(message, "tag must not be null")
-        message = null
+        val notification = notificationCaptor.value
+        assertEquals(notification.title, geckoViewWebNotification.title)
+        assertEquals(notification.tag, geckoViewWebNotification.tag)
+        assertEquals(notification.body, geckoViewWebNotification.text)
+        assertEquals(notification.sourceUrl, geckoViewWebNotification.source)
+        assertEquals(notification.iconUrl, geckoViewWebNotification.imageUrl)
+        assertEquals(notification.direction, geckoViewWebNotification.textDirection)
+        assertEquals(notification.lang, geckoViewWebNotification.lang)
+        assertEquals(notification.requireInteraction, geckoViewWebNotification.requireInteraction)
+        assertFalse(notification.triggeredByWebExtension)
+    }
 
-        doNothing().`when`(webNotificationDelegate).onCloseNotification(any())
-        try {
-            geckoWebNotificationDelegate.onCloseNotification(geckoViewWebNotification)
-        } catch (e: IllegalStateException) {
-            message = e.localizedMessage
-        }
+    @Test
+    fun `onCloseNotification is forwarded to delegate`() {
+        val webNotificationDelegate: WebNotificationDelegate = mock()
+        val geckoViewWebNotification: GeckoViewWebNotification = MockWebNotification(
+            title = "title",
+            tag = "tag",
+            cookie = "cookie",
+            text = "text",
+            imageUrl = "imageUrl",
+            textDirection = "textDirection",
+            lang = "lang",
+            requireInteraction = true,
+            source = "source"
+        )
+        val geckoWebNotificationDelegate = GeckoWebNotificationDelegate(webNotificationDelegate)
 
-        assertEquals(message, "tag must not be null")
+        val notificationCaptor = argumentCaptor<WebNotification>()
+        geckoWebNotificationDelegate.onCloseNotification(geckoViewWebNotification)
+        verify(webNotificationDelegate).onCloseNotification(notificationCaptor.capture())
+
+        val notification = notificationCaptor.value
+        assertEquals(notification.title, geckoViewWebNotification.title)
+        assertEquals(notification.tag, geckoViewWebNotification.tag)
+        assertEquals(notification.body, geckoViewWebNotification.text)
+        assertEquals(notification.sourceUrl, geckoViewWebNotification.source)
+        assertEquals(notification.iconUrl, geckoViewWebNotification.imageUrl)
+        assertEquals(notification.direction, geckoViewWebNotification.textDirection)
+        assertEquals(notification.lang, geckoViewWebNotification.lang)
+        assertEquals(notification.requireInteraction, geckoViewWebNotification.requireInteraction)
+    }
+
+    @Test
+    fun `notification without a source are from web extensions`() {
+        val webNotificationDelegate: WebNotificationDelegate = mock()
+        val geckoViewWebNotification: GeckoViewWebNotification = MockWebNotification(
+            title = "title",
+            tag = "tag",
+            cookie = "cookie",
+            text = "text",
+            imageUrl = "imageUrl",
+            textDirection = "textDirection",
+            lang = "lang",
+            requireInteraction = true,
+            source = ""
+        )
+        val geckoWebNotificationDelegate = GeckoWebNotificationDelegate(webNotificationDelegate)
+
+        val notificationCaptor = argumentCaptor<WebNotification>()
+        geckoWebNotificationDelegate.onShowNotification(geckoViewWebNotification)
+        verify(webNotificationDelegate).onShowNotification(notificationCaptor.capture())
+
+        val notification = notificationCaptor.value
+        assertEquals(notification.title, geckoViewWebNotification.title)
+        assertEquals(notification.tag, geckoViewWebNotification.tag)
+        assertEquals(notification.body, geckoViewWebNotification.text)
+        assertEquals(notification.sourceUrl, geckoViewWebNotification.source)
+        assertEquals(notification.iconUrl, geckoViewWebNotification.imageUrl)
+        assertEquals(notification.direction, geckoViewWebNotification.textDirection)
+        assertEquals(notification.lang, geckoViewWebNotification.lang)
+        assertEquals(notification.requireInteraction, geckoViewWebNotification.requireInteraction)
+        assertTrue(notification.triggeredByWebExtension)
     }
 }

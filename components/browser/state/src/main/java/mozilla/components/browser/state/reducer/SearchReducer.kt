@@ -14,30 +14,27 @@ internal object SearchReducer {
      */
     fun reduce(state: BrowserState, action: SearchAction): BrowserState {
         return when (action) {
+            is SearchAction.SetSearchEnginesAction -> state.setSearchEngines(action)
             is SearchAction.SetRegionAction -> state.setRegion(action)
-            is SearchAction.SetRegionSearchEngines -> state.setRegionSearchEngines(action)
-            is SearchAction.SetCustomSearchEngines -> state.setCustomSearchEngines(action)
             is SearchAction.UpdateCustomSearchEngineAction -> state.updateCustomSearchEngine(action)
             is SearchAction.RemoveCustomSearchEngineAction -> state.removeSearchEngine(action)
-            is SearchAction.SetDefaultSearchEngineAction -> state.setDefaultSearchEngineAction(action)
+            is SearchAction.SelectSearchEngineAction -> state.selectSearchEngine(action)
+            is SearchAction.ShowSearchEngineAction -> state.showSearchEngine(action)
+            is SearchAction.HideSearchEngineAction -> state.hideSearchEngine(action)
         }
     }
 }
 
-private fun BrowserState.setRegionSearchEngines(
-    action: SearchAction.SetRegionSearchEngines
+private fun BrowserState.setSearchEngines(
+    action: SearchAction.SetSearchEnginesAction
 ): BrowserState {
     return copy(search = search.copy(
-        regionSearchEngines = action.searchEngines,
-        regionDefaultSearchEngineId = action.regionDefaultSearchEngineId
-    ))
-}
-
-private fun BrowserState.setCustomSearchEngines(
-    action: SearchAction.SetCustomSearchEngines
-): BrowserState {
-    return copy(search = search.copy(
-        customSearchEngines = action.searchEngines
+        regionSearchEngines = action.regionSearchEngines,
+        customSearchEngines = action.customSearchEngines,
+        userSelectedSearchEngineId = action.userSelectedSearchEngineId,
+        regionDefaultSearchEngineId = action.regionDefaultSearchEngineId,
+        hiddenSearchEngines = action.hiddenSearchEngines,
+        complete = true
     ))
 }
 
@@ -74,12 +71,42 @@ private fun BrowserState.removeSearchEngine(
     ))
 }
 
-private fun BrowserState.setDefaultSearchEngineAction(
-    action: SearchAction.SetDefaultSearchEngineAction
+private fun BrowserState.selectSearchEngine(
+    action: SearchAction.SelectSearchEngineAction
 ): BrowserState {
     // We allow setting an ID of a search engine that is not in the state since loading the search
     // engines may happen asynchronously and the search engine may not be loaded yet at this point.
     return copy(search = search.copy(
-        defaultSearchEngineId = action.searchEngineId
+        userSelectedSearchEngineId = action.searchEngineId
     ))
+}
+
+private fun BrowserState.showSearchEngine(
+    action: SearchAction.ShowSearchEngineAction
+): BrowserState {
+    val searchEngine = search.hiddenSearchEngines.find { searchEngine -> searchEngine.id == action.searchEngineId }
+
+    return if (searchEngine != null) {
+        copy(search = search.copy(
+            hiddenSearchEngines = search.hiddenSearchEngines - searchEngine,
+            regionSearchEngines = search.regionSearchEngines + searchEngine
+        ))
+    } else {
+        this
+    }
+}
+
+private fun BrowserState.hideSearchEngine(
+    action: SearchAction.HideSearchEngineAction
+): BrowserState {
+    val searchEngine = search.regionSearchEngines.find { searchEngine -> searchEngine.id == action.searchEngineId }
+
+    return if (searchEngine != null) {
+        copy(search = search.copy(
+            regionSearchEngines = search.regionSearchEngines - searchEngine,
+            hiddenSearchEngines = search.hiddenSearchEngines + searchEngine
+        ))
+    } else {
+        this
+    }
 }

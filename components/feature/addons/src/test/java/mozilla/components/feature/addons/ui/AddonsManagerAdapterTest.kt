@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.addons.amo.mozilla.components.feature.addons.ui
+package mozilla.components.feature.addons.ui
 
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
@@ -11,6 +11,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -20,12 +21,9 @@ import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
-import mozilla.components.feature.addons.ui.AddonsManagerAdapter
 import mozilla.components.feature.addons.ui.AddonsManagerAdapter.NotYetSupportedSection
 import mozilla.components.feature.addons.ui.AddonsManagerAdapter.Section
 import mozilla.components.feature.addons.ui.AddonsManagerAdapter.DifferCallback
-import mozilla.components.feature.addons.ui.AddonsManagerAdapterDelegate
-import mozilla.components.feature.addons.ui.CustomViewHolder
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -246,7 +244,9 @@ class AddonsManagerAdapterTest {
     @Test
     fun `bind section`() {
         val titleView: TextView = mock()
-        val addonViewHolder = CustomViewHolder.SectionViewHolder(View(testContext), titleView)
+        val divider: View = mock()
+        val addonViewHolder = CustomViewHolder.SectionViewHolder(View(testContext), titleView, divider)
+        val position = 0
 
         whenever(titleView.context).thenReturn(testContext)
 
@@ -256,11 +256,104 @@ class AddonsManagerAdapterTest {
         )
         val adapter = AddonsManagerAdapter(mock(), mock(), emptyList(), style)
 
-        adapter.bindSection(addonViewHolder, Section(R.string.mozac_feature_addons_disabled_section))
+        adapter.bindSection(addonViewHolder, Section(R.string.mozac_feature_addons_disabled_section), position)
 
         verify(titleView).setText(R.string.mozac_feature_addons_disabled_section)
         verify(titleView).typeface = style.sectionsTypeFace
         verify(titleView).setTextColor(ContextCompat.getColor(testContext, style.sectionsTextColor!!))
+        verify(divider).isVisible = style.visibleDividers && position != 0
+    }
+
+    @Test
+    fun `default section divider visibility is 'GONE' for position 0`() {
+        val titleView: TextView = mock()
+        val divider: View = mock()
+        val addonViewHolder = CustomViewHolder.SectionViewHolder(View(testContext), titleView, divider)
+        val position = 0
+
+        whenever(titleView.context).thenReturn(testContext)
+
+        val style = AddonsManagerAdapter.Style(
+            sectionsTextColor = android.R.color.black,
+            sectionsTypeFace = mock()
+        )
+        val adapter = AddonsManagerAdapter(mock(), mock(), emptyList(), style)
+
+        adapter.bindSection(addonViewHolder, Section(R.string.mozac_feature_addons_disabled_section), position)
+
+        verify(divider).visibility = View.GONE
+    }
+
+    @Test
+    fun `default section divider visibility is 'VISIBLE' for other position than 0`() {
+        val titleView: TextView = mock()
+        val divider: View = mock()
+        val addonViewHolder = CustomViewHolder.SectionViewHolder(View(testContext), titleView, divider)
+        val position = 2
+
+        whenever(titleView.context).thenReturn(testContext)
+
+        val style = AddonsManagerAdapter.Style(
+            sectionsTextColor = android.R.color.black,
+            sectionsTypeFace = mock()
+        )
+        val adapter = AddonsManagerAdapter(mock(), mock(), emptyList(), style)
+
+        adapter.bindSection(addonViewHolder, Section(R.string.mozac_feature_addons_disabled_section), position)
+
+        verify(divider).visibility = View.VISIBLE
+    }
+
+    @Test
+    fun `section divider visibility is 'GONE' when set as such in style`() {
+        val titleView: TextView = mock()
+        val divider: View = mock()
+        val addonViewHolder = CustomViewHolder.SectionViewHolder(View(testContext), titleView, divider)
+        val position = 2
+
+        whenever(titleView.context).thenReturn(testContext)
+
+        val style = AddonsManagerAdapter.Style(
+            sectionsTextColor = android.R.color.black,
+            sectionsTypeFace = mock(),
+            visibleDividers = false
+        )
+        val adapter = AddonsManagerAdapter(mock(), mock(), emptyList(), style)
+
+        adapter.bindSection(addonViewHolder, Section(R.string.mozac_feature_addons_disabled_section), position)
+
+        verify(divider).visibility = View.GONE
+    }
+
+    @Test
+    fun `section divider style is set when arguments are passed in style`() {
+        val titleView: TextView = mock()
+        val divider: View = mock()
+        val addonViewHolder = CustomViewHolder.SectionViewHolder(View(testContext), titleView, divider)
+        val position = 2
+        val dividerHeight = android.R.dimen.notification_large_icon_height
+        val dividerColor = android.R.color.white
+
+        whenever(titleView.context).thenReturn(testContext)
+        whenever(divider.context).thenReturn(testContext)
+        whenever(divider.layoutParams).thenReturn(mock())
+
+        val style = AddonsManagerAdapter.Style(
+            sectionsTextColor = android.R.color.black,
+            sectionsTypeFace = mock(),
+            visibleDividers = true,
+            dividerColor = dividerColor,
+            dividerHeight = dividerHeight
+        )
+
+        val adapter = AddonsManagerAdapter(mock(), mock(), emptyList(), style)
+
+        adapter.bindSection(addonViewHolder, Section(R.string.mozac_feature_addons_disabled_section), position)
+
+        verify(divider).visibility = View.VISIBLE
+        verify(divider).setBackgroundColor(dividerColor)
+        verify(divider).layoutParams
+        assertEquals(testContext.resources.getDimensionPixelOffset(dividerHeight), divider.layoutParams.height)
     }
 
     @Test
@@ -302,14 +395,14 @@ class AddonsManagerAdapterTest {
     @Test
     fun updateAddon() {
         var addon = Addon(
-                id = "id",
-                authors = emptyList(),
-                categories = emptyList(),
-                downloadUrl = "downloadUrl",
-                version = "version",
-                permissions = emptyList(),
-                createdAt = "",
-                updatedAt = ""
+            id = "id",
+            authors = emptyList(),
+            categories = emptyList(),
+            downloadUrl = "downloadUrl",
+            version = "version",
+            permissions = emptyList(),
+            createdAt = "",
+            updatedAt = ""
         )
         val adapter = spy(AddonsManagerAdapter(mock(), mock(), listOf(addon)))
 
@@ -325,25 +418,25 @@ class AddonsManagerAdapterTest {
     @Test
     fun updateAddons() {
         var addon1 = Addon(
-                id = "addon1",
-                authors = emptyList(),
-                categories = emptyList(),
-                downloadUrl = "downloadUrl",
-                version = "version",
-                permissions = emptyList(),
-                createdAt = "",
-                updatedAt = ""
+            id = "addon1",
+            authors = emptyList(),
+            categories = emptyList(),
+            downloadUrl = "downloadUrl",
+            version = "version",
+            permissions = emptyList(),
+            createdAt = "",
+            updatedAt = ""
         )
 
         val addon2 = Addon(
-                id = "addon2",
-                authors = emptyList(),
-                categories = emptyList(),
-                downloadUrl = "downloadUrl",
-                version = "version",
-                permissions = emptyList(),
-                createdAt = "",
-                updatedAt = ""
+            id = "addon2",
+            authors = emptyList(),
+            categories = emptyList(),
+            downloadUrl = "downloadUrl",
+            version = "version",
+            permissions = emptyList(),
+            createdAt = "",
+            updatedAt = ""
         )
         val adapter = spy(AddonsManagerAdapter(mock(), mock(), listOf(addon1, addon2)))
 
@@ -362,25 +455,25 @@ class AddonsManagerAdapterTest {
     @Test
     fun differCallback() {
         var addon1 = Addon(
-                id = "addon1",
-                authors = emptyList(),
-                categories = emptyList(),
-                downloadUrl = "downloadUrl",
-                version = "version",
-                permissions = emptyList(),
-                createdAt = "",
-                updatedAt = ""
+            id = "addon1",
+            authors = emptyList(),
+            categories = emptyList(),
+            downloadUrl = "downloadUrl",
+            version = "version",
+            permissions = emptyList(),
+            createdAt = "",
+            updatedAt = ""
         )
 
         var addon2 = Addon(
-                id = "addon1",
-                authors = emptyList(),
-                categories = emptyList(),
-                downloadUrl = "downloadUrl",
-                version = "version",
-                permissions = emptyList(),
-                createdAt = "",
-                updatedAt = ""
+            id = "addon1",
+            authors = emptyList(),
+            categories = emptyList(),
+            downloadUrl = "downloadUrl",
+            version = "version",
+            permissions = emptyList(),
+            createdAt = "",
+            updatedAt = ""
         )
 
         assertTrue(DifferCallback.areItemsTheSame(addon1, addon2))

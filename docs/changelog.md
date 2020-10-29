@@ -12,6 +12,13 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8823](https://github.com/mozilla-mobile/android-components/issues/8823) Downloads for data URLs were failing on nightly and beta more details in the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/16228#issuecomment-717976737).
+
+* **browser-engine-gecko-nightly**
+  * Adds optional `PreferredColorScheme` param to `GeckoEngineView`
+  * On `GeckoView` init call `coverUntilFirstPaint()` with `PreferredColorScheme`
+
 # 64.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...v64.0.0)
@@ -36,6 +43,9 @@ permalink: /changelog/
 
 * **feature-downloads**
   * 🚒 Bug fixed [issue #8585](https://github.com/mozilla-mobile/android-components/issues/8784) create download directory when it doesn't exists for more information see [mozilla-mobile/fenix#15527](https://github.com/mozilla-mobile/fenix/issues/5829).
+
+* **feature-top-sites**
+  * Added `RenameTopSiteUseCase` to rename pinned site entries. [#8751](https://github.com/mozilla-mobile/android-components/issues/8751)
 
 # 63.0.0
 
@@ -80,6 +90,7 @@ permalink: /changelog/
 * **feature-sitepermissions**
   * ⚠️ **This is a breaking change**: The `SitePermissionsRules`'s constructor, now requires a new parameter `persistentStorage`.
   * 🌟 Added support for the local storage site permission see [#3153](https://github.com/mozilla-mobile/android-components/issues/3153).
+  * 🌟 Moved sitePermissionsFeature from using session to using kotlin flow for observing content and app permission requests[#8554](https://github.com/mozilla-mobile/android-components/issues/8554)
 
 * **browser-toolbar**
   * 🌟 Added API to add a click listener to the iconView.

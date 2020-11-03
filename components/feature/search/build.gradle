@@ -45,6 +45,7 @@ dependencies {
     implementation project(':browser-state')
     implementation project(':concept-engine')
     implementation project(':service-location')
+    implementation project(':support-base')
     implementation project(':support-utils')
     implementation project(':support-ktx')
 

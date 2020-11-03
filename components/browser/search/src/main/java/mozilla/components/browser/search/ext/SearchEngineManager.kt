@@ -8,6 +8,7 @@ import android.content.Context
 import mozilla.components.browser.search.DefaultSearchEngineProvider
 import mozilla.components.browser.search.SearchEngine
 import mozilla.components.browser.search.SearchEngineManager
+import mozilla.components.support.base.utils.LazyComponent
 
 /**
  * Converts a [SearchEngineManager] to follow the [DefaultSearchEngineProvider] interface.
@@ -18,14 +19,14 @@ import mozilla.components.browser.search.SearchEngineManager
  *
  * https://github.com/mozilla-mobile/android-components/issues/8686
  */
-fun SearchEngineManager.toDefaultSearchEngineProvider(
+fun LazyComponent<SearchEngineManager>.toDefaultSearchEngineProvider(
     context: Context
 ) = object : DefaultSearchEngineProvider {
     override fun getDefaultSearchEngine(): SearchEngine? {
-        return getDefaultSearchEngine(context)
+        return get().getDefaultSearchEngine(context)
     }
 
     override suspend fun retrieveDefaultSearchEngine(): SearchEngine? {
-        return getDefaultSearchEngineAsync(context)
+        return get().getDefaultSearchEngineAsync(context)
     }
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.search.SearchEngineParser
 import mozilla.components.browser.search.ext.toDefaultSearchEngineProvider
+import mozilla.components.support.base.utils.LazyComponent
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -104,9 +105,10 @@ class SearchSuggestionClientTest {
                 "google", "searchplugins/google-b-m.xml")
 
         val searchEngineManager: SearchEngineManager = mock()
+        val lazyManager = LazyComponent { searchEngineManager }
         val client = SearchSuggestionClient(
             testContext,
-            searchEngineManager.toDefaultSearchEngineProvider(testContext),
+            lazyManager.toDefaultSearchEngineProvider(testContext),
             GOOGLE_MOCK_RESPONSE
         )
 

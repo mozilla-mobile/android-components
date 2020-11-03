@@ -15,6 +15,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.manifest.Size
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.fetch.Client
+import mozilla.components.support.base.utils.LazyComponent
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertFalse
@@ -39,7 +40,7 @@ class WebAppUseCasesTest {
             selectedTabId = session.id
         ))
 
-        val webAppUseCases = WebAppUseCases(testContext, store, mock<WebAppShortcutManager>())
+        val webAppUseCases = WebAppUseCases(testContext, store, LazyComponent { mock() })
         assertFalse(webAppUseCases.isInstallable())
     }
 
@@ -65,7 +66,7 @@ class WebAppUseCasesTest {
         val shortcutManager: WebAppShortcutManager = mock()
         `when`(shortcutManager.supportWebApps).thenReturn(true)
 
-        val webAppUseCases = WebAppUseCases(testContext, store, shortcutManager)
+        val webAppUseCases = WebAppUseCases(testContext, store, LazyComponent { shortcutManager })
         assertTrue(webAppUseCases.isInstallable())
     }
 
@@ -95,7 +96,7 @@ class WebAppUseCasesTest {
         val shortcutManager: WebAppShortcutManager = mock()
         `when`(shortcutManager.supportWebApps).thenReturn(false)
 
-        assertFalse(WebAppUseCases(testContext, store, shortcutManager).isInstallable())
+        assertFalse(WebAppUseCases(testContext, store, LazyComponent { shortcutManager }).isInstallable())
     }
 
     @Test
@@ -113,7 +114,7 @@ class WebAppUseCasesTest {
 
         `when`(storage.hasRecentManifest("https://www.mozilla.org", currentTime)).thenReturn(true)
 
-        assertEquals(WebAppShortcutManager.WebAppInstallState.Installed, WebAppUseCases(testContext, store, shortcutManager).getInstallState(currentTime))
+        assertEquals(WebAppShortcutManager.WebAppInstallState.Installed, WebAppUseCases(testContext, store, LazyComponent { shortcutManager }).getInstallState(currentTime))
     }
 }
 

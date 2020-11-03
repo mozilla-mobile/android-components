@@ -22,6 +22,7 @@ import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.WebAppShortcutManager
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.base.utils.LazyComponent
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 
 /**
@@ -37,7 +38,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 class ManifestUpdateFeature(
     private val applicationContext: Context,
     private val store: BrowserStore,
-    private val shortcutManager: WebAppShortcutManager,
+    private val shortcutManager: LazyComponent<WebAppShortcutManager>,
     private val storage: ManifestStorage,
     private val sessionId: String,
     private var initialManifest: WebAppManifest
@@ -57,7 +58,7 @@ class ManifestUpdateFeature(
     @VisibleForTesting
     internal suspend fun updateStoredManifest(manifest: WebAppManifest) {
         storage.updateManifest(manifest)
-        shortcutManager.updateShortcuts(applicationContext, listOf(manifest))
+        shortcutManager.get().updateShortcuts(applicationContext, listOf(manifest))
         initialManifest = manifest
     }
 

@@ -19,6 +19,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.pwa.ManifestStorage
 import mozilla.components.feature.pwa.WebAppShortcutManager
+import mozilla.components.support.base.utils.LazyComponent
 import mozilla.components.support.test.any
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
@@ -35,7 +36,7 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class ManifestUpdateFeatureTest {
 
-    private lateinit var shortcutManager: WebAppShortcutManager
+    private lateinit var shortcutManager: LazyComponent<WebAppShortcutManager>
     private lateinit var storage: ManifestStorage
     private lateinit var store: BrowserStore
     private lateinit var dispatcher: TestCoroutineDispatcher
@@ -50,7 +51,7 @@ class ManifestUpdateFeatureTest {
     @Before
     fun setUp() {
         storage = mock()
-        shortcutManager = mock()
+        shortcutManager = LazyComponent { mock() }
 
         dispatcher = TestCoroutineDispatcher()
         Dispatchers.setMain(dispatcher)
@@ -252,7 +253,7 @@ class ManifestUpdateFeatureTest {
         feature.updateStoredManifest(manifest)
 
         verify(storage).updateManifest(manifest)
-        verify(shortcutManager).updateShortcuts(testContext, listOf(manifest))
+        verify(shortcutManager.get()).updateShortcuts(testContext, listOf(manifest))
     }
 
     @Test

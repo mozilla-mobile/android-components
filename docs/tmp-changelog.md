@@ -3,3 +3,4 @@ have to stop on every commit for a merge conflict. This file will be removed at 
 
 * **feature-pwa**
   * ⚠️ **This is a breaking change**: `WebAppUseCases`'s initializer argument, `WebAppShortcutManager`, is wrapped in a `LazyComponent`. The same applies to the classes defined inside `WebAppUseCases`.
+  * ⚠️ **This is a breaking change**: `ManifestUpdateFeature`'s initializer argument, `WebAppShortcutManager`, is wrapped in a `LazyComponent`.

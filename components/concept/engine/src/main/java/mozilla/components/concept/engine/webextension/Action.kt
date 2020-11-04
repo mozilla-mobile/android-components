@@ -34,7 +34,7 @@ data class Action(
      * unchanged. An extension can send a tab-specific action and only include the properties
      * it wants to override for the tab.
      */
-    fun copyWithOverride(override: Action) =
+    fun copyWithOverride(override: Action?) = if (override != null) {
         Action(
             title = override.title ?: title,
             enabled = override.enabled ?: enabled,
@@ -44,6 +44,9 @@ data class Action(
             loadIcon = override.loadIcon ?: loadIcon,
             onClick = override.onClick
         )
+    } else {
+        this
+    }
 }
 
 typealias WebExtensionBrowserAction = Action

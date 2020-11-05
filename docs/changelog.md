@@ -139,6 +139,13 @@ permalink: /changelog/
 * **service-nimbus**
   * Added new Nimbus rapid experiment library component. This is a Rust based component that is delivered to A-C through the appservices megazord. See the [nimbus-sdk repo](https://github.com/mozilla/nimbus-sdk) for more info.
 
+* **browser-search**
+  * ⚠️ **This is a breaking change**: `SearchEngineManager.toDefaultSearchEngineProvider` has become `LazyComponent<SearchEngineManager>.toDefaultSearchEngineProvider`.
+
+* **feature-pwa**
+  * ⚠️ **This is a breaking change**: `WebAppUseCases`'s initializer argument, `WebAppShortcutManager`, is wrapped in a `LazyComponent`. The same applies to the classes defined inside `WebAppUseCases`.
+  * ⚠️ **This is a breaking change**: `ManifestUpdateFeature`'s initializer argument, `WebAppShortcutManager`, is wrapped in a `LazyComponent`.
+
 # 65.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v64.0.0...v65.0.0)

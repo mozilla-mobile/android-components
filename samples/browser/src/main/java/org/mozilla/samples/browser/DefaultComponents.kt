@@ -34,6 +34,7 @@ import mozilla.components.browser.thumbnails.storage.ThumbnailStorage
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
@@ -103,6 +104,7 @@ open class DefaultComponents(private val applicationContext: Context) {
             requestInterceptor = SampleRequestInterceptor(applicationContext)
             remoteDebuggingEnabled = true
             supportMultipleWindows = true
+            preferredColorScheme = PreferredColorScheme.Dark
         }
     }
 
@@ -189,7 +191,7 @@ open class DefaultComponents(private val applicationContext: Context) {
         AddonCollectionProvider(
             applicationContext,
             client,
-            collectionName = "83a9cccfe6e24a34bd7b155ff9ee32",
+            collectionName = "7dfae8669acc4312a65e8ba5553036",
             maxCacheAgeInMinutes = DAY_IN_MINUTES
         )
     }
@@ -199,7 +201,7 @@ open class DefaultComponents(private val applicationContext: Context) {
     }
 
     val searchUseCases by lazy {
-        SearchUseCases(applicationContext, store, store.toDefaultSearchEngineProvider(), sessionManager)
+        SearchUseCases(store, store.toDefaultSearchEngineProvider(), sessionManager)
     }
 
     val defaultSearchUseCase by lazy {

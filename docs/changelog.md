@@ -14,6 +14,12 @@ permalink: /changelog/
 * **accounts-push**
   * 🚒 Bug fixed [issue #8745](https://github.com/mozilla-mobile/android-components/issues/8745) - Remove OneTimeFxaPushReset from FxaPushSupportFeature
     * ⚠️ **This is a breaking change** because the public API changes with the removal of the class.
+    
+* **feature-search**
+ * * ⚠️ **This is a breaking change**: `SearchUseCases` no longer requires a `Context` parameter in the constructor. 
+
+* **browser-session**
+  * `SelectionAwareSessionObserver` is now deprecated. All session state changes can be observed using the browser store (`browser-state` module).    
 
 # 65.0.0
 
@@ -54,6 +60,9 @@ permalink: /changelog/
 
 * **feature-accounts-push**
   * Made `FxaPushSupportFeature` aware of the `PushConfig.disableRateLimit` flag.
+
+* **support-base**
+  * Add `LazyComponent`, a wrapper around `lazy` that avoids initializing recursive dependencies until component use.
 
 # 64.0.0
 

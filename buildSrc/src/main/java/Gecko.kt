@@ -16,7 +16,7 @@ internal object GeckoVersions {
     /**
      * GeckoView Release Version.
      */
-    const val release_version = "81.0.20201012085804"
+    const val release_version = "81.0.20201108175212"
 }
 
 @Suppress("Unused", "MaxLineLength")

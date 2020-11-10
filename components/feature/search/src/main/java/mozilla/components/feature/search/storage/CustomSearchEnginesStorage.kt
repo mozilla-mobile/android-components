@@ -26,14 +26,14 @@ internal class CustomSearchEngineStorage(
     private val context: Context,
     private val coroutineContext: CoroutineContext = Dispatchers.IO
 ) : SearchMiddleware.CustomStorage {
-    private val reader = SearchEngineReader()
+    private val reader = SearchEngineReader(SearchEngine.Type.CUSTOM)
     private val writer = SearchEngineWriter()
 
     override suspend fun loadSearchEngineList(): List<SearchEngine> = withContext(coroutineContext) {
         val searchEngineList = mutableListOf<SearchEngine>()
         getFileDirectory().listFiles()?.forEach {
             val filename = it.name.removeSuffix(SEARCH_FILE_EXTENSION)
-            val identifier = String(Base64.decode(filename, Base64.DEFAULT))
+            val identifier = String(Base64.decode(filename, Base64.NO_WRAP or Base64.URL_SAFE))
             searchEngineList.add(loadSearchEngine(identifier))
         }
         searchEngineList.toList()
@@ -53,7 +53,7 @@ internal class CustomSearchEngineStorage(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getSearchFile(identifier: String): AtomicFile {
-        val encodedId = Base64.encodeToString(identifier.toByteArray(), Base64.DEFAULT)
+        val encodedId = Base64.encodeToString(identifier.toByteArray(), Base64.NO_WRAP or Base64.URL_SAFE)
         return AtomicFile(File(getFileDirectory(), encodedId + SEARCH_FILE_EXTENSION))
     }
 

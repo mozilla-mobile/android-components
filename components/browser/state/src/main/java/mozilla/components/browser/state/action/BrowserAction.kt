@@ -37,6 +37,7 @@ import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
@@ -151,6 +152,13 @@ sealed class TabListAction : BrowserAction() {
      */
     data class RemoveTabAction(val tabId: String, val selectParentIfExists: Boolean = true) :
         TabListAction()
+
+    /**
+     * Removes the [TabSessionState]s with the given [tabId]s from the list of sessions.
+     *
+     * @property tabIds the IDs of the tabs to remove.
+     */
+    data class RemoveTabsAction(val tabIds: List<String>) : TabListAction()
 
     /**
      * Restores state from a (partial) previous state.
@@ -445,6 +453,52 @@ sealed class ContentAction : BrowserAction() {
      * Updates the [LoadRequestState] of the [ContentState] with the given [sessionId].
      */
     data class UpdateLoadRequestAction(val sessionId: String, val loadRequest: LoadRequestState) : ContentAction()
+
+    /**
+     * Adds a new content permission request to the [ContentState] list.
+     * */
+    data class UpdatePermissionsRequest(
+        val sessionId: String,
+        val permissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Deletes a content permission request from the [ContentState] list.
+     * */
+    data class ConsumePermissionsRequest(
+        val sessionId: String,
+        val permissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Removes all content permission requests from the [ContentState] list.
+     * */
+    data class ClearPermissionRequests(
+        val sessionId: String
+    ) : ContentAction()
+
+    /**
+     * Adds a new app permission request to the [ContentState] list.
+     * */
+    data class UpdateAppPermissionsRequest(
+        val sessionId: String,
+        val appPermissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Deletes an app permission request from the [ContentState] list.
+     * */
+    data class ConsumeAppPermissionsRequest(
+        val sessionId: String,
+        val appPermissionRequest: PermissionRequest
+    ) : ContentAction()
+
+    /**
+     * Removes all app permission requests from the [ContentState] list.
+     * */
+    data class ClearAppPermissionRequests(
+        val sessionId: String
+    ) : ContentAction()
 }
 
 /**
@@ -974,7 +1028,11 @@ sealed class SearchAction : BrowserAction() {
     data class SetSearchEnginesAction(
         val regionSearchEngines: List<SearchEngine>,
         val customSearchEngines: List<SearchEngine>,
-        val defaultSearchEngineId: String?,
+        val hiddenSearchEngines: List<SearchEngine>,
+        val additionalSearchEngines: List<SearchEngine>,
+        val additionalAvailableSearchEngines: List<SearchEngine>,
+        val userSelectedSearchEngineId: String?,
+        val userSelectedSearchEngineName: String?,
         val regionDefaultSearchEngineId: String
     ) : SearchAction()
 
@@ -989,7 +1047,35 @@ sealed class SearchAction : BrowserAction() {
     data class RemoveCustomSearchEngineAction(val searchEngineId: String) : SearchAction()
 
     /**
-     * Updates [BrowserState.search] to update [SearchState.defaultSearchEngineId].
+     * Updates [BrowserState.search] to update [SearchState.userSelectedSearchEngineId] and
+     * [SearchState.userSelectedSearchEngineName].
      */
-    data class SetDefaultSearchEngineAction(val searchEngineId: String) : SearchAction()
+    data class SelectSearchEngineAction(
+        val searchEngineId: String,
+        val searchEngineName: String?
+    ) : SearchAction()
+
+    /**
+     * Shows a previously hidden, bundled search engine in [SearchState.regionSearchEngines] again
+     * and removes it from [SearchState.hiddenSearchEngines].
+     */
+    data class ShowSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Hides a bundled search engine in [SearchState.regionSearchEngines] and adds it to
+     * [SearchState.hiddenSearchEngines] instead.
+     */
+    data class HideSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Adds an additional search engine from [SearchState.additionalAvailableSearchEngines] to
+     * [SearchState.additionalSearchEngines].
+     */
+    data class AddAdditionalSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Removes and additional search engine from [SearchState.additionalSearchEngines] and adds it
+     * back to [SearchState.additionalAvailableSearchEngines].
+     */
+    data class RemoveAdditionalSearchEngineAction(val searchEngineId: String) : SearchAction()
 }

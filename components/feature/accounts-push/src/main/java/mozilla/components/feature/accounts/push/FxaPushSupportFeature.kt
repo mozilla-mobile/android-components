@@ -112,13 +112,10 @@ internal class AccountObserver(
 ) : SyncAccountObserver {
 
     private val logger = Logger(AccountObserver::class.java.simpleName)
-    private val constellationObserver = ConstellationObserver(context, push)
-    private val pushReset = OneTimeFxaPushReset(context, push)
+    private val verificationDelegate = VerificationDelegate(context, push.config.disableRateLimit)
+    private val constellationObserver = ConstellationObserver(push, verificationDelegate)
 
     override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
-
-        pushReset.resetSubscriptionIfNeeded(account)
-
         // We need a new subscription only when we have a new account.
         // The subscription is removed when an account logs out.
         if (authType != AuthType.Existing && authType != AuthType.Recovered) {
@@ -131,6 +128,10 @@ internal class AccountObserver(
             }
         }
 
+        // NB: can we just expose registerDeviceObserver on account manager?
+        // registration could happen after onDevicesUpdate has been called, without having to tie this
+        // into the account "auth lifecycle".
+        // See https://github.com/mozilla-mobile/android-components/issues/8766
         account.deviceConstellation().registerDeviceObserver(constellationObserver, lifecycleOwner, autoPause)
     }
 
@@ -151,27 +152,34 @@ internal class AccountObserver(
  * when notified by the FxA server. See [Device.subscriptionExpired].
  */
 internal class ConstellationObserver(
-    context: Context,
     private val push: PushProcessor,
-    private val verifier: VerificationDelegate = VerificationDelegate(context)
+    private val verifier: VerificationDelegate
 ) : DeviceConstellationObserver {
 
     private val logger = Logger(ConstellationObserver::class.java.simpleName)
 
     override fun onDevicesUpdate(constellation: ConstellationState) {
+        logger.info("onDevicesUpdate triggered.")
         val updateSubscription = constellation.currentDevice?.subscriptionExpired ?: false
 
         // If our subscription has not expired, we do nothing.
         // If our last check was recent (see: PERIODIC_INTERVAL_MILLISECONDS), we do nothing.
-        if (!updateSubscription || !verifier.allowedToRenew()) {
+        val allowedToRenew = verifier.allowedToRenew()
+        if (!updateSubscription || !allowedToRenew) {
+            logger.info("Short-circuiting onDevicesUpdate: " +
+                "updateSubscription($updateSubscription), allowedToRenew($allowedToRenew)")
             return
+        } else {
+            logger.info("Proceeding to renew registration")
         }
 
-        logger.warn("We have been notified that our push subscription has expired; renewing registration.")
-
+        logger.info("Renewing registration")
         push.renewRegistration()
 
+        logger.info("Incrementing verifier")
+        logger.info("Verifier state before: timestamp=${verifier.innerTimestamp}, count=${verifier.innerCount}")
         verifier.increment()
+        logger.info("Verifier state after: timestamp=${verifier.innerTimestamp}, count=${verifier.innerCount}")
     }
 }
 
@@ -225,12 +233,16 @@ internal class AutoPushObserver(
 }
 
 /**
- * A helper that rate limits how often we should notify our servers to renew push registration.
+ * A helper that rate limits how often we should notify our servers to renew push registration. For debugging, we
+ * can override this rate-limit check by enabling the [disableRateLimit] flag.
  *
  * Implementation notes: This saves the timestamp of our renewal and the number of times we have renewed our
  * registration within the [PERIODIC_INTERVAL_MILLISECONDS] interval of time.
  */
-internal class VerificationDelegate(context: Context) : SharedPreferencesCache<VerificationState>(context) {
+internal class VerificationDelegate(
+    context: Context,
+    private val disableRateLimit: Boolean = false
+) : SharedPreferencesCache<VerificationState>(context) {
     override val logger: Logger = Logger(VerificationDelegate::class.java.simpleName)
     override val cacheKey: String = PREF_LAST_VERIFIED
     override val cacheName: String = PREFERENCE_NAME
@@ -263,24 +275,37 @@ internal class VerificationDelegate(context: Context) : SharedPreferencesCache<V
      * Checks whether we're within our rate limiting constraints.
      */
     fun allowedToRenew(): Boolean {
-        val withinTimeFrame = System.currentTimeMillis() - innerTimestamp < PERIODIC_INTERVAL_MILLISECONDS
-        val withinIntervalCounter = innerCount <= MAX_REQUEST_IN_INTERVAL
-        val shouldAllow = withinTimeFrame && withinIntervalCounter
+        logger.info("Allowed to renew?")
 
-        // If it's been PERIODIC_INTERVAL_MILLISECONDS since we last checked, we can reset
-        // out rate limiter and verify now.
-        if (!withinTimeFrame) {
-            reset()
+        if (disableRateLimit) {
+            logger.info("Rate limit override is enabled - allowed to renew!")
             return true
         }
 
-        return shouldAllow
+        // within time frame
+        val currentTime = System.currentTimeMillis()
+        if ((currentTime - innerTimestamp) >= PERIODIC_INTERVAL_MILLISECONDS) {
+            logger.info("Resetting. currentTime($currentTime) - $innerTimestamp < $PERIODIC_INTERVAL_MILLISECONDS")
+            reset()
+        } else {
+            logger.info("No need to reset inner timestamp and count.")
+        }
+
+        // within interval counter
+        if (innerCount > MAX_REQUEST_IN_INTERVAL) {
+            logger.info("Not allowed: innerCount($innerCount) > $MAX_REQUEST_IN_INTERVAL")
+            return false
+        }
+
+        logger.info("Allowed to renew!")
+        return true
     }
 
     /**
      * Should be called whenever a successful invocation has taken place and we want to record it.
      */
     fun increment() {
+        logger.info("Incrementing verification state.")
         val count = innerCount + 1
 
         setToCache(VerificationState(innerTimestamp, count))
@@ -289,6 +314,7 @@ internal class VerificationDelegate(context: Context) : SharedPreferencesCache<V
     }
 
     private fun reset() {
+        logger.info("Resetting verification state.")
         val timestamp = System.currentTimeMillis()
         innerCount = 0
         innerTimestamp = timestamp
@@ -302,44 +328,6 @@ internal class VerificationDelegate(context: Context) : SharedPreferencesCache<V
 
         internal const val PERIODIC_INTERVAL_MILLISECONDS = 24 * 60 * 60 * 1000L // 24 hours
         internal const val MAX_REQUEST_IN_INTERVAL = 500 // 500 requests in 24 hours
-    }
-}
-
-/**
- * Resets the fxa push scope (and therefore push subscription) if it does not follow the new format.
- *
- * This is needed only for our existing push users and can be removed when we're more confident our users are
- * all migrated.
- *
- * Implementation Notes: In order to support a new performance fix related to push and
- * [FxaAccountManager] we need to use a new push scope format. This class checks if we have the old
- * format, and removes it if so, thereby generating a new push scope with the new format.
- */
-class OneTimeFxaPushReset(
-    private val context: Context,
-    private val pushFeature: AutoPushFeature
-) {
-
-    /**
-     * Resets the push subscription if the old subscription format is used.
-     */
-    fun resetSubscriptionIfNeeded(account: OAuthAccount) {
-        val pushScope = preference(context).getString(PREF_FXA_SCOPE, null) ?: return
-
-        if (pushScope.contains(FxaPushSupportFeature.PUSH_SCOPE_PREFIX)) {
-            return
-        }
-
-        val newPushScope = FxaPushSupportFeature.PUSH_SCOPE_PREFIX + pushScope
-
-        pushFeature.unsubscribe(pushScope)
-        pushFeature.subscribe(newPushScope) { subscription ->
-            CoroutineScope(Dispatchers.Main).launch {
-                account.deviceConstellation().setDevicePushSubscription(subscription.into())
-            }
-        }
-
-        preference(context).edit().putString(PREF_FXA_SCOPE, newPushScope).apply()
     }
 }
 

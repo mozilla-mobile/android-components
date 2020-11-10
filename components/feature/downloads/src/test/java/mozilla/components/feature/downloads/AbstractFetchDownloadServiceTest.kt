@@ -12,6 +12,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Environment
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -30,6 +31,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.DownloadState.Status.DOWNLOADING
 import mozilla.components.browser.state.state.content.DownloadState.Status.FAILED
 import mozilla.components.browser.state.state.content.DownloadState.Status.INITIATED
+import mozilla.components.browser.state.state.content.DownloadState.Status.COMPLETED
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.MutableHeaders
@@ -78,12 +80,12 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.never
 import org.mockito.Mockito.verifyZeroInteractions
 import org.mockito.MockitoAnnotations.initMocks
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowNotificationManager
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import kotlin.random.Random
@@ -773,6 +775,58 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
+    fun `WHEN all downloads are completed stopForeground must be called`() {
+        val download1 = DownloadState(id = "1", url = "https://example.com/file1.txt", fileName = "file1.txt",
+                status = COMPLETED)
+        val download2 = DownloadState(id = "2", url = "https://example.com/file2.txt", fileName = "file2.txt",
+                status = COMPLETED)
+        val downloadState1 = DownloadJobState(
+            state = download1,
+            status = COMPLETED,
+            foregroundServiceId = Random.nextInt()
+        )
+
+        val downloadState2 = DownloadJobState(
+            state = download2,
+            status = COMPLETED,
+            foregroundServiceId = Random.nextInt()
+        )
+
+        service.downloadJobs["1"] = downloadState1
+        service.downloadJobs["2"] = downloadState2
+
+        service.updateForegroundNotificationIfNeeded(downloadState1)
+
+        verify(service).stopForeground(false)
+    }
+
+    @Test
+    fun `Until all downloads are NOT completed stopForeground must NOT be called`() {
+        val download1 = DownloadState(id = "1", url = "https://example.com/file1.txt", fileName = "file1.txt",
+                status = COMPLETED)
+        val download2 = DownloadState(id = "2", url = "https://example.com/file2.txt", fileName = "file2.txt",
+                status = DOWNLOADING)
+        val downloadState1 = DownloadJobState(
+            state = download1,
+            status = COMPLETED,
+            foregroundServiceId = Random.nextInt()
+        )
+
+        val downloadState2 = DownloadJobState(
+            state = download2,
+            status = DOWNLOADING,
+            foregroundServiceId = Random.nextInt()
+        )
+
+        service.downloadJobs["1"] = downloadState1
+        service.downloadJobs["2"] = downloadState2
+
+        service.updateForegroundNotificationIfNeeded(downloadState1)
+
+        verify(service, never()).stopForeground(false)
+    }
+
+    @Test
     fun `removeDownloadJob will stop the service if there are none pending downloads`() {
         val download = DownloadState(id = "1", url = "https://example.com/file.txt", fileName = "file.txt",
                 status = DOWNLOADING)
@@ -1059,6 +1113,22 @@ class AbstractFetchDownloadServiceTest {
         service.performDownload(downloadJob)
 
         verify(responseFromClient, atLeastOnce()).status
+    }
+
+    @Test
+    fun `performDownload - use the client response when resuming a download`() {
+        val responseFromDownloadState = mock<Response>()
+        val responseFromClient = mock<Response>()
+        val download = spy(DownloadState("https://example.com/file.txt", "file.txt", response = responseFromDownloadState))
+        val downloadJob = DownloadJobState(currentBytesCopied = 100, state = download, status = DOWNLOADING)
+
+        doReturn(404).`when`(responseFromClient).status
+        doReturn(responseFromClient).`when`(client).fetch(any())
+
+        service.performDownload(downloadJob)
+
+        verify(responseFromClient, atLeastOnce()).status
+        verifyZeroInteractions(responseFromDownloadState)
     }
 
     @Test
@@ -1461,6 +1531,20 @@ class AbstractFetchDownloadServiceTest {
         testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
         // one of the notifications it is the group notification only for devices the support it
         assertEquals(2, shadowNotificationService.size())
+    }
+
+    @Test
+    fun `createDirectoryIfNeeded - MUST create directory when it does not exists`() = runBlocking {
+        val download = DownloadState(destinationDirectory = Environment.DIRECTORY_DOWNLOADS, url = "")
+
+        val file = File(download.directoryPath)
+        file.delete()
+
+        assertFalse(file.exists())
+
+        service.createDirectoryIfNeeded(download)
+
+        assertTrue(file.exists())
     }
 
     @Test

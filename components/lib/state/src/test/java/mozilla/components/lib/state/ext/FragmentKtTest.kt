@@ -6,6 +6,7 @@ package mozilla.components.lib.state.ext
 
 import android.view.View
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
@@ -50,7 +51,7 @@ class FragmentKtTest {
         var latch = CountDownLatch(1)
 
         doNothing().`when`(view).addOnAttachStateChangeListener(onAttachListener.capture())
-        doReturn(true).`when`(fragment).isAdded
+        doReturn(mock<FragmentActivity>()).`when`(fragment).activity
         doReturn(view).`when`(fragment).view
         doReturn(owner.lifecycle).`when`(fragment).lifecycle
 
@@ -94,7 +95,7 @@ class FragmentKtTest {
 
     @Test
     @Synchronized
-    fun `consumeFrom does not run when fragment is not added`() {
+    fun `consumeFrom does not run when fragment is detached`() {
         val fragment = mock<Fragment>()
         val view = mock<View>()
         val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
@@ -107,10 +108,9 @@ class FragmentKtTest {
         var receivedValue = 0
         var latch = CountDownLatch(1)
 
+        doReturn(mock<FragmentActivity>()).`when`(fragment).activity
         doReturn(view).`when`(fragment).view
         doReturn(owner.lifecycle).`when`(fragment).lifecycle
-
-        doReturn(true).`when`(fragment).isAdded
 
         fragment.consumeFrom(store) { state ->
             receivedValue = state.counter
@@ -130,7 +130,7 @@ class FragmentKtTest {
         assertTrue(latch.await(1, TimeUnit.SECONDS))
         assertEquals(25, receivedValue)
 
-        doReturn(false).`when`(fragment).isAdded
+        doReturn(null).`when`(fragment).activity
 
         latch = CountDownLatch(1)
         store.dispatch(TestAction.IncrementAction).joinBlocking()
@@ -142,7 +142,7 @@ class FragmentKtTest {
         assertFalse(latch.await(1, TimeUnit.SECONDS))
         assertEquals(25, receivedValue)
 
-        doReturn(true).`when`(fragment).isAdded
+        doReturn(mock<FragmentActivity>()).`when`(fragment).activity
 
         latch = CountDownLatch(1)
         store.dispatch(TestAction.IncrementAction).joinBlocking()
@@ -166,7 +166,7 @@ class FragmentKtTest {
         var latch = CountDownLatch(1)
 
         doNothing().`when`(view).addOnAttachStateChangeListener(onAttachListener.capture())
-        doReturn(true).`when`(fragment).isAdded
+        doReturn(mock<FragmentActivity>()).`when`(fragment).activity
         doReturn(view).`when`(fragment).view
         doReturn(owner.lifecycle).`when`(fragment).lifecycle
 
@@ -211,5 +211,54 @@ class FragmentKtTest {
         store.dispatch(TestAction.IncrementAction).joinBlocking()
         assertFalse(latch.await(1, TimeUnit.SECONDS))
         assertEquals(26, receivedValue)
+    }
+
+    @Test
+    fun `consumeFlow - uses fragment as lifecycle owner by default`() {
+        val fragment = mock<Fragment>()
+        val fragmentLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.INITIALIZED)
+        val view = mock<View>()
+        val store = Store(
+            TestState(counter = 23),
+            ::reducer
+        )
+
+        val onAttachListener = argumentCaptor<View.OnAttachStateChangeListener>()
+        var receivedValue = 0
+        var latch = CountDownLatch(1)
+
+        doNothing().`when`(view).addOnAttachStateChangeListener(onAttachListener.capture())
+        doReturn(mock<FragmentActivity>()).`when`(fragment).activity
+        doReturn(view).`when`(fragment).view
+        doReturn(fragmentLifecycleOwner.lifecycle).`when`(fragment).lifecycle
+
+        fragment.consumeFlow(
+            from = store
+        ) { flow ->
+            flow.collect { state ->
+                receivedValue = state.counter
+                latch.countDown()
+            }
+        }
+
+        // Nothing received yet.
+        assertFalse(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(0, receivedValue)
+
+        // Updating state: Nothing received yet.
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertFalse(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(0, receivedValue)
+
+        // Switching to STARTED state: Receiving initial state
+        fragmentLifecycleOwner.lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        assertTrue(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(24, receivedValue)
+        latch = CountDownLatch(1)
+
+        store.dispatch(TestAction.IncrementAction).joinBlocking()
+        assertTrue(latch.await(1, TimeUnit.SECONDS))
+        assertEquals(25, receivedValue)
+        latch = CountDownLatch(1)
     }
 }

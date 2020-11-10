@@ -588,6 +588,13 @@ abstract class AbstractFetchDownloadService : Service() {
             // This device supports notification groups, we just need to update the summary notification
             updateNotificationGroup()
         }
+        // If all downloads have been completed we don't need the status of
+        // foreground service anymore, we can call stopForeground and let the user
+        // swipe the foreground notification.
+        val finishedDownloading = downloadJobs.values.toList().all { it.status == COMPLETED }
+        if (finishedDownloading) {
+            stopForeground(false)
+        }
     }
 
     @Suppress("ComplexCondition")
@@ -607,7 +614,13 @@ abstract class AbstractFetchDownloadService : Service() {
         }
 
         val request = Request(download.url.sanitizeURL(), headers = headers, cookiePolicy = cookiePolicy)
-        val response = download.response ?: httpClient.fetch(request)
+        // When resuming a download we need to use the httpClient as
+        // download.response doesn't support adding headers.
+        val response = if (isResumingDownload) {
+            httpClient.fetch(request)
+        } else {
+            download.response ?: httpClient.fetch(request)
+        }
         logger.debug("Fetching download for ${currentDownloadJobState.state.id} ")
 
         // If we are resuming a download and the response does not contain a CONTENT_RANGE
@@ -825,7 +838,16 @@ abstract class AbstractFetchDownloadService : Service() {
     @Suppress("Deprecation")
     @VisibleForTesting
     internal fun useFileStreamLegacy(download: DownloadState, append: Boolean, block: (OutputStream) -> Unit) {
+        createDirectoryIfNeeded(download)
         FileOutputStream(File(download.filePath), append).use(block)
+    }
+
+    @VisibleForTesting
+    internal fun createDirectoryIfNeeded(download: DownloadState) {
+        val directory = File(download.directoryPath)
+        if (!directory.exists()) {
+            directory.mkdir()
+        }
     }
 
     companion object {

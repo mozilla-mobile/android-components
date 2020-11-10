@@ -3,16 +3,97 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
-# 64.0.0-SNAPSHOT (In Development)
+# 66.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/125?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v65.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/127?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **accounts-push**
+  * 🚒 Bug fixed [issue #8745](https://github.com/mozilla-mobile/android-components/issues/8745) - Remove OneTimeFxaPushReset from FxaPushSupportFeature
+    * ⚠️ **This is a breaking change** because the public API changes with the removal of the class.
+
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8904](https://github.com/mozilla-mobile/android-components/issues/8904) Fix resuming downloads in nightly/beta more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/9354).
+
+* **feature-search**
+ * * ⚠️ **This is a breaking change**: `SearchUseCases` no longer requires a `Context` parameter in the constructor. 
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsFeature`'s constructor does not requires a `sessionManager` parameter anymore pass a `store` instead.
+
+* **browser-session**
+  * `SelectionAwareSessionObserver` is now deprecated. All session state changes can be observed using the browser store (`browser-state` module).
+
+# 65.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v64.0.0...v65.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/126?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v65.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v65.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v65.0.0/.config.yml)
+
+* **feature-tabs**
+  * Added `TabsUseCases.RemoveTabsUseCase` for removing an arbitrary list of tabs.
+
+* **browser-state**
+  * Added `TabListAction.RemoveTabsAction` to `BrowserAction`.
+
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8823](https://github.com/mozilla-mobile/android-components/issues/8823) Downloads for data URLs were failing on nightly and beta more details in the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/16228#issuecomment-717976737).
+  * 🚒 Bug fixed [issue #8847](https://github.com/mozilla-mobile/android-components/issues/8847) crash when trying to download a file and switching from a normal to a private mode.
+  * 🚒 Bug fixed [issue #8857](https://github.com/mozilla-mobile/android-components/issues/8857)  Sometimes it is not possible to dismiss download notifications see [Fenix#15527](https://github.com/mozilla-mobile/fenix/issues/15527) for more information.
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsFeature`'s constructor, now requires a new parameter `BrowserStore` object.
+  * 🌟 Moved sitePermissionsFeature from using session to using kotlin flow for observing content and app permission requests[#8554](https://github.com/mozilla-mobile/android-components/issues/8554)
+
+* **feature-addons**
+  * 🌟️ Added dividers for sections in add-ons list, see [#8703](https://github.com/mozilla-mobile/android-components/issues/8703).
+
+* **feature-top-sites**
+  * Added `RenameTopSiteUseCase` to rename pinned site entries. [#8751](https://github.com/mozilla-mobile/android-components/issues/8751)
+
+* **browser-engine-gecko-nightly**
+  * Adds optional `PreferredColorScheme` param to `GeckoEngineView`
+  * On `GeckoView` init call `coverUntilFirstPaint()` with `PreferredColorScheme`
+
+* **feature-push**
+  * Added `disableRateLimit` to `PushConfig` to allow for easier debugging of push during development.
+  * Made `AutoPushFeature` aware of the `PushConfig.disableRateLimit` flag.
+
+* **feature-accounts-push**
+  * Made `FxaPushSupportFeature` aware of the `PushConfig.disableRateLimit` flag.
+
+* **support-base**
+  * Add `LazyComponent`, a wrapper around `lazy` that avoids initializing recursive dependencies until component use.
+
+# 64.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v63.0.0...v64.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/125?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v64.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v64.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v64.0.0/.config.yml)
+
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * Exposes GeckoView `CompositorController#ClearColor` as Setting
+
+* **browser-engine-system**
+  * ⚠️ **This is a breaking change**: Renames `blackListFile` to `blocklistFile`.
+  * ⚠️ **This is a breaking change**: Renames `whiteListFile` to `safelistFile`.
+
+* **feature-addons**
+  * 🚒 Bug fixed [issue #7879](https://github.com/mozilla-mobile/android-components/issues/7879) Crash when the default locale is not part of the translations fields of an add-on
+  * ⚠️ Removed `Addon.translatedName`, `Addon.translatedSummary` and `Addon.translatedDescription` and added `Addon.translateName(context: Context)`, `Addon.translateSummary(context: Context)` and `Addon.translateDescription(context: Context)`
+
+* **concept-engine**
+  * ⚠️ Removed `TrackingCategory`.`SHIMMED`, for user usability reasons, we are going to mark SHIMMED categories as blocked, to follow the same pattern as Firefox desktop for more information see [#8769](https://github.com/mozilla-mobile/android-components/issues/8769)
+
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8585](https://github.com/mozilla-mobile/android-components/issues/8784) create download directory when it doesn't exists for more information see [mozilla-mobile/fenix#15527](https://github.com/mozilla-mobile/fenix/issues/5829).
 
 # 63.0.0
 

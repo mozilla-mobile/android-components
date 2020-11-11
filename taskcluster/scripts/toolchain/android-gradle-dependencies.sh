@@ -26,7 +26,6 @@ FIRST_PASS_COMPONENTS=$(grep -E "$COMPONENT_REGEX" "$PROJECT_DIR/.buildconfig.ym
 
 ASSEMBLE_COMMANDS=$(echo "$FIRST_PASS_COMPONENTS" | sed "s/$/:assemble/g")
 ASSEMBLE_TEST_COMMANDS=$(echo "$FIRST_PASS_COMPONENTS" | sed "s/$/:assembleAndroidTest/g")
-TEST_COMMANDS=$(echo "$FIRST_PASS_COMPONENTS" | sed "s/$/:test/g")
 LINT_COMMANDS=$(echo "$FIRST_PASS_COMPONENTS" | sed "s/$/:lintRelease/g")
 
 NEXUS_PREFIX='http://localhost:8081/nexus/content/repositories'
@@ -36,14 +35,14 @@ GRADLE_ARGS="--parallel -PgoogleRepo=$NEXUS_PREFIX/google/ -PjcenterRepo=$NEXUS_
 ./gradlew $GRADLE_ARGS $ASSEMBLE_COMMANDS $ASSEMBLE_TEST_COMMANDS ktlint detekt $LINT_COMMANDS
 # Some tests may be flaky, although they still download dependencies. So we let the following
 # command fail, if needed.
-set +e; ./gradlew $GRADLE_ARGS -Pcoverage $TEST_COMMANDS; set -e
+set +e; ./gradlew $GRADLE_ARGS -Pcoverage testClasses compileReleaseUnitTestSources; set -e
 
 # Second pass. For an unknown reason, gradle optimize away some of the tasks below, if they're
 # part of the first pass. That's why the second pass is introduced.
 ./gradlew $GRADLE_ARGS -Pcoverage \
-  :tooling-detekt:assemble :tooling-detekt:assembleAndroidTest :tooling-detekt:test :tooling-detekt:lintRelease \
-  :tooling-lint:assemble :tooling-lint:assembleAndroidTest :tooling-lint:test :tooling-lint:lint \
-  :samples-browser:assemble :samples-browser:assembleAndroidTest :samples-browser:test :samples-browser:lint
+  :tooling-detekt:assemble :tooling-detekt:assembleAndroidTest :tooling-detekt:testClasses :tooling-detekt:lintRelease \
+  :tooling-lint:assemble :tooling-lint:assembleAndroidTest :tooling-lint:testClasses :tooling-lint:lint \
+  :samples-browser:assemble :samples-browser:assembleAndroidTest :samples-browser:compileGeckoNightlyDebugUnitTestSources :samples-browser:lint
   # :tooling-lint:lintRelease and :samples-browser:lintRelease do not exist
 
 . taskcluster/scripts/toolchain/android-gradle-dependencies/after.sh

@@ -14,9 +14,21 @@ permalink: /changelog/
 * **accounts-push**
   * 🚒 Bug fixed [issue #8745](https://github.com/mozilla-mobile/android-components/issues/8745) - Remove OneTimeFxaPushReset from FxaPushSupportFeature
     * ⚠️ **This is a breaking change** because the public API changes with the removal of the class.
-    
+
+* **feature-downloads**
+  * 🚒 Bug fixed [issue #8904](https://github.com/mozilla-mobile/android-components/issues/8904) Fix resuming downloads in nightly/beta more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/9354).
+
 * **feature-search**
  * * ⚠️ **This is a breaking change**: `SearchUseCases` no longer requires a `Context` parameter in the constructor. 
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsFeature`'s constructor does not requires a `sessionManager` parameter anymore pass a `store` instead.
+
+* **browser-session**
+  * `SelectionAwareSessionObserver` is now deprecated. All session state changes can be observed using the browser store (`browser-state` module).
+
+* **feature-addons**
+  * `AddonManager.getAddons()` now accepts a new (optional) `allowCache` parameter to configure whether or not a cached response may be returned. This is useful in case a UI flow needs the most up-to-date addons list, or to support "refresh" functionality. By default, cached responses are allowed.
 
 # 65.0.0
 

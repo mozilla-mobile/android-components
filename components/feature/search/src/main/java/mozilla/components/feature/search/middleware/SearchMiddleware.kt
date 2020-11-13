@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.BrowserAction
+import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
@@ -20,20 +21,29 @@ import mozilla.components.feature.search.storage.SearchMetadataStorage
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
+import mozilla.components.support.base.log.logger.Logger
 import java.util.Locale
 import kotlin.coroutines.CoroutineContext
 
 /**
  * [Middleware] implementation for loading and saving [SearchEngine]s whenever the state changes.
+ *
+ * @param context The application context.
+ * @param additionalBundledSearchEngineIds List of (bundled) search engine IDs that will be loaded
+ * in addition to the search engines for the user's region and made available through
+ * [SearchState.additionalSearchEngines] and [SearchState.additionalSearchEngines].
  */
+@Suppress("LongParameterList")
 class SearchMiddleware(
     context: Context,
+    private val additionalBundledSearchEngineIds: List<String> = emptyList(),
+    private val migration: Migration? = null,
     private val customStorage: CustomStorage = CustomSearchEngineStorage(context),
     private val bundleStorage: BundleStorage = BundledSearchEnginesStorage(context),
     private val metadataStorage: MetadataStorage = SearchMetadataStorage(context),
     private val ioDispatcher: CoroutineContext = Dispatchers.IO
 ) : Middleware<BrowserState, BrowserAction> {
-
+    private val logger = Logger("SearchMiddleware")
     private val scope = CoroutineScope(ioDispatcher)
 
     override fun invoke(
@@ -53,6 +63,8 @@ class SearchMiddleware(
         when (action) {
             is SearchAction.ShowSearchEngineAction, is SearchAction.HideSearchEngineAction ->
                 updateHiddenSearchEngines(context.state.search.hiddenSearchEngines)
+            is SearchAction.AddAdditionalSearchEngineAction, is SearchAction.RemoveAdditionalSearchEngineAction ->
+                updateAdditionalSearchEngines(context.state.search.additionalSearchEngines)
         }
     }
 
@@ -60,10 +72,16 @@ class SearchMiddleware(
         store: Store<BrowserState, BrowserAction>,
         region: RegionState
     ) = scope.launch {
+        val migrationValues = migration?.getValuesToMigrate()
+        performCustomSearchEnginesMigration(migrationValues)
+
         val regionBundle = async(ioDispatcher) { bundleStorage.load(region, coroutineContext = ioDispatcher) }
-        val userSelectedSearchEngineId = async(ioDispatcher) { metadataStorage.getUserSelectedSearchEngineId() }
         val customSearchEngines = async(ioDispatcher) { customStorage.loadSearchEngineList() }
         val hiddenSearchEngineIds = async(ioDispatcher) { metadataStorage.getHiddenSearchEngines() }
+        val additionalSearchEngineIds = async(ioDispatcher) { metadataStorage.getAdditionalSearchEngines() }
+        val allAdditionalSearchEngines = async(ioDispatcher) {
+            bundleStorage.load(additionalBundledSearchEngineIds, ioDispatcher)
+        }
 
         val hiddenSearchEngines = mutableListOf<SearchEngine>()
         val filteredRegionSearchEngines = regionBundle.await().list.filter { searchEngine ->
@@ -75,12 +93,33 @@ class SearchMiddleware(
             }
         }
 
+        val regionSearchEngineIds = regionBundle.await().list.map { searchEngine -> searchEngine.id }
+
+        val additionalSearchEngines = allAdditionalSearchEngines.await().filter { searchEngine ->
+            searchEngine.id in additionalSearchEngineIds.await() &&
+                searchEngine.id !in regionSearchEngineIds
+        }
+
+        val additionalAvailableSearchEngines = allAdditionalSearchEngines.await().filter { searchEngine ->
+            searchEngine.id !in additionalSearchEngineIds.await() &&
+                searchEngine.id !in regionSearchEngineIds
+        }
+
+        performDefaultSearchEngineMigration(
+            migrationValues,
+            filteredRegionSearchEngines + customSearchEngines.await() + additionalSearchEngines
+        )
+        val userChoice = async(ioDispatcher) { metadataStorage.getUserSelectedSearchEngine() }
+
         val action = SearchAction.SetSearchEnginesAction(
             regionSearchEngines = filteredRegionSearchEngines,
             regionDefaultSearchEngineId = regionBundle.await().defaultSearchEngineId,
-            userSelectedSearchEngineId = userSelectedSearchEngineId.await(),
+            userSelectedSearchEngineId = userChoice.await()?.searchEngineId,
+            userSelectedSearchEngineName = userChoice.await()?.searchEngineName,
             customSearchEngines = customSearchEngines.await(),
-            hiddenSearchEngines = hiddenSearchEngines
+            hiddenSearchEngines = hiddenSearchEngines,
+            additionalSearchEngines = additionalSearchEngines,
+            additionalAvailableSearchEngines = additionalAvailableSearchEngines
         )
 
         store.dispatch(action)
@@ -89,7 +128,10 @@ class SearchMiddleware(
     private fun updateSearchEngineSelection(
         action: SearchAction.SelectSearchEngineAction
     ) = scope.launch {
-        metadataStorage.setUserSelectedSearchEngineId(action.searchEngineId)
+        metadataStorage.setUserSelectedSearchEngine(
+            action.searchEngineId,
+            action.searchEngineName
+        )
     }
 
     private fun removeCustomSearchEngine(
@@ -109,6 +151,53 @@ class SearchMiddleware(
     ) = scope.launch {
         metadataStorage.setHiddenSearchEngines(
             hiddenSearchEngines.map { searchEngine -> searchEngine.id }
+        )
+    }
+
+    private fun updateAdditionalSearchEngines(
+        additionalSearchEngines: List<SearchEngine>
+    ) = scope.launch {
+        metadataStorage.setAdditionalSearchEngines(
+            additionalSearchEngines.map { searchEngine -> searchEngine.id }
+        )
+    }
+
+    private suspend fun performCustomSearchEnginesMigration(values: Migration.MigrationValues?) {
+        if (values == null) {
+            return
+        }
+
+        values.customSearchEngines.forEach { searchEngine ->
+            customStorage.saveSearchEngine(searchEngine)
+        }
+    }
+
+    private suspend fun performDefaultSearchEngineMigration(
+        values: Migration.MigrationValues?,
+        engines: List<SearchEngine>
+    ) {
+        if (values == null) {
+            return
+        }
+
+        val name = values.defaultSearchEngineName ?: return
+
+        val default = engines.find { searchEngine ->
+            searchEngine.name == name
+        }
+
+        if (default == null) {
+            logger.error("Could not find migrated default search engine ($name)")
+            return
+        }
+
+        metadataStorage.setUserSelectedSearchEngine(
+            id = default.id,
+            name = if (default.type == SearchEngine.Type.BUNDLED) {
+                default.name
+            } else {
+                null
+            }
         )
     }
 
@@ -147,6 +236,14 @@ class SearchMiddleware(
         ): Bundle
 
         /**
+         * Loads the bundled search engines with the given [ids].
+         */
+        suspend fun load(
+            ids: List<String>,
+            coroutineContext: CoroutineContext = Dispatchers.IO
+        ): List<SearchEngine>
+
+        /**
          * A loaded bundle containing the list of search engines and the ID of the default for
          * the region.
          */
@@ -161,15 +258,15 @@ class SearchMiddleware(
      */
     interface MetadataStorage {
         /**
-         * Gets the ID of the default search engine the user has picked. Returns `null` if the user
-         * has not made a choice.
+         * Gets the ID (and optinally name) of the default search engine the user has picked. Returns
+         * `null` if the user has not made a choice.
          */
-        suspend fun getUserSelectedSearchEngineId(): String?
+        suspend fun getUserSelectedSearchEngine(): UserChoice?
 
         /**
-         * Sets the ID of the default search engine the user has picked.
+         * Sets the ID (and optionally name) of the default search engine the user has picked.
          */
-        suspend fun setUserSelectedSearchEngineId(id: String)
+        suspend fun setUserSelectedSearchEngine(id: String, name: String?)
 
         /**
          * Sets the list of IDs of hidden search engines.
@@ -180,5 +277,47 @@ class SearchMiddleware(
          * Gets the list of IDs of hidden search engines.
          */
         suspend fun getHiddenSearchEngines(): List<String>
+
+        /**
+         * Gets the list of IDs of additional search engines that the user explicitly added.
+         */
+        suspend fun getAdditionalSearchEngines(): List<String>
+
+        /**
+         * Sets the list of IDs of additional search engines that the user explicitly added.
+         */
+        suspend fun setAdditionalSearchEngines(ids: List<String>)
+
+        /**
+         * Data class holding the ID and name of the selected search engine of the user.
+         */
+        data class UserChoice(
+            val searchEngineId: String,
+            val searchEngineName: String?
+        )
+    }
+
+    /**
+     * Interface for a class that can provide data from a legacy system to be imported into the
+     * storage used by the middleware.
+     */
+    interface Migration {
+        /**
+         * Returns the values to be migrated. It is expected that the application returns the values
+         * only once. Afterwards the data is assumed to be migrated and should not be provided again.
+         */
+        fun getValuesToMigrate(): MigrationValues?
+
+        /**
+         * Holder data class for values to be migrated.
+         *
+         * @param customSearchEngines List of custom search engines that should be imported.
+         * @param defaultSearchEngineName Name of the default search engine that the user had
+         * selected. Or `null` if the user has not made any choice.
+         */
+        data class MigrationValues(
+            val customSearchEngines: List<SearchEngine>,
+            val defaultSearchEngineName: String?
+        )
     }
 }

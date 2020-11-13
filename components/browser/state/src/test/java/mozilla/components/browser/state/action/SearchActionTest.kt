@@ -43,7 +43,10 @@ class SearchActionTest {
             regionDefaultSearchEngineId = "id2",
             customSearchEngines = emptyList(),
             userSelectedSearchEngineId = null,
-            hiddenSearchEngines = emptyList()
+            userSelectedSearchEngineName = null,
+            hiddenSearchEngines = emptyList(),
+            additionalSearchEngines = emptyList(),
+            additionalAvailableSearchEngines = emptyList()
         )).joinBlocking()
 
         val searchEngines = store.state.search.regionSearchEngines
@@ -77,7 +80,10 @@ class SearchActionTest {
             regionSearchEngines = emptyList(),
             regionDefaultSearchEngineId = "default",
             userSelectedSearchEngineId = null,
-            hiddenSearchEngines = emptyList()
+            userSelectedSearchEngineName = null,
+            hiddenSearchEngines = emptyList(),
+            additionalSearchEngines = emptyList(),
+            additionalAvailableSearchEngines = emptyList()
         )).joinBlocking()
 
         val searchEngines = store.state.search.customSearchEngines
@@ -185,12 +191,12 @@ class SearchActionTest {
 
         assertNull(store.state.search.userSelectedSearchEngineId)
 
-        store.dispatch(SearchAction.SelectSearchEngineAction(searchEngine.id)).joinBlocking()
+        store.dispatch(SearchAction.SelectSearchEngineAction(searchEngine.id, null)).joinBlocking()
         assertEquals(searchEngine.id, store.state.search.userSelectedSearchEngineId)
 
         assertEquals(searchEngine.id, store.state.search.userSelectedSearchEngineId)
 
-        store.dispatch(SearchAction.SelectSearchEngineAction("unrecognized_id")).joinBlocking()
+        store.dispatch(SearchAction.SelectSearchEngineAction("unrecognized_id", null)).joinBlocking()
         // We allow setting an ID of a search engine that is not in the state since loading happens
         // asynchronously and the search engine may not be loaded yet.
         assertEquals("unrecognized_id", store.state.search.userSelectedSearchEngineId)

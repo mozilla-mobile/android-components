@@ -154,6 +154,13 @@ sealed class TabListAction : BrowserAction() {
         TabListAction()
 
     /**
+     * Removes the [TabSessionState]s with the given [tabId]s from the list of sessions.
+     *
+     * @property tabIds the IDs of the tabs to remove.
+     */
+    data class RemoveTabsAction(val tabIds: List<String>) : TabListAction()
+
+    /**
      * Restores state from a (partial) previous state.
      *
      * @property tabs the [TabSessionState]s to restore.
@@ -284,6 +291,12 @@ sealed class ContentAction : BrowserAction() {
      */
     data class UpdateLoadingStateAction(val sessionId: String, val loading: Boolean) :
         ContentAction()
+
+    /**
+     * Updates the refreshCanceled state of the [ContentState] with the given [sessionId].
+     */
+    data class UpdateRefreshCanceledStateAction(val sessionId: String, val refreshCanceled: Boolean) :
+            ContentAction()
 
     /**
      * Updates the search terms of the [ContentState] with the given [sessionId].
@@ -1022,7 +1035,10 @@ sealed class SearchAction : BrowserAction() {
         val regionSearchEngines: List<SearchEngine>,
         val customSearchEngines: List<SearchEngine>,
         val hiddenSearchEngines: List<SearchEngine>,
+        val additionalSearchEngines: List<SearchEngine>,
+        val additionalAvailableSearchEngines: List<SearchEngine>,
         val userSelectedSearchEngineId: String?,
+        val userSelectedSearchEngineName: String?,
         val regionDefaultSearchEngineId: String
     ) : SearchAction()
 
@@ -1037,9 +1053,13 @@ sealed class SearchAction : BrowserAction() {
     data class RemoveCustomSearchEngineAction(val searchEngineId: String) : SearchAction()
 
     /**
-     * Updates [BrowserState.search] to update [SearchState.userSelectedSearchEngineId].
+     * Updates [BrowserState.search] to update [SearchState.userSelectedSearchEngineId] and
+     * [SearchState.userSelectedSearchEngineName].
      */
-    data class SelectSearchEngineAction(val searchEngineId: String) : SearchAction()
+    data class SelectSearchEngineAction(
+        val searchEngineId: String,
+        val searchEngineName: String?
+    ) : SearchAction()
 
     /**
      * Shows a previously hidden, bundled search engine in [SearchState.regionSearchEngines] again
@@ -1052,4 +1072,16 @@ sealed class SearchAction : BrowserAction() {
      * [SearchState.hiddenSearchEngines] instead.
      */
     data class HideSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Adds an additional search engine from [SearchState.additionalAvailableSearchEngines] to
+     * [SearchState.additionalSearchEngines].
+     */
+    data class AddAdditionalSearchEngineAction(val searchEngineId: String) : SearchAction()
+
+    /**
+     * Removes and additional search engine from [SearchState.additionalSearchEngines] and adds it
+     * back to [SearchState.additionalAvailableSearchEngines].
+     */
+    data class RemoveAdditionalSearchEngineAction(val searchEngineId: String) : SearchAction()
 }

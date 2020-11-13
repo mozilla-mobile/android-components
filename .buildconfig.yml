@@ -268,6 +268,10 @@ projects:
     path: components/ui/tabcounter
     description: 'A tab counter for browsers.'
     publish: true
+  service-autofill:
+    path: components/service/autofill
+    description: 'A library for autofilling addresses and credit cards.'
+    publish: true
   service-firefox-accounts:
     path: components/service/firefox-accounts
     description: 'A library for integrating with Firefox Accounts.'

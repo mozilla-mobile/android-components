@@ -12,8 +12,19 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.BAIDU_URL
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.CN_REGION
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.EN_LANGUAGE
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.GOOGLE_URL
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.JD_URL
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.POCKET_TRENDING_URL
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.RU_REGION
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.WIKIPEDIA_URL
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.XX_LANGUAGE
+import mozilla.components.feature.top.sites.DefaultTopSitesStorage.Companion.XX_REGION
 import mozilla.components.feature.top.sites.TopSite.Type.DEFAULT
 import mozilla.components.feature.top.sites.TopSite.Type.PINNED
+import mozilla.components.feature.top.sites.db.DefaultSite
 import mozilla.components.feature.top.sites.db.Migrations
 import mozilla.components.feature.top.sites.db.TopSiteDatabase
 import org.junit.After
@@ -60,7 +71,7 @@ class OnDevicePinnedSitesStorageTest {
     }
 
     @Test
-    fun testAddingAllDefaultSites() = runBlocking {
+    fun testAddingAllPinnedSitesAsDefault() = runBlocking {
         val defaultTopSites = listOf(
             Pair("Mozilla", "https://www.mozilla.org"),
             Pair("Firefox", "https://www.firefox.com"),
@@ -177,6 +188,136 @@ class OnDevicePinnedSitesStorageTest {
         assertEquals(1, storage.getPinnedSitesCount())
         assertEquals("https://www.firefox.com", pinnedSites[0].url)
         assertEquals("Mozilla Firefox", pinnedSites[0].title)
+    }
+
+    @Test
+    fun testGettingDefaultSites() = runBlocking {
+        val defaultTopSites = listOf(
+            DefaultSite(
+                CN_REGION,
+                XX_LANGUAGE,
+                context.getString(R.string.default_top_site_baidu),
+                BAIDU_URL
+            ),
+            DefaultSite(
+                CN_REGION,
+                XX_LANGUAGE,
+                context.getString(R.string.default_top_site_jd),
+                JD_URL
+            ),
+            DefaultSite(
+                RU_REGION,
+                EN_LANGUAGE,
+                context.getString(R.string.pocket_pinned_top_articles),
+                POCKET_TRENDING_URL
+            ),
+            DefaultSite(
+                RU_REGION,
+                XX_LANGUAGE,
+                context.getString(R.string.default_top_site_wikipedia),
+                WIKIPEDIA_URL
+            ),
+            DefaultSite(
+                XX_REGION,
+                XX_LANGUAGE,
+                context.getString(R.string.default_top_site_google),
+                GOOGLE_URL
+            ),
+            DefaultSite(
+                XX_REGION,
+                EN_LANGUAGE,
+                context.getString(R.string.pocket_pinned_top_articles),
+                POCKET_TRENDING_URL
+            ),
+            DefaultSite(
+                XX_REGION,
+                XX_LANGUAGE,
+                context.getString(R.string.default_top_site_wikipedia),
+                WIKIPEDIA_URL
+            )
+        )
+
+        storage.addAllDefaultSites(defaultTopSites)
+
+        var defaultSites = storage.getDefaultSites(CN_REGION, XX_LANGUAGE)
+
+        assertEquals(2, defaultSites.size)
+        with(defaultSites[0]) {
+            assertEquals(context.getString(R.string.default_top_site_baidu), title)
+            assertEquals(BAIDU_URL, url)
+            assertEquals(CN_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+        with(defaultSites[1]) {
+            assertEquals(context.getString(R.string.default_top_site_jd), title)
+            assertEquals(JD_URL, url)
+            assertEquals(CN_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+
+        defaultSites = storage.getDefaultSites(RU_REGION, EN_LANGUAGE)
+
+        assertEquals(2, defaultSites.size)
+        with(defaultSites[0]) {
+            assertEquals(context.getString(R.string.pocket_pinned_top_articles), title)
+            assertEquals(POCKET_TRENDING_URL, url)
+            assertEquals(RU_REGION, region)
+            assertEquals(EN_LANGUAGE, language)
+        }
+        with(defaultSites[1]) {
+            assertEquals(context.getString(R.string.default_top_site_wikipedia), title)
+            assertEquals(WIKIPEDIA_URL, url)
+            assertEquals(RU_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+
+        defaultSites = storage.getDefaultSites(RU_REGION, XX_LANGUAGE)
+
+        assertEquals(1, defaultSites.size)
+        with(defaultSites[0]) {
+            assertEquals(context.getString(R.string.default_top_site_wikipedia), title)
+            assertEquals(WIKIPEDIA_URL, url)
+            assertEquals(RU_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+
+        defaultSites = storage.getDefaultSites(XX_REGION, EN_LANGUAGE)
+
+        assertEquals(3, defaultSites.size)
+        with(defaultSites[0]) {
+            assertEquals(context.getString(R.string.default_top_site_google), title)
+            assertEquals(GOOGLE_URL, url)
+            assertEquals(XX_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+        with(defaultSites[1]) {
+            assertEquals(context.getString(R.string.pocket_pinned_top_articles), title)
+            assertEquals(POCKET_TRENDING_URL, url)
+            assertEquals(XX_REGION, region)
+            assertEquals(EN_LANGUAGE, language)
+        }
+        with(defaultSites[2]) {
+            assertEquals(context.getString(R.string.default_top_site_wikipedia), title)
+            assertEquals(WIKIPEDIA_URL, url)
+            assertEquals(XX_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+
+        defaultSites = storage.getDefaultSites(XX_REGION, XX_LANGUAGE)
+
+        assertEquals(2, defaultSites.size)
+        with(defaultSites[0]) {
+            assertEquals(context.getString(R.string.default_top_site_google), title)
+            assertEquals(GOOGLE_URL, url)
+            assertEquals(XX_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
+        with(defaultSites[1]) {
+            assertEquals(context.getString(R.string.default_top_site_wikipedia), title)
+            assertEquals(WIKIPEDIA_URL, url)
+            assertEquals(XX_REGION, region)
+            assertEquals(XX_LANGUAGE, language)
+        }
     }
 
     @Test
@@ -303,6 +444,96 @@ class OnDevicePinnedSitesStorageTest {
             )
             assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_default")))
             assertEquals(4, cursor.getInt(cursor.getColumnIndexOrThrow("created_at")))
+        }
+    }
+
+    @Test
+    fun migrate3to4() = runBlocking {
+        val dbVersion3 = helper.createDatabase(MIGRATION_TEST_DB, 3).apply {
+            execSQL(
+                "INSERT INTO " +
+                    "top_sites " +
+                    "(title, url, is_default, created_at) " +
+                    "VALUES " +
+                    "('Google','https://www.google.com/',1,1)," +
+                    "('Top Articles','https://getpocket.com/fenix-top-articles',1,2)," +
+                    "('Wikipedia','https://www.wikipedia.org/',1,3)"
+            )
+        }
+
+        dbVersion3.query("SELECT * FROM top_sites").use { cursor ->
+            assertEquals(5, cursor.columnCount)
+        }
+
+        val dbVersion4 = helper.runMigrationsAndValidate(
+            MIGRATION_TEST_DB, 4, true, Migrations.migration_3_4
+        ).apply {
+            // Insert test data into the new default_top_sites table.
+            execSQL(
+                "INSERT INTO " +
+                    "default_top_sites " +
+                    "(region, language, title, url) " +
+                    "VALUES " +
+                    "('XX','XX','Firefox','https://www.firefox.com')," +
+                    "('US','en','Monitor','https://monitor.firefox.com/')"
+            )
+        }
+
+        // Inspect that no changes occurred to the top_sites table.
+        dbVersion4.query("SELECT * FROM top_sites").use { cursor ->
+            assertEquals(5, cursor.columnCount)
+            assertEquals(3, cursor.count)
+
+            cursor.moveToFirst()
+            assertEquals("Google", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+            assertEquals(
+                "https://www.google.com/",
+                cursor.getString(cursor.getColumnIndexOrThrow("url"))
+            )
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_default")))
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("created_at")))
+
+            cursor.moveToNext()
+            assertEquals("Top Articles", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+            assertEquals(
+                "https://getpocket.com/fenix-top-articles",
+                cursor.getString(cursor.getColumnIndexOrThrow("url"))
+            )
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_default")))
+            assertEquals(2, cursor.getInt(cursor.getColumnIndexOrThrow("created_at")))
+
+            cursor.moveToNext()
+            assertEquals("Wikipedia", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+            assertEquals(
+                "https://www.wikipedia.org/",
+                cursor.getString(cursor.getColumnIndexOrThrow("url"))
+            )
+            assertEquals(1, cursor.getInt(cursor.getColumnIndexOrThrow("is_default")))
+            assertEquals(3, cursor.getInt(cursor.getColumnIndexOrThrow("created_at")))
+        }
+
+        // Query that new records were able to be inserted into the new default_top_sites table.
+        dbVersion4.query("SELECT * FROM default_top_sites").use { cursor ->
+            assertEquals(5, cursor.columnCount)
+            assertEquals(2, cursor.count)
+
+            cursor.moveToFirst()
+            assertEquals("XX", cursor.getString(cursor.getColumnIndexOrThrow("region")))
+            assertEquals("XX", cursor.getString(cursor.getColumnIndexOrThrow("language")))
+            assertEquals("Firefox", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+            assertEquals(
+                "https://www.firefox.com",
+                cursor.getString(cursor.getColumnIndexOrThrow("url"))
+            )
+
+            cursor.moveToNext()
+            assertEquals("US", cursor.getString(cursor.getColumnIndexOrThrow("region")))
+            assertEquals("en", cursor.getString(cursor.getColumnIndexOrThrow("language")))
+            assertEquals("Monitor", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+            assertEquals(
+                "https://monitor.firefox.com/",
+                cursor.getString(cursor.getColumnIndexOrThrow("url"))
+            )
         }
     }
 }

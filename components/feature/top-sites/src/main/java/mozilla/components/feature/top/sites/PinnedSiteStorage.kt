@@ -8,6 +8,8 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
+import mozilla.components.feature.top.sites.db.DefaultSite
+import mozilla.components.feature.top.sites.db.DefaultSiteEntity
 import mozilla.components.feature.top.sites.db.PinnedSiteEntity
 import mozilla.components.feature.top.sites.db.TopSiteDatabase
 import mozilla.components.feature.top.sites.db.toPinnedSite
@@ -22,9 +24,29 @@ class PinnedSiteStorage(context: Context) {
     @VisibleForTesting
     internal var database: Lazy<TopSiteDatabase> = lazy { TopSiteDatabase.get(context) }
     private val pinnedSiteDao by lazy { database.value.pinnedSiteDao() }
+    private val defaultSiteDao by lazy { database.value.defaultSiteDao() }
 
     /**
-     * Adds the given list pinned sites.
+     * Adds the given list of default sites.
+     *
+     * @param defaultSites A list containing default sites.
+     */
+    suspend fun addAllDefaultSites(
+        defaultSites: List<DefaultSite>
+    ) = withContext(IO) {
+        val siteEntities = defaultSites.map {
+            DefaultSiteEntity(
+                region = it.region,
+                language = it.language,
+                title = it.title,
+                url = it.url
+            )
+        }
+        defaultSiteDao.insertAllDefaultSites(siteEntities)
+    }
+
+    /**
+     * Adds the given list of pinned sites.
      *
      * @param topSites A list containing a title to url pair of top sites to be added.
      * @param isDefault Whether or not the pinned site added should be a default pinned site. This
@@ -65,6 +87,20 @@ class PinnedSiteStorage(context: Context) {
         }
 
     /**
+     * Returns a list of all the default sites.
+     *
+     * @param countryCode The region of the user.
+     * @param language The language of the user.
+     */
+    suspend fun getDefaultSites(
+        countryCode: String,
+        language: String
+    ): List<DefaultSite> = withContext(IO) {
+        defaultSiteDao.getDefaultSites(countryCode, language)
+            .map { entity -> entity.toDefaultSite() }
+    }
+
+    /**
      * Returns a list of all the pinned sites.
      */
     suspend fun getPinnedSites(): List<TopSite> = withContext(IO) {
@@ -84,8 +120,8 @@ class PinnedSiteStorage(context: Context) {
      * Updates the given pinned site.
      *
      * @param site The pinned site.
-     * @param title The new title for the top site.
-     * @param url The new url for the top site.
+     * @param title The new title for the pinned site.
+     * @param url The new url for the pinned site.
      */
     suspend fun updatePinnedSite(site: TopSite, title: String, url: String) = withContext(IO) {
         val pinnedSite = site.toPinnedSite()

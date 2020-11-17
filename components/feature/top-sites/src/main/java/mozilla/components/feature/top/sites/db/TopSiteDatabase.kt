@@ -14,9 +14,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Internal database for storing top sites.
  */
-@Database(entities = [PinnedSiteEntity::class], version = 3)
+@Database(entities = [PinnedSiteEntity::class, DefaultSiteEntity::class], version = 4)
 internal abstract class TopSiteDatabase : RoomDatabase() {
     abstract fun pinnedSiteDao(): PinnedSiteDao
+    abstract fun defaultSiteDao(): DefaultSiteDao
 
     companion object {
         @Volatile
@@ -34,6 +35,8 @@ internal abstract class TopSiteDatabase : RoomDatabase() {
                 Migrations.migration_1_2
             ).addMigrations(
                 Migrations.migration_2_3
+            ).addMigrations(
+                Migrations.migration_3_4
             ).build().also {
                 instance = it
             }
@@ -101,6 +104,21 @@ internal object Migrations {
                     "('https://getpocket.com/fenix-top-articles', " +
                     "'https://www.wikipedia.org/', " +
                     "'https://www.youtube.com/')"
+            )
+        }
+    }
+
+    @Suppress("MagicNumber")
+    val migration_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Creates a new default_top_sites table.
+            database.execSQL(
+                "CREATE TABLE IF NOT EXISTS `default_top_sites` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "`region` TEXT NOT NULL, " +
+                    "`language` TEXT NOT NULL, " +
+                    "`title` TEXT NOT NULL, " +
+                    "`url` TEXT NOT NULL)"
             )
         }
     }

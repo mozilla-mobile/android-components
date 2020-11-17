@@ -19,6 +19,7 @@ import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
 import org.mozilla.experiments.nimbus.EnrolledExperiment
+import org.mozilla.experiments.nimbus.ErrorException
 import org.mozilla.experiments.nimbus.NimbusClient
 import org.mozilla.experiments.nimbus.NimbusClientInterface
 import org.mozilla.experiments.nimbus.RemoteSettingsConfig
@@ -67,7 +68,9 @@ interface NimbusApi {
 private const val LOG_TAG = "service/Nimbus"
 private const val EXPERIMENT_BUCKET_NAME = "main"
 private const val EXPERIMENT_COLLECTION_NAME = "nimbus-mobile-experiments"
-private const val NIMBUS_DATA_DIR: String = "nimbus_data"
+private const val NIMBUS_DATA_DIR = "nimbus_data"
+private const val MAX_RETRY_COUNT = 3
+private const val RETRY_DELAY_MS = 10000L
 
 /**
  * A singleton implementation of the [NimbusApi] interface backed by the Nimbus SDK.
@@ -139,17 +142,11 @@ class Nimbus : NimbusApi {
 
         // Do initialization off of the main thread
         scope.launch {
-            // Get experiments
-            val activeExperiments = nimbus.getActiveExperiments()
-
-            // Record enrollments in telemetry
-            recordExperimentTelemetry(activeExperiments)
-
+            tryGetActiveExperiments()?.let {
+                recordExperimentTelemetry(it)
+                onExperimentUpdated?.invoke(it)
+            }
             isInitialized = true
-
-            // Invoke the callback with the list of active experiments for the consuming app to
-            // process.
-            onExperimentUpdated?.invoke(activeExperiments)
         }
     }
 
@@ -161,13 +158,83 @@ class Nimbus : NimbusApi {
 
     override fun updateExperiments() {
         if (!isInitialized) return
-        nimbus.updateExperiments()
-        onExperimentUpdated?.invoke(nimbus.getActiveExperiments())
+        // We need to launch this off of the main thread because it involves a network request
+        // within the nimbus-sdk.
+        scope.launch {
+            if (tryUpdateExperiments()) {
+                tryGetActiveExperiments()?.let {
+                    recordExperimentTelemetry(it)
+                    onExperimentUpdated?.invoke(it)
+                }
+            }
+        }
     }
 
     override fun optOut(experimentId: String) {
         if (!isInitialized) return
         nimbus.optOut(experimentId)
+    }
+
+    // Wraps the `Nimbus.updateExperiments()` in a try/catch since the underlying nimbus-sdk
+    // makes a network request that might throw an error.  This also wraps the call in
+    // a simple retry mechanism before giving up.
+    // Returns true if the update completed without errors, false otherwise.
+    // Note: a return of "true" doesn't mean that there was any new experiments, just that there
+    // were no errors.
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun tryUpdateExperiments(): Boolean {
+        var retries = 0
+        while (retries++ < MAX_RETRY_COUNT) {
+            // Get experiments
+            try {
+                nimbus.updateExperiments()
+                return true
+            } catch (e: ErrorException.RequestError) {
+                Log.log(Log.Priority.ERROR,
+                    LOG_TAG,
+                    message = "Error fetching experiments from endpoint: $e"
+                )
+            } catch (e: ErrorException.InvalidExperimentResponse) {
+                Log.log(Log.Priority.ERROR,
+                    LOG_TAG,
+                    message = "Invalid experiment response: $e"
+                )
+            }
+
+            Thread.sleep(RETRY_DELAY_MS)
+        }
+
+        return false
+    }
+
+    // Wraps the `Nimbus.getActiveExperiments()` in a try/catch since the underlying nimbus-sdk
+    // call could make a network request that might throw an error.  This also wraps the call in
+    // a simple retry mechanism before giving up.
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun tryGetActiveExperiments(): List<EnrolledExperiment>? {
+        var retries = 0
+        var activeExperiments: List<EnrolledExperiment>? = null
+        while (retries++ < MAX_RETRY_COUNT) {
+            // Get experiments
+            try {
+                activeExperiments = nimbus.getActiveExperiments()
+                break
+            } catch (e: ErrorException.RequestError) {
+                Log.log(Log.Priority.ERROR,
+                    LOG_TAG,
+                    message = "Error fetching experiments from endpoint: $e"
+                )
+            } catch (e: ErrorException.InvalidExperimentResponse) {
+                Log.log(Log.Priority.ERROR,
+                    LOG_TAG,
+                    message = "Invalid experiment response: $e"
+                )
+            }
+
+            Thread.sleep(RETRY_DELAY_MS)
+        }
+
+        return activeExperiments
     }
 
     // This function shouldn't be exposed to the public API, but is meant for testing purposes to

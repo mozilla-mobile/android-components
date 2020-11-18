@@ -4,16 +4,44 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 67.0.0-SNAPSHOT (In Development)
+# 68.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v66.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/128?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v67.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/129?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * 🚒 Bug fixed [issue #8464](https://github.com/mozilla-mobile/android-components/issues/8464) - Crash when confirming a prompt that was already confirmed
+
+* **feature-app-links**
+    * Added handling of PackageItemInfo.packageName NullPointerException on some Xiaomi and TCL devices
+
+# 67.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v66.0.0...v67.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/128?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v67.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v67.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v67.0.0/.config.yml)
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * **Merge day!**
+    * `browser-engine-gecko-release`: GeckoView 83.0
+    * `browser-engine-gecko-beta`: GeckoView 84.0
+    * `browser-engine-gecko-nightly`: GeckoView 85.0
+
 * **feature-sitepermissions**
   * 🚒 Bug fixed [issue #8943](https://github.com/mozilla-mobile/android-components/issues/8943) Refactor `SwipeRefreshFeature` to not use `EngineSession.Observer`, this result in multiple site permissions bugs getting fixed see [fenix#8987](https://github.com/mozilla-mobile/fenix/issues/8987) and [fenix#16411](https://github.com/mozilla-mobile/fenix/issues/16411).
+
+* **feature-prompts**
+  * 🚒 Bug fixed [issue #8967](https://github.com/mozilla-mobile/android-components/issues/8967) Crash when trying to upload a file see [fenix#16537](https://github.com/mozilla-mobile/fenix/issues/16537), for more information.
+  * 🚒 Bug fixed [issue #8953](https://github.com/mozilla-mobile/android-components/issues/8953) - Scroll to selected prompt choice if one exists.
+
+* **feature-accounts-push**
+  * ⚠️ `FxaPushSupportFeature` now re-subscribes to push instead of triggering the registration renewal process - this is a temporary workaround and will be removed in the future, see [#7143](https://github.com/mozilla-mobile/android-components/issues/7143).
+  * `FxaPushSupportFeature` now takes an optional crash reporter in the constructor.
 
 # 66.0.0
 
@@ -28,10 +56,10 @@ permalink: /changelog/
     * ⚠️ **This is a breaking change** because the public API changes with the removal of the class.
 
 * **feature-downloads**
-  * 🚒 Bug fixed [issue #8904](https://github.com/mozilla-mobile/android-components/issues/8904) Fix resuming downloads in nightly/beta more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/9354).
+  * 🚒 Bug fixed [issue #8904](https://github.com/mozilla-mobile/android-components/issues/8904) - Fix resuming downloads in nightly/beta more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/9354).
 
 * **feature-search**
- * * ⚠️ **This is a breaking change**: `SearchUseCases` no longer requires a `Context` parameter in the constructor. 
+  * ⚠️ **This is a breaking change**: `SearchUseCases` no longer requires a `Context` parameter in the constructor.
 
 * **feature-sitepermissions**
   * ⚠️ **This is a breaking change**: The `SitePermissionsFeature`'s constructor does not requires a `sessionManager` parameter anymore pass a `store` instead.

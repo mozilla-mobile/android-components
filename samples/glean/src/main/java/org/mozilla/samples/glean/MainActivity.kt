@@ -4,11 +4,11 @@
 
 package org.mozilla.samples.glean
 
-import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
+import mozilla.components.service.nimbus.Nimbus
 import org.mozilla.experiments.nimbus.EnrolledExperiment
 import org.mozilla.samples.glean.GleanMetrics.BrowserEngagement
 import org.mozilla.samples.glean.GleanMetrics.Test
@@ -17,11 +17,10 @@ import org.mozilla.samples.glean.library.SamplesGleanLibrary
 /**
  * Main Activity of the glean-sample-app
  */
-open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.ExperimentUpdateListener {
+open class MainActivity : AppCompatActivity(), Nimbus.Observer {
 
     // This BroadcastReceiver and list are not relevant to the Glean SDK, but is relevant to the
     // Nimbus experiments library.
-    private var experimentUpdateReceiver: ExperimentUpdateReceiver? = null
     private var activeExperiments: List<EnrolledExperiment> = listOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,14 +59,8 @@ open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.Experime
         SamplesGleanLibrary.recordMetric()
         SamplesGleanLibrary.recordExperiment()
 
-        // The following is not relevant to the Glean SDK, but to the Nimbus experiments library.
-        // Set up the ExperimentUpdateReceiver to receive experiment updated Intents.
+        // The following is not relevant to the Glean SDK, but to the Nimbus experiments library
         setupNimbusExperiments()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(experimentUpdateReceiver)
     }
 
     /** Begin Nimbus component specific functions */
@@ -77,29 +70,28 @@ open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.Experime
      * button. This is not relevant to the Glean SDK, but to the Nimbus experiments library.
      */
     private fun setupNimbusExperiments() {
-        experimentUpdateReceiver = ExperimentUpdateReceiver(this)
-        val filter = IntentFilter()
-        filter.addAction("org.mozilla.samples.glean.experiments.updated")
-        registerReceiver(experimentUpdateReceiver, filter)
-
-        // Handle logic for the "test-color" experiment on click.
+        // Attach the click listener for the experiments button to the updateExperiments function
         buttonCheckExperiments.setOnClickListener {
-            onExperimentsUpdated()
+            (application as GleanApplication).nimbus.updateExperiments()
         }
+        // Register the main activity as a Nimbus observer
+        (application as GleanApplication).nimbus.register(this)
     }
 
     /**
-     * This function will be called by the ExperimentUpdateListener interface when the experiments
-     * are updated. This is not relevant to the Glean SDK, but to the Nimbus experiments library.
+     * Event to indicate that the experiments have been fetched from the endpoint
      */
-    override fun onExperimentsUpdated() {
-        textViewExperimentStatus.setBackgroundColor(Color.WHITE)
-        textViewExperimentStatus.text = getString(R.string.experiment_not_active)
+    override fun onExperimentsFetched() {
+        TODO("Not yet implemented")
+    }
 
-        val nimbus = GleanApplication.nimbus
-        activeExperiments = nimbus.getActiveExperiments()
-        if (activeExperiments.any { it.slug == "test-color" }) {
-            val color = when (nimbus.getExperimentBranch("test-color")) {
+    /**
+     * Event to indicate that the experiment enrollments have been applied
+     */
+    override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
+        activeExperiments = updated
+        activeExperiments.find { it.slug == "test-color" }?.let {
+            val color = when (it.branchSlug) {
                 "blue" -> Color.BLUE
                 "red" -> Color.RED
                 "control" -> Color.DKGRAY
@@ -111,7 +103,7 @@ open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.Experime
                 textViewExperimentStatus.setBackgroundColor(color)
                 textViewExperimentStatus.text = getString(
                     R.string.experiment_active_branch,
-                    "Experiment Branch: ${nimbus.getExperimentBranch("test-color")}")
+                    "Experiment Branch: ${it.branchSlug}")
             }
         }
     }

@@ -34,29 +34,6 @@ import java.util.concurrent.Executors
  */
 interface NimbusApi {
     /**
-     * Initialize the Nimbus SDK library.
-     *
-     * This should only be initialized once by the application. Initializing the SDK does not fetch
-     * experiments from the endpoint, see [updateExperiments] and [getActiveExperiments] in order
-     * to retrieve experiments.
-     *
-     * @param context [Context] to access application and device parameters.  As we cannot enforce
-     * through the compiler that the context pass to the initialize function is a Application
-     * Context, there could potentially be a memory leak if the initializing application doesn't
-     * comply.
-     *
-     * @param onExperimentUpdated callback that will be executed when the list of experiments has
-     * been updated from the experiments endpoint and evaluated by the Nimbus-SDK. This is meant to
-     * be used for consuming applications to perform any actions as a result of enrollment in an
-     * experiment so that the application is not required to await the network request. The
-     * callback will be supplied with the list of active experiments (if any) for which the client
-     * is enrolled.
-     */
-    fun initialize(
-        context: Context,
-        onExperimentUpdated: ((activeExperiments: List<EnrolledExperiment>) -> Unit)? = null
-    )
-    /**
      * Get the list of currently enrolled experiments
      *
      * @return A list of [EnrolledExperiment]s
@@ -102,8 +79,10 @@ private const val NIMBUS_DATA_DIR: String = "nimbus_data"
  * Client app developers should set up their own Nimbus infrastructure, to avoid different
  * organizations running conflicting experiments or hitting servers with extra network traffic.
  */
-class Nimbus(private val delegate: Observable<Observer> = ObserverRegistry()) :
-    NimbusApi, Observable<Nimbus.Observer> by delegate {
+class Nimbus(
+    private val context: Context,
+    private val delegate: Observable<Observer> = ObserverRegistry()
+) : NimbusApi, Observable<Nimbus.Observer> by delegate {
 
     /**
      * Interface to be implemented by classes that want to observe experiment updates
@@ -113,6 +92,11 @@ class Nimbus(private val delegate: Observable<Observer> = ObserverRegistry()) :
          * Event to indicate that the experiments have been fetched from the endpoint
          */
         fun onExperimentsFetched()
+
+        /**
+         * Event to indicate that the experiment enrollments have been applied
+         */
+        fun onUpdatesApplied(updated: List<EnrolledExperiment>)
     }
 
 data class NimbusServerSettings(
@@ -130,8 +114,8 @@ class Nimbus(
     private val scope: CoroutineScope =
         CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
 
-    private val nimbus: NimbusClientInterface
-    private var onExperimentUpdated: ((List<EnrolledExperiment>) -> Unit)? = null
+    private lateinit var nimbus: NimbusClientInterface
+    private lateinit var dataDir: File
 
     private var isInitialized = false
 
@@ -146,6 +130,8 @@ class Nimbus(
             "uniffi.component.nimbus.libraryOverride",
             System.getProperty("mozilla.appservices.megazord.library", "megazord")
         )
+        // Build a File object to represent the data directory for Nimbus data
+        dataDir = File(context.applicationInfo.dataDir, NIMBUS_DATA_DIR)
 
         // Build Nimbus AppContext object to pass into initialize
         val experimentContext = buildExperimentContext(context)
@@ -240,10 +226,9 @@ class Nimbus(
                     // The current plan is to have the nimbus-sdk updateExperiments() function
                     // return a diff of the experiments that have been received, at which point we
                     // can emit the appropriate telemetry events.
+                    notifyObservers { onUpdatesApplied(it) }
                 }
-                onExperimentUpdated?.invoke(it)
             }
-            notifyObservers { onExperimentsFetched() }
         }
     }
 

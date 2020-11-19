@@ -16,6 +16,8 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import mozilla.components.service.glean.Glean
 import mozilla.components.support.base.log.Log
+import mozilla.components.support.base.observer.Observable
+import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
@@ -31,6 +33,29 @@ import java.util.concurrent.Executors
  * This is the main experiments API, which is exposed through the global [Nimbus] object.
  */
 interface NimbusApi {
+    /**
+     * Initialize the Nimbus SDK library.
+     *
+     * This should only be initialized once by the application. Initializing the SDK does not fetch
+     * experiments from the endpoint, see [updateExperiments] and [getActiveExperiments] in order
+     * to retrieve experiments.
+     *
+     * @param context [Context] to access application and device parameters.  As we cannot enforce
+     * through the compiler that the context pass to the initialize function is a Application
+     * Context, there could potentially be a memory leak if the initializing application doesn't
+     * comply.
+     *
+     * @param onExperimentUpdated callback that will be executed when the list of experiments has
+     * been updated from the experiments endpoint and evaluated by the Nimbus-SDK. This is meant to
+     * be used for consuming applications to perform any actions as a result of enrollment in an
+     * experiment so that the application is not required to await the network request. The
+     * callback will be supplied with the list of active experiments (if any) for which the client
+     * is enrolled.
+     */
+    fun initialize(
+        context: Context,
+        onExperimentUpdated: ((activeExperiments: List<EnrolledExperiment>) -> Unit)? = null
+    )
     /**
      * Get the list of currently enrolled experiments
      *
@@ -48,7 +73,8 @@ interface NimbusApi {
     fun getExperimentBranch(experimentId: String): String?
 
     /**
-     * Refreshes the experiments from the endpoint
+     * Refreshes the experiments from the endpoint. Should be called at least once after
+     * calling [initialize]
      */
     fun updateExperiments()
 
@@ -71,10 +97,24 @@ private const val EXPERIMENT_COLLECTION_NAME = "nimbus-mobile-experiments"
 private const val NIMBUS_DATA_DIR: String = "nimbus_data"
 
 /**
+ * An implementation of the [NimbusApi] interface backed by the Nimbus SDK.
  * This class allows client apps to configure Nimbus to point to your own server.
  * Client app developers should set up their own Nimbus infrastructure, to avoid different
  * organizations running conflicting experiments or hitting servers with extra network traffic.
  */
+class Nimbus(private val delegate: Observable<Observer> = ObserverRegistry()) :
+    NimbusApi, Observable<Nimbus.Observer> by delegate {
+
+    /**
+     * Interface to be implemented by classes that want to observe experiment updates
+     */
+    interface Observer {
+        /**
+         * Event to indicate that the experiments have been fetched from the endpoint
+         */
+        fun onExperimentsFetched()
+    }
+
 data class NimbusServerSettings(
     val url: Uri
 )
@@ -164,14 +204,22 @@ class Nimbus(
             // Get experiments
             val activeExperiments = nimbus.getActiveExperiments()
 
-            // Record enrollments in telemetry
-            recordExperimentTelemetry(activeExperiments)
+            // Build a File object to represent the data directory for Nimbus data
+            dataDir = File(context.applicationInfo.dataDir, NIMBUS_DATA_DIR)
 
-            isInitialized = true
-
-            // Invoke the callback with the list of active experiments for the consuming app to
-            // process.
-            onExperimentUpdated?.invoke(activeExperiments)
+            // Initialize Nimbus
+            nimbus = NimbusClient(
+                experimentContext,
+                dataDir.path,
+                RemoteSettingsConfig(
+                    serverUrl = context.resources.getString(R.string.nimbus_default_endpoint),
+                    bucketName = EXPERIMENT_BUCKET_NAME,
+                    collectionName = EXPERIMENT_COLLECTION_NAME
+                ),
+                // The "dummy" field here is required for obscure reasons when generating code on desktop,
+                // so we just automatically set it to a dummy value.
+                AvailableRandomizationUnits(clientId = null, dummy = 0)
+            )
         }
     }
 
@@ -183,8 +231,20 @@ class Nimbus(
 
     override fun updateExperiments() {
         if (!isInitialized) return
-        nimbus.updateExperiments()
-        onExperimentUpdated?.invoke(nimbus.getActiveExperiments())
+        scope.launch {
+            nimbus.updateExperiments()
+            // Get the experiments to record in telemetry
+            nimbus.getActiveExperiments().let {
+                if (it.any()) {
+                    recordExperimentTelemetry(it)
+                    // The current plan is to have the nimbus-sdk updateExperiments() function
+                    // return a diff of the experiments that have been received, at which point we
+                    // can emit the appropriate telemetry events.
+                }
+                onExperimentUpdated?.invoke(it)
+            }
+            notifyObservers { onExperimentsFetched() }
+        }
     }
 
     override fun optOut(experimentId: String) {

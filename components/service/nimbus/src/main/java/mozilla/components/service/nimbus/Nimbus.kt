@@ -69,8 +69,6 @@ private const val LOG_TAG = "service/Nimbus"
 private const val EXPERIMENT_BUCKET_NAME = "main"
 private const val EXPERIMENT_COLLECTION_NAME = "nimbus-mobile-experiments"
 private const val NIMBUS_DATA_DIR = "nimbus_data"
-private const val MAX_RETRY_COUNT = 3
-private const val RETRY_DELAY_MS = 10000L
 
 /**
  * A singleton implementation of the [NimbusApi] interface backed by the Nimbus SDK.
@@ -90,7 +88,7 @@ class Nimbus : NimbusApi {
         get() = nimbus.getGlobalUserParticipation()
         set(active) = nimbus.setGlobalUserParticipation(active)
 
-    private var logger = Logger(LOG_TAG)
+    private val logger = Logger(LOG_TAG)
 
     /**
      * Initialize the Nimbus SDK library.
@@ -122,53 +120,50 @@ class Nimbus : NimbusApi {
 
         this.onExperimentUpdated = onExperimentUpdated
 
-        // Build Nimbus AppContext object to pass into initialize
-        val experimentContext = buildExperimentContext(context)
-
         // Build a File object to represent the data directory for Nimbus data
         dataDir = File(context.applicationInfo.dataDir, NIMBUS_DATA_DIR)
 
-        // Initialize Nimbus
-        nimbus = NimbusClient(
-            experimentContext,
-            dataDir.path,
-            RemoteSettingsConfig(
-                serverUrl = context.resources.getString(R.string.nimbus_default_endpoint),
-                bucketName = EXPERIMENT_BUCKET_NAME,
-                collectionName = EXPERIMENT_COLLECTION_NAME
-            ),
-            // The "dummy" field here is required for obscure reasons when generating code on desktop,
-            // so we just automatically set it to a dummy value.
-            AvailableRandomizationUnits(clientId = null, dummy = 0)
-        )
-
         // Do initialization off of the main thread
         scope.launch {
-            tryGetActiveExperiments()?.let {
-                recordExperimentTelemetry(it)
-                onExperimentUpdated?.invoke(it)
-            }
+            // Initialize Nimbus
+            nimbus = NimbusClient(
+                buildExperimentContext(context),
+                dataDir.path,
+                RemoteSettingsConfig(
+                    serverUrl = context.resources.getString(R.string.nimbus_default_endpoint),
+                    bucketName = EXPERIMENT_BUCKET_NAME,
+                    collectionName = EXPERIMENT_COLLECTION_NAME
+                ),
+                // The "dummy" field here is required for obscure reasons when generating code on desktop,
+                // so we just automatically set it to a dummy value.
+                AvailableRandomizationUnits(clientId = null, dummy = 0)
+            )
             isInitialized = true
+
+            // Trigger recording of experiments in telemetry and invocation of the callback
+            experimentsUpdated()
         }
     }
 
     override fun getActiveExperiments(): List<EnrolledExperiment> =
-        if (isInitialized) { tryGetActiveExperiments().orEmpty() } else { emptyList() }
+        if (isInitialized) { nimbus.getActiveExperiments() } else { emptyList() }
 
     override fun getExperimentBranch(experimentId: String): String? =
         if (isInitialized) { nimbus.getExperimentBranch(experimentId) } else { null }
 
     override fun updateExperiments() {
         if (!isInitialized) return
-        // We need to launch this off of the main thread because it involves a network request
-        // within the nimbus-sdk.
-        scope.launch {
-            if (tryUpdateExperiments()) {
-                tryGetActiveExperiments()?.let {
-                    recordExperimentTelemetry(it)
-                    onExperimentUpdated?.invoke(it)
-                }
+        try {
+            // We need to launch this off of the main thread because it involves a network request
+            // within the nimbus-sdk.
+            scope.launch {
+                nimbus.updateExperiments()
+                experimentsUpdated()
             }
+        } catch (e: ErrorException.RequestError) {
+            logger.info("Error fetching experiments from endpoint: $e")
+        } catch (e: ErrorException.InvalidExperimentResponse) {
+            logger.info("Invalid experiment response: $e")
         }
     }
 
@@ -177,39 +172,15 @@ class Nimbus : NimbusApi {
         nimbus.optOut(experimentId)
     }
 
-    // Wraps the `Nimbus.updateExperiments()` in a try/catch since the underlying nimbus-sdk
-    // makes a network request that might throw an error.  This also wraps the call in
-    // a simple retry mechanism before giving up.
-    // Returns true if the update completed without errors, false otherwise.
-    // Note: a return of "true" doesn't mean that there was any new experiments, just that there
-    // were no errors.
+    // When experiments are updated or when the library is initialized, we need to do some tasks
+    // like recording telemetry and invoking the callback.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun tryUpdateExperiments(): Boolean =
-        try {
-            nimbus.updateExperiments()
-            true
-        } catch (e: ErrorException.RequestError) {
-            logger.info("Error fetching experiments from endpoint: $e")
-            false
-        } catch (e: ErrorException.InvalidExperimentResponse) {
-            logger.info("Invalid experiment response: $e")
-            false
+    internal fun experimentsUpdated() {
+        getActiveExperiments().let {
+            recordExperimentTelemetry(it)
+            onExperimentUpdated?.invoke(it)
         }
-
-    // Wraps the `Nimbus.getActiveExperiments()` in a try/catch since the underlying nimbus-sdk
-    // call could make a network request that might throw an error.  This also wraps the call in
-    // a simple retry mechanism before giving up.
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun tryGetActiveExperiments(): List<EnrolledExperiment>? =
-        try {
-            nimbus.getActiveExperiments()
-        } catch (e: ErrorException.RequestError) {
-            logger.info("Error fetching experiments from endpoint: $e")
-            null
-        } catch (e: ErrorException.InvalidExperimentResponse) {
-            logger.info("Invalid experiment response: $e")
-            null
-        }
+    }
 
     // This function shouldn't be exposed to the public API, but is meant for testing purposes to
     // force an experiment/branch enrollment.

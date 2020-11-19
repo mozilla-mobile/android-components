@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import mozilla.components.service.glean.Glean
-import mozilla.components.support.base.log.Log
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
@@ -90,6 +90,8 @@ class Nimbus : NimbusApi {
         get() = nimbus.getGlobalUserParticipation()
         set(active) = nimbus.setGlobalUserParticipation(active)
 
+    private var logger = Logger(LOG_TAG)
+
     /**
      * Initialize the Nimbus SDK library.
      *
@@ -151,7 +153,7 @@ class Nimbus : NimbusApi {
     }
 
     override fun getActiveExperiments(): List<EnrolledExperiment> =
-        if (isInitialized) { nimbus.getActiveExperiments() } else { emptyList() }
+        if (isInitialized) { tryGetActiveExperiments().orEmpty() } else { emptyList() }
 
     override fun getExperimentBranch(experimentId: String): String? =
         if (isInitialized) { nimbus.getExperimentBranch(experimentId) } else { null }
@@ -182,60 +184,32 @@ class Nimbus : NimbusApi {
     // Note: a return of "true" doesn't mean that there was any new experiments, just that there
     // were no errors.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun tryUpdateExperiments(): Boolean {
-        var retries = 0
-        while (retries++ < MAX_RETRY_COUNT) {
-            // Get experiments
-            try {
-                nimbus.updateExperiments()
-                return true
-            } catch (e: ErrorException.RequestError) {
-                Log.log(Log.Priority.ERROR,
-                    LOG_TAG,
-                    message = "Error fetching experiments from endpoint: $e"
-                )
-            } catch (e: ErrorException.InvalidExperimentResponse) {
-                Log.log(Log.Priority.ERROR,
-                    LOG_TAG,
-                    message = "Invalid experiment response: $e"
-                )
-            }
-
-            Thread.sleep(RETRY_DELAY_MS)
+    internal fun tryUpdateExperiments(): Boolean =
+        try {
+            nimbus.updateExperiments()
+            true
+        } catch (e: ErrorException.RequestError) {
+            logger.info("Error fetching experiments from endpoint: $e")
+            false
+        } catch (e: ErrorException.InvalidExperimentResponse) {
+            logger.info("Invalid experiment response: $e")
+            false
         }
-
-        return false
-    }
 
     // Wraps the `Nimbus.getActiveExperiments()` in a try/catch since the underlying nimbus-sdk
     // call could make a network request that might throw an error.  This also wraps the call in
     // a simple retry mechanism before giving up.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun tryGetActiveExperiments(): List<EnrolledExperiment>? {
-        var retries = 0
-        var activeExperiments: List<EnrolledExperiment>? = null
-        while (retries++ < MAX_RETRY_COUNT) {
-            // Get experiments
-            try {
-                activeExperiments = nimbus.getActiveExperiments()
-                break
-            } catch (e: ErrorException.RequestError) {
-                Log.log(Log.Priority.ERROR,
-                    LOG_TAG,
-                    message = "Error fetching experiments from endpoint: $e"
-                )
-            } catch (e: ErrorException.InvalidExperimentResponse) {
-                Log.log(Log.Priority.ERROR,
-                    LOG_TAG,
-                    message = "Invalid experiment response: $e"
-                )
-            }
-
-            Thread.sleep(RETRY_DELAY_MS)
+    internal fun tryGetActiveExperiments(): List<EnrolledExperiment>? =
+        try {
+            nimbus.getActiveExperiments()
+        } catch (e: ErrorException.RequestError) {
+            logger.info("Error fetching experiments from endpoint: $e")
+            null
+        } catch (e: ErrorException.InvalidExperimentResponse) {
+            logger.info("Invalid experiment response: $e")
+            null
         }
-
-        return activeExperiments
-    }
 
     // This function shouldn't be exposed to the public API, but is meant for testing purposes to
     // force an experiment/branch enrollment.
@@ -262,10 +236,7 @@ class Nimbus : NimbusApi {
                 context.packageName, 0
             )
         } catch (e: PackageManager.NameNotFoundException) {
-            Log.log(Log.Priority.ERROR,
-                LOG_TAG,
-                message = "Could not retrieve package info for appBuild and appVersion"
-            )
+            logger.error("Could not retrieve package info for appBuild and appVersion")
             null
         }
 

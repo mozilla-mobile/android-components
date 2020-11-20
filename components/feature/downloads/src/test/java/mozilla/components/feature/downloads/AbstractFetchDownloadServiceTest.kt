@@ -72,6 +72,7 @@ import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.isNull
 import org.mockito.Mock
 import org.mockito.Mockito.atLeastOnce
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doCallRealMethod
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
@@ -88,6 +89,7 @@ import org.robolectric.shadows.ShadowNotificationManager
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.lang.Exception
 import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
@@ -1083,6 +1085,52 @@ class AbstractFetchDownloadServiceTest {
         verify(client, times(2)).fetch(providedRequest.capture())
 
         assertEquals(Request.CookiePolicy.INCLUDE, providedRequest.value.cookiePolicy)
+    }
+
+    @Test
+    fun `tryToDownload - use httpClient WHEN isResumingDownload is true`() {
+        val responseFromDownloadState = mock<Response>()
+        val download = DownloadState("https://example.com/file.txt", "file.txt", response = responseFromDownloadState)
+        val request = Request(download.url)
+
+        service.tryToDownload(isResumingDownload = true, request, download)
+
+        verify(client, atLeastOnce()).fetch(request)
+        verifyZeroInteractions(responseFromDownloadState)
+    }
+
+    @Test
+    fun `tryToDownload - use download#response WHEN isResumingDownload is false`() {
+        val responseFromDownloadState = mock<Response>()
+        val download = spy(DownloadState("https://example.com/file.txt", "file.txt"))
+        val request = Request(download.url)
+
+        doReturn(responseFromDownloadState).`when`(download).response
+
+        service.tryToDownload(isResumingDownload = false, request, download)
+
+        verify(download).response
+        verifyZeroInteractions(client)
+    }
+
+    @Test
+    fun `tryToDownload - will use httpClient WHEN download#response throw an IOException`() {
+        val download = mock<DownloadState>()
+        val request = Request("https://example.com/file.txt")
+        var didThrow = false
+
+        doAnswer { throw IOException() }.`when`(download).response
+
+        try {
+            service.tryToDownload(isResumingDownload = false, request, download)
+        } catch (e: Exception) {
+            didThrow = true
+        }
+
+        assertFalse(didThrow)
+        verify(download).response
+        verify(client).fetch(request)
+        verifyZeroInteractions(client)
     }
 
     @Test

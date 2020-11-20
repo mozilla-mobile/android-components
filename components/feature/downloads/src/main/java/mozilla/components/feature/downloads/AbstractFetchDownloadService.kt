@@ -56,6 +56,7 @@ import mozilla.components.concept.fetch.Headers.Names.CONTENT_RANGE
 import mozilla.components.concept.fetch.Headers.Names.RANGE
 import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
+import mozilla.components.concept.fetch.Response
 import mozilla.components.feature.downloads.DownloadNotification.NOTIFICATION_DOWNLOAD_GROUP_ID
 import mozilla.components.feature.downloads.ext.addCompletedDownload
 import mozilla.components.feature.downloads.ext.isScheme
@@ -614,13 +615,7 @@ abstract class AbstractFetchDownloadService : Service() {
         }
 
         val request = Request(download.url.sanitizeURL(), headers = headers, cookiePolicy = cookiePolicy)
-        // When resuming a download we need to use the httpClient as
-        // download.response doesn't support adding headers.
-        val response = if (isResumingDownload) {
-            httpClient.fetch(request)
-        } else {
-            download.response ?: httpClient.fetch(request)
-        }
+        val response = tryToDownload(isResumingDownload, request, download)
         logger.debug("Fetching download for ${currentDownloadJobState.state.id} ")
 
         // If we are resuming a download and the response does not contain a CONTENT_RANGE
@@ -644,6 +639,26 @@ abstract class AbstractFetchDownloadService : Service() {
             }
 
             verifyDownload(currentDownloadJobState)
+        }
+    }
+
+    @VisibleForTesting
+    internal fun tryToDownload(isResumingDownload: Boolean, request: Request, download: DownloadState): Response {
+        // When resuming a download we need to use the httpClient as
+        // download.response doesn't support adding headers.
+        return if (isResumingDownload) {
+            httpClient.fetch(request)
+        } else {
+            try {
+                download.response ?: httpClient.fetch(request)
+            } catch (e: IOException) {
+                // In cases where [download.response] is available and users with slow
+                // networks start a download but quickly press pause and then resume
+                // [isResumingDownload] will be false as there will be not enough time
+                // for bytes to be copied, but the stream in [download.response] will be closed,
+                // we have to fallback to [httpClient]
+                httpClient.fetch(request)
+            }
         }
     }
 

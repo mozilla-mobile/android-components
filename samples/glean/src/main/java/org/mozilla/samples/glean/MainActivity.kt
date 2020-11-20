@@ -19,10 +19,6 @@ import org.mozilla.samples.glean.library.SamplesGleanLibrary
  */
 open class MainActivity : AppCompatActivity(), Nimbus.Observer {
 
-    // This BroadcastReceiver and list are not relevant to the Glean SDK, but is relevant to the
-    // Nimbus experiments library.
-    private var activeExperiments: List<EnrolledExperiment> = listOf()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -72,26 +68,18 @@ open class MainActivity : AppCompatActivity(), Nimbus.Observer {
     private fun setupNimbusExperiments() {
         // Attach the click listener for the experiments button to the updateExperiments function
         buttonCheckExperiments.setOnClickListener {
-            (application as GleanApplication).nimbus.updateExperiments()
+            GleanApplication.nimbus.updateExperiments()
         }
         // Register the main activity as a Nimbus observer
-        (application as GleanApplication).nimbus.register(this)
+        GleanApplication.nimbus.register(this)
     }
 
     /**
      * Event to indicate that the experiments have been fetched from the endpoint
      */
     override fun onExperimentsFetched() {
-        TODO("Not yet implemented")
-    }
-
-    /**
-     * Event to indicate that the experiment enrollments have been applied
-     */
-    override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
-        activeExperiments = updated
-        activeExperiments.find { it.slug == "test-color" }?.let {
-            val color = when (it.branchSlug) {
+        GleanApplication.nimbus.getExperimentBranch("test-color")?.let { branch ->
+            val color = when (branch) {
                 "blue" -> Color.BLUE
                 "red" -> Color.RED
                 "control" -> Color.DKGRAY
@@ -103,9 +91,17 @@ open class MainActivity : AppCompatActivity(), Nimbus.Observer {
                 textViewExperimentStatus.setBackgroundColor(color)
                 textViewExperimentStatus.text = getString(
                     R.string.experiment_active_branch,
-                    "Experiment Branch: ${it.branchSlug}")
+                    "Experiment Branch: $branch")
             }
         }
+    }
+
+    /**
+     * Event to indicate that the experiment enrollments have been applied. Developers normally
+     * shouldn't care to observe this and rather rely on `onExperimentsFetched` and `withExperiment`
+     */
+    override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
+        println("Experiments updated: $updated")
     }
 
     /** End Nimbus component functions */

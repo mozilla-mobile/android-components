@@ -5,12 +5,12 @@
 package org.mozilla.samples.glean
 
 import android.app.Application
+import android.net.Uri
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
 import mozilla.components.service.nimbus.Nimbus
-import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.service.nimbus.NimbusServerSettings
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
@@ -24,7 +24,7 @@ import org.mozilla.samples.glean.GleanMetrics.Pings
 class GleanApplication : Application() {
 
     companion object {
-        lateinit var nimbus: NimbusApi
+        lateinit var nimbus: Nimbus
     }
 
     override fun onCreate() {
@@ -66,11 +66,7 @@ class GleanApplication : Application() {
         nimbus = Nimbus(this,
             NimbusServerSettings(url)
         ).also { nimbus ->
-            nimbus.initialize {
-                val intent = Intent()
-                intent.action = "org.mozilla.samples.glean.experiments.updated"
-                sendBroadcast(intent)
-            }
+            nimbus.updateExperiments()
         }
     }
 }

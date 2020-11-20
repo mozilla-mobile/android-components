@@ -53,10 +53,16 @@ class NimbusTest {
             userFacingDescription = "A test experiment for testing experiments",
             userFacingName = "Test Experiment"))
 
-        val nimbus = Nimbus(context, null)
-        nimbus.recordExperimentTelemetry(experiments = enrolledExperiments)
+        Nimbus.recordExperimentTelemetry(experiments = enrolledExperiments)
         assertTrue(Glean.testIsExperimentActive("test-experiment"))
         val experimentData = Glean.testGetExperimentData("test-experiment")
         assertEquals("test-branch", experimentData.branch)
+    }
+
+    @Test
+    fun `buildExperimentContext returns a valid context`() {
+        val expContext = Nimbus.buildExperimentContext(context)
+        assertEquals("mozilla.components.service.nimbus.test", expContext.appId)
+        // If we could control more of the context here we might be able to better test it
     }
 }

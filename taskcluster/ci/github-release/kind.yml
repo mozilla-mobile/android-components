@@ -2,11 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-loader: fenix_taskgraph.loader.multi_dep:loader
+loader: ac_taskgraph.loader.multi_dep:loader
 
 transforms:
-    - fenix_taskgraph.transforms.multi_dep:transforms
-    - fenix_taskgraph.transforms.github_release:transforms
+    - ac_taskgraph.transforms.multi_dep:transforms
+    - ac_taskgraph.transforms.github_release:transforms
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
@@ -27,7 +27,7 @@ job-template:
         action: release
         github-project:
             by-level:
-                '3': fenix
+                '3': android-components
                 default: mock
         is-prerelease:
             by-build-type:
@@ -36,8 +36,8 @@ job-template:
                 default: true
         release-name:
             by-build-type:
-                beta: Firefox Beta {version}
-                release: Firefox {version}
+                beta: Android-Components Beta {version}
+                release: Android-Components {version}
 
     treeherder:
         job-symbol: gh-r

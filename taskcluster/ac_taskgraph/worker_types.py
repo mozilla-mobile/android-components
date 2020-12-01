@@ -111,7 +111,7 @@ def build_scriptworker_beetmover_payload(config, task, task_def):
 @payload_builder(
     "scriptworker-github",
     schema={
-        Required("upstream-artifacts"): [
+        Optional("upstream-artifacts"): [
             {
                 Required("taskId"): taskref_or_string,
                 Required("taskType"): text_type,
@@ -138,7 +138,7 @@ def build_github_release_payload(config, task, task_def):
         "gitRevision": worker["git-revision"],
         "isPrerelease": worker["is-prerelease"],
         "releaseName": worker["release-name"],
-        "upstreamArtifacts": worker["upstream-artifacts"],
+        "upstreamArtifacts": worker.get("upstream-artifacts", []),
     }
 
     scope_prefix = config.graph_config["scriptworker"]["scope-prefix"]

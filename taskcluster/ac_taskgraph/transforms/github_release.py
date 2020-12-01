@@ -15,16 +15,26 @@ from taskgraph.util.schema import resolve_keyed_by
 transforms = TransformSequence()
 
 
+def get_build_type(task):
+    build_types = []
+    for dep in task["dependent-tasks"].values():
+        build_types.append(dep.attributes["build-type"])
+    if len(set(build_types)) != 1:
+        raise Exception("Expected exactly 1 build type! {}".format(build_types))
+    return build_types[1]
+
+
 @transforms.add
 def resolve_keys(config, tasks):
     for task in tasks:
+        build_type = get_build_type(task)
         for key in ("worker.github-project", "worker.is-prerelease", "worker.release-name"):
             resolve_keyed_by(
                 task,
                 key,
-                item_name=task["name"],
+                item_name=config.kind,
                 **{
-                    'build-type': task["attributes"]["build-type"],
+                    'build-type': build_type,
                     'level': config.params["level"],
                 }
             )
@@ -32,10 +42,23 @@ def resolve_keys(config, tasks):
 
 
 @transforms.add
+def resolve_label(config, tasks):
+    for task in tasks:
+        build_type = get_build_type(task)
+        repl_dict = {
+            "build-type": build_type,
+            "level": config.params["level"],
+        }
+        repl_dict.update(task["worker"])
+        task["label"] = task["label"].format(**repl_dict)
+        yield task
+
+
+@transforms.add
 def build_worker_definition(config, tasks):
     for task in tasks:
         worker_definition = {
-            "artifact-map": _build_artifact_map(task),
+            "artifact-map": [],
             "git-tag": config.params["head_tag"].decode("utf-8"),
             "git-revision": config.params["head_rev"].decode("utf-8"),
             "release-name": task["worker"]["release-name"],
@@ -47,29 +70,10 @@ def build_worker_definition(config, tasks):
 
         yield task
 
-def _build_artifact_map(task):
-    artifact_map = []
-    # XXX I don't know what to put here - existing releases seem to only have
-    #     source tarballs and zips?
-#    github_names_per_path = {
-#        apk_metadata["name"]: apk_metadata["github-name"]
-#        for apk_metadata in task["attributes"]["apks"].values()
-#    }
-#
-#    for upstream_artifact_metadata in task["worker"]["upstream-artifacts"]:
-#        artifacts = {"paths": {}, "taskId": upstream_artifact_metadata["taskId"]}
-#        for path in upstream_artifact_metadata["paths"]:
-#            artifacts["paths"][path] = {
-#                "destinations": [github_names_per_path[path]]
-#            }
-#
-#        artifact_map.append(artifacts)
-
-    return artifact_map
-
 
 @transforms.add
 def remove_dependent_tasks(config, tasks):
     for task in tasks:
+        task["dependencies"] = task["dependent-tasks"]
         del task["dependent-tasks"]
         yield task

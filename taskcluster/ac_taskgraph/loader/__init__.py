@@ -84,3 +84,25 @@ def build_type_grouping(config, tasks):
         groups.setdefault(build_type, []).append(task)
 
     return groups
+
+
+# Essentially single_dep
+@group_by('label')
+def label_grouping(config, tasks):
+    groups = {}
+    only_build_types = config.get("only-for-build-types")
+    for task in tasks:
+        if task.kind not in config.get('kind-dependencies', []):
+            continue
+
+        build_type = task.attributes.get("build-type")
+        # Skip only_ and build_types that don't match
+        if only_build_types:
+            if not build_type or build_type not in only_build_types:
+                continue
+
+        label = task.label
+
+        groups.setdefault(label, []).append(task)
+
+    return groups

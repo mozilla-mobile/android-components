@@ -38,7 +38,9 @@ def build_worker_definition(config, tasks):
             "artifact-map": _build_artifact_map(task),
             "git-tag": config.params["head_tag"].decode("utf-8"),
             "git-revision": config.params["head_rev"].decode("utf-8"),
-            "release-name": task["worker"]["release-name"].format(version=config.params["version"]),
+            "release-name": task["worker"]["release-name"],
+# XXX params version is giving me a hard time
+#            "release-name": task["worker"]["release-name"].format(version=config.params["version"]),
         }
 
         task["worker"].update(worker_definition)
@@ -63,3 +65,10 @@ def _build_artifact_map(task):
 #        artifact_map.append(artifacts)
 
     return artifact_map
+
+
+@transforms.add
+def remove_dependent_tasks(config, tasks):
+    for task in tasks:
+        del task["dependent-tasks"]
+        yield task

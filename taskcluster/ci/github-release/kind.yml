@@ -6,6 +6,7 @@ loader: ac_taskgraph.loader.multi_dep:loader
 
 transforms:
     - ac_taskgraph.transforms.multi_dep:transforms
+    - ac_taskgraph.transforms.treeherder:transforms
     - ac_taskgraph.transforms.github_release:transforms
     - taskgraph.transforms.task:transforms
 
@@ -14,7 +15,7 @@ kind-dependencies:
 
 primary-dependency: signing
 
-group-by: build-type
+group-by: label
 
 only-for-build-types:
     - beta

@@ -11,11 +11,12 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
+    - build
     - signing
 
 primary-dependency: signing
 
-group-by: label
+group-by: component
 
 only-for-build-types:
     - beta

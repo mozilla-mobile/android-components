@@ -49,7 +49,8 @@ def build_worker_definition(config, tasks):
 
 def _build_artifact_map(task):
     artifact_map = []
-    # XXX I don't know what to put here
+    # XXX I don't know what to put here - existing releases seem to only have
+    #     source tarballs and zips?
 #    github_names_per_path = {
 #        apk_metadata["name"]: apk_metadata["github-name"]
 #        for apk_metadata in task["attributes"]["apks"].values()

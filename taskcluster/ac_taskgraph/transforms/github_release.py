@@ -47,18 +47,19 @@ def build_worker_definition(config, tasks):
 
 def _build_artifact_map(task):
     artifact_map = []
-    github_names_per_path = {
-        apk_metadata["name"]: apk_metadata["github-name"]
-        for apk_metadata in task["attributes"]["apks"].values()
-    }
-
-    for upstream_artifact_metadata in task["worker"]["upstream-artifacts"]:
-        artifacts = {"paths": {}, "taskId": upstream_artifact_metadata["taskId"]}
-        for path in upstream_artifact_metadata["paths"]:
-            artifacts["paths"][path] = {
-                "destinations": [github_names_per_path[path]]
-            }
-
-        artifact_map.append(artifacts)
+    # XXX I don't know what to put here
+#    github_names_per_path = {
+#        apk_metadata["name"]: apk_metadata["github-name"]
+#        for apk_metadata in task["attributes"]["apks"].values()
+#    }
+#
+#    for upstream_artifact_metadata in task["worker"]["upstream-artifacts"]:
+#        artifacts = {"paths": {}, "taskId": upstream_artifact_metadata["taskId"]}
+#        for path in upstream_artifact_metadata["paths"]:
+#            artifacts["paths"][path] = {
+#                "destinations": [github_names_per_path[path]]
+#            }
+#
+#        artifact_map.append(artifacts)
 
     return artifact_map

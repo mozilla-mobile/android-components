@@ -62,8 +62,7 @@ def build_worker_definition(config, tasks):
             "git-tag": config.params["head_tag"].decode("utf-8"),
             "git-revision": config.params["head_rev"].decode("utf-8"),
             "release-name": task["worker"]["release-name"],
-# XXX params version is giving me a hard time
-#            "release-name": task["worker"]["release-name"].format(version=config.params["version"]),
+            "release-name": task["worker"]["release-name"].format(version=config.params["version"]),
         }
 
         task["worker"].update(worker_definition)

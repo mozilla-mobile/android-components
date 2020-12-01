@@ -15,13 +15,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import mozilla.components.service.glean.Glean
-import mozilla.components.support.base.log.Log
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
 import org.mozilla.experiments.nimbus.EnrolledExperiment
+import org.mozilla.experiments.nimbus.ErrorException
 import org.mozilla.experiments.nimbus.NimbusClient
 import org.mozilla.experiments.nimbus.NimbusClientInterface
 import org.mozilla.experiments.nimbus.RemoteSettingsConfig
@@ -170,18 +171,24 @@ class Nimbus(
 
     override fun updateExperiments() {
         scope.launch {
-            nimbus.updateExperiments()
-            notifyObservers { onExperimentsFetched() }
-            // Get the experiments to record in telemetry
-            nimbus.getActiveExperiments().let {
-                if (it.any()) {
-                    recordExperimentTelemetry(it)
-                    // The current plan is to have the nimbus-sdk updateExperiments() function
-                    // return a diff of the experiments that have been received, at which point we
-                    // can emit the appropriate telemetry events and notify observers of just the
-                    // diff
-                    notifyObservers { onUpdatesApplied(it) }
+            try {
+                nimbus.updateExperiments()
+                notifyObservers { onExperimentsFetched() }
+                // Get the experiments to record in telemetry
+                nimbus.getActiveExperiments().let {
+                    if (it.any()) {
+                        recordExperimentTelemetry(it)
+                        // The current plan is to have the nimbus-sdk updateExperiments() function
+                        // return a diff of the experiments that have been received, at which point we
+                        // can emit the appropriate telemetry events and notify observers of just the
+                        // diff
+                        notifyObservers { onUpdatesApplied(it) }
+                    }
                 }
+            } catch (e: ErrorException.RequestError) {
+                logger.info("Error fetching experiments from endpoint: $e")
+            } catch (e: ErrorException.InvalidExperimentResponse) {
+                logger.info("Invalid experiment response: $e")
             }
         }
     }
@@ -198,6 +205,8 @@ class Nimbus(
     }
 
     companion object {
+        private val logger = Logger(LOG_TAG)
+
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         internal fun recordExperimentTelemetry(experiments: List<EnrolledExperiment>) {
             // Call Glean.setExperimentActive() for each active experiment.
@@ -215,10 +224,7 @@ class Nimbus(
                     context.packageName, 0
                 )
             } catch (e: PackageManager.NameNotFoundException) {
-                Log.log(Log.Priority.ERROR,
-                    LOG_TAG,
-                    message = "Could not retrieve package info for appBuild and appVersion"
-                )
+                logger.error("Could not retrieve package info for appBuild and appVersion")
                 null
             }
 

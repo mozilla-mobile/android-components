@@ -9,7 +9,7 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
-    - beetmover
+    - post-beetmover
 
 only-for-build-types:
     - beta

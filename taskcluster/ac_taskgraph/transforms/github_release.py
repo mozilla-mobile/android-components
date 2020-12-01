@@ -21,7 +21,7 @@ def get_build_type(task):
         build_types.append(dep.attributes["build-type"])
     if len(set(build_types)) != 1:
         raise Exception("Expected exactly 1 build type! {}".format(build_types))
-    return build_types[1]
+    return build_types[0]
 
 
 @transforms.add
@@ -72,8 +72,9 @@ def build_worker_definition(config, tasks):
 
 
 @transforms.add
-def remove_dependent_tasks(config, tasks):
+def fix_dependencies(config, tasks):
     for task in tasks:
-        task["dependencies"] = task["dependent-tasks"]
+        # Get around unhashable Task error
+        task["dependencies"] = {k: k for k in task["dependent-tasks"].keys()}
         del task["dependent-tasks"]
         yield task

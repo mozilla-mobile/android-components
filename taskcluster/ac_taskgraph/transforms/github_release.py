@@ -15,26 +15,16 @@ from taskgraph.util.schema import resolve_keyed_by
 transforms = TransformSequence()
 
 
-def get_build_type(task):
-    build_types = []
-    for dep in task["dependent-tasks"].values():
-        build_types.append(dep.attributes["build-type"])
-    if len(set(build_types)) != 1:
-        raise Exception("Expected exactly 1 build type! {}".format(build_types))
-    return build_types[0]
-
-
 @transforms.add
 def resolve_keys(config, tasks):
     for task in tasks:
-        build_type = get_build_type(task)
         for key in ("worker.github-project", "worker.is-prerelease", "worker.release-name"):
             resolve_keyed_by(
                 task,
                 key,
-                item_name=config.kind,
+                item_name=task["name"],
                 **{
-                    'build-type': build_type,
+                    'build-type': task["attributes"]["build-type"],
                     'level': config.params["level"],
                 }
             )
@@ -42,22 +32,11 @@ def resolve_keys(config, tasks):
 
 
 @transforms.add
-def resolve_label(config, tasks):
-    for task in tasks:
-        build_type = get_build_type(task)
-        repl_dict = {
-            "build-type": build_type,
-            "level": config.params["level"],
-        }
-        repl_dict.update(task["worker"])
-        task["label"] = task["label"].format(**repl_dict)
-        yield task
-
-
-@transforms.add
 def build_worker_definition(config, tasks):
     for task in tasks:
         worker_definition = {
+            # We don't want to upload 10gb of artifacts to the release; let's
+            # just create a release as a tag.
             "artifact-map": [],
             "git-tag": config.params["head_tag"].decode("utf-8"),
             "git-revision": config.params["head_rev"].decode("utf-8"),
@@ -67,13 +46,4 @@ def build_worker_definition(config, tasks):
 
         task["worker"].update(worker_definition)
 
-        yield task
-
-
-@transforms.add
-def fix_dependencies(config, tasks):
-    for task in tasks:
-        # Get around unhashable Task error
-        task["dependencies"] = {k: k for k in task["dependent-tasks"].keys()}
-        del task["dependent-tasks"]
         yield task

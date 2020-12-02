@@ -5,6 +5,7 @@
 loader: ac_taskgraph.loader.all_dep:loader
 
 transforms:
+    - ac_taskgraph.transforms.all_dep:transforms
     - ac_taskgraph.transforms.github_release:transforms
     - taskgraph.transforms.task:transforms
 

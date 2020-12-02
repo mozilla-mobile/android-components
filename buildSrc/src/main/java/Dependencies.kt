@@ -18,7 +18,7 @@ object Versions {
     const val mockwebserver = "3.10.0"
 
     const val dokka = "0.9.17"
-    const val android_gradle_plugin = "4.0.1"
+    const val android_gradle_plugin = "4.1.1"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "27.0.1"
     const val detekt = "1.9.1"

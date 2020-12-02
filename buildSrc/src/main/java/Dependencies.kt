@@ -12,7 +12,7 @@ object Versions {
 
     const val junit = "4.12"
     const val robolectric = "4.1"
-    const val mockito = "3.5.15"
+    const val mockito = "3.6.28"
     const val maven_ant_tasks = "2.1.3"
 
     const val mockwebserver = "3.10.0"

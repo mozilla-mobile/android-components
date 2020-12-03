@@ -4,13 +4,24 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 68.0.0-SNAPSHOT (In Development)
+# 69.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v67.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/129?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v68.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/130?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **feature-search**
+  * ⚠️ **This is a breaking change**: Use cases in `SearchUseCases` now take the ID of s session/tab as parameter instead of a `Session` instance.
+
+# 68.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v67.0.0...v68.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/129?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v68.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v68.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v68.0.0/.config.yml)
 
 * ℹ️ Note that various AndroidX dependencies have been updated in this release.
 
@@ -25,7 +36,7 @@ permalink: /changelog/
   * Added handling of PackageItemInfo.packageName NullPointerException on some Xiaomi and TCL devices
 
 * **service-glean**
-  * 🆙  Updated Glean to version 33.1.2 ([changelog](https://github.com/mozilla/glean/releases/tag/v33.1.2))
+  * 🆙 Updated Glean to version 33.1.2 ([changelog](https://github.com/mozilla/glean/releases/tag/v33.1.2))
 
 * **feature-tab-collections**:
     * [createCollection] now returns the id of the newly created collection

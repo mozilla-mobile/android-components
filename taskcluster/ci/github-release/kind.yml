@@ -5,9 +5,9 @@
 loader: ac_taskgraph.loader.all_dep:loader
 
 transforms:
+    - ac_taskgraph.transforms.treeherder:transforms
     - ac_taskgraph.transforms.all_dep:transforms
     - ac_taskgraph.transforms.github_release:transforms
-    - ac_taskgraph.transforms.treeherder:transforms
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
@@ -38,5 +38,5 @@ job-template:
     treeherder:
         kind: build
         platform: android-all/opt
-        symbol: github-release
+        job-symbol: github-release
         tier: 1

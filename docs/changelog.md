@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-search**
+  * ⚠️ **This is a breaking change**: Use cases in `SearchUseCases` now take the ID of s session/tab as parameter instead of a `Session` instance.
+
 # 68.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v67.0.0...v68.0.0)
@@ -29,11 +32,14 @@ permalink: /changelog/
   * 🚒 Bug fixed [issue #9033](https://github.com/mozilla-mobile/android-components/issues/9033) - Fix resuming downloads in slow networks more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/9354#issuecomment-731267368).
   * 🚒 Bug fixed [issue #9073](https://github.com/mozilla-mobile/android-components/issues/9073) - Fix crash downloading a file with multiple dots on it, for more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/16443).
 
+* **feature-session**
+  * 🚒 Bug fixed [issue #9109](https://github.com/mozilla-mobile/android-components/issues/9109) - Tracking protection shield not getting updated after deleting exception by url [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/16670).
+
 * **feature-app-links**
   * Added handling of PackageItemInfo.packageName NullPointerException on some Xiaomi and TCL devices
 
 * **service-glean**
-  * 🆙  Updated Glean to version 33.1.2 ([changelog](https://github.com/mozilla/glean/releases/tag/v33.1.2))
+  * 🆙 Updated Glean to version 33.1.2 ([changelog](https://github.com/mozilla/glean/releases/tag/v33.1.2))
 
 * **feature-tab-collections**:
     * [createCollection] now returns the id of the newly created collection

@@ -13,7 +13,6 @@ kind-dependencies:
     - post-beetmover
 
 only-for-build-types:
-    - beta
     - release
 
 group-by: build-type
@@ -21,7 +20,6 @@ group-by: build-type
 job-template:
     description: Create/Update Github release
     worker-type: github
-    label: release-github-{build-type}-{github-project}
     worker:
         action: release
         github-project:
@@ -30,11 +28,9 @@ job-template:
                 default: mock
         is-prerelease:
             by-build-type:
-                beta: true
                 release: false
                 default: true
         release-name:
             by-build-type:
-                beta: Android-Components Beta {version}
                 release: Android-Components {version}
                 default: Android-Components fake release {version}

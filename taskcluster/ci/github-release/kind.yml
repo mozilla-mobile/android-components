@@ -7,6 +7,7 @@ loader: ac_taskgraph.loader.all_dep:loader
 transforms:
     - ac_taskgraph.transforms.all_dep:transforms
     - ac_taskgraph.transforms.github_release:transforms
+    - ac_taskgraph.transforms.treeherder:transforms
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
@@ -34,3 +35,8 @@ job-template:
             by-build-type:
                 release: Android-Components {version}
                 default: Android-Components fake release {version}
+    treeherder:
+        kind: build
+        platform: android-all/opt
+        symbol: github-release
+        tier: 1

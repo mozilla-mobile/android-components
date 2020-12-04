@@ -39,11 +39,11 @@ import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
 import mozilla.components.support.ktx.kotlin.isGeoLocation
 import mozilla.components.support.ktx.kotlin.isPhone
+import mozilla.components.support.ktx.kotlin.sanitizeFileName
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import mozilla.components.support.utils.DownloadUtils
 import org.json.JSONObject
@@ -521,17 +521,12 @@ class GeckoEngineSession(
             uri: String?,
             error: WebRequestError
         ): GeckoResult<String> {
-            val uriToLoad = settings.requestInterceptor?.onErrorRequest(
+            val response = settings.requestInterceptor?.onErrorRequest(
                 this@GeckoEngineSession,
                 geckoErrorToErrorType(error.code),
                 uri
-            )?.run {
-                when (this) {
-                    is RequestInterceptor.ErrorResponse.Content -> Base64.encodeToUriString(data)
-                    is RequestInterceptor.ErrorResponse.Uri -> this.uri
-                }
-            }
-            return GeckoResult.fromValue(uriToLoad)
+            )
+            return GeckoResult.fromValue(response?.uri)
         }
 
         private fun maybeInterceptRequest(
@@ -804,7 +799,7 @@ class GeckoEngineSession(
                             url = url,
                             contentLength = contentLength,
                             contentType = contentType,
-                            fileName = fileName,
+                            fileName = fileName.sanitizeFileName(),
                             response = response,
                             isPrivate = privateMode
                     )

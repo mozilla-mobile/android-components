@@ -4,25 +4,49 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 68.0.0-SNAPSHOT (In Development)
+# 69.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v67.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/129?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v68.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/130?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **feature-search**
+  * ⚠️ **This is a breaking change**: Use cases in `SearchUseCases` now take the ID of s session/tab as parameter instead of a `Session` instance.
+
+# 68.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v67.0.0...v68.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/129?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v68.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v68.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v68.0.0/.config.yml)
+
+* ℹ️ Note that various AndroidX dependencies have been updated in this release.
 
 * **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
   * 🚒 Bug fixed [issue #8464](https://github.com/mozilla-mobile/android-components/issues/8464) - Crash when confirming a prompt that was already confirmed
 
 * **feature-downloads**
   * 🚒 Bug fixed [issue #9033](https://github.com/mozilla-mobile/android-components/issues/9033) - Fix resuming downloads in slow networks more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/9354#issuecomment-731267368).
+  * 🚒 Bug fixed [issue #9073](https://github.com/mozilla-mobile/android-components/issues/9073) - Fix crash downloading a file with multiple dots on it, for more details see the [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/16443).
+
+* **feature-session**
+  * 🚒 Bug fixed [issue #9109](https://github.com/mozilla-mobile/android-components/issues/9109) - Tracking protection shield not getting updated after deleting exception by url [Fenix issue](https://github.com/mozilla-mobile/fenix/issues/16670).
 
 * **feature-app-links**
-    * Added handling of PackageItemInfo.packageName NullPointerException on some Xiaomi and TCL devices
+  * Added handling of PackageItemInfo.packageName NullPointerException on some Xiaomi and TCL devices
+
+* **service-glean**
+  * 🆙 Updated Glean to version 33.1.2 ([changelog](https://github.com/mozilla/glean/releases/tag/v33.1.2))
 
 * **feature-tab-collections**:
     * [createCollection] now returns the id of the newly created collection
+
+* **browser-errorpages**:
+  * ⚠️ The url encoded error page - `error_page_js` is now clean of inline code. Clients should not rely on inlined code anymore.
+  * ⚠️ **This is a breaking change**: Removed the data url encoded error page - `error_pages` which was already deprecated by `error_page_js`.
 
 # 67.0.0
 
@@ -196,6 +220,10 @@ permalink: /changelog/
 
 * **feature-prompts**
   * The repost prompt now has different text and will also dismiss the pull to refresh throbber.
+
+* **lib-push-firebase**
+  * Upgrade Firebase Cloud Messaging to v20.3.0.
+    * ⚠️ **This is a breaking change**: `RemoteMessage` is now non-null in `onMessageReceived`.
 
 # 62.0.0
 

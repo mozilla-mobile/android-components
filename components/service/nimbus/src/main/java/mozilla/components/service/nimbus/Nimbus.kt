@@ -30,10 +30,15 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.Executors
 
+private const val LOG_TAG = "service/Nimbus"
+private const val EXPERIMENT_BUCKET_NAME = "main"
+private const val EXPERIMENT_COLLECTION_NAME = "nimbus-mobile-experiments"
+private const val NIMBUS_DATA_DIR: String = "nimbus_data"
+
 /**
  * This is the main experiments API, which is exposed through the global [Nimbus] object.
  */
-interface NimbusApi {
+interface NimbusApi : Observable<NimbusApi.Observer> {
     /**
      * Get the list of currently enrolled experiments
      *
@@ -67,30 +72,6 @@ interface NimbusApi {
      * Control the opt out for all experiments at once. This is likely a user action.
      */
     var globalUserParticipation: Boolean
-}
-
-private const val LOG_TAG = "service/Nimbus"
-private const val EXPERIMENT_BUCKET_NAME = "main"
-private const val EXPERIMENT_COLLECTION_NAME = "nimbus-mobile-experiments"
-private const val NIMBUS_DATA_DIR: String = "nimbus_data"
-
-/**
- * This class allows client apps to configure Nimbus to point to your own server.
- * Client app developers should set up their own Nimbus infrastructure, to avoid different
- * organizations running conflicting experiments or hitting servers with extra network traffic.
- */
-data class NimbusServerSettings(
-    val url: Uri
-)
-
-/**
- * A implementation of the [NimbusApi] interface backed by the Nimbus SDK.
- */
-class Nimbus(
-    context: Context,
-    server: NimbusServerSettings?,
-    private val delegate: Observable<Observer> = ObserverRegistry()
-) : NimbusApi, Observable<Nimbus.Observer> by delegate {
 
     /**
      * Interface to be implemented by classes that want to observe experiment updates
@@ -108,6 +89,25 @@ class Nimbus(
          */
         fun onUpdatesApplied(updated: List<EnrolledExperiment>)
     }
+}
+
+/**
+ * This class allows client apps to configure Nimbus to point to your own server.
+ * Client app developers should set up their own Nimbus infrastructure, to avoid different
+ * organizations running conflicting experiments or hitting servers with extra network traffic.
+ */
+data class NimbusServerSettings(
+    val url: Uri
+)
+
+/**
+ * A implementation of the [NimbusApi] interface backed by the Nimbus SDK.
+ */
+class Nimbus(
+    context: Context,
+    server: NimbusServerSettings?,
+    private val delegate: Observable<NimbusApi.Observer> = ObserverRegistry()
+) : NimbusApi, Observable<NimbusApi.Observer> by delegate {
 
     // Using a single threaded executor here to enforce synchronization where needed.
     private val scope: CoroutineScope =
@@ -115,6 +115,7 @@ class Nimbus(
 
     private var nimbus: NimbusClientInterface
     private var dataDir: File
+    private val logger = Logger(LOG_TAG)
 
     override var globalUserParticipation: Boolean
         get() = nimbus.getGlobalUserParticipation()
@@ -173,7 +174,7 @@ class Nimbus(
         scope.launch {
             try {
                 nimbus.updateExperiments()
-                notifyObservers { onExperimentsFetched() }
+
                 // Get the experiments to record in telemetry
                 nimbus.getActiveExperiments().let {
                     if (it.any()) {
@@ -205,8 +206,6 @@ class Nimbus(
     }
 
     companion object {
-        private val logger = Logger(LOG_TAG)
-
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         internal fun recordExperimentTelemetry(experiments: List<EnrolledExperiment>) {
             // Call Glean.setExperimentActive() for each active experiment.
@@ -224,7 +223,6 @@ class Nimbus(
                     context.packageName, 0
                 )
             } catch (e: PackageManager.NameNotFoundException) {
-                logger.error("Could not retrieve package info for appBuild and appVersion")
                 null
             }
 

@@ -8,7 +8,7 @@ import android.graphics.Color
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
-import mozilla.components.service.nimbus.Nimbus
+import mozilla.components.service.nimbus.NimbusApi
 import org.mozilla.experiments.nimbus.EnrolledExperiment
 import org.mozilla.samples.glean.GleanMetrics.BrowserEngagement
 import org.mozilla.samples.glean.GleanMetrics.Test
@@ -17,7 +17,7 @@ import org.mozilla.samples.glean.library.SamplesGleanLibrary
 /**
  * Main Activity of the glean-sample-app
  */
-open class MainActivity : AppCompatActivity(), Nimbus.Observer {
+open class MainActivity : AppCompatActivity(), NimbusApi.Observer {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +78,14 @@ open class MainActivity : AppCompatActivity(), Nimbus.Observer {
      * Event to indicate that the experiments have been fetched from the endpoint
      */
     override fun onExperimentsFetched() {
+        println("Experiments fetched")
+    }
+
+    /**
+     * Event to indicate that the experiment enrollments have been applied. Developers normally
+     * shouldn't care to observe this and rather rely on `onExperimentsFetched` and `withExperiment`
+     */
+    override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
         GleanApplication.nimbus.getExperimentBranch("test-color")?.let { branch ->
             val color = when (branch) {
                 "blue" -> Color.BLUE
@@ -94,14 +102,6 @@ open class MainActivity : AppCompatActivity(), Nimbus.Observer {
                     "Experiment Branch: $branch")
             }
         }
-    }
-
-    /**
-     * Event to indicate that the experiment enrollments have been applied. Developers normally
-     * shouldn't care to observe this and rather rely on `onExperimentsFetched` and `withExperiment`
-     */
-    override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
-        println("Experiments updated: $updated")
     }
 
     /** End Nimbus component functions */

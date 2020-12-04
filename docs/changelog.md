@@ -12,8 +12,18 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-session**
+  * ⚠️ **This is a breaking change**: `Session.searchTerms` has been removed. Use `ContentState.searchTerms` (`browser-state`) instead.
+
 * **feature-search**
   * ⚠️ **This is a breaking change**: Use cases in `SearchUseCases` now take the ID of s session/tab as parameter instead of a `Session` instance.
+  * ⚠️ **This is a breaking change**: `SearchUseCases` no longer depends on `SessionManager` and requires a `TabsUseCases` instance now.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: Use cases in `TabsUseCases` that previously returned a `Session` instance now return the ID of the `Session`.
+
+* **support-test-libstate**
+  * Added `CaptureActionsMiddleware`: A `Middleware` implementation for unit tests that want to inspect actions dispatched on a `Store`.
 
 # 68.0.0
 

@@ -205,39 +205,37 @@ class Nimbus(
         nimbus.optInWithBranch(experiment, branch)
     }
 
-    companion object {
-        @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-        internal fun recordExperimentTelemetry(experiments: List<EnrolledExperiment>) {
-            // Call Glean.setExperimentActive() for each active experiment.
-            experiments.forEach {
-                // For now, we will just record the experiment id and the branch id. Once we can call
-                // Glean from Rust, this will move to the nimbus-sdk Rust core.
-                Glean.setExperimentActive(it.slug, it.branchSlug)
-            }
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun recordExperimentTelemetry(experiments: List<EnrolledExperiment>) {
+        // Call Glean.setExperimentActive() for each active experiment.
+        experiments.forEach {
+            // For now, we will just record the experiment id and the branch id. Once we can call
+            // Glean from Rust, this will move to the nimbus-sdk Rust core.
+            Glean.setExperimentActive(it.slug, it.branchSlug)
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun buildExperimentContext(context: Context): AppContext {
+        val packageInfo: PackageInfo? = try {
+            context.packageManager.getPackageInfo(
+                context.packageName, 0
+            )
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
         }
 
-        @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-        internal fun buildExperimentContext(context: Context): AppContext {
-            val packageInfo: PackageInfo? = try {
-                context.packageManager.getPackageInfo(
-                    context.packageName, 0
-                )
-            } catch (e: PackageManager.NameNotFoundException) {
-                null
-            }
-
-            return AppContext(
-                appId = context.packageName,
-                androidSdkVersion = Build.VERSION.SDK_INT.toString(),
-                appBuild = packageInfo?.let { PackageInfoCompat.getLongVersionCode(it).toString() },
-                appVersion = packageInfo?.versionName,
-                architecture = Build.SUPPORTED_ABIS[0],
-                debugTag = null,
-                deviceManufacturer = Build.MANUFACTURER,
-                deviceModel = Build.MODEL,
-                locale = Locale.getDefault().getLocaleTag(),
-                os = "Android",
-                osVersion = Build.VERSION.RELEASE)
-        }
+        return AppContext(
+            appId = context.packageName,
+            androidSdkVersion = Build.VERSION.SDK_INT.toString(),
+            appBuild = packageInfo?.let { PackageInfoCompat.getLongVersionCode(it).toString() },
+            appVersion = packageInfo?.versionName,
+            architecture = Build.SUPPORTED_ABIS[0],
+            debugTag = null,
+            deviceManufacturer = Build.MANUFACTURER,
+            deviceModel = Build.MODEL,
+            locale = Locale.getDefault().getLocaleTag(),
+            os = "Android",
+            osVersion = Build.VERSION.RELEASE)
     }
 }

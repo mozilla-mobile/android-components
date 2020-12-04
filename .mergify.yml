@@ -34,7 +34,7 @@ pull_request_rules:
       - base~=releases/.*
       - author=github-actions[bot]
       - status-success=complete-pr
-      - files~=(.buildconfig.yml|Gecko.kt)
+      - files~=(.buildconfig.yml|Gecko.kt|AndroidComponents.kt)
     actions:
       review:
         type: APPROVE

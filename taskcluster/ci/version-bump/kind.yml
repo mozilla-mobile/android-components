@@ -2,26 +2,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-loader: fenix_taskgraph.loader.multi_dep:loader
+loader: ac_taskgraph.loader.all_dep:loader
 
 transforms:
-    - fenix_taskgraph.transforms.multi_dep:transforms
-    - fenix_taskgraph.transforms.version_bump:transforms
+    - ac_taskgraph.transforms.treeherder:transforms
+    - ac_taskgraph.transforms.all_dep:transforms
+    - ac_taskgraph.transforms.version_bump:transforms
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
-    - push-apk
-
-primary-dependency: push-apk
+    - post-beetmover
 
 group-by: build-type
 
 only-for-build-types:
-    - beta
     - release
 
 job-template:
-    description: Fenix version bump/tag
+    description: Android-components version bump/tag
     worker-type: tree
     worker:
         bump: true

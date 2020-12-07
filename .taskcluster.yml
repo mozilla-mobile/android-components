@@ -266,12 +266,13 @@ tasks:
                                           $if: 'tasks_for == "action"'
                                           then: >
                                               PIP_IGNORE_INSTALLED=0 pip install --user /builds/worker/checkouts/taskgraph &&
+                                              PIP_IGNORE_INSTALLED=0 pip install --user mozilla-version &&
                                               cd /builds/worker/checkouts/src &&
                                               ln -s /builds/worker/artifacts artifacts &&
                                               ~/.local/bin/taskgraph action-callback
                                           else: >
                                               PIP_IGNORE_INSTALLED=0 pip install --user /builds/worker/checkouts/taskgraph &&
-                                              PIP_IGNORE_INSTALLED=0 pip install --user arrow taskcluster pyyaml &&
+                                              PIP_IGNORE_INSTALLED=0 pip install --user mozilla-version &&
                                               taskcluster/scripts/decision-install-sdk.sh &&
                                               ln -s /builds/worker/artifacts artifacts &&
                                               ~/.local/bin/taskgraph decision

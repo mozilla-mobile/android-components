@@ -16,7 +16,7 @@ from taskgraph.parameters import Parameters
 from taskgraph.util.taskgraph import find_decision_task, find_existing_tasks_from_previous_kinds
 
 RELEASE_PROMOTION_PROJECTS = (
-    "https://github.com/mozilla-mobile/android-components",
+    "https://github.com/mozilla-mobile/android-components", "https://github.com/escapewindow/android-components"
 )
 
 
@@ -151,8 +151,6 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
     parameters['next_version'] = input['next_version']
 
     version = MavenVersion.parse(version_string)
-    if version.is_beta:
-        release_type = "beta"
     elif version.is_release:
         release_type = "release"
     else:

@@ -273,6 +273,10 @@ tasks:
                                               ~/.local/bin/taskgraph action-callback
                                           else: >
                                               PIP_IGNORE_INSTALLED=0 pip install --user /builds/worker/checkouts/taskgraph &&
+<<<<<<< HEAD
+=======
+                                              PIP_IGNORE_INSTALLED=0 pip install --user arrow taskcluster pyyaml &&
+>>>>>>> 2518bcec8 (more changes based on feedback)
                                               PIP_IGNORE_INSTALLED=0 pip install --user mozilla-version &&
                                               taskcluster/scripts/decision-install-sdk.sh &&
                                               ln -s /builds/worker/artifacts artifacts &&

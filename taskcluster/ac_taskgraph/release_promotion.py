@@ -150,12 +150,7 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
 
     parameters['next_version'] = input['next_version']
 
-    version = MavenVersion.parse(version_string)
-    elif version.is_release:
-        release_type = "release"
-    else:
-        raise ValueError("Unsupported version type: {}".format(version.version_type))
-    parameters['release_type'] = release_type
+    parameters['release_type'] = "release"
 
     parameters['pull_request_number'] = None
 

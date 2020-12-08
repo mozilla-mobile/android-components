@@ -408,6 +408,13 @@ class GeckoEngineSession(
     }
 
     /**
+     * Purges the history for the session (back and forward history).
+     */
+    override fun purgeHistory() {
+        geckoSession.purgeHistory()
+    }
+
+    /**
      * See [EngineSession.close].
      */
     override fun close() {

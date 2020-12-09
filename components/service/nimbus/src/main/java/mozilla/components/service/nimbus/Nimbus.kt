@@ -119,7 +119,9 @@ class Nimbus(
 
     override var globalUserParticipation: Boolean
         get() = nimbus.getGlobalUserParticipation()
-        set(active) = nimbus.setGlobalUserParticipation(active)
+        set(active) {
+            nimbus.setGlobalUserParticipation(active)
+        }
 
     init {
         // Set the name of the native library so that we use

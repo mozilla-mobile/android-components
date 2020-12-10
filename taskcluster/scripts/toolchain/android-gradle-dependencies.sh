@@ -11,6 +11,15 @@ function get_abs_path {
     echo "$( cd "$(dirname "$file_path")" >/dev/null 2>&1 ; pwd -P )"
 }
 
+function copy_gradle_crash_log_and_exit {
+    # XXX unhardcode me
+    mkdir -p /builds/worker/artifacts
+    logs=`find /builds/worker/checkouts/src -name \*.log`
+    if [ "${logs}." != "." ] ; then
+        cp $logs /builds/worker/artifacts
+    fi
+}
+
 CURRENT_DIR="$(get_abs_path $0)"
 PROJECT_DIR="$(get_abs_path $CURRENT_DIR/../../../..)"
 
@@ -40,7 +49,7 @@ GRADLE_ARGS="--parallel $REPOS"
 ./gradlew $REPOS support-sync-telemetry:assemble
 
 # First pass. We build everything to be sure to fetch all dependencies
-./gradlew $GRADLE_ARGS $ASSEMBLE_COMMANDS $ASSEMBLE_TEST_COMMANDS ktlint detekt $LINT_COMMANDS
+./gradlew $GRADLE_ARGS $ASSEMBLE_COMMANDS $ASSEMBLE_TEST_COMMANDS ktlint detekt $LINT_COMMANDS || copy_gradle_crash_log_and_exit
 # Some tests may be flaky, although they still download dependencies. So we let the following
 # command fail, if needed.
 set +e; ./gradlew $GRADLE_ARGS -Pcoverage $TEST_COMMANDS; set -e
@@ -50,7 +59,7 @@ set +e; ./gradlew $GRADLE_ARGS -Pcoverage $TEST_COMMANDS; set -e
 ./gradlew $GRADLE_ARGS -Pcoverage \
   :tooling-detekt:assemble :tooling-detekt:assembleAndroidTest :tooling-detekt:test :tooling-detekt:lintRelease \
   :tooling-lint:assemble :tooling-lint:assembleAndroidTest :tooling-lint:test :tooling-lint:lint \
-  :samples-browser:assemble :samples-browser:assembleAndroidTest :samples-browser:test :samples-browser:lint
+  :samples-browser:assemble :samples-browser:assembleAndroidTest :samples-browser:test :samples-browser:lint || copy_gradle_crash_log_and_exit
   # :tooling-lint:lintRelease and :samples-browser:lintRelease do not exist
 
 . taskcluster/scripts/toolchain/android-gradle-dependencies/after.sh

@@ -8,10 +8,12 @@ import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.UndoAction
+import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.session.SessionUseCases.LoadUrlUseCase
 
 /**
@@ -136,6 +138,7 @@ class TabsUseCases(
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          * @param contextId the session context id to use for this tab.
          * @param engineSession (optional) engine session to use for this tab.
+         * @return The ID of the created tab.
          */
         @Suppress("LongParameterList")
         operator fun invoke(
@@ -145,9 +148,16 @@ class TabsUseCases(
             parentId: String? = null,
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             contextId: String? = null,
-            engineSession: EngineSession? = null
-        ): Session {
-            val session = Session(url, false, Source.NEW_TAB, contextId = contextId)
+            engineSession: EngineSession? = null,
+            source: Source = Source.NEW_TAB,
+            customTabConfig: CustomTabConfig? = null,
+            webAppManifest: WebAppManifest? = null
+        ): String {
+            val session = Session(url, false, source, contextId = contextId).apply {
+                this.customTabConfig = customTabConfig
+                this.webAppManifest = webAppManifest
+            }
+
             val parent = parentId?.let { sessionManager.findSessionById(parentId) }
             sessionManager.add(session, selected = selectTab, engineSession = engineSession, parent = parent)
 
@@ -161,7 +171,7 @@ class TabsUseCases(
                 ))
             }
 
-            return session
+            return session.id
         }
     }
 
@@ -189,6 +199,7 @@ class TabsUseCases(
          * @param parentId the id of the parent tab to use for the newly created tab.
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          * @param engineSession (optional) engine session to use for this tab.
+         * @return The ID of the created tab.
          */
         @Suppress("LongParameterList")
         operator fun invoke(
@@ -197,9 +208,11 @@ class TabsUseCases(
             startLoading: Boolean = true,
             parentId: String? = null,
             flags: LoadUrlFlags = LoadUrlFlags.none(),
-            engineSession: EngineSession? = null
-        ): Session {
-            val session = Session(url, true, Source.NEW_TAB)
+            engineSession: EngineSession? = null,
+            source: Source = Source.NEW_TAB
+        ): String {
+            val session = Session(url, true, source)
+
             val parent = parentId?.let { sessionManager.findSessionById(parentId) }
             sessionManager.add(session, selected = selectTab, engineSession = engineSession, parent = parent)
 
@@ -213,7 +226,7 @@ class TabsUseCases(
                 ))
             }
 
-            return session
+            return session.id
         }
     }
 

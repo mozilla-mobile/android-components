@@ -6,9 +6,7 @@ package mozilla.components.feature.sitepermissions
 
 import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.permission.Permission
 import mozilla.components.concept.engine.permission.Permission.ContentAudioCapture
 import mozilla.components.concept.engine.permission.Permission.ContentGeoLocation
@@ -26,23 +24,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
 
 @RunWith(AndroidJUnit4::class)
 class SitePermissionsRulesTest {
 
     private lateinit var anchorView: View
-    private lateinit var mockSessionManager: SessionManager
     private lateinit var rules: SitePermissionsFeature
     private lateinit var mockOnNeedToRequestPermissions: OnNeedToRequestPermissions
     private lateinit var mockStorage: SitePermissionsStorage
 
     @Before
     fun setup() {
-        val engine = mock<Engine>()
         anchorView = View(testContext)
-        mockSessionManager = Mockito.spy(SessionManager(engine))
         mockOnNeedToRequestPermissions = mock()
         mockStorage = mock()
 
@@ -65,7 +59,8 @@ class SitePermissionsRulesTest {
             microphone = BLOCKED,
             autoplayAudible = ASK_TO_ALLOW,
             autoplayInaudible = BLOCKED,
-            persistentStorage = BLOCKED
+            persistentStorage = BLOCKED,
+            mediaKeySystemAccess = ASK_TO_ALLOW
         )
 
         val mockRequest: PermissionRequest = mock()
@@ -101,6 +96,10 @@ class SitePermissionsRulesTest {
         doReturn(listOf(Permission.ContentPersistentStorage())).`when`(mockRequest).permissions
         action = rules.getActionFrom(mockRequest)
         assertEquals(action, rules.persistentStorage)
+
+        doReturn(listOf(Permission.ContentMediaKeySystemAccess())).`when`(mockRequest).permissions
+        action = rules.getActionFrom(mockRequest)
+        assertEquals(action, rules.mediaKeySystemAccess)
     }
 
     @Test
@@ -112,7 +111,8 @@ class SitePermissionsRulesTest {
             notification = ASK_TO_ALLOW,
             microphone = BLOCKED,
             autoplayInaudible = ASK_TO_ALLOW,
-            autoplayAudible = ASK_TO_ALLOW
+            autoplayAudible = ASK_TO_ALLOW,
+            mediaKeySystemAccess = ASK_TO_ALLOW
         )
 
         val mockRequest: PermissionRequest = mock()
@@ -128,7 +128,8 @@ class SitePermissionsRulesTest {
             microphone = ASK_TO_ALLOW,
             autoplayInaudible = BLOCKED,
             autoplayAudible = BLOCKED,
-            persistentStorage = BLOCKED
+            persistentStorage = BLOCKED,
+            mediaKeySystemAccess = ASK_TO_ALLOW
         )
 
         action = rules.getActionFrom(mockRequest)
@@ -146,6 +147,7 @@ class SitePermissionsRulesTest {
                 microphone = Status.BLOCKED,
                 autoplayInaudible = Status.NO_DECISION,
                 autoplayAudible = Status.NO_DECISION,
+                mediaKeySystemAccess = Status.BLOCKED,
                 savedAt = 1L
         )
 
@@ -156,7 +158,8 @@ class SitePermissionsRulesTest {
                 microphone = BLOCKED,
                 autoplayInaudible = ASK_TO_ALLOW,
                 autoplayAudible = ASK_TO_ALLOW,
-                persistentStorage = BLOCKED
+                persistentStorage = BLOCKED,
+                mediaKeySystemAccess = BLOCKED
         )
 
         val convertedSitePermissions = rules.toSitePermissions(origin = "origin", savedAt = 1L)
@@ -169,6 +172,7 @@ class SitePermissionsRulesTest {
         assertEquals(expectedSitePermission.autoplayInaudible, convertedSitePermissions.autoplayInaudible)
         assertEquals(expectedSitePermission.autoplayAudible, convertedSitePermissions.autoplayAudible)
         assertEquals(expectedSitePermission.localStorage, convertedSitePermissions.localStorage)
+        assertEquals(expectedSitePermission.mediaKeySystemAccess, convertedSitePermissions.mediaKeySystemAccess)
         assertEquals(expectedSitePermission.savedAt, convertedSitePermissions.savedAt)
     }
 }

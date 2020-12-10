@@ -14,7 +14,6 @@ import mozilla.components.browser.state.action.ContentAction.UpdateBackNavigatio
 import mozilla.components.browser.state.action.ContentAction.UpdateForwardNavigationStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
-import mozilla.components.browser.state.action.ContentAction.UpdateSearchTermsAction
 import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfoAction
 import mozilla.components.browser.state.action.ContentAction.UpdateTitleAction
 import mozilla.components.browser.state.action.ContentAction.UpdateUrlAction
@@ -78,7 +77,6 @@ class Session(
         fun onTrackerBlockingEnabledChanged(session: Session, blockingEnabled: Boolean) = Unit
         fun onTrackerBlocked(session: Session, tracker: Tracker, all: List<Tracker>) = Unit
         fun onTrackerLoaded(session: Session, tracker: Tracker, all: List<Tracker>) = Unit
-        fun onDesktopModeChanged(session: Session, enabled: Boolean) = Unit
         fun onContentPermissionRequested(session: Session, permissionRequest: PermissionRequest): Boolean = false
         fun onAppPermissionRequested(session: Session, permissionRequest: PermissionRequest): Boolean = false
         fun onRecordingDevicesChanged(session: Session, devices: List<RecordingDevice>) = Unit
@@ -145,14 +143,6 @@ class Session(
     var canGoForward: Boolean by Delegates.observable(false) { _, old, new ->
         notifyObservers(old, new) { onNavigationStateChanged(this@Session, canGoBack, new) }
         store?.syncDispatch(UpdateForwardNavigationStateAction(id, canGoForward))
-    }
-
-    /**
-     * The currently / last used search terms (or an empty string).
-     */
-    var searchTerms: String by Delegates.observable("") { _, _, new ->
-        notifyObservers { onSearch(this@Session, new) }
-        store?.syncDispatch(UpdateSearchTermsAction(id, new))
     }
 
     /**
@@ -261,26 +251,12 @@ class Session(
     }
 
     /**
-     * Desktop Mode state, true if the desktop mode is requested, otherwise false.
-     */
-    var desktopMode: Boolean by Delegates.observable(false) { _, old, new ->
-        notifyObservers(old, new) { onDesktopModeChanged(this@Session, new) }
-    }
-
-    /**
      * An icon for the currently visible page.
      */
     val icon: Bitmap?
         // This is a workaround until all callers are migrated to use browser-state. Until then
         // we try to lookup the icon from an attached BrowserStore if possible.
         get() = store?.state?.findTabOrCustomTab(id)?.content?.icon
-
-    /**
-     * List of recording devices (e.g. camera or microphone) currently in use by web content.
-     */
-    var recordingDevices: List<RecordingDevice> by Delegates.observable(emptyList()) { _, old, new ->
-        notifyObservers(old, new) { onRecordingDevicesChanged(this@Session, new) }
-    }
 
     /**
      * Returns whether or not this session is used for a Custom Tab.

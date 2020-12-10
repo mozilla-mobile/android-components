@@ -39,7 +39,6 @@ import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.android.util.Base64
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
 import mozilla.components.support.ktx.kotlin.isGeoLocation
@@ -147,23 +146,30 @@ class GeckoEngineSession(
         if (initialLoad) {
             initialLoadRequest = LoadRequest(url, parent, flags, additionalHeaders)
         }
-        @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/8710
-        geckoSession.loadUri(
-            url,
-            (parent as? GeckoEngineSession)?.geckoSession,
-            flags.value,
-            additionalHeaders ?: emptyMap()
-        )
+
+        val loader = GeckoSession.Loader()
+            .uri(url)
+            .flags(flags.value)
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders)
+                .headerFilter(GeckoSession.HEADER_FILTER_CORS_SAFELISTED)
+        }
+
+        if (parent != null) {
+            loader.referrer((parent as GeckoEngineSession).geckoSession)
+        }
+
+        geckoSession.load(loader)
     }
 
     /**
      * See [EngineSession.loadData]
      */
     override fun loadData(data: String, mimeType: String, encoding: String) {
-        @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/8710
         when (encoding) {
-            "base64" -> geckoSession.loadData(data.toByteArray(), mimeType)
-            else -> geckoSession.loadString(data, mimeType)
+            "base64" -> geckoSession.load(GeckoSession.Loader().data(data.toByteArray(), mimeType))
+            else -> geckoSession.load(GeckoSession.Loader().data(data, mimeType))
         }
     }
 
@@ -409,6 +415,13 @@ class GeckoEngineSession(
     }
 
     /**
+     * Purges the history for the session (back and forward history).
+     */
+    override fun purgeHistory() {
+        geckoSession.purgeHistory()
+    }
+
+    /**
      * See [EngineSession.close].
      */
     override fun close() {
@@ -522,17 +535,12 @@ class GeckoEngineSession(
             uri: String?,
             error: WebRequestError
         ): GeckoResult<String> {
-            val uriToLoad = settings.requestInterceptor?.onErrorRequest(
+            val response = settings.requestInterceptor?.onErrorRequest(
                 this@GeckoEngineSession,
                 geckoErrorToErrorType(error.code),
                 uri
-            )?.run {
-                when (this) {
-                    is RequestInterceptor.ErrorResponse.Content -> Base64.encodeToUriString(data)
-                    is RequestInterceptor.ErrorResponse.Uri -> this.uri
-                }
-            }
-            return GeckoResult.fromValue(uriToLoad)
+            )
+            return GeckoResult.fromValue(response?.uri)
         }
 
         private fun maybeInterceptRequest(

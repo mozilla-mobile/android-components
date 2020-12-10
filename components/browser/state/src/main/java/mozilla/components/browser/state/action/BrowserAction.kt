@@ -37,6 +37,7 @@ import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.prompt.PromptRequest
@@ -84,11 +85,6 @@ sealed class SystemAction : BrowserAction() {
  * [BrowserAction] implementations related to updating the list of [ClosedTabSessionState] inside [BrowserState].
  */
 sealed class RecentlyClosedAction : BrowserAction() {
-    /**
-     * Initializes the [BrowserState.closedTabs] state.
-     */
-    object InitializeRecentlyClosedState : RecentlyClosedAction()
-
     /**
      * Adds a list of [ClosedTab] to the [BrowserState.closedTabs] list.
      *
@@ -505,6 +501,19 @@ sealed class ContentAction : BrowserAction() {
     data class ClearAppPermissionRequests(
         val sessionId: String
     ) : ContentAction()
+
+    /**
+     * Sets the list of active recording devices (webcam, microphone, ..) used by web content.
+     */
+    data class SetRecordingDevices(
+        val sessionId: String,
+        val devices: List<RecordingDevice>
+    ) : ContentAction()
+
+    /**
+     * Updates the [ContentState] of the given [sessionId] to indicate whether or not desktop mode is enabled.
+     */
+    data class UpdateDesktopModeAction(val sessionId: String, val enabled: Boolean) : ContentAction()
 }
 
 /**
@@ -752,6 +761,11 @@ sealed class EngineAction : BrowserAction() {
         val sessionId: String,
         val engineSessionObserver: EngineSession.Observer
     ) : EngineAction()
+
+    /**
+     * Purges the back/forward history of all tabs and custom tabs.
+     */
+    object PurgeHistoryAction : EngineAction()
 }
 
 /**

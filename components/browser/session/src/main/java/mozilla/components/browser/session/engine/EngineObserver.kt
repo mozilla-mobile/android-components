@@ -53,7 +53,7 @@ internal class EngineObserver(
     private val mediaMap: MutableMap<Media, MediaObserver> = mutableMapOf()
 
     override fun onNavigateBack() {
-        session.searchTerms = ""
+        store?.dispatch(ContentAction.UpdateSearchTermsAction(session.id, ""))
     }
 
     override fun onFirstContentfulPaint() {
@@ -76,12 +76,8 @@ internal class EngineObserver(
         if (!session.url.isSameOriginAs(url)) {
             store?.dispatch(ContentAction.ClearPermissionRequests(session.id))
         }
-        session.url = url
 
-        // Meh, GeckoView doesn't notify us about recording devices no longer used when navigating away. As a
-        // workaround we clear them here. But that's not perfect...
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1554778
-        session.recordingDevices = listOf()
+        session.url = url
     }
 
     private fun isUrlSame(originalUrl: String, newUrl: String): Boolean {
@@ -113,7 +109,7 @@ internal class EngineObserver(
         triggeredByWebContent: Boolean
     ) {
         if (triggeredByRedirect || triggeredByWebContent) {
-            session.searchTerms = ""
+            store?.dispatch(ContentAction.UpdateSearchTermsAction(session.id, ""))
         }
 
         session.notifyObservers {
@@ -227,7 +223,9 @@ internal class EngineObserver(
     }
 
     override fun onDesktopModeChange(enabled: Boolean) {
-        session.desktopMode = enabled
+        store?.dispatch(ContentAction.UpdateDesktopModeAction(
+            session.id, enabled
+        ))
     }
 
     override fun onFullScreenChange(enabled: Boolean) {
@@ -405,7 +403,9 @@ internal class EngineObserver(
     }
 
     override fun onRecordingStateChanged(devices: List<RecordingDevice>) {
-        session.recordingDevices = devices
+        store?.dispatch(ContentAction.SetRecordingDevices(
+            session.id, devices
+        ))
     }
 
     override fun onHistoryStateChanged(historyList: List<HistoryItem>, currentIndex: Int) {

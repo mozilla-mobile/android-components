@@ -20,7 +20,6 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.manifest.Size
 import mozilla.components.concept.engine.manifest.WebAppManifest
-import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
@@ -189,33 +188,6 @@ class SessionTest {
     }
 
     @Test
-    fun `observer is notified when search terms are set`() {
-        val observer = mock(Session.Observer::class.java)
-
-        val session = Session("https://www.mozilla.org")
-        session.register(observer)
-
-        session.searchTerms = "mozilla android"
-
-        assertEquals("mozilla android", session.searchTerms)
-        verify(observer, times(1)).onSearch(eq(session), eq("mozilla android"))
-        verifyNoMoreInteractions(observer)
-    }
-
-    @Test
-    fun `action is dispatched when search terms are set`() {
-        val store: BrowserStore = mock()
-        `when`(store.dispatch(any())).thenReturn(mock())
-
-        val session = Session("https://www.mozilla.org")
-        session.store = store
-        session.searchTerms = "mozilla android"
-
-        verify(store).dispatch(ContentAction.UpdateSearchTermsAction(session.id, session.searchTerms))
-        verifyNoMoreInteractions(store)
-    }
-
-    @Test
     fun `observer is notified when launch intent request is triggered`() {
         val observer = mock(Session.Observer::class.java)
 
@@ -283,7 +255,6 @@ class SessionTest {
         assertNull(session.customTabConfig)
 
         val customTabConfig = CustomTabConfig(
-            "id",
             toolbarColor = null,
             closeButtonIcon = null,
             enableUrlbarHiding = true,
@@ -295,7 +266,6 @@ class SessionTest {
         assertEquals(customTabConfig, session.customTabConfig)
 
         assertNotNull(config)
-        assertEquals("id", config!!.id)
     }
 
     @Test
@@ -542,18 +512,6 @@ class SessionTest {
     }
 
     @Test
-    fun `observer is notified when desktop mode is set`() {
-        val observer = mock(Session.Observer::class.java)
-        val session = Session("https://www.mozilla.org")
-        session.register(observer)
-        session.desktopMode = true
-        verify(observer).onDesktopModeChanged(
-                eq(session),
-                eq(true))
-        assertTrue(session.desktopMode)
-    }
-
-    @Test
     fun `session observer has default methods`() {
         val session = Session("")
         val defaultObserver = object : Session.Observer {}
@@ -572,7 +530,6 @@ class SessionTest {
         defaultObserver.onCustomTabConfigChanged(session, null)
         defaultObserver.onTrackerBlockingEnabledChanged(session, true)
         defaultObserver.onTrackerBlocked(session, mock(), emptyList())
-        defaultObserver.onDesktopModeChanged(session, true)
         defaultObserver.onContentPermissionRequested(session, contentPermissionRequest)
         defaultObserver.onAppPermissionRequested(session, appPermissionRequest)
         defaultObserver.onWebAppManifestChanged(session, mock())
@@ -637,27 +594,6 @@ class SessionTest {
     fun `toString returns string containing id and url`() {
         val session = Session(id = "my-session-id", initialUrl = "https://www.mozilla.org")
         assertEquals("Session(my-session-id, https://www.mozilla.org)", session.toString())
-    }
-
-    @Test
-    fun `observer is notified when recording devices change`() {
-        val observer = mock(Session.Observer::class.java)
-
-        val session = Session("https://www.mozilla.org")
-        session.register(observer)
-
-        assertTrue(session.recordingDevices.isEmpty())
-
-        val twoDevices = listOf(
-            RecordingDevice(RecordingDevice.Type.MICROPHONE, RecordingDevice.Status.RECORDING),
-            RecordingDevice(RecordingDevice.Type.CAMERA, RecordingDevice.Status.INACTIVE)
-        )
-        session.recordingDevices = twoDevices
-        verify(observer).onRecordingDevicesChanged(session, twoDevices)
-
-        val oneDevice = listOf(RecordingDevice(RecordingDevice.Type.MICROPHONE, RecordingDevice.Status.RECORDING))
-        session.recordingDevices = oneDevice
-        verify(observer).onRecordingDevicesChanged(session, oneDevice)
     }
 
     @Test

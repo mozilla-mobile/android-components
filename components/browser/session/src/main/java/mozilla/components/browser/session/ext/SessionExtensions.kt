@@ -47,8 +47,8 @@ private fun Session.toContentState(): ContentState {
         title,
         progress,
         loading,
-        searchTerms,
-        securityInfo.toSecurityInfoState()
+        webAppManifest = webAppManifest,
+        securityInfo = securityInfo.toSecurityInfoState()
     )
 }
 

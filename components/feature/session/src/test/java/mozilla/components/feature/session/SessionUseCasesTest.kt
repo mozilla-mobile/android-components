@@ -7,6 +7,7 @@ package mozilla.components.feature.session
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.state.BrowserState
@@ -18,6 +19,8 @@ import mozilla.components.concept.engine.Engine.BrowsingData
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -56,12 +59,12 @@ class SessionUseCasesTest {
             LoadUrlFlags.select(LoadUrlFlags.EXTERNAL)
         ))
 
-        useCases.loadUrl("http://getpocket.com", selectedSession)
+        useCases.loadUrl("http://getpocket.com", selectedSession.id)
         verify(store).dispatch(EngineAction.LoadUrlAction(selectedSessionId, "http://getpocket.com"))
 
         useCases.loadUrl.invoke(
             "http://getpocket.com",
-            selectedSession,
+            selectedSession.id,
             LoadUrlFlags.select(LoadUrlFlags.BYPASS_PROXY)
         )
         verify(store).dispatch(EngineAction.LoadUrlAction(
@@ -283,5 +286,17 @@ class SessionUseCasesTest {
         useCases.crashRecovery.invoke()
         verify(store).dispatch(CrashAction.RestoreCrashedSessionAction("tab1"))
         verify(store).dispatch(CrashAction.RestoreCrashedSessionAction("customTab1"))
+    }
+
+    @Test
+    fun `PurgeHistoryUseCase dispatches PurgeHistory action`() {
+        val captureMiddleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(middleware = listOf(captureMiddleware))
+        val useCases = SessionUseCases(store, sessionManager)
+
+        useCases.purgeHistory()
+
+        store.waitUntilIdle()
+        captureMiddleware.assertFirstAction(EngineAction.PurgeHistoryAction::class)
     }
 }

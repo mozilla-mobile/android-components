@@ -12,10 +12,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.FindResultState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
@@ -34,6 +36,7 @@ import mozilla.components.concept.fetch.Response
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -46,7 +49,6 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
-import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
@@ -75,7 +77,7 @@ class EngineObserverTest {
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
             override fun exitFullScreenMode() {}
-
+            override fun purgeHistory() {}
             override fun loadData(data: String, mimeType: String, encoding: String) {
                 notifyObservers { onLocationChange(data) }
                 notifyObservers { onProgress(100) }
@@ -99,12 +101,10 @@ class EngineObserverTest {
         engineSession.loadUrl("http://mozilla.org")
         engineSession.toggleDesktopMode(true)
         assertEquals("http://mozilla.org", session.url)
-        assertEquals("", session.searchTerms)
         assertEquals(100, session.progress)
         assertEquals(true, session.loading)
         assertEquals(true, session.canGoForward)
         assertEquals(true, session.canGoBack)
-        assertEquals(true, session.desktopMode)
     }
 
     @Test
@@ -127,6 +127,7 @@ class EngineObserverTest {
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
             override fun exitFullScreenMode() {}
+            override fun purgeHistory() {}
             override fun loadData(data: String, mimeType: String, encoding: String) {}
             override fun loadUrl(
                 url: String,
@@ -169,7 +170,6 @@ class EngineObserverTest {
             override fun disableTrackingProtection() {
                 notifyObservers { onTrackerBlockingEnabledChange(false) }
             }
-
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun loadUrl(
                 url: String,
@@ -182,6 +182,7 @@ class EngineObserverTest {
             override fun findNext(forward: Boolean) {}
             override fun clearFindMatches() {}
             override fun exitFullScreenMode() {}
+            override fun purgeHistory() {}
         }
         val observer = EngineObserver(session, mock())
         engineSession.register(observer)
@@ -389,63 +390,78 @@ class EngineObserverTest {
     @Test
     fun engineObserverClearsFindResults() {
         val session = Session("https://www.mozilla.org", id = "test-id")
-        val store: BrowserStore = mock()
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
         val observer = EngineObserver(session, store)
 
         observer.onFindResult(0, 1, false)
-
-        verify(store).dispatch(ContentAction.AddFindResultAction(
-            "test-id", FindResultState(0, 1, false)
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertFirstAction(ContentAction.AddFindResultAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(FindResultState(0, 1, false), action.findResult)
+        }
 
         observer.onFind("mozilla")
-
-        verify(store).dispatch(
-            ContentAction.ClearFindResultsAction("test-id")
-        )
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.ClearFindResultsAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+        }
     }
 
     @Test
     fun engineObserverClearsFindResultIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org", id = "test-id")
-        val store: BrowserStore = mock()
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
         val observer = EngineObserver(session, store)
 
         observer.onFindResult(0, 1, false)
-
-        verify(store).dispatch(ContentAction.AddFindResultAction(
-            "test-id", FindResultState(0, 1, false)
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertFirstAction(ContentAction.AddFindResultAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(FindResultState(0, 1, false), action.findResult)
+        }
 
         observer.onFindResult(1, 2, true)
-
-        verify(store).dispatch(ContentAction.AddFindResultAction(
-            "test-id", FindResultState(1, 2, true)
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.AddFindResultAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(FindResultState(1, 2, true), action.findResult)
+        }
 
         observer.onLoadingStateChange(true)
-
-        verify(store).dispatch(ContentAction.ClearFindResultsAction("test-id"))
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.ClearFindResultsAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+        }
     }
 
     @Test
     fun engineObserverClearsRefreshCanceledIfNewPageStartsLoading() {
         val session = Session("https://www.mozilla.org", id = "test-id")
-        val store: BrowserStore = mock()
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
         val observer = EngineObserver(session, store)
 
         observer.onRepostPromptCancelled()
-
-        verify(store).dispatch(ContentAction.UpdateRefreshCanceledStateAction("test-id", true))
-
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertFirstAction(ContentAction.UpdateRefreshCanceledStateAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertTrue(action.refreshCanceled)
+        }
 
         observer.onLoadingStateChange(true)
-
-        verify(store).dispatch(ContentAction.UpdateRefreshCanceledStateAction("test-id", false))
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.UpdateRefreshCanceledStateAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertFalse(action.refreshCanceled)
+        }
     }
 
     @Test
@@ -471,52 +487,90 @@ class EngineObserverTest {
     @Test
     fun engineObserverNotifiesFullscreenMode() {
         val session = Session("https://www.mozilla.org", id = "test-id")
-        val store: BrowserStore = mock()
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
         val observer = EngineObserver(session, store)
 
         observer.onFullScreenChange(true)
-
-        verify(store).dispatch(ContentAction.FullScreenChangedAction(
-            "test-id", true
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertFirstAction(ContentAction.FullScreenChangedAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertTrue(action.fullScreenEnabled)
+        }
 
         observer.onFullScreenChange(false)
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.FullScreenChangedAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertFalse(action.fullScreenEnabled)
+        }
+    }
 
-        verify(store).dispatch(ContentAction.FullScreenChangedAction(
-            "test-id", false
-        ))
+    @Test
+    fun engineObserverNotifiesDesktopMode() {
+        val session = Session("https://www.mozilla.org", id = "test-id")
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
+        val observer = EngineObserver(session, store)
+
+        observer.onDesktopModeChange(true)
+        store.waitUntilIdle()
+        middleware.assertFirstAction(ContentAction.UpdateDesktopModeAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertTrue(action.enabled)
+        }
+
+        observer.onDesktopModeChange(false)
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.UpdateDesktopModeAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertFalse(action.enabled)
+        }
     }
 
     @Test
     fun engineObserverNotifiesMetaViewportFitChange() {
-        val store: BrowserStore = mock()
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
         val session = Session("https://www.mozilla.org", id = "test-id")
         val observer = EngineObserver(session, store)
 
         observer.onMetaViewportFitChanged(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT)
-        verify(store).dispatch(ContentAction.ViewportFitChangedAction(
-            "test-id", WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertFirstAction(ContentAction.ViewportFitChangedAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT,
+                action.layoutInDisplayCutoutMode)
+        }
 
         observer.onMetaViewportFitChanged(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES)
-        verify(store).dispatch(ContentAction.ViewportFitChangedAction(
-            "test-id", WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.ViewportFitChangedAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES,
+                action.layoutInDisplayCutoutMode)
+        }
 
         observer.onMetaViewportFitChanged(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER)
-        verify(store).dispatch(ContentAction.ViewportFitChangedAction(
-            "test-id", WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.ViewportFitChangedAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER,
+                action.layoutInDisplayCutoutMode)
+        }
 
         observer.onMetaViewportFitChanged(123)
-        verify(store).dispatch(ContentAction.ViewportFitChangedAction(
-            "test-id", 123
-        ))
-        reset(store)
+        store.waitUntilIdle()
+        middleware.assertLastAction(ContentAction.ViewportFitChangedAction::class) { action ->
+            assertEquals(session.id, action.sessionId)
+            assertEquals(123, action.layoutInDisplayCutoutMode)
+        }
     }
 
     @Test
@@ -1006,37 +1060,61 @@ class EngineObserverTest {
 
     @Test
     fun `onLocationChange does not clear search terms`() {
-        val session = Session("https://www.mozilla.org")
-        session.searchTerms = "Mozilla Foundation"
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
 
-        val observer = EngineObserver(session, mock())
+        val session = Session("https://www.mozilla.org")
+
+        val observer = EngineObserver(session, store)
         observer.onLocationChange("https://www.mozilla.org/en-US/")
 
-        assertEquals("Mozilla Foundation", session.searchTerms)
+        store.waitUntilIdle()
+
+        middleware.assertNotDispatched(ContentAction.UpdateSearchTermsAction::class)
     }
 
     @Test
     fun `onLoadRequest clears search terms for requests triggered by web content`() {
         val url = "https://www.mozilla.org"
-        val session = Session(url)
-        session.searchTerms = "Mozilla Foundation"
+        val session = Session(url, id = "test-id")
 
-        val observer = EngineObserver(session, mock())
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
+
+        val observer = EngineObserver(session, store)
         observer.onLoadRequest(url = url, triggeredByRedirect = false, triggeredByWebContent = true)
 
-        assertEquals("", session.searchTerms)
+        store.waitUntilIdle()
+
+        middleware.assertFirstAction(ContentAction.UpdateSearchTermsAction::class) { action ->
+            assertEquals("", action.searchTerms)
+            assertEquals("test-id", action.sessionId)
+        }
     }
 
     @Test
     fun `onLoadRequest clears search terms for requests triggered by redirect`() {
         val url = "https://www.mozilla.org"
-        val session = Session(url)
-        session.searchTerms = "Mozilla Foundation"
+        val session = Session(url, id = "test-id")
 
-        val observer = EngineObserver(session, mock())
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
+
+        val observer = EngineObserver(session, store)
         observer.onLoadRequest(url = url, triggeredByRedirect = true, triggeredByWebContent = false)
 
-        assertEquals("", session.searchTerms)
+        store.waitUntilIdle()
+
+        middleware.assertFirstAction(ContentAction.UpdateSearchTermsAction::class) { action ->
+            assertEquals("", action.searchTerms)
+            assertEquals("test-id", action.sessionId)
+        }
     }
 
     @Test
@@ -1054,13 +1132,17 @@ class EngineObserverTest {
     @Test
     fun `onLoadRequest does not clear search terms for requests not triggered by user interacting with web content`() {
         val url = "https://www.mozilla.org"
-        val session = Session(url)
-        session.searchTerms = "Mozilla Foundation"
+        val session = Session(url, id = "test-id")
 
-        val observer = EngineObserver(session, mock())
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
+
+        val observer = EngineObserver(session, store)
         observer.onLoadRequest(url = url, triggeredByRedirect = false, triggeredByWebContent = false)
 
-        assertEquals("Mozilla Foundation", session.searchTerms)
+        middleware.assertNotDispatched(ContentAction.UpdateSearchTermsAction::class)
     }
 
     @Test
@@ -1082,14 +1164,24 @@ class EngineObserverTest {
     @Test
     fun `onNavigateBack clears search terms when navigating back`() {
         val url = "https://www.mozilla.org"
-        val session = Session(url)
-        session.searchTerms = "Mozilla Foundation"
+        val session = Session(url, id = "test-id")
         session.canGoBack = true
 
-        val observer = EngineObserver(session, mock())
-        observer.onNavigateBack()
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(
+            middleware = listOf(middleware)
+        )
 
-        assertEquals("", session.searchTerms)
+        val observer = EngineObserver(session, store)
+        observer.onNavigateBack()
+        store.waitUntilIdle()
+
+        store.waitUntilIdle()
+
+        middleware.assertFirstAction(ContentAction.UpdateSearchTermsAction::class) { action ->
+            assertEquals("", action.searchTerms)
+            assertEquals("test-id", action.sessionId)
+        }
     }
 
     @Test

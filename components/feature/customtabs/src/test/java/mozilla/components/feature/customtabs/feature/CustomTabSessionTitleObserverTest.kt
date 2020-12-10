@@ -35,6 +35,8 @@ class CustomTabSessionTitleObserverTest {
     }
 
     @Test
+    @Suppress("DEPRECATION")
+    // TODO migrate to browser-state: https://github.com/mozilla-mobile/android-components/issues/4257
     fun `Will use URL as title if title was shown once and is now empty`() {
         val toolbar = MockToolbar()
         val session = Session("https://mozilla.org")
@@ -63,7 +65,7 @@ class CustomTabSessionTitleObserverTest {
 
     private class MockToolbar : Toolbar {
         override var title: String = ""
-
+        override var permissionHighlights: Toolbar.PermissionHighlights = Toolbar.PermissionHighlights.NONE
         override var url: CharSequence by ThrowProperty()
         override var private: Boolean by ThrowProperty()
         override var siteSecure: Toolbar.SiteSecurity by ThrowProperty()

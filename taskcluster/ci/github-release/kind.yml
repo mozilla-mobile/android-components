@@ -26,7 +26,7 @@ job-template:
         github-project:
             by-level:
                 '3': android-components
-                default: mock
+                default: staging-android-components
         is-prerelease:
             by-build-type:
                 release: false

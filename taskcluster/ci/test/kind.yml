@@ -133,6 +133,42 @@ jobs:
                 - ['automation/taskcluster/androidTest/ui-test.sh', 'support-ktx', 'arm', '1']
         treeherder:
             symbol: 'unit-feature-downloads'
+    browser-engine-gecko:
+        description: 'Run unit tests on device for browser engine gecko'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'browser-engine-gecko', 'arm', '1']
+        treeherder:
+            symbol: 'unit-engine-gecko'
+    browser-engine-gecko-beta:
+        description: 'Run unit tests on device for browser engine gecko beta'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'browser-engine-gecko-beta', 'arm', '1']
+        treeherder:
+            symbol: 'unit-engine-gecko-beta'
+    browser-engine-gecko-nightly:
+        description: 'Run unit tests on device for browser engine gecko nightly'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'browser-engine-gecko-nightly', 'arm', '1']
+        treeherder:
+            symbol: 'unit-engine-gecko-nightly'
+    browser-engine-system:
+        description: 'Run unit tests on device for browser engine system (webview)'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'browser-engine-system', 'arm', '1']
+        treeherder:
+            symbol: 'unit-engine-system'
+    browser-icons:
+        description: 'Run unit tests on device for browser icons'
+        run:
+            post-gradlew:
+                - ['automation/taskcluster/androidTest/ui-test.sh', 'browser-icons', 'arm', '1']
+        treeherder:
+            symbol: 'unit-browser-icons'
+
 
 overriden-jobs:
     # names too long to fit in 25 chars

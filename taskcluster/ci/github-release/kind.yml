@@ -11,7 +11,7 @@ transforms:
     - taskgraph.transforms.task:transforms
 
 kind-dependencies:
-    - post-beetmover
+    - version-bump
 
 only-for-build-types:
     - release

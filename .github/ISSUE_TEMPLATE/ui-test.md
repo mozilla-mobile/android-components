@@ -1,5 +1,5 @@
 ---
-name: "\U0001F494 Intermittent UI Test Issue"
+name: "💔 Intermittent UI Test Issue"
 about: Create an issue to help log a UI test failure
 labels: "eng:ui-test, intermittent-test"
 title: "Intermittent UI test failure - <Classname.testName>"

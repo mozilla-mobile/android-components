@@ -13,6 +13,7 @@ import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.mediasession.MediaSession
+import mozilla.components.feature.media.session.MediaSessionCallback
 import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
@@ -20,6 +21,8 @@ import mozilla.components.support.test.robolectric.testContext import mozilla.co
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
@@ -55,7 +58,7 @@ class MediaSessionServiceDelegateTest {
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
-        val delegate = MediaSessionServiceDelegate(testContext, service, store)
+        val delegate = spy(MediaSessionServiceDelegate(testContext, service, store))
 
         delegate.onCreate()
 
@@ -67,6 +70,7 @@ class MediaSessionServiceDelegateTest {
         store.waitUntilIdle()
 
         verify(service).stopSelf()
+        verify(delegate).shutdown()
 
         delegate.onDestroy()
     }
@@ -81,12 +85,13 @@ class MediaSessionServiceDelegateTest {
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
-        val delegate = MediaSessionServiceDelegate(testContext, service, store)
+        val delegate = spy(MediaSessionServiceDelegate(testContext, service, store))
 
         delegate.onCreate()
 
         verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         verify(service, never()).stopSelf()
+        verify(delegate, never()).shutdown()
 
         store.dispatch(MediaSessionAction.DeactivatedMediaSessionAction(store.state.customTabs[0].id))
 
@@ -94,6 +99,7 @@ class MediaSessionServiceDelegateTest {
         dispatcher.advanceUntilIdle()
 
         verify(service).stopSelf()
+        verify(delegate).shutdown()
 
         delegate.onDestroy()
     }
@@ -112,12 +118,13 @@ class MediaSessionServiceDelegateTest {
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
-        val delegate = MediaSessionServiceDelegate(testContext, service, store)
+        val delegate = spy(MediaSessionServiceDelegate(testContext, service, store))
 
         delegate.onCreate()
 
         verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         verify(service, never()).stopSelf()
+        verify(delegate, never()).shutdown()
         verify(controller, never()).pause()
 
         delegate.onStartCommand(AbstractMediaSessionService.pauseIntent(
@@ -142,7 +149,41 @@ class MediaSessionServiceDelegateTest {
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
+        val delegate = spy(MediaSessionServiceDelegate(testContext, service, store))
+
+        delegate.onCreate()
+
+        verify(service).startForeground(ArgumentMatchers.anyInt(), any())
+        verify(service, never()).stopSelf()
+        verify(delegate, never()).shutdown()
+        verify(controller, never()).pause()
+
+        delegate.onStartCommand(AbstractMediaSessionService.playIntent(
+            testContext,
+            service::class.java
+        ))
+
+        verify(controller).play()
+    }
+
+    @Test
+    fun `Media session callback will pause and play the session`() {
+        val controller: MediaSession.Controller = mock()
+        val initialState = BrowserState(
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = MediaSession.PlaybackState.PAUSED
+                    )
+                )
+            )
+        )
+        val store = BrowserStore(initialState)
+        val service: AbstractMediaSessionService = mock()
         val delegate = MediaSessionServiceDelegate(testContext, service, store)
+        val mediaSessionCallback = MediaSessionCallback(store)
 
         delegate.onCreate()
 
@@ -156,5 +197,75 @@ class MediaSessionServiceDelegateTest {
         ))
 
         verify(controller).play()
+
+        mediaSessionCallback.onPause()
+        verify(controller).pause()
+
+        mediaSessionCallback.onPlay()
+        verify(controller, times(2)).play()
+    }
+
+    @Test
+    fun `Media session callback will resume the right session`() {
+        val controller: MediaSession.Controller = mock()
+        val initialState = BrowserState(
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = MediaSession.PlaybackState.PLAYING
+                    )
+                ),
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        mock(),
+                        playbackState = MediaSession.PlaybackState.PAUSED
+                    )
+                )
+            )
+        )
+        val store = BrowserStore(initialState)
+        val service: AbstractMediaSessionService = mock()
+        val delegate = spy(MediaSessionServiceDelegate(testContext, service, store))
+        val mediaSessionCallback = MediaSessionCallback(store)
+
+        delegate.onCreate()
+
+        verify(service).startForeground(ArgumentMatchers.anyInt(), any())
+        verify(service, never()).stopSelf()
+        verify(delegate, never()).shutdown()
+        verify(controller, never()).pause()
+        verify(controller, never()).play()
+
+        mediaSessionCallback.onPause()
+        verify(controller).pause()
+
+        mediaSessionCallback.onPlay()
+        verify(controller).play()
+    }
+
+    @Test
+    fun `destroying service will stop all playback sessions`() {
+        val controller: MediaSession.Controller = mock()
+        val initialState = BrowserState(
+            tabs = listOf(createTab(
+                "https://www.mozilla.org",
+                mediaSessionState = MediaSessionState(
+                    controller,
+                    playbackState = MediaSession.PlaybackState.PLAYING
+                )
+            ))
+        )
+        val store = BrowserStore(initialState)
+        val service: AbstractMediaSessionService = mock()
+        val delegate = spy(MediaSessionServiceDelegate(testContext, service, store))
+
+        delegate.onCreate()
+
+        delegate.onDestroy()
+        verify(service, never()).stopSelf()
+        verify(delegate).destroy()
     }
 }

@@ -9,6 +9,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -28,6 +29,7 @@ import mozilla.components.feature.media.facts.emitStatePlayFact
 import mozilla.components.feature.media.facts.emitStateStopFact
 import mozilla.components.feature.media.notification.MediaNotification
 import mozilla.components.feature.media.focus.AudioFocus
+import mozilla.components.feature.media.session.MediaSessionCallback
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.base.log.logger.Logger
@@ -54,6 +56,8 @@ internal class MediaSessionServiceDelegate(
 
     fun onCreate() {
         logger.debug("Service created")
+        mediaSession.setCallback(MediaSessionCallback(store))
+
         scope = store.flowScoped { flow ->
             flow.map { state -> state.findActiveMediaTab() }
                 .ifChanged { tab -> tab?.mediaSessionState }
@@ -62,8 +66,7 @@ internal class MediaSessionServiceDelegate(
     }
 
     fun onDestroy() {
-        scope?.cancel()
-
+        destroy()
         logger.debug("Service destroyed")
     }
 
@@ -160,8 +163,14 @@ internal class MediaSessionServiceDelegate(
         }
     }
 
-    private fun shutdown() {
+    @VisibleForTesting
+    internal fun destroy() {
+        scope?.cancel()
         audioFocus.abandon()
+    }
+
+    @VisibleForTesting
+    internal fun shutdown() {
         mediaSession.release()
         service.stopSelf()
     }

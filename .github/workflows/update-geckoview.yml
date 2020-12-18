@@ -26,30 +26,21 @@ on:
 jobs:
   main:
     name: "Update GeckoView"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - name: "Update GV (Beta)"
+      - name: "Update GV (On Master)"
         uses: mozilla-mobile/relbot@master
         if: github.repository == 'mozilla-mobile/android-components'
         with:
           project: android-components
-          command: update-geckoview-beta
+          command: update-master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Update GV (Nightly)"
+      - name: "Update GV (On Releases)"
         uses: mozilla-mobile/relbot@master
         if: github.repository == 'mozilla-mobile/android-components'
         with:
           project: android-components
-          command: update-geckoview-nightly
+          command: update-releases
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Update GV (Release)"
-        uses: mozilla-mobile/relbot@master
-        if: github.repository == 'mozilla-mobile/android-components'
-        with:
-          project: android-components
-          command: update-geckoview-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

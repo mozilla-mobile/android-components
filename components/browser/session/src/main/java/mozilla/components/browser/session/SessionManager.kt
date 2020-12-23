@@ -16,6 +16,7 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -181,7 +182,8 @@ class SessionManager(
                     id = it.id,
                     initialUrl = it.url,
                     contextId = it.contextId,
-                    private = it.private
+                    private = it.private,
+                    source = SessionState.Source.RESTORED
                 ).apply {
                     title = it.title
                     parentId = it.parentId

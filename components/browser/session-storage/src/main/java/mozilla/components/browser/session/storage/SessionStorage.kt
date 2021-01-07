@@ -9,11 +9,12 @@ import android.util.AtomicFile
 import androidx.annotation.CheckResult
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.WorkerThread
-import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.ext.readSnapshot
+import mozilla.components.browser.session.storage.serialize.BrowserStateReader
+import mozilla.components.browser.session.storage.serialize.BrowserStateWriter
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.base.crash.CrashReporting
@@ -27,7 +28,7 @@ private const val STORE_FILE_NAME_FORMAT = "mozilla_components_session_storage_%
 private val sessionFileLock = Any()
 
 /**
- * Session storage for persisting the state of a [SessionManager] to disk (browser and engine session states).
+ * Session storage for (partially) persisting the state of [BrowserStore] to disk.
  */
 class SessionStorage(
     private val context: Context,
@@ -35,17 +36,19 @@ class SessionStorage(
     private val crashReporting: CrashReporting? = null
 ) : AutoSave.Storage {
     private val logger = Logger("SessionStorage")
-    private val snapshotSerializer = SnapshotSerializer()
-    private val stateSerializer = BrowserStateSerializer()
+    private val stateWriter = BrowserStateWriter()
+    private val stateReader = BrowserStateReader()
 
     /**
      * Reads the saved state from disk. Returns null if no state was found on disk or if reading the file failed.
+     *
+     * @param predicate an optional predicate applied to each tab to determine if it should be restored.
      */
     @WorkerThread
-    fun restore(): SessionManager.Snapshot? {
+    fun restore(predicate: (RecoverableTab) -> Boolean = { true }): RecoverableBrowserState? {
         synchronized(sessionFileLock) {
-            return getFileForEngine(context, engine)
-                .readSnapshot(engine, snapshotSerializer)
+            val file = getFileForEngine(context, engine)
+            return stateReader.read(engine, file, predicate)
         }
     }
 
@@ -79,7 +82,7 @@ class SessionStorage(
         return synchronized(sessionFileLock) {
             try {
                 val file = getFileForEngine(context, engine)
-                stateSerializer.write(stateToPersist, file)
+                stateWriter.write(stateToPersist, file)
             } catch (e: OutOfMemoryError) {
                 crashReporting?.submitCaughtException(e)
                 logger.error("Failed to save state to disk due to OutOfMemoryError", e)

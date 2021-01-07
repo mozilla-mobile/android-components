@@ -4,9 +4,14 @@
 
 package mozilla.components.feature.tabs
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.storage.RecoverableBrowserState
+import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.EngineAction
+import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.SessionState.Source
@@ -299,16 +304,46 @@ class TabsUseCases(
      * Use case for restoring tabs.
      */
     class RestoreUseCase(
-        private val sessionManager: SessionManager,
-        private val select: SelectTabUseCase
+        private val store: BrowserStore,
+        private val sessionManager: SessionManager
     ) {
         /**
          * Restores the given list of [RecoverableTab]s.
          */
         operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
-            sessionManager.restore(tabs)
+            sessionManager.restore(tabs, selectTabId)
+        }
 
-            selectTabId?.let { id -> select(id) }
+        /**
+         * Restores the given [RecoverableBrowserState].
+         */
+        operator fun invoke(state: RecoverableBrowserState) {
+            invoke(state.tabs, state.selectedTabId)
+        }
+
+        /**
+         * Restores the browsing session from the given [SessionStorage]. Also dispatches
+         * [RestoreCompleteAction] on the [BrowserStore] once restore has been completed.
+         *
+         * @param storage the [SessionStorage] to restore state from.
+         * @param tabTimeoutInMs the amount of time in milliseconds after which inactive
+         * tabs will be discarded and not restored. Defaults to Long.MAX_VALUE, meaning
+         * all tabs will be restored by default.
+         */
+        suspend operator fun invoke(
+            storage: SessionStorage,
+            tabTimeoutInMs: Long = Long.MAX_VALUE
+        ) = withContext(Dispatchers.IO) {
+            val now = System.currentTimeMillis()
+            val state = storage.restore {
+                now - it.lastAccess <= tabTimeoutInMs
+            }
+            if (state != null) {
+                withContext(Dispatchers.Main) {
+                    invoke(state)
+                }
+            }
+            store.dispatch(RestoreCompleteAction)
         }
     }
 
@@ -321,5 +356,5 @@ class TabsUseCases(
     val removeNormalTabs: RemoveNormalTabsUseCase by lazy { RemoveNormalTabsUseCase(sessionManager) }
     val removePrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(sessionManager) }
     val undo by lazy { UndoTabRemovalUseCase(store) }
-    val restore: RestoreUseCase by lazy { RestoreUseCase(sessionManager, selectTab) }
+    val restore: RestoreUseCase by lazy { RestoreUseCase(store, sessionManager) }
 }

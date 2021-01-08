@@ -68,4 +68,12 @@ class NimbusTest {
         assertEquals("mozilla.components.service.nimbus.test", expContext.appId)
         // If we could control more of the context here we might be able to better test it
     }
+
+    @Test
+    fun `NimbusDisabled is empty`() {
+        val nimbus: NimbusApi = NimbusDisabled()
+        nimbus.updateExperiments()
+        assert(nimbus.getActiveExperiments().isEmpty()) { "getActiveExperiments should be empty" }
+        assertEquals(null, nimbus.getExperimentBranch("test-experiment"))
+    }
 }

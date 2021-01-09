@@ -73,7 +73,7 @@ class NimbusTest {
     fun `NimbusDisabled is empty`() {
         val nimbus: NimbusApi = NimbusDisabled()
         nimbus.updateExperiments()
-        assert(nimbus.getActiveExperiments().isEmpty()) { "getActiveExperiments should be empty" }
+        assertTrue("getActiveExperiments should be empty", nimbus.getActiveExperiments().isEmpty())
         assertEquals(null, nimbus.getExperimentBranch("test-experiment"))
     }
 }

@@ -15,6 +15,27 @@ permalink: /changelog/
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9229](https://github.com/mozilla-mobile/android-components/issues/9229) - Dismiss SelectLoginPrompt from the current tab when opening a new one ensuring the new one can show it's own. When returning to the previous tab users should focus a login field to see the SelectLoginPrompt again.
 
+<<<<<<< HEAD
+=======
+* **feature-downloads**:
+  * Allow browsers to change the download notification accent color by providing `Style()` in `AbstractFetchDownloadService`, for more information see [#9299](https://github.com/mozilla-mobile/android-components/issues/9299).
+
+* **feature-accounts-push**
+  * Rolling back to previous behaviour of renewing push registration token when the `subscriptionExpired` flag is observed.
+
+* **browser-icons**
+  * Catch `IOException` that may be thrown when deleting icon caches.
+  
+* **feature-qr**
+  * QR Scanner can now scan inverted QR codes, by decoding inverted source when the decoding the original source fails.
+
+* **feature-app-links**
+  * ⚠️ **This is a breaking change**: Migrated this component to use `browser-state` instead of `browser-session`. It is now required to pass a `BrowserStore` instance (instead of `SessionManager`) to `AppLinksFeature`.
+
+* **service-numbus**
+  * Added a `NimbusDisabled` class to provide implementers who are not able to use Nimbus yet.
+
+>>>>>>> f7f7d26d9b... SDK-158 Add a NimbusDisabled object for builds that don't need nimbus (#9367)
 # 70.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v69.0.0...v70.0.0)

@@ -51,6 +51,7 @@ class NimbusTest {
 
         // Create a list of experiments to test the telemetry enrollment recording
         val enrolledExperiments = listOf(EnrolledExperiment(
+            enrollmentId = "enrollment-id",
             slug = "test-experiment",
             branchSlug = "test-branch",
             userFacingDescription = "A test experiment for testing experiments",

@@ -208,8 +208,7 @@ open class DefaultComponents(private val applicationContext: Context) {
             interceptLinkClicks = true,
             launchInApp = {
                 applicationContext.components.preferences.getBoolean(PREF_LAUNCH_EXTERNAL_APP, false)
-            },
-            launchFromInterceptor = true
+            }
         )
     }
 
@@ -236,7 +235,7 @@ open class DefaultComponents(private val applicationContext: Context) {
 
     // Intent
     val tabIntentProcessor by lazy {
-        TabIntentProcessor(sessionManager, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
+        TabIntentProcessor(tabsUseCases, sessionUseCases.loadUrl, searchUseCases.newTabSearch)
     }
     val externalAppIntentProcessors by lazy {
         listOf(

@@ -8,9 +8,8 @@ import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.browser.state.state.AppIntentState
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.ClosedTab
-import mozilla.components.browser.state.state.ClosedTabSessionState
 import mozilla.components.browser.state.state.ContainerState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabSessionState
@@ -87,33 +86,33 @@ sealed class SystemAction : BrowserAction() {
  */
 sealed class RecentlyClosedAction : BrowserAction() {
     /**
-     * Adds a list of [ClosedTab] to the [BrowserState.closedTabs] list.
+     * Adds a list of [RecoverableTab] to the [BrowserState.closedTabs] list.
      *
-     * @property tabs the [ClosedTab]s to add
+     * @property tabs the [RecoverableTab]s to add
      */
-    data class AddClosedTabsAction(val tabs: List<ClosedTab>) : RecentlyClosedAction()
+    data class AddClosedTabsAction(val tabs: List<RecoverableTab>) : RecentlyClosedAction()
 
     /**
-     * Removes a [ClosedTab] from the [BrowserState.closedTabs] list.
+     * Removes a [RecoverableTab] from the [BrowserState.closedTabs] list.
      *
-     * @property tab the [ClosedTab] to remove
+     * @property tab the [RecoverableTab] to remove
      */
-    data class RemoveClosedTabAction(val tab: ClosedTab) : RecentlyClosedAction()
+    data class RemoveClosedTabAction(val tab: RecoverableTab) : RecentlyClosedAction()
 
     /**
-     * Removes all [ClosedTab]s from the [BrowserState.closedTabs] list.
+     * Removes all [RecoverableTab]s from the [BrowserState.closedTabs] list.
      */
     object RemoveAllClosedTabAction : RecentlyClosedAction()
 
     /**
-     * Prunes [ClosedTab]s from the [BrowserState.closedTabs] list to keep only [maxTabs].
+     * Prunes [RecoverableTab]s from the [BrowserState.closedTabs] list to keep only [maxTabs].
      */
     data class PruneClosedTabsAction(val maxTabs: Int) : RecentlyClosedAction()
 
     /**
      * Updates [BrowserState.closedTabs] to register the given list of [ClosedTab].
      */
-    data class ReplaceTabsAction(val tabs: List<ClosedTab>) : RecentlyClosedAction()
+    data class ReplaceTabsAction(val tabs: List<RecoverableTab>) : RecentlyClosedAction()
 }
 
 /**
@@ -523,6 +522,17 @@ sealed class ContentAction : BrowserAction() {
      * Updates the [ContentState] of the given [sessionId] to indicate whether or not desktop mode is enabled.
      */
     data class UpdateDesktopModeAction(val sessionId: String, val enabled: Boolean) : ContentAction()
+
+    /**
+     * Updates the [AppIntentState] of the [ContentState] with the given [sessionId].
+     */
+    data class UpdateAppIntentAction(val sessionId: String, val appIntent: AppIntentState) :
+        ContentAction()
+
+    /**
+     * Removes the [AppIntentState] of the [ContentState] with the given [sessionId].
+     */
+    data class ConsumeAppIntentAction(val sessionId: String) : ContentAction()
 }
 
 /**

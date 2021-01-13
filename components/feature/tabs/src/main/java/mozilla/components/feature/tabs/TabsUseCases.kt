@@ -305,7 +305,8 @@ class TabsUseCases(
      */
     class RestoreUseCase(
         private val store: BrowserStore,
-        private val sessionManager: SessionManager
+        private val sessionManager: SessionManager,
+        private val selectTab: TabsUseCases.SelectTabUseCase
     ) {
         /**
          * Restores the given list of [RecoverableTab]s.
@@ -324,15 +325,69 @@ class TabsUseCases(
         /**
          * Restores the browsing session from the given [SessionStorage]. Also dispatches
          * [RestoreCompleteAction] on the [BrowserStore] once restore has been completed.
+         *
+         * @param storage the [SessionStorage] to restore state from.
+         * @param tabTimeoutInMs the amount of time in milliseconds after which inactive
+         * tabs will be discarded and not restored. Defaults to Long.MAX_VALUE, meaning
+         * all tabs will be restored by default.
          */
-        suspend operator fun invoke(storage: SessionStorage) = withContext(Dispatchers.IO) {
-            val state = storage.restore()
+        suspend operator fun invoke(
+            storage: SessionStorage,
+            tabTimeoutInMs: Long = Long.MAX_VALUE
+        ) = withContext(Dispatchers.IO) {
+            val now = System.currentTimeMillis()
+            val state = storage.restore {
+                now - it.lastAccess <= tabTimeoutInMs
+            }
             if (state != null) {
                 withContext(Dispatchers.Main) {
                     invoke(state)
                 }
             }
             store.dispatch(RestoreCompleteAction)
+        }
+
+        /**
+         * Restores the given [RecoverableTab] and updates the selected tab if [updateSelection] is
+         * `true`.
+         */
+        operator fun invoke(tab: RecoverableTab, updateSelection: Boolean = true) {
+            invoke(listOf(tab))
+
+            if (updateSelection) {
+                selectTab(tab.id)
+            }
+        }
+    }
+
+    /**
+     * Use case for selecting an existing tab or creating a new tab with a specific URL.
+     */
+    class SelectOrAddUseCase(
+        private val store: BrowserStore,
+        private val sessionManager: SessionManager
+    ) {
+        /**
+         * Selects an already existing tab displaying [url] or otherwise creates a new tab.
+         */
+        operator fun invoke(
+            url: String,
+            private: Boolean = false,
+            source: Source = Source.NEW_TAB,
+            flags: LoadUrlFlags = LoadUrlFlags.none()
+        ) {
+            val existingSession = sessionManager.sessions.find { it.url == url }
+            if (existingSession != null) {
+                sessionManager.select(existingSession)
+            } else {
+                val session = Session(url, private, source)
+                sessionManager.add(session, selected = true)
+                store.dispatch(EngineAction.LoadUrlAction(
+                    session.id,
+                    url,
+                    flags
+                ))
+            }
         }
     }
 
@@ -345,5 +400,6 @@ class TabsUseCases(
     val removeNormalTabs: RemoveNormalTabsUseCase by lazy { RemoveNormalTabsUseCase(sessionManager) }
     val removePrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(sessionManager) }
     val undo by lazy { UndoTabRemovalUseCase(store) }
-    val restore: RestoreUseCase by lazy { RestoreUseCase(store, sessionManager) }
+    val restore: RestoreUseCase by lazy { RestoreUseCase(store, sessionManager, selectTab) }
+    val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store, sessionManager) }
 }

@@ -17,15 +17,6 @@ private const val GECKO_STATE_KEY = "GECKO_STATE"
 class GeckoEngineSessionState internal constructor(
     internal val actualState: GeckoSession.SessionState?
 ) : EngineSessionState {
-    override fun toJSON() = JSONObject().apply {
-        if (actualState != null) {
-            // GeckoView provides a String representing the entire session state. We
-            // store this String using a single Map entry with key GECKO_STATE_KEY.
-
-            put(GECKO_STATE_KEY, actualState.toString())
-        }
-    }
-
     override fun writeTo(writer: JsonWriter) {
         with(writer) {
             beginObject()
@@ -72,6 +63,10 @@ class GeckoEngineSessionState internal constructor(
                 rawState?.let { GeckoSession.SessionState.fromString(it) }
             )
         } catch (e: IOException) {
+            GeckoEngineSessionState(null)
+        } catch (e: JSONException) {
+            // Internally GeckoView uses org.json and currently may throw JSONException in certain cases
+            // https://github.com/mozilla-mobile/android-components/issues/9332
             GeckoEngineSessionState(null)
         }
     }

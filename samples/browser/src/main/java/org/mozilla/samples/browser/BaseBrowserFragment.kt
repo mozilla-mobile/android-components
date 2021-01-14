@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.privatemode.feature.SecureWindowFeature
@@ -25,7 +26,7 @@ import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.SwipeRefreshFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
-import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action.ALLOWED
+import mozilla.components.feature.sitepermissions.SitePermissionsRules.AutoplayAction
 import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.support.base.feature.PermissionsFeature
@@ -51,6 +52,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
     private val toolbarFeature = ViewBoundFeatureWrapper<ToolbarFeature>()
     private val contextMenuIntegration = ViewBoundFeatureWrapper<ContextMenuIntegration>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
+    private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
     private val promptFeature = ViewBoundFeatureWrapper<PromptFeature>()
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
@@ -89,8 +91,8 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
         layout.toolbar.display.setOnPermissionIndicatorClickedListener {
             sitePermissionsFeature.withFeature { feature ->
                 feature.sitePermissionsRules = feature.sitePermissionsRules?.copy(
-                    autoplayAudible = ALLOWED,
-                    autoplayInaudible = ALLOWED
+                    autoplayAudible = AutoplayAction.ALLOWED,
+                    autoplayInaudible = AutoplayAction.ALLOWED
                 )
                 components.sessionUseCases.reload()
             }
@@ -145,6 +147,19 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             owner = this,
             view = layout)
 
+        appLinksFeature.set(
+            feature = AppLinksFeature(
+                context = requireContext(),
+                store = components.store,
+                sessionId = sessionId,
+                fragmentManager = parentFragmentManager,
+                launchInApp = { components.preferences.getBoolean(DefaultComponents.PREF_LAUNCH_EXTERNAL_APP, false) },
+                loadUrlUseCase = components.sessionUseCases.loadUrl
+            ),
+            owner = this,
+            view = layout
+        )
+
         promptFeature.set(
             feature = PromptFeature(
                 fragment = this,
@@ -164,8 +179,8 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
                 storage = components.permissionStorage,
                 fragmentManager = parentFragmentManager,
                 sitePermissionsRules = SitePermissionsRules(
-                    autoplayAudible = SitePermissionsRules.AutoplayAction.BLOCKED,
-                    autoplayInaudible = SitePermissionsRules.AutoplayAction.BLOCKED,
+                    autoplayAudible = AutoplayAction.BLOCKED,
+                    autoplayInaudible = AutoplayAction.BLOCKED,
                     camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
                     location = SitePermissionsRules.Action.ASK_TO_ALLOW,
                     notification = SitePermissionsRules.Action.ASK_TO_ALLOW,

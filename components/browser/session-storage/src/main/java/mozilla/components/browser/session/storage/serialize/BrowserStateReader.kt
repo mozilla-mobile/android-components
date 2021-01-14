@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.browser.session.storage
+package mozilla.components.browser.session.storage.serialize
 
 import android.util.AtomicFile
 import android.util.JsonReader
-import android.util.JsonWriter
+import android.util.JsonToken
+import mozilla.components.browser.session.storage.RecoverableBrowserState
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.TabSessionState
@@ -16,30 +17,32 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.ktx.android.util.nextBooleanOrNull
 import mozilla.components.support.ktx.android.util.nextStringOrNull
 import mozilla.components.support.ktx.util.readJSON
-import mozilla.components.support.ktx.util.streamJSON
 import java.util.UUID
 
-private const val VERSION = 2
-
 /**
- * Helper to transform [BrowserState] instances to JSON and.
+ * Reads a [RecoverableBrowserState] (partial, serialized [BrowserState]) or a single [RecoverableTab]
+ * (partial, serialized [TabSessionState]) from disk.
  */
-class BrowserStateSerializer {
+class BrowserStateReader {
     /**
-     * Writes the [BrowserState] to [file] as JSON.
+     * Reads a serialized [RecoverableBrowserState] from the given [AtomicFile].
+     *
+     * @param engine The [Engine] implementation for restoring the engine state.
+     * @param file The [AtomicFile] to read the the recoverable state from.
+     * @param predicate an optional predicate applied to each tab to determine if it should be restored.
      */
-    fun write(
-        state: BrowserState,
-        file: AtomicFile
-    ): Boolean = file.streamJSON { state(state) }
-
-    /**
-     * Writes a single [TabSessionState] to [file] in JSON format.
-     */
-    fun writeTab(
-        tab: TabSessionState,
-        file: AtomicFile
-    ): Boolean = file.streamJSON { tab(tab) }
+    fun read(
+        engine: Engine,
+        file: AtomicFile,
+        predicate: (RecoverableTab) -> Boolean = { true }
+    ): RecoverableBrowserState? {
+        return file.readJSON { browsingSession(
+            engine,
+            restoreSessionId = true,
+            restoreParentId = true,
+            predicate = predicate)
+        }
+    }
 
     /**
      * Reads a single [RecoverableTab] from the given [file].
@@ -60,76 +63,70 @@ class BrowserStateSerializer {
     }
 }
 
-/**
- * Writes [BrowserState] to [JsonWriter].
- */
-private fun JsonWriter.state(
-    state: BrowserState
-) {
+@Suppress("ComplexMethod")
+private fun JsonReader.browsingSession(
+    engine: Engine,
+    restoreSessionId: Boolean = true,
+    restoreParentId: Boolean = true,
+    predicate: (RecoverableTab) -> Boolean = { true }
+): RecoverableBrowserState? {
     beginObject()
 
-    name(Keys.VERSION_KEY)
-    value(VERSION)
+    var version = 1 // Initially we didn't save a version. If there's none then we assume it is version 1.
+    var tabs: List<RecoverableTab>? = null
+    var selectedIndex: Int? = null
+    var selectedTabId: String? = null
 
-    name(Keys.SELECTED_TAB_ID_KEY)
-    value(state.selectedTabId)
+    while (hasNext()) {
+        when (nextName()) {
+            Keys.VERSION_KEY -> version = nextInt()
+            Keys.SELECTED_SESSION_INDEX_KEY -> selectedIndex = nextInt()
+            Keys.SELECTED_TAB_ID_KEY -> selectedTabId = nextStringOrNull()
+            Keys.SESSION_STATE_TUPLES_KEY -> tabs = tabs(engine, restoreSessionId, restoreParentId, predicate)
+        }
+    }
 
-    name(Keys.SESSION_STATE_TUPLES_KEY)
+    endObject()
 
+    if (selectedTabId == null && version == 1 && selectedIndex != null) {
+        // In the first version we only saved the selected index in the list of all tabs instead
+        // of the ID of the selected tab. If we come across such an older version then we try
+        // to find the tab and determine the selected ID ourselves.
+        selectedTabId = tabs?.getOrNull(selectedIndex)?.id
+    }
+
+    return if (tabs != null && tabs.isNotEmpty()) {
+        // Check if selected tab still exists after restoring/filtering and
+        // use most recently accessed tab otherwise.
+        if (tabs.find { it.id == selectedTabId } == null) {
+            selectedTabId = tabs.sortedByDescending { it.lastAccess }.first().id
+        }
+
+        RecoverableBrowserState(tabs, selectedTabId)
+    } else {
+        null
+    }
+}
+
+private fun JsonReader.tabs(
+    engine: Engine,
+    restoreSessionId: Boolean = true,
+    restoreParentId: Boolean = true,
+    predicate: (RecoverableTab) -> Boolean = { true }
+): List<RecoverableTab> {
     beginArray()
 
-    state.tabs.filter { !it.content.private }.forEachIndexed { _, tab ->
-        tab(tab)
+    val tabs = mutableListOf<RecoverableTab>()
+    while (peek() != JsonToken.END_ARRAY) {
+        val tab = tab(engine, restoreSessionId, restoreParentId)
+        if (tab != null && predicate(tab)) {
+            tabs.add(tab)
+        }
     }
 
     endArray()
 
-    endObject()
-}
-
-/**
- * Writes a [TabSessionState] to [JsonWriter].
- */
-private fun JsonWriter.tab(
-    tab: TabSessionState
-) {
-    beginObject()
-
-    name(Keys.SESSION_KEY)
-    beginObject().apply {
-        name(Keys.SESSION_URL_KEY)
-        value(tab.content.url)
-
-        name(Keys.SESSION_UUID_KEY)
-        value(tab.id)
-
-        name(Keys.SESSION_PARENT_UUID_KEY)
-        value(tab.parentId ?: "")
-
-        name(Keys.SESSION_TITLE)
-        value(tab.content.title)
-
-        name(Keys.SESSION_CONTEXT_ID_KEY)
-        value(tab.contextId)
-
-        name(Keys.SESSION_READER_MODE_KEY)
-        value(tab.readerState.active)
-
-        name(Keys.SESSION_LAST_ACCESS)
-        value(tab.lastAccess)
-
-        if (tab.readerState.active && tab.readerState.activeUrl != null) {
-            name(Keys.SESSION_READER_MODE_ACTIVE_URL_KEY)
-            value(tab.readerState.activeUrl)
-        }
-
-        endObject()
-    }
-
-    name(Keys.ENGINE_SESSION_KEY)
-    engineSession(tab.engineState.engineSessionState)
-
-    endObject()
+    return tabs
 }
 
 private fun JsonReader.tab(
@@ -177,11 +174,12 @@ private fun JsonReader.tabSession(): RecoverableTab? {
             Keys.SESSION_URL_KEY -> url = nextString()
             Keys.SESSION_UUID_KEY -> id = nextString()
             Keys.SESSION_CONTEXT_ID_KEY -> contextId = nextStringOrNull()
-            Keys.SESSION_PARENT_UUID_KEY -> parentId = nextStringOrNull()
-            Keys.SESSION_TITLE -> title = nextString()
+            Keys.SESSION_PARENT_UUID_KEY -> parentId = nextStringOrNull()?.takeIf { it.isNotEmpty() }
+            Keys.SESSION_TITLE -> title = nextStringOrNull() ?: ""
             Keys.SESSION_READER_MODE_KEY -> readerStateActive = nextBooleanOrNull()
             Keys.SESSION_READER_MODE_ACTIVE_URL_KEY -> readerActiveUrl = nextStringOrNull()
             Keys.SESSION_LAST_ACCESS -> lastAccess = nextLong()
+            Keys.SESSION_SOURCE_KEY -> nextString()
             else -> throw IllegalArgumentException("Unknown session key: $name")
         }
     }
@@ -202,16 +200,4 @@ private fun JsonReader.tabSession(): RecoverableTab? {
         private = false, // We never serialize private sessions
         lastAccess = lastAccess ?: 0
     )
-}
-
-/**
- * Writes a (nullable) [EngineSessionState] to [JsonWriter].
- */
-private fun JsonWriter.engineSession(engineSessionState: EngineSessionState?) {
-    if (engineSessionState == null) {
-        beginObject()
-        endObject()
-    } else {
-        engineSessionState.writeTo(this)
-    }
 }

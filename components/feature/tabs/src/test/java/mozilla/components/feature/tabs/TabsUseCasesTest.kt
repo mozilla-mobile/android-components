@@ -4,27 +4,40 @@
 
 package mozilla.components.feature.tabs
 
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.EngineAction
+import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.SessionState.Source
+import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.state.recover.RecoverableTab
+import mozilla.components.browser.state.state.recover.toRecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
-@RunWith(AndroidJUnit4::class)
+const val DAY_IN_MS = 24 * 60 * 60 * 1000L
+
 class TabsUseCasesTest {
+    private val dispatcher: TestCoroutineDispatcher = TestCoroutineDispatcher()
+
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule(dispatcher)
 
     @Test
     fun `SelectTabUseCase - session will be selected in session manager`() {
@@ -275,5 +288,95 @@ class TabsUseCasesTest {
         assertEquals(1, sessionManager.size)
 
         assertTrue(sessionManager.all[0].isCustomTabSession())
+    }
+
+    @Test
+    fun `RestoreUseCase - filters based on tab timeout`() = runBlocking {
+        val sessionManager: SessionManager = mock()
+        val useCases = TabsUseCases(BrowserStore(), sessionManager)
+
+        val now = System.currentTimeMillis()
+        val tabs = listOf(
+            createTab("https://mozilla.org", lastAccess = now).toRecoverableTab(),
+            createTab("https://firefox.com", lastAccess = now - 2 * DAY_IN_MS).toRecoverableTab(),
+            createTab("https://getpocket.com", lastAccess = now - 3 * DAY_IN_MS).toRecoverableTab()
+        )
+
+        val sessionStorage: SessionStorage = mock()
+        useCases.restore(sessionStorage, tabTimeoutInMs = DAY_IN_MS)
+
+        val predicateCaptor = argumentCaptor<(RecoverableTab) -> Boolean>()
+        verify(sessionStorage).restore(predicateCaptor.capture())
+
+        // Only the first tab should be restored, all others "timed out."
+        val restoredTabs = tabs.filter(predicateCaptor.value)
+        assertEquals(1, restoredTabs.size)
+        assertEquals(tabs.first(), restoredTabs.first())
+    }
+
+    @Test
+    fun `Restore single tab, update selection - SessionManager and BrowserStore are in sync`() {
+        val store = BrowserStore()
+        val sessionManager = SessionManager(store = store, engine = mock())
+
+        sessionManager.add(Session("https://www.mozilla.org", id = "mozilla"))
+
+        assertEquals(1, sessionManager.sessions.size)
+        assertEquals(1, store.state.tabs.size)
+        assertEquals("mozilla", sessionManager.selectedSessionOrThrow.id)
+        assertEquals("mozilla", store.state.selectedTabId)
+
+        val closedTab = RecoverableTab(
+            id = "wikipedia",
+            url = "https://www.wikipedia.org"
+        )
+
+        val useCases = TabsUseCases(store, sessionManager)
+        useCases.restore(closedTab)
+
+        assertEquals(2, sessionManager.sessions.size)
+        assertEquals(2, store.state.tabs.size)
+        assertEquals("wikipedia", sessionManager.selectedSessionOrThrow.id)
+        assertEquals("wikipedia", store.state.selectedTabId)
+    }
+
+    @Test
+    fun `selectOrAddTab selects already existing tab`() {
+        val store = BrowserStore()
+        val sessionManager = SessionManager(engine = mock(), store = store)
+        val useCases = TabsUseCases(store, sessionManager)
+
+        sessionManager.add(Session("https://www.mozilla.org", id = "mozilla"))
+        sessionManager.add(Session("https://firefox.com", id = "firefox"))
+        sessionManager.add(Session("https://getpocket.com", id = "pocket"))
+
+        assertEquals("mozilla", store.state.selectedTabId)
+        assertEquals(3, store.state.tabs.size)
+
+        useCases.selectOrAddTab("https://getpocket.com")
+
+        assertEquals("pocket", store.state.selectedTabId)
+        assertEquals(3, store.state.tabs.size)
+    }
+
+    @Test
+    fun `selectOrAddTab adds new tab if no matching existing tab could be found`() {
+        val store = BrowserStore()
+        val sessionManager = SessionManager(engine = mock(), store = store)
+        val useCases = TabsUseCases(store, sessionManager)
+
+        sessionManager.add(Session("https://www.mozilla.org", id = "mozilla"))
+        sessionManager.add(Session("https://firefox.com", id = "firefox"))
+        sessionManager.add(Session("https://getpocket.com", id = "pocket"))
+
+        assertEquals("mozilla", store.state.selectedTabId)
+        assertEquals(3, store.state.tabs.size)
+
+        useCases.selectOrAddTab("https://youtube.com")
+
+        assertNotEquals("mozilla", store.state.selectedTabId)
+        assertEquals(4, store.state.tabs.size)
+        assertEquals("https://youtube.com", store.state.tabs.last().content.url)
+        assertEquals("https://youtube.com", store.state.selectedTab!!.content.url)
     }
 }

@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-prompts**:
+  * 🚒 Bug fixed [issue #9351] Camera images are available even with "Don't keep activities" enabled.
+
 * **ui-autocomplete**:
   * Pasting from the clipboard now cleans up any unwanted uri schemes.
 
@@ -20,6 +23,7 @@ permalink: /changelog/
 
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9229](https://github.com/mozilla-mobile/android-components/issues/9229) - Dismiss SelectLoginPrompt from the current tab when opening a new one ensuring the new one can show it's own. When returning to the previous tab users should focus a login field to see the SelectLoginPrompt again.
+  * PromptFeature now implements UserInteractionHandler.onBackPressed to dismiss loginPicker.
 
 * **feature-downloads**:
   * Allow browsers to change the download notification accent color by providing `Style()` in `AbstractFetchDownloadService`, for more information see [#9299](https://github.com/mozilla-mobile/android-components/issues/9299).
@@ -32,6 +36,9 @@ permalink: /changelog/
   
 * **feature-qr**
   * QR Scanner can now scan inverted QR codes, by decoding inverted source when the decoding the original source fails.
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissions` constructor, now parameter types for `autoplayAudible` and `autoplayInaudible` have changed to `AutoplayStatus` as autoplay permissions only support two status `ALLOWED` and `BLOCKED`.
 
 * **feature-app-links**
   * ⚠️ **This is a breaking change**: Migrated this component to use `browser-state` instead of `browser-session`. It is now required to pass a `BrowserStore` instance (instead of `SessionManager`) to `AppLinksFeature`.

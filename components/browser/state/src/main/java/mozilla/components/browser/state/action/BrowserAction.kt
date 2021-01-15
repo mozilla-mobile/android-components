@@ -598,7 +598,7 @@ sealed class WebExtensionAction : BrowserAction() {
         WebExtensionAction()
 
     /**
-     * Updates the [WebExtensionState.enabled] flag.
+     * Updates the [WebExtensionState.allowedInPrivateBrowsing] flag.
      */
     data class UpdateWebExtensionAllowedInPrivateBrowsingAction(
         val extensionId: String,
@@ -655,6 +655,14 @@ sealed class WebExtensionAction : BrowserAction() {
         val sessionId: String,
         val extensionId: String,
         val pageAction: WebExtensionPageAction
+    ) : WebExtensionAction()
+
+    /**
+     * Updates the [BrowserState.activeWebExtensionTabId] to mark a tab active for web extensions
+     * e.g. to support tabs.query({active: true}).
+     */
+    data class UpdateActiveWebExtensionTabAction(
+        val activeWebExtensionTabId: String?
     ) : WebExtensionAction()
 }
 

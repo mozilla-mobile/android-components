@@ -1,0 +1,30 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/
+
+name: 'A-S Update Helper'
+
+on:
+  pull_request:
+    paths: 'buildSrc/src/main/java/Dependencies.kt'
+    branches: [ master ]
+
+jobs:
+  asVersionChanged:
+    name: 'A-S Version Changed'
+    runs-on: ubuntu-latest
+    outputs:
+      versionChanged: ${{ steps.changeCheck.outputs.didChange }}
+    steps:
+      - id: changeCheck
+        run: echo "::set-output name=versionChanged::true"
+  changeHelper:
+    needs: asVersionChanged
+    if: ${{ asVersionChanged.outputs.versionChanged }}
+    steps:
+      - id: postComment
+      - uses: JungWinter/comment@v1.1.0
+        with:
+          type: create
+          body: "A-S version changed"
+          issue_number: ${{ github.event.issue.number }}"

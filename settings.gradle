@@ -90,6 +90,7 @@ gradle.projectsLoaded { ->
         configData.targetSdkVersion
     )
     gradle.rootProject.ext.buildConfig = buildconfig
+    gradle.rootProject.ext.artifactVersion = version
 }
 
 def runCmd(cmd, workingDir, successMessage) {

@@ -3,25 +3,23 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 plugins {
     kotlin("multiplatform")
     id("com.android.library")
+    id("maven-publish")
 }
 
+group = "org.mozilla.multiplatform"
+version = (gradle.rootProject.ext.get("artifactVersion") as String)
+
 kotlin {
-    android()
+    android() {
+        publishLibraryVariants("release")
+    }
 
     ios {
         binaries {
             framework {
-                baseName = "shared"
+                baseName = "dummy"
             }
         }
-    }
-
-    // Block from https://github.com/cashapp/sqldelight/issues/2044#issuecomment-721299517
-    val onPhone = System.getenv("SDK_NAME")?.startsWith("iphoneos") ?: false
-    if (onPhone) {
-        iosArm64("ios")
-    } else {
-        iosX64("ios")
     }
 
     sourceSets {

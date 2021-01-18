@@ -467,4 +467,4 @@ projects:
   multiplatform-lib-dummy:
     path: components/multiplatform/lib-dummy
     description: 'A dummy multiplatform library for testing purposes'
-    publish: false
+    publish: true

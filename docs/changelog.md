@@ -33,7 +33,7 @@ permalink: /changelog/
 
 * **browser-icons**
   * Catch `IOException` that may be thrown when deleting icon caches.
-  
+
 * **feature-qr**
   * QR Scanner can now scan inverted QR codes, by decoding inverted source when the decoding the original source fails.
 
@@ -43,8 +43,20 @@ permalink: /changelog/
 * **feature-app-links**
   * ⚠️ **This is a breaking change**: Migrated this component to use `browser-state` instead of `browser-session`. It is now required to pass a `BrowserStore` instance (instead of `SessionManager`) to `AppLinksFeature`.
 
-* **service-numbus**
+* **service-nimbus**
   * Added a `NimbusDisabled` class to provide implementers who are not able to use Nimbus yet.
+  
+* **support-base**
+  * 🌟 Add an `ActivityResultHandler` for features that want to consume the result.
+  
+* **concept-engine**
+  * 🌟 Added a new `ActivityDelegate` for handling intent requests from the engine.
+  
+* **browser-engine-gecko(-nightly)**
+  * Added `GeckoActivityDelegate` for the GeckoView `activityDelegate`.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: Removed the `TabCounterToolbarButton#privateColor` attribute which are replaced by the `tabCounterTintColor` Android styleable attribute.
 
 # 70.0.0
 

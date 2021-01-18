@@ -35,6 +35,7 @@ import org.mockito.Mockito
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.Shadows
@@ -477,7 +478,7 @@ class BrowserMenuTest {
 
     @Config(sdk = [Build.VERSION_CODES.LOLLIPOP, Build.VERSION_CODES.LOLLIPOP_MR1, Build.VERSION_CODES.M])
     @Test
-    fun `displayPopup on lower Android versions should directly call showAtAnchorLocation even if it fits`() {
+    fun `displayPopup on lower Android versions should not directly call showAtAnchorLocation if it fits`() {
         // Constructing the test the same as the above one.
         // The only difference is the Android SDK based on which another PopupWindow method should be used.
 
@@ -498,7 +499,7 @@ class BrowserMenuTest {
         popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.UP)
 
         assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
-        verify(popupWindow).showAtLocation(anchor, Gravity.END or Gravity.BOTTOM, 0, 0)
+        verify(popupWindow, never()).showAtLocation(anchor, Gravity.END or Gravity.BOTTOM, 0, 0)
     }
 
     @Test

@@ -186,9 +186,11 @@ internal fun PopupWindow.displayPopup(
     val fitsUp = availableHeightToTop >= containerHeight
     val fitsDown = availableHeightToBottom >= containerHeight
 
-    // On specific Android versions the PopupWindow would get placed at the wrong location
+    // On specific Huawei and Xiaomi Android versions the PopupWindow would get placed at the wrong location
     // if using `showAsDropDown`. Force using `showAtLocation` in this cases.
-    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+    if ((Build.MANUFACTURER.equals("huawei", ignoreCase = true) ||
+            Build.MANUFACTURER.equals("xiaomi", ignoreCase = true)) &&
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
         showAtAnchorLocation(anchor, availableHeightToTop < availableHeightToBottom)
         return
     }

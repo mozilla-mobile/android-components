@@ -110,7 +110,7 @@ internal class CrashReporterOnLog(private val crashReporter: CrashReporting? = n
 @VisibleForTesting
 internal fun Log.Priority.asLevelFilter(includePII: Boolean): LogLevelFilter {
     return when (this) {
-        Log.Priority.DEBUG -> {
+        Log.Priority.VERBOSE, Log.Priority.DEBUG -> {
             if (includePII) {
                 LogLevelFilter.TRACE
             } else {

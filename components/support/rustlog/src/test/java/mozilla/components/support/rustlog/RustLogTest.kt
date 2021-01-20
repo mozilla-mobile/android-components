@@ -109,6 +109,9 @@ class RustLogTest {
 
     @Test
     fun `log priority to level filter`() {
+        assertEquals(LogLevelFilter.DEBUG, Log.Priority.VERBOSE.asLevelFilter(false))
+        assertEquals(LogLevelFilter.TRACE, Log.Priority.VERBOSE.asLevelFilter(true))
+
         assertEquals(LogLevelFilter.DEBUG, Log.Priority.DEBUG.asLevelFilter(false))
         assertEquals(LogLevelFilter.TRACE, Log.Priority.DEBUG.asLevelFilter(true))
 

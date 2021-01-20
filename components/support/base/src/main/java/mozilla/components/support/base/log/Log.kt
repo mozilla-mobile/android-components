@@ -104,6 +104,7 @@ object Log {
         DEBUG(android.util.Log.DEBUG),
         INFO(android.util.Log.INFO),
         WARN(android.util.Log.WARN),
-        ERROR(android.util.Log.ERROR)
+        ERROR(android.util.Log.ERROR),
+        VERBOSE(android.util.Log.VERBOSE)
     }
 }

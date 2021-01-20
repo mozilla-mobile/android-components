@@ -57,6 +57,7 @@ permalink: /changelog/
 
 * **support-base**
   * 🌟 Add an `ActivityResultHandler` for features that want to consume the result.
+  * Add `Log.Priority.VERBOSE`.
 
 * **concept-engine**
   * 🌟 Added a new `ActivityDelegate` for handling intent requests from the engine.

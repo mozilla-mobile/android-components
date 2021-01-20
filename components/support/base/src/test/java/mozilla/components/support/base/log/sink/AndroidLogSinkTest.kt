@@ -24,6 +24,19 @@ class AndroidLogSinkTest {
     }
 
     @Test
+    fun `verbose log will be print to Android log`() {
+        val sink = AndroidLogSink()
+        sink.log(Log.Priority.VERBOSE, "Tag", message = "Hello World!")
+
+        val logs = ShadowLog.getLogs()
+        assertEquals(1, logs.size)
+        assertEquals("Hello World!", logs.last().msg)
+        assertEquals("Tag", logs.last().tag)
+        assertNull(logs.last().throwable)
+        assertEquals(android.util.Log.VERBOSE, logs.last().type)
+    }
+
+    @Test
     fun `debug log will be print to Android log`() {
         val sink = AndroidLogSink()
         sink.log(Log.Priority.DEBUG, "Tag", message = "Hello World!")

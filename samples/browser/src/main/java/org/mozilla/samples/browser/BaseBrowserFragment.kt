@@ -122,7 +122,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             view = layout
         )
 
-        val scrollFeature = CoordinateScrollingFeature(components.sessionManager, layout.engineView, layout.toolbar)
+        val scrollFeature = CoordinateScrollingFeature(components.store, layout.engineView, layout.toolbar)
 
         contextMenuIntegration.set(
             feature = ContextMenuIntegration(

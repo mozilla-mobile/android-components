@@ -21,6 +21,12 @@ permalink: /changelog/
 * **support-utils**:
   * 🌟 Added SafeUrl#stripUnsafeUrlSchemes that can cleanup unwanted uri schemes. Interested clients can specify what these are by overwriting "mozac_url_schemes_blocklist".
 
+* **concept-fetch**:
+  * 🌟 Added `Request#private` to allow requests to be performed in a private context, the feature is not support in all `Client`s check support before using.
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * 🌟 Added support for `Request#private`.
+
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9229](https://github.com/mozilla-mobile/android-components/issues/9229) - Dismiss SelectLoginPrompt from the current tab when opening a new one ensuring the new one can show it's own. When returning to the previous tab users should focus a login field to see the SelectLoginPrompt again.
   * PromptFeature now implements UserInteractionHandler.onBackPressed to dismiss loginPicker.
@@ -60,6 +66,9 @@ permalink: /changelog/
 
 * **feature-tabs**
   * ⚠️ **This is a breaking change**: Removed the `TabCounterToolbarButton#privateColor` attribute which are replaced by the `tabCounterTintColor` Android styleable attribute.
+
+* **lib-nearby**, **feature-p2p**, **samples-nearby**
+  * ⚠️ **This is a breaking change**: Removed Nearby component and related samples.
 
 # 70.0.0
 

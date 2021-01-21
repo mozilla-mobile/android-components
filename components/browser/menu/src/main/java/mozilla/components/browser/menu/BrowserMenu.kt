@@ -258,14 +258,17 @@ private fun PopupWindow.showPopupWithDownOrientation(anchor: View) {
 }
 
 private fun PopupWindow.showAtAnchorLocation(anchor: View, isCloserToTop: Boolean) {
-    val horizontalLayoutGravity = if (anchor.isRTL) { Gravity.START } else { Gravity.END }
+    val locationOnScreen = IntArray(2)
+    anchor.getLocationOnScreen(locationOnScreen)
 
     if (isCloserToTop) {
         animationStyle = R.style.Mozac_Browser_Menu_Animation_OverflowMenuTop
-        showAtLocation(anchor, horizontalLayoutGravity or Gravity.TOP, 0, 0)
+        showAtLocation(anchor, Gravity.NO_GRAVITY,
+        locationOnScreen[0], locationOnScreen[1])
     } else {
         animationStyle = R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom
-        showAtLocation(anchor, horizontalLayoutGravity or Gravity.BOTTOM, 0, 0)
+        showAtLocation(anchor, Gravity.NO_GRAVITY,
+            locationOnScreen[0], locationOnScreen[1])
     }
 }
 

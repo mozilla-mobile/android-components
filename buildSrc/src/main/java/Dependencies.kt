@@ -32,7 +32,7 @@ object Versions {
 
     const val mozilla_appservices = "67.2.0"
 
-    const val mozilla_glean = "33.1.2"
+    const val mozilla_glean = "33.10.3"
 
     const val material = "1.2.1"
 

@@ -13,6 +13,9 @@ permalink: /changelog/
 
 * **support-base**
   * ⚠️ **This is a breaking change**: Update the signature of `ActivityResultHandler.onActivityResult` to avoid conflict with internal Android APIs.
+  
+* **service-glean**
+  * 🆙 Updated Glean to version 33.10.3 from 33.1.2 ([changelog](https://github.com/mozilla/glean/releases/tag/v33.10.3))
 
 # 71.0.0
 

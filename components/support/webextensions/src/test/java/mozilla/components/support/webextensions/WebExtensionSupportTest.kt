@@ -39,7 +39,8 @@ import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import mozilla.components.support.webextensions.WebExtensionSupport.toState
-import mozilla.components.support.webextensions.facts.WebExtensionFacts.Items.WEB_EXTENSIONS_INITIALIZED
+import mozilla.components.support.webextensions.facts.WebExtensionFacts.Items.WEB_EXTENSION_ENABLED
+import mozilla.components.support.webextensions.facts.WebExtensionFacts.Items.WEB_EXTENSION_INSTALLED
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -134,6 +135,38 @@ class WebExtensionSupportTest {
             WebExtensionState(ext2.id, ext2.url, null, false, false),
             actionCaptor.allValues[1].extension
         )
+    }
+
+    @Test
+    fun `reacts to enabled extensions`() {
+        val store = spy(BrowserStore())
+        val engine: Engine = mock()
+        val ext: WebExtension = mock()
+        val installedList = mutableListOf(ext)
+
+        whenever(ext.id).thenReturn("test")
+
+        val callbackCaptor = argumentCaptor<((List<WebExtension>) -> Unit)>()
+        whenever(engine.listInstalledWebExtensions(callbackCaptor.capture(), any())).thenAnswer {
+            callbackCaptor.value.invoke(installedList)
+        }
+        val delegateCaptor = argumentCaptor<WebExtensionDelegate>()
+        WebExtensionSupport.initialize(engine, store)
+        verify(engine).registerWebExtensionDelegate(delegateCaptor.capture())
+
+        CollectionProcessor.withFactCollection { facts ->
+            delegateCaptor.value.onEnabled(ext)
+            assertEquals(1, facts.size)
+
+            val interactionFact = facts[0]
+            assertEquals(FactsAction.INTERACTION, interactionFact.action)
+            assertEquals(Component.SUPPORT_WEBEXTENSIONS, interactionFact.component)
+            assertEquals(WEB_EXTENSION_ENABLED, interactionFact.item)
+            assertEquals(1, interactionFact.metadata?.size)
+            assertTrue(interactionFact.metadata?.containsKey("enabled")!!)
+        }
+
+        verify(store).dispatch(WebExtensionAction.UpdateWebExtensionEnabledAction(ext.id, true))
     }
 
     @Test

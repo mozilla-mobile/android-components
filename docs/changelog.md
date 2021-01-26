@@ -3,14 +3,30 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
+# 72.0.0-SNAPSHOT (In Development)
 
-# 71.0.0-SNAPSHOT (In Development)
-
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v71.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/132?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v72.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/133?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **feature-prompts**:
+  * 🚒 Bug fixed [issue #9471](https://github.com/mozilla-mobile/android-components/issues/9471) - Confirm and alert js dialogs don't show "OK" and "Cancel" buttons when the message is too long.
+
+* **support-base**
+  * ⚠️ **This is a breaking change**: Update the signature of `ActivityResultHandler.onActivityResult` to avoid conflict with internal Android APIs.
+
+* **feature-addons**
+  * 🚒 Bug fixed [issue #9484] https://github.com/mozilla-mobile/android-components/issues/9484) - Handle multiple add-ons update that require new permissions.
+
+# 71.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v71.0.0...v72.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/132?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v71.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v71.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v71.0.0/.config.yml)
 
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9351] Camera images are available even with "Don't keep activities" enabled.
@@ -21,9 +37,40 @@ permalink: /changelog/
 * **support-utils**:
   * 🌟 Added SafeUrl#stripUnsafeUrlSchemes that can cleanup unwanted uri schemes. Interested clients can specify what these are by overwriting "mozac_url_schemes_blocklist".
 
+* **concept-fetch**:
+  * 🌟 Added `Request#private` to allow requests to be performed in a private context, the feature is not support in all `Client`s check support before using.
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * 🌟 Added support for `Request#private`.
+
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9229](https://github.com/mozilla-mobile/android-components/issues/9229) - Dismiss SelectLoginPrompt from the current tab when opening a new one ensuring the new one can show it's own. When returning to the previous tab users should focus a login field to see the SelectLoginPrompt again.
   * PromptFeature now implements UserInteractionHandler.onBackPressed to dismiss loginPicker.
+
+* **browser-session**
+  * 🚒 Bug fixed [issue #9445](https://github.com/mozilla-mobile/android-components/issues/9445) - LinkEngineSessionAction does not consider restoreState result.
+
+* **feature-contextmenu**
+  * 🌟 New functionality [issue #9392](https://github.com/mozilla-mobile/android-components/issues/9392) - Add share and copy link context menu options to images.
+
+* **feature-customtabs**
+  * ⚠️ **This is a breaking change**: Multiple breaking changes after migrating `feature-customtabs` to use the browser store, `CustomTabIntentProcessor` requires `AddCustomTabUseCase`,  `CustomTabsToolbarFeature` requires the `BrowserStore` and `CustomTabsUseCases` for more details see [issue #4257](https://github.com/mozilla-mobile/android-components/issues/4257).
+
+* **feature-intent**
+  * ⚠️ **This is a breaking change**: Multiple breaking changes after migrating `feature-intent` to use the browser store, `TabIntentProcessor` requires `TabsUseCases` and removes the `openNewTab` parameter, for more details see [issue #4279](https://github.com/mozilla-mobile/android-components/issues/4279).
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: `TabsUseCases` now requires `SessionStorage` for more info see [issue #9323](https://github.com/mozilla-mobile/android-components/issues/9323).
+
+* **browser-icons**
+  * 🚒 Bug fixed [issue #7888](https://github.com/mozilla-mobile/android-components/issues/7888) - Fixed crash when fetching icon with invalid URI scheme.
+
+* **feature-media**
+  * 🚒 Bug fixed [issue #9243](https://github.com/mozilla-mobile/android-components/issues/9243) - Pausing YouTube Video for A While Causes Media Notification to Disappear.
+  * 🚒 Bug fixed [issue #9254](https://github.com/mozilla-mobile/android-components/issues/9254) - Headphone control does not pause or play video.
+
+* **support-webextensions**
+  * 🚒 Bug fixed [issue #9210](https://github.com/mozilla-mobile/android-components/issues/9210) - White page shown in custom tab when ublock blocks page.
 
 * **feature-downloads**:
   * Allow browsers to change the download notification accent color by providing `Style()` in `AbstractFetchDownloadService`, for more information see [#9299](https://github.com/mozilla-mobile/android-components/issues/9299).
@@ -33,7 +80,7 @@ permalink: /changelog/
 
 * **browser-icons**
   * Catch `IOException` that may be thrown when deleting icon caches.
-  
+
 * **feature-qr**
   * QR Scanner can now scan inverted QR codes, by decoding inverted source when the decoding the original source fails.
 
@@ -43,8 +90,27 @@ permalink: /changelog/
 * **feature-app-links**
   * ⚠️ **This is a breaking change**: Migrated this component to use `browser-state` instead of `browser-session`. It is now required to pass a `BrowserStore` instance (instead of `SessionManager`) to `AppLinksFeature`.
 
-* **service-numbus**
+* **browser-toolbar**
+  * ⚠️ **This is a breaking change**: The API for showing the site permission indicators has been replaced to API to show an dot notification instead, for more information see [#9378](https://github.com/mozilla-mobile/android-components/issues/9378).
+
+* **service-nimbus**
   * Added a `NimbusDisabled` class to provide implementers who are not able to use Nimbus yet.
+
+* **support-base**
+  * 🌟 Add an `ActivityResultHandler` for features that want to consume the result.
+
+* **concept-engine**,**browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * 🌟 Added a new `ActivityDelegate` for handling intent requests from the engine.
+  * ⚠️ **This is a breaking change**: `EngineSessionState`.`toJSON()` has been removed for more details see [issue #8370](https://github.com/mozilla-mobile/android-components/issues/8370).
+
+* **browser-engine-gecko(-nightly)**
+  * Added `GeckoActivityDelegate` for the GeckoView `activityDelegate`.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: Removed the `TabCounterToolbarButton#privateColor` attribute which are replaced by the `tabCounterTintColor` Android styleable attribute.
+
+* **lib-nearby**, **feature-p2p**, **samples-nearby**
+  * ⚠️ **This is a breaking change**: Removed Nearby component and related samples.
 
 # 70.0.0
 

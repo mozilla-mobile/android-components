@@ -115,12 +115,10 @@ class WebExtensionSupportTest {
             val interactionFact = facts[0]
             assertEquals(FactsAction.INTERACTION, interactionFact.action)
             assertEquals(Component.SUPPORT_WEBEXTENSIONS, interactionFact.component)
-            assertEquals(WEB_EXTENSIONS_INITIALIZED, interactionFact.item)
-            assertEquals(2, interactionFact.metadata?.size)
+            assertEquals(WEB_EXTENSION_INSTALLED, interactionFact.item)
+            assertEquals(1, interactionFact.metadata?.size)
             assertTrue(interactionFact.metadata?.containsKey("installed")!!)
-            assertTrue(interactionFact.metadata?.containsKey("enabled")!!)
-            assertEquals(listOf(ext1.id, ext2.id), interactionFact.metadata?.get("installed"))
-            assertEquals(listOf(ext1.id), interactionFact.metadata?.get("enabled"))
+            assertEquals(ext1.id, interactionFact.metadata?.get("installed"))
         }
         assertEquals(ext1, WebExtensionSupport.installedExtensions[ext1.id])
         assertEquals(ext2, WebExtensionSupport.installedExtensions[ext2.id])

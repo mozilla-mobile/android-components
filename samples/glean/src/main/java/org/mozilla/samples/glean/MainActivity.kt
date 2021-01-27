@@ -93,7 +93,7 @@ open class MainActivity : AppCompatActivity(), NimbusApi.Observer {
      * shouldn't care to observe this and rather rely on `onExperimentsFetched` and `withExperiment`
      */
     override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
-        this@MainActivity.runOnUiThread {
+        runOnUiThread {
             configureButton()
         }
     }

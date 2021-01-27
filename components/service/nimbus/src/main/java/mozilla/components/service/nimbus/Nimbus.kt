@@ -162,7 +162,7 @@ class Nimbus(
         CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
 
     // An I/O scope is used for getting experiments from the network.
-    private val networkScope: CoroutineScope =
+    private val fetchScope: CoroutineScope =
         CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
 
     private var nimbus: NimbusClientInterface
@@ -222,14 +222,14 @@ class Nimbus(
         nimbus.getExperimentBranch(experimentId)
 
     override fun updateExperiments() {
-        networkScope.launch {
+        fetchScope.launch {
             fetchExperimentsOnThisThread()
             applyPendingExperimentsOnThisThread()
         }
     }
 
     override fun fetchExperiments() {
-        networkScope.launch {
+        fetchScope.launch {
             fetchExperimentsOnThisThread()
         }
     }
@@ -270,7 +270,9 @@ class Nimbus(
                 // The current plan is to have the nimbus-sdk updateExperiments() function
                 // return a diff of the experiments that have been received, at which point we
                 // can emit the appropriate telemetry events and notify observers of just the
-                // diff
+                // diff. See also:
+                // https://github.com/mozilla/experimenter/issues/3588 and
+                // https://jira.mozilla.com/browse/SDK-6
                 notifyObservers { onUpdatesApplied(it) }
             }
         }
@@ -298,14 +300,18 @@ class Nimbus(
     }
 
     override fun optOut(experimentId: String) {
-        nimbus.optOut(experimentId)
+        dbScope.launch {
+            nimbus.optOut(experimentId)
+        }
     }
 
     // This function shouldn't be exposed to the public API, but is meant for testing purposes to
     // force an experiment/branch enrollment.
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     internal fun optInWithBranch(experiment: String, branch: String) {
-        nimbus.optInWithBranch(experiment, branch)
+        dbScope.launch {
+            nimbus.optInWithBranch(experiment, branch)
+        }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

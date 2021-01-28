@@ -379,6 +379,10 @@ projects:
     path: components/lib/fetch-okhttp
     description: 'An implementation of lib-fetch based on OkHttp.'
     publish: true
+  lib-ktor-fetch:
+    path: components/lib/ktor-fetch
+    description: 'A component that can translate between concept-fetch and Ktor.'
+    publish: true
   lib-jexl:
     path: components/lib/jexl
     description: 'Javascript Expression Language: Powerful context-based expression parser and evaluator.'

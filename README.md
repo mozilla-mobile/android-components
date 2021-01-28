@@ -248,6 +248,8 @@ _Supporting components with generic helper code._
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
+* 🔴 [**Ktor-Fetch**](components/lib/ktor-fetch/README.md) - A component that can translate between `concept-fetch` and [Ktor]()(https://ktor.io/).
+
 * 🔵 [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
 
 * 🔵 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).

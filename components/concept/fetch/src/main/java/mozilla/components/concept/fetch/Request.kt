@@ -68,6 +68,11 @@ data class Request(
             fun fromFile(file: File): Body = Body(file.inputStream())
 
             /**
+             * Create a [Body] from the provided [ByteArray].
+             */
+            fun fromByteArray(array: ByteArray) = Body(array.inputStream())
+
+            /**
              * Create a [Body] from the provided [unencodedParams] in the format of Content-Type
              * "application/x-www-form-urlencoded". Parameters are formatted as "key1=value1&key2=value2..."
              * and values are percent-encoded. If the given map is empty, the response body will contain the

@@ -74,14 +74,6 @@ interface NimbusApi : Observable<NimbusApi.Observer> {
      * It will not take in to consideration previously fetched experiments: `applyPendingExperiments()`
      * is more suitable for that use case.
      *
-     * It is envisaged that this call will be unnecessary, but is exposed here if it does become
-     * necessary and for testing.
-     */
-    fun initializeOnThisThread() = Unit
-
-    /**
-     * Since `initializeOnThisThread()` performs I/O, it may be desirable to call it on a worker thread.
-     *
      * This method uses the single threaded worker scope, so callers can safely sequence calls to
      * `initialize` and `setExperimentsLocally`, `applyPendingExperiments`.
      */
@@ -249,14 +241,16 @@ class Nimbus(
         }
     }
 
-    override fun initializeOnThisThread() {
-        nimbus.initialize()
-    }
-
     override fun initialize() {
         dbScope.launch {
             initializeOnThisThread()
         }
+    }
+
+    @WorkerThread
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    private fun initializeOnThisThread() {
+        nimbus.initialize()
     }
 
     override fun fetchExperiments() {

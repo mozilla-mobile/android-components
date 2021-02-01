@@ -206,9 +206,6 @@ class Nimbus(
         // Build Nimbus AppContext object to pass into initialize
         val experimentContext = buildExperimentContext(context)
 
-        // Build a File object to represent the data directory for Nimbus data
-        val dataDir = File(context.applicationInfo.dataDir, NIMBUS_DATA_DIR)
-
         // Initialize Nimbus
         val remoteSettingsConfig = server?.let {
             RemoteSettingsConfig(

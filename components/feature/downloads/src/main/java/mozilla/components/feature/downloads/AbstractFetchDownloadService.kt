@@ -71,6 +71,7 @@ import mozilla.components.support.ktx.kotlin.sanitizeURL
 import mozilla.components.support.ktx.kotlinx.coroutines.throttleLatest
 import mozilla.components.support.utils.DownloadUtils
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -420,6 +421,7 @@ abstract class AbstractFetchDownloadService : Service() {
      * otherwise nothing will happen.
      */
     @VisibleForTesting
+    @Suppress("ComplexMethod", "NestedBlockDepth")
     internal fun addToDownloadSystemDatabaseCompat(download: DownloadState) {
         if (!shouldUseScopedStorage()) {
             val fileName = download.fileName
@@ -440,6 +442,24 @@ abstract class AbstractFetchDownloadService : Service() {
                 uri = url,
                 referer = download.referrerUrl?.toUri()
             )
+        } else {
+            val values = ContentValues()
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, download.fileName)
+            values.put(MediaStore.MediaColumns.MIME_TYPE, download.contentType ?: "*/*")
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+
+            val database = context.contentResolver
+            database.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)?.let { insertUri ->
+                val file = File(download.filePath)
+
+                FileInputStream(file).use { input ->
+                    database.openOutputStream(insertUri)?.use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                file.delete()
+            }
         }
     }
 

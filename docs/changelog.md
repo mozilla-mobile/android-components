@@ -13,8 +13,19 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
 * **feature-downloads**:
+  * 🌟 New `ShareDownloadFeature` will listen for `AddShareAction` and download, cache locally and then share internet resources.
+  * ⚠️ **This is a breaking change**: This is a breaking change with clients expected to create and register a new instance of the this new feature otherwise the "Share image" from the browser contextual menu will do nothing.
+
+* **support-ktx**
+  * 🌟 Added `Context.shareMedia` that allows to easily share a specific locally stored file through the Android share menu.
+
+* **feature-downloads**:
   * 🚒 Bug fixed [issue #9441](https://github.com/mozilla-mobile/android-components/issues/9441) - Don't ask for redundant system files permission if not required.
   * 🚒 Bug fixed [issue #9526](https://github.com/mozilla-mobile/android-components/issues/9526) - Downloads with generic content types use the correct file extension.
+  * 🚒 Bug fixed [issue #9553](https://github.com/mozilla-mobile/android-components/issues/9553) - Multiple files were unable to be opened after being download.
+
+* **feature-webauthn**
+  * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
 
 # 72.0.0
 
@@ -35,6 +46,11 @@ permalink: /changelog/
 
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: Replaces `includeFrecent` with an optional `frecencyConfig` in `TopSitesConfig` and `TopSitesStorage.getTopSites` to specify the frecency threshold for the returned list of top frecent sites see [#8690](https://github.com/mozilla-mobile/android-components/issues/8690).
+
+* **service-nimbus**
+ * Upgraded nimbus-sdk to enable `getExperimentBranch()` (and friends) to be callable from the main thread.
+ * Split up `updateExperiments()` in to two methods: `fetchExperiments()` and `applyPendingExperiments()`.
+ * Exposed `setExperimentsLocally()` for testing and startup.
 
 # 71.0.0
 
@@ -148,6 +164,8 @@ permalink: /changelog/
 * **browser-awesomebar**:
     * Awesomebar can now be customized for bottom toolbar using the [customizeForBottomToolbar] property
 
+* **service-numbus**
+  * Added a `NimbusDisabled` class to provide implementers who are not able to use Nimbus yet.
 # 69.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v68.0.0...v69.0.0)
@@ -169,9 +187,6 @@ permalink: /changelog/
 
 * **support-test-libstate**
   * Added `CaptureActionsMiddleware`: A `Middleware` implementation for unit tests that want to inspect actions dispatched on a `Store`.
-
-* **browser-menu**:
-  * 🚒 Bug fixed [issue #9101](https://github.com/mozilla-mobile/android-components/issues/9101) - Fix BrowserMenu position after rotating the screen on Android <=23
 
 * **feature-sitepermissions**
   * ⚠️ **This is a breaking change**: The `SitePermissionsRules` constructor, now requires a new parameter `mediaKeySystemAccess`.

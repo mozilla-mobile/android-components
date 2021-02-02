@@ -67,5 +67,3 @@ test_artifacts/
 /build/test-tools/google-cloud-sdk/
 /build/test-tools/*.jar
 /build/test-tools/*.gz
-
-components/*/*/build

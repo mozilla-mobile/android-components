@@ -77,14 +77,16 @@ class PinnedSiteStorage(context: Context) {
     }
 
     /**
-     * Renames the given pinned site.
+     * Updates the given pinned site.
      *
      * @param site The pinned site.
      * @param title The new title for the top site.
+     * @param url The new url for the top site.
      */
-    suspend fun renamePinnedSite(site: TopSite, title: String) = withContext(IO) {
+    suspend fun updatePinnedSite(site: TopSite, title: String, url: String) = withContext(IO) {
         val pinnedSite = site.toPinnedSite()
         pinnedSite.title = title
+        pinnedSite.url = url
         pinnedSiteDao.updatePinnedSite(pinnedSite)
     }
 

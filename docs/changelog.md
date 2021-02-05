@@ -26,6 +26,10 @@ permalink: /changelog/
 
 * **feature-webauthn**
   * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
+  
+* **feature-awesomebar**
+  * added `SearchEngineSuggestionProvider` that offers suggestion(s) for search engines based on user search engine list
+
 
 # 72.0.0
 

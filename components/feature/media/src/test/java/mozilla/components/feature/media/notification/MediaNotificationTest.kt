@@ -46,6 +46,7 @@ class MediaNotificationTest {
     }
 
     @Test
+<<<<<<< HEAD
     fun `media notification for playing state`() {
         val state = BrowserState(
             tabs = listOf(
@@ -147,10 +148,19 @@ class MediaNotificationTest {
         assertEquals("https://www.mozilla.org", notification.text)
         assertEquals("https://www.mozilla.org", notification.title)
 
+=======
+    fun `media session notification for dummy state`() {
+        val notification =
+            MediaNotification(context, AbstractMediaSessionService::class.java).createDummy(mock())
+
+        assertEquals("", notification.text)
+        assertEquals("", notification.title)
+>>>>>>> 229ca8dda0... Closes #9654: Rework MediaSession Service foreground notification behaviour
         assertEquals(R.drawable.mozac_feature_media_playing, notification.iconResource)
     }
 
     @Test
+<<<<<<< HEAD
     fun `media notification for playing state in private mode`() {
         val state = BrowserState(
             tabs = listOf(
@@ -197,6 +207,8 @@ class MediaNotificationTest {
     }
 
     @Test
+=======
+>>>>>>> 229ca8dda0... Closes #9654: Rework MediaSession Service foreground notification behaviour
     fun `media session notification for playing state`() {
         val state = BrowserState(
             tabs = listOf(

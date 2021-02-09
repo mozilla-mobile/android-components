@@ -12,6 +12,7 @@ import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebViewDatabase
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -139,7 +140,7 @@ class SystemEngineSession(
             throw IllegalArgumentException("Can only restore from SystemEngineSessionState")
         }
 
-        return webView.restoreState(state.bundle) != null
+        return state.bundle?.let { webView.restoreState(it) } != null
     }
 
     /**
@@ -250,23 +251,27 @@ class SystemEngineSession(
         operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) = set(value)
     }
 
-    private fun initSettings() {
-        webView.settings?.let { webSettings ->
+    @VisibleForTesting
+    internal fun initSettings() {
+        webView.settings.apply {
             // Explicitly set global defaults.
-            webSettings.setAppCacheEnabled(false)
-            webSettings.databaseEnabled = false
 
-            setDeprecatedWebSettings(webSettings)
+            @Suppress("DEPRECATION")
+            // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8512
+            setAppCacheEnabled(false)
+            databaseEnabled = false
+
+            setDeprecatedWebSettings(this)
 
             // We currently don't implement the callback to support turning this on.
-            webSettings.setGeolocationEnabled(false)
+            setGeolocationEnabled(false)
 
             // webViewSettings built-in zoom controls are the only supported ones,
             // so they should be turned on but hidden.
-            webSettings.builtInZoomControls = true
-            webSettings.displayZoomControls = false
+            builtInZoomControls = true
+            displayZoomControls = false
 
-            initSettings(webView, webSettings)
+            initSettings(webView, this)
         }
     }
 
@@ -297,10 +302,16 @@ class SystemEngineSession(
                 get() = this@SystemEngineSession.useWideViewPort
                 set(value) = setUseWideViewPort(s, value)
             override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
+
+            @Suppress("DEPRECATION")
+            // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8513
             override var allowFileAccessFromFileURLs by WebSetting(
                     s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs)
+            @Suppress("DEPRECATION")
+            // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8514
             override var allowUniversalAccessFromFileURLs by WebSetting(
                     s::getAllowUniversalAccessFromFileURLs, s::setAllowUniversalAccessFromFileURLs)
+
             override var mediaPlaybackRequiresUserGesture by WebSetting(
                     s::getMediaPlaybackRequiresUserGesture, s::setMediaPlaybackRequiresUserGesture)
             override var javaScriptCanOpenWindowsAutomatically by WebSetting(

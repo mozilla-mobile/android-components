@@ -13,6 +13,9 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
 * **browser-toolbar**
+  * 🌟 Added `BrowserToolbarBehavior#forceCollapse` to easily collapse the top/bottom toolbar.
+
+* **browser-toolbar**
   * ⚠️ **This is a breaking change**: `BrowserToolbarBottomBehavior` is renamed to `BrowserToolbarBehavior` as it is now a common behavior for toolbars be them placed at the bottom or at the top of the screen.
 
 * **feature-session**

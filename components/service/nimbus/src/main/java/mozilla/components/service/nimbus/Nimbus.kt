@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import mozilla.components.service.glean.Glean
+import mozilla.components.service.nimbus.GleanMetrics.NimbusEvents
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -25,6 +26,8 @@ import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
 import org.mozilla.experiments.nimbus.EnrolledExperiment
+import org.mozilla.experiments.nimbus.EnrollmentChangeEvent
+import org.mozilla.experiments.nimbus.EnrollmentChangeEventType
 import org.mozilla.experiments.nimbus.ErrorException
 import org.mozilla.experiments.nimbus.NimbusClient
 import org.mozilla.experiments.nimbus.NimbusClientInterface
@@ -169,7 +172,7 @@ private val loggingErrorReporter: ErrorReporter = { e: Throwable ->
 /**
  * A implementation of the [NimbusApi] interface backed by the Nimbus SDK.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 class Nimbus(
     private val context: Context,
     server: NimbusServerSettings?,
@@ -186,7 +189,7 @@ class Nimbus(
     private val fetchScope: CoroutineScope =
         CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
 
-    private var nimbus: NimbusClientInterface
+    private val nimbus: NimbusClientInterface
 
     override var globalUserParticipation: Boolean
         get() = nimbus.getGlobalUserParticipation()
@@ -228,11 +231,16 @@ class Nimbus(
         )
     }
 
+    // This is currently not available from the main thread.
+    // see https://jira.mozilla.com/browse/SDK-191
+    @WorkerThread
     override fun getActiveExperiments(): List<EnrolledExperiment> =
         nimbus.getActiveExperiments()
 
-    override fun getExperimentBranch(experimentId: String): String? =
-        nimbus.getExperimentBranch(experimentId)
+    override fun getExperimentBranch(experimentId: String): String? {
+        recordExposure(experimentId)
+        return nimbus.getExperimentBranch(experimentId)
+    }
 
     override fun updateExperiments() {
         fetchScope.launch {
@@ -264,7 +272,7 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun initializeOnThisThread() = withCatchAll {
+    internal fun initializeOnThisThread() = withCatchAll {
         nimbus.initialize()
     }
 
@@ -276,7 +284,7 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun fetchExperimentsOnThisThread() = withCatchAll {
+    internal fun fetchExperimentsOnThisThread() = withCatchAll {
         try {
             nimbus.fetchExperiments()
             notifyObservers { onExperimentsFetched() }
@@ -295,7 +303,7 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun applyPendingExperimentsOnThisThread() = withCatchAll {
+    internal fun applyPendingExperimentsOnThisThread() = withCatchAll {
         try {
             nimbus.applyPendingExperiments()
             // Get the experiments to record in telemetry
@@ -341,13 +349,13 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun setExperimentsLocallyOnThisThread(payload: String) = withCatchAll {
+    internal fun setExperimentsLocallyOnThisThread(payload: String) = withCatchAll {
         nimbus.setExperimentsLocally(payload)
     }
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun setGlobalUserParticipationOnThisThread(active: Boolean) = withCatchAll {
+    internal fun setGlobalUserParticipationOnThisThread(active: Boolean) = withCatchAll {
         val enrolmentChanges = nimbus.setGlobalUserParticipation(active)
         if (enrolmentChanges.isNotEmpty()) {
             postEnrolmentCalculation()
@@ -372,10 +380,61 @@ class Nimbus(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun recordExperimentTelemetry(experiments: List<EnrolledExperiment>) {
         // Call Glean.setExperimentActive() for each active experiment.
-        experiments.forEach {
+        experiments.forEach { experiment ->
             // For now, we will just record the experiment id and the branch id. Once we can call
             // Glean from Rust, this will move to the nimbus-sdk Rust core.
-            Glean.setExperimentActive(it.slug, it.branchSlug)
+            Glean.setExperimentActive(experiment.slug, experiment.branchSlug)
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun recordExperimentTelemetryEvents(enrollmentChangeEvents: List<EnrollmentChangeEvent>) {
+        enrollmentChangeEvents.forEach { event ->
+            when (event.change) {
+                EnrollmentChangeEventType.ENROLLMENT -> {
+                    NimbusEvents.enrollment.record(mapOf(
+                        NimbusEvents.enrollmentKeys.experiment to event.experimentSlug,
+                        NimbusEvents.enrollmentKeys.branch to event.branchSlug,
+                        NimbusEvents.enrollmentKeys.enrollmentId to event.enrollmentId
+                    ))
+                }
+                EnrollmentChangeEventType.DISQUALIFICATION -> {
+                    NimbusEvents.disqualification.record(mapOf(
+                        NimbusEvents.disqualificationKeys.experiment to event.experimentSlug,
+                        NimbusEvents.disqualificationKeys.branch to event.branchSlug,
+                        NimbusEvents.disqualificationKeys.enrollmentId to event.enrollmentId
+                    ))
+                }
+                EnrollmentChangeEventType.UNENROLLMENT -> {
+                    NimbusEvents.unenrollment.record(mapOf(
+                        NimbusEvents.unenrollmentKeys.experiment to event.experimentSlug,
+                        NimbusEvents.unenrollmentKeys.branch to event.branchSlug,
+                        NimbusEvents.unenrollmentKeys.enrollmentId to event.enrollmentId
+                    ))
+                }
+            }
+        }
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun recordExposure(experimentId: String) {
+        dbScope.launch {
+            recordExposureOnThisThread(experimentId)
+        }
+    }
+
+    // The exposure event should be recorded when the expected treatment (or no-treatment, such as
+    // for a "control" branch) is applied or shown to the user.
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @WorkerThread
+    internal fun recordExposureOnThisThread(experimentId: String) = withCatchAll {
+        val activeExperiments = getActiveExperiments()
+        activeExperiments.find { it.slug == experimentId }?.also { experiment ->
+            NimbusEvents.exposure.record(mapOf(
+                NimbusEvents.exposureKeys.experiment to experiment.slug,
+                NimbusEvents.exposureKeys.branch to experiment.branchSlug,
+                NimbusEvents.exposureKeys.enrollmentId to experiment.enrollmentId
+            ))
         }
     }
 

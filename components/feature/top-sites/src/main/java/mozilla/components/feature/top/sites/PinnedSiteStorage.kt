@@ -5,6 +5,7 @@
 package mozilla.components.feature.top.sites
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
 import mozilla.components.feature.top.sites.db.PinnedSiteEntity
@@ -16,6 +17,9 @@ import mozilla.components.feature.top.sites.db.toPinnedSite
  */
 class PinnedSiteStorage(context: Context) {
 
+    @VisibleForTesting
+    internal var currentTimeMillis: () -> Long = { System.currentTimeMillis() }
+    @VisibleForTesting
     internal var database: Lazy<TopSiteDatabase> = lazy { TopSiteDatabase.get(context) }
     private val pinnedSiteDao by lazy { database.value.pinnedSiteDao() }
 
@@ -35,7 +39,7 @@ class PinnedSiteStorage(context: Context) {
                 title = title,
                 url = url,
                 isDefault = isDefault,
-                createdAt = System.currentTimeMillis()
+                createdAt = currentTimeMillis()
             )
         }
         pinnedSiteDao.insertAllPinnedSites(siteEntities)
@@ -55,7 +59,7 @@ class PinnedSiteStorage(context: Context) {
                 title = title,
                 url = url,
                 isDefault = isDefault,
-                createdAt = System.currentTimeMillis()
+                createdAt = currentTimeMillis()
             )
             entity.id = pinnedSiteDao.insertPinnedSite(entity)
         }

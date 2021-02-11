@@ -8,11 +8,11 @@ import android.graphics.Color
 import android.os.Bundle
 import androidx.annotation.MainThread
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_main.*
 import mozilla.components.service.nimbus.NimbusApi
 import org.mozilla.experiments.nimbus.EnrolledExperiment
 import org.mozilla.samples.glean.GleanMetrics.BrowserEngagement
 import org.mozilla.samples.glean.GleanMetrics.Test
+import org.mozilla.samples.glean.databinding.ActivityMainBinding
 import org.mozilla.samples.glean.library.SamplesGleanLibrary
 
 /**
@@ -20,20 +20,23 @@ import org.mozilla.samples.glean.library.SamplesGleanLibrary
  */
 open class MainActivity : AppCompatActivity(), NimbusApi.Observer {
 
+    private lateinit var binding: ActivityMainBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         // Generate an event when user clicks on the button.
-        buttonGenerateData.setOnClickListener {
+        binding.buttonGenerateData.setOnClickListener {
             // These first two actions, adding to the string list and incrementing the counter are
             // tied to a user lifetime metric which is persistent from launch to launch.
 
             // Adds the EditText's text content as a new string in the string list metric from the
             // metrics.yaml file.
-            Test.stringList.add(etStringListInput.text.toString())
+            Test.stringList.add(binding.etStringListInput.text.toString())
             // Clear current text to help indicate something happened
-            etStringListInput.setText("")
+            binding.etStringListInput.setText("")
 
             // Increments the test_counter metric from the metrics.yaml file.
             Test.counter.add()
@@ -71,7 +74,7 @@ open class MainActivity : AppCompatActivity(), NimbusApi.Observer {
         GleanApplication.nimbus.register(this)
 
         // Attach the click listener for the experiments button to the updateExperiments function
-        buttonCheckExperiments.setOnClickListener {
+        binding.buttonCheckExperiments.setOnClickListener {
             // Once the experiments are fetched, then the activity's (a Nimbus observer)
             // `onExperimentFetched()` method is called.
             GleanApplication.nimbus.fetchExperiments()
@@ -114,8 +117,8 @@ open class MainActivity : AppCompatActivity(), NimbusApi.Observer {
             else -> getString(R.string.experiment_active_branch, branch)
         }
 
-        textViewExperimentStatus.setBackgroundColor(color)
-        textViewExperimentStatus.text = text
+        binding.textViewExperimentStatus.setBackgroundColor(color)
+        binding.textViewExperimentStatus.text = text
     }
 
     /** End Nimbus component functions */

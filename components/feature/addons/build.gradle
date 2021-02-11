@@ -4,8 +4,8 @@
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
+apply plugin: 'kotlin-parcelize'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -25,6 +25,10 @@ android {
                 arguments += ["room.incremental": "true"]
             }
         }
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 
     buildTypes {

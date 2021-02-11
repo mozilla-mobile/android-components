@@ -4,7 +4,6 @@
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -19,6 +18,10 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArgument "clearPackageData", "true"
         testInstrumentationRunnerArgument "listener", "leakcanary.FailTestOnLeakRunListener"
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 
     buildTypes {

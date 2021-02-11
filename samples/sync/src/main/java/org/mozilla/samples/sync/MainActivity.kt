@@ -9,7 +9,6 @@ import android.text.method.ScrollingMovementMethod
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import kotlinx.android.synthetic.main.activity_main.syncStatus
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +53,7 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.rustlog.RustLog
+import org.mozilla.samples.sync.databinding.ActivityMainBinding
 import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
 
@@ -109,6 +109,8 @@ class MainActivity :
         const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
     }
 
+    private lateinit var binding: ActivityMainBinding
+
     private val logger = Logger("SampleSync")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,23 +120,24 @@ class MainActivity :
 
         Log.addSink(AndroidLogSink())
 
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        findViewById<View>(R.id.buttonSignIn).setOnClickListener {
+        binding.buttonSignIn.setOnClickListener {
             launch {
                 accountManager.beginAuthentication()?.let { openWebView(it) }
             }
         }
 
-        findViewById<View>(R.id.buttonLogout).setOnClickListener {
+        binding.buttonLogout.setOnClickListener {
             launch { accountManager.logout() }
         }
 
-        findViewById<View>(R.id.refreshDevice).setOnClickListener {
+        binding.refreshDevice.setOnClickListener {
             launch { accountManager.authenticatedAccount()?.deviceConstellation()?.refreshDevices() }
         }
 
-        findViewById<View>(R.id.sendTab).setOnClickListener {
+        binding.sendTab.setOnClickListener {
             launch {
                 accountManager.authenticatedAccount()?.deviceConstellation()?.let { constellation ->
                     // Ignore devices that can't receive tabs.
@@ -175,7 +178,7 @@ class MainActivity :
             accountManager.start()
         }
 
-        findViewById<View>(R.id.buttonSync).setOnClickListener {
+        binding.buttonSync.setOnClickListener {
             launch {
                 accountManager.syncNow(SyncReason.User)
                 accountManager.authenticatedAccount()?.deviceConstellation()?.pollForCommands()
@@ -381,14 +384,14 @@ class MainActivity :
         override fun onStarted() {
             logger.info("onSyncStarted")
             CoroutineScope(Dispatchers.Main).launch {
-                syncStatus?.text = getString(R.string.syncing)
+                binding.syncStatus.text = getString(R.string.syncing)
             }
         }
 
         override fun onIdle() {
             logger.info("onSyncIdle")
             CoroutineScope(Dispatchers.Main).launch {
-                syncStatus?.text = getString(R.string.sync_idle)
+                binding.syncStatus.text = getString(R.string.sync_idle)
 
                 val historyResultTextView: TextView = findViewById(R.id.historySyncResult)
                 val visitedCount = withContext(Dispatchers.IO) { historyStorage.value.getVisited().size }
@@ -424,7 +427,7 @@ class MainActivity :
         override fun onError(error: Exception?) {
             logger.error("onSyncError", error)
             CoroutineScope(Dispatchers.Main).launch {
-                syncStatus?.text = getString(R.string.sync_error, error)
+                binding.syncStatus.text = getString(R.string.sync_error, error)
             }
         }
     }

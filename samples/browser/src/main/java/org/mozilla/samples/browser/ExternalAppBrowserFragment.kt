@@ -9,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
-import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.customtabs.CustomTabWindowFeature
 import mozilla.components.feature.customtabs.CustomTabsToolbarFeature
@@ -42,7 +41,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
         customTabsToolbarFeature.set(
             feature = CustomTabsToolbarFeature(
                 components.store,
-                layout.toolbar,
+                binding.toolbar,
                 sessionId,
                 components.customTabsUseCases,
                 components.menuBuilder,
@@ -58,10 +57,10 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
                 sessionId,
                 manifest
             ) { toolbarVisible ->
-                layout.toolbar.isVisible = toolbarVisible
+                binding.toolbar.isVisible = toolbarVisible
             },
             owner = this,
-            view = layout.toolbar)
+            view = binding.toolbar)
 
         val windowFeature = CustomTabWindowFeature(
             requireActivity(),

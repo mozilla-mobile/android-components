@@ -12,7 +12,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.fragment_add_on_settings.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.concept.engine.EngineSession
@@ -20,17 +19,17 @@ import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.lib.state.ext.consumeFrom
 import org.mozilla.samples.browser.R
+import org.mozilla.samples.browser.databinding.FragmentAddOnSettingsBinding
 import org.mozilla.samples.browser.ext.components
 
 /**
  * An activity to show the pop up action of a web extension.
  */
-class WebExtensionActionPopupActivity : AppCompatActivity() {
+class WebExtensionActionPopupActivity : AppCompatActivity(R.layout.activity_add_on_settings) {
     private lateinit var webExtensionId: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_on_settings)
 
         webExtensionId = requireNotNull(intent.getStringExtra("web_extension_id"))
         intent.getStringExtra("web_extension_name")?.let {
@@ -52,15 +51,22 @@ class WebExtensionActionPopupActivity : AppCompatActivity() {
     /**
      * A fragment to show the web extension action popup with [EngineView].
      */
-    class WebExtensionActionPopupFragment : Fragment(), EngineSession.Observer {
+    class WebExtensionActionPopupFragment : Fragment(R.layout.fragment_add_on_settings), EngineSession.Observer {
         private var engineSession: EngineSession? = null
         private lateinit var webExtensionId: String
 
+        private var _binding: FragmentAddOnSettingsBinding? = null
+        // This property is only valid between onCreateView and
+        // onDestroyView.
+        private val binding get() = _binding!!
+
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+            val view = super.onCreateView(inflater, container, savedInstanceState)!!
             webExtensionId = requireNotNull(arguments?.getString("web_extension_id"))
             engineSession = components.store.state.extensions[webExtensionId]?.popupSession
 
-            return inflater.inflate(R.layout.fragment_add_on_settings, container, false)
+            _binding = FragmentAddOnSettingsBinding.bind(view)
+            return view
         }
 
         @ExperimentalCoroutinesApi
@@ -69,7 +75,7 @@ class WebExtensionActionPopupActivity : AppCompatActivity() {
 
             val session = engineSession
             if (session != null) {
-                addonSettingsEngineView.render(session)
+                binding.addonSettingsEngineView.render(session)
                 session.register(this, view)
                 consumePopupSession()
             } else {
@@ -77,7 +83,7 @@ class WebExtensionActionPopupActivity : AppCompatActivity() {
                     state.extensions[webExtensionId]?.let { extState ->
                         extState.popupSession?.let {
                             if (engineSession == null) {
-                                addonSettingsEngineView.render(it)
+                                binding.addonSettingsEngineView.render(it)
                                 it.register(this, view)
                                 consumePopupSession()
                                 engineSession = it
@@ -86,6 +92,11 @@ class WebExtensionActionPopupActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+
+        override fun onDestroyView() {
+            super.onDestroyView()
+            _binding = null
         }
 
         override fun onWindowRequest(windowRequest: WindowRequest) {

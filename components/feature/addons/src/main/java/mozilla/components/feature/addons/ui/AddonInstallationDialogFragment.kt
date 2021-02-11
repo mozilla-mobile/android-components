@@ -17,17 +17,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
-import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
-import kotlinx.android.synthetic.main.mozac_feature_addons_fragment_dialog_addon_installed.view.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,6 +31,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
+import mozilla.components.feature.addons.databinding.MozacFeatureAddonsFragmentDialogAddonInstalledBinding
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
@@ -145,13 +142,11 @@ class AddonInstallationDialogFragment : AppCompatDialogFragment() {
 
     @SuppressLint("InflateParams")
     private fun createContainer(): View {
-        val rootView = LayoutInflater.from(requireContext()).inflate(
-            R.layout.mozac_feature_addons_fragment_dialog_addon_installed,
-            null,
-            false
+        val binding = MozacFeatureAddonsFragmentDialogAddonInstalledBinding.inflate(
+            LayoutInflater.from(requireContext()), null, false
         )
 
-        rootView.findViewById<TextView>(R.id.title).text =
+        binding.title.text =
             requireContext().getString(
                 R.string.mozac_feature_addons_installed_dialog_title,
                 addon.translateName(requireContext()),
@@ -160,17 +155,17 @@ class AddonInstallationDialogFragment : AppCompatDialogFragment() {
 
         val icon = safeArguments.getParcelable<Bitmap>(KEY_ICON)
         if (icon != null) {
-            rootView.icon.setImageDrawable(BitmapDrawable(resources, icon))
+            binding.icon.setImageDrawable(BitmapDrawable(resources, icon))
         } else {
-            iconJob = fetchIcon(addon, rootView.icon)
+            iconJob = fetchIcon(addon, binding.icon)
         }
 
-        val allowedInPrivateBrowsing = rootView.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
+        val allowedInPrivateBrowsing = binding.allowInPrivateBrowsing
         allowedInPrivateBrowsing.setOnCheckedChangeListener { _, isChecked ->
             allowPrivateBrowsing = isChecked
         }
 
-        val confirmButton = rootView.findViewById<Button>(R.id.confirm_button)
+        val confirmButton = binding.confirmButton
         confirmButton.setOnClickListener {
             onConfirmButtonClicked?.invoke(addon, allowPrivateBrowsing)
             dismiss()
@@ -200,7 +195,7 @@ class AddonInstallationDialogFragment : AppCompatDialogFragment() {
             confirmButton.background = shape
         }
 
-        return rootView
+        return binding.root
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

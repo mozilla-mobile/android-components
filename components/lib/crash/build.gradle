@@ -20,7 +20,6 @@ plugins {
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 android {
@@ -43,6 +42,10 @@ android {
         arguments {
             arg("room.schemaLocation", "$projectDir/schemas".toString())
         }
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 
     buildTypes {

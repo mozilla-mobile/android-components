@@ -7,7 +7,6 @@ package org.mozilla.samples.browser.integration
 import android.content.Context
 import android.view.View
 import androidx.fragment.app.FragmentManager
-import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
@@ -24,6 +23,7 @@ import mozilla.components.feature.contextmenu.ContextMenuUseCases
 import mozilla.components.feature.contextmenu.DefaultSnackbarDelegate
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import org.mozilla.samples.browser.R
 
 @Suppress("LongParameterList", "UndocumentedPublicClass")
 class ContextMenuIntegration(
@@ -67,7 +67,7 @@ class ContextMenuIntegration(
     }
 
     private val feature = ContextMenuFeature(
-        fragmentManager, browserStore, candidates, parentView.engineView, contextMenuUseCases
+        fragmentManager, browserStore, candidates, parentView.findViewById(R.id.engineView), contextMenuUseCases
     )
 
     override fun start() {

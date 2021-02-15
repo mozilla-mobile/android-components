@@ -136,7 +136,7 @@ class PictureInPictureFeatureTest {
         val controller = mock<MediaSession.Controller>()
         val selectedSession = createTab(url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
-                playbackState = MediaSession.PlaybackState.UNKNOWN,
+                playbackState = MediaSession.PlaybackState.PLAYING,
                 controller = controller
             )
         ).copyWithFullScreen(true)
@@ -186,7 +186,7 @@ class PictureInPictureFeatureTest {
         val controller = mock<MediaSession.Controller>()
         val selectedSession = createTab(url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
-                playbackState = MediaSession.PlaybackState.UNKNOWN,
+                playbackState = MediaSession.PlaybackState.PLAYING,
                 controller = controller
             )
         ).copyWithFullScreen(true)

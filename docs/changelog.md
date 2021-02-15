@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **All components**
+  * ⚠️Increased `targetSdkVersion` to 30 (Android R)
+
 * **browser-toolbar**
   * 🌟 Added `BrowserToolbarBehavior#forceCollapse` to easily collapse the top/bottom toolbar.
 
@@ -36,8 +39,18 @@ permalink: /changelog/
 * **feature-webauthn**
   * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
 
+* **concept-engine**
+  * Added `defaultSettings: Settings?` parameter to registerTabHandler to supply a default Tracking Policy when opening a new extension tab.
+  * When calling `onNewTab` in `registerTabHandler` from `GeckoWebExtension.kt` a default `TrackingProtectionPolicy.strict()` is supplied to the new `GeckoEngineSession`. This was added in to avoid WebExtension tabs without any ETP settings.
+
 * **concept-storage**
   * Introduced `CreditCardsAddressesStorage` interface for describing credit card and address storage.
+
+* **support-base**
+  * Add `NamedThreadFactory`, a `ThreadFactory` that names its threads with the given argument.
+
+* **lib-state**
+  * Add `threadNamePrefix` parameter to `Store` to give threads created by the `Store` a specific name.
 
 # 72.0.0
 

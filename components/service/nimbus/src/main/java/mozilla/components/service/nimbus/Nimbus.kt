@@ -22,6 +22,7 @@ import mozilla.components.service.nimbus.GleanMetrics.NimbusEvents
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import mozilla.components.support.base.utils.NamedThreadFactory
 import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
@@ -129,6 +130,13 @@ interface NimbusApi : Observable<NimbusApi.Observer> {
     fun optOut(experimentId: String) = Unit
 
     /**
+     *  Reset internal state in response to application-level telemetry reset.
+     *  Consumers should call this method when the user resets the telemetry state of the
+     *  consuming application, such as by opting out of (or in to) submitting telemetry.
+     */
+    fun resetTelemetryIdentifiers() = Unit
+
+    /**
      * Control the opt out for all experiments at once. This is likely a user action.
      */
     var globalUserParticipation: Boolean
@@ -182,14 +190,16 @@ class Nimbus(
 
     // Using two single threaded executors here to enforce synchronization where needed:
     // An I/O scope is used for reading or writing from the Nimbus's RKV database.
-    private val dbScope: CoroutineScope =
-        CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
+    private val dbScope: CoroutineScope = CoroutineScope(Executors.newSingleThreadExecutor(
+        NamedThreadFactory("NimbusDBScope")
+    ).asCoroutineDispatcher())
 
     // An I/O scope is used for getting experiments from the network.
-    private val fetchScope: CoroutineScope =
-        CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
+    private val fetchScope: CoroutineScope = CoroutineScope(Executors.newSingleThreadExecutor(
+        NamedThreadFactory("NimbusFetchScope")
+    ).asCoroutineDispatcher())
 
-    private var nimbus: NimbusClientInterface
+    private val nimbus: NimbusClientInterface
 
     override var globalUserParticipation: Boolean
         get() = nimbus.getGlobalUserParticipation()
@@ -231,6 +241,9 @@ class Nimbus(
         )
     }
 
+    // This is currently not available from the main thread.
+    // see https://jira.mozilla.com/browse/SDK-191
+    @WorkerThread
     override fun getActiveExperiments(): List<EnrolledExperiment> =
         nimbus.getActiveExperiments()
 
@@ -269,7 +282,7 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun initializeOnThisThread() = withCatchAll {
+    internal fun initializeOnThisThread() = withCatchAll {
         nimbus.initialize()
     }
 
@@ -281,7 +294,7 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun fetchExperimentsOnThisThread() = withCatchAll {
+    internal fun fetchExperimentsOnThisThread() = withCatchAll {
         try {
             nimbus.fetchExperiments()
             notifyObservers { onExperimentsFetched() }
@@ -300,7 +313,7 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun applyPendingExperimentsOnThisThread() {
+    internal fun applyPendingExperimentsOnThisThread() = withCatchAll {
         try {
             nimbus.applyPendingExperiments()
             // Get the experiments to record in telemetry
@@ -346,13 +359,13 @@ class Nimbus(
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun setExperimentsLocallyOnThisThread(payload: String) = withCatchAll {
+    internal fun setExperimentsLocallyOnThisThread(payload: String) = withCatchAll {
         nimbus.setExperimentsLocally(payload)
     }
 
     @WorkerThread
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    private fun setGlobalUserParticipationOnThisThread(active: Boolean) = withCatchAll {
+    internal fun setGlobalUserParticipationOnThisThread(active: Boolean) = withCatchAll {
         val enrolmentChanges = nimbus.setGlobalUserParticipation(active)
         if (enrolmentChanges.isNotEmpty()) {
             postEnrolmentCalculation()
@@ -362,6 +375,19 @@ class Nimbus(
     override fun optOut(experimentId: String) {
         dbScope.launch {
             withCatchAll { nimbus.optOut(experimentId) }
+        }
+    }
+
+    override fun resetTelemetryIdentifiers() {
+        // The "dummy" field here is required for obscure reasons when generating code on desktop,
+        // so we just automatically set it to a dummy value.
+        val aru = AvailableRandomizationUnits(clientId = null, dummy = 0)
+        dbScope.launch {
+            withCatchAll {
+                nimbus.resetTelemetryIdentifiers(aru).also { enrollmentChangeEvents ->
+                    recordExperimentTelemetryEvents(enrollmentChangeEvents)
+                }
+            }
         }
     }
 
@@ -413,10 +439,18 @@ class Nimbus(
         }
     }
 
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun recordExposure(experimentId: String) {
+        dbScope.launch {
+            recordExposureOnThisThread(experimentId)
+        }
+    }
+
     // The exposure event should be recorded when the expected treatment (or no-treatment, such as
     // for a "control" branch) is applied or shown to the user.
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun recordExposure(experimentId: String) {
+    @WorkerThread
+    internal fun recordExposureOnThisThread(experimentId: String) = withCatchAll {
         val activeExperiments = getActiveExperiments()
         activeExperiments.find { it.slug == experimentId }?.also { experiment ->
             NimbusEvents.exposure.record(mapOf(

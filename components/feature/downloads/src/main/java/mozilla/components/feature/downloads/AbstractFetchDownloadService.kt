@@ -817,13 +817,7 @@ abstract class AbstractFetchDownloadService : Service() {
     }
 
     @VisibleForTesting
-    internal fun shouldUseScopedStorage() =
-            getSdkVersion() >= Build.VERSION_CODES.Q && !isExternalStorageLegacy()
-
-    @SuppressLint("NewApi")
-    @VisibleForTesting
-    internal fun isExternalStorageLegacy(): Boolean =
-        Environment.isExternalStorageLegacy()
+    internal fun shouldUseScopedStorage() = getSdkVersion() >= Build.VERSION_CODES.Q
 
     /**
      * Gets the SDK version from the system.
@@ -864,6 +858,8 @@ abstract class AbstractFetchDownloadService : Service() {
         } ?: download
     }
 
+    @Suppress("DEPRECATION")
+    // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8515
     @TargetApi(Build.VERSION_CODES.Q)
     @VisibleForTesting
     internal fun useFileStreamScopedStorage(download: DownloadState, block: (OutputStream) -> Unit) {

@@ -1,0 +1,179 @@
+[93m[0m[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[93mmodified: .buildconfig.yml
+[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;35m[1;35m@ .buildconfig.yml:3 @[1m[0m
+# Please keep this version in sync with version.txt[m
+# version.txt should be the new source of truth for version numbers[m
+[1;31m[1;31mcomponentsVersion: 72.0.1[m[1;31;48;5;52m4[m[1;31m[m
+[0m[1;32m[1;32mcomponentsVersion: 72.0.1[m[1;32;48;5;22m3[m[1;32m[m
+[0m# Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.[m
+projects:[m
+  concept-awesomebar:[m
+[93m[0m[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[93mmodified: components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngine.kt
+[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;35m[1;35m@ components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngine.kt:12 @[1m[1m[38;5;146m import android.content.Context[0m
+import android.util.AttributeSet[m
+import android.util.JsonReader[m
+import androidx.annotation.VisibleForTesting[m
+[1;32m[1;32m[m[1;32mimport mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate[m
+[0mimport mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy[m
+import mozilla.components.browser.engine.gecko.ext.getEtpLevel[m
+import mozilla.components.browser.engine.gecko.ext.getStrictSocialTrackingProtection[m
+[1;35m[1;35m@ components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngine.kt:35 @[1m[1m[38;5;146m import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.[0m
+import mozilla.components.concept.engine.EngineSessionState[m
+import mozilla.components.concept.engine.EngineView[m
+import mozilla.components.concept.engine.Settings[m
+[1;32m[1;32m[m[1;32mimport mozilla.components.concept.engine.activity.ActivityDelegate[m
+[0mimport mozilla.components.concept.engine.content.blocking.TrackerLog[m
+import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage[m
+import mozilla.components.concept.engine.history.HistoryTrackingDelegate[m
+[1;35m[1;35m@ components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngine.kt:63 @[1m[1m[38;5;146m import org.mozilla.geckoview.GeckoRuntime[0m
+import org.mozilla.geckoview.GeckoSession[m
+import org.mozilla.geckoview.GeckoWebExecutor[m
+import org.mozilla.geckoview.WebExtensionController[m
+[1;32m[1;32m[m[1;32mimport java.lang.ref.WeakReference[m
+[0m[m
+/**[m
+ * Gecko-based implementation of Engine interface.[m
+[1;35m[1;35m@ components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngine.kt:444 @[1m[1m[38;5;146m class GeckoEngine([0m
+        return requireNotNull(webPushHandler)[m
+    }[m
+[m
+[1;32m[1;32m[m[1;32m    /**[m
+[0m[1;32m[1;32m[m[1;32m     * See [Engine.registerActivityDelegate].[m
+[0m[1;32m[1;32m[m[1;32m     */[m
+[0m[1;32m[1;32m[m[1;32m    override fun registerActivityDelegate([m
+[0m[1;32m[1;32m[m[1;32m        activityDelegate: ActivityDelegate[m
+[0m[1;32m[1;32m[m[1;32m    ) {[m
+[0m[1;32m[1;32m[m[1;32m        /**[m
+[0m[1;32m[1;32m[m[1;32m         * Having the activity delegate on the engine can cause issues with resolving multiple requests to the delegate[m
+[0m[1;32m[1;32m[m[1;32m         * from different sessions. Ideally, this should be moved to the [EngineView].[m
+[0m[1;32m[1;32m[m[1;32m         *[m
+[0m[1;32m[1;32m[m[1;32m         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1672195[m
+[0m[1;32m[1;32m[m[1;32m         *[m
+[0m[1;32m[1;32m[m[1;32m         * Attaching the delegate to the Gecko [Engine] implicitly assumes we have WebAuthn support. When a feature[m
+[0m[1;32m[1;32m[m[1;32m         * implements the ActivityDelegate today, we need to make sure that it has full support for WebAuthn. This[m
+[0m[1;32m[1;32m[m[1;32m         * needs to be fixed in GeckoView.[m
+[0m[1;32m[1;32m[m[1;32m         *[m
+[0m[1;32m[1;32m[m[1;32m         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1671988[m
+[0m[1;32m[1;32m[m[1;32m         */[m
+[0m[1;32m[1;32m[m[1;32m        runtime.activityDelegate = GeckoActivityDelegate(WeakReference(activityDelegate))[m
+[0m[1;32m[1;32m[m[1;32m    }[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m    /**[m
+[0m[1;32m[1;32m[m[1;32m     * See [Engine.unregisterActivityDelegate].[m
+[0m[1;32m[1;32m[m[1;32m     */[m
+[0m[1;32m[1;32m[m[1;32m    override fun unregisterActivityDelegate() {[m
+[0m[1;32m[1;32m[m[1;32m        runtime.activityDelegate = null[m
+[0m[1;32m[1;32m[m[1;32m    }[m
+[0m[7m[1;32m [m
+    /**[m
+     * See [Engine.clearData].[m
+     */[m
+[93m[0m[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[93mmodified: components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngineView.kt
+[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;35m[1;35m@ components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngineView.kt:172 @[1m[1m[38;5;146m class GeckoEngineView @JvmOverloads constructor([0m
+    override fun canScrollVerticallyDown() =[m
+        true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569[m
+[m
+[1;32m[1;32m[m[1;32m    @Suppress("MagicNumber")[m
+[0m    override fun getInputResult(): EngineView.InputResult {[m
+        // Direct mapping of GeckoView's returned values.[m
+[1;31m[1;31m        // There should be a 1-1 relation. If not fail fast to allow for a quick fix.[m
+[0m[1;31m[1;31m        return EngineView.InputResult.values().first { it.value == geckoView.inputResult }[m
+[0m[1;32m[1;32m[m[1;32m        // If not fail fast to allow for a quick fix.[m
+[0m[1;32m[1;32m[m[1;32m        val input = geckoView.inputResult[m
+[0m[1;32m[1;32m[m[1;32m        return when (input) {[m
+[0m[1;32m[1;32m[m[1;32m            0 -> EngineView.InputResult.INPUT_RESULT_UNHANDLED[m
+[0m[1;32m[1;32m[m[1;32m            1, 3 -> EngineView.InputResult.INPUT_RESULT_HANDLED[m
+[0m[1;32m[1;32m[m[1;32m            2 -> EngineView.InputResult.INPUT_RESULT_HANDLED_CONTENT[m
+[0m[1;32m[1;32m[m[1;32m            else -> throw IllegalArgumentException("Unexpected geckoView.inputResult: \"${geckoView.inputResult}\"")[m
+[0m[1;32m[1;32m[m[1;32m        }[m
+[0m    }[m
+[m
+    override fun setVerticalClipping(clippingHeight: Int) {[m
+[93m[0m[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[93mmodified: components/browser/engine-gecko/src/test/java/mozilla/components/browser/engine/gecko/GeckoEngineSessionTest.kt
+[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;35m[1;35m@ components/browser/engine-gecko/src/test/java/mozilla/components/browser/engine/gecko/GeckoEngineSessionTest.kt:573 @[1m[1m[38;5;146m class GeckoEngineSessionTest {[0m
+        verify(geckoSession, never()).restoreState(any())[m
+    }[m
+[m
+[1;31m[1;31m    @Test[m
+[0m[1;31m[1;31m    fun `restoreState returns false for empty state`() {[m
+[0m[1;31m[1;31m        val engineSession = GeckoEngineSession(mock(),[m
+[0m[1;31m[1;31m            geckoSessionProvider = geckoSessionProvider)[m
+[0m[1;31m[1;31m        val actualState: GeckoSession.SessionState = mock()[m
+[0m[7m[1;31m [m
+[1;31m[1;31m        whenever(actualState.isEmpty()).thenReturn(true)[m
+[0m[7m[1;31m [m
+[1;31m[1;31m        val state = GeckoEngineSessionState(actualState)[m
+[0m[7m[1;31m [m
+[1;31m[1;31m        assertFalse(engineSession.restoreState(state))[m
+[0m[1;31m[1;31m        verify(geckoSession, never()).restoreState(any())[m
+[0m[1;31m[1;31m    }[m
+[0m[7m[1;31m [m
+    @Test[m
+    fun progressDelegateIgnoresInitialLoadOfAboutBlank() {[m
+        val engineSession = GeckoEngineSession(mock(),[m
+[93m[0m[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[93mmodified: components/browser/engine-gecko/src/test/java/mozilla/components/browser/engine/gecko/GeckoEngineTest.kt
+[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;35m[1;35m@ components/browser/engine-gecko/src/test/java/mozilla/components/browser/engine/gecko/GeckoEngineTest.kt:1728 @[1m[1m[38;5;146m class GeckoEngineTest {[0m
+[m
+        whenever(runtime.settings).thenReturn(mockGeckoSetting)[m
+        whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)[m
+[1;31m[1;31m        whenever(mockGeckoContentBlockingSetting.[m[1;31;48;5;52mgetEnhancedTrackingProtectionLevel()[m[1;31m).thenReturn([m
+[0m[1;32m[1;32m        whenever(mockGeckoContentBlockingSetting.[m[1;32;48;5;22menhancedTrackingProtectionLevel[m[1;32m).thenReturn([m
+[0m            ContentBlocking.EtpLevel.STRICT[m
+        )[m
+        whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)[m
+[1;35m[1;35m@ components/browser/engine-gecko/src/test/java/mozilla/components/browser/engine/gecko/GeckoEngineTest.kt:1873 @[1m[1m[38;5;146m class GeckoEngineTest {[0m
+[m
+        whenever(runtime.settings).thenReturn(mockGeckoSetting)[m
+        whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)[m
+[1;31m[1;31m        whenever(mockGeckoContentBlockingSetting.[m[1;31;48;5;52mgetEnhancedTrackingProtectionLevel()[m[1;31m).thenReturn([m
+[0m[1;32m[1;32m        whenever(mockGeckoContentBlockingSetting.[m[1;32;48;5;22menhancedTrackingProtectionLevel[m[1;32m).thenReturn([m
+[0m            ContentBlocking.EtpLevel.STRICT[m
+        )[m
+        whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)[m
+[1;35m[1;35m@ components/browser/engine-gecko/src/test/java/mozilla/components/browser/engine/gecko/GeckoEngineTest.kt:1929 @[1m[1m[38;5;146m class GeckoEngineTest {[0m
+        assert(handler1 == handler2)[m
+    }[m
+[m
+[1;32m[1;32m[m[1;32m    @Test[m
+[0m[1;32m[1;32m[m[1;32m    fun `registerActivityDelegate sets delegate`() {[m
+[0m[1;32m[1;32m[m[1;32m        val runtime = mock<GeckoRuntime>()[m
+[0m[1;32m[1;32m[m[1;32m        val engine = GeckoEngine(context, runtime = runtime)[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m        engine.registerActivityDelegate(mock())[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m        verify(runtime).activityDelegate = any()[m
+[0m[1;32m[1;32m[m[1;32m    }[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m    @Test[m
+[0m[1;32m[1;32m[m[1;32m    fun `unregisterActivityDelegate sets delegate to null`() {[m
+[0m[1;32m[1;32m[m[1;32m        val runtime = mock<GeckoRuntime>()[m
+[0m[1;32m[1;32m[m[1;32m        val engine = GeckoEngine(context, runtime = runtime)[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m        engine.registerActivityDelegate(mock())[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m        verify(runtime).activityDelegate = any()[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m        engine.unregisterActivityDelegate()[m
+[0m[7m[1;32m [m
+[1;32m[1;32m[m[1;32m        verify(runtime).activityDelegate = null[m
+[0m[1;32m[1;32m[m[1;32m    }[m
+[0m[7m[1;32m [m
+    private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {[m
+        val blockedLogEntry = object : ContentBlockingController.LogEntry() {}[m
+[m
+[93m[0m[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[93mmodified: version.txt
+[93m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[1;35m[1;35m@ version.txt:1 @[1m[0m
+[1;31m[1;31m72.0.1[m[1;31;48;5;52m4[m[1;31m[m
+[0m[1;32m[1;32m72.0.1[m[1;32;48;5;22m3[m[1;32m[m
+[0m

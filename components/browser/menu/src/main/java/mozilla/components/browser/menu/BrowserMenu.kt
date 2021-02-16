@@ -4,6 +4,8 @@
 
 package mozilla.components.browser.menu
 
+import android.content.Context
+import android.content.res.Resources.getSystem
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
@@ -11,6 +13,9 @@ import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.MeasureSpec.AT_MOST
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.PopupWindow
@@ -22,7 +27,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.menu.BrowserMenu.Orientation.DOWN
 import mozilla.components.browser.menu.BrowserMenu.Orientation.UP
-import mozilla.components.browser.menu.view.DynamicWidthRecyclerView
 import mozilla.components.concept.menu.MenuStyle
 import mozilla.components.support.ktx.android.view.isRTL
 import mozilla.components.support.ktx.android.view.onNextGlobalLayout
@@ -37,6 +41,8 @@ open class BrowserMenu internal constructor(
     private var menuList: RecyclerView? = null
     internal var currAnchor: View? = null
     internal var isShown = false
+
+    private var isWindowExpanded = false
 
     /**
      * @param anchor the view on which to pin the popup window.
@@ -57,13 +63,72 @@ open class BrowserMenu internal constructor(
 
         adapter.menu = this
 
-        menuList = view.findViewById<DynamicWidthRecyclerView>(R.id.mozac_browser_menu_recyclerView).apply {
+        menuList = view.findViewById<RecyclerView>(R.id.mozac_browser_menu_recyclerView).apply {
             layoutManager = LinearLayoutManager(anchor.context, RecyclerView.VERTICAL, false).also {
                 setEndOfMenuAlwaysVisibleCompact(endOfMenuAlwaysVisible, it)
             }
             adapter = this@BrowserMenu.adapter
-            minWidth = style?.minWidth ?: resources.getDimensionPixelSize(R.dimen.mozac_browser_menu_width_min)
-            maxWidth = style?.maxWidth ?: resources.getDimensionPixelSize(R.dimen.mozac_browser_menu_width_max)
+
+            // Always show the top most items
+            scrollToPosition(0)
+
+            // Simple way to know where the menu is placed on the screen. May need a better approach.
+            val topBottomDistance = getMaxAvailableHeightToTopAndBottom(anchor)
+
+            // Popup is shown at the top of the screen
+            if (topBottomDistance.first > topBottomDistance.second) {
+                // The menu is "expanded" by default. "Collapse" it.
+                val placeholderCollapsedSize = (470 * getSystem().displayMetrics.density).toInt()
+                val measureSpec = View.MeasureSpec.makeMeasureSpec(placeholderCollapsedSize, AT_MOST)
+                measure(WRAP_CONTENT, measureSpec)
+                layoutParams.height = measuredHeight
+                requestLayout()
+
+                // A scroll up should expand it.
+                addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                        super.onScrolled(recyclerView, dx, dy)
+
+                        if (dy > 0) {
+
+                            // "PopupWindow.update()" would increase the height of the window from below the screen bounds
+                            // and then translate it up. This has a negative visual impact.
+                            // Try to do the same "manually" while ensuring the window always respects the anchor.
+
+                            isWindowExpanded = true
+                            removeOnScrollListener(this)
+
+                            // Expand the menu list
+                            measure(WRAP_CONTENT, WRAP_CONTENT)
+                            layoutParams.height = measuredHeight
+                            requestLayout()
+
+                            val popupView = currentPopup!!.contentView
+                            val decorView = (((popupView as ViewGroup).parent as ViewGroup).parent) as ViewGroup
+                            val windowManager = decorView.context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+                            // Increase the actual Popup "Window" that contains the menu items list.
+                            val currentParams = decorView.layoutParams as WindowManager.LayoutParams
+                            val newParams = WindowManager.LayoutParams()
+                            // The new y delta is now below the screen bounds. Translate the entire window up.
+                            newParams.y = -580
+                            newParams.height = 1840
+
+                            // Reuse only the absolutely needed existing params properties.
+                            // There is at least one that would throw this overboard and break the entire layout.
+                            newParams.width = currentParams.width
+                            newParams.title = currentParams.title
+                            newParams.token = currentParams.token
+                            newParams.type = currentParams.type
+                            newParams.gravity = Gravity.END or Gravity.BOTTOM
+                            // Original animation set because we want the same dismiss behavior.
+                            newParams.windowAnimations = R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom
+
+                            windowManager.updateViewLayout(decorView, newParams)
+                        }
+                    }
+                })
+            }
         }
 
         view.findViewById<CardView>(R.id.mozac_browser_menu_menuView).apply {

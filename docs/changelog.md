@@ -16,6 +16,9 @@ permalink: /changelog/
   * ⚠️Increased `targetSdkVersion` to 30 (Android R)
 
 * **browser-toolbar**
+  * 🌟 Added `BrowserToolbarBehavior#forceCollapse` to easily collapse the top/bottom toolbar.
+
+* **browser-toolbar**
   * ⚠️ **This is a breaking change**: `BrowserToolbarBottomBehavior` is renamed to `BrowserToolbarBehavior` as it is now a common behavior for toolbars be them placed at the bottom or at the top of the screen.
 
 * **feature-session**
@@ -35,6 +38,10 @@ permalink: /changelog/
 
 * **feature-webauthn**
   * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
+  
+* **feature-awesomebar**
+  * added `SearchEngineSuggestionProvider` that offers suggestion(s) for search engines based on user search engine list
+
 
 * **concept-engine**
   * Added `defaultSettings: Settings?` parameter to registerTabHandler to supply a default Tracking Policy when opening a new extension tab.
@@ -50,7 +57,7 @@ permalink: /changelog/
   * Add `threadNamePrefix` parameter to `Store` to give threads created by the `Store` a specific name.
 
 * **service-glean**
-  * 🆙 Updated Glean to version 34.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v34.0.0))
+  * 🆙 Updated Glean to version 34.1.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v34.1.0))
 
 # 72.0.0
 

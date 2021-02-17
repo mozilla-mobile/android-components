@@ -315,9 +315,7 @@ class Nimbus(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun applyPendingExperimentsOnThisThread() = withCatchAll {
         try {
-            nimbus.applyPendingExperiments().also { enrollmentChangeEvents ->
-                recordExperimentTelemetryEvents(enrollmentChangeEvents)
-            }
+            nimbus.applyPendingExperiments().also(::recordExperimentTelemetryEvents)
             // Get the experiments to record in telemetry
             postEnrolmentCalculation()
         } catch (e: ErrorException.InvalidExperimentFormat) {
@@ -371,9 +369,7 @@ class Nimbus(
     override fun optOut(experimentId: String) {
         dbScope.launch {
             withCatchAll {
-                nimbus.optOut(experimentId).also { enrollmentChangeEvents ->
-                    recordExperimentTelemetryEvents(enrollmentChangeEvents)
-                }
+                nimbus.optOut(experimentId).also(::recordExperimentTelemetryEvents)
             }
         }
     }
@@ -397,9 +393,7 @@ class Nimbus(
     internal fun optInWithBranch(experiment: String, branch: String) {
         dbScope.launch {
             withCatchAll {
-                nimbus.optInWithBranch(experiment, branch).also { enrollmentChangeEvents ->
-                    recordExperimentTelemetryEvents(enrollmentChangeEvents)
-                }
+                nimbus.optInWithBranch(experiment, branch).also(::recordExperimentTelemetryEvents)
             }
         }
     }

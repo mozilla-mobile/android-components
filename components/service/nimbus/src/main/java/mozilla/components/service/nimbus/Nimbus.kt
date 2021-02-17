@@ -22,6 +22,7 @@ import mozilla.components.service.nimbus.GleanMetrics.NimbusEvents
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import mozilla.components.support.base.utils.NamedThreadFactory
 import mozilla.components.support.locale.getLocaleTag
 import org.mozilla.experiments.nimbus.AppContext
 import org.mozilla.experiments.nimbus.AvailableRandomizationUnits
@@ -129,6 +130,13 @@ interface NimbusApi : Observable<NimbusApi.Observer> {
     fun optOut(experimentId: String) = Unit
 
     /**
+     *  Reset internal state in response to application-level telemetry reset.
+     *  Consumers should call this method when the user resets the telemetry state of the
+     *  consuming application, such as by opting out of (or in to) submitting telemetry.
+     */
+    fun resetTelemetryIdentifiers() = Unit
+
+    /**
      * Control the opt out for all experiments at once. This is likely a user action.
      */
     var globalUserParticipation: Boolean
@@ -182,12 +190,14 @@ class Nimbus(
 
     // Using two single threaded executors here to enforce synchronization where needed:
     // An I/O scope is used for reading or writing from the Nimbus's RKV database.
-    private val dbScope: CoroutineScope =
-        CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
+    private val dbScope: CoroutineScope = CoroutineScope(Executors.newSingleThreadExecutor(
+        NamedThreadFactory("NimbusDBScope")
+    ).asCoroutineDispatcher())
 
     // An I/O scope is used for getting experiments from the network.
-    private val fetchScope: CoroutineScope =
-        CoroutineScope(Executors.newSingleThreadExecutor().asCoroutineDispatcher())
+    private val fetchScope: CoroutineScope = CoroutineScope(Executors.newSingleThreadExecutor(
+        NamedThreadFactory("NimbusFetchScope")
+    ).asCoroutineDispatcher())
 
     private val nimbus: NimbusClientInterface
 
@@ -365,6 +375,19 @@ class Nimbus(
     override fun optOut(experimentId: String) {
         dbScope.launch {
             withCatchAll { nimbus.optOut(experimentId) }
+        }
+    }
+
+    override fun resetTelemetryIdentifiers() {
+        // The "dummy" field here is required for obscure reasons when generating code on desktop,
+        // so we just automatically set it to a dummy value.
+        val aru = AvailableRandomizationUnits(clientId = null, dummy = 0)
+        dbScope.launch {
+            withCatchAll {
+                nimbus.resetTelemetryIdentifiers(aru).also { enrollmentChangeEvents ->
+                    recordExperimentTelemetryEvents(enrollmentChangeEvents)
+                }
+            }
         }
     }
 

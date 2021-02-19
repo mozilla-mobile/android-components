@@ -28,8 +28,11 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
 import android.media.Image
 import android.media.ImageReader
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -59,11 +62,13 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.hasCamera
 import java.io.Serializable
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.Collections
 import java.util.Comparator
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
 import kotlin.math.max
 import kotlin.math.min
 
@@ -171,6 +176,8 @@ class QrFragment : Fragment() {
      */
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
+    @VisibleForTesting
+    internal var backgroundExecutor: ExecutorService? = null
     private var previewRequestBuilder: CaptureRequest.Builder? = null
     private var previewRequest: CaptureRequest? = null
 
@@ -229,6 +236,9 @@ class QrFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         startBackgroundThread()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            startExecutorService()
+        }
         // When the screen is turned off and turned back on, the SurfaceTexture is already
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
@@ -243,6 +253,7 @@ class QrFragment : Fragment() {
     override fun onPause() {
         closeCamera()
         stopBackgroundThread()
+        stopExecutorService()
         super.onPause()
     }
 
@@ -271,6 +282,15 @@ class QrFragment : Fragment() {
         }
     }
 
+    internal fun startExecutorService() {
+        backgroundExecutor = Executors.newSingleThreadExecutor()
+    }
+
+    internal fun stopExecutorService() {
+        backgroundExecutor?.shutdownNow()
+        backgroundExecutor = null
+    }
+
     /**
      * Sets up member variables related to camera.
      *
@@ -295,6 +315,8 @@ class QrFragment : Fragment() {
                     .apply { setOnImageAvailableListener(imageAvailableListener, backgroundHandler) }
 
             // Find out if we need to swap dimension to get the preview size relative to sensor coordinate.
+            @Suppress("DEPRECATION")
+            // Deprecation of getDefaultDisplay() and getSize() will be handled in https://github.com/mozilla-mobile/android-components/issues/8518
             val displayRotation = activity?.windowManager?.defaultDisplay?.rotation
 
             sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) as Int
@@ -307,6 +329,8 @@ class QrFragment : Fragment() {
             }
 
             val displaySize = Point()
+            @Suppress("DEPRECATION")
+            // Deprecation of getDefaultDisplay() and getSize() will be handled in https://github.com/mozilla-mobile/android-components/issues/8518
             activity?.windowManager?.defaultDisplay?.getSize(displaySize)
             var rotatedPreviewWidth = width
             var rotatedPreviewHeight = height
@@ -424,6 +448,8 @@ class QrFragment : Fragment() {
     private fun configureTransform(viewWidth: Int, viewHeight: Int) {
         val activity = activity ?: return
         val size = previewSize ?: return
+        @Suppress("DEPRECATION")
+        // Deprecation of getDefaultDisplay() and getSize() will be handled in https://github.com/mozilla-mobile/android-components/issues/8518
         val rotation = activity.windowManager.defaultDisplay.rotation
         val matrix = Matrix()
         val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
@@ -453,7 +479,7 @@ class QrFragment : Fragment() {
 
         val size = previewSize as Size
         // We configure the size of default buffer to be the size of camera preview we want.
-        texture.setDefaultBufferSize(size.width, size.height)
+        texture?.setDefaultBufferSize(size.width, size.height)
 
         val surface = Surface(texture)
         val mImageSurface = imageReader?.surface
@@ -489,11 +515,37 @@ class QrFragment : Fragment() {
                         logger.error("Failed to configure CameraCaptureSession")
                     }
                 }
-
-                it.createCaptureSession(Arrays.asList(mImageSurface, surface), stateCallback, null)
+                createCaptureSessionCompat(it, mImageSurface as Surface, surface, stateCallback)
             }
         }
     }
+
+    @VisibleForTesting
+    internal fun createCaptureSessionCompat(
+        camera: CameraDevice,
+        imageSurface: Surface,
+        surface: Surface,
+        stateCallback: CameraCaptureSession.StateCallback
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (shouldStartExecutorService()) {
+                startExecutorService()
+            }
+            val sessionConfig = SessionConfiguration(
+                SessionConfiguration.SESSION_REGULAR,
+                listOf(OutputConfiguration(imageSurface), OutputConfiguration(surface)),
+                backgroundExecutor as Executor,
+                stateCallback
+            )
+            camera.createCaptureSession(sessionConfig)
+        } else {
+            @Suppress("DEPRECATION")
+            camera.createCaptureSession(listOf(imageSurface, surface), stateCallback, null)
+        }
+    }
+
+    @VisibleForTesting
+    internal fun shouldStartExecutorService(): Boolean = backgroundExecutor == null
 
     @Suppress("TooGenericExceptionCaught")
     private fun handleCaptureException(msg: String, block: () -> Unit) {

@@ -34,11 +34,6 @@ class TabsUseCases(
      */
     interface SelectTabUseCase {
         /**
-         * Select given [session].
-         */
-        operator fun invoke(session: Session)
-
-        /**
          * Select [Session] with the given [tabId].
          */
         operator fun invoke(tabId: String)
@@ -47,16 +42,6 @@ class TabsUseCases(
     class DefaultSelectTabUseCase internal constructor(
         private val sessionManager: SessionManager
     ) : SelectTabUseCase {
-
-        /**
-         * Marks the provided session as selected.
-         *
-         * @param session The session to select.
-         */
-        override operator fun invoke(session: Session) {
-            sessionManager.select(session)
-        }
-
         /**
          * Marks the tab with the provided [tabId] as selected.
          */
@@ -81,11 +66,18 @@ class TabsUseCases(
         operator fun invoke(sessionId: String)
 
         /**
-         * Removes the provided session.
+         * Removes the session with the provided ID. This method
+         * has no effect if the session doesn't exist.
          *
-         * @param session The session to remove.
+         * @param sessionId The ID of the session to remove.
+         * @param selectParentIfExists Whether or not to select the parent tab
+         * of the removed tab if a parent exists. Note that the default implementation
+         * of this method will ignore [selectParentIfExists] and never select a parent.
+         * This is a temporary workaround to prevent additional API breakage for
+         * subtypes other than [DefaultRemoveTabUseCase]. The default implementation
+         * should be removed together with invoke(Session).
          */
-        operator fun invoke(session: Session)
+        operator fun invoke(sessionId: String, selectParentIfExists: Boolean) = invoke(sessionId)
     }
 
     /**
@@ -105,17 +97,23 @@ class TabsUseCases(
         override operator fun invoke(sessionId: String) {
             val session = sessionManager.findSessionById(sessionId)
             if (session != null) {
-                invoke(session)
+                sessionManager.remove(session)
             }
         }
 
         /**
-         * Removes the provided session.
+         * Removes the session with the provided ID. This method
+         * has no effect if the session doesn't exist.
          *
-         * @param session The session to remove.
+         * @param sessionId The ID of the session to remove.
+         * @param selectParentIfExists Whether or not to select the parent tab
+         * of the removed tab if a parent exists.
          */
-        override operator fun invoke(session: Session) {
-            sessionManager.remove(session)
+        override operator fun invoke(sessionId: String, selectParentIfExists: Boolean) {
+            val session = sessionManager.findSessionById(sessionId)
+            if (session != null) {
+                sessionManager.remove(session, selectParentIfExists)
+            }
         }
     }
 
@@ -131,7 +129,7 @@ class TabsUseCases(
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          */
         override fun invoke(url: String, flags: LoadUrlFlags, additionalHeaders: Map<String, String>?) {
-            this.invoke(url, true, true, null, flags)
+            this.invoke(url, selectTab = true, startLoading = true, parentId = null, flags = flags)
         }
 
         /**
@@ -193,7 +191,7 @@ class TabsUseCases(
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          */
         override fun invoke(url: String, flags: LoadUrlFlags, additionalHeaders: Map<String, String>?) {
-            this.invoke(url, true, true, null, flags)
+            this.invoke(url, selectTab = true, startLoading = true, parentId = null, flags = flags)
         }
 
         /**
@@ -306,7 +304,7 @@ class TabsUseCases(
     class RestoreUseCase(
         private val store: BrowserStore,
         private val sessionManager: SessionManager,
-        private val selectTab: TabsUseCases.SelectTabUseCase
+        private val selectTab: SelectTabUseCase
     ) {
         /**
          * Restores the given list of [RecoverableTab]s.

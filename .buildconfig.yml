@@ -1,6 +1,6 @@
 # Please keep this version in sync with version.txt
 # version.txt should be the new source of truth for version numbers
-componentsVersion: 71.0.0
+componentsVersion: 73.0.0
 # Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.
 projects:
   concept-awesomebar:
@@ -159,6 +159,10 @@ projects:
     path: components/feature/qr
     description: 'A feature that provides functionality for scanning QR codes.'
     publish: true
+  feature-webauthn:
+    path: components/feature/webauthn
+    description: 'A feature that provides WebAuthn functionality for supported engines.'
+    publish: true
   feature-webcompat:
     path: components/feature/webcompat
     description: 'Feature that provides hotfixes for websites from Mozilla''s Web Compatibility team'
@@ -283,17 +287,9 @@ projects:
     path: components/service/sync-logins
     description: 'A library for integrating with Firefox Sync - Logins.'
     publish: true
-  service-fretboard:
-    path: components/service/fretboard
-    description: 'An Android framework for segmenting users in order to run A/B tests and rollout features gradually.'
-    publish: true
   service-digitalassetlinks:
     path: components/service/digitalassetlinks
     description: 'A library for communicating with the Digital Asset Links API.'
-    publish: true
-  service-experiments:
-    path: components/service/experiments
-    description: 'An Android SDK for running experiments on user segments in multiple branches.'
     publish: true
   service-glean:
     path: components/service/glean

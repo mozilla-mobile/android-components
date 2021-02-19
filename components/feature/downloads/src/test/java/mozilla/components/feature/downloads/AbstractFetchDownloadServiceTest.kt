@@ -9,6 +9,7 @@ import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -25,6 +26,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.content.DownloadState
@@ -1062,7 +1064,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN a download is from a private session the client must include the correct CookiePolicy`() = runBlocking {
+    fun `WHEN a download is from a private session the request must be private`() = runBlocking {
         val response = Response(
             "https://example.com/file.txt",
             200,
@@ -1076,15 +1078,14 @@ class AbstractFetchDownloadServiceTest {
 
         service.performDownload(downloadJob)
         verify(client).fetch(providedRequest.capture())
-
-        assertEquals(Request.CookiePolicy.OMIT, providedRequest.value.cookiePolicy)
+        assertTrue(providedRequest.value.private)
 
         downloadJob.state = download.copy(private = false)
         service.performDownload(downloadJob)
 
         verify(client, times(2)).fetch(providedRequest.capture())
 
-        assertEquals(Request.CookiePolicy.INCLUDE, providedRequest.value.cookiePolicy)
+        assertFalse(providedRequest.value.private)
     }
 
     @Test
@@ -1310,7 +1311,7 @@ class AbstractFetchDownloadServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.P])
-    fun `WHEN a download is completed and the scoped storage is not used it MUST be added manually to the download system database`() {
+    fun `WHEN a download is completed and the scoped storage is not used it MUST be added manually to the download system database`() = runBlockingTest {
         val download = DownloadState(
                 url = "http://www.mozilla.org",
                 fileName = "example.apk",
@@ -1325,7 +1326,7 @@ class AbstractFetchDownloadServiceTest {
         val downloadJobState = DownloadJobState(state = download, status = DownloadState.Status.COMPLETED)
 
         doReturn(testContext).`when`(service).context
-        service.updateDownloadNotification(DownloadState.Status.COMPLETED, downloadJobState)
+        service.updateDownloadNotification(DownloadState.Status.COMPLETED, downloadJobState, this)
 
         verify(service).addCompletedDownload(
             title = any(),
@@ -1341,7 +1342,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN a download is completed and the scoped storage is used addToDownloadSystemDatabaseCompat MUST NOT be called`() {
+    fun `WHEN a download is completed and the scoped storage is used addToDownloadSystemDatabaseCompat MUST NOT be called`() = runBlockingTest {
         val download = DownloadState(
             url = "http://www.mozilla.org",
             fileName = "example.apk",
@@ -1368,7 +1369,7 @@ class AbstractFetchDownloadServiceTest {
             referer = any())
         doReturn(true).`when`(service).shouldUseScopedStorage()
 
-        service.updateDownloadNotification(DownloadState.Status.COMPLETED, downloadJobState)
+        service.updateDownloadNotification(DownloadState.Status.COMPLETED, downloadJobState, this)
 
         verify(service, never()).addCompletedDownload(
             title = any(),
@@ -1384,25 +1385,6 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN we download on devices with version higher than Q which use legacy external storage THEN we use legacy file stream`() {
-        val service = spy(object : AbstractFetchDownloadService() {
-            override val httpClient = client
-            override val store = browserStore
-        })
-        val uniqueFile: DownloadState = mock()
-        val qSdkVersion = 29
-        doReturn(uniqueFile).`when`(service).makeUniqueFileNameIfNecessary(any(), anyBoolean())
-        doNothing().`when`(service).updateDownloadState(uniqueFile)
-        doReturn(true).`when`(service).isExternalStorageLegacy()
-        doNothing().`when`(service).useFileStreamLegacy(eq(uniqueFile), anyBoolean(), any())
-        doReturn(qSdkVersion).`when`(service).getSdkVersion()
-
-        service.useFileStream(mock(), true) {}
-
-        verify(service).useFileStreamLegacy(eq(uniqueFile), anyBoolean(), any())
-    }
-
-    @Test
     fun `WHEN we download on devices with version higher than Q THEN we use scoped storage`() {
         val service = spy(object : AbstractFetchDownloadService() {
             override val httpClient = client
@@ -1413,7 +1395,6 @@ class AbstractFetchDownloadServiceTest {
         doReturn(uniqueFile).`when`(service).makeUniqueFileNameIfNecessary(any(), anyBoolean())
         doNothing().`when`(service).updateDownloadState(uniqueFile)
         doNothing().`when`(service).useFileStreamScopedStorage(eq(uniqueFile), any())
-        doReturn(false).`when`(service).isExternalStorageLegacy()
         doReturn(qSdkVersion).`when`(service).getSdkVersion()
 
         service.useFileStream(mock(), true) {}
@@ -1442,7 +1423,7 @@ class AbstractFetchDownloadServiceTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.P])
     @Suppress("Deprecation")
-    fun `do not pass non-http(s) url to addCompletedDownload`() {
+    fun `do not pass non-http(s) url to addCompletedDownload`() = runBlockingTest {
         val download = DownloadState(
             url = "blob:moz-extension://d5ea9baa-64c9-4c3d-bb38-49308c47997c/",
             fileName = "example.apk",
@@ -1460,14 +1441,14 @@ class AbstractFetchDownloadServiceTest {
         doReturn(spyContext).`when`(service).context
         doReturn(downloadManager).`when`(spyContext).getSystemService<DownloadManager>()
 
-        service.addToDownloadSystemDatabaseCompat(download)
+        service.addToDownloadSystemDatabaseCompat(download, this)
         verify(downloadManager).addCompletedDownload(anyString(), anyString(), anyBoolean(), anyString(), anyString(), anyLong(), anyBoolean(), isNull(), any())
     }
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.P])
     @Suppress("Deprecation")
-    fun `pass http(s) url to addCompletedDownload`() {
+    fun `pass http(s) url to addCompletedDownload`() = runBlockingTest {
         val download = DownloadState(
             url = "https://mozilla.com",
             fileName = "example.apk",
@@ -1485,7 +1466,7 @@ class AbstractFetchDownloadServiceTest {
         doReturn(spyContext).`when`(service).context
         doReturn(downloadManager).`when`(spyContext).getSystemService<DownloadManager>()
 
-        service.addToDownloadSystemDatabaseCompat(download)
+        service.addToDownloadSystemDatabaseCompat(download, this)
         verify(downloadManager).addCompletedDownload(anyString(), anyString(), anyBoolean(), anyString(), anyString(), anyLong(), anyBoolean(), any(), any())
     }
 
@@ -1682,5 +1663,46 @@ class AbstractFetchDownloadServiceTest {
 
         assertEquals(15, downloadJobState.currentBytesCopied)
         assertEquals(AbstractFetchDownloadService.CopyInChuckStatus.COMPLETED, status)
+    }
+
+    @Test
+    fun `getSafeContentType - WHEN the file content type is available THEN use it`() {
+        val contentTypeFromFile = "application/pdf; qs=0.001"
+        val spyContext = spy(testContext)
+        val contentResolver = mock<ContentResolver>()
+
+        doReturn(contentTypeFromFile).`when`(contentResolver).getType(any())
+        doReturn(contentResolver).`when`(spyContext).contentResolver
+
+        val result = AbstractFetchDownloadService.getSafeContentType(spyContext, mock(), "any")
+
+        assertEquals("application/pdf", result)
+    }
+
+    @Test
+    fun `getSafeContentType - WHEN the file content type is not available THEN use the provided content type`() {
+        val contentType = " application/pdf "
+        val spyContext = spy(testContext)
+        val contentResolver = mock<ContentResolver>()
+
+        doReturn(null).`when`(contentResolver).getType(any())
+        doReturn(contentResolver).`when`(spyContext).contentResolver
+
+        val result = AbstractFetchDownloadService.getSafeContentType(spyContext, mock(), contentType)
+
+        assertEquals("application/pdf", result)
+    }
+
+    @Test
+    fun `getSafeContentType - WHEN none of the provided content types are available THEN return a generic content type`() {
+        val spyContext = spy(testContext)
+        val contentResolver = mock<ContentResolver>()
+
+        doReturn(null).`when`(contentResolver).getType(any())
+        doReturn(contentResolver).`when`(spyContext).contentResolver
+
+        val result = AbstractFetchDownloadService.getSafeContentType(spyContext, mock(), null)
+
+        assertEquals("*/*", result)
     }
 }

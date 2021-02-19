@@ -12,15 +12,15 @@ import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.InitAction
-import mozilla.components.browser.state.action.MediaAction
-import mozilla.components.browser.state.action.ReaderAction
-import mozilla.components.browser.state.action.SearchAction
-import mozilla.components.browser.state.action.SystemAction
-import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.LastAccessAction
 import mozilla.components.browser.state.action.MediaSessionAction
+import mozilla.components.browser.state.action.ReaderAction
 import mozilla.components.browser.state.action.RecentlyClosedAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
+import mozilla.components.browser.state.action.SearchAction
+import mozilla.components.browser.state.action.ShareInternetResourceAction
+import mozilla.components.browser.state.action.SystemAction
+import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.action.WebExtensionAction
@@ -52,13 +52,13 @@ internal object BrowserStateReducer {
             is TabListAction -> TabListReducer.reduce(state, action)
             is TrackingProtectionAction -> TrackingProtectionStateReducer.reduce(state, action)
             is WebExtensionAction -> WebExtensionReducer.reduce(state, action)
-            is MediaAction -> MediaReducer.reduce(state, action)
             is MediaSessionAction -> MediaSessionReducer.reduce(state, action)
             is DownloadAction -> DownloadStateReducer.reduce(state, action)
             is SearchAction -> SearchReducer.reduce(state, action)
             is CrashAction -> CrashReducer.reduce(state, action)
             is LastAccessAction -> LastAccessReducer.reduce(state, action)
             is UndoAction -> UndoReducer.reduce(state, action)
+            is ShareInternetResourceAction -> ShareInternetResourceStateReducer.reduce(state, action)
         }
     }
 }

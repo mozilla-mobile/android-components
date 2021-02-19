@@ -159,6 +159,8 @@ class DefaultAddonUpdater(
     private val logger = Logger("DefaultAddonUpdater")
 
     @VisibleForTesting
+    internal var scope = CoroutineScope(Dispatchers.IO)
+    @VisibleForTesting
     internal val updateStatusStorage = UpdateStatusStorage()
     internal var updateAttempStorage = UpdateAttemptStorage(applicationContext)
 
@@ -181,7 +183,7 @@ class DefaultAddonUpdater(
         WorkManager.getInstance(applicationContext)
             .cancelUniqueWork(getUniquePeriodicWorkName(addonId))
         logger.info("unregisterForFutureUpdates $addonId")
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             updateAttempStorage.remove(addonId)
         }
     }
@@ -569,6 +571,8 @@ internal class AddonUpdaterWorker(
 
     @Suppress("OverridingDeprecatedMember")
     override val coroutineContext = Dispatchers.Main
+    @VisibleForTesting
+    internal var attemptScope = CoroutineScope(Dispatchers.IO)
 
     @Suppress("TooGenericExceptionCaught", "MaxLineLength")
     override suspend fun doWork(): Result {
@@ -632,8 +636,9 @@ internal class AddonUpdaterWorker(
         }
     }
 
-    private fun saveUpdateAttempt(extensionId: String, status: AddonUpdater.Status) {
-        CoroutineScope((Dispatchers.IO)).launch {
+    @VisibleForTesting
+    internal fun saveUpdateAttempt(extensionId: String, status: AddonUpdater.Status) {
+        attemptScope.launch {
             updateAttemptStorage.saveOrUpdate(AddonUpdater.UpdateAttempt(extensionId, Date(), status))
         }
     }

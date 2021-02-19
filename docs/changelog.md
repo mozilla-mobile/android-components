@@ -38,6 +38,10 @@ permalink: /changelog/
 
 * **feature-webauthn**
   * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
+  
+* **feature-awesomebar**
+  * added `SearchEngineSuggestionProvider` that offers suggestion(s) for search engines based on user search engine list
+
 
 * **concept-engine**
   * Added `defaultSettings: Settings?` parameter to registerTabHandler to supply a default Tracking Policy when opening a new extension tab.
@@ -51,6 +55,9 @@ permalink: /changelog/
 
 * **lib-state**
   * Add `threadNamePrefix` parameter to `Store` to give threads created by the `Store` a specific name.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 34.1.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v34.1.0))
 
 # 72.0.0
 

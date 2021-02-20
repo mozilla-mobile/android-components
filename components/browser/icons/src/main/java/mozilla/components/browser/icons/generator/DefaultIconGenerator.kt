@@ -44,6 +44,7 @@ class DefaultIconGenerator(
         val backgroundColor = request.color ?: pickColor(context.resources, request.url)
 
         val paint = Paint()
+        paint.isAntiAlias = true
         paint.color = backgroundColor
 
         val sizeRect = RectF(0f, 0f, size, size)
@@ -63,7 +64,6 @@ class DefaultIconGenerator(
         paint.color = ContextCompat.getColor(context, textColorRes)
         paint.textAlign = Paint.Align.CENTER
         paint.textSize = textSize
-        paint.isAntiAlias = true
 
         canvas.drawText(
             character,

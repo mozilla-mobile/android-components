@@ -24,6 +24,7 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.action.WebExtensionAction
+import mozilla.components.browser.state.action.UpdateLocaleAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SessionState
@@ -59,6 +60,7 @@ internal object BrowserStateReducer {
             is LastAccessAction -> LastAccessReducer.reduce(state, action)
             is UndoAction -> UndoReducer.reduce(state, action)
             is ShareInternetResourceAction -> ShareInternetResourceStateReducer.reduce(state, action)
+            is UpdateLocaleAction -> state.copy(locale = action.locale)
         }
     }
 }

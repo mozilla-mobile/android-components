@@ -11,15 +11,12 @@ import android.content.res.Resources
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.ConfigurationCompat
 import mozilla.components.support.base.R
-import mozilla.components.support.base.log.logger.Logger
 import java.util.Locale
 
 /**
  * Helper for apps that want to change locale defined by the system.
  */
 object LocaleManager {
-    private val logger = Logger("LocaleManager")
-
     /**
      * Change the system defined locale to the indicated in the [language] parameter.
      * This new [language] will be stored and will be the new current locale returned by [getCurrentLocale].

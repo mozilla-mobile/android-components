@@ -23,8 +23,6 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * Matrix: [android-components:mozilla.org chat room](https://chat.mozilla.org/#/room/#android-components:mozilla.org) ([How to connect](https://wiki.mozilla.org/Matrix#Connect_to_Matrix)).
 
-* Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
-
 * Localization happens on [Pontoon](https://pontoon.mozilla.org/projects/android-l10n/). Please get in touch with delphine (at) mozilla (dot) com directly for more information.
 
 # Maven repository
@@ -127,6 +125,8 @@ _Combined components to implement feature-specific use cases._
 * 🔵 [**Accounts**](components/feature/accounts/README.md) - A component that connects an FxaAccountManager from [service-firefox-accounts](components/service/firefox-accounts/README.md) with [feature-tabs](components/feature/tabs/README.md) in order to facilitate authentication flows.
 
 * 🔵 [**Accounts Push**](components/feature/accounts-push/README.md) - Feature of use cases for FxA Account that work with push support.
+
+* 🔴 [**Autofill**](components/feature/autofill/README.md) - A component that provides support for Android's Autofill framework.
 
 * 🔵 [**Awesomebar**](components/feature/awesomebar/README.md) - A component that connects a [concept-awesomebar](components/concept/awesomebar/README.md) implementation to a [concept-toolbar](components/concept/toolbar/README.md) implementation and provides implementations of various suggestion providers.
 

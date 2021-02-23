@@ -18,6 +18,7 @@ treeherder:
         browser-menu2: browser-menu2
         browser-search: browser-search
         browser-session: browser-session
+        browser-session-storage: browser-session-storage
         browser-state: browser-state
         browser-storage-memory: browser-storage-memory
         browser-storage-sync: browser-storage-sync
@@ -38,6 +39,7 @@ treeherder:
         feature-accounts: feature-accounts
         feature-addons: feature-addons
         feature-app-links: feature-app-links
+        feature-autofill: feature-autofill
         feature-awesomebar: feature-awesomebar
         feature-containers: feature-containers
         feature-contextmenu: feature-contextmenu
@@ -47,7 +49,6 @@ treeherder:
         feature-intent: feature-intent
         feature-logins: feature-logins
         feature-media: feature-media
-        feature-p2p: feature-p2p
         feature-privatemode: feature-privatemode
         feature-prompts: feature-prompts
         feature-push: feature-push
@@ -64,17 +65,18 @@ treeherder:
         feature-tabs: feature-tabs
         feature-toolbar: feature-toolbar
         feature-top-sites: feature-top-sites
+        feature-webauthn: feature-webauthn
         feature-webcompat: feature-webcompat
         feature-webnotifications: feature-webnotifications
         lib-crash: lib-crash
         lib-dataprotect: lib-dataprotect
         lib-fetch-okhttp: lib-fetch-okhttp
         lib-jexl: lib-jexl
-        lib-nearby: lib-nearby
         lib-publicsuffixlist: lib-publicsuffixlist
         lib-push-amazon: lib-push-amazon
         lib-push-firebase: lib-push-firebase
         lib-state: lib-state
+        multiplatform-lib-dummy: multiplatform-lib-dummy
         samples-browser-beta: samples-browser-beta
         samples-browser-release: samples-browser-release
         samples-browser-system: samples-browser-system
@@ -84,7 +86,6 @@ treeherder:
         samples-firefox-accounts: samples-firefox-accounts
         samples-glean-library: samples-glean-library
         samples-glean: samples-glean
-        samples-nearby-chat: samples-nearby-chat
         samples-sync-logins: samples-sync-logins
         samples-sync: samples-sync
         samples-toolbar: samples-toolbar
@@ -134,7 +135,10 @@ treeherder:
         samples-browser-system: samples-browser-system
 
 
-task-priority: highest
+task-priority:
+    by-project:
+        "android-components": highest
+        "staging-android-components": low
 
 taskgraph:
     register: ac_taskgraph:register

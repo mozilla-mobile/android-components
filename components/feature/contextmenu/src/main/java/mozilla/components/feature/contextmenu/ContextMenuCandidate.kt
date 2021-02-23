@@ -12,10 +12,11 @@ import android.view.View
 import com.google.android.material.snackbar.Snackbar
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.state.content.ShareInternetResourceState
 import mozilla.components.concept.engine.HitResult
-import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate.Companion.MAX_TITLE_LENGTH
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.ktx.android.content.addContact
 import mozilla.components.support.ktx.android.content.share
 import mozilla.components.support.ktx.kotlin.stripMailToProtocol
@@ -69,7 +70,7 @@ data class ContextMenuCandidate(
             createCopyLinkCandidate(context, snackBarParentView, snackbarDelegate),
             createDownloadLinkCandidate(context, contextMenuUseCases),
             createShareLinkCandidate(context),
-            createShareImageCandidate(context),
+            createShareImageCandidate(context, contextMenuUseCases),
             createOpenImageInNewTabCandidate(
                 context,
                 tabsUseCases,
@@ -313,7 +314,7 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.share_link",
             label = context.getString(R.string.mozac_feature_contextmenu_share_link),
-            showFor = { _, hitResult -> hitResult.isUri() },
+            showFor = { _, hitResult -> hitResult.isUri() || hitResult.isImage() || hitResult.isVideoAudio() },
             action = { _, hitResult ->
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -335,12 +336,20 @@ data class ContextMenuCandidate(
          */
         fun createShareImageCandidate(
             context: Context,
-            action: (SessionState, HitResult) -> Unit = { _, hitResult -> context.share(hitResult.src) }
+            contextMenuUseCases: ContextMenuUseCases
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.share_image",
             label = context.getString(R.string.mozac_feature_contextmenu_share_image),
             showFor = { _, hitResult -> hitResult.isImage() },
-            action = action
+            action = { tab, hitResult ->
+                contextMenuUseCases.injectShareFromInternet(
+                    tab.id,
+                    ShareInternetResourceState(
+                        url = hitResult.src,
+                        private = tab.content.private
+                    )
+                )
+            }
         )
 
         /**
@@ -353,7 +362,7 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.copy_link",
             label = context.getString(R.string.mozac_feature_contextmenu_copy_link),
-            showFor = { _, hitResult -> hitResult.isUri() },
+            showFor = { _, hitResult -> hitResult.isUri() || hitResult.isImage() || hitResult.isVideoAudio() },
             action = { _, hitResult ->
                 clipPlaintText(context, hitResult.getLink(), hitResult.getLink(),
                     R.string.mozac_feature_contextmenu_snackbar_link_copied, snackBarParentView,

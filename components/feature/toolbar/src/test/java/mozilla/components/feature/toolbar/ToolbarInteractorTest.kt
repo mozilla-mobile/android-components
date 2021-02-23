@@ -19,7 +19,7 @@ import org.mockito.Mockito.spy
 class ToolbarInteractorTest {
 
     class TestToolbar : Toolbar {
-        override var permissionHighlights: Toolbar.PermissionHighlights = Toolbar.PermissionHighlights.NONE
+        override var highlight: Toolbar.Highlight = Toolbar.Highlight.NONE
         override var url: CharSequence = ""
         override var siteSecure: Toolbar.SiteSecurity = Toolbar.SiteSecurity.INSECURE
         override var private: Boolean = false
@@ -90,6 +90,10 @@ class ToolbarInteractorTest {
         }
 
         override fun invalidateActions() {
+            fail()
+        }
+
+        override fun dismissMenu() {
             fail()
         }
     }

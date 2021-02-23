@@ -48,9 +48,9 @@ interface Toolbar {
     var siteSecure: SiteSecurity
 
     /**
-     * Sets/Gets the site site permission indicator to be displayed on the toolbar.
+     * Sets/Gets the highlight icon to be displayed on the toolbar.
      */
-    var permissionHighlights: PermissionHighlights
+    var highlight: Highlight
 
     /**
      * Sets/Gets the site tracking protection state to be displayed on the toolbar.
@@ -166,6 +166,11 @@ interface Toolbar {
      * Switches to URL editing mode (from displaying mode) if supported by the toolbar implementation.
      */
     fun editMode()
+
+    /**
+     * Dismisses the display toolbar popup menu
+     */
+    fun dismissMenu()
 
     /**
      * Listener to be invoked when the user edits the URL.
@@ -415,15 +420,15 @@ interface Toolbar {
     }
 
     /**
-     * Indicates which site permission indicator a site should show.
+     * Indicates the reason why a highlight icon is shown or hidden.
      */
-    enum class PermissionHighlights {
+    enum class Highlight {
         /**
          * The site has autoplay blocked.
          */
         AUTOPLAY_BLOCKED,
         /**
-         * The site does not have any permission indicator to show.
+         * The site does not show a dot indicator.
          */
         NONE
     }

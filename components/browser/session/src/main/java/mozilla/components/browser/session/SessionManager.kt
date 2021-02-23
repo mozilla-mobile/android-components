@@ -6,6 +6,7 @@
 
 package mozilla.components.browser.session
 
+import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.session.ext.syncDispatch
 import mozilla.components.browser.session.ext.toCustomTabSessionState
 import mozilla.components.browser.session.ext.toTabSessionState
@@ -16,12 +17,17 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.support.base.Component
+import mozilla.components.support.base.facts.Action
+import mozilla.components.support.base.facts.Fact
+import mozilla.components.support.base.facts.collect
 import mozilla.components.support.base.observer.DeprecatedObservable
 
 /**
@@ -38,18 +44,6 @@ class SessionManager(
      */
     val size: Int
         get() = delegate.size
-
-    /**
-     * Produces a [Snapshot.Item] of a single [Session], suitable for restoring via [SessionManager.restore].
-     */
-    fun createSessionSnapshot(session: Session): Snapshot.Item {
-        val tab = store?.state?.findTab(session.id)
-
-        return Snapshot.Item(
-            session,
-            tab?.engineState?.engineSessionState,
-            tab?.readerState)
-    }
 
     /**
      * Gets the currently selected session if there is one.
@@ -87,6 +81,19 @@ class SessionManager(
         get() = delegate.all
 
     /**
+     * Produces a [Snapshot.Item] of a single [Session], suitable for restoring via [SessionManager.restore].
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun createSessionSnapshot(session: Session): Snapshot.Item {
+        val tab = store?.state?.findTab(session.id)
+
+        return Snapshot.Item(
+            session,
+            tab?.engineState?.engineSessionState,
+            tab?.readerState)
+    }
+
+    /**
      * Adds the provided session.
      */
     fun add(
@@ -120,6 +127,7 @@ class SessionManager(
         }
 
         delegate.add(session, selected, parent)
+        Fact(Component.BROWSER_SESSION, Action.IMPLEMENTATION_DETAIL, "SessionManager.add").collect()
 
         if (engineSession != null) {
             store?.syncDispatch(LinkEngineSessionAction(
@@ -172,29 +180,18 @@ class SessionManager(
     /**
      * Restores the given list of [RecoverableTab].
      */
-    fun restore(tabs: List<RecoverableTab>) {
+    fun restore(tabs: List<RecoverableTab>, selectTabId: String? = null) {
         // As a workaround we squint here and pretend this is a Snapshot..
+        val items = tabs.map { tab -> tab.toSnapshotItem() }
 
-        val items = tabs.map {
-            Snapshot.Item(
-                session = Session(
-                    id = it.id,
-                    initialUrl = it.url,
-                    contextId = it.contextId,
-                    private = it.private
-                ).apply {
-                    title = it.title
-                    parentId = it.parentId
-                },
-                engineSessionState = it.state,
-                readerState = it.readerState,
-                lastAccess = it.lastAccess
-            )
+        val selectedIndex = if (selectTabId != null) {
+            tabs.indexOfFirst { tab -> tab.id == selectTabId }
+        } else {
+            NO_SELECTION
         }
+        val snapshot = Snapshot(items, selectedIndex)
 
-        val snapshot = Snapshot(items, NO_SELECTION)
-
-        restore(snapshot, updateSelection = false)
+        restore(snapshot, updateSelection = selectedIndex != NO_SELECTION)
     }
 
     /**
@@ -211,7 +208,8 @@ class SessionManager(
      * @param updateSelection Whether the selected session should be updated from the restored snapshot.
      */
     @Suppress("ComplexMethod")
-    fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal fun restore(snapshot: Snapshot, updateSelection: Boolean = true) {
         // Add store to each Session so that it can dispatch actions whenever it changes.
         snapshot.sessions.forEach { it.session.store = store }
 
@@ -337,6 +335,7 @@ class SessionManager(
      */
     fun select(session: Session) {
         delegate.select(session)
+        Fact(Component.BROWSER_SESSION, Action.IMPLEMENTATION_DETAIL, "SessionManager.select").collect()
 
         store?.syncDispatch(
             TabListAction.SelectTabAction(session.id)
@@ -353,7 +352,8 @@ class SessionManager(
         const val NO_SELECTION = -1
     }
 
-    data class Snapshot(
+    // Marked as internal: Should not be used by any code outside of Android Components anymore.
+    internal data class Snapshot(
         val sessions: List<Item>,
         val selectedSessionIndex: Int
     ) {
@@ -457,5 +457,23 @@ private fun Session.toRestoredTabSessionState(snapshot: SessionManager.Snapshot.
         engineState = engineState,
         readerState = snapshot.readerState ?: ReaderState(),
         lastAccess = snapshot.lastAccess
+    )
+}
+
+private fun RecoverableTab.toSnapshotItem(): SessionManager.Snapshot.Item {
+    return SessionManager.Snapshot.Item(
+        session = Session(
+            id = id,
+            initialUrl = url,
+            contextId = contextId,
+            private = private,
+            source = SessionState.Source.RESTORED
+        ).also {
+            it.title = title
+            it.parentId = parentId
+        },
+        engineSessionState = state,
+        readerState = readerState,
+        lastAccess = lastAccess
     )
 }

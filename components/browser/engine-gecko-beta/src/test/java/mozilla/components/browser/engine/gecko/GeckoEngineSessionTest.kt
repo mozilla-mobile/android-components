@@ -104,13 +104,15 @@ class GeckoEngineSessionTest {
     private lateinit var contentBlockingDelegate: ArgumentCaptor<ContentBlocking.Delegate>
     private lateinit var historyDelegate: ArgumentCaptor<GeckoSession.HistoryDelegate>
 
+    @Suppress("DEPRECATION")
+    // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8514
     @Before
     fun setup() {
         ThreadUtils.setHandlerForTest(object : Handler() {
-            override fun sendMessageAtTime(msg: Message?, uptimeMillis: Long): Boolean {
+            override fun sendMessageAtTime(msg: Message, uptimeMillis: Long): Boolean {
                 val wrappedRunnable = Runnable {
                     try {
-                        msg?.callback?.run()
+                        msg.callback?.run()
                     } catch (t: Throwable) {
                         // We ignore this in the test as the runnable could be calling
                         // a native method (disposeNative) which won't work in Robolectric
@@ -415,6 +417,26 @@ class GeckoEngineSessionTest {
         verify(geckoSession).load(
             GeckoSession.Loader().uri("http://www.mozilla.org").additionalHeaders(extraHeaders)
         )
+    }
+
+    @Test
+    fun `loadUrl doesn't load URLs with blocked schemes`() {
+        val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
+
+        engineSession.loadUrl("file://test.txt")
+        engineSession.loadUrl("FILE://test.txt")
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("file://test.txt"))
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("FILE://test.txt"))
+
+        engineSession.loadUrl("content://authority/path/id")
+        engineSession.loadUrl("CoNtEnT://authority/path/id")
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("content://authority/path/id"))
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("CoNtEnT://authority/path/id"))
+
+        engineSession.loadUrl("resource://package/test.text")
+        engineSession.loadUrl("RESOURCE://package/test.text")
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("resource://package/test.text"))
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("RESOURCE://package/test.text"))
     }
 
     @Test

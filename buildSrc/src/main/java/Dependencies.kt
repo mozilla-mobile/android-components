@@ -7,7 +7,7 @@
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.4.21"
+    const val kotlin = "1.4.30"
     const val coroutines = "1.4.2"
 
     const val junit = "4.12"
@@ -30,17 +30,17 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "67.2.0"
+    const val mozilla_appservices = "71.0.0"
 
-    const val mozilla_glean = "33.1.2"
+    const val mozilla_glean = "34.1.0"
 
     const val material = "1.2.1"
-    const val nearby = "17.0.0"
 
     object AndroidX {
         const val annotation = "1.1.0"
         const val appcompat = "1.2.0"
         const val browser = "1.2.0"
+        const val biometric = "1.1.0"
         const val cardview = "1.0.0"
         const val constraintlayout = "2.0.4"
         const val coordinatorlayout = "1.1.0"
@@ -87,6 +87,7 @@ object Dependencies {
     const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.AndroidX.appcompat}"
     const val androidx_arch_core_common = "androidx.arch.core:core-common:${Versions.AndroidX.arch}"
     const val androidx_arch_core_testing = "androidx.arch.core:core-testing:${Versions.AndroidX.arch}"
+    const val androidx_biometric = "androidx.biometric:biometric:${Versions.AndroidX.biometric}"
     const val androidx_browser = "androidx.browser:browser:${Versions.AndroidX.browser}"
     const val androidx_cardview = "androidx.cardview:cardview:${Versions.AndroidX.cardview}"
     const val androidx_constraintlayout = "androidx.constraintlayout:constraintlayout:${Versions.AndroidX.constraintlayout}"
@@ -118,7 +119,6 @@ object Dependencies {
     const val androidx_swiperefreshlayout = "androidx.swiperefreshlayout:swiperefreshlayout:${Versions.AndroidX.swiperefreshlayout}"
 
     const val google_material = "com.google.android.material:material:${Versions.material}"
-    const val google_nearby = "com.google.android.gms:play-services-nearby:${Versions.nearby}"
 
     const val leakcanary = "com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}"
 
@@ -140,6 +140,7 @@ object Dependencies {
 
     const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-forUnitTests:${Versions.mozilla_glean}"
 
+    const val mozilla_sync_autofill = "org.mozilla.appservices:autofill:${Versions.mozilla_appservices}"
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
     const val mozilla_sync_manager = "org.mozilla.appservices:syncmanager:${Versions.mozilla_appservices}"

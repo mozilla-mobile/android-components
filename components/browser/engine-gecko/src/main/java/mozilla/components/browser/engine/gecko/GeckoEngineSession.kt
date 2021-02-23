@@ -15,7 +15,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.engine.gecko.fetch.toResponse
-import mozilla.components.browser.engine.gecko.media.GeckoMediaDelegate
 import mozilla.components.browser.engine.gecko.mediasession.GeckoMediaSessionDelegate
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
@@ -38,6 +37,10 @@ import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
+import mozilla.components.support.base.Component
+import mozilla.components.support.base.facts.Action
+import mozilla.components.support.base.facts.Fact
+import mozilla.components.support.base.facts.collect
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
@@ -83,6 +86,8 @@ class GeckoEngineSession(
     // removed once FNPRMS is replaced: https://github.com/mozilla-mobile/android-components/issues/8662
     // It mimics GeckoView debug log statements, hence the unintuitive tag and messages.
     private val fnprmsLogger = Logger("GeckoSession")
+
+    private val logger = Logger("GeckoEngineSession")
 
     internal lateinit var geckoSession: GeckoSession
     internal var currentUrl: String? = null
@@ -143,6 +148,12 @@ class GeckoEngineSession(
         flags: LoadUrlFlags,
         additionalHeaders: Map<String, String>?
     ) {
+        val scheme = Uri.parse(url).normalizeScheme().scheme
+        if (BLOCKED_SCHEMES.contains(scheme)) {
+            logger.error("URL scheme not allowed. Aborting load.")
+            return
+        }
+
         if (initialLoad) {
             initialLoadRequest = LoadRequest(url, parent, flags, additionalHeaders)
         }
@@ -161,6 +172,7 @@ class GeckoEngineSession(
         }
 
         geckoSession.load(loader)
+        Fact(Component.BROWSER_ENGINE_GECKO, Action.IMPLEMENTATION_DETAIL, "GeckoSession.load").collect()
     }
 
     /**
@@ -222,8 +234,9 @@ class GeckoEngineSession(
         if (state !is GeckoEngineSessionState) {
             throw IllegalStateException("Can only restore from GeckoEngineSessionState")
         }
-
-        if (state.actualState == null) {
+        // Also checking if SessionState is empty as a workaround for:
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1687523
+        if (state.actualState.isNullOrEmpty()) {
             return false
         }
 
@@ -812,7 +825,7 @@ class GeckoEngineSession(
                     onExternalResource(
                             url = url,
                             contentLength = contentLength,
-                            contentType = contentType,
+                            contentType = DownloadUtils.sanitizeMimeType(contentType),
                             fileName = fileName.sanitizeFileName(),
                             response = response,
                             isPrivate = privateMode
@@ -1058,7 +1071,6 @@ class GeckoEngineSession(
         geckoSession.permissionDelegate = createPermissionDelegate()
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
         geckoSession.historyDelegate = createHistoryDelegate()
-        geckoSession.mediaDelegate = GeckoMediaDelegate(this)
         geckoSession.mediaSessionDelegate = GeckoMediaSessionDelegate(this)
         geckoSession.scrollDelegate = createScrollDelegate()
     }
@@ -1068,6 +1080,7 @@ class GeckoEngineSession(
         internal const val PROGRESS_STOP = 100
         internal const val MOZ_NULL_PRINCIPAL = "moz-nullprincipal:"
         internal const val ABOUT_BLANK = "about:blank"
+        internal val BLOCKED_SCHEMES = listOf("content", "file", "resource") // See 1684761 and 1684947
 
         /**
          * Provides an ErrorType corresponding to the error code provided.

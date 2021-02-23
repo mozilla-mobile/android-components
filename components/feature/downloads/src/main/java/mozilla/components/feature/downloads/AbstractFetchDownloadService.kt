@@ -12,6 +12,7 @@ import android.app.Notification
 import android.app.Service
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
@@ -21,12 +22,15 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
+import android.os.Bundle
 import android.os.Environment
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
+import android.provider.MediaStore.setIncludePending
 import android.webkit.MimeTypeMap
 import android.widget.Toast
+import androidx.annotation.ColorRes
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
@@ -82,13 +86,15 @@ import kotlin.random.Random
  *
  * To use this service, you must create a subclass in your application and add it to the manifest.
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("TooManyFunctions", "LargeClass", "ComplexMethod")
 abstract class AbstractFetchDownloadService : Service() {
     protected abstract val store: BrowserStore
 
     private val notificationUpdateScope = MainScope()
 
     protected abstract val httpClient: Client
+
+    protected open val style: Style = Style()
 
     @VisibleForTesting
     internal val broadcastManager by lazy { LocalBroadcastManager.getInstance(this) }
@@ -313,19 +319,48 @@ abstract class AbstractFetchDownloadService : Service() {
     }
 
     /**
+     * Data class for styling download notifications.
+     * @param notificationAccentColor accent color for all download notifications.
+     */
+    data class Style(
+        @ColorRes
+        val notificationAccentColor: Int = R.color.mozac_feature_downloads_notification
+    )
+
+    /**
      * Updates the notification state with the passed [download] data.
      * Be aware that you need to pass [latestUIStatus] as [DownloadJobState.status] can be modified
      * from another thread, causing inconsistencies in the ui.
      */
     @VisibleForTesting
-    internal fun updateDownloadNotification(latestUIStatus: Status, download: DownloadJobState) {
+    internal fun updateDownloadNotification(
+        latestUIStatus: Status,
+        download: DownloadJobState,
+        scope: CoroutineScope = CoroutineScope(IO)
+    ) {
         val notification = when (latestUIStatus) {
-            DOWNLOADING -> DownloadNotification.createOngoingDownloadNotification(context, download)
-            PAUSED -> DownloadNotification.createPausedDownloadNotification(context, download)
-            FAILED -> DownloadNotification.createDownloadFailedNotification(context, download)
+            DOWNLOADING -> DownloadNotification.createOngoingDownloadNotification(
+                context,
+                download,
+                style.notificationAccentColor
+            )
+            PAUSED -> DownloadNotification.createPausedDownloadNotification(
+                context,
+                download,
+                style.notificationAccentColor
+            )
+            FAILED -> DownloadNotification.createDownloadFailedNotification(
+                context,
+                download,
+                style.notificationAccentColor
+            )
             COMPLETED -> {
-                addToDownloadSystemDatabaseCompat(download.state)
-                DownloadNotification.createDownloadCompletedNotification(context, download)
+                addToDownloadSystemDatabaseCompat(download.state, scope)
+                DownloadNotification.createDownloadCompletedNotification(
+                    context,
+                    download,
+                    style.notificationAccentColor
+                )
             }
             CANCELLED -> {
                 removeNotification(context, download)
@@ -392,26 +427,30 @@ abstract class AbstractFetchDownloadService : Service() {
      * otherwise nothing will happen.
      */
     @VisibleForTesting
-    internal fun addToDownloadSystemDatabaseCompat(download: DownloadState) {
+    internal fun addToDownloadSystemDatabaseCompat(
+        download: DownloadState,
+        scope: CoroutineScope = CoroutineScope(IO)
+    ) {
         if (!shouldUseScopedStorage()) {
             val fileName = download.fileName
                 ?: throw IllegalStateException("A fileName for a download is required")
             val file = File(download.filePath)
             // addCompletedDownload can't handle any non http(s) urls
             val url = if (!download.isScheme(listOf("http", "https"))) null else download.url.toUri()
-
-            addCompletedDownload(
-                title = fileName,
-                description = fileName,
-                isMediaScannerScannable = true,
-                mimeType = download.contentType ?: "*/*",
-                path = file.absolutePath,
-                length = download.contentLength ?: file.length(),
-                // Only show notifications if our channel is blocked
-                showNotification = !DownloadNotification.isChannelEnabled(context),
-                uri = url,
-                referer = download.referrerUrl?.toUri()
-            )
+            scope.launch {
+                addCompletedDownload(
+                    title = fileName,
+                    description = fileName,
+                    isMediaScannerScannable = true,
+                    mimeType = download.contentType ?: "*/*",
+                    path = file.absolutePath,
+                    length = download.contentLength ?: file.length(),
+                    // Only show notifications if our channel is blocked
+                    showNotification = !DownloadNotification.isChannelEnabled(context),
+                    uri = url,
+                    referer = download.referrerUrl?.toUri()
+                )
+            }
         }
     }
 
@@ -486,7 +525,11 @@ abstract class AbstractFetchDownloadService : Service() {
         return if (SDK_INT >= Build.VERSION_CODES.N) {
             val downloadList = downloadJobs.values.toList()
             val notificationGroup =
-                DownloadNotification.createDownloadGroupNotification(context, downloadList)
+                DownloadNotification.createDownloadGroupNotification(
+                    context,
+                    downloadList,
+                    style.notificationAccentColor
+                )
             NotificationManagerCompat.from(context).apply {
                 notify(NOTIFICATION_DOWNLOAD_GROUP_ID, notificationGroup)
             }
@@ -498,7 +541,11 @@ abstract class AbstractFetchDownloadService : Service() {
 
     internal fun createCompactForegroundNotification(downloadJobState: DownloadJobState): Notification {
         val notification =
-            DownloadNotification.createOngoingDownloadNotification(context, downloadJobState)
+            DownloadNotification.createOngoingDownloadNotification(
+                context,
+                downloadJobState,
+                style.notificationAccentColor
+            )
         compatForegroundNotificationId = downloadJobState.foregroundServiceId
         NotificationManagerCompat.from(context).apply {
             notify(compatForegroundNotificationId, notification)
@@ -607,14 +654,12 @@ abstract class AbstractFetchDownloadService : Service() {
             headers.append(RANGE, "bytes=${currentDownloadJobState.currentBytesCopied}-")
         }
 
-        val cookiePolicy = if (download.private) {
-            Request.CookiePolicy.OMIT
-        } else {
-            Request.CookiePolicy.INCLUDE
-        }
-
         var isUsingHttpClient = false
-        val request = Request(download.url.sanitizeURL(), headers = headers, cookiePolicy = cookiePolicy)
+        val request = Request(
+            download.url.sanitizeURL(),
+            headers = headers,
+            private = download.private
+        )
         // When resuming a download we need to use the httpClient as
         // download.response doesn't support adding headers.
         val response = if (isResumingDownload || useHttpClient || download.response == null) {
@@ -775,13 +820,7 @@ abstract class AbstractFetchDownloadService : Service() {
     }
 
     @VisibleForTesting
-    internal fun shouldUseScopedStorage() =
-            getSdkVersion() >= Build.VERSION_CODES.Q && !isExternalStorageLegacy()
-
-    @SuppressLint("NewApi")
-    @VisibleForTesting
-    internal fun isExternalStorageLegacy(): Boolean =
-        Environment.isExternalStorageLegacy()
+    internal fun shouldUseScopedStorage() = getSdkVersion() >= Build.VERSION_CODES.Q
 
     /**
      * Gets the SDK version from the system.
@@ -833,19 +872,37 @@ abstract class AbstractFetchDownloadService : Service() {
         }
 
         val resolver = applicationContext.contentResolver
-        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+
+        val queryProjection = arrayOf(MediaStore.Downloads._ID)
+        val querySelection = "${MediaStore.Downloads.DISPLAY_NAME} = ?"
+        val querySelectionArgs = arrayOf("${download.fileName}")
+
+        val queryBundle = Bundle().apply {
+            putString(ContentResolver.QUERY_ARG_SQL_SELECTION, querySelection)
+            putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, querySelectionArgs)
+        }
 
         // Query if we have a pending download with the same name. This can happen
         // if a download was interrupted, failed or cancelled before the file was
         // written to disk. Our logic above will have generated a unique file name
         // based on existing files on the device, but we might already have a row
         // for the download in the content resolver.
+
+        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val queryCollection =
+            if (SDK_INT >= Build.VERSION_CODES.R) {
+                queryBundle.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE)
+                collection
+            } else {
+                @Suppress("DEPRECATION")
+                setIncludePending(collection)
+            }
+
         var downloadUri: Uri? = null
         resolver.query(
-            MediaStore.setIncludePending(collection),
-            arrayOf(MediaStore.Downloads._ID),
-            "${MediaStore.Downloads.DISPLAY_NAME} = ?",
-            arrayOf("${download.fileName}"),
+            queryCollection,
+            queryProjection,
+            queryBundle,
             null
         )?.use {
             if (it.count > 0) {
@@ -900,7 +957,7 @@ abstract class AbstractFetchDownloadService : Service() {
             )
 
             val newIntent = Intent(ACTION_VIEW).apply {
-                setDataAndType(constructedFilePath, contentType ?: "*/*")
+                setDataAndType(constructedFilePath, getSafeContentType(context, constructedFilePath, contentType))
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
 
@@ -912,8 +969,23 @@ abstract class AbstractFetchDownloadService : Service() {
             }
         }
 
+        @VisibleForTesting
+        internal fun getSafeContentType(context: Context, constructedFilePath: Uri, contentType: String?): String {
+            val contentTypeFromFile = context.contentResolver.getType(constructedFilePath)
+            val resultContentType = if (!contentTypeFromFile.isNullOrEmpty()) {
+                contentTypeFromFile
+            } else {
+                if (!contentType.isNullOrEmpty()) {
+                    contentType
+                } else {
+                    "*/*"
+                }
+            }
+            return (DownloadUtils.sanitizeMimeType(resultContentType) ?: "*/*")
+        }
+
         private const val FILE_PROVIDER_EXTENSION = ".feature.downloads.fileprovider"
-        private const val CHUNK_SIZE = 4 * 1024
+        private const val CHUNK_SIZE = 32 * 1024
         private const val PARTIAL_CONTENT_STATUS = 206
         private const val OK_STATUS = 200
 

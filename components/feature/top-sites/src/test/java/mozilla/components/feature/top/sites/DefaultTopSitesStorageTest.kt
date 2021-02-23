@@ -8,8 +8,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.storage.TopFrecentSiteInfo
 import mozilla.components.feature.top.sites.ext.toTopSite
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -17,6 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 
 @ExperimentalCoroutinesApi
@@ -106,7 +109,50 @@ class DefaultTopSitesStorageTest {
     }
 
     @Test
-    fun `getTopSites returns only default and pinned sites when includeFrecent is false`() = runBlockingTest {
+    fun `renameTopSite`() = runBlockingTest {
+        val defaultTopSitesStorage = DefaultTopSitesStorage(
+            pinnedSitesStorage,
+            historyStorage,
+            listOf(),
+            coroutineContext
+        )
+
+        val defaultSite = TopSite(
+            id = 1,
+            title = "Firefox",
+            url = "https://firefox.com",
+            createdAt = 1,
+            type = TopSite.Type.DEFAULT
+        )
+        defaultTopSitesStorage.renameTopSite(defaultSite, "Mozilla Firefox")
+
+        verify(pinnedSitesStorage).renamePinnedSite(defaultSite, "Mozilla Firefox")
+
+        val pinnedSite = TopSite(
+            id = 2,
+            title = "Wikipedia",
+            url = "https://wikipedia.com",
+            createdAt = 2,
+            type = TopSite.Type.PINNED
+        )
+        defaultTopSitesStorage.renameTopSite(pinnedSite, "Wiki")
+
+        verify(pinnedSitesStorage).renamePinnedSite(pinnedSite, "Wiki")
+
+        val frecentSite = TopSite(
+            id = 1,
+            title = "Mozilla",
+            url = "https://mozilla.com",
+            createdAt = 1,
+            type = TopSite.Type.FRECENT
+        )
+        defaultTopSitesStorage.renameTopSite(frecentSite, "Moz")
+
+        verify(pinnedSitesStorage, never()).renamePinnedSite(frecentSite, "Moz")
+    }
+
+    @Test
+    fun `getTopSites returns only default and pinned sites when frecencyConfig is null`() = runBlockingTest {
         val defaultTopSitesStorage = DefaultTopSitesStorage(
             pinnedSitesStorage,
             historyStorage,
@@ -135,22 +181,22 @@ class DefaultTopSitesStorageTest {
             )
         )
 
-        var topSites = defaultTopSitesStorage.getTopSites(0, false)
+        var topSites = defaultTopSitesStorage.getTopSites(0, frecencyConfig = null)
         assertTrue(topSites.isEmpty())
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
-        topSites = defaultTopSitesStorage.getTopSites(1, false)
+        topSites = defaultTopSitesStorage.getTopSites(1, frecencyConfig = null)
         assertEquals(1, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
-        topSites = defaultTopSitesStorage.getTopSites(2, false)
+        topSites = defaultTopSitesStorage.getTopSites(2, frecencyConfig = null)
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
-        topSites = defaultTopSitesStorage.getTopSites(5, false)
+        topSites = defaultTopSitesStorage.getTopSites(5, frecencyConfig = null)
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
@@ -158,7 +204,7 @@ class DefaultTopSitesStorageTest {
     }
 
     @Test
-    fun `getTopSites returns pinned and frecent sites when includeFrecent is true`() = runBlockingTest {
+    fun `getTopSites returns pinned and frecent sites when frecencyConfig is specified`() = runBlockingTest {
         val defaultTopSitesStorage = DefaultTopSitesStorage(
             pinnedSitesStorage,
             historyStorage,
@@ -188,23 +234,23 @@ class DefaultTopSitesStorageTest {
         )
 
         val frecentSite1 = TopFrecentSiteInfo("https://mozilla.com", "Mozilla")
-        whenever(historyStorage.getTopFrecentSites(anyInt())).thenReturn(listOf(frecentSite1))
+        whenever(historyStorage.getTopFrecentSites(anyInt(), any())).thenReturn(listOf(frecentSite1))
 
-        var topSites = defaultTopSitesStorage.getTopSites(0, true)
+        var topSites = defaultTopSitesStorage.getTopSites(0, frecencyConfig = FrecencyThresholdOption.NONE)
         assertTrue(topSites.isEmpty())
 
-        topSites = defaultTopSitesStorage.getTopSites(1, true)
+        topSites = defaultTopSitesStorage.getTopSites(1, frecencyConfig = FrecencyThresholdOption.NONE)
         assertEquals(1, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
-        topSites = defaultTopSitesStorage.getTopSites(2, true)
+        topSites = defaultTopSitesStorage.getTopSites(2, frecencyConfig = FrecencyThresholdOption.NONE)
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
-        topSites = defaultTopSitesStorage.getTopSites(5, true)
+        topSites = defaultTopSitesStorage.getTopSites(5, frecencyConfig = FrecencyThresholdOption.NONE)
         assertEquals(3, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
@@ -213,7 +259,7 @@ class DefaultTopSitesStorageTest {
 
         val frecentSite2 = TopFrecentSiteInfo("https://example.com", "Example")
         val frecentSite3 = TopFrecentSiteInfo("https://getpocket.com", "Pocket")
-        whenever(historyStorage.getTopFrecentSites(anyInt())).thenReturn(
+        whenever(historyStorage.getTopFrecentSites(anyInt(), any())).thenReturn(
             listOf(
                 frecentSite1,
                 frecentSite2,
@@ -221,7 +267,7 @@ class DefaultTopSitesStorageTest {
             )
         )
 
-        topSites = defaultTopSitesStorage.getTopSites(5, true)
+        topSites = defaultTopSitesStorage.getTopSites(5, frecencyConfig = FrecencyThresholdOption.NONE)
         assertEquals(5, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
@@ -231,7 +277,7 @@ class DefaultTopSitesStorageTest {
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         val frecentSite4 = TopFrecentSiteInfo("https://example2.com", "Example2")
-        whenever(historyStorage.getTopFrecentSites(anyInt())).thenReturn(
+        whenever(historyStorage.getTopFrecentSites(anyInt(), any())).thenReturn(
             listOf(
                 frecentSite1,
                 frecentSite2,
@@ -240,7 +286,7 @@ class DefaultTopSitesStorageTest {
             )
         )
 
-        topSites = defaultTopSitesStorage.getTopSites(5, true)
+        topSites = defaultTopSitesStorage.getTopSites(5, frecencyConfig = FrecencyThresholdOption.NONE)
         assertEquals(5, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
@@ -292,7 +338,7 @@ class DefaultTopSitesStorageTest {
         val frecentSiteFirefox = TopFrecentSiteInfo("https://firefox.com", "Firefox")
         val frecentSite1 = TopFrecentSiteInfo("https://getpocket.com", "Pocket")
         val frecentSite2 = TopFrecentSiteInfo("https://www.example.com", "Example")
-        whenever(historyStorage.getTopFrecentSites(anyInt())).thenReturn(
+        whenever(historyStorage.getTopFrecentSites(anyInt(), any())).thenReturn(
             listOf(
                 frecentSiteWithNoTitle,
                 frecentSiteFirefox,
@@ -301,7 +347,10 @@ class DefaultTopSitesStorageTest {
             )
         )
 
-        val topSites = defaultTopSitesStorage.getTopSites(5, true)
+        val topSites = defaultTopSitesStorage.getTopSites(5, frecencyConfig = FrecencyThresholdOption.NONE)
+
+        verify(historyStorage).getTopFrecentSites(5, frecencyThreshold = FrecencyThresholdOption.NONE)
+
         assertEquals(5, topSites.size)
         assertEquals(defaultSiteFirefox, topSites[0])
         assertEquals(pinnedSite1, topSites[1])
@@ -310,5 +359,29 @@ class DefaultTopSitesStorageTest {
         assertEquals(frecentSite1.toTopSite(), topSites[4])
         assertEquals("mozilla.com", frecentSiteWithNoTitle.toTopSite().title)
         assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
+    }
+
+    @Test
+    fun `get top site count returns pinned site storage count`() = runBlockingTest {
+        val defaultTopSites = listOf(
+            Pair("Mozilla", "https://mozilla.com"),
+            Pair("Firefox", "https://firefox.com")
+        )
+
+        val defaultTopSitesStorage = DefaultTopSitesStorage(
+            pinnedSitesStorage,
+            historyStorage,
+            defaultTopSites,
+            coroutineContext
+        )
+
+        whenever(pinnedSitesStorage.getPinnedSitesCount()).thenReturn(0)
+        assertEquals(0, defaultTopSitesStorage.getTopSitesCount())
+
+        whenever(pinnedSitesStorage.getPinnedSitesCount()).thenReturn(1)
+        assertEquals(1, defaultTopSitesStorage.getTopSitesCount())
+
+        whenever(pinnedSitesStorage.getPinnedSitesCount()).thenReturn(10)
+        assertEquals(10, defaultTopSitesStorage.getTopSitesCount())
     }
 }

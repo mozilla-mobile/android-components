@@ -173,7 +173,16 @@ class SessionUseCases(
                 return
             }
 
-            store.state.findTabOrCustomTab(session.id)
+            invoke(session.id)
+        }
+
+        /**
+         * Stops the current URL of the provided session from loading.
+         *
+         * @param sessionId the ID of the session for which loading should be stopped.
+         */
+        operator fun invoke(sessionId: String) {
+            store.state.findTabOrCustomTab(sessionId)
                 ?.engineState
                 ?.engineSession
                 ?.stopLoading()
@@ -219,8 +228,15 @@ class SessionUseCases(
                 return
             }
 
+            invoke(session.id)
+        }
+
+        /**
+         * Navigates forward in the history of the provided session.
+         */
+        operator fun invoke(sessionId: String) {
             store.dispatch(EngineAction.GoForwardAction(
-                session.id
+                sessionId
             ))
         }
     }
@@ -236,8 +252,9 @@ class SessionUseCases(
          * Navigates to a specific index in the [HistoryState] of the given session.
          * Invalid index values will be ignored.
          *
-         * @param index the index in the session's [HistoryState] to navigate to
-         * @param session the session whose [HistoryState] is being accessed
+         * @param index the index in the session's [HistoryState] to navigate to.
+         * @param session the session whose [HistoryState] is being accessed, defaulting
+         * to the selected session.
          */
         operator fun invoke(index: Int, session: Session? = sessionManager.selectedSession) {
             if (session == null) {
@@ -248,6 +265,35 @@ class SessionUseCases(
                 session.id,
                 index
             ))
+        }
+
+        /**
+         * Navigates to a specific index in the [HistoryState] of the given session.
+         * Invalid index values will be ignored.
+         *
+         * @param index the index in the session's [HistoryState] to navigate to.
+         * @param sessionId the ID of the session whose [HistoryState] is being accessed,
+         * defaulting to the ID of the selected session.
+         */
+        operator fun invoke(index: Int, sessionId: String? = sessionManager.selectedSession?.id) {
+            if (sessionId == null) {
+                return
+            }
+
+            store.dispatch(EngineAction.GoToHistoryIndexAction(
+                sessionId,
+                index
+            ))
+        }
+
+        /**
+         * Navigates to a specific index in the [HistoryState] of the selected session.
+         * Invalid index values will be ignored.
+         *
+         * @param index the index in the session's [HistoryState] to navigate to.
+         */
+        operator fun invoke(index: Int) {
+            invoke(index, sessionManager.selectedSession)
         }
     }
 
@@ -263,8 +309,15 @@ class SessionUseCases(
                 return
             }
 
+            invoke(enable, session.id)
+        }
+
+        /**
+         * Requests the desktop version of the provides session and reloads the page.
+         */
+        operator fun invoke(enable: Boolean, sessionId: String) {
             store.dispatch(EngineAction.ToggleDesktopModeAction(
-                session.id,
+                sessionId,
                 enable
             ))
         }

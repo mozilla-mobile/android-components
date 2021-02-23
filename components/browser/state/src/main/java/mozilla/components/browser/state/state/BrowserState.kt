@@ -5,6 +5,7 @@
 package mozilla.components.browser.state.state
 
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.lib.state.State
 
 /**
@@ -19,7 +20,8 @@ import mozilla.components.lib.state.State
  * @property extensions A map of extension IDs and web extensions of all installed web extensions.
  * The extensions here represent the default values for all [BrowserState.extensions] and can
  * be overridden per [SessionState].
- * @property media The state of all media elements and playback states for all tabs.
+ * @property activeWebExtensionTabId the ID of the tab that is marked active for web extensions
+ * to support tabs.query({active: true}).
  * @property search the state of search for this browser state.
  * @property downloads Downloads ([DownloadState]s) mapped to their IDs.
  * @property undoHistory History of recently closed tabs to support "undo" (Requires UndoMiddleware).
@@ -28,12 +30,12 @@ import mozilla.components.lib.state.State
  */
 data class BrowserState(
     val tabs: List<TabSessionState> = emptyList(),
-    val closedTabs: List<ClosedTabSessionState> = emptyList(),
+    val closedTabs: List<RecoverableTab> = emptyList(),
     val selectedTabId: String? = null,
     val customTabs: List<CustomTabSessionState> = emptyList(),
     val containers: Map<String, ContainerState> = emptyMap(),
     val extensions: Map<String, WebExtensionState> = emptyMap(),
-    val media: MediaState = MediaState(),
+    val activeWebExtensionTabId: String? = null,
     val downloads: Map<String, DownloadState> = emptyMap(),
     val search: SearchState = SearchState(),
     val undoHistory: UndoHistoryState = UndoHistoryState(),

@@ -7,6 +7,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import os
 
 from importlib import import_module
+from mozilla_version.maven import MavenVersion
 from taskgraph.parameters import extend_parameters_schema
 from voluptuous import All, Any, Range, Required
 
@@ -34,9 +35,11 @@ def _import_modules(modules):
 
 
 def get_decision_parameters(graph_config, parameters):
+    # Environment is defined in .taskcluster.yml
     pr_number = os.environ.get("MOBILE_PULL_REQUEST_NUMBER", None)
     parameters["pull_request_number"] = None if pr_number is None else int(pr_number)
     parameters["base_rev"] = os.environ.get("MOBILE_BASE_REV")
+    parameters["head_ref"] = os.environ.get("MOBILE_HEAD_REF")
     version = get_version()
     parameters["version"] = version
     parameters.setdefault("next_version", None)
@@ -56,3 +59,11 @@ def get_decision_parameters(graph_config, parameters):
                 "{} from buildconfig.yml".format(head_tag[1:], version)
             )
         parameters["target_tasks_method"] = "release"
+        version_string = parameters["version"]
+        version = MavenVersion.parse(version_string)
+        if version.is_release:
+            next_version = version.bump("patch_number")
+        else:
+            raise ValueError("Unsupported version type: {}".format(version.version_type))
+
+        parameters["next_version"] = str(next_version).decode("utf-8")

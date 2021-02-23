@@ -28,6 +28,15 @@ import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.android.net.isUnderPrivateAppDirectory
 
 /**
+ * The image capture intent doesn't return the URI where the image is saved,
+ * so we track it here.
+ *
+ * Top-level scoped to survive activity recreation in the "Don't keep activities" scenario.
+ */
+@VisibleForTesting
+internal var captureUri: Uri? = null
+
+/**
  * @property container The [Activity] or [Fragment] which hosts the file picker.
  * @property store The [BrowserStore] this feature should subscribe to.
  * @property onNeedToRequestPermissions a callback invoked when permissions
@@ -42,12 +51,6 @@ internal class FilePicker(
 ) : PermissionsFeature {
 
     private val logger = Logger("FilePicker")
-
-    /**
-     * The image capture intent doesn't return the URI where the image is saved,
-     * so we track it here.
-     */
-    private var captureUri: Uri? = null
 
     /**
      * Cache of the current request to be used after permission is granted.
@@ -110,8 +113,9 @@ internal class FilePicker(
      * @param requestCode The code of the app that requested the intent.
      * @param intent The result of the request.
      */
-    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        val request = getActivePromptRequest() ?: return
+    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?): Boolean {
+        var resultHandled = false
+        val request = getActivePromptRequest() ?: return false
         if (requestCode == FILE_PICKER_ACTIVITY_REQUEST_CODE && request is File) {
             store.consumePromptFrom(sessionId) {
                 if (resultCode == RESULT_OK) {
@@ -120,10 +124,13 @@ internal class FilePicker(
                     request.onDismiss()
                 }
             }
+            resultHandled = true
         }
         if (request !is File) {
             logger.error("Invalid PromptRequest expected File but $request was provided")
         }
+
+        return resultHandled
     }
 
     private fun getActivePromptRequest(): PromptRequest? =
@@ -197,6 +204,8 @@ internal class FilePicker(
                 }
             } ?: request.onDismiss()
         }
+
+        captureUri = null
     }
 
     private fun saveCaptureUriIfPresent(intent: Intent) =

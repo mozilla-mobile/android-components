@@ -8,6 +8,7 @@ import android.app.Activity
 import android.content.Intent
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import kotlinx.coroutines.CoroutineScope
@@ -63,9 +64,11 @@ import mozilla.components.feature.prompts.login.LoginPickerView
 import mozilla.components.feature.prompts.share.DefaultShareDelegate
 import mozilla.components.feature.prompts.share.ShareDelegate
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.base.feature.ActivityResultHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
+import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import java.lang.ref.WeakReference
@@ -124,7 +127,7 @@ class PromptFeature private constructor(
     private val loginPickerView: LoginPickerView? = null,
     private val onManageLogins: () -> Unit = {},
     onNeedToRequestPermissions: OnNeedToRequestPermissions
-) : LifecycleAwareFeature, PermissionsFeature, Prompter {
+) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler, UserInteractionHandler {
     // These three scopes have identical lifetimes. We do not yet have a way of combining scopes
     private var handlePromptScope: CoroutineScope? = null
     private var dismissPromptScope: CoroutineScope? = null
@@ -290,15 +293,19 @@ class PromptFeature private constructor(
         dismissLoginSelectPrompt()
     }
 
+    override fun onBackPressed(): Boolean {
+        return dismissLoginSelectPrompt()
+    }
+
     /**
      * Notifies the feature of intent results for prompt requests handled by
      * other apps like file chooser requests.
      *
      * @param requestCode The code of the app that requested the intent.
-     * @param intent The result of the request.
+     * @param data The result of the request.
      */
-    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        filePicker.onActivityResult(requestCode, resultCode, intent)
+    override fun onActivityResult(requestCode: Int, data: Intent?, resultCode: Int): Boolean {
+        return filePicker.onActivityResult(requestCode, resultCode, data)
     }
 
     /**
@@ -674,13 +681,20 @@ class PromptFeature private constructor(
     }
 
     /**
-     * Dismisses the select login prompt if it is active.
+     * Dismisses the select login prompt if it is active and visible.
+     * @returns true if dismissCurrentLoginSelect is called otherwise false.
      */
     @VisibleForTesting
-    fun dismissLoginSelectPrompt() {
-        (activePromptRequest as? SelectLoginPrompt)?.let {
-            loginPicker?.dismissCurrentLoginSelect(it)
+    fun dismissLoginSelectPrompt(): Boolean {
+        (activePromptRequest as? SelectLoginPrompt)?.let { selectLoginPrompt ->
+            loginPicker?.let { loginPicker ->
+                if (loginPickerView?.asView()?.isVisible == true) {
+                    loginPicker.dismissCurrentLoginSelect(selectLoginPrompt)
+                    return true
+                }
+            }
         }
+        return false
     }
 }
 

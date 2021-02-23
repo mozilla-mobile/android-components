@@ -23,8 +23,6 @@ Before you attempt to make a contribution please read the [Community Participati
 
 * Matrix: [android-components:mozilla.org chat room](https://chat.mozilla.org/#/room/#android-components:mozilla.org) ([How to connect](https://wiki.mozilla.org/Matrix#Connect_to_Matrix)).
 
-* Subscribe to our mailing list [android-components@](https://lists.mozilla.org/listinfo/android-components) to keep up to date ([Archives](https://lists.mozilla.org/pipermail/android-components/)).
-
 * Localization happens on [Pontoon](https://pontoon.mozilla.org/projects/android-l10n/). Please get in touch with delphine (at) mozilla (dot) com directly for more information.
 
 # Maven repository
@@ -90,6 +88,8 @@ High-level components for building browser(-like) apps.
 
 * 🔵 [**Session**](components/browser/session/README.md) - A generic representation of a browser session.
 
+* 🔵 [**Session-Storage**](components/browser/session-storage/README.md) - Component for saving and restoring the browser state.
+
 * 🔵 [**Storage-Memory**](components/browser/storage-memory/README.md) - An in-memory implementation of browser storage.
 
 * 🔵 [**Storage-Sync**](components/browser/storage-sync/README.md) - A syncable implementation of browser storage backed by [application-services' Places lib](https://github.com/mozilla/application-services).
@@ -126,6 +126,8 @@ _Combined components to implement feature-specific use cases._
 
 * 🔵 [**Accounts Push**](components/feature/accounts-push/README.md) - Feature of use cases for FxA Account that work with push support.
 
+* 🔴 [**Autofill**](components/feature/autofill/README.md) - A component that provides support for Android's Autofill framework.
+
 * 🔵 [**Awesomebar**](components/feature/awesomebar/README.md) - A component that connects a [concept-awesomebar](components/concept/awesomebar/README.md) implementation to a [concept-toolbar](components/concept/toolbar/README.md) implementation and provides implementations of various suggestion providers.
 
 * 🔴 [**Containers**](components/feature/containers/README.md) - A component for working with contextual identities also known as containers.
@@ -139,8 +141,6 @@ _Combined components to implement feature-specific use cases._
 * 🔵 [**Intent**](components/feature/intent/README.md) - A component that provides intent processing functionality by combining various other feature modules.
 
 * ⚪ [**Progressive Web Apps (PWA)**](components/feature/pwa/README.md) - A component that provides functionality for supporting Progressive Web Apps (PWA).
-
-* 🔴 [**P2P**](components/feature/p2p/README.md) - A component that provides peer-to-peer communication.
 
 * 🔵 [**Reader View**](components/feature/readerview/README.md) - A component that provides Reader View functionality.
 
@@ -172,6 +172,8 @@ _Combined components to implement feature-specific use cases._
 
 * 🔵 [**Site Permissions**](components/feature/sitepermissions/README.md) - A feature for showing site permission request prompts.
 
+* ⚪ [**WebAuthn**](components/feature/webauthn/README.md) - A feature that provides WebAuthn functionality for supported engines.
+
 * 🔵 [**Web Notifications**](components/feature/webnotifications/README.md) - A component for displaying web notifications.
 
 * 🔵 [**WebCompat**](components/feature/webcompat/README.md) - A feature to enable website-hotfixing via the Web Compatibility System-Addon.
@@ -202,11 +204,7 @@ _Components and libraries to interact with backend services._
 
 * 🔵 [**Firefox Sync - Logins**](components/service/sync-logins/README.md) - A library for integrating with Firefox Sync - Logins.
 
-* 🔵 [**Fretboard**](components/service/fretboard/README.md) - An Android framework for segmenting users in order to run A/B tests and roll out features gradually.
-
 * 🔵 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
-
-* 🔴 [**Experiments**](components/service/experiments/README.md) - An Android SDK for running experiments on user segments in multiple branches.
 
 * 🔵 [**Location**](components/service/location/README.md) - A library for accessing Mozilla's and other location services.
 
@@ -248,8 +246,6 @@ _Supporting components with generic helper code._
 
 * ⚪ [**JEXL**](components/lib/jexl/README.md) - Javascript Expression Language: Context-based expression parser and evaluator.
 
-* 🔴  [**Nearby**](components/lib/nearby/README.md) - A library simplifying access to the [Google Connections API](https://developers.google.com/nearby/connections/overview) for peer-to-peer networking.
-
 * 🔵 [**Public Suffix List**](components/lib/publicsuffixlist/README.md) - A library for reading and using the [public suffix list](https://publicsuffix.org/).
 
 * 🔵 [**Push-Firebase**](components/lib/push-firebase/README.md) - A [concept-push](concept/push/README.md) implementation using [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging/).
@@ -279,8 +275,6 @@ _Sample apps using various components._
 * [**DataProtect**](samples/dataprotect) - An app demoing how to use the [**Dataprotect**](components/lib/dataprotect/README.md) component to load and store encrypted data in `SharedPreferences`.
 
 * [**Glean**](samples/glean) - An app demoing how to use the [**Glean**](components/service/glean/README.md) library to collect and send telemetry data.
-
-* [**Nearby Chat**](samples/nearby-chat) - An app demoing how to use the [**Nearby**](components/lib/nearby/README.md) library for peer-to-peer communication between devices.
 
 * [**Toolbar**](samples/toolbar) - An app demoing multiple customized toolbars using the [**browser-toolbar**](components/browser/toolbar/README.md) component.
 

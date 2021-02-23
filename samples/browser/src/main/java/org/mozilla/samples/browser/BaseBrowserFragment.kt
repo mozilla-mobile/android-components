@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.privatemode.feature.SecureWindowFeature
@@ -25,9 +26,10 @@ import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.SwipeRefreshFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
-import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action.ALLOWED
+import mozilla.components.feature.sitepermissions.SitePermissionsRules.AutoplayAction
 import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.lib.state.ext.consumeFlow
+import mozilla.components.support.base.feature.ActivityResultHandler
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
@@ -38,7 +40,6 @@ import org.mozilla.samples.browser.downloads.DownloadService
 import org.mozilla.samples.browser.ext.components
 import org.mozilla.samples.browser.integration.ContextMenuIntegration
 import org.mozilla.samples.browser.integration.FindInPageIntegration
-import org.mozilla.samples.browser.integration.P2PIntegration
 
 /**
  * Base fragment extended by [BrowserFragment] and [ExternalAppBrowserFragment].
@@ -46,19 +47,23 @@ import org.mozilla.samples.browser.integration.P2PIntegration
  * UI code specific to the app or to custom tabs can be found in the subclasses.
  */
 @SuppressWarnings("LargeClass")
-abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
+abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, ActivityResultHandler {
     private val sessionFeature = ViewBoundFeatureWrapper<SessionFeature>()
     private val toolbarFeature = ViewBoundFeatureWrapper<ToolbarFeature>()
     private val contextMenuIntegration = ViewBoundFeatureWrapper<ContextMenuIntegration>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
+    private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
     private val promptFeature = ViewBoundFeatureWrapper<PromptFeature>()
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
-    private val p2pIntegration = ViewBoundFeatureWrapper<P2PIntegration>()
 
     protected val sessionId: String?
         get() = arguments?.getString(SESSION_ID_KEY)
+
+    private val activityResultHandler: List<ViewBoundFeatureWrapper<*>> = listOf(
+        promptFeature
+    )
 
     @CallSuper
     @Suppress("LongMethod")
@@ -86,18 +91,8 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             owner = this,
             view = layout)
 
-        layout.toolbar.display.setOnPermissionIndicatorClickedListener {
-            sitePermissionsFeature.withFeature { feature ->
-                feature.sitePermissionsRules = feature.sitePermissionsRules?.copy(
-                    autoplayAudible = ALLOWED,
-                    autoplayInaudible = ALLOWED
-                )
-                components.sessionUseCases.reload()
-            }
-        }
-
         layout.toolbar.display.indicators += listOf(
-            DisplayToolbar.Indicators.TRACKING_PROTECTION
+            DisplayToolbar.Indicators.TRACKING_PROTECTION, DisplayToolbar.Indicators.HIGHLIGHT
         )
 
         swipeRefreshFeature.set(
@@ -130,7 +125,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             view = layout
         )
 
-        val scrollFeature = CoordinateScrollingFeature(components.sessionManager, layout.engineView, layout.toolbar)
+        val scrollFeature = CoordinateScrollingFeature(components.store, layout.engineView, layout.toolbar)
 
         contextMenuIntegration.set(
             feature = ContextMenuIntegration(
@@ -144,6 +139,19 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             ),
             owner = this,
             view = layout)
+
+        appLinksFeature.set(
+            feature = AppLinksFeature(
+                context = requireContext(),
+                store = components.store,
+                sessionId = sessionId,
+                fragmentManager = parentFragmentManager,
+                launchInApp = { components.preferences.getBoolean(DefaultComponents.PREF_LAUNCH_EXTERNAL_APP, false) },
+                loadUrlUseCase = components.sessionUseCases.loadUrl
+            ),
+            owner = this,
+            view = layout
+        )
 
         promptFeature.set(
             feature = PromptFeature(
@@ -164,8 +172,8 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
                 storage = components.permissionStorage,
                 fragmentManager = parentFragmentManager,
                 sitePermissionsRules = SitePermissionsRules(
-                    autoplayAudible = SitePermissionsRules.AutoplayAction.BLOCKED,
-                    autoplayInaudible = SitePermissionsRules.AutoplayAction.BLOCKED,
+                    autoplayAudible = AutoplayAction.BLOCKED,
+                    autoplayInaudible = AutoplayAction.BLOCKED,
                     camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
                     location = SitePermissionsRules.Action.ASK_TO_ALLOW,
                     notification = SitePermissionsRules.Action.ASK_TO_ALLOW,
@@ -187,21 +195,6 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             feature = FindInPageIntegration(components.store, layout.findInPage, layout.engineView),
             owner = this,
             view = layout)
-
-        p2pIntegration.set(
-            feature = P2PIntegration(
-                store = components.store,
-                engine = components.engine,
-                view = layout.p2p,
-                thunk = { components.nearbyConnection },
-                tabsUseCases = components.tabsUseCases,
-                sessionUseCases = components.sessionUseCases
-            ) { permissions ->
-                requestPermissions(permissions, REQUEST_CODE_P2P_PERMISSIONS)
-            },
-            owner = this,
-            view = layout
-        )
 
         val secureWindowFeature = SecureWindowFeature(
             window = requireActivity().window,
@@ -244,15 +237,14 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
             REQUEST_CODE_DOWNLOAD_PERMISSIONS -> downloadsFeature.get()
             REQUEST_CODE_PROMPT_PERMISSIONS -> promptFeature.get()
             REQUEST_CODE_APP_PERMISSIONS -> sitePermissionsFeature.get()
-            REQUEST_CODE_P2P_PERMISSIONS -> p2pIntegration.get()?.feature
             else -> null
         }
         feature?.onPermissionsResult(permissions, grantResults)
     }
 
     @CallSuper
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        promptFeature.withFeature { it.onActivityResult(requestCode, resultCode, data) }
+    override fun onActivityResult(requestCode: Int, data: Intent?, resultCode: Int): Boolean {
+        return activityResultHandler.any { it.onActivityResult(requestCode, data, resultCode) }
     }
 
     companion object {
@@ -261,7 +253,6 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler {
         private const val REQUEST_CODE_DOWNLOAD_PERMISSIONS = 1
         private const val REQUEST_CODE_PROMPT_PERMISSIONS = 2
         private const val REQUEST_CODE_APP_PERMISSIONS = 3
-        internal const val REQUEST_CODE_P2P_PERMISSIONS = 4
 
         @JvmStatic
         protected fun Bundle.putSessionId(sessionId: String?) {

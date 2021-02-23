@@ -23,15 +23,6 @@ buildscript {
         } else {
             mavenCentral()
         }
-
-        if (project.hasProperty("jcenterRepo")) {
-            maven {
-                name "BintrayJCenter"
-                url project.property("jcenterRepo")
-            }
-        } else {
-            jcenter()
-        }
     }
 
     dependencies {
@@ -72,7 +63,26 @@ allprojects {
                 url project.property("jcenterRepo")
             }
         } else {
-            jcenter()
+            jcenter() {
+                content {
+                    ////////////////////////////////////////////////////////////////////////////////
+                    // JCenter is going away. Please do not add any new dependencies here.
+                    // https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/
+                    ////////////////////////////////////////////////////////////////////////////////
+
+                    // Used by Android Gradle Plugin
+                    // Issue for publishing to maven central: https://youtrack.jetbrains.com/issue/IDEA-261387
+                    // Related plugin issue: https://issuetracker.google.com/issues/179291081
+                    // Other option: Update to Android Gradle Plugin 7+ (still in Alpha currently)
+                    includeVersion("org.jetbrains.trove4j", "trove4j", "20160824")
+
+                    // Used by detekt
+                    // Issue for publishing to maven central: https://github.com/Kotlin/kotlinx.html/issues/173
+                    // Related detekt issue: https://github.com/detekt/detekt/issues/3461
+                    includeVersion("org.jetbrains.kotlinx", "kotlinx-html-jvm", "0.7.1")
+                    includeVersion("org.jetbrains.kotlinx", "kotlinx-html-common", "0.7.1")
+                }
+            }
         }
 
         maven {
@@ -135,7 +145,7 @@ subprojects {
     afterEvaluate {
         if (it.hasProperty('android')) {
             jacoco {
-                toolVersion = "0.8.5"
+                toolVersion = "0.8.6"
             }
 
             // Format test output
@@ -251,29 +261,34 @@ subprojects {
             }
 
             if (project.hasProperty("coverage") && project.name != "support-test") {
-                tasks.withType(Test).configureEach() {
-                    jacoco.includeNoLocationClasses = true
+                android.buildTypes.all { buildType ->
+                    tasks.withType(Test).configureEach() {
+                        jacoco {
+                            includeNoLocationClasses = true
+                            excludes = ['jdk.internal.*']
+                        }
 
-                    finalizedBy jacocoTestReport
-                }
-
-                tasks.register("jacocoTestReport", JacocoReport) {
-                    reports {
-                        xml.enabled = true
-                        html.enabled = true
+                        finalizedBy { "jacoco${buildType.name.capitalize()}TestReport" }
                     }
 
-                    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
-                                      '**/*Test*.*', 'android/**/*.*', '**/*$[0-9].*']
-                    def kotlinDebugTree = fileTree(dir: "$project.buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
-                    def javaDebugTree = fileTree(dir: "$project.buildDir/intermediates/classes/debug", excludes: fileFilter)
-                    def mainSrc = "$project.projectDir/src/main/java"
+                    tasks.register("jacoco${buildType.name.capitalize()}TestReport", JacocoReport) {
+                        reports {
+                            xml.enabled = true
+                            html.enabled = true
+                        }
 
-                    sourceDirectories.setFrom(files([mainSrc]))
-                    classDirectories.setFrom(files([kotlinDebugTree, javaDebugTree]))
-                    executionData.setFrom(fileTree(dir: project.buildDir, includes: [
-                            'jacoco/testDebugUnitTest.exec', 'outputs/code-coverage/connected/*coverage.ec'
-                    ]))
+                        def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+                                          '**/*Test*.*', 'android/**/*.*', '**/*$[0-9].*']
+                        def kotlinDebugTree = fileTree(dir: "$project.buildDir/tmp/kotlin-classes/${buildType.name}", excludes: fileFilter)
+                        def javaDebugTree = fileTree(dir: "$project.buildDir/intermediates/classes/${buildType.name}", excludes: fileFilter)
+                        def mainSrc = "$project.projectDir/src/main/java"
+
+                        sourceDirectories.setFrom(files([mainSrc]))
+                        classDirectories.setFrom(files([kotlinDebugTree, javaDebugTree]))
+                        getExecutionData().setFrom(fileTree(project.buildDir).include([
+                                "jacoco/test${buildType.name.capitalize()}UnitTest.exec"
+                        ]))
+                    }
                 }
 
                 android {
@@ -357,7 +372,9 @@ tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach() {
 
     autoCorrect = true
 
+    exclude "**/build.gradle.kts"
     exclude "**/src/androidTest/**"
+    exclude "**/src/iosTest/**"
     exclude "**/src/test/**"
     exclude "**/test/src/**"
     exclude "**/build/**"
@@ -410,6 +427,7 @@ tasks.register("listRepositories") {
 tasks.register("githubBuildDetails", GithubDetailsTask) {
     text = """### Test result files
 
+- [Test Coverage]({reportsUrl}/jacoco/jacocoReleaseTestReport/html/index.html)
 - [Unit Tests]({reportsUrl}/tests/testReleaseUnitTest/index.html)
 - [Android Lint]({reportsUrl}/lint-results-release.html)"""
 }

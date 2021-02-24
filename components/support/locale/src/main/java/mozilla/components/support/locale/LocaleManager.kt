@@ -10,8 +10,10 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.ConfigurationCompat
+import mozilla.components.browser.state.action.UpdateLocaleAction
 import mozilla.components.support.base.R
 import java.util.Locale
+import mozilla.components.browser.state.store.BrowserStore
 
 /**
  * Helper for apps that want to change locale defined by the system.
@@ -29,11 +31,15 @@ object LocaleManager {
      */
     fun setNewLocale(context: Context, language: String): Context {
         Storage.save(context, language)
+        notifyLocaleChanged(language)
         return updateResources(context)
     }
 
     /**
      * The latest stored locale saved by [setNewLocale].
+     *
+     * @return The current selected locale. If the app is following the system default then this
+     * value will be null.
      */
     fun getCurrentLocale(context: Context): Locale? {
         return Storage.getLocale(context)?.toLocale()
@@ -55,6 +61,8 @@ object LocaleManager {
 
         updateSystemLocale(locale)
         updateConfiguration(context, locale)
+
+        notifyLocaleChanged(locale.language)
     }
 
     /**
@@ -85,6 +93,26 @@ object LocaleManager {
 
     internal fun clear(context: Context) {
         Storage.clear(context)
+    }
+
+    /**
+     * Notifies the BrowserStore that there has been a [Locale] change.
+     *
+     * @param store The [BrowserStore]
+     * @param language The new [Locale] that has been chosen
+     */
+    internal fun notifyLocaleChanged(language: String) {
+        getBrowserStore().dispatch(UpdateLocaleAction(Locale(language)))
+    }
+
+    /**
+     * Gets the current (?) instance of the [BrowserStore]
+     */
+    internal fun getBrowserStore(): BrowserStore {
+        // how do we get the browser store inside of a singleton?
+        // shouldn't this come from Fenix?
+        val store = lazy { BrowserStore() }
+        return store
     }
 
     private object Storage {

@@ -20,6 +20,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.store.BrowserStore
@@ -28,7 +29,9 @@ import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.ktx.android.notification.ChannelData
 import mozilla.components.support.ktx.android.notification.ensureNotificationChannelExists
+import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
+import java.util.*
 
 /**
  * Manages notifications for private tabs.
@@ -43,7 +46,8 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  */
 abstract class AbstractPrivateNotificationService : Service() {
 
-    private var scope: CoroutineScope? = null
+    private var privateTabsScope: CoroutineScope? = null
+    private var localeScope: CoroutineScope? = null
 
     abstract val store: BrowserStore
 
@@ -51,6 +55,14 @@ abstract class AbstractPrivateNotificationService : Service() {
      * Customizes the private browsing notification.
      */
     abstract fun NotificationCompat.Builder.buildNotification()
+
+    /**
+     * Customize the notification response when the [Locale] has been changed.
+     *
+     * @param notificationTag the identifying tag of the notification that is used by the
+     * [NotificationCompat.Builder]
+     */
+    abstract fun notifyLocaleChanged(notificationTag: String)
 
     /**
      * Erases all private tabs in reaction to the user tapping the notification.
@@ -91,11 +103,23 @@ abstract class AbstractPrivateNotificationService : Service() {
 
         startForeground(id, notification)
 
-        scope = store.flowScoped { flow ->
+        privateTabsScope = store.flowScoped { flow ->
             flow.map { state -> state.privateTabs.isEmpty() }
                 .ifChanged()
                 .collect { noPrivateTabs ->
                     if (noPrivateTabs) stopService()
+                }
+        }
+
+        localeScope = store.flowScoped { flow ->
+            flow.mapNotNull { state ->
+                    state.locale
+                }
+                .ifAnyChanged {  locale ->
+                    arrayOf(locale)
+                }
+                .collect {
+                    notifyLocaleChanged(NOTIFICATION_TAG)
                 }
         }
     }
@@ -109,7 +133,8 @@ abstract class AbstractPrivateNotificationService : Service() {
     }
 
     final override fun onDestroy() {
-        scope?.cancel()
+        privateTabsScope?.cancel()
+        localeScope?.cancel()
     }
 
     final override fun onBind(intent: Intent?): IBinder? = null

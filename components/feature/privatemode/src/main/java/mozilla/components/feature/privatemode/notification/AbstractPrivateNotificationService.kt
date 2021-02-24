@@ -89,17 +89,7 @@ abstract class AbstractPrivateNotificationService : Service() {
             }
         })
 
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setOngoing(true)
-            .setVisibility(VISIBILITY_SECRET)
-            .setShowWhen(false)
-            .setLocalOnly(true)
-            .setContentIntent(Intent(ACTION_ERASE).let {
-                it.setClass(this, this::class.java)
-                PendingIntent.getService(this, 0, it, FLAG_ONE_SHOT)
-            })
-            .apply { buildNotification() }
-            .build()
+        val notification = createNotification(channelId)
 
         startForeground(id, notification)
 
@@ -123,6 +113,19 @@ abstract class AbstractPrivateNotificationService : Service() {
                 }
         }
     }
+
+    fun createNotification(channelId: String) =
+        NotificationCompat.Builder(this, channelId)
+            .setOngoing(true)
+            .setVisibility(VISIBILITY_SECRET)
+            .setShowWhen(false)
+            .setLocalOnly(true)
+            .setContentIntent(Intent(ACTION_ERASE).let {
+                it.setClass(this, this::class.java)
+                PendingIntent.getService(this, 0, it, FLAG_ONE_SHOT)
+            })
+            .apply { buildNotification() }
+            .build()
 
     final override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if (intent.action == ACTION_ERASE) {

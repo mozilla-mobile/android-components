@@ -31,7 +31,7 @@ class LoginExceptionStorage(
         LoginExceptionEntity(
             origin = origin
         ).also { entity ->
-            entity.id = database.value.loginExceptionDao().insertLoginException(entity)
+            database.value.loginExceptionDao().insertLoginException(entity)
         }
     }
 

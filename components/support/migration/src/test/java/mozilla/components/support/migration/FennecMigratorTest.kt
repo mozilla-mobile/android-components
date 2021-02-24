@@ -312,6 +312,8 @@ class FennecMigratorTest {
             "Internet for people, not profit — Mozilla",
             "https://www.mozilla.org/en-US/"
         )
+
+        Unit
     }
 
     @Test

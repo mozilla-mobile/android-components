@@ -61,7 +61,7 @@ class PinnedSiteStorage(context: Context) {
                 isDefault = isDefault,
                 createdAt = currentTimeMillis()
             )
-            entity.id = pinnedSiteDao.insertPinnedSite(entity)
+            pinnedSiteDao.insertPinnedSite(entity)
         }
 
     /**

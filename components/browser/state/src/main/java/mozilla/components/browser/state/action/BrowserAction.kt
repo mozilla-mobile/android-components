@@ -963,6 +963,11 @@ sealed class DownloadAction : BrowserAction() {
     data class UpdateDownloadAction(val download: DownloadState) : DownloadAction()
 
     /**
+     * Mark the download notification of the provided [downloadId] as removed from the status bar.
+     */
+    data class DismissDownloadNotificationAction(val downloadId: String) : DownloadAction()
+
+    /**
      * Restores the [BrowserState.downloads] state from the storage.
      */
     object RestoreDownloadsStateAction : DownloadAction()
@@ -1035,7 +1040,8 @@ sealed class SearchAction : BrowserAction() {
         val additionalAvailableSearchEngines: List<SearchEngine>,
         val userSelectedSearchEngineId: String?,
         val userSelectedSearchEngineName: String?,
-        val regionDefaultSearchEngineId: String
+        val regionDefaultSearchEngineId: String,
+        val regionSearchEnginesOrder: List<String>
     ) : SearchAction()
 
     /**

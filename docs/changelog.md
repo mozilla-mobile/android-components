@@ -4,13 +4,30 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 73.0.0-SNAPSHOT (In Development)
+# 74.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v72.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/134?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v74.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/135?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #9757](https://github.com/mozilla-mobile/android-components/issues/9757) - Remove downloads notification when private tabs are closed.
+
+* **feature-push**
+  * ⚠️ **This is a breaking change**: Removed `databasePath` from `RustPushConnection` constructor and added `context`. The file path is now queries lazily.
+
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: Replace `TopSitesUseCases.renameTopSites` with `TopSitesUseCases.updateTopSites` which allows for updating the title and the url of a top site. [#9599](https://github.com/mozilla-mobile/android-components/issues/9599)
+
+# 73.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v72.0.0...v73.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/134?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v73.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v73.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v73.0.0/.config.yml)
 
 * **All components**
   * ⚠️Increased `targetSdkVersion` to 30 (Android R)
@@ -38,12 +55,12 @@ permalink: /changelog/
 
 * **feature-webauthn**
   * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
-  
+
 * **feature-awesomebar**
   * added `SearchEngineSuggestionProvider` that offers suggestion(s) for search engines based on user search engine list
 
 * **browser-storage-sync**
-  * Added `AutofillCreditCardsAddressesStorage` implementation of the `CreditCardsAddressesStorage` interface back by the application-services' `autofill` library. 
+  * Added `AutofillCreditCardsAddressesStorage` implementation of the `CreditCardsAddressesStorage` interface back by the application-services' `autofill` library.
 
 * **concept-engine**
   * Added `defaultSettings: Settings?` parameter to registerTabHandler to supply a default Tracking Policy when opening a new extension tab.

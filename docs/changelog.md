@@ -27,6 +27,7 @@ permalink: /changelog/
 * **feature-downloads**:
   * 🌟 New `ShareDownloadFeature` will listen for `AddShareAction` and download, cache locally and then share internet resources.
   * ⚠️ **This is a breaking change**: This is a breaking change with clients expected to create and register a new instance of the this new feature otherwise the "Share image" from the browser contextual menu will do nothing.
+  * 🚒 Bug fixed [issue #9789](https://github.com/mozilla-mobile/android-components/issues/9789) - Canceled first PDF download prevents following attempts from downloading.
 
 * **support-ktx**
   * 🌟 Added `Context.shareMedia` that allows to easily share a specific locally stored file through the Android share menu.

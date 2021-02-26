@@ -5,6 +5,7 @@
 package mozilla.components.support.locale
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -18,9 +19,12 @@ import java.util.Locale
 @RunWith(AndroidJUnit4::class)
 class LocaleManagerTest {
 
+    private lateinit var localeUseCases: LocaleUseCases
+
     @Before
     fun setup() {
         LocaleManager.clear(testContext)
+        localeUseCases = LocaleUseCases(BrowserStore())
     }
 
     @Test
@@ -30,7 +34,7 @@ class LocaleManagerTest {
 
         assertNull(currentLocale)
 
-        val newContext = LocaleManager.setNewLocale(testContext, "es")
+        val newContext = LocaleManager.setNewLocale(testContext, localeUseCases, "es")
 
         assertNotEquals(testContext, newContext)
 
@@ -54,13 +58,13 @@ class LocaleManagerTest {
     fun `when resetting to system locale then the current locale will be the system one`() {
         assertEquals("en_US".toLocale(), Locale.getDefault())
 
-        LocaleManager.setNewLocale(testContext, "fr")
+        LocaleManager.setNewLocale(testContext, localeUseCases,"fr")
         val storedLocale = Locale.getDefault()
 
         assertEquals("fr".toLocale(), Locale.getDefault())
         assertEquals("fr".toLocale(), storedLocale)
 
-        LocaleManager.resetToSystemDefault(testContext)
+        LocaleManager.resetToSystemDefault(testContext, localeUseCases)
 
         assertEquals("en_US".toLocale(), Locale.getDefault())
         assertNull(LocaleManager.getCurrentLocale(testContext))
@@ -71,7 +75,7 @@ class LocaleManagerTest {
     fun `when setting a new locale then the current locale will be different than the system locale`() {
         assertEquals("en_US".toLocale(), Locale.getDefault())
 
-        LocaleManager.setNewLocale(testContext, "fr")
+        LocaleManager.setNewLocale(testContext, localeUseCases,"fr")
 
         assertEquals("en_US".toLocale(), LocaleManager.getSystemDefault())
         assertEquals("fr".toLocale(), LocaleManager.getCurrentLocale(testContext))

@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.privatemode.notification
 
+import android.app.Notification
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_ONE_SHOT
 import android.app.Service
@@ -12,6 +13,7 @@ import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.IBinder
 import androidx.annotation.CallSuper
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.VISIBILITY_SECRET
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_LOW
@@ -31,7 +33,7 @@ import mozilla.components.support.ktx.android.notification.ChannelData
 import mozilla.components.support.ktx.android.notification.ensureNotificationChannelExists
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
-import java.util.*
+import java.util.Locale
 
 /**
  * Manages notifications for private tabs.
@@ -59,10 +61,12 @@ abstract class AbstractPrivateNotificationService : Service() {
     /**
      * Customize the notification response when the [Locale] has been changed.
      *
-     * @param notificationTag the identifying tag of the notification that is used by the
+     * @param notificationId the id of the notification that is used by the
+     * [NotificationCompat.Builder]
+     * @param channelId the id of the notification channel that is used by the
      * [NotificationCompat.Builder]
      */
-    abstract fun notifyLocaleChanged(notificationTag: String)
+    abstract fun notifyLocaleChanged(notificationId: Int, channelId: String)
 
     /**
      * Erases all private tabs in reaction to the user tapping the notification.
@@ -81,13 +85,18 @@ abstract class AbstractPrivateNotificationService : Service() {
     @ExperimentalCoroutinesApi
     final override fun onCreate() {
         val id = SharedIdsHelper.getIdForTag(this, NOTIFICATION_TAG)
-        val channelId = ensureNotificationChannelExists(this, NOTIFICATION_CHANNEL, onSetupChannel = {
-            if (SDK_INT >= Build.VERSION_CODES.O) {
-                enableLights(false)
-                enableVibration(false)
-                setShowBadge(false)
-            }
-        })
+        val channelId =
+            ensureNotificationChannelExists(
+                this,
+                NOTIFICATION_CHANNEL,
+                onSetupChannel = {
+                    if (SDK_INT >= Build.VERSION_CODES.O) {
+                        enableLights(false)
+                        enableVibration(false)
+                        setShowBadge(false)
+                    }
+                }
+            )
 
         val notification = createNotification(channelId)
 
@@ -102,20 +111,23 @@ abstract class AbstractPrivateNotificationService : Service() {
         }
 
         localeScope = store.flowScoped { flow ->
-            flow.mapNotNull { state ->
-                    state.locale
-                }
-                .ifAnyChanged {  locale ->
+            flow.mapNotNull { state -> state.locale }
+                .ifAnyChanged { locale ->
                     arrayOf(locale)
                 }
                 .collect {
-                    notifyLocaleChanged(NOTIFICATION_TAG)
+                    notifyLocaleChanged(id, channelId)
                 }
         }
     }
 
-    fun createNotification(channelId: String) =
-        NotificationCompat.Builder(this, channelId)
+    /**
+     * Builds a notification based on the specified channel id.
+     *
+     * @param channelId The channel id for the [Notification]
+     */
+    fun createNotification(channelId: String): Notification {
+        return NotificationCompat.Builder(this, channelId)
             .setOngoing(true)
             .setVisibility(VISIBILITY_SECRET)
             .setShowWhen(false)
@@ -126,6 +138,7 @@ abstract class AbstractPrivateNotificationService : Service() {
             })
             .apply { buildNotification() }
             .build()
+    }
 
     final override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         if (intent.action == ACTION_ERASE) {
@@ -162,8 +175,9 @@ abstract class AbstractPrivateNotificationService : Service() {
         stopSelf()
     }
 
+    @VisibleForTesting
     companion object {
-        private const val NOTIFICATION_TAG =
+        const val NOTIFICATION_TAG =
             "mozilla.components.feature.privatemode.notification.AbstractPrivateNotificationService"
         const val ACTION_ERASE = "mozilla.components.feature.privatemode.action.ERASE"
 

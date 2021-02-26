@@ -10,10 +10,8 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.ConfigurationCompat
-import mozilla.components.browser.state.action.UpdateLocaleAction
 import mozilla.components.support.base.R
 import java.util.Locale
-import mozilla.components.browser.state.store.BrowserStore
 
 /**
  * Helper for apps that want to change locale defined by the system.
@@ -27,11 +25,15 @@ object LocaleManager {
      * get recreated. If your app is using the single activity approach, this will be trivial just call
      * [AppCompatActivity.recreate]. On the other hand, if you have multiple activity this could be tricky, one
      * alternative could be restarting your application process see https://github.com/JakeWharton/ProcessPhoenix
+     *
+     * @param context The [Context]
+     * @param localeUseCase The [LocaleUseCases] used to notify [Locale] changes
+     * @param language The new language that has been selected
      * @return A new Context object for whose resources are adjusted to match the new [language].
      */
-    fun setNewLocale(context: Context, language: String): Context {
+    fun setNewLocale(context: Context, localeUseCase: LocaleUseCases, language: String): Context {
         Storage.save(context, language)
-        notifyLocaleChanged(language)
+        localeUseCase.notifyLocaleChanged(Locale(language))
         return updateResources(context)
     }
 
@@ -55,14 +57,14 @@ object LocaleManager {
      * alternative could be restarting your application process see https://github.com/JakeWharton/ProcessPhoenix
      *
      */
-    fun resetToSystemDefault(context: Context) {
+    fun resetToSystemDefault(context: Context, localeUseCase: LocaleUseCases) {
         clear(context)
         val locale = getSystemDefault()
 
         updateSystemLocale(locale)
         updateConfiguration(context, locale)
 
-        notifyLocaleChanged(locale.language)
+        localeUseCase.notifyLocaleChanged(locale)
     }
 
     /**
@@ -93,26 +95,6 @@ object LocaleManager {
 
     internal fun clear(context: Context) {
         Storage.clear(context)
-    }
-
-    /**
-     * Notifies the BrowserStore that there has been a [Locale] change.
-     *
-     * @param store The [BrowserStore]
-     * @param language The new [Locale] that has been chosen
-     */
-    internal fun notifyLocaleChanged(language: String) {
-        getBrowserStore().dispatch(UpdateLocaleAction(Locale(language)))
-    }
-
-    /**
-     * Gets the current (?) instance of the [BrowserStore]
-     */
-    internal fun getBrowserStore(): BrowserStore {
-        // how do we get the browser store inside of a singleton?
-        // shouldn't this come from Fenix?
-        val store = lazy { BrowserStore() }
-        return store
     }
 
     private object Storage {

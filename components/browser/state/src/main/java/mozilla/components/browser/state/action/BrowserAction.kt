@@ -84,11 +84,16 @@ sealed class SystemAction : BrowserAction() {
 }
 
 /**
- * Updating the [BrowserState] to reflect app [Locale] changes.
- *
- * @property locale the updated [Locale]
+ * [BrowserAction] implementations related to updating the [Locale] inside [BrowserState].
  */
-data class UpdateLocaleAction(val locale: Locale) : BrowserAction()
+sealed class LocaleAction : BrowserAction() {
+    /**
+     * Updating the [BrowserState] to reflect app [Locale] changes.
+     *
+     * @property locale the updated [Locale]
+     */
+    data class UpdateLocaleAction(val locale: Locale?) : LocaleAction()
+}
 
 /**
  * [BrowserAction] implementations related to updating the list of [ClosedTabSessionState] inside [BrowserState].

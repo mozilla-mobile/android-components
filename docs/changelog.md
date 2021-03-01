@@ -12,8 +12,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-toolbar**
+  * 🌟️ Added `ToolbarBehaviorController` to automatically block the `BrowserToolbar` being animated by the `BrowserToolbarBehavior` while the tab is loading. This new class just has to be initialized by AC clients, similar to `ToolbarPresenter`.
+
 * **feature-downloads**:
   * 🚒 Bug fixed [issue #9757](https://github.com/mozilla-mobile/android-components/issues/9757) - Remove downloads notification when private tabs are closed.
+  * 🚒 Bug fixed [issue #9789](https://github.com/mozilla-mobile/android-components/issues/9789) - Canceled first PDF download prevents following attempts from downloading.
 
 * **feature-push**
   * ⚠️ **This is a breaking change**: Removed `databasePath` from `RustPushConnection` constructor and added `context`. The file path is now queries lazily.

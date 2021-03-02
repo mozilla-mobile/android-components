@@ -15,7 +15,7 @@ import mozilla.components.concept.storage.CreditCardsAddressesStorage
 import mozilla.components.concept.storage.UpdatableAddressFields
 import mozilla.components.concept.storage.UpdatableCreditCardFields
 import java.io.Closeable
-import org.mozilla.appservices.autofill.Store as RustAutofillStorage
+import mozilla.appservices.autofill.Store as RustAutofillStorage
 
 const val AUTOFILL_DB_NAME = "autofill.sqlite"
 
@@ -33,16 +33,6 @@ class AutofillCreditCardsAddressesStorage(
     private val conn by lazy {
         AutofillStorageConnection.init(dbPath = context.getDatabasePath(AUTOFILL_DB_NAME).absolutePath)
         AutofillStorageConnection
-    }
-
-    init {
-        // Set the name of the native library so that we use the appservices megazord for
-        // compiled code.
-        // TODO remove this when https://github.com/mozilla/application-services/issues/3874 lands
-        System.setProperty(
-            "uniffi.component.autofill.libraryOverride",
-            System.getProperty("mozilla.appservices.megazord.library", "megazord")
-        )
     }
 
     override suspend fun addCreditCard(creditCardFields: UpdatableCreditCardFields): CreditCard =

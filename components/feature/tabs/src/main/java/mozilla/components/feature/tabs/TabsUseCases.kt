@@ -17,6 +17,7 @@ import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.manifest.WebAppManifest
@@ -27,7 +28,8 @@ import mozilla.components.feature.session.SessionUseCases.LoadUrlUseCase
  */
 class TabsUseCases(
     store: BrowserStore,
-    sessionManager: SessionManager
+    sessionManager: SessionManager,
+    engine: Engine
 ) {
     /**
      * Contract for use cases that select a tab.
@@ -363,7 +365,8 @@ class TabsUseCases(
      */
     class SelectOrAddUseCase(
         private val store: BrowserStore,
-        private val sessionManager: SessionManager
+        private val sessionManager: SessionManager,
+        private val engine: Engine
     ) {
         /**
          * Selects an already existing tab displaying [url] or otherwise creates a new tab.
@@ -378,13 +381,15 @@ class TabsUseCases(
             if (existingSession != null) {
                 sessionManager.select(existingSession)
             } else {
+                val engineSession = engine.createSession()
                 val session = Session(url, private, source)
-                sessionManager.add(session, selected = true)
-                store.dispatch(EngineAction.LoadUrlAction(
+                sessionManager.add(session, selected = true, engineSession = engineSession)
+                engineSession.loadUrl(url, flags = flags)
+                /*store.dispatch(EngineAction.LoadUrlAction(
                     session.id,
                     url,
                     flags
-                ))
+                ))*/
             }
         }
     }
@@ -399,5 +404,5 @@ class TabsUseCases(
     val removePrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(sessionManager) }
     val undo by lazy { UndoTabRemovalUseCase(store) }
     val restore: RestoreUseCase by lazy { RestoreUseCase(store, sessionManager, selectTab) }
-    val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store, sessionManager) }
+    val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store, sessionManager, engine) }
 }

@@ -78,6 +78,9 @@ class FxaWebChannelFeature(
     )
 
     override fun start() {
+        val messageHandler = WebChannelViewBackgroundMessageHandler(serverConfig)
+        extensionController.registerBackgroundMessageHandler(messageHandler, WEB_CHANNEL_BACKGROUND_MESSAGING_ID)
+
         extensionController.install(runtime)
 
         scope = store.flowScoped { flow ->
@@ -167,12 +170,21 @@ class FxaWebChannelFeature(
         extensionController.registerContentMessageHandler(engineSession, messageHandler)
     }
 
+    private class WebChannelViewBackgroundMessageHandler(
+        private val serverConfig: ServerConfig
+    ) : MessageHandler {
+        override fun onPortConnected(port: Port) {
+            port.postMessage(JSONObject().put("type", "overrideFxAServer").put("url", serverConfig.contentUrl))
+        }
+    }
+
     @VisibleForTesting
     companion object {
         private val logger = Logger("mozac-fxawebchannel")
 
         internal const val WEB_CHANNEL_EXTENSION_ID = "fxa@mozac.org"
         internal const val WEB_CHANNEL_MESSAGING_ID = "mozacWebchannel"
+        internal const val WEB_CHANNEL_BACKGROUND_MESSAGING_ID = "mozacWebchannelBackground"
         internal const val WEB_CHANNEL_EXTENSION_URL = "resource://android/assets/extensions/fxawebchannel/"
 
         // Constants for incoming messages from the WebExtension.

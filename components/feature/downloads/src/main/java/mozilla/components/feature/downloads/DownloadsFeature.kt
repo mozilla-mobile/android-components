@@ -32,6 +32,7 @@ import mozilla.components.feature.downloads.manager.onDownloadStopped
 import mozilla.components.feature.downloads.ui.DownloaderApp
 import mozilla.components.feature.downloads.ui.DownloadAppChooserDialog
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.base.dialog.DeniedPermissionDialogFragment
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
@@ -111,8 +112,8 @@ class DownloadsFeature(
                             previousTab?.let { tab ->
                                 // We have an old download request.
                                 tab.content.download?.let { download ->
+                                    useCases.cancelDownloadRequest.invoke(tab.id, download.id)
                                     dismissAllDownloadDialogs()
-                                    useCases.consumeDownload(tab.id, download.id)
                                     previousTab = null
                                 }
                             }
@@ -209,7 +210,8 @@ class DownloadsFeature(
                     processDownload(tab, download)
                 }
             } else {
-                useCases.consumeDownload(tab.id, download.id)
+                useCases.cancelDownloadRequest.invoke(tab.id, download.id)
+                showPermissionDeniedDialog()
             }
         }
     }
@@ -239,7 +241,7 @@ class DownloadsFeature(
         }
 
         dialog.onCancelDownload = {
-            useCases.consumeDownload.invoke(tab.id, download.id)
+            useCases.cancelDownloadRequest.invoke(tab.id, download.id)
         }
 
         if (!isAlreadyADownloadDialog() && fragmentManager != null && !fragmentManager.isDestroyed) {
@@ -284,7 +286,7 @@ class DownloadsFeature(
         }
 
         appChooserDialog.onDismiss = {
-            useCases.consumeDownload.invoke(tab.id, download.id)
+            useCases.cancelDownloadRequest.invoke(tab.id, download.id)
         }
 
         if (!isAlreadyAppDownloaderDialog() && fragmentManager != null && !fragmentManager.isDestroyed) {
@@ -383,6 +385,16 @@ class DownloadsFeature(
         val positiveButtonTextColor: Int? = null,
         val positiveButtonRadius: Float? = null
     )
+
+    @VisibleForTesting
+    internal fun showPermissionDeniedDialog() {
+        fragmentManager?.let {
+            val dialog = DeniedPermissionDialogFragment.newInstance(
+                R.string.mozac_feature_downloads_write_external_storage_permissions_needed_message
+            )
+            dialog.showNow(fragmentManager, DeniedPermissionDialogFragment.FRAGMENT_TAG)
+        }
+    }
 }
 
 @VisibleForTesting

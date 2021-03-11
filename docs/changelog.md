@@ -13,6 +13,8 @@ permalink: /changelog/
 
 * **concept-storage**, **browser-storage-sync**
   * 🌟️ New API: `HistoryMetadataStorage.deleteHistoryMetadata`, allows removing specific metadata entries.
+  * 🌟️ New API: `CreditCardValidationDelegate` which is a delegate that will check against the `CreditCardsAddressesStorage` to determine if a `CreditCard` can be persisted in storage.
+    See [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
 
 # 93.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v92.0.0...v93.0.0)

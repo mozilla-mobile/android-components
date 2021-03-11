@@ -22,9 +22,7 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.privatemode.notification.AbstractPrivateNotificationService.Companion.ACTION_ERASE
-import mozilla.components.support.ktx.android.notification.ensureNotificationChannelExists
 import mozilla.components.support.test.argumentCaptor
-import mozilla.components.support.test.eq
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -75,8 +73,7 @@ class AbstractPrivateNotificationServiceTest {
             override fun NotificationCompat.Builder.buildNotification() {
                 setCategory(Notification.CATEGORY_STATUS)
             }
-
-            override fun notifyLocaleChanged(notificationId: Int, channelId: String) {
+            override fun notifyLocaleChanged() {
                 // NOOP
             }
         })
@@ -108,47 +105,25 @@ class AbstractPrivateNotificationServiceTest {
         verify(service).stopSelf()
     }
 
-    private open class MockService : AbstractPrivateNotificationService() {
-        override val store: BrowserStore = mock()
-        override fun NotificationCompat.Builder.buildNotification() = Unit
-        override fun notifyLocaleChanged(notificationId: Int, channelId: String) {
-            // NOOP
-        }
-    }
-
-
-    /*
-    val feature = spy(
-            PromptFeature(
-                fragment = mock(),
-                store = store,
-                fragmentManager = fragmentManager
-            ) { })
-        feature.start()
-
-        val promptRequest = SingleChoice(arrayOf()) {}
-        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
-        testDispatcher.advanceUntilIdle()
-        verify(feature).onPromptRequested(store.state.tabs.first())
-     */
-
-
     @Test
     fun `WHEN a locale change is made in the browser store THEN the service should notify`() {
         val service = spy(MockServiceWithStore())
         attachContext(service)
         service.onCreate()
 
-        val channelId = ensureNotificationChannelExists(
-            testContext,
-            AbstractPrivateNotificationService.NOTIFICATION_CHANNEL
-        )
-
         val mockLocale = Locale("English")
         service.store.dispatch(LocaleAction.UpdateLocaleAction(mockLocale)).joinBlocking()
         testDispatcher.advanceUntilIdle()
 
-        verify(service).notifyLocaleChanged(anyInt(), eq(channelId))
+        verify(service).notifyLocaleChanged()
+    }
+
+    private open class MockService : AbstractPrivateNotificationService() {
+        override val store: BrowserStore = mock()
+        override fun NotificationCompat.Builder.buildNotification() = Unit
+        override fun notifyLocaleChanged() {
+            // NOOP
+        }
     }
 
     private open class MockServiceWithStore : AbstractPrivateNotificationService() {
@@ -158,7 +133,7 @@ class AbstractPrivateNotificationServiceTest {
             )
         )
         override fun NotificationCompat.Builder.buildNotification() = Unit
-        override fun notifyLocaleChanged(notificationId: Int, channelId: String) {
+        override fun notifyLocaleChanged() {
             // NOOP
         }
     }

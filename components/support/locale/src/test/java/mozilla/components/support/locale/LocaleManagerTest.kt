@@ -5,14 +5,17 @@
 package mozilla.components.support.locale
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 import org.robolectric.annotation.Config
 import java.util.Locale
 
@@ -24,7 +27,9 @@ class LocaleManagerTest {
     @Before
     fun setup() {
         LocaleManager.clear(testContext)
-        localeUseCases = LocaleUseCases(BrowserStore())
+
+        localeUseCases = mock()
+        whenever(localeUseCases.notifyLocaleChanged).thenReturn(mock())
     }
 
     @Test
@@ -58,7 +63,12 @@ class LocaleManagerTest {
     fun `when resetting to system locale then the current locale will be the system one`() {
         assertEquals("en_US".toLocale(), Locale.getDefault())
 
-        LocaleManager.setNewLocale(testContext, localeUseCases,"fr")
+        LocaleManager.setNewLocale(
+            testContext,
+            localeUseCases,
+            "fr"
+        )
+
         val storedLocale = Locale.getDefault()
 
         assertEquals("fr".toLocale(), Locale.getDefault())
@@ -75,10 +85,44 @@ class LocaleManagerTest {
     fun `when setting a new locale then the current locale will be different than the system locale`() {
         assertEquals("en_US".toLocale(), Locale.getDefault())
 
-        LocaleManager.setNewLocale(testContext, localeUseCases,"fr")
+        LocaleManager.setNewLocale(testContext, localeUseCases, "fr")
 
         assertEquals("en_US".toLocale(), LocaleManager.getSystemDefault())
         assertEquals("fr".toLocale(), LocaleManager.getCurrentLocale(testContext))
         assertEquals("fr".toLocale(), Locale.getDefault())
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS")
+    fun `when setting a new locale then the store is notified via use case`() {
+        assertEquals("en_US".toLocale(), Locale.getDefault())
+
+        val newLanguage = "fr"
+        LocaleManager.setNewLocale(testContext, localeUseCases, newLanguage)
+
+        verify(localeUseCases, times(1)).notifyLocaleChanged
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS")
+    fun `when resetting to system default locale then the store is notified via use case`() {
+        assertEquals("en_US".toLocale(), Locale.getDefault())
+
+        LocaleManager.setNewLocale(
+            testContext,
+            localeUseCases,
+            "fr"
+        )
+
+        verify(localeUseCases, times(1)).notifyLocaleChanged
+
+        val storedLocale = Locale.getDefault()
+
+        assertEquals("fr".toLocale(), Locale.getDefault())
+        assertEquals("fr".toLocale(), storedLocale)
+
+        LocaleManager.resetToSystemDefault(testContext, localeUseCases)
+
+        verify(localeUseCases, times(2)).notifyLocaleChanged
     }
 }

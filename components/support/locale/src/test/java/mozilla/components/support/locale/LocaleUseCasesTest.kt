@@ -5,13 +5,14 @@
 package mozilla.components.support.locale
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.state.action.UpdateLocaleAction
+import mozilla.components.browser.state.action.LocaleAction
+import mozilla.components.browser.state.action.LocaleAction.UpdateLocaleAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.mock
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
+import org.mockito.Mockito.verify
 import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
@@ -25,12 +26,19 @@ class LocaleUseCasesTest {
     }
 
     @Test
-    fun `UpdateLocaleUseCase`() {
+    fun `WHEN the locale is updated THEN the browser state reflects the change`() {
         val useCases = LocaleUseCases(browserStore)
         val locale = Locale("MyFavoriteLanguage")
 
         useCases.notifyLocaleChanged(locale)
 
-        Mockito.verify(browserStore).dispatch(UpdateLocaleAction(locale))
+        verify(browserStore).dispatch(UpdateLocaleAction(locale))
+    }
+
+    @Test
+    fun `WHEN state is restored THEN the browser state locale is restored`() {
+        val useCases = LocaleUseCases(browserStore)
+        useCases.restore()
+        verify(browserStore).dispatch(LocaleAction.RestoreLocaleStateAction)
     }
 }

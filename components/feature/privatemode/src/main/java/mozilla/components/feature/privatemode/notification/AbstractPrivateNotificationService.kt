@@ -13,9 +13,9 @@ import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.os.IBinder
 import androidx.annotation.CallSuper
-import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.VISIBILITY_SECRET
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationManagerCompat.IMPORTANCE_LOW
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,6 +46,7 @@ import java.util.Locale
  *
  * As long as a private tab is open this service will keep its notification alive.
  */
+@Suppress("TooManyFunctions")
 abstract class AbstractPrivateNotificationService : Service() {
 
     private var privateTabsScope: CoroutineScope? = null
@@ -60,13 +61,8 @@ abstract class AbstractPrivateNotificationService : Service() {
 
     /**
      * Customize the notification response when the [Locale] has been changed.
-     *
-     * @param notificationId the id of the notification that is used by the
-     * [NotificationCompat.Builder]
-     * @param channelId the id of the notification channel that is used by the
-     * [NotificationCompat.Builder]
      */
-    abstract fun notifyLocaleChanged(notificationId: Int, channelId: String)
+    abstract fun notifyLocaleChanged()
 
     /**
      * Erases all private tabs in reaction to the user tapping the notification.
@@ -77,6 +73,41 @@ abstract class AbstractPrivateNotificationService : Service() {
     }
 
     /**
+     * Retrieves the notification id based on the tag.
+     */
+    protected fun getNotificationId(): Int {
+        return SharedIdsHelper.getIdForTag(this, NOTIFICATION_TAG)
+    }
+
+    /**
+     * Retrieves the channel id based on the channel data.
+     */
+    protected fun getChannelId(): String {
+        return ensureNotificationChannelExists(
+            this,
+            NOTIFICATION_CHANNEL,
+            onSetupChannel = {
+                if (SDK_INT >= Build.VERSION_CODES.O) {
+                    enableLights(false)
+                    enableVibration(false)
+                    setShowBadge(false)
+                }
+            }
+        )
+    }
+
+    /**
+     * Re-build and notify an existing notification.
+     */
+    protected fun refreshNotification() {
+        val notificationId = getNotificationId()
+        val channelId = getChannelId()
+
+        val notification = createNotification(channelId)
+        NotificationManagerCompat.from(applicationContext).notify(notificationId, notification)
+    }
+
+    /**
      * Create the private browsing notification and
      * add a listener to stop the service once all private tabs are closed.
      *
@@ -84,23 +115,11 @@ abstract class AbstractPrivateNotificationService : Service() {
      */
     @ExperimentalCoroutinesApi
     final override fun onCreate() {
-        val id = SharedIdsHelper.getIdForTag(this, NOTIFICATION_TAG)
-        val channelId =
-            ensureNotificationChannelExists(
-                this,
-                NOTIFICATION_CHANNEL,
-                onSetupChannel = {
-                    if (SDK_INT >= Build.VERSION_CODES.O) {
-                        enableLights(false)
-                        enableVibration(false)
-                        setShowBadge(false)
-                    }
-                }
-            )
-
+        val notificationId = getNotificationId()
+        val channelId = getChannelId()
         val notification = createNotification(channelId)
 
-        startForeground(id, notification)
+        startForeground(notificationId, notification)
 
         privateTabsScope = store.flowScoped { flow ->
             flow.map { state -> state.privateTabs.isEmpty() }
@@ -116,7 +135,7 @@ abstract class AbstractPrivateNotificationService : Service() {
                     arrayOf(locale)
                 }
                 .collect {
-                    notifyLocaleChanged(id, channelId)
+                    notifyLocaleChanged()
                 }
         }
     }
@@ -175,9 +194,8 @@ abstract class AbstractPrivateNotificationService : Service() {
         stopSelf()
     }
 
-    @VisibleForTesting
     companion object {
-        const val NOTIFICATION_TAG =
+        private const val NOTIFICATION_TAG =
             "mozilla.components.feature.privatemode.notification.AbstractPrivateNotificationService"
         const val ACTION_ERASE = "mozilla.components.feature.privatemode.action.ERASE"
 

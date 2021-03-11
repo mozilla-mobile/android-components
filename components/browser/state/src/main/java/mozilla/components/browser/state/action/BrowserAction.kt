@@ -93,6 +93,11 @@ sealed class LocaleAction : BrowserAction() {
      * @property locale the updated [Locale]
      */
     data class UpdateLocaleAction(val locale: Locale?) : LocaleAction()
+
+    /**
+     * Restores the [BrowserState.locale] state from storage.
+     */
+    object RestoreLocaleStateAction : LocaleAction()
 }
 
 /**

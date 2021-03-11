@@ -4,6 +4,7 @@
 
 package mozilla.components.support.locale
 
+import mozilla.components.browser.state.action.LocaleAction
 import mozilla.components.browser.state.action.LocaleAction.UpdateLocaleAction
 import mozilla.components.browser.state.store.BrowserStore
 import java.util.Locale
@@ -28,7 +29,25 @@ class LocaleUseCases(browserStore: BrowserStore) {
         }
     }
 
+    /**
+     * Use case for restoring the [Locale].
+     */
+    class RestoreUseCase(
+        private val browserStore: BrowserStore
+    ) {
+        /**
+         * Restores the given [Locale] from storage.
+         */
+        operator fun invoke() {
+            browserStore.dispatch(LocaleAction.RestoreLocaleStateAction)
+        }
+    }
+
     val notifyLocaleChanged: UpdateLocaleUseCase by lazy {
         UpdateLocaleUseCase(browserStore)
+    }
+
+    val restore: RestoreUseCase by lazy {
+        RestoreUseCase(browserStore)
     }
 }

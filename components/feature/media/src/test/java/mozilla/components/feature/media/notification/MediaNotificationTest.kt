@@ -8,6 +8,8 @@ import android.app.Notification
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Color
 import androidx.core.app.NotificationCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
@@ -186,6 +188,33 @@ class MediaNotificationTest {
         assertEquals("", notification.text)
         assertEquals("A site is playing media", notification.title)
         assertEquals(R.drawable.mozac_feature_media_paused, notification.iconResource)
+    }
+
+    @Test
+    fun `given an empty bitmap when calling isEmpty() then return true`() {
+        // given
+        val emptyBitmap: Bitmap? = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888)
+
+        // when
+        val result = emptyBitmap.isEmpty()
+
+        // then
+        assertEquals(true, result)
+    }
+
+    @Test
+    fun `given a non-empty bitmap when calling isEmpty() then return false`() {
+        // given
+        val bitmap: Bitmap? = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888)
+            .apply {
+                setPixel(1, 1, Color.RED)
+            }
+
+        // when
+        val result = bitmap.isEmpty()
+
+        // then
+        assertEquals(false, result)
     }
 }
 

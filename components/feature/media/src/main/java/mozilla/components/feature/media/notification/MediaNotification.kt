@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.annotation.DrawableRes
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import mozilla.components.browser.state.state.CustomTabSessionState
@@ -55,9 +56,10 @@ internal class MediaNotification(
             .setSmallIcon(data.icon)
             .setContentTitle(data.title)
             .setContentText(data.description)
-            .setLargeIcon(data.largeIcon)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        if (!data.largeIcon.isEmpty()) builder.setLargeIcon(data.largeIcon)
 
         if (data.action != null) {
             builder.addAction(data.action)
@@ -84,6 +86,20 @@ internal class MediaNotification(
         return builder.build()
     }
 }
+
+/**
+ * Creates an empty bitmap with the same size and config as the provided one, than compares
+ * them using sameAs() to determine if their pixel data is different.
+ * @returns true if provided bitmap contains no pixel data
+ * */
+@VisibleForTesting
+internal fun Bitmap?.isEmpty() =
+    if (this == null) {
+        true
+    } else {
+        val emptyBitmap = Bitmap.createBitmap(width, height, config)
+        sameAs(emptyBitmap)
+    }
 
 private suspend fun SessionState.toNotificationData(
     context: Context,

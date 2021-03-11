@@ -6,7 +6,6 @@ package mozilla.components.concept.storage
 
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Deferred
 
 /**
  * An interface which defines read/write methods for credit card and address data.
@@ -48,6 +47,7 @@ interface CreditCardsAddressesStorage {
     /**
      * Deletes the credit card with the given [guid].
      *
+     * @param guid Unique identifier for the desired credit card.
      * @return True if the deletion did anything, false otherwise.
      */
     suspend fun deleteCreditCard(guid: String): Boolean
@@ -200,10 +200,10 @@ data class CreditCard(
     val expiryMonth: Long,
     val expiryYear: Long,
     val cardType: String,
-    val timeCreated: Long,
-    val timeLastUsed: Long?,
-    val timeLastModified: Long,
-    val timesUsed: Long
+    val timeCreated: Long = 0L,
+    val timeLastUsed: Long? = 0L,
+    val timeLastModified: Long = 0L,
+    val timesUsed: Long = 0L
 ) : Parcelable
 
 /**
@@ -320,6 +320,44 @@ data class UpdatableAddressFields(
 )
 
 /**
+ * Provides a method for checking whether or not a given credit card can be stored.
+ */
+interface CreditCardValidationDelegate {
+
+    /**
+     * The result from validating a given [CreditCard] against the credit card storage. This will
+     * include whether or not it can be created, updated, or neither, along with an explanation
+     * of any errors.
+     */
+    sealed class Result {
+        /**
+         * Indicates that the [CreditCard] does not currently exist in the storage, and a new
+         * credit card entry can be created.
+         */
+        object CanBeCreated : Result()
+
+        /**
+         * Indicates that a matching [CreditCard] was found in the storage, and the [CreditCard]
+         * can be used to update its information.
+         */
+        data class CanBeUpdated(val foundCreditCard: CreditCard) : Result()
+
+        /**
+         * The [CreditCard] cannot be saved or updated.
+         */
+        object Error : Result()
+    }
+
+    /**
+     * Determines whether a [CreditCard] can be added or updated in the credit card storage.
+     *
+     * @param creditCard [CreditCard] to be added or updated in the credit card storage.
+     * @return [Result] that indicates whether or not the [CreditCard] should be saved or updated.
+     */
+    suspend fun validate(creditCard: CreditCard): Result
+}
+
+/**
  * Used to handle [Address] and [CreditCard] storage so that the underlying engine doesn't have to.
  * An instance of this should be attached to the Gecko runtime in order to be used.
  */
@@ -337,22 +375,30 @@ interface CreditCardsAddressesStorageDelegate {
     /**
      * Returns all stored addresses. This is called when the engine believes an address field
      * should be autofilled.
+     *
+     * @return A list of all stored addresses.
      */
-    fun onAddressesFetch(): Deferred<List<Address>>
+    suspend fun onAddressesFetch(): List<Address>
 
     /**
      * Saves the given address to storage.
+     *
+     * @param address [Address] to be saved or updated in the address storage.
      */
     fun onAddressSave(address: Address)
 
     /**
      * Returns all stored credit cards. This is called when the engine believes a credit card
      * field should be autofilled.
+     *
+     * @return A list of all stored credit cards.
      */
-    fun onCreditCardsFetch(): Deferred<List<CreditCard>>
+    suspend fun onCreditCardsFetch(): List<CreditCard>
 
     /**
      * Saves the given credit card to storage.
+     *
+     * @param creditCard [CreditCard] to be saved or updated in the credit card storage.
      */
     fun onCreditCardSave(creditCard: CreditCard)
 }

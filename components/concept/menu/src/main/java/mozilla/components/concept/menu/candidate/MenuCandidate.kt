@@ -121,3 +121,24 @@ data class RowMenuCandidate(
 data class DividerMenuCandidate(
     override val containerStyle: ContainerStyle = ContainerStyle()
 ) : MenuCandidate()
+
+/**
+ * Menu option that shows a switch or checkbox.
+ *
+ * @property text Text to display.
+ * @property start Icon to display before the text.
+ * @property end Compound button to display after the text.
+ * @property textStyle Styling to apply to the text.
+ * @property containerStyle Styling to apply to the container.
+ * @property effect Effects to apply to the option.
+ * @property onCheckedChange Listener called when this menu option is checked or unchecked.
+ */
+data class CompoundToolbarMenuCandidate(
+    val startIcon: TextMenuIcon,
+    val endText: String,
+    val contentDescription: String,
+    val endIcon: MenuIcon,
+    val textStyle: TextStyle = TextStyle(),
+    override val containerStyle: ContainerStyle = ContainerStyle(),
+    val effect: MenuCandidateEffect? = null
+) : MenuCandidate()

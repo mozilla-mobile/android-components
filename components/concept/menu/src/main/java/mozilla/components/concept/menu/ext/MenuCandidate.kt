@@ -5,6 +5,7 @@
 package mozilla.components.concept.menu.ext
 
 import mozilla.components.concept.menu.candidate.CompoundMenuCandidate
+import mozilla.components.concept.menu.candidate.CompoundToolbarMenuCandidate
 import mozilla.components.concept.menu.candidate.DecorativeTextMenuCandidate
 import mozilla.components.concept.menu.candidate.DividerMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
@@ -41,6 +42,9 @@ fun List<MenuCandidate>.effects(): Sequence<MenuEffect> = this.asSequence()
                     .filter { it.containerStyle.isVisible && it.containerStyle.isEnabled }
                     .mapNotNull { it.icon.effect }
             is DecorativeTextMenuCandidate, is DividerMenuCandidate -> emptySequence()
+            is CompoundToolbarMenuCandidate ->
+                sequenceOf(option.effect, option.startIcon.effect(), option.endIcon.effect())
+                    .filterNotNull()
         }
     }
 

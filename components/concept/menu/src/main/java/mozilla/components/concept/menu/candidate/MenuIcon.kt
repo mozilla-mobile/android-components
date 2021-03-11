@@ -84,7 +84,8 @@ data class AsyncDrawableMenuIcon(
 data class TextMenuIcon(
     val text: String,
     @ColorInt val backgroundTint: Int? = null,
-    val textStyle: TextStyle = TextStyle()
+    val textStyle: TextStyle = TextStyle(),
+    val onClick: () -> Unit = {}
 ) : MenuIcon()
 
 /**

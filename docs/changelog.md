@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #9821](https://github.com/mozilla-mobile/android-components/issues/9821) - Crash for downloads inferred empty mime types.
+
 * **intent-processing**
   * 🌟️ Added support for opening links from ACTION_MAIN Intents. This Intents could the result of `Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)` calls.
 
@@ -31,6 +34,17 @@ permalink: /changelog/
 
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: Replace `TopSitesUseCases.renameTopSites` with `TopSitesUseCases.updateTopSites` which allows for updating the title and the url of a top site. [#9599](https://github.com/mozilla-mobile/android-components/issues/9599)
+
+* **service-sync-autofill**
+  * Refactors `AutofillCreditCardsAddressesStorage` from **browser-storage-sync** into its own component. [#9801](https://github.com/mozilla-mobile/android-components/issues/9801)
+
+* **service-firefox-accounts**,**browser-storage-sync**,**service-nimbus**,**service-sync-logins**
+  * Due to a temporary build issue in the Application Services project, it is not currently
+  possible to run some service-related unittests on a Windows host. [#9731](https://github.com/mozilla-mobile/android-components/pull/9731)
+    * Work on restoring this capability will be tracked in [application-services#3917](https://github.com/mozilla/application-services/issues/3917).
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: Removed the currently unused `authorizeOAuthCode` from FirefoxAccount API surface.
 
 # 73.0.0
 

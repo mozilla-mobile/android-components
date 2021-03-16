@@ -7,7 +7,6 @@ package mozilla.components.support.utils
 import android.net.Uri
 import android.os.Environment
 import android.webkit.MimeTypeMap
-import androidx.annotation.VisibleForTesting
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.UnsupportedEncodingException
@@ -126,6 +125,16 @@ object DownloadUtils {
     private val encodedSymbolPattern = Pattern.compile("%[0-9a-f]{2}|[0-9a-z!#$&+-.^_`|~]", Pattern.CASE_INSENSITIVE)
 
     /**
+     * Keep aligned with desktop generic content types:
+     * https://searchfox.org/mozilla-central/source/browser/components/downloads/DownloadsCommon.jsm#208
+     */
+    private val GENERIC_CONTENT_TYPES = arrayOf(
+        "application/octet-stream",
+        "binary/octet-stream",
+        "application/unknown"
+    )
+
+    /**
      * Guess the name of the file that should be downloaded.
      *
      * This method is largely identical to [android.webkit.URLUtil.guessFileName]
@@ -146,7 +155,11 @@ object DownloadUtils {
         val sanitizedMimeType = sanitizeMimeType(mimeType)
 
         val fileName = if (extractedFileName.contains('.')) {
-            changeExtension(extractedFileName, sanitizedMimeType)
+            if (GENERIC_CONTENT_TYPES.contains(mimeType)) {
+                extractedFileName
+            } else {
+                changeExtension(extractedFileName, sanitizedMimeType)
+            }
         } else {
             extractedFileName + createExtension(sanitizedMimeType)
         }
@@ -158,9 +171,8 @@ object DownloadUtils {
 
     // Some site add extra information after the mimetype, for example 'application/pdf; qs=0.001'
     // we just want to extract the mimeType and ignore the rest.
-    @VisibleForTesting
-    internal fun sanitizeMimeType(mimeType: String?): String? {
-        return if (mimeType != null) {
+    fun sanitizeMimeType(mimeType: String?): String? {
+        return (if (mimeType != null) {
             if (mimeType.contains(";")) {
                 mimeType.substringBefore(";")
             } else {
@@ -168,7 +180,7 @@ object DownloadUtils {
             }
         } else {
             null
-        }
+        })?.trim()
     }
 
     /**

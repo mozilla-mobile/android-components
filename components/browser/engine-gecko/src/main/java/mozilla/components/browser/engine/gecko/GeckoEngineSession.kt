@@ -15,7 +15,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.engine.gecko.fetch.toResponse
-import mozilla.components.browser.engine.gecko.media.GeckoMediaDelegate
 import mozilla.components.browser.engine.gecko.mediasession.GeckoMediaSessionDelegate
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
@@ -38,6 +37,10 @@ import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
 import mozilla.components.concept.storage.VisitType
+import mozilla.components.support.base.Component
+import mozilla.components.support.base.facts.Action
+import mozilla.components.support.base.facts.Fact
+import mozilla.components.support.base.facts.collect
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.isEmail
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
@@ -169,6 +172,7 @@ class GeckoEngineSession(
         }
 
         geckoSession.load(loader)
+        Fact(Component.BROWSER_ENGINE_GECKO, Action.IMPLEMENTATION_DETAIL, "GeckoSession.load").collect()
     }
 
     /**
@@ -230,8 +234,9 @@ class GeckoEngineSession(
         if (state !is GeckoEngineSessionState) {
             throw IllegalStateException("Can only restore from GeckoEngineSessionState")
         }
-
-        if (state.actualState == null) {
+        // Also checking if SessionState is empty as a workaround for:
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1687523
+        if (state.actualState.isNullOrEmpty()) {
             return false
         }
 
@@ -240,14 +245,19 @@ class GeckoEngineSession(
     }
 
     /**
-     * See [EngineSession.enableTrackingProtection]
+     * See [EngineSession.updateTrackingProtection]
      */
-    override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
-        val enabled = if (privateMode) {
-            policy.useForPrivateSessions
-        } else {
-            policy.useForRegularSessions
+    override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {
+        updateContentBlocking(policy)
+        val enabled = policy != TrackingProtectionPolicy.none()
+        etpEnabled = enabled
+        notifyObservers {
+            onTrackerBlockingEnabledChange(this, enabled)
         }
+    }
+
+    @VisibleForTesting
+    internal fun updateContentBlocking(policy: TrackingProtectionPolicy) {
         /**
          * As described on https://bugzilla.mozilla.org/show_bug.cgi?id=1579264,useTrackingProtection
          * is a misleading setting. When is set to true is blocking content (scripts/sub-resources).
@@ -256,19 +266,20 @@ class GeckoEngineSession(
          * [TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES].
          */
         val shouldBlockContent =
-            policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
+                policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
-        geckoSession.settings.useTrackingProtection = shouldBlockContent && enabled
-        etpEnabled = enabled
-        notifyObservers {
-            onTrackerBlockingEnabledChange(this, enabled)
+        val enabledInBrowsingMode = if (privateMode) {
+            policy.useForPrivateSessions
+        } else {
+            policy.useForRegularSessions
         }
+        geckoSession.settings.useTrackingProtection = enabledInBrowsingMode && shouldBlockContent
     }
 
     // This is a temporary solution to address
     // https://github.com/mozilla-mobile/android-components/issues/8431
     // until we eventually delete [EngineObserver] then this will not be needed.
-    private var etpEnabled: Boolean? = null
+    @VisibleForTesting internal var etpEnabled: Boolean? = null
 
     override fun register(observer: Observer) {
         super.register(observer)
@@ -285,14 +296,6 @@ class GeckoEngineSession(
         MainScope().launch {
             observer.onTrackerBlockingEnabledChange(enabled)
         }
-    }
-
-    /**
-     * See [EngineSession.disableTrackingProtection]
-     */
-    override fun disableTrackingProtection() {
-        geckoSession.settings.useTrackingProtection = false
-        notifyObservers { onTrackerBlockingEnabledChange(false) }
     }
 
     /**
@@ -820,7 +823,7 @@ class GeckoEngineSession(
                     onExternalResource(
                             url = url,
                             contentLength = contentLength,
-                            contentType = contentType,
+                            contentType = DownloadUtils.sanitizeMimeType(contentType),
                             fileName = fileName.sanitizeFileName(),
                             response = response,
                             isPrivate = privateMode
@@ -1047,7 +1050,7 @@ class GeckoEngineSession(
     private fun createGeckoSession(shouldOpen: Boolean = true) {
         this.geckoSession = geckoSessionProvider()
 
-        defaultSettings?.trackingProtectionPolicy?.let { enableTrackingProtection(it) }
+        defaultSettings?.trackingProtectionPolicy?.let { updateTrackingProtection(it) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }
         defaultSettings?.testingModeEnabled?.let { geckoSession.settings.fullAccessibilityTree = it }
@@ -1066,7 +1069,6 @@ class GeckoEngineSession(
         geckoSession.permissionDelegate = createPermissionDelegate()
         geckoSession.promptDelegate = GeckoPromptDelegate(this)
         geckoSession.historyDelegate = createHistoryDelegate()
-        geckoSession.mediaDelegate = GeckoMediaDelegate(this)
         geckoSession.mediaSessionDelegate = GeckoMediaSessionDelegate(this)
         geckoSession.scrollDelegate = createScrollDelegate()
     }

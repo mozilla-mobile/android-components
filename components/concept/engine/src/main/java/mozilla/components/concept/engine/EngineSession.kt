@@ -7,13 +7,11 @@ package mozilla.components.concept.engine
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.Companion.RECOMMENDED
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
-import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
@@ -92,9 +90,6 @@ abstract class EngineSession(
          * @param windowRequest the request to describing the required window action.
          */
         fun onWindowRequest(windowRequest: WindowRequest) = Unit
-
-        fun onMediaAdded(media: Media) = Unit
-        fun onMediaRemoved(media: Media) = Unit
 
         /**
          * Notify that the given media session has become active.
@@ -379,9 +374,6 @@ abstract class EngineSession(
         }
 
         companion object {
-
-            internal val RECOMMENDED = TrackingProtectionPolicy()
-
             fun none() = TrackingProtectionPolicy(
                 trackingCategories = arrayOf(TrackingCategory.NONE),
                 cookiePolicy = ACCEPT_ALL
@@ -442,6 +434,8 @@ abstract class EngineSession(
             if (hashCode() != other.hashCode()) return false
             if (useForPrivateSessions != other.useForPrivateSessions) return false
             if (useForRegularSessions != other.useForRegularSessions) return false
+            if (cookiePurging != other.cookiePurging) return false
+            if (strictSocialTrackingProtection != other.strictSocialTrackingProtection) return false
             return true
         }
 
@@ -610,16 +604,12 @@ abstract class EngineSession(
     abstract fun restoreState(state: EngineSessionState): Boolean
 
     /**
-     * Enables tracking protection for this engine session.
+     * Updates the tracking protection [policy] for this engine session.
+     * If you want to disable tracking protection use [TrackingProtectionPolicy.none].
      *
      * @param policy the tracking protection policy to use, defaults to blocking all trackers.
      */
-    abstract fun enableTrackingProtection(policy: TrackingProtectionPolicy = TrackingProtectionPolicy.strict())
-
-    /**
-     * Disables tracking protection for this engine session.
-     */
-    abstract fun disableTrackingProtection()
+    abstract fun updateTrackingProtection(policy: TrackingProtectionPolicy = TrackingProtectionPolicy.strict())
 
     /**
      * Enables/disables Desktop Mode with an optional ability to reload the session right after.

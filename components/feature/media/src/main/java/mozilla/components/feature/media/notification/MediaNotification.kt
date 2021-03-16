@@ -13,18 +13,13 @@ import android.support.v4.media.session.MediaSessionCompat
 import androidx.annotation.DrawableRes
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
-import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabSessionState
-import mozilla.components.browser.state.state.MediaState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.feature.media.R
-import mozilla.components.feature.media.ext.getActiveMediaTab
+import mozilla.components.feature.media.ext.getNonPrivateIcon
 import mozilla.components.feature.media.ext.getTitleOrUrl
-import mozilla.components.feature.media.ext.isMediaStateForCustomTab
-import mozilla.components.feature.media.ext.nonPrivateIcon
 import mozilla.components.feature.media.ext.nonPrivateUrl
-import mozilla.components.feature.media.service.AbstractMediaService
 import mozilla.components.feature.media.service.AbstractMediaSessionService
 import mozilla.components.support.base.ids.SharedIdsHelper
 import java.util.Locale
@@ -37,22 +32,16 @@ internal class MediaNotification(
     private val cls: Class<*>
 ) {
     /**
-     * Creates a new [Notification] for the given [state].
-     */
-    @Suppress("LongMethod")
-    fun create(state: BrowserState, mediaSessionCompat: MediaSessionCompat): Notification {
-        val data = state.toNotificationData(context, cls)
-
-        return buildNotification(data, mediaSessionCompat, !state.isMediaStateForCustomTab())
-    }
-
-    /**
      * Creates a new [Notification] for the given [sessionState].
      */
-    fun create(sessionState: SessionState?, mediaSessionCompat: MediaSessionCompat): Notification {
+    suspend fun create(sessionState: SessionState?, mediaSessionCompat: MediaSessionCompat): Notification {
         val data = sessionState?.toNotificationData(context, cls) ?: NotificationData()
 
         return buildNotification(data, mediaSessionCompat, sessionState !is CustomTabSessionState)
+    }
+
+    fun createDummy(mediaSessionCompat: MediaSessionCompat): Notification {
+        return buildNotification(NotificationData(), mediaSessionCompat, false)
     }
 
     private fun buildNotification(
@@ -96,66 +85,7 @@ internal class MediaNotification(
     }
 }
 
-private fun BrowserState.toNotificationData(
-    context: Context,
-    cls: Class<*>
-): NotificationData {
-    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.also {
-        it.action = AbstractMediaService.ACTION_SWITCH_TAB
-    }
-
-    val mediaTab = getActiveMediaTab()
-
-    return when (media.aggregate.state) {
-        MediaState.State.PLAYING -> NotificationData(
-            title = mediaTab.getTitleOrUrl(context),
-            description = mediaTab.nonPrivateUrl,
-            icon = R.drawable.mozac_feature_media_playing,
-            largeIcon = mediaTab.nonPrivateIcon,
-            action = NotificationCompat.Action.Builder(
-                R.drawable.mozac_feature_media_action_pause,
-                context.getString(R.string.mozac_feature_media_notification_action_pause),
-                PendingIntent.getService(
-                    context,
-                    0,
-                    AbstractMediaService.pauseIntent(context, cls),
-                    0)
-            ).build(),
-            contentIntent = PendingIntent.getActivity(
-                context,
-                SharedIdsHelper.getIdForTag(context, AbstractMediaService.PENDING_INTENT_TAG),
-                intent?.apply { putExtra(AbstractMediaService.EXTRA_TAB_ID, mediaTab?.id) },
-                PendingIntent.FLAG_UPDATE_CURRENT
-            )
-        )
-        MediaState.State.PAUSED -> NotificationData(
-            title = mediaTab.getTitleOrUrl(context),
-            description = mediaTab.nonPrivateUrl,
-            icon = R.drawable.mozac_feature_media_paused,
-            largeIcon = mediaTab.nonPrivateIcon,
-            action = NotificationCompat.Action.Builder(
-                R.drawable.mozac_feature_media_action_play,
-                context.getString(R.string.mozac_feature_media_notification_action_play),
-                PendingIntent.getService(
-                    context,
-                    0,
-                    AbstractMediaService.playIntent(context, cls),
-                    0)
-            ).build(),
-            contentIntent = PendingIntent.getActivity(
-                context,
-                SharedIdsHelper.getIdForTag(context, AbstractMediaService.PENDING_INTENT_TAG),
-                intent?.apply { putExtra(AbstractMediaService.EXTRA_TAB_ID, mediaTab?.id) },
-                PendingIntent.FLAG_UPDATE_CURRENT
-            )
-        )
-        // Dummy notification that is only used to satisfy the requirement to ALWAYS call
-        // startForeground with a notification.
-        else -> NotificationData()
-    }
-}
-
-private fun SessionState.toNotificationData(
+private suspend fun SessionState.toNotificationData(
     context: Context,
     cls: Class<*>
 ): NotificationData {
@@ -165,10 +95,10 @@ private fun SessionState.toNotificationData(
 
     return when (mediaSessionState?.playbackState) {
         MediaSession.PlaybackState.PLAYING -> NotificationData(
-            title = getTitleOrUrl(context),
+            title = getTitleOrUrl(context, mediaSessionState?.metadata?.title),
             description = nonPrivateUrl,
             icon = R.drawable.mozac_feature_media_playing,
-            largeIcon = nonPrivateIcon,
+            largeIcon = getNonPrivateIcon(mediaSessionState?.metadata?.getArtwork),
             action = NotificationCompat.Action.Builder(
                 R.drawable.mozac_feature_media_action_pause,
                 context.getString(R.string.mozac_feature_media_notification_action_pause),
@@ -186,10 +116,10 @@ private fun SessionState.toNotificationData(
             )
         )
         MediaSession.PlaybackState.PAUSED -> NotificationData(
-            title = getTitleOrUrl(context),
+            title = getTitleOrUrl(context, mediaSessionState?.metadata?.title),
             description = nonPrivateUrl,
             icon = R.drawable.mozac_feature_media_paused,
-            largeIcon = nonPrivateIcon,
+            largeIcon = getNonPrivateIcon(mediaSessionState?.metadata?.getArtwork),
             action = NotificationCompat.Action.Builder(
                 R.drawable.mozac_feature_media_action_play,
                 context.getString(R.string.mozac_feature_media_notification_action_play),

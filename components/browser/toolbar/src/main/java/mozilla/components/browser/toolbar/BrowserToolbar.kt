@@ -14,18 +14,20 @@ import android.widget.ImageButton
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.forEach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import mozilla.components.browser.toolbar.behavior.BrowserToolbarBehavior
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar
-import mozilla.components.concept.toolbar.Toolbar.PermissionHighlights
+import mozilla.components.concept.toolbar.Toolbar.Highlight
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.ui.autocomplete.AutocompleteView
@@ -112,10 +114,10 @@ class BrowserToolbar @JvmOverloads constructor(
         get() = display.siteSecurity
         set(value) { display.siteSecurity = value }
 
-    override var permissionHighlights: PermissionHighlights = PermissionHighlights.NONE
+    override var highlight: Highlight = Highlight.NONE
         set(value) {
             if (field != value) {
-                display.setPermissionIndicator(value)
+                display.setHighlight(value)
                 field = value
             }
         }
@@ -310,6 +312,27 @@ class BrowserToolbar @JvmOverloads constructor(
      */
     override fun displayMode() {
         updateState(State.DISPLAY)
+    }
+
+    /**
+     * Dismisses the display toolbar popup menu.
+     */
+    override fun dismissMenu() {
+        display.views.menu.dismissMenu()
+    }
+
+    override fun enableScrolling() {
+        // Behavior can be changed without us knowing. Not safe to use a memoized value.
+        (layoutParams as? CoordinatorLayout.LayoutParams)?.apply {
+            (behavior as? BrowserToolbarBehavior)?.enableScrolling()
+        }
+    }
+
+    override fun disableScrolling() {
+        // Behavior can be changed without us knowing. Not safe to use a memoized value.
+        (layoutParams as? CoordinatorLayout.LayoutParams)?.apply {
+            (behavior as? BrowserToolbarBehavior)?.disableScrolling()
+        }
     }
 
     internal fun onUrlEntered(url: String) {

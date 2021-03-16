@@ -70,7 +70,7 @@ class CustomTabSessionTitleObserverTest {
 
     private class MockToolbar : Toolbar {
         override var title: String = ""
-        override var permissionHighlights: Toolbar.PermissionHighlights = Toolbar.PermissionHighlights.NONE
+        override var highlight: Toolbar.Highlight = Toolbar.Highlight.NONE
         override var url: CharSequence by ThrowProperty()
         override var private: Boolean by ThrowProperty()
         override var siteSecure: Toolbar.SiteSecurity by ThrowProperty()
@@ -91,6 +91,9 @@ class CustomTabSessionTitleObserverTest {
         override fun setOnEditListener(listener: Toolbar.OnEditListener) = Unit
         override fun displayMode() = Unit
         override fun editMode() = Unit
+        override fun dismissMenu() = Unit
+        override fun enableScrolling() = Unit
+        override fun disableScrolling() = Unit
     }
 }
 

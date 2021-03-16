@@ -32,6 +32,7 @@ import mozilla.components.feature.downloads.manager.onDownloadStopped
 import mozilla.components.feature.downloads.ui.DownloaderApp
 import mozilla.components.feature.downloads.ui.DownloadAppChooserDialog
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.base.dialog.DeniedPermissionDialogFragment
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
@@ -111,8 +112,8 @@ class DownloadsFeature(
                             previousTab?.let { tab ->
                                 // We have an old download request.
                                 tab.content.download?.let { download ->
+                                    useCases.cancelDownloadRequest.invoke(tab.id, download.id)
                                     dismissAllDownloadDialogs()
-                                    useCases.consumeDownload(tab.id, download.id)
                                     previousTab = null
                                 }
                             }
@@ -154,28 +155,26 @@ class DownloadsFeature(
      */
     @VisibleForTesting
     internal fun processDownload(tab: SessionState, download: DownloadState): Boolean {
-        return if (applicationContext.isPermissionGranted(downloadManager.permissions.asIterable())) {
+        val apps = getDownloaderApps(applicationContext, download)
+        // We only show the dialog If we have multiple apps that can handle the download.
+        val shouldShowAppDownloaderDialog = shouldForwardToThirdParties() && apps.size > 1
 
-            if (shouldForwardToThirdParties()) {
-                val apps = getDownloaderApps(applicationContext, download)
-
-                // We only show the dialog If we have multiple apps that can handle the download.
-                if (apps.size > 1) {
-                    showAppDownloaderDialog(tab, download, apps)
-                    return false
-                }
-            }
-
-            if (fragmentManager != null && !download.skipConfirmation) {
-                showDownloadDialog(tab, download)
-                false
-            } else {
-                useCases.consumeDownload(tab.id, download.id)
-                startDownload(download)
-            }
-        } else {
-            onNeedToRequestPermissions(downloadManager.permissions)
+        return if (shouldShowAppDownloaderDialog) {
+            showAppDownloaderDialog(tab, download, apps)
             false
+        } else {
+            if (applicationContext.isPermissionGranted(downloadManager.permissions.asIterable())) {
+                if (fragmentManager != null && !download.skipConfirmation) {
+                    showDownloadDialog(tab, download)
+                    false
+                } else {
+                    useCases.consumeDownload(tab.id, download.id)
+                    startDownload(download)
+                }
+            } else {
+                onNeedToRequestPermissions(downloadManager.permissions)
+                false
+            }
         }
     }
 
@@ -204,9 +203,15 @@ class DownloadsFeature(
 
         withActiveDownload { (tab, download) ->
             if (applicationContext.isPermissionGranted(downloadManager.permissions.asIterable())) {
-                processDownload(tab, download)
+                if (shouldForwardToThirdParties()) {
+                    startDownload(download)
+                    useCases.consumeDownload(tab.id, download.id)
+                } else {
+                    processDownload(tab, download)
+                }
             } else {
-                useCases.consumeDownload(tab.id, download.id)
+                useCases.cancelDownloadRequest.invoke(tab.id, download.id)
+                showPermissionDeniedDialog()
             }
         }
     }
@@ -236,7 +241,7 @@ class DownloadsFeature(
         }
 
         dialog.onCancelDownload = {
-            useCases.consumeDownload.invoke(tab.id, download.id)
+            useCases.cancelDownloadRequest.invoke(tab.id, download.id)
         }
 
         if (!isAlreadyADownloadDialog() && fragmentManager != null && !fragmentManager.isDestroyed) {
@@ -260,7 +265,12 @@ class DownloadsFeature(
         appChooserDialog.setApps(apps)
         appChooserDialog.onAppSelected = { app ->
             if (app.packageName == applicationContext.packageName) {
-                startDownload(download)
+                if (applicationContext.isPermissionGranted(downloadManager.permissions.asIterable())) {
+                    startDownload(download)
+                    useCases.consumeDownload(tab.id, download.id)
+                } else {
+                    onNeedToRequestPermissions(downloadManager.permissions)
+                }
             } else {
                 try {
                     applicationContext.startActivity(app.toIntent())
@@ -271,12 +281,12 @@ class DownloadsFeature(
                     )
                     Toast.makeText(applicationContext, errorMessage, Toast.LENGTH_SHORT).show()
                 }
+                useCases.consumeDownload(tab.id, download.id)
             }
-            useCases.consumeDownload(tab.id, download.id)
         }
 
         appChooserDialog.onDismiss = {
-            useCases.consumeDownload.invoke(tab.id, download.id)
+            useCases.cancelDownloadRequest.invoke(tab.id, download.id)
         }
 
         if (!isAlreadyAppDownloaderDialog() && fragmentManager != null && !fragmentManager.isDestroyed) {
@@ -328,6 +338,12 @@ class DownloadsFeature(
                 .firstOrNull { it.activityInfo.packageName == context.packageName }
                 ?.toDownloaderApp(context, download)
 
+        // Check for data URL that can cause a TransactionTooLargeException when querying for apps
+        // See https://github.com/mozilla-mobile/android-components/issues/9665
+        if (download.url.startsWith("data:")) {
+            return listOfNotNull(thisApp)
+        }
+
         val apps = Browsers.findResolvers(
                 context,
                 packageManager,
@@ -369,6 +385,16 @@ class DownloadsFeature(
         val positiveButtonTextColor: Int? = null,
         val positiveButtonRadius: Float? = null
     )
+
+    @VisibleForTesting
+    internal fun showPermissionDeniedDialog() {
+        fragmentManager?.let {
+            val dialog = DeniedPermissionDialogFragment.newInstance(
+                R.string.mozac_feature_downloads_write_external_storage_permissions_needed_message
+            )
+            dialog.showNow(fragmentManager, DeniedPermissionDialogFragment.FRAGMENT_TAG)
+        }
+    }
 }
 
 @VisibleForTesting

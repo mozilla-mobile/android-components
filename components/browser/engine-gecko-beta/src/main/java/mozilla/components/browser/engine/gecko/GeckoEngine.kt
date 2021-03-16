@@ -9,6 +9,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.util.JsonReader
 import androidx.annotation.VisibleForTesting
+import mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.ext.getEtpLevel
 import mozilla.components.browser.engine.gecko.ext.getStrictSocialTrackingProtection
@@ -31,6 +32,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.activity.ActivityDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
@@ -58,6 +60,7 @@ import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.WebExtensionController
+import java.lang.ref.WeakReference
 
 /**
  * Gecko-based implementation of Engine interface.
@@ -85,7 +88,8 @@ class GeckoEngine(
         }
 
         override fun onToggleActionPopup(extension: WebExtension, action: Action): EngineSession? {
-            return webExtensionDelegate?.onToggleActionPopup(extension, GeckoEngineSession(runtime), action)
+            return webExtensionDelegate?.onToggleActionPopup(extension, GeckoEngineSession(runtime,
+                defaultSettings = defaultSettings), action)
         }
     }
     private val webExtensionTabHandler = object : TabHandler {
@@ -211,7 +215,7 @@ class GeckoEngine(
             val installedExtension = GeckoWebExtension(it, runtime)
             webExtensionDelegate?.onInstalled(installedExtension)
             installedExtension.registerActionHandler(webExtensionActionHandler)
-            installedExtension.registerTabHandler(webExtensionTabHandler)
+            installedExtension.registerTabHandler(webExtensionTabHandler, defaultSettings)
             onSuccess(installedExtension)
         }
 
@@ -269,7 +273,7 @@ class GeckoEngine(
             val updatedExtension = if (geckoExtension != null) {
                 GeckoWebExtension(geckoExtension, runtime).also {
                     it.registerActionHandler(webExtensionActionHandler)
-                    it.registerTabHandler(webExtensionTabHandler)
+                    it.registerTabHandler(webExtensionTabHandler, defaultSettings)
                 }
             } else {
                 null
@@ -340,7 +344,7 @@ class GeckoEngine(
 
             extensions.forEach { extension ->
                 extension.registerActionHandler(webExtensionActionHandler)
-                extension.registerTabHandler(webExtensionTabHandler)
+                extension.registerTabHandler(webExtensionTabHandler, defaultSettings)
             }
 
             onSuccess(extensions)
@@ -436,6 +440,34 @@ class GeckoEngine(
         }
 
         return requireNotNull(webPushHandler)
+    }
+
+    /**
+     * See [Engine.registerActivityDelegate].
+     */
+    override fun registerActivityDelegate(
+        activityDelegate: ActivityDelegate
+    ) {
+        /**
+         * Having the activity delegate on the engine can cause issues with resolving multiple requests to the delegate
+         * from different sessions. Ideally, this should be moved to the [EngineView].
+         *
+         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1672195
+         *
+         * Attaching the delegate to the Gecko [Engine] implicitly assumes we have WebAuthn support. When a feature
+         * implements the ActivityDelegate today, we need to make sure that it has full support for WebAuthn. This
+         * needs to be fixed in GeckoView.
+         *
+         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1671988
+         */
+        runtime.activityDelegate = GeckoActivityDelegate(WeakReference(activityDelegate))
+    }
+
+    /**
+     * See [Engine.unregisterActivityDelegate].
+     */
+    override fun unregisterActivityDelegate() {
+        runtime.activityDelegate = null
     }
 
     /**

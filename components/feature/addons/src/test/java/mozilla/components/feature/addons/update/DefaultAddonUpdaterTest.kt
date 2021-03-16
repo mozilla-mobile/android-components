@@ -17,6 +17,8 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.engine.webextension.DisabledFlags
@@ -24,10 +26,9 @@ import mozilla.components.concept.engine.webextension.Metadata
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.feature.addons.update.AddonUpdater.Frequency
 import mozilla.components.feature.addons.update.AddonUpdaterWorker.Companion.KEY_DATA_EXTENSIONS_ID
-import mozilla.components.feature.addons.update.DefaultAddonUpdater.Companion.NOTIFICATION_TAG
 import mozilla.components.feature.addons.update.DefaultAddonUpdater.Companion.WORK_TAG_IMMEDIATE
 import mozilla.components.feature.addons.update.DefaultAddonUpdater.Companion.WORK_TAG_PERIODIC
-import mozilla.components.support.base.ids.SharedIdsHelper
+import mozilla.components.feature.addons.update.DefaultAddonUpdater.NotificationHandlerService
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -137,7 +138,7 @@ class DefaultAddonUpdaterTest {
 
         assertFalse(allowedPreviously)
 
-        val notificationId = SharedIdsHelper.getIdForTag(context, NOTIFICATION_TAG)
+        val notificationId = NotificationHandlerService.getNotificationId(context, currentExt.id)
 
         assertTrue(isNotificationVisible(notificationId))
 
@@ -169,7 +170,7 @@ class DefaultAddonUpdaterTest {
 
         assertTrue(allowedPreviously)
 
-        val notificationId = SharedIdsHelper.getIdForTag(context, NOTIFICATION_TAG)
+        val notificationId = NotificationHandlerService.getNotificationId(context, currentExt.id)
 
         assertFalse(isNotificationVisible(notificationId))
         assertFalse(updater.updateStatusStorage.isPreviouslyAllowed(testContext, currentExt.id))
@@ -221,7 +222,7 @@ class DefaultAddonUpdaterTest {
 
         assertTrue(allowedPreviously)
 
-        val notificationId = SharedIdsHelper.getIdForTag(context, NOTIFICATION_TAG)
+        val notificationId = NotificationHandlerService.getNotificationId(context, currentExt.id)
 
         assertFalse(isNotificationVisible(notificationId))
         assertFalse(updater.updateStatusStorage.isPreviouslyAllowed(testContext, currentExt.id))
@@ -229,9 +230,45 @@ class DefaultAddonUpdaterTest {
     }
 
     @Test
+    fun `createAllowAction - will create an intent with the correct addon id and allow action`() {
+        val updater = spy(DefaultAddonUpdater(testContext))
+        val ext: WebExtension = mock()
+        whenever(ext.id).thenReturn("addonId")
+
+        updater.createAllowAction(ext, 1)
+
+        verify(updater).createNotificationIntent(ext.id, DefaultAddonUpdater.NOTIFICATION_ACTION_ALLOW)
+    }
+
+    @Test
+    fun `createDenyAction - will create an intent with the correct addon id and deny action`() {
+        val updater = spy(DefaultAddonUpdater(testContext))
+        val ext: WebExtension = mock()
+        whenever(ext.id).thenReturn("addonId")
+
+        updater.createDenyAction(ext, 1)
+
+        verify(updater).createNotificationIntent(ext.id, DefaultAddonUpdater.NOTIFICATION_ACTION_DENY)
+    }
+
+    @Test
+    fun `createNotificationIntent - will generate an intent with an addonId and an action`() {
+        val updater = DefaultAddonUpdater(testContext)
+        val addonId = "addonId"
+        val action = "action"
+
+        val intent = updater.createNotificationIntent(addonId, action)
+
+        assertEquals(addonId, intent.getStringExtra(DefaultAddonUpdater.NOTIFICATION_EXTRA_ADDON_ID))
+        assertEquals(action, intent.action)
+    }
+
+    @Test
     fun `unregisterForFutureUpdates - will remove scheduled work for future update`() {
         val frequency = Frequency(1, TimeUnit.DAYS)
         val updater = DefaultAddonUpdater(testContext, frequency)
+        updater.scope = CoroutineScope(Dispatchers.Main)
+
         val addonId = "addonId"
 
         updater.updateAttempStorage = mock()

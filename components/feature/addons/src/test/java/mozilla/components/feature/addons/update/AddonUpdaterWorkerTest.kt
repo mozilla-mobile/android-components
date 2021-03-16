@@ -31,6 +31,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
@@ -70,12 +72,11 @@ class AddonUpdaterWorkerTest {
         val addonId = "addonId"
         val onFinishCaptor = argumentCaptor<((AddonUpdater.Status) -> Unit)>()
         val addonManager = mock<AddonManager>()
-        val worker = TestListenableWorkerBuilder<AddonUpdaterWorker>(testContext)
+        val worker = spy(TestListenableWorkerBuilder<AddonUpdaterWorker>(testContext)
             .setInputData(AddonUpdaterWorker.createWorkerData(addonId))
-            .build()
+            .build())
 
-        (worker as AddonUpdaterWorker).updateAttemptStorage = updateAttemptStorage
-
+        doReturn(updateAttemptStorage).`when`((worker as AddonUpdaterWorker)).updateAttemptStorage
         GlobalAddonDependencyProvider.initialize(addonManager, mock())
 
         whenever(addonManager.updateAddon(anyString(), onFinishCaptor.capture())).then {
@@ -83,10 +84,12 @@ class AddonUpdaterWorkerTest {
         }
 
         runBlocking {
+            doReturn(this).`when`(worker).attemptScope
+
             val result = worker.startWork().await()
 
             assertEquals(ListenableWorker.Result.success(), result)
-            verify(updateAttemptStorage).saveOrUpdate(any())
+            verify(worker).saveUpdateAttempt(addonId, AddonUpdater.Status.SuccessfullyUpdated)
         }
     }
 

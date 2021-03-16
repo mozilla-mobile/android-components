@@ -18,6 +18,8 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext import mozilla.components.support.test.rule.MainCoroutineRule import org.junit.Rule import org.junit.Test
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.never
@@ -42,8 +44,13 @@ class MediaSessionServiceDelegateTest {
         val delegate = MediaSessionServiceDelegate(testContext, service, store)
 
         delegate.onCreate()
+        delegate.onStartCommand(AbstractMediaSessionService.launchIntent(
+            testContext,
+            service::class.java
+        ))
 
         verify(service).startForeground(ArgumentMatchers.anyInt(), any())
+        assertTrue(delegate.isForegroundService)
 
         delegate.onDestroy()
     }
@@ -64,6 +71,7 @@ class MediaSessionServiceDelegateTest {
 
         verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         verify(service, never()).stopSelf()
+        assertTrue(delegate.isForegroundService)
 
         store.dispatch(MediaSessionAction.DeactivatedMediaSessionAction(store.state.tabs[0].id))
 
@@ -92,6 +100,7 @@ class MediaSessionServiceDelegateTest {
         verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         verify(service, never()).stopSelf()
         verify(delegate, never()).shutdown()
+        assertTrue(delegate.isForegroundService)
 
         store.dispatch(MediaSessionAction.DeactivatedMediaSessionAction(store.state.customTabs[0].id))
 
@@ -126,6 +135,7 @@ class MediaSessionServiceDelegateTest {
         verify(service, never()).stopSelf()
         verify(delegate, never()).shutdown()
         verify(controller, never()).pause()
+        assertTrue(delegate.isForegroundService)
 
         delegate.onStartCommand(AbstractMediaSessionService.pauseIntent(
             testContext,
@@ -153,10 +163,11 @@ class MediaSessionServiceDelegateTest {
 
         delegate.onCreate()
 
-        verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         verify(service, never()).stopSelf()
         verify(delegate, never()).shutdown()
         verify(controller, never()).pause()
+        verify(service).stopForeground(false)
+        assertFalse(delegate.isForegroundService)
 
         delegate.onStartCommand(AbstractMediaSessionService.playIntent(
             testContext,
@@ -175,7 +186,7 @@ class MediaSessionServiceDelegateTest {
                     "https://www.mozilla.org",
                     mediaSessionState = MediaSessionState(
                         controller,
-                        playbackState = MediaSession.PlaybackState.PAUSED
+                        playbackState = MediaSession.PlaybackState.PLAYING
                     )
                 )
             )
@@ -187,22 +198,28 @@ class MediaSessionServiceDelegateTest {
 
         delegate.onCreate()
 
-        verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         verify(service, never()).stopSelf()
         verify(controller, never()).pause()
+        assertTrue(delegate.isForegroundService)
+        verify(service, times(1)).startForeground(ArgumentMatchers.anyInt(), any())
 
-        delegate.onStartCommand(AbstractMediaSessionService.playIntent(
+        delegate.onStartCommand(AbstractMediaSessionService.launchIntent(
             testContext,
             service::class.java
         ))
 
-        verify(controller).play()
+        verify(service, times(1)).startForeground(ArgumentMatchers.anyInt(), any())
 
-        mediaSessionCallback.onPause()
+        delegate.onStartCommand(AbstractMediaSessionService.pauseIntent(
+            testContext,
+            service::class.java
+        ))
         verify(controller).pause()
+        mediaSessionCallback.onPause()
+        verify(service, times(1)).startForeground(ArgumentMatchers.anyInt(), any())
 
         mediaSessionCallback.onPlay()
-        verify(controller, times(2)).play()
+        verify(controller, times(1)).play()
     }
 
     @Test
@@ -238,6 +255,7 @@ class MediaSessionServiceDelegateTest {
         verify(delegate, never()).shutdown()
         verify(controller, never()).pause()
         verify(controller, never()).play()
+        assertTrue(delegate.isForegroundService)
 
         mediaSessionCallback.onPause()
         verify(controller).pause()

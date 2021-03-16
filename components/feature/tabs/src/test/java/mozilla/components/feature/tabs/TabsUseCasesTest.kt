@@ -21,12 +21,14 @@ import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
@@ -45,7 +47,9 @@ class TabsUseCasesTest {
         val useCases = TabsUseCases(BrowserStore(), sessionManager)
 
         val session = Session("A")
-        useCases.selectTab(session)
+        doReturn(session).`when`(sessionManager).findSessionById(session.id)
+
+        useCases.selectTab(session.id)
 
         verify(sessionManager).select(session)
     }
@@ -56,21 +60,33 @@ class TabsUseCasesTest {
         val useCases = TabsUseCases(BrowserStore(), sessionManager)
 
         val session = Session("A")
-        useCases.removeTab(session)
+        doReturn(session).`when`(sessionManager).findSessionById(session.id)
 
-        verify(sessionManager).remove(session)
+        useCases.removeTab(session.id)
+
+        verify(sessionManager).remove(session, false)
     }
 
     @Test
     fun `RemoveTabUseCase - session can be removed by ID`() {
-        val sessionManager = spy(SessionManager(mock()))
-        val useCases = TabsUseCases(BrowserStore(), sessionManager)
-
+        val sessionManager: SessionManager = mock()
         val session = Session(id = "test", initialUrl = "http://mozilla.org")
-        sessionManager.remove(session)
-        useCases.removeTab(session.id)
+        whenever(sessionManager.findSessionById(session.id)).thenReturn(session)
 
-        verify(sessionManager).remove(session)
+        val useCases = TabsUseCases(BrowserStore(), sessionManager)
+        useCases.removeTab(session.id)
+        verify(sessionManager).remove(session, false)
+    }
+
+    @Test
+    fun `RemoveTabUseCase - remove by ID and select parent if it exists`() {
+        val sessionManager: SessionManager = mock()
+        val session = Session(id = "test", initialUrl = "http://mozilla.org")
+        whenever(sessionManager.findSessionById(session.id)).thenReturn(session)
+
+        val useCases = TabsUseCases(BrowserStore(), sessionManager)
+        useCases.removeTab(session.id, selectParentIfExists = true)
+        verify(sessionManager).remove(session, true)
     }
 
     @Test

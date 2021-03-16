@@ -862,7 +862,7 @@ class GeckoEngineTest {
         val geckoDelegateCaptor = argumentCaptor<WebExtensionController.PromptDelegate>()
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
-        assertEquals(GeckoResult.DENY, geckoDelegateCaptor.value.onInstallPrompt(extension))
+        assertEquals(GeckoResult.deny(), geckoDelegateCaptor.value.onInstallPrompt(extension))
         val extensionCaptor = argumentCaptor<WebExtension>()
         verify(webExtensionsDelegate).onInstallPermissionRequest(extensionCaptor.capture())
         val capturedExtension =
@@ -870,7 +870,7 @@ class GeckoEngineTest {
         assertEquals(extension, capturedExtension.nativeExtension)
 
         whenever(webExtensionsDelegate.onInstallPermissionRequest(any())).thenReturn(true)
-        assertEquals(GeckoResult.ALLOW, geckoDelegateCaptor.value.onInstallPrompt(extension))
+        assertEquals(GeckoResult.allow(), geckoDelegateCaptor.value.onInstallPrompt(extension))
     }
 
     @Test
@@ -912,7 +912,7 @@ class GeckoEngineTest {
         assertEquals(updatedExtension, updated.nativeExtension)
 
         onPermissionsGrantedCaptor.value.invoke(true)
-        assertEquals(GeckoResult.ALLOW, result)
+        assertEquals(GeckoResult.allow(), result)
     }
 
     @Test
@@ -953,7 +953,7 @@ class GeckoEngineTest {
         assertEquals(updatedExtension, updated.nativeExtension)
 
         onPermissionsGrantedCaptor.value.invoke(true)
-        assertEquals(GeckoResult.ALLOW, result)
+        assertEquals(GeckoResult.allow(), result)
     }
 
     @Test
@@ -1725,7 +1725,7 @@ class GeckoEngineTest {
 
         whenever(runtime.settings).thenReturn(mockGeckoSetting)
         whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)
-        whenever(mockGeckoContentBlockingSetting.getEnhancedTrackingProtectionLevel()).thenReturn(
+        whenever(mockGeckoContentBlockingSetting.enhancedTrackingProtectionLevel).thenReturn(
             ContentBlocking.EtpLevel.STRICT
         )
         whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)
@@ -1870,7 +1870,7 @@ class GeckoEngineTest {
 
         whenever(runtime.settings).thenReturn(mockGeckoSetting)
         whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)
-        whenever(mockGeckoContentBlockingSetting.getEnhancedTrackingProtectionLevel()).thenReturn(
+        whenever(mockGeckoContentBlockingSetting.enhancedTrackingProtectionLevel).thenReturn(
             ContentBlocking.EtpLevel.STRICT
         )
         whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)
@@ -1924,6 +1924,30 @@ class GeckoEngineTest {
         verify(controller, times(2)).setDelegate(any())
 
         assert(handler1 == handler2)
+    }
+
+    @Test
+    fun `registerActivityDelegate sets delegate`() {
+        val runtime = mock<GeckoRuntime>()
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerActivityDelegate(mock())
+
+        verify(runtime).activityDelegate = any()
+    }
+
+    @Test
+    fun `unregisterActivityDelegate sets delegate to null`() {
+        val runtime = mock<GeckoRuntime>()
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerActivityDelegate(mock())
+
+        verify(runtime).activityDelegate = any()
+
+        engine.unregisterActivityDelegate()
+
+        verify(runtime).activityDelegate = null
     }
 
     private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {

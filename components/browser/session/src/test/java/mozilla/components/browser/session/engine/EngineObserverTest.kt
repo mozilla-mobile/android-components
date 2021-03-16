@@ -12,9 +12,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.ext.toTabSessionState
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.CrashAction
+import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.AppIntentState
@@ -28,13 +30,11 @@ import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
-import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
-import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.middleware.CaptureActionsMiddleware
@@ -69,8 +69,7 @@ class EngineObserverTest {
             override fun reload(flags: LoadUrlFlags) {}
             override fun stopLoading() {}
             override fun restoreState(state: EngineSessionState): Boolean { return false }
-            override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
-            override fun disableTrackingProtection() {}
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
                 notifyObservers { onDesktopModeChange(enable) }
             }
@@ -97,15 +96,20 @@ class EngineObserverTest {
                 notifyObservers { onNavigationStateChange(true, true) }
             }
         }
-        engineSession.register(EngineObserver(session, mock()))
+        val store = BrowserStore()
+        store.dispatch(TabListAction.AddTabAction(session.toTabSessionState()))
+        engineSession.register(EngineObserver(session, store))
 
         engineSession.loadUrl("http://mozilla.org")
         engineSession.toggleDesktopMode(true)
         assertEquals("http://mozilla.org", session.url)
         assertEquals(100, session.progress)
         assertEquals(true, session.loading)
-        assertEquals(true, session.canGoForward)
-        assertEquals(true, session.canGoBack)
+
+        val tab = store.state.findTab(session.id)
+        assertNotNull(tab!!)
+        assertTrue(tab.content.canGoForward)
+        assertTrue(tab.content.canGoBack)
     }
 
     @Test
@@ -121,8 +125,7 @@ class EngineObserverTest {
             override fun stopLoading() {}
             override fun reload(flags: LoadUrlFlags) {}
             override fun restoreState(state: EngineSessionState): Boolean { return false }
-            override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
-            override fun disableTrackingProtection() {}
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
@@ -165,12 +168,7 @@ class EngineObserverTest {
             override fun stopLoading() {}
             override fun reload(flags: LoadUrlFlags) {}
             override fun restoreState(state: EngineSessionState): Boolean { return false }
-            override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
-                notifyObservers { onTrackerBlockingEnabledChange(true) }
-            }
-            override fun disableTrackingProtection() {
-                notifyObservers { onTrackerBlockingEnabledChange(false) }
-            }
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun loadUrl(
                 url: String,
@@ -187,12 +185,6 @@ class EngineObserverTest {
         }
         val observer = EngineObserver(session, mock())
         engineSession.register(observer)
-
-        engineSession.enableTrackingProtection()
-        assertTrue(session.trackerBlockingEnabled)
-
-        engineSession.disableTrackingProtection()
-        assertFalse(session.trackerBlockingEnabled)
 
         val tracker1 = Tracker("tracker1", emptyList())
         val tracker2 = Tracker("tracker2", emptyList())
@@ -693,105 +685,6 @@ class EngineObserverTest {
     }
 
     @Test
-    fun `onMediaAdded will subscribe to media and add it to store`() {
-        val store = BrowserStore()
-
-        val sessionManager = SessionManager(engine = mock(), store = store)
-
-        val session = Session("https://www.mozilla.org", id = "test-tab").also {
-            sessionManager.add(it)
-        }
-        val observer = EngineObserver(session, store)
-        assertEquals(0, store.state.media.elements.size)
-
-        val media1: Media = spy(object : Media() {
-            override val controller: Controller = mock()
-            override val metadata: Metadata = mock()
-            override val volume: Volume = mock()
-            override val fullscreen: Boolean = false
-        })
-        observer.onMediaAdded(media1)
-
-        store.waitUntilIdle()
-
-        verify(media1).register(any())
-        assertEquals(1, store.state.media.elements["test-tab"]?.size)
-
-        val media2: Media = spy(object : Media() {
-            override val controller: Controller = mock()
-            override val metadata: Metadata = mock()
-            override val volume: Volume = mock()
-            override val fullscreen: Boolean = false
-        })
-        observer.onMediaAdded(media2)
-
-        store.waitUntilIdle()
-
-        verify(media2).register(any())
-        assertEquals(2, store.state.media.elements["test-tab"]?.size)
-
-        val media3: Media = spy(object : Media() {
-            override val controller: Controller = mock()
-            override val metadata: Metadata = mock()
-            override val volume: Volume = mock()
-            override val fullscreen: Boolean = false
-        })
-        observer.onMediaAdded(media3)
-
-        store.waitUntilIdle()
-
-        verify(media3).register(any())
-        assertEquals(3, store.state.media.elements["test-tab"]?.size)
-    }
-
-    @Test
-    fun `onMediaRemoved will unsubscribe and remove it from store`() {
-        val store = BrowserStore()
-
-        val sessionManager = SessionManager(engine = mock(), store = store)
-
-        val session = Session("https://www.mozilla.org", id = "test-tab").also {
-            sessionManager.add(it)
-        }
-        val observer = EngineObserver(session, store)
-
-        val media1: Media = spy(object : Media() {
-            override val controller: Controller = mock()
-            override val metadata: Metadata = mock()
-            override val volume: Volume = mock()
-            override val fullscreen: Boolean = false
-        })
-        observer.onMediaAdded(media1)
-
-        val media2: Media = spy(object : Media() {
-            override val controller: Controller = mock()
-            override val metadata: Metadata = mock()
-            override val volume: Volume = mock()
-            override val fullscreen: Boolean = false
-        })
-        observer.onMediaAdded(media2)
-
-        store.waitUntilIdle()
-
-        assertEquals(2, store.state.media.elements["test-tab"]?.size)
-        verify(media1, never()).unregister(any())
-        verify(media2, never()).unregister(any())
-
-        observer.onMediaRemoved(media1)
-        store.waitUntilIdle()
-
-        assertEquals(1, store.state.media.elements["test-tab"]?.size)
-        verify(media1).unregister(any())
-        verify(media2, never()).unregister(any())
-
-        observer.onMediaRemoved(media2)
-        store.waitUntilIdle()
-
-        assertNull(store.state.media.elements["test-tab"])
-        verify(media2).unregister(any())
-    }
-
-    @Test
     fun `media session state is null by default`() {
         val store = BrowserStore()
         val sessionManager = SessionManager(engine = mock(), store = store)
@@ -1165,7 +1058,6 @@ class EngineObserverTest {
     fun `onNavigateBack clears search terms when navigating back`() {
         val url = "https://www.mozilla.org"
         val session = Session(url, id = "test-id")
-        session.canGoBack = true
 
         val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
         val store = BrowserStore(
@@ -1212,5 +1104,46 @@ class EngineObserverTest {
                 currentIndex = 1
             )
         )
+    }
+
+    @Test
+    fun `equality between tracking protection policies`() {
+        val strict = EngineSession.TrackingProtectionPolicy.strict()
+        val recommended = EngineSession.TrackingProtectionPolicy.recommended()
+        val none = EngineSession.TrackingProtectionPolicy.none()
+        val custom = EngineSession.TrackingProtectionPolicy.select(
+            trackingCategories = emptyArray(),
+            cookiePolicy = EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ONLY_FIRST_PARTY,
+            cookiePurging = true,
+            strictSocialTrackingProtection = true
+        )
+        val custom2 = EngineSession.TrackingProtectionPolicy.select(
+            trackingCategories = emptyArray(),
+            cookiePolicy = EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ONLY_FIRST_PARTY,
+            cookiePurging = true,
+            strictSocialTrackingProtection = true
+        )
+
+        val customNone = EngineSession.TrackingProtectionPolicy.select(
+            trackingCategories = none.trackingCategories,
+            cookiePolicy = none.cookiePolicy,
+            cookiePurging = none.cookiePurging,
+            strictSocialTrackingProtection = false
+        )
+
+        assertTrue(strict == EngineSession.TrackingProtectionPolicy.strict())
+        assertTrue(recommended == EngineSession.TrackingProtectionPolicy.recommended())
+        assertTrue(none == EngineSession.TrackingProtectionPolicy.none())
+        assertTrue(custom == custom2)
+
+        assertFalse(strict == EngineSession.TrackingProtectionPolicy.strict().forPrivateSessionsOnly())
+        assertFalse(recommended == EngineSession.TrackingProtectionPolicy.recommended().forPrivateSessionsOnly())
+        assertFalse(custom == custom2.forPrivateSessionsOnly())
+
+        assertFalse(strict == EngineSession.TrackingProtectionPolicy.strict().forRegularSessionsOnly())
+        assertFalse(recommended == EngineSession.TrackingProtectionPolicy.recommended().forRegularSessionsOnly())
+        assertFalse(custom == custom2.forRegularSessionsOnly())
+
+        assertFalse(none == customNone)
     }
 }

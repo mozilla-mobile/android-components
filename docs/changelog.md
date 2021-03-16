@@ -4,13 +4,137 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 71.0.0-SNAPSHOT (In Development)
+# 74.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v71.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/132?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v74.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/135?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #9821](https://github.com/mozilla-mobile/android-components/issues/9821) - Crash for downloads inferred empty mime types.
+
+* **intent-processing**
+  * 🌟️ Added support for opening links from ACTION_MAIN Intents. This Intents could the result of `Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_BROWSER)` calls.
+
+* **browser-toolbar**
+  * 🌟️ Added `ToolbarBehaviorController` to automatically block the `BrowserToolbar` being animated by the `BrowserToolbarBehavior` while the tab is loading. This new class just has to be initialized by AC clients, similar to `ToolbarPresenter`.
+
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #9757](https://github.com/mozilla-mobile/android-components/issues/9757) - Remove downloads notification when private tabs are closed.
+  * 🚒 Bug fixed [issue #9789](https://github.com/mozilla-mobile/android-components/issues/9789) - Canceled first PDF download prevents following attempts from downloading.
+  * 🚒 Bug fixed [issue #9823](https://github.com/mozilla-mobile/android-components/issues/9823) - Downloads prompts do not show again when a user denies system permission twice.
+
+* **concept-engine**,**browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**, **browser-engine-system**
+  * ⚠️ **This is a breaking change**: `EngineSession`.`enableTrackingProtection()` and `EngineSession`.`disableTrackingProtection()` have been removed, please use `EngineSession`.`updateTrackingProtection()` instead , for more details see [issue #9787](https://github.com/mozilla-mobile/android-components/issues/9787).
+
+* **feature-push**
+  * ⚠️ **This is a breaking change**: Removed `databasePath` from `RustPushConnection` constructor and added `context`. The file path is now queries lazily.
+
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: Replace `TopSitesUseCases.renameTopSites` with `TopSitesUseCases.updateTopSites` which allows for updating the title and the url of a top site. [#9599](https://github.com/mozilla-mobile/android-components/issues/9599)
+
+* **service-sync-autofill**
+  * Refactors `AutofillCreditCardsAddressesStorage` from **browser-storage-sync** into its own component. [#9801](https://github.com/mozilla-mobile/android-components/issues/9801)
+
+* **service-firefox-accounts**,**browser-storage-sync**,**service-nimbus**,**service-sync-logins**
+  * Due to a temporary build issue in the Application Services project, it is not currently
+  possible to run some service-related unittests on a Windows host. [#9731](https://github.com/mozilla-mobile/android-components/pull/9731)
+    * Work on restoring this capability will be tracked in [application-services#3917](https://github.com/mozilla/application-services/issues/3917).
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: Removed the currently unused `authorizeOAuthCode` from FirefoxAccount API surface.
+
+# 73.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v72.0.0...v73.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/134?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v73.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v73.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v73.0.0/.config.yml)
+
+* **All components**
+  * ⚠️Increased `targetSdkVersion` to 30 (Android R)
+
+* **browser-toolbar**
+  * 🌟 Added `BrowserToolbarBehavior#forceCollapse` to easily collapse the top/bottom toolbar.
+
+* **browser-toolbar**
+  * ⚠️ **This is a breaking change**: `BrowserToolbarBottomBehavior` is renamed to `BrowserToolbarBehavior` as it is now a common behavior for toolbars be them placed at the bottom or at the top of the screen.
+
+* **feature-session**
+  * ⚠️ **This is a breaking change**: `EngineViewBottomBehavior` is renamed to `EngineViewBrowserToolbarBehavior` as it is now the glue between `EngineView` and `BrowserToolbar` irrespective of if the toolbar is placed at the bottom oir at the top of the `EngineView`.
+
+* **feature-downloads**:
+  * 🌟 New `ShareDownloadFeature` will listen for `AddShareAction` and download, cache locally and then share internet resources.
+  * ⚠️ **This is a breaking change**: This is a breaking change with clients expected to create and register a new instance of the this new feature otherwise the "Share image" from the browser contextual menu will do nothing.
+
+* **support-ktx**
+  * 🌟 Added `Context.shareMedia` that allows to easily share a specific locally stored file through the Android share menu.
+
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #9441](https://github.com/mozilla-mobile/android-components/issues/9441) - Don't ask for redundant system files permission if not required.
+  * 🚒 Bug fixed [issue #9526](https://github.com/mozilla-mobile/android-components/issues/9526) - Downloads with generic content types use the correct file extension.
+  * 🚒 Bug fixed [issue #9553](https://github.com/mozilla-mobile/android-components/issues/9553) - Multiple files were unable to be opened after being download.
+
+* **feature-webauthn**
+  * 🆕 New component to enable support for WebAuthn specification with `WebAuthnFeature`.
+
+* **feature-awesomebar**
+  * added `SearchEngineSuggestionProvider` that offers suggestion(s) for search engines based on user search engine list
+
+* **browser-storage-sync**
+  * Added `AutofillCreditCardsAddressesStorage` implementation of the `CreditCardsAddressesStorage` interface back by the application-services' `autofill` library.
+
+* **concept-engine**
+  * Added `defaultSettings: Settings?` parameter to registerTabHandler to supply a default Tracking Policy when opening a new extension tab.
+  * When calling `onNewTab` in `registerTabHandler` from `GeckoWebExtension.kt` a default `TrackingProtectionPolicy.strict()` is supplied to the new `GeckoEngineSession`. This was added in to avoid WebExtension tabs without any ETP settings.
+
+* **concept-storage**
+  * Introduced `CreditCardsAddressesStorage` interface for describing credit card and address storage.
+
+* **support-base**
+  * Add `NamedThreadFactory`, a `ThreadFactory` that names its threads with the given argument.
+
+* **lib-state**
+  * Add `threadNamePrefix` parameter to `Store` to give threads created by the `Store` a specific name.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 35.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v35.0.0))
+
+# 72.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v71.0.0...v72.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/133?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v72.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v72.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v72.0.0/.config.yml)
+
+* **feature-prompts**:
+  * 🚒 Bug fixed [issue #9471](https://github.com/mozilla-mobile/android-components/issues/9471) - Confirm and alert js dialogs don't show "OK" and "Cancel" buttons when the message is too long.
+
+* **support-base**
+  * ⚠️ **This is a breaking change**: Update the signature of `ActivityResultHandler.onActivityResult` to avoid conflict with internal Android APIs.
+
+* **feature-addons**
+  * 🚒 Bug fixed [issue #9484] https://github.com/mozilla-mobile/android-components/issues/9484) - Handle multiple add-ons update that require new permissions.
+
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: Replaces `includeFrecent` with an optional `frecencyConfig` in `TopSitesConfig` and `TopSitesStorage.getTopSites` to specify the frecency threshold for the returned list of top frecent sites see [#8690](https://github.com/mozilla-mobile/android-components/issues/8690).
+
+* **service-nimbus**
+ * Upgraded nimbus-sdk to enable `getExperimentBranch()` (and friends) to be callable from the main thread.
+ * Split up `updateExperiments()` in to two methods: `fetchExperiments()` and `applyPendingExperiments()`.
+ * Exposed `setExperimentsLocally()` for testing and startup.
+
+# 71.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v70.0.0...v71.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/132?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v71.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v71.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v71.0.0/.config.yml)
 
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9351] Camera images are available even with "Don't keep activities" enabled.
@@ -21,9 +145,40 @@ permalink: /changelog/
 * **support-utils**:
   * 🌟 Added SafeUrl#stripUnsafeUrlSchemes that can cleanup unwanted uri schemes. Interested clients can specify what these are by overwriting "mozac_url_schemes_blocklist".
 
+* **concept-fetch**:
+  * 🌟 Added `Request#private` to allow requests to be performed in a private context, the feature is not support in all `Client`s check support before using.
+
+* **browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * 🌟 Added support for `Request#private`.
+
 * **feature-prompts**:
   * 🚒 Bug fixed [issue #9229](https://github.com/mozilla-mobile/android-components/issues/9229) - Dismiss SelectLoginPrompt from the current tab when opening a new one ensuring the new one can show it's own. When returning to the previous tab users should focus a login field to see the SelectLoginPrompt again.
   * PromptFeature now implements UserInteractionHandler.onBackPressed to dismiss loginPicker.
+
+* **browser-session**
+  * 🚒 Bug fixed [issue #9445](https://github.com/mozilla-mobile/android-components/issues/9445) - LinkEngineSessionAction does not consider restoreState result.
+
+* **feature-contextmenu**
+  * 🌟 New functionality [issue #9392](https://github.com/mozilla-mobile/android-components/issues/9392) - Add share and copy link context menu options to images.
+
+* **feature-customtabs**
+  * ⚠️ **This is a breaking change**: Multiple breaking changes after migrating `feature-customtabs` to use the browser store, `CustomTabIntentProcessor` requires `AddCustomTabUseCase`,  `CustomTabsToolbarFeature` requires the `BrowserStore` and `CustomTabsUseCases` for more details see [issue #4257](https://github.com/mozilla-mobile/android-components/issues/4257).
+
+* **feature-intent**
+  * ⚠️ **This is a breaking change**: Multiple breaking changes after migrating `feature-intent` to use the browser store, `TabIntentProcessor` requires `TabsUseCases` and removes the `openNewTab` parameter, for more details see [issue #4279](https://github.com/mozilla-mobile/android-components/issues/4279).
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: `TabsUseCases` now requires `SessionStorage` for more info see [issue #9323](https://github.com/mozilla-mobile/android-components/issues/9323).
+
+* **browser-icons**
+  * 🚒 Bug fixed [issue #7888](https://github.com/mozilla-mobile/android-components/issues/7888) - Fixed crash when fetching icon with invalid URI scheme.
+
+* **feature-media**
+  * 🚒 Bug fixed [issue #9243](https://github.com/mozilla-mobile/android-components/issues/9243) - Pausing YouTube Video for A While Causes Media Notification to Disappear.
+  * 🚒 Bug fixed [issue #9254](https://github.com/mozilla-mobile/android-components/issues/9254) - Headphone control does not pause or play video.
+
+* **support-webextensions**
+  * 🚒 Bug fixed [issue #9210](https://github.com/mozilla-mobile/android-components/issues/9210) - White page shown in custom tab when ublock blocks page.
 
 * **feature-downloads**:
   * Allow browsers to change the download notification accent color by providing `Style()` in `AbstractFetchDownloadService`, for more information see [#9299](https://github.com/mozilla-mobile/android-components/issues/9299).
@@ -33,7 +188,7 @@ permalink: /changelog/
 
 * **browser-icons**
   * Catch `IOException` that may be thrown when deleting icon caches.
-  
+
 * **feature-qr**
   * QR Scanner can now scan inverted QR codes, by decoding inverted source when the decoding the original source fails.
 
@@ -43,8 +198,27 @@ permalink: /changelog/
 * **feature-app-links**
   * ⚠️ **This is a breaking change**: Migrated this component to use `browser-state` instead of `browser-session`. It is now required to pass a `BrowserStore` instance (instead of `SessionManager`) to `AppLinksFeature`.
 
-* **service-numbus**
+* **browser-toolbar**
+  * ⚠️ **This is a breaking change**: The API for showing the site permission indicators has been replaced to API to show an dot notification instead, for more information see [#9378](https://github.com/mozilla-mobile/android-components/issues/9378).
+
+* **service-nimbus**
   * Added a `NimbusDisabled` class to provide implementers who are not able to use Nimbus yet.
+
+* **support-base**
+  * 🌟 Add an `ActivityResultHandler` for features that want to consume the result.
+
+* **concept-engine**,**browser-engine-gecko**, **browser-engine-gecko-beta**, **browser-engine-gecko-nightly**
+  * 🌟 Added a new `ActivityDelegate` for handling intent requests from the engine.
+  * ⚠️ **This is a breaking change**: `EngineSessionState`.`toJSON()` has been removed for more details see [issue #8370](https://github.com/mozilla-mobile/android-components/issues/8370).
+
+* **browser-engine-gecko(-nightly)**
+  * Added `GeckoActivityDelegate` for the GeckoView `activityDelegate`.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: Removed the `TabCounterToolbarButton#privateColor` attribute which are replaced by the `tabCounterTintColor` Android styleable attribute.
+
+* **lib-nearby**, **feature-p2p**, **samples-nearby**
+  * ⚠️ **This is a breaking change**: Removed Nearby component and related samples.
 
 # 70.0.0
 
@@ -66,6 +240,8 @@ permalink: /changelog/
 * **browser-awesomebar**:
     * Awesomebar can now be customized for bottom toolbar using the [customizeForBottomToolbar] property
 
+* **service-numbus**
+  * Added a `NimbusDisabled` class to provide implementers who are not able to use Nimbus yet.
 # 69.0.0
 
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v68.0.0...v69.0.0)
@@ -87,9 +263,6 @@ permalink: /changelog/
 
 * **support-test-libstate**
   * Added `CaptureActionsMiddleware`: A `Middleware` implementation for unit tests that want to inspect actions dispatched on a `Store`.
-
-* **browser-menu**:
-  * 🚒 Bug fixed [issue #9101](https://github.com/mozilla-mobile/android-components/issues/9101) - Fix BrowserMenu position after rotating the screen on Android <=23
 
 * **feature-sitepermissions**
   * ⚠️ **This is a breaking change**: The `SitePermissionsRules` constructor, now requires a new parameter `mediaKeySystemAccess`.

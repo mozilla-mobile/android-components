@@ -102,28 +102,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1610010 - criticalcareontario.ca - UA override for criticalcareontario.ca
-     * WebCompat issue #40267 - https://webcompat.com/issues/40267
-     *
-     * criticalcareontario.ca enters a reload loop based on UA detection
-     * Spoofing as Chrome prevents the site from doing a constant page refresh
-     */
-    id: "bug1610010",
-    platform: "all",
-    domain: "criticalcareontario.ca",
-    bug: "1610010",
-    config: {
-      matches: ["https://www.criticalcareontario.ca/*"],
-      uaTransformer: originalUA => {
-        return (
-          UAHelpers.getPrefix(originalUA) +
-          " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
-        );
-      },
-    },
-  },
-  {
-    /*
      * Bug 1610026 - www.mobilesuica.com - UA override for www.mobilesuica.com
      * WebCompat issue #4608 - https://webcompat.com/issues/4608
      *
@@ -242,26 +220,6 @@ const AVAILABLE_UA_OVERRIDES = [
     bug: "969844",
     config: {
       matches: ["*://*.mobile.de/*"],
-      uaTransformer: _ => {
-        return "Mozilla/5.0 (Linux; Android 6.0.1; SM-G920F Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.91 Mobile Safari/537.36";
-      },
-    },
-  },
-  {
-    /*
-     * Bug 1509831 - cc.com - Add UA override for CC.com
-     * WebCompat issue #329 - https://webcompat.com/issues/329
-     *
-     * ComedyCentral blocks Firefox for not being able to play HLS, which was
-     * true in previous versions, but no longer is. With a spoofed Chrome UA,
-     * the site works just fine.
-     */
-    id: "bug1509831",
-    platform: "android",
-    domain: "cc.com",
-    bug: "1509831",
-    config: {
-      matches: ["*://*.cc.com/*"],
       uaTransformer: _ => {
         return "Mozilla/5.0 (Linux; Android 6.0.1; SM-G920F Build/MMB29K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.91 Mobile Safari/537.36";
       },
@@ -514,25 +472,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1628462 - UA override for app.pixton.com
-     * Webcompat issue #43438 - https://webcompat.com/issues/43438
-     *
-     * app.pixton.com is showing unsupported message for both Firefox
-     * desktop and mobile. Spoofing as Chrome allows to access the site
-     */
-    id: "bug1628462",
-    platform: "all",
-    domain: "app.pixton.com",
-    bug: "1628462",
-    config: {
-      matches: ["https://*.pixton.com/*"],
-      uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
-      },
-    },
-  },
-  {
-    /*
      * Bug 1628455 - UA override for autotrader.ca
      * Webcompat issue #50961 - https://webcompat.com/issues/50961
      *
@@ -546,26 +485,6 @@ const AVAILABLE_UA_OVERRIDES = [
     bug: "1628455",
     config: {
       matches: ["https://*.autotrader.ca/*"],
-      uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
-      },
-    },
-  },
-  {
-    /*
-     * Bug 1630280 - UA override for dominos.ch
-     * Webcompat issue #48273 - https://webcompat.com/issues/48273
-     *
-     * dominos.ch is suggesting downloading their native app and showing
-     * an overlay that can't be removed in Firefox for Android. Spoofing
-     * as Chrome allows to continue to the site
-     */
-    id: "bug1630280",
-    platform: "android",
-    domain: "dominos.ch",
-    bug: "1630280",
-    config: {
-      matches: ["https://*.dominos.ch/*"],
       uaTransformer: () => {
         return UAHelpers.getDeviceAppropriateChromeUA();
       },
@@ -641,25 +560,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1664174 - UA override for indiatimes.com
-     * Webcompat issue #57961 - https://webcompat.com/issues/57961
-     *
-     * This site returns desktop site based on server side UA detection.
-     * Spoofing as Chrome allows to get mobile experience
-     */
-    id: "bug1664174",
-    platform: "android",
-    domain: "indiatimes.com",
-    bug: "1664174",
-    config: {
-      matches: ["*://*.indiatimes.com/*"],
-      uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
-      },
-    },
-  },
-  {
-    /*
      * Bug 1666754 - Mobile UA override for lffl.org
      * Bug 1665720 - lffl.org article page takes 2x as much time to load on Moto G
      *
@@ -674,24 +574,6 @@ const AVAILABLE_UA_OVERRIDES = [
       matches: ["*://*.lffl.org/*"],
       uaTransformer: () => {
         return UAHelpers.getDeviceAppropriateChromeUA();
-      },
-    },
-  },
-  {
-    /*
-     * Bug 1673937 - Add UA override for goal.com
-     *
-     * This site needs to have Chrome into its UA string to be able
-     * to serve the right experience on both desktop and mobile.
-     */
-    id: "bug1673937",
-    platform: "all",
-    domain: "goal.com",
-    bug: "1673937",
-    config: {
-      matches: ["*://goal.com/*"],
-      uaTransformer: originalUA => {
-        return originalUA + " Chrome/86.0.4240.110";
       },
     },
   },

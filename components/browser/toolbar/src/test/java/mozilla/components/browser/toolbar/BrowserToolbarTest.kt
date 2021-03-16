@@ -12,11 +12,16 @@ import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.widget.ImageButton
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.toolbar.behavior.BrowserToolbarBehavior
+import mozilla.components.browser.toolbar.behavior.ToolbarPosition
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.browser.toolbar.display.DisplayToolbarViews
+import mozilla.components.browser.toolbar.display.MenuButton
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.Toolbar
@@ -25,6 +30,7 @@ import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -711,5 +717,49 @@ class BrowserToolbarTest {
         toolbar.onStop()
 
         verify(toolbar.display).onStop()
+    }
+
+    @Test
+    fun `dismiss menu is forwarded to display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.display = mock()
+        val displayToolbarViews: DisplayToolbarViews = mock()
+        val menuButton: MenuButton = mock()
+
+        whenever(toolbar.display.views).thenReturn(displayToolbarViews)
+        whenever(displayToolbarViews.menu).thenReturn(menuButton)
+
+        toolbar.dismissMenu()
+        verify(menuButton).dismissMenu()
+    }
+
+    @Test
+    fun `enable scrolling is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.enableScrolling()
+
+        verify(behavior).enableScrolling()
+    }
+
+    @Test
+    fun `disable scrolling is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.disableScrolling()
+
+        verify(behavior).disableScrolling()
     }
 }

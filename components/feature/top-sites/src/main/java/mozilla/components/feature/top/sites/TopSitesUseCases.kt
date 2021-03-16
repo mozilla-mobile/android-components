@@ -4,6 +4,12 @@
 
 package mozilla.components.feature.top.sites
 
+import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import mozilla.components.feature.top.sites.facts.emitTopSitesCountFact
+
 /**
  * Contains use cases related to the top sites feature.
  */
@@ -12,6 +18,9 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
      * Add a pinned site use case.
      */
     class AddPinnedSiteUseCase internal constructor(private val storage: TopSitesStorage) {
+        @VisibleForTesting
+        internal var scope = CoroutineScope(Dispatchers.IO)
+
         /**
          * Adds a new [PinnedSite].
          *
@@ -20,6 +29,10 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
          */
         operator fun invoke(title: String, url: String, isDefault: Boolean = false) {
             storage.addTopSite(title, url, isDefault)
+
+            scope.launch {
+                emitTopSitesCountFact(storage.getTopSitesCount())
+            }
         }
     }
 
@@ -38,17 +51,18 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
     }
 
     /**
-     * Rename a top site use case.
+     * Update a top site use case.
      */
-    class RenameTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
+    class UpdateTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
         /**
-         * Renames the given [TopSite].
+         * Updates the given [TopSite].
          *
          * @param topSite The top site.
          * @param title The new title for the top site.
+         * @param url The new url for the top site.
          */
-        operator fun invoke(topSite: TopSite, title: String) {
-            storage.renameTopSite(topSite, title)
+        operator fun invoke(topSite: TopSite, title: String, url: String) {
+            storage.updateTopSite(topSite, title, url)
         }
     }
 
@@ -60,7 +74,7 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
         RemoveTopSiteUseCase(topSitesStorage)
     }
 
-    val renameTopSites: RenameTopSiteUseCase by lazy {
-        RenameTopSiteUseCase(topSitesStorage)
+    val updateTopSites: UpdateTopSiteUseCase by lazy {
+        UpdateTopSiteUseCase(topSitesStorage)
     }
 }

@@ -39,6 +39,7 @@ treeherder:
         feature-accounts: feature-accounts
         feature-addons: feature-addons
         feature-app-links: feature-app-links
+        feature-autofill: feature-autofill
         feature-awesomebar: feature-awesomebar
         feature-containers: feature-containers
         feature-contextmenu: feature-contextmenu
@@ -48,7 +49,6 @@ treeherder:
         feature-intent: feature-intent
         feature-logins: feature-logins
         feature-media: feature-media
-        feature-p2p: feature-p2p
         feature-privatemode: feature-privatemode
         feature-prompts: feature-prompts
         feature-push: feature-push
@@ -65,17 +65,18 @@ treeherder:
         feature-tabs: feature-tabs
         feature-toolbar: feature-toolbar
         feature-top-sites: feature-top-sites
+        feature-webauthn: feature-webauthn
         feature-webcompat: feature-webcompat
         feature-webnotifications: feature-webnotifications
         lib-crash: lib-crash
         lib-dataprotect: lib-dataprotect
         lib-fetch-okhttp: lib-fetch-okhttp
         lib-jexl: lib-jexl
-        lib-nearby: lib-nearby
         lib-publicsuffixlist: lib-publicsuffixlist
         lib-push-amazon: lib-push-amazon
         lib-push-firebase: lib-push-firebase
         lib-state: lib-state
+        multiplatform-lib-dummy: multiplatform-lib-dummy
         samples-browser-beta: samples-browser-beta
         samples-browser-release: samples-browser-release
         samples-browser-system: samples-browser-system
@@ -85,7 +86,6 @@ treeherder:
         samples-firefox-accounts: samples-firefox-accounts
         samples-glean-library: samples-glean-library
         samples-glean: samples-glean
-        samples-nearby-chat: samples-nearby-chat
         samples-sync-logins: samples-sync-logins
         samples-sync: samples-sync
         samples-toolbar: samples-toolbar
@@ -97,6 +97,7 @@ treeherder:
         service-location: service-location
         service-nimbus: service-nimbus
         service-pocket: service-pocket
+        service-sync-autofill: service-sync-autofill
         service-sync-logins: service-sync-logins
         support-android-test: support-android-test
         support-base: support-base
@@ -135,7 +136,10 @@ treeherder:
         samples-browser-system: samples-browser-system
 
 
-task-priority: highest
+task-priority:
+    by-project:
+        "android-components": highest
+        "staging-android-components": low
 
 taskgraph:
     register: ac_taskgraph:register

@@ -9,6 +9,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.util.JsonReader
 import androidx.annotation.VisibleForTesting
+import mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.ext.getEtpLevel
 import mozilla.components.browser.engine.gecko.ext.getStrictSocialTrackingProtection
@@ -31,6 +32,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
+import mozilla.components.concept.engine.activity.ActivityDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
@@ -58,6 +60,7 @@ import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.WebExtensionController
+import java.lang.ref.WeakReference
 
 /**
  * Gecko-based implementation of Engine interface.
@@ -73,7 +76,6 @@ class GeckoEngine(
 ) : Engine, WebExtensionRuntime {
     private val executor by lazy { executorProvider.invoke() }
     private val localeUpdater = LocaleSettingUpdater(context, runtime)
-    private val sharedPref = context.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE)
     @VisibleForTesting internal val speculativeConnectionFactory = SpeculativeSessionFactory()
     private var webExtensionDelegate: WebExtensionDelegate? = null
     private val webExtensionActionHandler = object : ActionHandler {
@@ -86,7 +88,8 @@ class GeckoEngine(
         }
 
         override fun onToggleActionPopup(extension: WebExtension, action: Action): EngineSession? {
-            return webExtensionDelegate?.onToggleActionPopup(extension, GeckoEngineSession(runtime), action)
+            return webExtensionDelegate?.onToggleActionPopup(extension, GeckoEngineSession(runtime,
+                defaultSettings = defaultSettings), action)
         }
     }
     private val webExtensionTabHandler = object : TabHandler {
@@ -212,7 +215,7 @@ class GeckoEngine(
             val installedExtension = GeckoWebExtension(it, runtime)
             webExtensionDelegate?.onInstalled(installedExtension)
             installedExtension.registerActionHandler(webExtensionActionHandler)
-            installedExtension.registerTabHandler(webExtensionTabHandler)
+            installedExtension.registerTabHandler(webExtensionTabHandler, defaultSettings)
             onSuccess(installedExtension)
         }
 
@@ -270,7 +273,7 @@ class GeckoEngine(
             val updatedExtension = if (geckoExtension != null) {
                 GeckoWebExtension(geckoExtension, runtime).also {
                     it.registerActionHandler(webExtensionActionHandler)
-                    it.registerTabHandler(webExtensionTabHandler)
+                    it.registerTabHandler(webExtensionTabHandler, defaultSettings)
                 }
             } else {
                 null
@@ -339,21 +342,9 @@ class GeckoEngine(
                 extension -> GeckoWebExtension(extension, runtime)
             } ?: emptyList()
 
-            val privateBrowsingMigrated = sharedPref.getBoolean(MOZAC_HAS_RESET_WEBEXT_PRIVATE_BROWSING_DEFAULT, false)
             extensions.forEach { extension ->
-                // As a workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1621385,
-                // we set all installed extensions to be allowed in private browsing mode.
-                // We need to revert back to false which is now the default.
-                if (!extension.isBuiltIn() && extension.isAllowedInPrivateBrowsing() && !privateBrowsingMigrated) {
-                    setAllowedInPrivateBrowsing(extension, false)
-                }
-
                 extension.registerActionHandler(webExtensionActionHandler)
-                extension.registerTabHandler(webExtensionTabHandler)
-            }
-
-            if (!privateBrowsingMigrated) {
-                sharedPref.edit().putBoolean(MOZAC_HAS_RESET_WEBEXT_PRIVATE_BROWSING_DEFAULT, true).apply()
+                extension.registerTabHandler(webExtensionTabHandler, defaultSettings)
             }
 
             onSuccess(extensions)
@@ -449,6 +440,34 @@ class GeckoEngine(
         }
 
         return requireNotNull(webPushHandler)
+    }
+
+    /**
+     * See [Engine.registerActivityDelegate].
+     */
+    override fun registerActivityDelegate(
+        activityDelegate: ActivityDelegate
+    ) {
+        /**
+         * Having the activity delegate on the engine can cause issues with resolving multiple requests to the delegate
+         * from different sessions. Ideally, this should be moved to the [EngineView].
+         *
+         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1672195
+         *
+         * Attaching the delegate to the Gecko [Engine] implicitly assumes we have WebAuthn support. When a feature
+         * implements the ActivityDelegate today, we need to make sure that it has full support for WebAuthn. This
+         * needs to be fixed in GeckoView.
+         *
+         * See: https://bugzilla.mozilla.org/show_bug.cgi?id=1671988
+         */
+        runtime.activityDelegate = GeckoActivityDelegate(WeakReference(activityDelegate))
+    }
+
+    /**
+     * See [Engine.unregisterActivityDelegate].
+     */
+    override fun unregisterActivityDelegate() {
+        runtime.activityDelegate = null
     }
 
     /**
@@ -727,13 +746,6 @@ class GeckoEngine(
             blockedCategories = (blockedCategories + shimmedCategories).distinct(),
             cookiesHasBeenBlocked = cookiesHasBeenBlocked
         )
-    }
-
-    companion object {
-        private const val PREFERENCE_NAME =
-            "MOZAC_GECKO_ENGINE"
-        private const val MOZAC_HAS_RESET_WEBEXT_PRIVATE_BROWSING_DEFAULT =
-            "MOZAC_HAS_RESET_WEBEXT_PRIVATE_BROWSING_DEFAULT"
     }
 }
 

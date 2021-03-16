@@ -1353,49 +1353,6 @@ class GeckoEngineTest {
     }
 
     @Test
-    fun `migrate private browsing default`() {
-        val bundle = GeckoBundle()
-        bundle.putString("webExtensionId", "id")
-        bundle.putString("locationURI", "uri")
-        val metaDataBundle = GeckoBundle()
-        metaDataBundle.putBoolean("privateBrowsingAllowed", true)
-        metaDataBundle.putStringArray("disabledFlags", emptyArray())
-        bundle.putBundle("metaData", metaDataBundle)
-        val installedExtension = MockWebExtension(bundle)
-
-        val installedExtensions = listOf<GeckoWebExtension>(installedExtension)
-        val installedExtensionResult = GeckoResult<List<GeckoWebExtension>>()
-
-        val runtime = mock<GeckoRuntime>()
-        val extensionController: WebExtensionController = mock()
-        whenever(extensionController.list()).thenReturn(installedExtensionResult)
-        whenever(runtime.webExtensionController).thenReturn(extensionController)
-
-        val allowedInPrivateBrowsingExtensionResult = GeckoResult<GeckoWebExtension>()
-        whenever(extensionController.setAllowedInPrivateBrowsing(any(), anyBoolean())).thenReturn(allowedInPrivateBrowsingExtensionResult)
-
-        val engine = spy(GeckoEngine(testContext, runtime = runtime))
-        var extensions: List<WebExtension>? = null
-        var onErrorCalled = false
-
-        engine.listInstalledWebExtensions(
-                onSuccess = { extensions = it },
-                onError = { onErrorCalled = true }
-        )
-        installedExtensionResult.complete(installedExtensions)
-        assertFalse(onErrorCalled)
-        assertNotNull(extensions)
-        val installedWebExtension = extensions!![0]
-        verify(engine, times(1)).setAllowedInPrivateBrowsing(eq(installedWebExtension), eq(false), any(), any())
-
-        engine.listInstalledWebExtensions(
-                onSuccess = { extensions = it },
-                onError = { onErrorCalled = true }
-        )
-        verify(engine, times(1)).setAllowedInPrivateBrowsing(eq(installedWebExtension), eq(false), any(), any())
-    }
-
-    @Test
     fun `list web extensions failure`() {
         val installedExtensionResult = GeckoResult<List<GeckoWebExtension>>()
 
@@ -1768,7 +1725,7 @@ class GeckoEngineTest {
 
         whenever(runtime.settings).thenReturn(mockGeckoSetting)
         whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)
-        whenever(mockGeckoContentBlockingSetting.getEnhancedTrackingProtectionLevel()).thenReturn(
+        whenever(mockGeckoContentBlockingSetting.enhancedTrackingProtectionLevel).thenReturn(
             ContentBlocking.EtpLevel.STRICT
         )
         whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)
@@ -1913,7 +1870,7 @@ class GeckoEngineTest {
 
         whenever(runtime.settings).thenReturn(mockGeckoSetting)
         whenever(mockGeckoSetting.contentBlocking).thenReturn(mockGeckoContentBlockingSetting)
-        whenever(mockGeckoContentBlockingSetting.getEnhancedTrackingProtectionLevel()).thenReturn(
+        whenever(mockGeckoContentBlockingSetting.enhancedTrackingProtectionLevel).thenReturn(
             ContentBlocking.EtpLevel.STRICT
         )
         whenever(runtime.contentBlockingController).thenReturn(mockContentBlockingController)
@@ -1967,6 +1924,30 @@ class GeckoEngineTest {
         verify(controller, times(2)).setDelegate(any())
 
         assert(handler1 == handler2)
+    }
+
+    @Test
+    fun `registerActivityDelegate sets delegate`() {
+        val runtime = mock<GeckoRuntime>()
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerActivityDelegate(mock())
+
+        verify(runtime).activityDelegate = any()
+    }
+
+    @Test
+    fun `unregisterActivityDelegate sets delegate to null`() {
+        val runtime = mock<GeckoRuntime>()
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerActivityDelegate(mock())
+
+        verify(runtime).activityDelegate = any()
+
+        engine.unregisterActivityDelegate()
+
+        verify(runtime).activityDelegate = null
     }
 
     private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {

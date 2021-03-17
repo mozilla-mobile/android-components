@@ -12,9 +12,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.test.runBlockingTest
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.ext.toTabSessionState
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.CrashAction
+import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.AppIntentState
@@ -67,8 +69,7 @@ class EngineObserverTest {
             override fun reload(flags: LoadUrlFlags) {}
             override fun stopLoading() {}
             override fun restoreState(state: EngineSessionState): Boolean { return false }
-            override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
-            override fun disableTrackingProtection() {}
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {
                 notifyObservers { onDesktopModeChange(enable) }
             }
@@ -95,15 +96,20 @@ class EngineObserverTest {
                 notifyObservers { onNavigationStateChange(true, true) }
             }
         }
-        engineSession.register(EngineObserver(session, mock()))
+        val store = BrowserStore()
+        store.dispatch(TabListAction.AddTabAction(session.toTabSessionState()))
+        engineSession.register(EngineObserver(session, store))
 
         engineSession.loadUrl("http://mozilla.org")
         engineSession.toggleDesktopMode(true)
         assertEquals("http://mozilla.org", session.url)
         assertEquals(100, session.progress)
         assertEquals(true, session.loading)
-        assertEquals(true, session.canGoForward)
-        assertEquals(true, session.canGoBack)
+
+        val tab = store.state.findTab(session.id)
+        assertNotNull(tab!!)
+        assertTrue(tab.content.canGoForward)
+        assertTrue(tab.content.canGoBack)
     }
 
     @Test
@@ -119,8 +125,7 @@ class EngineObserverTest {
             override fun stopLoading() {}
             override fun reload(flags: LoadUrlFlags) {}
             override fun restoreState(state: EngineSessionState): Boolean { return false }
-            override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
-            override fun disableTrackingProtection() {}
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun findAll(text: String) {}
             override fun findNext(forward: Boolean) {}
@@ -163,12 +168,7 @@ class EngineObserverTest {
             override fun stopLoading() {}
             override fun reload(flags: LoadUrlFlags) {}
             override fun restoreState(state: EngineSessionState): Boolean { return false }
-            override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {
-                notifyObservers { onTrackerBlockingEnabledChange(true) }
-            }
-            override fun disableTrackingProtection() {
-                notifyObservers { onTrackerBlockingEnabledChange(false) }
-            }
+            override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
             override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
             override fun loadUrl(
                 url: String,
@@ -185,12 +185,6 @@ class EngineObserverTest {
         }
         val observer = EngineObserver(session, mock())
         engineSession.register(observer)
-
-        engineSession.enableTrackingProtection()
-        assertTrue(session.trackerBlockingEnabled)
-
-        engineSession.disableTrackingProtection()
-        assertFalse(session.trackerBlockingEnabled)
 
         val tracker1 = Tracker("tracker1", emptyList())
         val tracker2 = Tracker("tracker2", emptyList())
@@ -1064,7 +1058,6 @@ class EngineObserverTest {
     fun `onNavigateBack clears search terms when navigating back`() {
         val url = "https://www.mozilla.org"
         val session = Session(url, id = "test-id")
-        session.canGoBack = true
 
         val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
         val store = BrowserStore(
@@ -1111,5 +1104,46 @@ class EngineObserverTest {
                 currentIndex = 1
             )
         )
+    }
+
+    @Test
+    fun `equality between tracking protection policies`() {
+        val strict = EngineSession.TrackingProtectionPolicy.strict()
+        val recommended = EngineSession.TrackingProtectionPolicy.recommended()
+        val none = EngineSession.TrackingProtectionPolicy.none()
+        val custom = EngineSession.TrackingProtectionPolicy.select(
+            trackingCategories = emptyArray(),
+            cookiePolicy = EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ONLY_FIRST_PARTY,
+            cookiePurging = true,
+            strictSocialTrackingProtection = true
+        )
+        val custom2 = EngineSession.TrackingProtectionPolicy.select(
+            trackingCategories = emptyArray(),
+            cookiePolicy = EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ONLY_FIRST_PARTY,
+            cookiePurging = true,
+            strictSocialTrackingProtection = true
+        )
+
+        val customNone = EngineSession.TrackingProtectionPolicy.select(
+            trackingCategories = none.trackingCategories,
+            cookiePolicy = none.cookiePolicy,
+            cookiePurging = none.cookiePurging,
+            strictSocialTrackingProtection = false
+        )
+
+        assertTrue(strict == EngineSession.TrackingProtectionPolicy.strict())
+        assertTrue(recommended == EngineSession.TrackingProtectionPolicy.recommended())
+        assertTrue(none == EngineSession.TrackingProtectionPolicy.none())
+        assertTrue(custom == custom2)
+
+        assertFalse(strict == EngineSession.TrackingProtectionPolicy.strict().forPrivateSessionsOnly())
+        assertFalse(recommended == EngineSession.TrackingProtectionPolicy.recommended().forPrivateSessionsOnly())
+        assertFalse(custom == custom2.forPrivateSessionsOnly())
+
+        assertFalse(strict == EngineSession.TrackingProtectionPolicy.strict().forRegularSessionsOnly())
+        assertFalse(recommended == EngineSession.TrackingProtectionPolicy.recommended().forRegularSessionsOnly())
+        assertFalse(custom == custom2.forRegularSessionsOnly())
+
+        assertFalse(none == customNone)
     }
 }

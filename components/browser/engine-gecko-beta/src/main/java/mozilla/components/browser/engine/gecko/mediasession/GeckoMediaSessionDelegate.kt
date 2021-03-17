@@ -10,10 +10,12 @@ import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.browser.engine.gecko.await
 import mozilla.components.concept.engine.mediasession.MediaSession
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.Image.ImageProcessingException
 import org.mozilla.geckoview.MediaSession as GeckoViewMediaSession
 
 private const val ARTWORK_RETRIEVE_TIMEOUT = 1000L
 private const val ARTWORK_IMAGE_SIZE = 48
+private const val ARTWORK_ERROR_SIZE = 1
 
 internal class GeckoMediaSessionDelegate(
     private val engineSession: GeckoEngineSession
@@ -39,10 +41,18 @@ internal class GeckoMediaSessionDelegate(
         val getArtwork: (suspend () -> Bitmap?)? = metaData.artwork?.let {
             {
                 try {
-                    withTimeoutOrNull(ARTWORK_RETRIEVE_TIMEOUT) {
+                    var bitmap = withTimeoutOrNull(ARTWORK_RETRIEVE_TIMEOUT) {
                         it.getBitmap(ARTWORK_IMAGE_SIZE).await()
                     }
-                } catch (e: IllegalArgumentException) {
+
+                    /* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1697255 */
+                    if (bitmap != null &&
+                        (bitmap.height <= ARTWORK_ERROR_SIZE || bitmap.width <= ARTWORK_ERROR_SIZE)) {
+                        bitmap = null
+                    }
+
+                    bitmap
+                } catch (e: ImageProcessingException) {
                     null
                 }
             }

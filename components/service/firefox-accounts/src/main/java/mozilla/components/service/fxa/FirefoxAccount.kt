@@ -9,10 +9,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.plus
-import mozilla.appservices.fxaclient.AuthorizationParams
 import kotlinx.coroutines.withContext
-import mozilla.appservices.fxaclient.FirefoxAccount as InternalFxAcct
-import mozilla.components.concept.sync.AccessType
+import mozilla.appservices.fxaclient.PersistedFirefoxAccount as InternalFxAcct
 import mozilla.components.concept.sync.AuthFlowUrl
 import mozilla.components.concept.sync.MigratingAccountInfo
 import mozilla.components.concept.sync.DeviceConstellation
@@ -21,7 +19,7 @@ import mozilla.components.concept.sync.StatePersistenceCallback
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
 
-typealias PersistCallback = mozilla.appservices.fxaclient.FirefoxAccount.PersistCallback
+typealias PersistCallback = mozilla.appservices.fxaclient.PersistedFirefoxAccount.PersistCallback
 
 /**
  * FirefoxAccount represents the authentication state of a client.
@@ -134,18 +132,6 @@ class FirefoxAccount internal constructor(
             throw e
         } catch (e: FxaException) {
             null
-        }
-    }
-
-    override suspend fun authorizeOAuthCode(
-        clientId: String,
-        scopes: Array<String>,
-        state: String,
-        accessType: AccessType
-    ) = withContext(scope.coroutineContext) {
-        handleFxaExceptions(logger, "authorizeOAuthCode", { null }) {
-            val params = AuthorizationParams(clientId, scopes, state, accessType.msg)
-            inner.authorizeOAuthCode(params)
         }
     }
 

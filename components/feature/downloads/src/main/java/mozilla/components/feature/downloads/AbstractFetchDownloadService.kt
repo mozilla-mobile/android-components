@@ -70,6 +70,7 @@ import mozilla.components.feature.downloads.facts.emitNotificationPauseFact
 import mozilla.components.feature.downloads.facts.emitNotificationResumeFact
 import mozilla.components.feature.downloads.facts.emitNotificationTryAgainFact
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.kotlin.ifNullOrEmpty
 import mozilla.components.support.ktx.kotlin.sanitizeURL
 import mozilla.components.support.ktx.kotlinx.coroutines.throttleLatest
 import mozilla.components.support.utils.DownloadUtils
@@ -256,6 +257,27 @@ abstract class AbstractFetchDownloadService : Service() {
             store.state.downloads[it]
         } ?: return START_REDELIVER_INTENT
 
+        if (intent.action == ACTION_REMOVE_PRIVATE_DOWNLOAD) {
+            handleRemovePrivateDownloadIntent(download)
+        } else {
+            handleDownloadIntent(download)
+        }
+
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    @VisibleForTesting
+    internal fun handleRemovePrivateDownloadIntent(download: DownloadState) {
+        if (download.private) {
+            downloadJobs[download.id]?.let {
+                removeDownloadJob(it)
+            }
+            store.dispatch(DownloadAction.RemoveDownloadAction(download.id))
+        }
+    }
+
+    @VisibleForTesting
+    internal fun handleDownloadIntent(download: DownloadState) {
         // If the job already exists, then don't create a new ID. This can happen when calling tryAgain
         val foregroundServiceId = downloadJobs[download.id]?.foregroundServiceId ?: Random.nextInt()
 
@@ -263,7 +285,7 @@ abstract class AbstractFetchDownloadService : Service() {
 
         // Create a new job and add it, with its downloadState to the map
         val downloadJobState = DownloadJobState(
-            state = download.copy(status = actualStatus),
+            state = download.copy(status = actualStatus, notificationId = foregroundServiceId),
             foregroundServiceId = foregroundServiceId,
             status = actualStatus
         )
@@ -287,8 +309,6 @@ abstract class AbstractFetchDownloadService : Service() {
                 if (downloadJobs.isEmpty()) cancel()
             }
         }
-
-        return super.onStartCommand(intent, flags, startId)
     }
 
     /**
@@ -442,7 +462,7 @@ abstract class AbstractFetchDownloadService : Service() {
                     title = fileName,
                     description = fileName,
                     isMediaScannerScannable = true,
-                    mimeType = download.contentType ?: "*/*",
+                    mimeType = getSafeContentType(context, download.filePath, download.contentType),
                     path = file.absolutePath,
                     length = download.contentLength ?: file.length(),
                     // Only show notifications if our channel is blocked
@@ -866,7 +886,9 @@ abstract class AbstractFetchDownloadService : Service() {
     internal fun useFileStreamScopedStorage(download: DownloadState, block: (OutputStream) -> Unit) {
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, download.fileName)
-            put(MediaStore.Downloads.MIME_TYPE, download.contentType ?: "*/*")
+            put(MediaStore.Downloads.MIME_TYPE,
+                getSafeContentType(context, download.filePath, download.contentType)
+            )
             put(MediaStore.Downloads.SIZE, download.contentLength)
             put(MediaStore.Downloads.IS_PENDING, 1)
         }
@@ -949,12 +971,7 @@ abstract class AbstractFetchDownloadService : Service() {
         fun openFile(context: Context, filePath: String, contentType: String?): Boolean {
             // Create a new file with the location of the saved file to extract the correct path
             // `file` has the wrong path, so we must construct it based on the `fileName` and `dir.path`s
-            val fileLocation = File(filePath)
-            val constructedFilePath = FileProvider.getUriForFile(
-                context,
-                context.packageName + FILE_PROVIDER_EXTENSION,
-                fileLocation
-            )
+            val constructedFilePath = getFilePathUri(context, filePath)
 
             val newIntent = Intent(ACTION_VIEW).apply {
                 setDataAndType(constructedFilePath, getSafeContentType(context, constructedFilePath, contentType))
@@ -975,13 +992,23 @@ abstract class AbstractFetchDownloadService : Service() {
             val resultContentType = if (!contentTypeFromFile.isNullOrEmpty()) {
                 contentTypeFromFile
             } else {
-                if (!contentType.isNullOrEmpty()) {
-                    contentType
-                } else {
-                    "*/*"
-                }
+                contentType.ifNullOrEmpty { "*/*" }
             }
-            return (DownloadUtils.sanitizeMimeType(resultContentType) ?: "*/*")
+            return DownloadUtils.sanitizeMimeType(resultContentType).ifNullOrEmpty { "*/*" }
+        }
+
+        @VisibleForTesting
+        internal fun getSafeContentType(context: Context, filePath: String, contentType: String?): String {
+            return getSafeContentType(context, getFilePathUri(context, filePath), contentType)
+        }
+
+        @VisibleForTesting
+        internal fun getFilePathUri(context: Context, filePath: String): Uri {
+            return FileProvider.getUriForFile(
+                context,
+                context.packageName + FILE_PROVIDER_EXTENSION,
+                File(filePath)
+            )
         }
 
         private const val FILE_PROVIDER_EXTENSION = ".feature.downloads.fileprovider"
@@ -1002,6 +1029,7 @@ abstract class AbstractFetchDownloadService : Service() {
         const val ACTION_RESUME = "mozilla.components.feature.downloads.RESUME"
         const val ACTION_CANCEL = "mozilla.components.feature.downloads.CANCEL"
         const val ACTION_DISMISS = "mozilla.components.feature.downloads.DISMISS"
+        const val ACTION_REMOVE_PRIVATE_DOWNLOAD = "mozilla.components.feature.downloads.ACTION_REMOVE_PRIVATE_DOWNLOAD"
         const val ACTION_TRY_AGAIN = "mozilla.components.feature.downloads.TRY_AGAIN"
         const val COMPAT_DEFAULT_FOREGROUND_ID = -1
     }

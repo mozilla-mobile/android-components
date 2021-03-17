@@ -37,7 +37,7 @@ class GeckoWebExtension(
     val runtime: GeckoRuntime
 ) : WebExtension(nativeExtension.id, nativeExtension.location, true) {
 
-    private val connectedPorts: MutableMap<PortId, Port> = mutableMapOf()
+    private val connectedPorts: MutableMap<PortId, GeckoPort> = mutableMapOf()
     private val logger = Logger("GeckoWebExtension")
 
     /**
@@ -58,8 +58,11 @@ class GeckoWebExtension(
             }
 
             override fun onDisconnect(port: GeckoNativeWebExtension.Port) {
-                connectedPorts.remove(PortId(name))
-                messageHandler.onPortDisconnected(GeckoPort(port))
+                val connectedPort = connectedPorts[PortId(name)]
+                if (connectedPort != null && connectedPort.nativePort == port) {
+                    connectedPorts.remove(PortId(name))
+                    messageHandler.onPortDisconnected(GeckoPort(port))
+                }
             }
         }
 
@@ -97,9 +100,11 @@ class GeckoWebExtension(
             }
 
             override fun onDisconnect(port: GeckoNativeWebExtension.Port) {
-                val geckoPort = GeckoPort(port, session)
-                connectedPorts.remove(PortId(name, session))
-                messageHandler.onPortDisconnected(geckoPort)
+                val connectedPort = connectedPorts[PortId(name, session)]
+                if (connectedPort != null && connectedPort.nativePort == port) {
+                    connectedPorts.remove(PortId(name, session))
+                    messageHandler.onPortDisconnected(connectedPort)
+                }
             }
         }
 
@@ -267,7 +272,8 @@ class GeckoWebExtension(
                 ext.metaData.optionsPageUrl?.let { optionsPageUrl ->
                     tabHandler.onNewTab(
                         this@GeckoWebExtension,
-                        GeckoEngineSession(runtime, defaultSettings = defaultSettings),
+                        GeckoEngineSession(runtime,
+                            defaultSettings = defaultSettings),
                         false,
                         optionsPageUrl
                     )

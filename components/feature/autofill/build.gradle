@@ -28,9 +28,12 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 }
 
 dependencies {
+    implementation project(':concept-fetch')
     implementation project(':concept-storage')
     implementation project(':lib-publicsuffixlist')
+    implementation project(':service-digitalassetlinks')
     implementation project(':support-base')
+    implementation project(":support-utils")
 
     implementation Dependencies.androidx_annotation
     implementation Dependencies.androidx_biometric

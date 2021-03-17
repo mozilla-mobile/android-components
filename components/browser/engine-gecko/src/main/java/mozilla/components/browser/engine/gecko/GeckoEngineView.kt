@@ -91,6 +91,12 @@ class GeckoEngineView @JvmOverloads constructor(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var currentSelection: BasicSelectionActionDelegate? = null
 
+    /**
+     * Cache of the last valid input result we got from GeckoView.
+     */
+    @VisibleForTesting
+    internal var lastInputResult: EngineView.InputResult = EngineView.InputResult.INPUT_RESULT_UNHANDLED
+
     override var selectionActionDelegate: SelectionActionDelegate? = null
 
     init {
@@ -169,10 +175,24 @@ class GeckoEngineView @JvmOverloads constructor(
     override fun canScrollVerticallyDown() =
         true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569
 
+    @Suppress("MagicNumber")
     override fun getInputResult(): EngineView.InputResult {
         // Direct mapping of GeckoView's returned values.
-        // There should be a 1-1 relation. If not fail fast to allow for a quick fix.
-        return EngineView.InputResult.values().first { it.value == geckoView.inputResult }
+        // If not fail fast to allow for a quick fix.
+        val input = geckoView.inputResult
+        lastInputResult = when (input) {
+            0 -> EngineView.InputResult.INPUT_RESULT_UNHANDLED
+            1 -> EngineView.InputResult.INPUT_RESULT_HANDLED
+            2 -> EngineView.InputResult.INPUT_RESULT_HANDLED_CONTENT
+            3 -> {
+                // Drop this result and return the previous.
+                // See https://bugzilla.mozilla.org/show_bug.cgi?id=1687430 for details
+                lastInputResult
+            }
+            else -> throw IllegalArgumentException("Unexpected geckoView.inputResult: \"$input\"")
+        }
+
+        return lastInputResult
     }
 
     override fun setVerticalClipping(clippingHeight: Int) {

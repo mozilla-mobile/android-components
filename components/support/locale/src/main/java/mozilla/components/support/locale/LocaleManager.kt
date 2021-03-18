@@ -31,9 +31,13 @@ object LocaleManager {
      * @param language The new [Locale] that has been selected
      * @return A new Context object for whose resources are adjusted to match the new [language].
      */
-    fun setNewLocale(context: Context, localeUseCase: LocaleUseCases, locale: Locale?): Context {
+    fun setNewLocale(context: Context, localeUseCase: LocaleUseCases? = null, locale: Locale?): Context {
         Storage.save(context, locale?.language)
-        localeUseCase.notifyLocaleChanged(locale)
+
+        localeUseCase?.let { useCases ->
+            useCases.notifyLocaleChanged(locale)
+        }
+
         return updateResources(context)
     }
 

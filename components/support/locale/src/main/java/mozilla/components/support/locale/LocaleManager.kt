@@ -28,12 +28,12 @@ object LocaleManager {
      *
      * @param context The [Context]
      * @param localeUseCase The [LocaleUseCases] used to notify [Locale] changes
-     * @param language The new language that has been selected
+     * @param language The new [Locale] that has been selected
      * @return A new Context object for whose resources are adjusted to match the new [language].
      */
-    fun setNewLocale(context: Context, localeUseCase: LocaleUseCases, language: String): Context {
-        Storage.save(context, language)
-        localeUseCase.notifyLocaleChanged(Locale(language))
+    fun setNewLocale(context: Context, localeUseCase: LocaleUseCases, locale: Locale?): Context {
+        Storage.save(context, locale?.language)
+        localeUseCase.notifyLocaleChanged(locale)
         return updateResources(context)
     }
 
@@ -113,7 +113,7 @@ object LocaleManager {
         }
 
         @Synchronized
-        fun save(context: Context, localeCode: String) {
+        fun save(context: Context, localeCode: String?) {
             val settings = getSharedPreferences(context)
             val key = context.getString(R.string.mozac_support_base_locale_preference_key_locale)
             settings.edit().putString(key, localeCode).apply()

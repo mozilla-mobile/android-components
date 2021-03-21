@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.AttributeSet
+import android.view.KeyEvent
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.ViewCompat
@@ -239,5 +240,17 @@ class GeckoEngineView @JvmOverloads constructor(
 
     companion object {
         internal const val DARK_COVER = 0xFF2A2A2E.toInt()
+    }
+
+    var dispatchKeyHandler: DispatchKeyHandler? = null
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val handler = dispatchKeyHandler
+        if (handler != null) {
+            if (handler.dispatchKeyEvent(event)) {
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 }

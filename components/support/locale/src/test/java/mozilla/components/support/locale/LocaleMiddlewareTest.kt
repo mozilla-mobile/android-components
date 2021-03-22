@@ -19,15 +19,15 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
-import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
-import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.times
+import org.mockito.Mockito.spy
 import org.robolectric.annotation.Config
-import org.junit.Assert.assertEquals
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -59,7 +59,7 @@ class LocaleMiddlewareTest {
     fun `GIVEN a locale has been chosen in the app WHEN we restore state THEN locale is retrieved from storage`() = runBlockingTest {
         val localeManager = spy(LocaleManager)
         val currentLocale = localeManager.getCurrentLocale(testContext)
-        Assert.assertNull(currentLocale)
+        assertNull(currentLocale)
 
         val localeMiddleware = spy(
             LocaleMiddleware(
@@ -78,7 +78,7 @@ class LocaleMiddlewareTest {
 
         store.dispatch(LocaleAction.RestoreLocaleStateAction).joinBlocking()
 
-        Mockito.verify(localeManager, times(3)).getCurrentLocale(testContext)
+        verify(localeManager, times(3)).getCurrentLocale(testContext)
         assertEquals(store.state.locale, currentLocale)
     }
 
@@ -87,7 +87,7 @@ class LocaleMiddlewareTest {
     fun `WHEN we update the locale THEN the locale manager is updated`() = runBlockingTest {
         val localeManager = spy(LocaleManager)
         val currentLocale = localeManager.getCurrentLocale(testContext)
-        Assert.assertNull(currentLocale)
+        assertNull(currentLocale)
 
         val localeMiddleware = spy(
             LocaleMiddleware(
@@ -107,6 +107,6 @@ class LocaleMiddlewareTest {
         val newLocale = "es".toLocale()
         store.dispatch(LocaleAction.UpdateLocaleAction(newLocale)).joinBlocking()
 
-        Mockito.verify(localeManager).setNewLocale(testContext, locale = newLocale)
+        verify(localeManager).setNewLocale(testContext, locale = newLocale)
     }
 }

@@ -7,8 +7,8 @@ package mozilla.components.browser.state.action
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
-import org.junit.Assert
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 import java.util.Locale
 
@@ -27,6 +27,6 @@ class LocaleActionTest {
 
         val state = store.state
         store.dispatch(LocaleAction.RestoreLocaleStateAction).joinBlocking()
-        Assert.assertSame(store.state, state)
+        assertSame(state, store.state)
     }
 }

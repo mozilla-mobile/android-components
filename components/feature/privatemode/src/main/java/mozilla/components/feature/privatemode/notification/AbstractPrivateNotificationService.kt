@@ -31,7 +31,6 @@ import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.ktx.android.notification.ChannelData
 import mozilla.components.support.ktx.android.notification.ensureNotificationChannelExists
-import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 import java.util.Locale
 
@@ -131,9 +130,7 @@ abstract class AbstractPrivateNotificationService : Service() {
 
         localeScope = store.flowScoped { flow ->
             flow.mapNotNull { state -> state.locale }
-                .ifAnyChanged { locale ->
-                    arrayOf(locale)
-                }
+                .ifChanged()
                 .collect {
                     notifyLocaleChanged()
                 }

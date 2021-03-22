@@ -12,9 +12,8 @@ import org.junit.Test
 import java.util.Locale
 
 class LocaleStateReducerTest {
-
     @Test
-    fun `WHEN updating locale action is called THEN the reducer updates locale state`() {
+    fun `WHEN updating locale action is called THEN the locale state is updated`() {
         val reducer = LocaleStateReducer
         val state = BrowserState()
         val locale = Locale("es")
@@ -28,7 +27,7 @@ class LocaleStateReducerTest {
     }
 
     @Test
-    fun `WHEN restoring locale action is called THEN the reducer persists state`() {
+    fun `WHEN restoring locale action is called THEN the locale state is persisted`() {
         val reducer = LocaleStateReducer
         val state = BrowserState()
         val action = LocaleAction.RestoreLocaleStateAction

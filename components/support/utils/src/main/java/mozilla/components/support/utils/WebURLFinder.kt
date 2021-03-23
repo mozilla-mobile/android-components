@@ -75,7 +75,7 @@ class WebURLFinder {
     companion object {
         // Taken from mozilla.components.support.utils.URLStringUtils. See documentation
         // there for a complete description.
-        private const val autolinkWebUrlPattern = "(\\w+-)*\\w+(://[/]*|:|\\.)(\\w+-)*\\w+([\\S&&[^\\w-]]\\S*)?"
+        private const val autolinkWebUrlPattern = "^\\s*(\\w+-+)*\\w+(://[/]*|:|\\.)(\\w+-+)*\\w+([\\S&&[^\\w-]]\\S*)?\\s*\$"
 
         private val autolinkWebUrl by lazy {
             Pattern.compile(autolinkWebUrlPattern, 0)

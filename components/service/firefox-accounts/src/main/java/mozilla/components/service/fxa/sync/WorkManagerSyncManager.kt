@@ -372,10 +372,15 @@ internal class WorkManagerSyncWorker(
         // to implement/reason about than worker reconfiguration.
         val deviceSettings = FxaDeviceSettingsCache(context).getCached()!!
 
+        // If engines have local encryption keys they are specified here.
+        // Only autofill's CreditCard engine has one, so, TODO: add it!
+        val localEncryptionKeys: Map<String, String> = emptyMap()
+
         // We're now ready to sync.
         val syncParams = SyncParams(
             reason = reason.toRustSyncReason(),
             engines = enginesToSync,
+            localEncryptionKeys = localEncryptionKeys,
             authInfo = syncAuthInfo.toNative(),
             enabledChanges = enabledChanges,
             persistedState = currentSyncState,

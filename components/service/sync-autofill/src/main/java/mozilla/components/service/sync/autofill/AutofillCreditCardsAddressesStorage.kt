@@ -20,7 +20,7 @@ import mozilla.appservices.autofill.Store as RustAutofillStorage
 const val AUTOFILL_DB_NAME = "autofill.sqlite"
 
 /**
- * An implementation of [CreditCardsAddressesStorage] back by the application-services' `autofill`
+ * An implementation of [CreditCardsAddressesStorage] backed by the application-services' `autofill`
  * library.
  */
 class AutofillCreditCardsAddressesStorage(

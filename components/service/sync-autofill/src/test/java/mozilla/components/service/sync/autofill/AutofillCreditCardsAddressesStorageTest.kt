@@ -33,9 +33,18 @@ class AutofillCreditCardsAddressesStorageTest {
 
     @Test
     fun `addCreditCard`() = runBlocking {
+        // For the sake of completeness we show how to move from a card number
+        // to the encrypted storage version (although obviously the key that's
+        // used in real code must be carefully stored and reused)
+        val crypto = AutofillCreditCardsAddressesCrypto()
+        val key = crypto.createEncryptionKey()
+        val cardNumber = "4111111111111111"
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            // For the sake of these tests, it's not necessary that we
+            // use a real encryption key or real ciphertext.
+            encryptedCardNumber = crypto.encryptString(key, cardNumber),
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -45,7 +54,9 @@ class AutofillCreditCardsAddressesStorageTest {
         assertNotNull(creditCard)
 
         assertEquals(creditCardFields.billingName, creditCard.billingName)
-        assertEquals(creditCardFields.cardNumber, creditCard.cardNumber)
+        assertEquals(creditCardFields.encryptedCardNumber, creditCard.encryptedCardNumber)
+        assertEquals(cardNumber, crypto.decryptString(key, creditCard.encryptedCardNumber))
+        assertEquals(creditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
         assertEquals(creditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(creditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(creditCardFields.cardType, creditCard.cardType)
@@ -53,9 +64,13 @@ class AutofillCreditCardsAddressesStorageTest {
 
     @Test
     fun `getCreditCard`() = runBlocking {
+        val crypto = AutofillCreditCardsAddressesCrypto()
+        val key = crypto.createEncryptionKey()
+        val cardNumber = "4111111111111111"
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = crypto.encryptString(key, cardNumber),
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -63,30 +78,37 @@ class AutofillCreditCardsAddressesStorageTest {
         val creditCard = storage.addCreditCard(creditCardFields)
 
         assertEquals(creditCard, storage.getCreditCard(creditCard.guid))
+        assertEquals(crypto.decryptString(key, creditCard.encryptedCardNumber), cardNumber)
     }
 
     @Test
     fun `getAllCreditCards`() = runBlocking {
+        val crypto = AutofillCreditCardsAddressesCrypto()
+        val key = crypto.createEncryptionKey()
+
         var creditCards = storage.getAllCreditCards()
         assertEquals(0, creditCards.size)
 
         val creditCardFields1 = UpdatableCreditCardFields(
             billingName = "Jane Fields",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = crypto.encryptString(key, "4111111111111111"),
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
         )
         val creditCardFields2 = UpdatableCreditCardFields(
             billingName = "Banana Apple",
-            cardNumber = "4111111111111112",
+            encryptedCardNumber = crypto.encryptString(key, "4111111111111112"),
+            cardNumberLast4 = "1112",
             expiryMonth = 1,
             expiryYear = 2030,
             cardType = "discover"
         )
         val creditCardFields3 = UpdatableCreditCardFields(
             billingName = "Pineapple Orange",
-            cardNumber = "4111111111111113",
+            encryptedCardNumber = crypto.encryptString(key, "4111111111111113"),
+            cardNumberLast4 = "1113",
             expiryMonth = 2,
             expiryYear = 2028,
             cardType = "visa"
@@ -98,16 +120,23 @@ class AutofillCreditCardsAddressesStorageTest {
         creditCards = storage.getAllCreditCards()
 
         assertEquals(3, creditCards.size)
+        // XXX - this is an intermittent waiting to happen - order isn't guaranteed.
         assertEquals(creditCard1, creditCards[0])
+        assertEquals(crypto.decryptString(key, creditCards[0].encryptedCardNumber), "4111111111111111")
         assertEquals(creditCard2, creditCards[1])
+        assertEquals(crypto.decryptString(key, creditCards[1].encryptedCardNumber), "4111111111111112")
         assertEquals(creditCard3, creditCards[2])
+        assertEquals(crypto.decryptString(key, creditCards[2].encryptedCardNumber), "4111111111111113")
     }
 
     @Test
     fun `updateCreditCard`() = runBlocking {
+        val crypto = AutofillCreditCardsAddressesCrypto()
+        val key = crypto.createEncryptionKey()
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = crypto.encryptString(key, "4111111111111111"),
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -117,7 +146,8 @@ class AutofillCreditCardsAddressesStorageTest {
 
         val newCreditCardFields = UpdatableCreditCardFields(
             billingName = "Jane Fields",
-            cardNumber = "4111111111111112",
+            encryptedCardNumber = crypto.encryptString(key, "4111111111111112"),
+            cardNumberLast4 = "1112",
             expiryMonth = 12,
             expiryYear = 2038,
             cardType = "visa"
@@ -128,7 +158,9 @@ class AutofillCreditCardsAddressesStorageTest {
         creditCard = storage.getCreditCard(creditCard.guid)
 
         assertEquals(newCreditCardFields.billingName, creditCard.billingName)
-        assertEquals(newCreditCardFields.cardNumber, creditCard.cardNumber)
+        assertEquals(newCreditCardFields.encryptedCardNumber, creditCard.encryptedCardNumber)
+        assertEquals(crypto.decryptString(key, creditCard.encryptedCardNumber), "4111111111111112")
+        assertEquals(newCreditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
         assertEquals(newCreditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(newCreditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(newCreditCardFields.cardType, creditCard.cardType)
@@ -136,9 +168,12 @@ class AutofillCreditCardsAddressesStorageTest {
 
     @Test
     fun `deleteCreditCard`() = runBlocking {
+        val crypto = AutofillCreditCardsAddressesCrypto()
+        val key = crypto.createEncryptionKey()
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = crypto.encryptString(key, "4111111111111111"),
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"

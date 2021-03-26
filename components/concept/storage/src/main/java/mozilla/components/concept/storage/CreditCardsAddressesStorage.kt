@@ -105,11 +105,47 @@ interface CreditCardsAddressesStorage {
 }
 
 /**
+ * An interface which defines methods for managing the crypto for autofill.
+ *
+ * XXX - maybe this interface should hide the "key" param and instead magically
+ * XXX - manage the key internally?
+ *
+ * eg: just `encryptString(cleartext: String): String` and the key is
+ * automatically fetched from storage and used when calling app-services?
+ */
+interface CreditCardsAddressesCrypto {
+    /**
+     * Encrypt a string using the specified key. Used to encrypt the
+     * credit-card number.
+     * [key] must have come from [createEncryptionKey()]
+     */
+    fun encryptString(key: String, cleartext: String): String
+
+    /**
+     * Decrypt a string using the specified key. Used to decrypt the
+     * credit-card number.
+     * [key] must have come from [createEncryptionKey()], [ciphertext] must
+     * have come from [encryptString]
+     */
+    fun decryptString(key: String, ciphertext: String): String
+
+    /**
+     * Create a new encryption key, suitable for passing to [encryptString()]
+     * and [decryptString[]). Any keys must be stored securely because (a) them
+     * being generally available would defeat the purpose of encryption and
+     * (b) them being list will render all existing excrypted string unable to
+     * be decrypted.
+     */
+    fun createEncryptionKey(): String
+}
+
+/**
  * Information about a credit card.
  *
  * @property guid The unique identifier for this credit card.
  * @property billingName The credit card billing name.
- * @property cardNumber The credit card number.
+ * @property encryptedCardNumber The encrypted credit card number.
+ * @property cardNumberLast4 The last 4 digits of the credit card number.
  * @property expiryMonth The credit card expiry month.
  * @property expiryYear The credit card expiry year.
  * @property cardType The credit card network ID.
@@ -121,7 +157,8 @@ interface CreditCardsAddressesStorage {
 data class CreditCard(
     val guid: String,
     val billingName: String,
-    val cardNumber: String,
+    val encryptedCardNumber: String,
+    val cardNumberLast4: String,
     val expiryMonth: Long,
     val expiryYear: Long,
     val cardType: String,
@@ -135,14 +172,16 @@ data class CreditCard(
  * Information about a new credit card. This is what you pass to create or update a credit card.
  *
  * @property billingName The credit card billing name.
- * @property cardNumber The credit card number.
+ * @property encryptedCardNumber The encrypted credit card number.
+ * @property cardNumberLast4 The credit card number.
  * @property expiryMonth The credit card expiry month.
  * @property expiryYear The credit card expiry year.
  * @property cardType The credit card network ID.
  */
 data class UpdatableCreditCardFields(
     val billingName: String,
-    val cardNumber: String,
+    val encryptedCardNumber: String,
+    val cardNumberLast4: String,
     val expiryMonth: Long,
     val expiryYear: Long,
     val cardType: String

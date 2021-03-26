@@ -38,7 +38,8 @@ internal fun mozilla.components.concept.storage.UpdatableAddressFields.into(): U
 internal fun mozilla.components.concept.storage.UpdatableCreditCardFields.into(): UpdatableCreditCardFields {
     return UpdatableCreditCardFields(
         ccName = this.billingName,
-        ccNumber = this.cardNumber,
+        ccNumberEnc = this.encryptedCardNumber,
+        ccNumberLast4 = this.cardNumberLast4,
         ccExpMonth = this.expiryMonth,
         ccExpYear = this.expiryYear,
         ccType = this.cardType
@@ -77,7 +78,8 @@ internal fun mozilla.appservices.autofill.CreditCard.into(): CreditCard {
     return CreditCard(
         guid = this.guid,
         billingName = this.ccName,
-        cardNumber = this.ccNumber,
+        encryptedCardNumber = this.ccNumberEnc,
+        cardNumberLast4 = this.ccNumberLast4,
         expiryMonth = this.ccExpMonth,
         expiryYear = this.ccExpYear,
         cardType = this.ccType,

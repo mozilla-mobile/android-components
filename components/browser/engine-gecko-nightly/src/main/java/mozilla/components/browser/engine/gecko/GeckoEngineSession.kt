@@ -446,7 +446,11 @@ class GeckoEngineSession(
      */
     @Suppress("ComplexMethod")
     private fun createNavigationDelegate() = object : GeckoSession.NavigationDelegate {
-        override fun onLocationChange(session: GeckoSession, url: String?) {
+        override fun onLocationChange(
+            session: GeckoSession,
+            url: String?,
+            perms: List<GeckoSession.PermissionDelegate.ContentPermission>
+        ) {
             if (url == null) {
                 return // ¯\_(ツ)_/¯
             }

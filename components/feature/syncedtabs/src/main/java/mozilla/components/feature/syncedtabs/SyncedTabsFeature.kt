@@ -56,7 +56,7 @@ class SyncedTabsFeature(
         view,
         lifecycleOwner
     ),
-    private val interactor: SyncedTabsInteractor = DefaultInteractor(
+    val interactor: SyncedTabsInteractor = DefaultInteractor(
         controller,
         view,
         onTabClicked

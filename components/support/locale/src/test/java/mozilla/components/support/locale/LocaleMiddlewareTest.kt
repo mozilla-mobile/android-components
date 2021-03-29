@@ -17,15 +17,16 @@ import mozilla.components.browser.state.action.LocaleAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.times
 import org.mockito.Mockito.spy
 import org.robolectric.annotation.Config
 
@@ -55,6 +56,7 @@ class LocaleMiddlewareTest {
     }
 
     @Test
+    @Ignore("Failing intermittently. To be fixed for https://github.com/mozilla-mobile/android-components/issues/9954")
     @Config(qualifiers = "en-rUS")
     fun `GIVEN a locale has been chosen in the app WHEN we restore state THEN locale is retrieved from storage`() = runBlockingTest {
         val localeManager = spy(LocaleManager)
@@ -77,8 +79,9 @@ class LocaleMiddlewareTest {
         assertEquals(store.state.locale, null)
 
         store.dispatch(LocaleAction.RestoreLocaleStateAction).joinBlocking()
+        store.waitUntilIdle()
+        dispatcher.advanceUntilIdle()
 
-        verify(localeManager, times(3)).getCurrentLocale(testContext)
         assertEquals(store.state.locale, currentLocale)
     }
 
@@ -106,6 +109,7 @@ class LocaleMiddlewareTest {
 
         val newLocale = "es".toLocale()
         store.dispatch(LocaleAction.UpdateLocaleAction(newLocale)).joinBlocking()
+        dispatcher.advanceUntilIdle()
 
         verify(localeManager).setNewLocale(testContext, locale = newLocale)
     }

@@ -130,6 +130,15 @@
             android:gravity="center"
             android:contentDescription="@string/mozac_feature_readerview_sepia_color_scheme_desc" />
 
+        <LinearLayout
+            android:id="@+id/linear_layout_mozac_feature_readerview_color_light"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:gravity="center"
+            android:orientation="horizontal">
+
         <androidx.appcompat.widget.AppCompatRadioButton
             android:id="@+id/mozac_feature_readerview_color_light"
             style="@style/RadioButtonSelectedBorderStyle"
@@ -142,6 +151,8 @@
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:contentDescription="@string/mozac_feature_readerview_light_color_scheme_desc" />
+            android:contentDescription="@string/mozac_feature_readerview_light_color_scheme_desc"
+            android:duplicateParentState="true" />
+        </LinearLayout>
     </RadioGroup>
 </merge>

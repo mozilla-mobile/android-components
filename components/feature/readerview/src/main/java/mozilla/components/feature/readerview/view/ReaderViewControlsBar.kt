@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.RadioGroup
 import androidx.annotation.IdRes
 import androidx.appcompat.widget.AppCompatButton
@@ -34,6 +35,8 @@ class ReaderViewControlsBar @JvmOverloads constructor(
     private lateinit var fontDecrementButton: AppCompatButton
     private lateinit var fontGroup: RadioGroup
     private lateinit var colorSchemeGroup: RadioGroup
+    private lateinit var colorSchemeContainerGroup: LinearLayout
+
 
     private var view: View? = null
 
@@ -152,6 +155,9 @@ class ReaderViewControlsBar @JvmOverloads constructor(
             }
             listener?.onColorSchemeChanged(colorSchemeChoice)
         }
+        colorSchemeContainerGroup = applyLayoutClickListener(R.id.linear_layout_mozac_feature_readerview_color_light) {
+            listener?.onColorSchemeChanged(ColorScheme.LIGHT)
+        }
         fontIncrementButton = applyClickListener(R.id.mozac_feature_readerview_font_size_increase) {
             listener?.onFontSizeIncreased()?.let { setFontSize(it) }
         }
@@ -171,4 +177,12 @@ class ReaderViewControlsBar @JvmOverloads constructor(
             setOnCheckedChangeListener { _, checkedId -> block(checkedId) }
         }
     }
+
+    private inline fun applyLayoutClickListener(@IdRes id: Int, crossinline block: () -> Unit): LinearLayout {
+        return findViewById<LinearLayout>(id).apply {
+            setOnClickListener { block() }
+        }
+    }
+
 }
+

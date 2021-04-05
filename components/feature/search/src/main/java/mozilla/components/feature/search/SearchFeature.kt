@@ -7,7 +7,6 @@ package mozilla.components.feature.search
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.action.ContentAction
@@ -44,8 +43,6 @@ class SearchFeature(
                 // Do nothing if searchRequest or sessionId is null
                 .mapNotNull { pair -> pair.toNullablePair() }
                 // We may see repeat values if other state changes before we handle the request.
-                // Filter these out.
-                .distinctUntilChangedBy { (searchRequest, _) -> searchRequest }
                 .collect { (searchRequest, sessionId) ->
                     performSearch(searchRequest, sessionId)
                     store.dispatch(ContentAction.ConsumeSearchRequestAction(sessionId))

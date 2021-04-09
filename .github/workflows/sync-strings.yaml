@@ -1,0 +1,41 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/
+
+name: "Sync Strings"
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+
+jobs:
+  main:
+    name: "Sync Strings"
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Discover A-C Version"
+        id: ac-version-for-fenix-beta
+        uses: st3fan/ac-version-for-fenix-beta@main
+      - name: "Debug"
+        run: |
+          echo "A-C Version is ${{ steps.ac-version-for-fenix-beta.outputs.major-ac-version }}"
+      # - name: "Checkout Master Branch"
+      #   uses: actions/checkout@v2
+      #   with:
+      #     path: main
+      #     ref: master
+      # - name: "Checkout Work Branch"
+      #   uses: actions/checkout@v2
+      #   with:
+      #     path: work
+      #     ref: "releases/${{ steps.ac-version-for-fenix-beta.outputs.major-ac-version }}.0"
+      # - name: "Sync Strings"
+      #   uses: st3fan/sync-strings-action@master
+      #   with:
+      #     src-path: main
+      #     dst-path: work
+      # - name: Create Pull Request
+      #   uses: peter-evans/create-pull-request@v3
+      #   with:
+      #     path: work
+      #     branch: st3fan/string-sync

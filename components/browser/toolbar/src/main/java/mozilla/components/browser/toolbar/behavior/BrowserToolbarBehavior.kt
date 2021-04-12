@@ -79,7 +79,9 @@ class BrowserToolbarBehavior(
      */
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val shouldScroll: Boolean
-        get() = engineView?.getInputResult() == EngineView.InputResult.INPUT_RESULT_HANDLED && isScrollEnabled
+        get() = engineView?.getInputResultDetail()?.let {
+                (it.canScrollToBottom() || it.canScrollToTop()) && isScrollEnabled
+            } ?: false
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var gesturesDetector: BrowserGestureDetector = createGestureDetector()
@@ -239,7 +241,7 @@ class BrowserToolbarBehavior(
             shouldSnapAfterScroll = type == ViewCompat.TYPE_TOUCH
             yTranslator.cancelInProgressTranslation()
             true
-        } else if (engineView?.getInputResult() == EngineView.InputResult.INPUT_RESULT_UNHANDLED) {
+        } else if (engineView?.getInputResultDetail()?.isTouchUnhandled() == true) {
             // Force expand the toolbar if event is unhandled, otherwise user could get stuck in a
             // state where they cannot show the toolbar
             yTranslator.cancelInProgressTranslation()

@@ -9,15 +9,20 @@ import android.graphics.Color
 import android.os.Build
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.Button
-import android.widget.PopupWindow
+import android.widget.FrameLayout
 import androidx.cardview.widget.CardView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.menu.BrowserMenu.Orientation.DOWN
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.menu.view.DynamicWidthRecyclerView
+import mozilla.components.browser.menu.view.ExpandableLayout
 import mozilla.components.concept.menu.MenuStyle
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
@@ -25,13 +30,14 @@ import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
-import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doNothing
-import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.Shadows
@@ -282,111 +288,132 @@ class BrowserMenuTest {
     }
 
     @Test
-    fun `displayPopup that fitsDown with preferredOrientation DOWN`() {
-        val menuContentView = createMockViewWith(y = 0)
-        val anchor = createMockViewWith(y = 10)
-        val popupWindow = spy(PopupWindow())
+    fun `Popup#show will initialize the menuPositioningData`() {
+        val adapter = BrowserMenuAdapter(testContext, emptyList())
+        val menu = BrowserMenu(adapter)
+        val anchor = Button(testContext)
+        setScreenHeight(100)
 
-        // Makes the availableHeightToBottom bigger than the menuContentView
-        setScreenHeight(200)
-        doReturn(11).`when`(menuContentView).measuredHeight
-        doReturn(-10).`when`(anchor).height
+        menu.show(anchor)
 
-        popupWindow.displayPopup(menuContentView, anchor, BrowserMenu.Orientation.DOWN)
-
-        assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuTop)
-        verify(popupWindow).showAsDropDown(anchor, 0, 10)
+        val expected = MenuPositioningData(
+            BrowserMenuPlacement.AnchoredToTop.Dropdown(anchor), DOWN, false, true, 0, 100, 28
+        )
+        assertEquals(expected, menu.menuPositioningData)
     }
 
     @Test
-    fun `displayPopup that fitsDown with preferredOrientation UP`() {
-        val menuContentView = createMockViewWith(y = 0)
-        val anchor = createMockViewWith(y = 10)
-        val popupWindow = spy(PopupWindow())
+    fun `configureExpandableMenu will setup a new ExpandabeLayout for a AnchoredToBottom#ManualAnchoring menu`() {
+        val items = listOf(
+            SimpleBrowserMenuItem("Hello") {},
+            SimpleBrowserMenuItem("World", isCollapsingMenuLimit = true) {}
+        )
+        val adapter = BrowserMenuAdapter(testContext, items)
+        val menu = BrowserMenu(adapter)
+        val view = FrameLayout(testContext)
+        val anchor = Button(testContext)
+        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToBottom.Dropdown(anchor))
 
-        // Makes the availableHeightToBottom bigger than the menuContentView
-        setScreenHeight(200)
-        doReturn(11).`when`(menuContentView).measuredHeight
-        doReturn(-10).`when`(anchor).height
+        val result = menu.configureExpandableMenu(view, true)
 
-        popupWindow.displayPopup(menuContentView, anchor, BrowserMenu.Orientation.UP)
-
-        assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuTop)
-        verify(popupWindow).showAsDropDown(anchor, 0, 10)
+        assertTrue(result is ExpandableLayout)
+        assertTrue(result.getChildAt(0) == view)
     }
 
     @Test
-    fun `displayPopup that fitsUp with preferredOrientation UP`() {
-        val containerView = createMockViewWith(y = 0)
-        // Makes the availableHeightToTop 10
-        val anchor = createMockViewWith(y = 10)
-        val popupWindow = spy(PopupWindow())
+    fun `configureExpandableMenu will setup a new ExpandabeLayout for a AnchoredToBottom#Dropdown menu`() {
+        val items = listOf(
+            SimpleBrowserMenuItem("Hello") {},
+            SimpleBrowserMenuItem("World", isCollapsingMenuLimit = true) {}
+        )
+        val adapter = BrowserMenuAdapter(testContext, items)
+        val menu = BrowserMenu(adapter)
+        val view = FrameLayout(testContext)
+        val anchor = Button(testContext)
+        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor))
 
-        // Makes the availableHeightToBottom smaller than the availableHeightToTop
-        setScreenHeight(0)
-        doReturn(-10).`when`(anchor).height
+        val result = menu.configureExpandableMenu(view, true)
 
-        // Makes the content of the menu smaller than the availableHeightToTop
-        doReturn(9).`when`(containerView).measuredHeight
-
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.UP)
-
-        assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
-        verify(popupWindow).showAsDropDown(anchor, 0, -9)
+        assertTrue(result is ExpandableLayout)
+        assertTrue(result.getChildAt(0) == view)
     }
 
     @Test
-    fun `displayPopup that fitsUp with preferredOrientation DOWN`() {
-        val containerView = createMockViewWith(y = 0)
-        // Makes the availableHeightToTop 10
-        val anchor = createMockViewWith(y = 10)
-        val popupWindow = spy(PopupWindow())
-        val contentHeight = 9
+    fun `configureExpandableMenu will not setup a new ExpandableLayout if none of the items can serve as a collapsingMenuLimit`() {
+        val items = listOf(
+            SimpleBrowserMenuItem("Hello") {},
+            SimpleBrowserMenuItem("World") {}
+        )
+        val adapter = BrowserMenuAdapter(testContext, items)
+        val menu = BrowserMenu(adapter)
+        val view = FrameLayout(testContext)
+        val anchor = Button(testContext)
+        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor))
 
-        // Makes the availableHeightToBottom smaller than the availableHeightToTop
-        setScreenHeight(0)
-        doReturn(-10).`when`(anchor).height
+        val result = menu.configureExpandableMenu(view, true)
 
-        // Makes the content of the menu smaller than the availableHeightToTop
-        doReturn(contentHeight).`when`(containerView).measuredHeight
-
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.DOWN)
-
-        assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
-        verify(popupWindow).showAsDropDown(anchor, 0, -contentHeight)
+        assertFalse(result is ExpandableLayout)
+        assertTrue(result == view)
     }
 
     @Test
-    fun `displayPopup that fitsUp when anchor is partially below of the bottom of the screen`() {
-        val containerView = createMockViewWith(y = 0)
-        // Makes the availableHeightToTop 10
-        val anchor = createMockViewWith(y = 10)
-        val popupWindow = spy(PopupWindow())
-        val screenHeight = -1
-        val contentHeight = -9
+    fun `GIVEN a not expandable menu WHEN configureExpandableMenu is called for one which should not be scrolled to bottom THEN the same menu is returned`() {
+        val menu = spy(BrowserMenu(mock()))
+        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
+        val viewGroup: ViewGroup = mock()
 
-        // Makes the availableHeightToBottom smaller than the availableHeightToTop
-        setScreenHeight(screenHeight)
-        doReturn(-10).`when`(anchor).height
+        val result = menu.configureExpandableMenu(viewGroup, false)
 
-        // Makes the content of the menu smaller than the availableHeightToTop
-        doReturn(contentHeight).`when`(containerView).measuredHeight
-
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.UP)
-
-        assertEquals(popupWindow.animationStyle, R.style.Mozac_Browser_Menu_Animation_OverflowMenuBottom)
-        verify(popupWindow).showAsDropDown(anchor, 0, screenHeight - contentHeight)
+        assertSame(viewGroup, result)
+        verify(menu, never()).showMenuBottom(any())
     }
 
     @Test
-    fun `displayPopup that don't fitUp neither fitDown`() {
-        val containerView = createMockViewWith(y = 0)
-        val anchor = createMockViewWith(y = 0)
-        val popupWindow = spy(PopupWindow())
-        doReturn(Int.MAX_VALUE).`when`(containerView).measuredHeight
+    fun `GIVEN a not expandable menu WHEN configureExpandableMenu is called for one which should be scrolled to bottom THEN the layout manager is updated for this`() {
+        val menu = spy(BrowserMenu(mock()))
+        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
+        val menuList = RecyclerView(testContext)
+        menu.menuList = menuList
 
-        popupWindow.displayPopup(containerView, anchor, BrowserMenu.Orientation.DOWN)
-        verify(popupWindow).showAtLocation(anchor, Gravity.START or Gravity.TOP, 0, 0)
+        val result = menu.configureExpandableMenu(menuList, true)
+
+        assertSame(menuList, result)
+        verify(menu).showMenuBottom(menuList)
+    }
+
+    @Test
+    fun `GIVEN a menu that should be scrolled to the bottom WHEN showMenuBottom is called THEN it replaces the layout manager and sets stackFromEnd`() {
+        val menu = spy(BrowserMenu(mock()))
+        // Call show to have a default layout manager set
+        menu.show(View(testContext))
+        val initialLayoutManager = menu.menuList!!.layoutManager
+
+        menu.showMenuBottom(menu.menuList!!)
+
+        assertNotSame(initialLayoutManager, menu.menuList!!.layoutManager)
+        assertTrue((menu.menuList!!.layoutManager as LinearLayoutManager).stackFromEnd)
+    }
+
+    @Test
+    fun `getNewPopupWindow will return a PopupWindow with MATCH_PARENT height if the view is ExpandableLayout`() {
+        val expandableLayout = ExpandableLayout.wrapContentInExpandableView(FrameLayout(testContext), 0) { }
+
+        val result = BrowserMenu(mock()).getNewPopupWindow(expandableLayout)
+
+        assertSame(expandableLayout, result.contentView)
+        assertTrue(result.height == MATCH_PARENT)
+        assertTrue(result.width == WRAP_CONTENT)
+    }
+
+    @Test
+    fun `getNewPopupWindow will return a PopupWindow with WRAP_CONTENT height if the view is not ExpandableLayout`() {
+        val notExpandableLayout = FrameLayout(testContext)
+
+        val result = BrowserMenu(mock()).getNewPopupWindow(notExpandableLayout)
+
+        assertSame(notExpandableLayout, result.contentView)
+        assertTrue(result.height == WRAP_CONTENT)
+        assertTrue(result.width == WRAP_CONTENT)
     }
 
     @Test
@@ -404,17 +431,6 @@ class BrowserMenuTest {
         menu.onViewDetachedFromWindow(anchor)
 
         assertFalse(popupWindow.isShowing)
-    }
-
-    private fun createMockViewWith(y: Int): View {
-        val view = spy(View(testContext))
-        doAnswer { invocation ->
-            val locationInWindow = (invocation.getArgument(0) as IntArray)
-            locationInWindow[0] = 0
-            locationInWindow[1] = y
-            locationInWindow
-        }.`when`(view).getLocationInWindow(any())
-        return view
     }
 
     private fun setScreenHeight(value: Int) {

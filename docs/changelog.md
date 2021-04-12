@@ -12,8 +12,34 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-menu**:
+  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10032) - Fix a recent issue with ExpandableLayout - user touches on an expanded menu might not have any effect on Samsung devices.
+
+* **browser-menu**:
+  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10005) - Fix a recent issue with BrowserMenu#show() - endOfMenuAlwaysVisible not being applied.
+
+* **browser-menu**:
+  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/9922) - The browser menu will have it's dynamic width calculated only once, before the first layout.
+
+* **browser-menu**
+  * 🌟️ BrowserMenu support a bottom collapsed/expandable layout through a new ExpandableLayout that will wrap a menu layout before being used in a PopupWindow and automatically allow the collapse/expand behaviors.
+  * To use this set `isCollapsingMenuLimit = true` for any menu item of a bottom anchored menu.
+
+* **browser-toolbar**
+* **feature-session**
+  * 🚒️ **Various issues related to the dynamic toolbar and pull to refresh will be fixed with with GeckoView offering more details about how the touch event will be handled.
+
+* **concept-engine**
+  * ⚠️ **EngineView#InputResult is deprecated in favor of InputResultDetail which offers more details about how a touch event will be handled.
+
 * **feature-downloads**:
   * 🚒 Bug fixed [issue #9964](https://github.com/mozilla-mobile/android-components/issues/9964) - Downloads notification strings are not localized.
+
+* **service-nimbus**
+  * Added `getExperimentBranches` method to `Nimbus` for retrieving a list of experiment branches for a given experiment. [issue #9895](https://github.com/mozilla-mobile/android-components/issues/9895)
+
+* **feature-tabs**
+  * Added usecase for duplicating tabs to `TabsUseCases`.
 
 # 74.0.0
 

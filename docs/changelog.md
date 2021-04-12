@@ -13,6 +13,9 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
 * **browser-menu**:
+  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10032) - Fix a recent issue with ExpandableLayout - user touches on an expanded menu might not have any effect on Samsung devices.
+
+* **browser-menu**:
   * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10005) - Fix a recent issue with BrowserMenu#show() - endOfMenuAlwaysVisible not being applied.
 
 * **browser-menu**:
@@ -34,6 +37,9 @@ permalink: /changelog/
 
 * **service-nimbus**
   * Added `getExperimentBranches` method to `Nimbus` for retrieving a list of experiment branches for a given experiment. [issue #9895](https://github.com/mozilla-mobile/android-components/issues/9895)
+
+* **feature-tabs**
+  * Added usecase for duplicating tabs to `TabsUseCases`.
 
 # 74.0.0
 

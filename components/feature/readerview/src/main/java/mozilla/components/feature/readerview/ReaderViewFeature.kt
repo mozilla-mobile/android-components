@@ -56,6 +56,7 @@ class ReaderViewFeature(
 ) : LifecycleAwareFeature, UserInteractionHandler {
 
     private var scope: CoroutineScope? = null
+    private var engineSessionStateScope: CoroutineScope? = null
 
     @VisibleForTesting
     // This is an internal var to make it mutable for unit testing purposes only
@@ -98,11 +99,29 @@ class ReaderViewFeature(
                 }
         }
 
+        engineSessionStateScope = store.flowScoped { flow ->
+            flow.mapNotNull { state -> state.tabs }
+                .filterChanged {
+                    it.engineState.engineSessionState
+                }
+                .collect { tab ->
+                    if (!tab.readerState.checkRequired && !tab.readerState.active) {
+                        tab.engineState.engineSession?.let { engineSession ->
+                            val message = createCheckReaderStateMessage()
+                            if (extensionController.portConnected(engineSession, READER_VIEW_CONTENT_PORT)) {
+                                extensionController.sendContentMessage(message, engineSession, READER_VIEW_CONTENT_PORT)
+                            }
+                        }
+                    }
+                }
+        }
+
         controlsInteractor.start()
     }
 
     override fun stop() {
         scope?.cancel()
+        engineSessionStateScope?.cancel()
         controlsInteractor.stop()
     }
 
@@ -216,9 +235,12 @@ class ReaderViewFeature(
 
     private fun ensureExtensionInstalled() {
         val feature = WeakReference(this)
-        extensionController.install(engine, onSuccess = {
-            feature.get()?.connectReaderViewContentScript()
-        })
+        extensionController.install(
+            engine,
+            onSuccess = {
+                feature.get()?.connectReaderViewContentScript()
+            }
+        )
     }
 
     /**

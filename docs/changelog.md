@@ -12,6 +12,8 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: `DefaultTopSitesStorage` will maintain a database table of the list of default top sites to add to the `PinnedSiteStorage` based on the user's region and language. `DefaultTopSitesStorage` requires the application context, `RegionState` and `isDefaultSiteAdded` boolean. See [#8491](https://github.com/mozilla-mobile/android-components/issues/8491).
 
 * **browser-menu**:
   * 🌟️ New StickyHeaderLinearLayoutManager and StickyFooterLinearLayoutManager that can be used to keep an item from being scrolled off-screen.

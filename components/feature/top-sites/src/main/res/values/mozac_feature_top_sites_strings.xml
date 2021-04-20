@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<resources>
+    <!-- Default title for pinned Baidu top site that links to Baidu home page  -->
+    <string name="default_top_site_baidu" translatable="false">百度</string>
+    <!-- Default title for pinned JD top site that links to JD home page  -->
+    <string name="default_top_site_jd" translatable="false">京东</string>
+    <!-- Default title for pinned Pocket top site that links to trending Pocket site -->
+    <string name="pocket_pinned_top_articles" translatable="false">Top Articles</string>
+    <!-- Default title for pinned Wikipedia top site that links to Wikipedia home page -->
+    <string name="default_top_site_wikipedia" translatable="false">Wikipedia</string>
+    <!-- Default title for pinned Google top site that links to Google home page  -->
+    <string name="default_top_site_google" translatable="false">Google</string>
+</resources>

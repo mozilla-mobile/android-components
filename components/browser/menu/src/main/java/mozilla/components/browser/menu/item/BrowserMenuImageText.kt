@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getColor
@@ -44,18 +45,23 @@ internal fun TextView.setColorResource(@ColorRes textColorResource: Int) {
  * @param iconTintColorResource Optional ID of color resource to tint the icon.
  * @param textColorResource Optional ID of color resource to tint the text.
  * @param isCollapsingMenuLimit Whether this menu item can serve as the limit of a collapsing menu.
+ * @param isSticky whether this item menu should not be scrolled offscreen (downwards or upwards
+ * depending on the menu position).
  * @param listener Callback to be invoked when this menu item is clicked.
  */
 @Suppress("LongParameterList")
 open class BrowserMenuImageText(
     private val label: String,
     @DrawableRes
-    private val imageResource: Int,
+    @VisibleForTesting
+    internal val imageResource: Int,
     @ColorRes
-    private val iconTintColorResource: Int = NO_ID,
+    @VisibleForTesting
+    internal val iconTintColorResource: Int = NO_ID,
     @ColorRes
     private val textColorResource: Int = NO_ID,
     override val isCollapsingMenuLimit: Boolean = false,
+    override val isSticky: Boolean = false,
     private val listener: () -> Unit = {}
 ) : BrowserMenuItem {
 

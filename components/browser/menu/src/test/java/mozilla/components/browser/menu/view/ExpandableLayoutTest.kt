@@ -21,8 +21,10 @@ import androidx.core.view.marginLeft
 import androidx.core.view.marginRight
 import androidx.core.view.marginTop
 import androidx.core.view.updateLayoutParams
+import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.any
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -49,7 +51,7 @@ class ExpandableLayoutTest {
         }
 
         val result = ExpandableLayout.wrapContentInExpandableView(
-            wrappedView, 42, blankTouchListener
+            wrappedView, 42, 33, blankTouchListener
         )
 
         assertEquals(FrameLayout.LayoutParams.WRAP_CONTENT, result.wrappedView.layoutParams.height)
@@ -64,6 +66,7 @@ class ExpandableLayoutTest {
 
         // Also test the default configuration of a newly built ExpandableLayout.
         assertEquals(42, result.lastVisibleItemIndexWhenCollapsed)
+        assertEquals(33, result.stickyItemIndex)
         assertEquals(ExpandableLayout.NOT_CALCULATED_DEFAULT_HEIGHT, result.collapsedHeight)
         assertEquals(ExpandableLayout.NOT_CALCULATED_DEFAULT_HEIGHT, result.expandedHeight)
         assertEquals(ExpandableLayout.NOT_CALCULATED_DEFAULT_HEIGHT, result.parentHeight)
@@ -145,7 +148,7 @@ class ExpandableLayoutTest {
     fun `GIVEN an expanded menu WHEN onInterceptTouchEvent is called for a touch on the menu THEN super is called`() {
         val blankTouchListener = spy {}
         val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(
-            FrameLayout(testContext), 1, blankTouchListener)
+            FrameLayout(testContext), 1, blankTouchListener = blankTouchListener)
         )
         val event: MotionEvent = mock()
         doReturn(false).`when`(expandableLayout).shouldInterceptTouches()
@@ -161,7 +164,7 @@ class ExpandableLayoutTest {
     fun `GIVEN a menu currently expanding WHEN onInterceptTouchEvent is called for a touch on the menu THEN the touch is swallowed`() {
         val blankTouchListener = spy {}
         val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(
-            FrameLayout(testContext), 1, blankTouchListener)
+            FrameLayout(testContext), 1, blankTouchListener = blankTouchListener)
         )
         val event: MotionEvent = mock()
         doReturn(false).`when`(expandableLayout).shouldInterceptTouches()
@@ -178,7 +181,7 @@ class ExpandableLayoutTest {
     fun `GIVEN an expanded menu WHEN onInterceptTouchEvent is called for a outside the menu THEN super blankTouchListener is invoked`() {
         val blankTouchListener = spy {}
         val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(
-            FrameLayout(testContext), 1, blankTouchListener)
+            FrameLayout(testContext), 1, blankTouchListener = blankTouchListener)
         )
         val event: MotionEvent = mock()
         doReturn(false).`when`(expandableLayout).shouldInterceptTouches()
@@ -236,7 +239,7 @@ class ExpandableLayoutTest {
         var listenerCalled = false
         val listener = spy { listenerCalled = true }
         val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(
-            FrameLayout(testContext), 1, listener)
+            FrameLayout(testContext), 1, blankTouchListener = listener)
         )
         doReturn(false).`when`(expandableLayout).isTouchingTheWrappedView(any())
         val actionDown = MotionEvent.obtain(0, 0, ACTION_DOWN, 0f, 0f, 0)
@@ -251,7 +254,7 @@ class ExpandableLayoutTest {
         var listenerCalled = false
         val listener = spy { listenerCalled = true }
         val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(
-            FrameLayout(testContext), 1, listener)
+            FrameLayout(testContext), 1, blankTouchListener = listener)
         )
         doReturn(true).`when`(expandableLayout).isTouchingTheWrappedView(any())
         val actionDown = MotionEvent.obtain(0, 0, ACTION_DOWN, 0f, 0f, 0)
@@ -544,9 +547,10 @@ class ExpandableLayoutTest {
 
     @Test
     fun `GIVEN a list of items WHEN calculateCollapsedHeight is called with an item index not found in the items list THEN it returns the value of measuredHeight`() {
-        val list = FrameLayout(testContext).apply {
-            addView(mock())
-            addView(mock())
+        val list = RecyclerView(testContext).apply {
+            layoutManager = mock()
+            addView(mock(), mock<RecyclerView.LayoutParams>())
+            addView(mock(), mock<RecyclerView.LayoutParams>())
         }
         val wrappedView = FrameLayout(testContext).apply { addView(list) }
         val measuredHeight = -42
@@ -556,24 +560,34 @@ class ExpandableLayoutTest {
 
         doReturn(measuredHeight).`when`(expandableLayout).measuredHeight
 
+        doReturn(0).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), anyInt())
         assertEquals(measuredHeight, expandableLayout.calculateCollapsedHeight())
 
         // Here we test the list of two items collapsed to the first.
         expandableLayout.lastVisibleItemIndexWhenCollapsed = 1
+        doReturn(1).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), anyInt())
         assertEquals(0, expandableLayout.calculateCollapsedHeight())
 
         expandableLayout.lastVisibleItemIndexWhenCollapsed = 2
+        doReturn(2).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), anyInt())
         assertEquals(measuredHeight, expandableLayout.calculateCollapsedHeight())
     }
 
     @Test
-    fun `GIVEN calculateCollapsedHeight() WHEN called THEN it returns the distance between parent top and half of the SpecialView`() {
+    fun `GIVEN calculateCollapsedHeight() WHEN called without a sticky footer index THEN it returns the distance between parent top and half of the SpecialView`() {
         val viewHeightForEachProperty = 1_000
         val listHeightForEachProperty = 100
         val itemHeightForEachProperty = 10
+        val layoutManager = mock<RecyclerView.LayoutManager>()
+        // Although correctly set below (in configureWithHeight) the params get overwritten in RecyclerView when adding items
+        // So we need to fake RecyclerView's LayoutParams response.
+        val layoutParams = mock<RecyclerView.LayoutParams>()
+            .also { it.configureMarginResponse(itemHeightForEachProperty) }
+        doReturn(layoutParams).`when`(layoutManager).generateLayoutParams(any())
         // Adding Views and creating spies in two stages because otherwise
         // the addView call for a spy will not get us the expected result.
-        var list = FrameLayout(testContext).apply {
+        var list = RecyclerView(testContext).apply {
+            this.layoutManager = layoutManager
             addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
             addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
             addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
@@ -581,17 +595,114 @@ class ExpandableLayoutTest {
         list = spy(list).configureWithHeight(listHeightForEachProperty)
         var wrappedView = FrameLayout(testContext).apply { addView(list) }
         wrappedView = spy(wrappedView).configureWithHeight(viewHeightForEachProperty)
-        val expandableLayout = ExpandableLayout.wrapContentInExpandableView(wrappedView, 1) { }
+        val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(wrappedView, 1) { })
+        doReturn(1).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), eq(1))
 
         val result = expandableLayout.calculateCollapsedHeight()
 
         var expected = 0
         expected += viewHeightForEachProperty * 4 // marginTop + marginBottom + paddingTop + paddingBottom
         expected += listHeightForEachProperty * 4 // marginTop + marginBottom + paddingTop + paddingBottom
-        expected += itemHeightForEachProperty * 5 // height + marginTop + marginBottom + paddingTop + paddingBottom for the top item shown in entirety
-        expected += itemHeightForEachProperty * 2 // marginTop + paddingTop for the special view
+        expected += itemHeightForEachProperty * 3 // height + marginTop + marginBottom for the top item shown in entirety
+        expected += itemHeightForEachProperty // marginTop for the special view
         expected += itemHeightForEachProperty / 2 // as per the specs, show only half of the special view
         assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN calculateCollapsedHeight() WHEN called with a sticky footer index THEN it returns the distance between parent top and half of the SpecialView + height of sticky`() {
+        val viewHeightForEachProperty = 1_000
+        val listHeightForEachProperty = 100
+        val itemHeightForEachProperty = 10
+        val layoutManager = mock<RecyclerView.LayoutManager>()
+        // Although correctly set below (in configureWithHeight) the params get overwritten in RecyclerView when adding items
+        // So we need to fake RecyclerView's LayoutParams response.
+        val layoutParams = mock<RecyclerView.LayoutParams>()
+            .also { it.configureMarginResponse(itemHeightForEachProperty) }
+        doReturn(layoutParams).`when`(layoutManager).generateLayoutParams(any())
+        // Adding Views and creating spies in two stages because otherwise
+        // the addView call for a spy will not get us the expected result.
+        var list = RecyclerView(testContext).apply {
+            this.layoutManager = layoutManager
+            addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
+            addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
+            addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
+        }
+        list = spy(list).configureWithHeight(listHeightForEachProperty)
+        var wrappedView = FrameLayout(testContext).apply { addView(list) }
+        wrappedView = spy(wrappedView).configureWithHeight(viewHeightForEachProperty)
+        val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(wrappedView, 1, 2) { })
+        doReturn(1).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), eq(1))
+        doReturn(2).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), eq(2))
+
+        val result = expandableLayout.calculateCollapsedHeight()
+
+        var expected = 0
+        expected += viewHeightForEachProperty * 4 // marginTop + marginBottom + paddingTop + paddingBottom
+        expected += listHeightForEachProperty * 4 // marginTop + marginBottom + paddingTop + paddingBottom
+        expected += itemHeightForEachProperty * 3 // height + marginTop + marginBottom for the top item shown in entirety
+        expected += itemHeightForEachProperty // marginTop for the special view
+        expected += itemHeightForEachProperty / 2 // as per the specs, show only half of the special view
+        expected += itemHeightForEachProperty // height of the sticky item
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN calculateCollapsedHeight() WHEN called the same item as limit and sticky THEN it returns the distance between parent top and bottom of sticky`() {
+        val viewHeightForEachProperty = 1_000
+        val listHeightForEachProperty = 100
+        val itemHeightForEachProperty = 10
+        val layoutManager = mock<RecyclerView.LayoutManager>()
+        // Although correctly set below (in configureWithHeight) the params get overwritten in RecyclerView when adding items
+        // So we need to fake RecyclerView's LayoutParams response.
+        val layoutParams = mock<RecyclerView.LayoutParams>()
+            .also { it.configureMarginResponse(itemHeightForEachProperty) }
+        doReturn(layoutParams).`when`(layoutManager).generateLayoutParams(any())
+        // Adding Views and creating spies in two stages because otherwise
+        // the addView call for a spy will not get us the expected result.
+        var list = RecyclerView(testContext).apply {
+            this.layoutManager = layoutManager
+            addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
+            addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
+            addView(spy(View(testContext)).configureWithHeight(itemHeightForEachProperty))
+        }
+        list = spy(list).configureWithHeight(listHeightForEachProperty)
+        var wrappedView = FrameLayout(testContext).apply { addView(list) }
+        wrappedView = spy(wrappedView).configureWithHeight(viewHeightForEachProperty)
+        val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(wrappedView, 1, 1) { })
+        doReturn(1).`when`(expandableLayout).getChildPositionForAdapterIndex(any(), eq(1))
+
+        val result = expandableLayout.calculateCollapsedHeight()
+
+        var expected = 0
+        expected += viewHeightForEachProperty * 4 // marginTop + marginBottom + paddingTop + paddingBottom
+        expected += listHeightForEachProperty * 4 // marginTop + marginBottom + paddingTop + paddingBottom
+        expected += itemHeightForEachProperty * 3 // height + marginTop + marginBottom for the top item shown in entirety
+        expected += itemHeightForEachProperty // marginTop for the special view
+        expected += itemHeightForEachProperty // height of the sticky item
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN a RecyclerView with a set Adapter WHEN getChildPositionForAdapterIndex is called THEN it returns the list position of the item in Adapter`() {
+        val layoutManager = mock<RecyclerView.LayoutManager>()
+        // Although correctly set below (in configureWithHeight) the params get overwritten in RecyclerView when adding items
+        // So we need to fake RecyclerView's LayoutParams response.
+        val layoutParams = mock<RecyclerView.LayoutParams>()
+        doReturn(layoutParams).`when`(layoutManager).generateLayoutParams(any())
+        val list = spy(RecyclerView(testContext).apply {
+            this.layoutManager = layoutManager
+            addView(View(testContext).apply { setLayoutParams(ViewGroup.LayoutParams(10, 10)) })
+            addView(View(testContext).apply { setLayoutParams(ViewGroup.LayoutParams(10, 10)) })
+            addView(View(testContext).apply { setLayoutParams(ViewGroup.LayoutParams(10, 10)) })
+        })
+        val wrappedView = FrameLayout(testContext).apply { addView(list) }
+        val expandableLayout = spy(ExpandableLayout.wrapContentInExpandableView(wrappedView))
+        doReturn(3).`when`(list).getChildAdapterPosition(any())
+
+        assertEquals(-1, expandableLayout.getChildPositionForAdapterIndex(list, 2))
+        // We'll get a match based on the above "doReturn().." and adapterIndex: 3 for the first child.
+        assertEquals(0, expandableLayout.getChildPositionForAdapterIndex(list, 3))
     }
 }
 
@@ -607,4 +718,14 @@ fun <V> V.configureWithHeight(height: Int): V where V : View {
     setPadding(height, height, height, height)
 
     return this
+}
+
+/**
+ * Convenience method for setting the [margin] value to all LayoutParams margins.
+ */
+fun <T> T.configureMarginResponse(margin: Int) where T : ViewGroup.MarginLayoutParams {
+    this.topMargin = margin
+    this.rightMargin = margin
+    this.bottomMargin = margin
+    this.leftMargin = margin
 }

@@ -20,6 +20,7 @@ import androidx.core.view.marginLeft
 import androidx.core.view.marginRight
 import androidx.core.view.marginTop
 import androidx.core.view.updateLayoutParams
+import androidx.recyclerview.widget.RecyclerView
 
 /**
  * ViewGroup intended to wrap another to then allow for the following automatic behavior:
@@ -27,7 +28,7 @@ import androidx.core.view.updateLayoutParams
  * - informs about touches in the empty space left by the collapsed view through [blankTouchListener].
  * - when users swipe up it will expand. Once expanded it remains so.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 internal class ExpandableLayout private constructor(context: Context) : FrameLayout(context) {
     /**
      * The wrapped view that needs to be collapsed / expanded.
@@ -46,6 +47,12 @@ internal class ExpandableLayout private constructor(context: Context) : FrameLay
      */
     @VisibleForTesting
     internal var lastVisibleItemIndexWhenCollapsed: Int = Int.MAX_VALUE
+
+    /**
+     * Index of the sticky footer, if such an item is set.
+     */
+    @VisibleForTesting
+    internal var stickyItemIndex: Int = RecyclerView.NO_POSITION
 
     /**
      * Height of wrapped view when collapsed.
@@ -302,11 +309,23 @@ internal class ExpandableLayout private constructor(context: Context) : FrameLay
     // That distance will be the collapsed height of the ViewGroup used when this will be first shown on the screen.
     // Users will be able to afterwards expand the ViewGroup to the full height.
     @VisibleForTesting
+    @Suppress("ReturnCount")
     internal fun calculateCollapsedHeight(): Int {
-        val listView = (wrappedView.getChildAt(0) as ViewGroup)
+        val listView = (wrappedView.getChildAt(0) as RecyclerView)
+        // Reconcile adapter positions with listView children positions.
+        // Avoid IndexOutOfBounds / NullPointer exceptions.
+        val validLastVisibleItemIndexWhenCollapsed = getChildPositionForAdapterIndex(
+            listView,
+            lastVisibleItemIndexWhenCollapsed
+        )
+        val validStickyItemIndex = getChildPositionForAdapterIndex(
+            listView,
+            stickyItemIndex
+        )
+
         // Simple sanity check
-        if (lastVisibleItemIndexWhenCollapsed >= listView.childCount ||
-            lastVisibleItemIndexWhenCollapsed <= 0) {
+        if (validLastVisibleItemIndexWhenCollapsed >= listView.childCount ||
+            validLastVisibleItemIndexWhenCollapsed <= 0) {
 
             return measuredHeight
         }
@@ -321,23 +340,54 @@ internal class ExpandableLayout private constructor(context: Context) : FrameLay
         result += listView.paddingTop
         result += listView.paddingBottom
 
-        listView.children.forEachIndexed { index, view ->
-            if (index < lastVisibleItemIndexWhenCollapsed) {
-                result += view.marginTop
-                result += view.marginBottom
-                result += view.paddingTop
-                result += view.paddingBottom
-                result += view.measuredHeight
-            } else if (index == lastVisibleItemIndexWhenCollapsed) {
-                result += view.marginTop
-                result += view.paddingTop
-                result += view.measuredHeight / 2
+        run loop@{
+            listView.children.forEachIndexed { index, view ->
+                if (index < validLastVisibleItemIndexWhenCollapsed) {
+                    result += view.marginTop
+                    result += view.marginBottom
+                    result += view.measuredHeight
+                } else if (index == validLastVisibleItemIndexWhenCollapsed) {
+                    result += view.marginTop
 
-                return@forEachIndexed
+                    // Edgecase: if the same item is the sticky footer and the lastVisibleItemIndexWhenCollapsed
+                    // the menu will be collapsed to this item but shown with full height.
+                    if (index == validStickyItemIndex) {
+                        result += view.measuredHeight
+                        return@loop
+                    } else {
+                        result += view.measuredHeight / 2
+                    }
+                } else {
+                    // If there is a sticky item below we need to add it's height as an offset.
+                    // Otherwise the sticky item will cover the the view of lastVisibleItemIndexWhenCollapsed.
+                    if (index <= validStickyItemIndex) {
+                        result += listView.getChildAt(validStickyItemIndex).measuredHeight
+                    }
+                    return@loop
+                }
             }
         }
 
         return result
+    }
+
+    /**
+     * In a dynamic menu - one in which items or their positions may change the adapter position and
+     * the RecyclerView position for the same item may differ.
+     * This method helps reconcile that.
+     *
+     * @return the RecyclerView position for the item at the [adapterIndex] in the adapter or
+     * [RecyclerView.NO_POSITION] if there is no child for the indicated adapter position.
+     */
+    @VisibleForTesting
+    internal fun getChildPositionForAdapterIndex(listView: RecyclerView, adapterIndex: Int): Int {
+        listView.children.forEachIndexed { index, view ->
+            if (listView.getChildAdapterPosition(view) == adapterIndex) {
+                return index
+            }
+        }
+
+        return RecyclerView.NO_POSITION
     }
 
     internal companion object {
@@ -362,6 +412,7 @@ internal class ExpandableLayout private constructor(context: Context) : FrameLay
         internal fun wrapContentInExpandableView(
             contentView: ViewGroup,
             lastVisibleItemIndexWhenCollapsed: Int = Int.MAX_VALUE,
+            stickyFooterItemIndex: Int = RecyclerView.NO_POSITION,
             blankTouchListener: (() -> Unit)? = null
         ): ExpandableLayout {
 
@@ -376,6 +427,7 @@ internal class ExpandableLayout private constructor(context: Context) : FrameLay
             expandableView.addView(contentView, params)
 
             expandableView.wrappedView = contentView
+            expandableView.stickyItemIndex = stickyFooterItemIndex
             expandableView.blankTouchListener = blankTouchListener
             expandableView.lastVisibleItemIndexWhenCollapsed = lastVisibleItemIndexWhenCollapsed
 

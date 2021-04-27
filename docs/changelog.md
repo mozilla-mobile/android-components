@@ -12,8 +12,29 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-downloads**:
+  * ⚠️ **This is a breaking change**: `AbstractFetchDownloadService.openFile()` changed its signature from `AbstractFetchDownloadService.openFile(context: Context, filePath: String, contentType: String?)` to `AbstractFetchDownloadService.openFile(applicationContext: Context, download: DownloadState)`.
+  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10138) - The downloaded files cannot be seen.
+
 * **browser-engine-gecko(-nightly/beta)**
   * ⚠️ From now on there will be only one `concept-engine` implementation using [GeckoView](https://mozilla.github.io/geckoview/). On `master` this will be the Nightly version. In release versions it will be the corresponding Beta or Release version. More about this in [RFC 7](https://mozac.org/rfc/0007-synchronized-releases).
+
+* **concept-sync**, **browser-storage-sync**
+  * ⚠️ **This is a breaking change**: `SyncableStore` now has a `registerWithSyncManager` method for use in newer storage layers.
+
+* **concept-storage**, **service-sync-autofill**
+  * ⚠️ **This is a breaking change**: Update and add APIs now take specific `UpdatableCreditCardFields` and `NewCreditCardFields` data classes as arguments.
+  * ⚠️ **This is a breaking change**: `CreditCard`'s number field changed to `encryptedCardNumber`, `cardNumberLast4` added.
+  * New `CreditCardNumber` class, which encapsulate either an encrypted or plaintext versions of credit cards.
+  * `AutofillCreditCardsAddressesStorage` reflects these breaking changes.
+
+* **service-firefox-accounts**
+  * 🌟️ When configuring syncable storage layers, `SyncManager` now takes an optional `KeyProvider` to handle encryption/decryption of protected values.
+  * 🌟️ Support for syncing Address and Credit Cards
+
+* **lib-dataprotect**
+  * 🌟️ New APIs for managing keys - `ManagedKey`, `KeyProvider` and `KeyRecoveryHandler`.
+  * 🌟️ `AutofillCreditCardsAddressesStorage` implements these APIs for managing keys for credit card storage.
 
 # 75.0.0
 

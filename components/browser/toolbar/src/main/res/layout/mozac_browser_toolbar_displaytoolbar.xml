@@ -101,8 +101,9 @@
     <mozilla.components.browser.toolbar.display.OriginView
         android:id="@+id/mozac_browser_toolbar_origin_view"
         android:layout_width="0dp"
-        android:layout_height="40dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:minHeight="40dp"
         app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_page_actions"
         app:layout_constraintStart_toEndOf="@+id/mozac_browser_toolbar_security_indicator"
         app:layout_constraintTop_toTopOf="parent"

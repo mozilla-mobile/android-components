@@ -35,7 +35,7 @@ class GeckoAutocompleteStorageDelegate(
         val result = GeckoResult<Array<Autocomplete.CreditCard>>()
 
         GlobalScope.launch(IO) {
-            val creditCards = creditCardsAddressesStorageDelegate.onCreditCardsFetch().await()
+            val creditCards = creditCardsAddressesStorageDelegate.onCreditCardsFetch()
                 .mapNotNull {
                     val plaintextCardNumber =
                         creditCardsAddressesStorageDelegate.decrypt(it.encryptedCardNumber)?.number
@@ -67,12 +67,9 @@ class GeckoAutocompleteStorageDelegate(
         val result = GeckoResult<Array<Autocomplete.LoginEntry>>()
 
         GlobalScope.launch(IO) {
-            val storedLogins = loginStorageDelegate.onLoginFetch(domain)
-
-            val logins = storedLogins.await()
+            val logins = loginStorageDelegate.onLoginFetch(domain)
                 .map { it.toLoginEntry() }
                 .toTypedArray()
-
             result.complete(logins)
         }
 

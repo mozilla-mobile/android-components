@@ -6,7 +6,6 @@ package mozilla.components.concept.storage
 
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
-import kotlinx.coroutines.Deferred
 
 /**
  * An interface which defines read/write methods for credit card and address data.
@@ -325,22 +324,30 @@ interface CreditCardsAddressesStorageDelegate {
     /**
      * Returns all stored addresses. This is called when the engine believes an address field
      * should be autofilled.
+     *
+     * @return A list of all stored [Address]es.
      */
-    fun onAddressesFetch(): Deferred<List<Address>>
+    suspend fun onAddressesFetch(): List<Address>
 
     /**
      * Saves the given address to storage.
+     *
+     * @param address [Address] to be saved or updated in the address storage.
      */
     fun onAddressSave(address: Address)
 
     /**
      * Returns all stored credit cards. This is called when the engine believes a credit card
      * field should be autofilled.
+     *
+     * @return A list of all stored [CreditCard]s.
      */
-    fun onCreditCardsFetch(): Deferred<List<CreditCard>>
+    suspend fun onCreditCardsFetch(): List<CreditCard>
 
     /**
      * Saves the given credit card to storage.
+     *
+     * @param creditCard [CreditCard] to be saved or updated in the credit card storage.
      */
     fun onCreditCardSave(creditCard: CreditCard)
 }

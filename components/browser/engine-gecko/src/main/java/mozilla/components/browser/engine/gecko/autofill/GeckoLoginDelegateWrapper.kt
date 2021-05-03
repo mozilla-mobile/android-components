@@ -32,9 +32,7 @@ class GeckoLoginDelegateWrapper(private val storageDelegate: LoginStorageDelegat
         val result = GeckoResult<Array<Autocomplete.LoginEntry>>()
 
         GlobalScope.launch(IO) {
-            val storedLogins = storageDelegate.onLoginFetch(domain)
-
-            val logins = storedLogins.await()
+            val logins = storageDelegate.onLoginFetch(domain)
                 .map { it.toLoginEntry() }
                 .toTypedArray()
 

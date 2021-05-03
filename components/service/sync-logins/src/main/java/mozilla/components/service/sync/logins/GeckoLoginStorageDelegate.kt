@@ -5,10 +5,9 @@
 package mozilla.components.service.sync.logins
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginStorageDelegate
 import mozilla.components.concept.storage.LoginValidationDelegate
@@ -58,11 +57,10 @@ class GeckoLoginStorageDelegate(
         }
     }
 
-    override fun onLoginFetch(domain: String): Deferred<List<Login>> {
-        return scope.async {
+    override suspend fun onLoginFetch(domain: String): List<Login> =
+        withContext(scope.coroutineContext) {
             loginStorage.value.getByBaseDomain(domain)
         }
-    }
 
     @Synchronized
     override fun onLoginSave(login: Login) {

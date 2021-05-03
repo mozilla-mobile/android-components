@@ -264,7 +264,7 @@ interface LoginStorageDelegate {
      *
      * This is called when the engine believes a field should be autofilled.
      */
-    fun onLoginFetch(domain: String): Deferred<List<Login>>
+    suspend fun onLoginFetch(domain: String): List<Login>
 
     /**
      * Called when a [login] should be saved or updated.

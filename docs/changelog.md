@@ -19,11 +19,11 @@ permalink: /changelog/
   * 🌟️ `getBlockedSchemes()` now exposes the list of url shemes that the engine won't load.
 
 * **browser-menu**:
-  * 🚒 Bug fixed [issue #10032](https://github.com/mozilla-mobile/android-components/issues/10032) - A BrowserMenuCompoundButton used in our BrowserMenu setup with a DynamicWidthRecyclerView is not clipped anymore.
+  * 🚒 Bug fixed [issue #10133](https://github.com/mozilla-mobile/android-components/issues/10133) - A BrowserMenuCompoundButton used in our BrowserMenu setup with a DynamicWidthRecyclerView is not clipped anymore.
 
 * **feature-downloads**:
   * ⚠️ **This is a breaking change**: `AbstractFetchDownloadService.openFile()` changed its signature from `AbstractFetchDownloadService.openFile(context: Context, filePath: String, contentType: String?)` to `AbstractFetchDownloadService.openFile(applicationContext: Context, download: DownloadState)`.
-  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10138) - The downloaded files cannot be seen.
+  * 🚒 Bug fixed [issue #10138](https://github.com/mozilla-mobile/android-components/issues/10138) - The downloaded files cannot be seen.
   * 🚒 Bug fixed [issue #10157](https://github.com/mozilla-mobile/android-components/issues/10157) - Crash on startup when tying to restore data URLs from the db.
 
 * **browser-engine-gecko(-nightly/beta)**
@@ -41,6 +41,9 @@ permalink: /changelog/
 * **service-firefox-accounts**
   * 🌟️ When configuring syncable storage layers, `SyncManager` now takes an optional `KeyProvider` to handle encryption/decryption of protected values.
   * 🌟️ Support for syncing Address and Credit Cards
+
+* **service-glean**
+  * `ConceptFetchHttpUploader` adds support for private requests. By default, all requests are non-private.
 
 * **lib-dataprotect**
   * 🌟️ New APIs for managing keys - `ManagedKey`, `KeyProvider` and `KeyRecoveryHandler`.

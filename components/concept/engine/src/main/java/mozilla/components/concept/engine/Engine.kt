@@ -12,6 +12,7 @@ import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.activity.ActivityDelegate
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
@@ -91,6 +92,26 @@ interface Engine : WebExtensionRuntime, DataCleanable {
      */
     @MainThread
     fun createSession(private: Boolean = false, contextId: String? = null): EngineSession
+
+    /**
+     * Creates a new engine session. If [speculativeCreateSession] is supported this
+     * method returns the prepared [EngineSession] if it is still applicable i.e.
+     * the parameter(s) ([private]) are equal.
+     *
+     * @param private whether or not this session should use private mode.
+     * @param manifestDisplayMode the display-mode CSS media feature as exposed in WebAppManifest
+     * @param contextId the session context ID for this session.
+     *
+     * @return the newly created [EngineSession].
+     */
+    @MainThread
+    fun createSession(
+        private: Boolean = false,
+        manifestDisplayMode: WebAppManifest.DisplayMode? = WebAppManifest.DisplayMode.STANDALONE,
+        contextId: String? = null
+    ): EngineSession {
+        return createSession(private, contextId)
+    }
 
     /**
      * Create a new [EngineSessionState] instance from the serialized JSON representation.

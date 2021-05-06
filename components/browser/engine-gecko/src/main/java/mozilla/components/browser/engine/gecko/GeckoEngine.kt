@@ -36,6 +36,7 @@ import mozilla.components.concept.engine.activity.ActivityDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.Action
@@ -58,6 +59,7 @@ import org.mozilla.geckoview.ContentBlockingController.Event
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.WebExtensionController
 import java.lang.ref.WeakReference
@@ -65,7 +67,7 @@ import java.lang.ref.WeakReference
 /**
  * Gecko-based implementation of Engine interface.
  */
-@Suppress("LargeClass")
+@Suppress("TooManyFunctions", "LargeClass")
 class GeckoEngine(
     context: Context,
     private val defaultSettings: Settings? = null,
@@ -160,6 +162,35 @@ class GeckoEngine(
         ThreadUtils.assertOnUiThread()
         val speculativeSession = speculativeConnectionFactory.get(private, contextId)
         return speculativeSession ?: GeckoEngineSession(runtime, private, defaultSettings, contextId)
+    }
+
+    /**
+     * See [Engine.createSession].
+     */
+    override fun createSession(
+        private: Boolean,
+        manifestDisplayMode: WebAppManifest.DisplayMode?,
+        contextId: String?
+    ): EngineSession {
+        ThreadUtils.assertOnUiThread()
+
+        val displayMode = when (manifestDisplayMode) {
+            WebAppManifest.DisplayMode.FULLSCREEN -> GeckoSessionSettings.DISPLAY_MODE_FULLSCREEN
+            WebAppManifest.DisplayMode.STANDALONE -> GeckoSessionSettings.DISPLAY_MODE_STANDALONE
+            WebAppManifest.DisplayMode.MINIMAL_UI -> GeckoSessionSettings.DISPLAY_MODE_MINIMAL_UI
+            WebAppManifest.DisplayMode.BROWSER -> GeckoSessionSettings.DISPLAY_MODE_BROWSER
+            null -> GeckoSessionSettings.DISPLAY_MODE_BROWSER
+        }
+
+        val speculativeSession = speculativeConnectionFactory.get(private, contextId)
+        return speculativeSession ?: GeckoEngineSession(runtime, private, defaultSettings, contextId, {
+            val settings = GeckoSessionSettings.Builder()
+                .usePrivateMode(private)
+                .displayMode(displayMode)
+                .contextId(contextId)
+                .build()
+            GeckoSession(settings)
+        })
     }
 
     /**

@@ -165,11 +165,11 @@ class GeckoEngine(
     }
 
     /**
-     * See [Engine.createSession].
+     * See [Engine.createSessionWithDisplayMode].
      */
-    override fun createSession(
+    override fun createSessionWithDisplayMode(
         private: Boolean,
-        manifestDisplayMode: WebAppManifest.DisplayMode?,
+        manifestDisplayMode: WebAppManifest.DisplayMode,
         contextId: String?
     ): EngineSession {
         ThreadUtils.assertOnUiThread()
@@ -179,7 +179,6 @@ class GeckoEngine(
             WebAppManifest.DisplayMode.STANDALONE -> GeckoSessionSettings.DISPLAY_MODE_STANDALONE
             WebAppManifest.DisplayMode.MINIMAL_UI -> GeckoSessionSettings.DISPLAY_MODE_MINIMAL_UI
             WebAppManifest.DisplayMode.BROWSER -> GeckoSessionSettings.DISPLAY_MODE_BROWSER
-            null -> GeckoSessionSettings.DISPLAY_MODE_BROWSER
         }
 
         val speculativeSession = speculativeConnectionFactory.get(private, contextId)

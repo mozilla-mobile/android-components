@@ -106,7 +106,12 @@ private fun createEngineSession(
 
     val manifestDisplayMode = session.webAppManifest?.display
 
-    val engineSession = engine.createSession(tab.content.private, manifestDisplayMode, tab.contextId)
+    val engineSession = if (manifestDisplayMode != null) {
+        engine.createSessionWithDisplayMode(tab.content.private, manifestDisplayMode, tab.contextId)
+    } else {
+        engine.createSession(tab.content.private, tab.contextId)
+    }
+
     logger.debug("Created engine session for tab ${tab.id}")
 
     val engineSessionState = tab.engineState.engineSessionState

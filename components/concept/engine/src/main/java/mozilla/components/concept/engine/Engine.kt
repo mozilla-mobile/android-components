@@ -105,9 +105,9 @@ interface Engine : WebExtensionRuntime, DataCleanable {
      * @return the newly created [EngineSession].
      */
     @MainThread
-    fun createSession(
+    fun createSessionWithDisplayMode(
         private: Boolean = false,
-        manifestDisplayMode: WebAppManifest.DisplayMode? = WebAppManifest.DisplayMode.STANDALONE,
+        manifestDisplayMode: WebAppManifest.DisplayMode = WebAppManifest.DisplayMode.BROWSER,
         contextId: String? = null
     ): EngineSession {
         return createSession(private, contextId)

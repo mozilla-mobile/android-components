@@ -112,6 +112,18 @@ interface CreditCardsAddressesStorage {
      * @return [CreditCardCrypto] instance.
      */
     fun getCreditCardCrypto(): CreditCardCrypto
+
+    /**
+     * Clears out all address local state, bringing us back to the state before the first
+     * write (or sync).
+     */
+    suspend fun wipeLocalAddresses()
+
+    /**
+     * Clears out all credit card local state, bringing us back to the state before the first
+     * write (or sync).
+     */
+    suspend fun wipeLocalCreditCards()
 }
 
 /**

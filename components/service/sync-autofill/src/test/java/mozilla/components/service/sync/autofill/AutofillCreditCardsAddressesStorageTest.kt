@@ -34,6 +34,8 @@ class AutofillCreditCardsAddressesStorageTest {
 
     @After
     fun cleanup() = runBlocking {
+        storage.wipeLocalAddresses()
+        storage.wipeLocalCreditCards()
         storage.close()
     }
 
@@ -399,5 +401,113 @@ class AutofillCreditCardsAddressesStorageTest {
 
         assertTrue(isDeleteSuccessful)
         assertEquals(0, storage.getAllAddresses().size)
+    }
+
+    @Test
+    fun `wipe local addresses`() = runBlocking {
+        var addresses = storage.getAllAddresses()
+
+        assertEquals(0, addresses.size)
+
+        val addressFields1 = UpdatableAddressFields(
+            givenName = "John",
+            additionalName = "",
+            familyName = "Smith",
+            organization = "Mozilla",
+            streetAddress = "123 Sesame Street",
+            addressLevel3 = "",
+            addressLevel2 = "",
+            addressLevel1 = "",
+            postalCode = "90210",
+            country = "US",
+            tel = "+1 519 555-5555",
+            email = "foo@bar.com"
+        )
+        val addressFields2 = UpdatableAddressFields(
+            givenName = "Mary",
+            additionalName = "",
+            familyName = "Sue",
+            organization = "",
+            streetAddress = "1 New St",
+            addressLevel3 = "",
+            addressLevel2 = "York",
+            addressLevel1 = "SC",
+            postalCode = "29745",
+            country = "US",
+            tel = "+19871234567",
+            email = "mary@example.com"
+        )
+        val addressFields3 = UpdatableAddressFields(
+            givenName = "Timothy",
+            additionalName = "João",
+            familyName = "Berners-Lee",
+            organization = "World Wide Web Consortium",
+            streetAddress = "Rua Adalberto Pajuaba, 404",
+            addressLevel3 = "Campos Elísios",
+            addressLevel2 = "Ribeirão Preto",
+            addressLevel1 = "SP",
+            postalCode = "14055-220",
+            country = "BR",
+            tel = "+0318522222222",
+            email = "timbr@example.org"
+        )
+        storage.addAddress(addressFields1)
+        storage.addAddress(addressFields2)
+        storage.addAddress(addressFields3)
+
+        addresses = storage.getAllAddresses()
+
+        assertEquals(3, addresses.size)
+
+        storage.wipeLocalAddresses()
+
+        addresses = storage.getAllAddresses()
+
+        assertEquals(0, addresses.size)
+    }
+
+    @Test
+    fun `wipe local credit cards`() = runBlocking {
+        var creditCards = storage.getAllCreditCards()
+
+        assertEquals(0, creditCards.size)
+
+        val creditCardFields1 = NewCreditCardFields(
+            billingName = "Jane Fields",
+            plaintextCardNumber = CreditCardNumber.Plaintext("4111111111111111"),
+            cardNumberLast4 = "1111",
+            expiryMonth = 12,
+            expiryYear = 2028,
+            cardType = "amex"
+        )
+        val creditCardFields2 = NewCreditCardFields(
+            billingName = "Banana Apple",
+            plaintextCardNumber = CreditCardNumber.Plaintext("4111111111111112"),
+            cardNumberLast4 = "1112",
+            expiryMonth = 1,
+            expiryYear = 2030,
+            cardType = "discover"
+        )
+        val creditCardFields3 = NewCreditCardFields(
+            billingName = "Pineapple Orange",
+            plaintextCardNumber = CreditCardNumber.Plaintext("4111111111111113"),
+            cardNumberLast4 = "1113",
+            expiryMonth = 2,
+            expiryYear = 2028,
+            cardType = "visa"
+        )
+        storage.addCreditCard(creditCardFields1)
+        storage.addCreditCard(creditCardFields2)
+        storage.addCreditCard(creditCardFields3)
+
+        creditCards = storage.getAllCreditCards()
+
+        assertEquals(3, creditCards.size)
+
+        storage.wipeLocalCreditCards()
+
+        creditCards = storage.getAllCreditCards()
+
+        assertEquals(0, creditCards.size)
     }
 }

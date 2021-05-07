@@ -42,6 +42,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate
+import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.dialog.AlertDialogFragment
 import mozilla.components.feature.prompts.dialog.AuthenticationDialogFragment
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment
@@ -60,7 +61,6 @@ import mozilla.components.feature.prompts.dialog.TimePickerDialogFragment
 import mozilla.components.feature.prompts.file.FilePicker
 import mozilla.components.feature.prompts.login.LoginExceptions
 import mozilla.components.feature.prompts.login.LoginPicker
-import mozilla.components.feature.prompts.login.LoginPickerView
 import mozilla.components.feature.prompts.share.DefaultShareDelegate
 import mozilla.components.feature.prompts.share.ShareDelegate
 import mozilla.components.lib.state.ext.flowScoped
@@ -107,7 +107,8 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * 'save login'prompts will not be shown.
  * @property loginExceptionStorage An implementation of [LoginExceptions] that saves and checks origins
  * the user does not want to see a save login dialog for.
- * @property loginPickerView The [LoginPickerView] used for [LoginPicker] to display select login options.
+ * @property loginPickerView The [SelectablePromptView] used for [LoginPicker] to display a
+ * selectable prompt list of login options.
  * @property onManageLogins A callback invoked when a user selects "manage logins" from the
  * select login prompt.
  * @property onNeedToRequestPermissions A callback invoked when permissions
@@ -124,13 +125,15 @@ class PromptFeature private constructor(
     override val loginValidationDelegate: LoginValidationDelegate? = null,
     private val isSaveLoginEnabled: () -> Boolean = { false },
     override val loginExceptionStorage: LoginExceptions? = null,
-    private val loginPickerView: LoginPickerView? = null,
+    private val loginPickerView: SelectablePromptView<Login>? = null,
     private val onManageLogins: () -> Unit = {},
     onNeedToRequestPermissions: OnNeedToRequestPermissions
-) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler, UserInteractionHandler {
+) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler,
+    UserInteractionHandler {
     // These three scopes have identical lifetimes. We do not yet have a way of combining scopes
     private var handlePromptScope: CoroutineScope? = null
     private var dismissPromptScope: CoroutineScope? = null
+
     @VisibleForTesting
     var activePromptRequest: PromptRequest? = null
 
@@ -149,7 +152,7 @@ class PromptFeature private constructor(
         loginValidationDelegate: LoginValidationDelegate? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: LoginPickerView? = null,
+        loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
@@ -175,7 +178,7 @@ class PromptFeature private constructor(
         loginValidationDelegate: LoginValidationDelegate? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: LoginPickerView? = null,
+        loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
@@ -199,7 +202,7 @@ class PromptFeature private constructor(
         store: BrowserStore,
         customTabId: String? = null,
         fragmentManager: FragmentManager,
-        loginPickerView: LoginPickerView? = null,
+        loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
@@ -207,7 +210,7 @@ class PromptFeature private constructor(
             ?: fragment?.let { PromptContainer.Fragment(it) }
             ?: throw IllegalStateException(
                 "activity and fragment references " +
-                        "must not be both null, at least one must be initialized."
+                    "must not be both null, at least one must be initialized."
             ),
         store = store,
         customTabId = customTabId,
@@ -489,8 +492,8 @@ class PromptFeature private constructor(
                 if (loginValidationDelegate == null) {
                     logger.debug(
                         "Ignoring received SaveLoginPrompt because PromptFeature." +
-                                "loginValidationDelegate is null. If you are trying to autofill logins, " +
-                                "try attaching a LoginValidationDelegate to PromptFeature"
+                            "loginValidationDelegate is null. If you are trying to autofill logins, " +
+                            "try attaching a LoginValidationDelegate to PromptFeature"
                     )
                     return
                 }
@@ -642,7 +645,8 @@ class PromptFeature private constructor(
 
             is Repost -> {
                 val title = container.context.getString(R.string.mozac_feature_prompt_repost_title)
-                val message = container.context.getString(R.string.mozac_feature_prompt_repost_message)
+                val message =
+                    container.context.getString(R.string.mozac_feature_prompt_repost_message)
                 val positiveAction =
                     container.context.getString(R.string.mozac_feature_prompt_repost_positive_button_text)
                 val negativeAction =

@@ -21,6 +21,7 @@ import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.service.fxa.FxaAuthData
+import mozilla.components.service.fxa.Server
 import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.FxaAccountManager
@@ -174,7 +175,9 @@ class FxaWebChannelFeature(
         private val serverConfig: ServerConfig
     ) : MessageHandler {
         override fun onPortConnected(port: Port) {
-            port.postMessage(JSONObject().put("type", "overrideFxAServer").put("url", serverConfig.contentUrl))
+            if (Server.values().none { it.contentUrl == serverConfig.contentUrl }) {
+                port.postMessage(JSONObject().put("type", "overrideFxAServer").put("url", serverConfig.contentUrl))
+            }
         }
     }
 

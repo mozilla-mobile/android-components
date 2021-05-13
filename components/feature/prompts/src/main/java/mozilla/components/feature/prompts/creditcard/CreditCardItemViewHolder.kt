@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.feature.prompts.R
+import mozilla.components.support.ktx.kotlin.addEllipsesToCreditCardNumber
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -29,7 +30,9 @@ class CreditCardItemViewHolder(
      * @param creditCard The [CreditCard] to display.
      */
     fun bind(creditCard: CreditCard) {
-        itemView.findViewById<TextView>(R.id.credit_card_number).text = creditCard.number
+        itemView.findViewById<TextView>(R.id.credit_card_number).text =
+            creditCard.number.substring(creditCard.number.length - LAST_DIGITS_TO_DISPLAY)
+                .addEllipsesToCreditCardNumber()
 
         bindCreditCardExpiryDate(creditCard)
 
@@ -59,5 +62,10 @@ class CreditCardItemViewHolder(
 
         // Date format pattern for the credit card expiry date.
         private const val DATE_PATTERN = "MM/yyyy"
+
+        /**
+         * Number of digits to be displayed after ellipses on an obfuscated credit card number.
+         */
+        private const val LAST_DIGITS_TO_DISPLAY = 4
     }
 }

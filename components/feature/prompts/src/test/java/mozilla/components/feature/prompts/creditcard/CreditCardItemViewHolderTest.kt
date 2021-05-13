@@ -10,6 +10,7 @@ import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.feature.prompts.R
+import mozilla.components.support.ktx.kotlin.addEllipsesToCreditCardNumber
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -46,7 +47,8 @@ class CreditCardItemViewHolderTest {
     fun `GIVEN a credit card item WHEN bind is called THEN set the card number and expiry date text`() {
         CreditCardItemViewHolder(view, onCreditCardSelected).bind(creditCard)
 
-        assertEquals(creditCard.number, cardNumberView.text)
+        val last4digits = creditCard.number.substring(creditCard.number.length - 4)
+        assertEquals(last4digits.addEllipsesToCreditCardNumber(), cardNumberView.text)
         assertEquals("0${creditCard.expiryMonth}/${creditCard.expiryYear}", expirationDateView.text)
     }
 

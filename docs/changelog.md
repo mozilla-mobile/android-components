@@ -12,11 +12,16 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **service-pocket**
+  * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/pocket/README.md) to get more info.
+
 * **feature-contextmenu**:
   * ⚠️ Long pressing on web content won't show a contextual menu if the URL of the touch target is one blocked from loading in the browser.
 
 * **feature-prompts**:
   * Refactor `LoginPickerView` into a more generic view `SelectablePromptView` that can be reused by any prompts that displays a list of selectable options. [#10216](https://github.com/mozilla-mobile/android-components/issues/10216)
+  * Added optional `creditCardPickerView` and `onManageCreditCards` parameters to `PromptFeature` for a new `CreditCardPicker` to display a view for selecting credit cards to autofill into a site. [#9457](https://github.com/mozilla-mobile/android-components/issues/9457)
 
 * **concept-engine**
   * 🌟️ `getBlockedSchemes()` now exposes the list of url shemes that the engine won't load.

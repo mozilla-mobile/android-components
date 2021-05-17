@@ -191,26 +191,6 @@ fun String.getDataUrlImageExtension(defaultExtension: String = "jpg"): String {
 }
 
 /**
- * Returns the input string preceded by 4 ellipses, locked LTR, to be used for
- * obfuscating credit card numbers.
- */
-fun String.addEllipsesToCreditCardNumber(): String {
-    // Left-To-Right Embedding (LTE) mark
-    val ellipsesStart = "\u202A"
-
-    // One dot ellipsis
-    val ellipsis = "\u2022\u2060\u2006\u2060"
-
-    // Pop Directional Formatting (PDF) mark
-    val ellipsesEnd = "\u202C"
-
-    return ellipsesStart +
-        ellipsis + ellipsis + ellipsis + ellipsis +
-        this +
-        ellipsesEnd
-}
-
-/**
  * Returns this char sequence if it's not null or empty
  * or the result of calling [defaultValue] function if the char sequence is null or empty.
  */

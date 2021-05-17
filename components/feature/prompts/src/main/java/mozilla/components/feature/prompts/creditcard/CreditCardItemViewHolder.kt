@@ -9,7 +9,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.feature.prompts.R
-import mozilla.components.support.ktx.kotlin.addEllipsesToCreditCardNumber
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -31,8 +30,7 @@ class CreditCardItemViewHolder(
      */
     fun bind(creditCard: CreditCard) {
         itemView.findViewById<TextView>(R.id.credit_card_number).text =
-            creditCard.number.substring(creditCard.number.length - LAST_DIGITS_TO_DISPLAY)
-                .addEllipsesToCreditCardNumber()
+            creditCard.ellipsizedNumber
 
         bindCreditCardExpiryDate(creditCard)
 

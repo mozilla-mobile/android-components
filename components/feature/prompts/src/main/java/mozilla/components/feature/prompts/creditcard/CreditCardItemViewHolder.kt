@@ -30,7 +30,7 @@ class CreditCardItemViewHolder(
      */
     fun bind(creditCard: CreditCard) {
         itemView.findViewById<TextView>(R.id.credit_card_number).text =
-            creditCard.ellipsizedNumber
+            creditCard.obfuscatedCardNumber
 
         bindCreditCardExpiryDate(creditCard)
 
@@ -60,10 +60,5 @@ class CreditCardItemViewHolder(
 
         // Date format pattern for the credit card expiry date.
         private const val DATE_PATTERN = "MM/yyyy"
-
-        /**
-         * Number of digits to be displayed after ellipses on an obfuscated credit card number.
-         */
-        private const val LAST_DIGITS_TO_DISPLAY = 4
     }
 }

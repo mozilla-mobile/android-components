@@ -193,7 +193,7 @@ data class CreditCard(
     val timeLastModified: Long,
     val timesUsed: Long
 ) : Parcelable {
-    val ellipsizedNumber: String
+    val obfuscatedCardNumber: String
         get() = ellipsesStart +
             ellipsis + ellipsis + ellipsis + ellipsis +
             cardNumberLast4 +

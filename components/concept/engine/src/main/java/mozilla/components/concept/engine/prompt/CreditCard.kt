@@ -26,12 +26,10 @@ data class CreditCard(
     val expiryYear: String,
     val cardType: String
 ) : Parcelable {
-    val cardNumberLast4: String
-        get() = number.substring(number.length - digitsToShow)
-    val ellipsizedNumber: String
+    val obfuscatedCardNumber: String
         get() = ellipsesStart +
             ellipsis + ellipsis + ellipsis + ellipsis +
-            cardNumberLast4 +
+            number.substring(number.length - digitsToShow) +
             ellipsesEnd
 
     companion object {
@@ -44,6 +42,7 @@ data class CreditCard(
         // Pop Directional Formatting (PDF) mark
         const val ellipsesEnd = "\u202C"
 
+        // Number of digits to be displayed after ellipses on an obfuscated credit card number.
         const val digitsToShow = 4
     }
 }

@@ -9,16 +9,17 @@ import androidx.annotation.GuardedBy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
+import mozilla.appservices.autofill.ErrorException.NoSuchRecord
 import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardNumber
 import mozilla.components.concept.storage.CreditCardsAddressesStorage
+import mozilla.components.concept.storage.KeyGenerationReason
+import mozilla.components.concept.storage.KeyRecoveryHandler
 import mozilla.components.concept.storage.NewCreditCardFields
 import mozilla.components.concept.storage.UpdatableAddressFields
 import mozilla.components.concept.storage.UpdatableCreditCardFields
 import mozilla.components.concept.sync.SyncableStore
-import mozilla.components.lib.dataprotect.KeyGenerationReason
-import mozilla.components.lib.dataprotect.KeyRecoveryHandler
 import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 import mozilla.components.support.base.log.logger.Logger
 import java.io.Closeable
@@ -115,8 +116,12 @@ class AutofillCreditCardsAddressesStorage(
         conn.getStorage().updateCreditCard(guid, updatableCreditCardFields.into())
     }
 
-    override suspend fun getCreditCard(guid: String): CreditCard = withContext(coroutineContext) {
-        conn.getStorage().getCreditCard(guid).into()
+    override suspend fun getCreditCard(guid: String): CreditCard? = withContext(coroutineContext) {
+        try {
+            conn.getStorage().getCreditCard(guid).into()
+        } catch (e: NoSuchRecord) {
+            null
+        }
     }
 
     override suspend fun getAllCreditCards(): List<CreditCard> = withContext(coroutineContext) {
@@ -136,8 +141,12 @@ class AutofillCreditCardsAddressesStorage(
             conn.getStorage().addAddress(addressFields.into()).into()
         }
 
-    override suspend fun getAddress(guid: String): Address = withContext(coroutineContext) {
-        conn.getStorage().getAddress(guid).into()
+    override suspend fun getAddress(guid: String): Address? = withContext(coroutineContext) {
+        try {
+            conn.getStorage().getAddress(guid).into()
+        } catch (e: NoSuchRecord) {
+            null
+        }
     }
 
     override suspend fun getAllAddresses(): List<Address> = withContext(coroutineContext) {
@@ -155,6 +164,10 @@ class AutofillCreditCardsAddressesStorage(
 
     override suspend fun touchAddress(guid: String) = withContext(coroutineContext) {
         conn.getStorage().touchAddress(guid)
+    }
+
+    override fun getCreditCardCrypto(): AutofillCrypto {
+        return crypto
     }
 
     override fun registerWithSyncManager() {

@@ -21,11 +21,11 @@ internal const val HISTORY_SUGGESTION_LIMIT = 20
  * history stored in the [HistoryStorage].
  *
  * @property historyStorage and instance of the [HistoryStorage] used
- * to query matching bookmarks.
+ * to query matching history records.
  * @property loadUrlUseCase the use case invoked to load the url when the
  * user clicks on the suggestion.
  * @property icons optional instance of [BrowserIcons] to load fav icons
- * for bookmarked URLs.
+ * for history URLs.
  * @param engine optional [Engine] instance to call [Engine.speculativeConnect] for the
  * highest scored suggestion URL.
  */

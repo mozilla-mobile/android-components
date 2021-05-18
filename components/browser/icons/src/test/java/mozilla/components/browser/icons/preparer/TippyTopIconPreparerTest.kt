@@ -29,7 +29,7 @@ class TippyTopIconPreparerTest {
 
         val resource = preparedRequest.resources[0]
 
-        assertEquals("https://github.githubassets.com/apple-touch-icon-180x180.png", resource.url)
+        assertEquals("https://github.githubassets.com/favicons/favicon.svg", resource.url)
         assertEquals(IconRequest.Resource.Type.TIPPY_TOP, resource.type)
     }
 
@@ -67,5 +67,65 @@ class TippyTopIconPreparerTest {
 
         val preparedRequest = preparer.prepare(testContext, request)
         assertEquals(0, preparedRequest.resources.size)
+    }
+
+    @Test
+    fun `WHEN url is Amazon THEN resource is manually added`() {
+        val preparer = TippyTopIconPreparer(testContext.assets)
+
+        var request = IconRequest("https://www.amazon.fr")
+        assertEquals(0, request.resources.size)
+
+        var preparedRequest = preparer.prepare(testContext, request)
+        assertEquals(1, preparedRequest.resources.size)
+
+        var resource = preparedRequest.resources[0]
+
+        assertEquals("https://images-eu.ssl-images-amazon.com/images/G/08/anywhere/a_smile_196x196._CB368246545_.png", resource.url)
+        assertEquals(IconRequest.Resource.Type.TIPPY_TOP, resource.type)
+
+        request = IconRequest("https://www.amazon.ca")
+        assertEquals(0, request.resources.size)
+
+        preparedRequest = preparer.prepare(testContext, request)
+        assertEquals(1, preparedRequest.resources.size)
+
+        resource = preparedRequest.resources[0]
+
+        assertEquals("https://images-na.ssl-images-amazon.com/images/G/15/anywhere/a_smile_196x196._CB368246733_.png", resource.url)
+        assertEquals(IconRequest.Resource.Type.TIPPY_TOP, resource.type)
+
+        request = IconRequest("https://www.amazon.com.au")
+        assertEquals(0, request.resources.size)
+
+        preparedRequest = preparer.prepare(testContext, request)
+        assertEquals(1, preparedRequest.resources.size)
+
+        resource = preparedRequest.resources[0]
+
+        assertEquals("https://images-na.ssl-images-amazon.com/images/G/35/anywhere/a_smile_196x196._CB368246314_.png", resource.url)
+        assertEquals(IconRequest.Resource.Type.TIPPY_TOP, resource.type)
+
+        request = IconRequest("https://www.amazon.com.br")
+        assertEquals(0, request.resources.size)
+
+        preparedRequest = preparer.prepare(testContext, request)
+        assertEquals(1, preparedRequest.resources.size)
+
+        resource = preparedRequest.resources[0]
+
+        assertEquals("https://images-na.ssl-images-amazon.com/images/G/32/anywhere/a_smile_196x196._CB368246376_.png", resource.url)
+        assertEquals(IconRequest.Resource.Type.TIPPY_TOP, resource.type)
+
+        request = IconRequest("https://www.amazon.com.mx")
+        assertEquals(0, request.resources.size)
+
+        preparedRequest = preparer.prepare(testContext, request)
+        assertEquals(1, preparedRequest.resources.size)
+
+        resource = preparedRequest.resources[0]
+
+        assertEquals("https://images-na.ssl-images-amazon.com/images/G/33/anywhere/a_smile_196x196._CB368246395_.png", resource.url)
+        assertEquals(IconRequest.Resource.Type.TIPPY_TOP, resource.type)
     }
 }

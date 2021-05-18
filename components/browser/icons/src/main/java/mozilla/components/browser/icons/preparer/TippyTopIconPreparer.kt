@@ -16,7 +16,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
-private const val LIST_FILE_PATH = "mozac.browser.icons/icons-top200.json"
+private const val LIST_FILE_PATH = "mozac.browser.icons/icons-top1000.json"
 
 /**
  * [IconPreprarer] implementation that looks up the host in our "tippy top" list. If it can find a match then it inserts

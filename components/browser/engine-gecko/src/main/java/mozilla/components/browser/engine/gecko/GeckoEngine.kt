@@ -299,9 +299,9 @@ class GeckoEngine(
             override fun onInstallPrompt(ext: org.mozilla.geckoview.WebExtension): GeckoResult<AllowOrDeny>? {
                 val extension = GeckoWebExtension(ext, runtime)
                 return if (webExtensionDelegate.onInstallPermissionRequest(extension)) {
-                    GeckoResult.ALLOW
+                    GeckoResult.allow()
                 } else {
-                    GeckoResult.DENY
+                    GeckoResult.deny()
                 }
             }
 
@@ -626,6 +626,10 @@ class GeckoEngine(
         override var forceUserScalableContent: Boolean
             get() = runtime.settings.forceUserScalableEnabled
             set(value) { runtime.settings.forceUserScalableEnabled = value }
+
+        override var enterpriseRootsEnabled: Boolean
+            get() = runtime.settings.enterpriseRootsEnabled
+            set(value) { runtime.settings.enterpriseRootsEnabled = value }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -643,6 +647,7 @@ class GeckoEngine(
             this.forceUserScalableContent = it.forceUserScalableContent
             this.clearColor = it.clearColor
             this.loginAutofillEnabled = it.loginAutofillEnabled
+            this.enterpriseRootsEnabled = it.enterpriseRootsEnabled
         }
     }
 

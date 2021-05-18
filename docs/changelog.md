@@ -4,31 +4,98 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 75.0.0-SNAPSHOT (In Development)
+# 90.0.0-SNAPSHOT (In Development)
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v74.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/136?closed=1)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v75.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/137?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **service-pocket**
+  * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/pocket/README.md) to get more info.
+
+* **feature-contextmenu**:
+  * ⚠️ Long pressing on web content won't show a contextual menu if the URL of the touch target is one blocked from loading in the browser.
+
+* **feature-prompts**:
+  * Refactor `LoginPickerView` into a more generic view `SelectablePromptView` that can be reused by any prompts that displays a list of selectable options. [#10216](https://github.com/mozilla-mobile/android-components/issues/10216)
+  * Added optional `creditCardPickerView` and `onManageCreditCards` parameters to `PromptFeature` for a new `CreditCardPicker` to display a view for selecting credit cards to autofill into a site. [#9457](https://github.com/mozilla-mobile/android-components/issues/9457)
+
+* **concept-engine**
+  * 🌟️ `getBlockedSchemes()` now exposes the list of url shemes that the engine won't load.
+  * Adds a new `CreditCard` data class which is a parallel of GeckoView's `Autocomplete.CreditCard`. [#10205](https://github.com/mozilla-mobile/android-components/issues/10205)
+  * Adds a new `SelectCreditCard` in `PromptRequest` to display a prompt for selecting a credit card to autocomplete. [#10205](https://github.com/mozilla-mobile/android-components/issues/10205)
+
+* **browser-menu**:
+  * 🚒 Bug fixed [issue #10133](https://github.com/mozilla-mobile/android-components/issues/10133) - A BrowserMenuCompoundButton used in our BrowserMenu setup with a DynamicWidthRecyclerView is not clipped anymore.
+
+* **browser-engine-gecko**:
+  * Implements the new GeckoView `Autocomplete.StorageDelegate` interface in `GeckoStorageDelegateWrapper`. This will replace the deprecated `GeckoLoginDelegateWrapper` and provide additional autocomplete support for credit cards. [#10140](https://github.com/mozilla-mobile/android-components/issues/10140)
+
+* **feature-downloads**:
+  * ⚠️ **This is a breaking change**: `AbstractFetchDownloadService.openFile()` changed its signature from `AbstractFetchDownloadService.openFile(context: Context, filePath: String, contentType: String?)` to `AbstractFetchDownloadService.openFile(applicationContext: Context, download: DownloadState)`.
+  * 🚒 Bug fixed [issue #10138](https://github.com/mozilla-mobile/android-components/issues/10138) - The downloaded files cannot be seen.
+  * 🚒 Bug fixed [issue #10157](https://github.com/mozilla-mobile/android-components/issues/10157) - Crash on startup when tying to restore data URLs from the db.
+
+* **browser-engine-gecko(-nightly/beta)**
+  * ⚠️ From now on there will be only one `concept-engine` implementation using [GeckoView](https://mozilla.github.io/geckoview/). On `master` this will be the Nightly version. In release versions it will be the corresponding Beta or Release version. More about this in [RFC 7](https://mozac.org/rfc/0007-synchronized-releases).
+  * Implements `onCreditCardSelect` in `GeckoPromptDelegate` to handle a credit card selection prompt request. [#10205](https://github.com/mozilla-mobile/android-components/issues/10205)
+
+* **concept-sync**, **browser-storage-sync**
+  * ⚠️ **This is a breaking change**: `SyncableStore` now has a `registerWithSyncManager` method for use in newer storage layers.
+
+* **concept-storage**, **service-sync-autofill**
+  * ⚠️ **This is a breaking change**: Update and add APIs now take specific `UpdatableCreditCardFields` and `NewCreditCardFields` data classes as arguments.
+  * ⚠️ **This is a breaking change**: `CreditCard`'s number field changed to `encryptedCardNumber`, `cardNumberLast4` added.
+  * New `CreditCardNumber` class, which encapsulate either an encrypted or plaintext versions of credit cards.
+  * `AutofillCreditCardsAddressesStorage` reflects these breaking changes.
+  * Introduced a new `CreditCardCrypto` interface for for encrypting and decrypting a credit card number. [#10140](https://github.com/mozilla-mobile/android-components/issues/10140)
+  * 🌟️ New APIs for managing keys - `ManagedKey`, `KeyProvider` and `KeyRecoveryHandler`. `AutofillCreditCardsAddressesStorage` implements these APIs for managing keys for credit card storage.
+
+* **service-firefox-accounts**
+  * 🌟️ When configuring syncable storage layers, `SyncManager` now takes an optional `KeyProvider` to handle encryption/decryption of protected values.
+  * 🌟️ Support for syncing Address and Credit Cards
+
+* **service-glean**
+  * `ConceptFetchHttpUploader` adds support for private requests. By default, all requests are non-private.
+
+* **lib-state**
+  * 🌟️ Added `AbstractBinding` for simple features that want to observe changes to the `State` in a `Store` without needing to manually manage the CoroutineScope. This can now be handled like other `LifecycleAwareFeature` implementations:
+    ```kotlin
+    class SimpleFeature(store: BrowserStore) : AbstractBinding<BrowserState>(store) {
+      override suspend fun onState(flow: Flow<BrowserState>) {
+        // Interact with flowable state.
+      }
+    }
+    ```
+
+* **service-nimbus**
+  * Added UI components for displaying a list of branches and the selected branch related to a Nimbus experiments.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
+
+# 75.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v74.0.0...v75.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/136?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v75.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v75.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v75.0.0/.config.yml)
 
 
 * **browser-menu**:
   * 🌟️ New StickyHeaderLinearLayoutManager and StickyFooterLinearLayoutManager that can be used to keep an item from being scrolled off-screen.
   * To use this set `isSticky = true` for any menu item of the menu. Since only one sticky item is supported if more items have this property the sticky item will be the one closest to the top the menu anchor.
-
-* **browser-menu**:
-  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10032) - Fix a recent issue with ExpandableLayout - user touches on an expanded menu might not have any effect on Samsung devices.
-
-* **browser-menu**:
-  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/10005) - Fix a recent issue with BrowserMenu#show() - endOfMenuAlwaysVisible not being applied.
-
-* **browser-menu**:
-  * 🚒 Bug fixed [issue #](https://github.com/mozilla-mobile/android-components/issues/9922) - The browser menu will have it's dynamic width calculated only once, before the first layout.
-
-* **browser-menu**
+  * 🚒 Bug fixed [issue #10032](https://github.com/mozilla-mobile/android-components/issues/10032) - Fix a recent issue with ExpandableLayout - user touches on an expanded menu might not have any effect on Samsung devices.
+  * 🚒 Bug fixed [issue #10005](https://github.com/mozilla-mobile/android-components/issues/10005) - Fix a recent issue with BrowserMenu#show() - endOfMenuAlwaysVisible not being applied.
+  * 🚒 Bug fixed [issue #9922](https://github.com/mozilla-mobile/android-components/issues/9922) - The browser menu will have it's dynamic width calculated only once, before the first layout.
   * 🌟️ BrowserMenu support a bottom collapsed/expandable layout through a new ExpandableLayout that will wrap a menu layout before being used in a PopupWindow and automatically allow the collapse/expand behaviors.
   * To use this set `isCollapsingMenuLimit = true` for any menu item of a bottom anchored menu.
+  * 🌟️ `WebExtensionBrowserMenuBuilder` provide a new way to customize how items look like via `Style()` where the `tintColor`, `backPressDrawable` and `addonsManagerDrawable` can be customized.
+  * ⚠️ **This is a breaking change**: `WebExtensionBrowserMenuBuilder.webExtIconTintColorResource` constructor parameter has been removed, please use `WebExtensionBrowserMenuBuilder`.`Style` instead. For more details see [issue #9787](https://github.com/mozilla-mobile/android-components/issues/10091).
 
 * **browser-toolbar**
 * **feature-session**

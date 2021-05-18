@@ -6,12 +6,16 @@ package mozilla.components.service.sync.autofill
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import mozilla.components.concept.storage.CreditCardNumber
+import mozilla.components.concept.storage.NewCreditCardFields
 import mozilla.components.concept.storage.UpdatableAddressFields
 import mozilla.components.concept.storage.UpdatableCreditCardFields
+import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -20,10 +24,13 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AutofillCreditCardsAddressesStorageTest {
     private lateinit var storage: AutofillCreditCardsAddressesStorage
+    private lateinit var securePrefs: SecureAbove22Preferences
 
     @Before
     fun setup() = runBlocking {
-        storage = AutofillCreditCardsAddressesStorage(testContext)
+        // forceInsecure is set in the tests because a keystore wouldn't be configured in the test environment.
+        securePrefs = SecureAbove22Preferences(testContext, "autofill", forceInsecure = true)
+        storage = AutofillCreditCardsAddressesStorage(testContext, lazy { securePrefs })
     }
 
     @After
@@ -32,10 +39,12 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `addCreditCard`() = runBlocking {
-        val creditCardFields = UpdatableCreditCardFields(
+    fun `add credit card`() = runBlocking {
+        val plaintextNumber = CreditCardNumber.Plaintext("4111111111111111")
+        val creditCardFields = NewCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            plaintextCardNumber = plaintextNumber,
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -45,17 +54,20 @@ class AutofillCreditCardsAddressesStorageTest {
         assertNotNull(creditCard)
 
         assertEquals(creditCardFields.billingName, creditCard.billingName)
-        assertEquals(creditCardFields.cardNumber, creditCard.cardNumber)
+        assertEquals(plaintextNumber, storage.crypto.decrypt(storage.crypto.key(), creditCard.encryptedCardNumber))
+        assertEquals(creditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
         assertEquals(creditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(creditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(creditCardFields.cardType, creditCard.cardType)
     }
 
     @Test
-    fun `getCreditCard`() = runBlocking {
-        val creditCardFields = UpdatableCreditCardFields(
+    fun `get credit card`() = runBlocking {
+        val plaintextNumber = CreditCardNumber.Plaintext("5500000000000004")
+        val creditCardFields = NewCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            plaintextCardNumber = plaintextNumber,
+            cardNumberLast4 = "0004",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -66,98 +78,138 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `getAllCreditCards`() = runBlocking {
-        var creditCards = storage.getAllCreditCards()
-        assertEquals(0, creditCards.size)
+    fun `GIVEN a non-existent credit card guid WHEN getCreditCard is called THEN null is returned`() = runBlocking {
+        assertNull(storage.getCreditCard("guid"))
+    }
 
-        val creditCardFields1 = UpdatableCreditCardFields(
+    @Test
+    fun `get all credit cards`() = runBlocking {
+        val plaintextNumber1 = CreditCardNumber.Plaintext("5500000000000004")
+        val creditCardFields1 = NewCreditCardFields(
             billingName = "Jane Fields",
-            cardNumber = "4111111111111111",
+            plaintextCardNumber = plaintextNumber1,
+            cardNumberLast4 = "0004",
             expiryMonth = 12,
             expiryYear = 2028,
-            cardType = "amex"
+            cardType = "mastercard"
         )
-        val creditCardFields2 = UpdatableCreditCardFields(
+        val plaintextNumber2 = CreditCardNumber.Plaintext("4111111111111111")
+        val creditCardFields2 = NewCreditCardFields(
             billingName = "Banana Apple",
-            cardNumber = "4111111111111112",
+            plaintextCardNumber = plaintextNumber2,
+            cardNumberLast4 = "1111",
             expiryMonth = 1,
             expiryYear = 2030,
-            cardType = "discover"
+            cardType = "visa"
         )
-        val creditCardFields3 = UpdatableCreditCardFields(
+        val plaintextNumber3 = CreditCardNumber.Plaintext("340000000000009")
+        val creditCardFields3 = NewCreditCardFields(
             billingName = "Pineapple Orange",
-            cardNumber = "4111111111111113",
+            plaintextCardNumber = plaintextNumber3,
+            cardNumberLast4 = "0009",
             expiryMonth = 2,
             expiryYear = 2028,
-            cardType = "visa"
+            cardType = "amex"
         )
         val creditCard1 = storage.addCreditCard(creditCardFields1)
         val creditCard2 = storage.addCreditCard(creditCardFields2)
         val creditCard3 = storage.addCreditCard(creditCardFields3)
 
-        creditCards = storage.getAllCreditCards()
+        val creditCards = storage.getAllCreditCards()
+        val key = storage.crypto.key()
 
-        assertEquals(3, creditCards.size)
-        assertEquals(creditCard1, creditCards[0])
-        assertEquals(creditCard2, creditCards[1])
-        assertEquals(creditCard3, creditCards[2])
+        val savedCreditCard1 = creditCards.find { it == creditCard1 }
+        assertNotNull(savedCreditCard1)
+        val savedCreditCard2 = creditCards.find { it == creditCard2 }
+        assertNotNull(savedCreditCard2)
+        val savedCreditCard3 = creditCards.find { it == creditCard3 }
+        assertNotNull(savedCreditCard3)
+
+        assertEquals(plaintextNumber1, storage.crypto.decrypt(key, savedCreditCard1!!.encryptedCardNumber))
+        assertEquals(plaintextNumber2, storage.crypto.decrypt(key, savedCreditCard2!!.encryptedCardNumber))
+        assertEquals(plaintextNumber3, storage.crypto.decrypt(key, savedCreditCard3!!.encryptedCardNumber))
     }
 
     @Test
-    fun `updateCreditCard`() = runBlocking {
-        val creditCardFields = UpdatableCreditCardFields(
+    fun `update credit card`() = runBlocking {
+        val creditCardFields = NewCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            plaintextCardNumber = CreditCardNumber.Plaintext("4111111111111111"),
+            cardNumberLast4 = "1111",
             expiryMonth = 12,
             expiryYear = 2028,
-            cardType = "amex"
+            cardType = "visa"
         )
 
         var creditCard = storage.addCreditCard(creditCardFields)
 
-        val newCreditCardFields = UpdatableCreditCardFields(
+        // Change every field
+        var newCreditCardFields = UpdatableCreditCardFields(
             billingName = "Jane Fields",
-            cardNumber = "4111111111111112",
+            cardNumber = CreditCardNumber.Plaintext("30000000000004"),
+            cardNumberLast4 = "0004",
             expiryMonth = 12,
             expiryYear = 2038,
-            cardType = "visa"
+            cardType = "diners"
         )
 
         storage.updateCreditCard(creditCard.guid, newCreditCardFields)
 
-        creditCard = storage.getCreditCard(creditCard.guid)
+        creditCard = storage.getCreditCard(creditCard.guid)!!
+
+        val key = storage.crypto.key()
 
         assertEquals(newCreditCardFields.billingName, creditCard.billingName)
-        assertEquals(newCreditCardFields.cardNumber, creditCard.cardNumber)
+        assertEquals(newCreditCardFields.cardNumber, storage.crypto.decrypt(key, creditCard.encryptedCardNumber))
+        assertEquals(newCreditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
+        assertEquals(newCreditCardFields.expiryMonth, creditCard.expiryMonth)
+        assertEquals(newCreditCardFields.expiryYear, creditCard.expiryYear)
+        assertEquals(newCreditCardFields.cardType, creditCard.cardType)
+
+        // Change the name only.
+        newCreditCardFields = UpdatableCreditCardFields(
+            billingName = "Bob Jones",
+            cardNumber = creditCard.encryptedCardNumber,
+            cardNumberLast4 = "0004",
+            expiryMonth = 12,
+            expiryYear = 2038,
+            cardType = "diners"
+        )
+
+        storage.updateCreditCard(creditCard.guid, newCreditCardFields)
+
+        creditCard = storage.getCreditCard(creditCard.guid)!!
+
+        assertEquals(newCreditCardFields.billingName, creditCard.billingName)
+        assertEquals(newCreditCardFields.cardNumber, creditCard.encryptedCardNumber)
+        assertEquals(newCreditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
         assertEquals(newCreditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(newCreditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(newCreditCardFields.cardType, creditCard.cardType)
     }
 
     @Test
-    fun `deleteCreditCard`() = runBlocking {
-        val creditCardFields = UpdatableCreditCardFields(
+    fun `delete credit card`() = runBlocking {
+        val creditCardFields = NewCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            plaintextCardNumber = CreditCardNumber.Plaintext("30000000000004"),
+            cardNumberLast4 = "0004",
             expiryMonth = 12,
             expiryYear = 2028,
-            cardType = "amex"
+            cardType = "diners"
         )
 
         val creditCard = storage.addCreditCard(creditCardFields)
-        val creditCards = storage.getAllCreditCards()
-
-        assertEquals(1, creditCards.size)
-        assertEquals(creditCard, creditCards[0])
+        assertNotNull(storage.getCreditCard(creditCard.guid))
 
         val isDeleteSuccessful = storage.deleteCreditCard(creditCard.guid)
 
         assertTrue(isDeleteSuccessful)
-        assertEquals(0, storage.getAllCreditCards().size)
+        assertNull(storage.getCreditCard(creditCard.guid))
     }
 
     @Test
-    fun `addAddress`() = runBlocking {
+    fun `add address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -191,7 +243,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `getAddress`() = runBlocking {
+    fun `get address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -212,10 +264,12 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `getAllAddresses`() = runBlocking {
-        var addresses = storage.getAllAddresses()
-        assertEquals(0, addresses.size)
+    fun `GIVEN a non-existent address guid WHEN getAddress is called THEN null is returned`() = runBlocking {
+        assertNull(storage.getAddress("guid"))
+    }
 
+    @Test
+    fun `get all addresses`() = runBlocking {
         val addressFields1 = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -262,16 +316,18 @@ class AutofillCreditCardsAddressesStorageTest {
         val address2 = storage.addAddress(addressFields2)
         val address3 = storage.addAddress(addressFields3)
 
-        addresses = storage.getAllAddresses()
+        val addresses = storage.getAllAddresses()
 
-        assertEquals(3, addresses.size)
-        assertEquals(address1, addresses[0])
-        assertEquals(address2, addresses[1])
-        assertEquals(address3, addresses[2])
+        val savedAddress1 = addresses.find { it == address1 }
+        assertNotNull(savedAddress1)
+        val savedAddress2 = addresses.find { it == address2 }
+        assertNotNull(savedAddress2)
+        val savedAddress3 = addresses.find { it == address3 }
+        assertNotNull(savedAddress3)
     }
 
     @Test
-    fun `updateAddress`() = runBlocking {
+    fun `update address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -306,7 +362,7 @@ class AutofillCreditCardsAddressesStorageTest {
 
         storage.updateAddress(address.guid, newAddressFields)
 
-        address = storage.getAddress(address.guid)
+        address = storage.getAddress(address.guid)!!
 
         assertEquals(newAddressFields.givenName, address.givenName)
         assertEquals(newAddressFields.additionalName, address.additionalName)
@@ -323,7 +379,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `deleteAddress`() = runBlocking {
+    fun `delete address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -340,14 +396,11 @@ class AutofillCreditCardsAddressesStorageTest {
         )
 
         val address = storage.addAddress(addressFields)
-        val addresses = storage.getAllAddresses()
-
-        assertEquals(1, addresses.size)
-        assertEquals(address, addresses[0])
+        val savedAddress = storage.getAddress(address.guid)
+        assertEquals(address, savedAddress)
 
         val isDeleteSuccessful = storage.deleteAddress(address.guid)
-
         assertTrue(isDeleteSuccessful)
-        assertEquals(0, storage.getAllAddresses().size)
+        assertNull(storage.getAddress(address.guid))
     }
 }

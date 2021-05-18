@@ -22,6 +22,7 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
+import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
@@ -35,6 +36,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.Popup
 import mozilla.components.concept.engine.prompt.PromptRequest.Repost
 import mozilla.components.concept.engine.prompt.PromptRequest.SaveLoginPrompt
+import mozilla.components.concept.engine.prompt.PromptRequest.SelectCreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest.SelectLoginPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.Share
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
@@ -42,6 +44,8 @@ import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate
+import mozilla.components.feature.prompts.concept.SelectablePromptView
+import mozilla.components.feature.prompts.creditcard.CreditCardPicker
 import mozilla.components.feature.prompts.dialog.AlertDialogFragment
 import mozilla.components.feature.prompts.dialog.AuthenticationDialogFragment
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment
@@ -60,7 +64,6 @@ import mozilla.components.feature.prompts.dialog.TimePickerDialogFragment
 import mozilla.components.feature.prompts.file.FilePicker
 import mozilla.components.feature.prompts.login.LoginExceptions
 import mozilla.components.feature.prompts.login.LoginPicker
-import mozilla.components.feature.prompts.login.LoginPickerView
 import mozilla.components.feature.prompts.share.DefaultShareDelegate
 import mozilla.components.feature.prompts.share.ShareDelegate
 import mozilla.components.lib.state.ext.flowScoped
@@ -107,9 +110,14 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * 'save login'prompts will not be shown.
  * @property loginExceptionStorage An implementation of [LoginExceptions] that saves and checks origins
  * the user does not want to see a save login dialog for.
- * @property loginPickerView The [LoginPickerView] used for [LoginPicker] to display select login options.
+ * @property loginPickerView The [SelectablePromptView] used for [LoginPicker] to display a
+ * selectable prompt list of login options.
  * @property onManageLogins A callback invoked when a user selects "manage logins" from the
  * select login prompt.
+ * @property creditCardPickerView The [SelectablePromptView] used for [CreditCardPicker] to display
+ * a selectable prompt list of credit card options.
+ * @property onManageCreditCards A callback invoked when a user selects "Manage credit cards" from
+ * the select credit card prompt.
  * @property onNeedToRequestPermissions A callback invoked when permissions
  * need to be requested before a prompt (e.g. a file picker) can be displayed.
  * Once the request is completed, [onPermissionsResult] needs to be invoked.
@@ -124,13 +132,17 @@ class PromptFeature private constructor(
     override val loginValidationDelegate: LoginValidationDelegate? = null,
     private val isSaveLoginEnabled: () -> Boolean = { false },
     override val loginExceptionStorage: LoginExceptions? = null,
-    private val loginPickerView: LoginPickerView? = null,
+    private val loginPickerView: SelectablePromptView<Login>? = null,
     private val onManageLogins: () -> Unit = {},
+    private val creditCardPickerView: SelectablePromptView<CreditCard>? = null,
+    private val onManageCreditCards: () -> Unit = {},
     onNeedToRequestPermissions: OnNeedToRequestPermissions
-) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler, UserInteractionHandler {
+) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler,
+    UserInteractionHandler {
     // These three scopes have identical lifetimes. We do not yet have a way of combining scopes
     private var handlePromptScope: CoroutineScope? = null
     private var dismissPromptScope: CoroutineScope? = null
+
     @VisibleForTesting
     var activePromptRequest: PromptRequest? = null
 
@@ -149,8 +161,10 @@ class PromptFeature private constructor(
         loginValidationDelegate: LoginValidationDelegate? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: LoginPickerView? = null,
+        loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
+        creditCardPickerView: SelectablePromptView<CreditCard>? = null,
+        onManageCreditCards: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = PromptContainer.Activity(activity),
@@ -163,7 +177,9 @@ class PromptFeature private constructor(
         loginExceptionStorage = loginExceptionStorage,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins
+        onManageLogins = onManageLogins,
+        creditCardPickerView = creditCardPickerView,
+        onManageCreditCards = onManageCreditCards
     )
 
     constructor(
@@ -175,8 +191,10 @@ class PromptFeature private constructor(
         loginValidationDelegate: LoginValidationDelegate? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: LoginPickerView? = null,
+        loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
+        creditCardPickerView: SelectablePromptView<CreditCard>? = null,
+        onManageCreditCards: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = PromptContainer.Fragment(fragment),
@@ -189,7 +207,9 @@ class PromptFeature private constructor(
         loginExceptionStorage = loginExceptionStorage,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins
+        onManageLogins = onManageLogins,
+        creditCardPickerView = creditCardPickerView,
+        onManageCreditCards = onManageCreditCards
     )
 
     @Deprecated("Pass only activity or fragment instead")
@@ -199,15 +219,17 @@ class PromptFeature private constructor(
         store: BrowserStore,
         customTabId: String? = null,
         fragmentManager: FragmentManager,
-        loginPickerView: LoginPickerView? = null,
+        loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
+        creditCardPickerView: SelectablePromptView<CreditCard>? = null,
+        onManageCreditCards: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = activity?.let { PromptContainer.Activity(it) }
             ?: fragment?.let { PromptContainer.Fragment(it) }
             ?: throw IllegalStateException(
                 "activity and fragment references " +
-                        "must not be both null, at least one must be initialized."
+                    "must not be both null, at least one must be initialized."
             ),
         store = store,
         customTabId = customTabId,
@@ -216,7 +238,9 @@ class PromptFeature private constructor(
         loginValidationDelegate = null,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins
+        onManageLogins = onManageLogins,
+        creditCardPickerView = creditCardPickerView,
+        onManageCreditCards = onManageCreditCards
     )
 
     private val filePicker = FilePicker(container, store, customTabId, onNeedToRequestPermissions)
@@ -224,6 +248,10 @@ class PromptFeature private constructor(
     @VisibleForTesting(otherwise = PRIVATE)
     internal var loginPicker =
         loginPickerView?.let { LoginPicker(store, it, onManageLogins, customTabId) }
+
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal var creditCardPicker =
+        creditCardPickerView?.let { CreditCardPicker(store, it, onManageCreditCards, customTabId) }
 
     override val onNeedToRequestPermissions
         get() = filePicker.onNeedToRequestPermissions
@@ -244,15 +272,23 @@ class PromptFeature private constructor(
                 .collect { state ->
                     state?.content?.let {
                         if (it.promptRequest != activePromptRequest) {
+                            // Dismiss any active select login or credit card prompt if it does
+                            // not match the current prompt request for the session.
                             if (activePromptRequest is SelectLoginPrompt) {
                                 loginPicker?.dismissCurrentLoginSelect(activePromptRequest as SelectLoginPrompt)
+                            } else if (activePromptRequest is SelectCreditCard) {
+                                creditCardPicker?.dismissSelectCreditCardRequest(
+                                    activePromptRequest as SelectCreditCard
+                                )
                             }
+
                             onPromptRequested(state)
                         } else if (!it.loading) {
                             promptAbuserDetector.resetJSAlertAbuseState()
                         } else if (it.loading) {
-                            dismissLoginSelectPrompt()
+                            dismissSelectPrompts()
                         }
+
                         activePromptRequest = it.promptRequest
                     }
                 }
@@ -266,7 +302,7 @@ class PromptFeature private constructor(
                     state.findTabOrCustomTabOrSelectedTab(customTabId)?.content?.url
                 )
             }.collect {
-                dismissLoginSelectPrompt()
+                dismissSelectPrompts()
 
                 val prompt = activePrompt?.get()
                 if (prompt?.shouldDismissOnLoad() == true) {
@@ -290,11 +326,11 @@ class PromptFeature private constructor(
         dismissPromptScope?.cancel()
 
         // Dismisses the logins prompt so that it can appear on another tab
-        dismissLoginSelectPrompt()
+        dismissSelectPrompts()
     }
 
     override fun onBackPressed(): Boolean {
-        return dismissLoginSelectPrompt()
+        return dismissSelectPrompts()
     }
 
     /**
@@ -332,11 +368,14 @@ class PromptFeature private constructor(
             when (promptRequest) {
                 is File -> filePicker.handleFileRequest(promptRequest)
                 is Share -> handleShareRequest(promptRequest, session)
+                is SelectCreditCard -> {
+                    if (promptRequest.creditCards.isNotEmpty()) {
+                        creditCardPicker?.handleSelectCreditCardRequest(promptRequest)
+                    }
+                }
                 is SelectLoginPrompt -> {
                     if (promptRequest.logins.isNotEmpty()) {
-                        loginPicker?.handleSelectLoginRequest(
-                            promptRequest
-                        )
+                        loginPicker?.handleSelectLoginRequest(promptRequest)
                     }
                 }
                 else -> handleDialogsRequest(promptRequest, session)
@@ -489,8 +528,8 @@ class PromptFeature private constructor(
                 if (loginValidationDelegate == null) {
                     logger.debug(
                         "Ignoring received SaveLoginPrompt because PromptFeature." +
-                                "loginValidationDelegate is null. If you are trying to autofill logins, " +
-                                "try attaching a LoginValidationDelegate to PromptFeature"
+                            "loginValidationDelegate is null. If you are trying to autofill logins, " +
+                            "try attaching a LoginValidationDelegate to PromptFeature"
                     )
                     return
                 }
@@ -529,7 +568,6 @@ class PromptFeature private constructor(
             }
 
             is TimeSelection -> {
-
                 val selectionType = when (promptRequest.type) {
                     TimeSelection.Type.DATE -> TimePickerDialogFragment.SELECTION_TYPE_DATE
                     TimeSelection.Type.DATE_AND_TIME -> TimePickerDialogFragment.SELECTION_TYPE_DATE_AND_TIME
@@ -580,7 +618,6 @@ class PromptFeature private constructor(
             )
 
             is Popup -> {
-
                 val title = container.getString(R.string.mozac_feature_prompts_popup_dialog_title)
                 val positiveLabel = container.getString(R.string.mozac_feature_prompts_allow)
                 val negativeLabel = container.getString(R.string.mozac_feature_prompts_deny)
@@ -595,7 +632,6 @@ class PromptFeature private constructor(
                 )
             }
             is BeforeUnload -> {
-
                 val title =
                     container.getString(R.string.mozac_feature_prompt_before_unload_dialog_title)
                 val body =
@@ -642,7 +678,8 @@ class PromptFeature private constructor(
 
             is Repost -> {
                 val title = container.context.getString(R.string.mozac_feature_prompt_repost_title)
-                val message = container.context.getString(R.string.mozac_feature_prompt_repost_message)
+                val message =
+                    container.context.getString(R.string.mozac_feature_prompt_repost_message)
                 val positiveAction =
                     container.context.getString(R.string.mozac_feature_prompt_repost_positive_button_text)
                 val negativeAction =
@@ -684,26 +721,40 @@ class PromptFeature private constructor(
             is BeforeUnload,
             is SaveLoginPrompt,
             is SelectLoginPrompt,
+            is SelectCreditCard,
             is Share -> true
             is Alert, is TextPrompt, is Confirm, is Repost, is Popup -> promptAbuserDetector.shouldShowMoreDialogs
         }
     }
 
     /**
-     * Dismisses the select login prompt if it is active and visible.
-     * @returns true if dismissCurrentLoginSelect is called otherwise false.
+     * Dismisses the select prompts if they are active and visible.
+     *
+     * @returns true if a select prompt was dismissed, otherwise false.
      */
     @VisibleForTesting
-    fun dismissLoginSelectPrompt(): Boolean {
+    fun dismissSelectPrompts(): Boolean {
+        var result = false
+
         (activePromptRequest as? SelectLoginPrompt)?.let { selectLoginPrompt ->
             loginPicker?.let { loginPicker ->
                 if (loginPickerView?.asView()?.isVisible == true) {
                     loginPicker.dismissCurrentLoginSelect(selectLoginPrompt)
-                    return true
+                    result = true
                 }
             }
         }
-        return false
+
+        (activePromptRequest as? SelectCreditCard)?.let { selectCreditCardPrompt ->
+            creditCardPicker?.let { creditCardPicker ->
+                if (creditCardPickerView?.asView()?.isVisible == true) {
+                    creditCardPicker.dismissSelectCreditCardRequest(selectCreditCardPrompt)
+                    result = true
+                }
+            }
+        }
+
+        return result
     }
 }
 

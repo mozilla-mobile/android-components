@@ -9,14 +9,12 @@ treeherder:
         # This list is based on .buildconfig.yml except the exceptions down below
         browser-awesomebar: browser-awesomebar
         browser-domains: browser-domains
-        browser-engine-gecko-beta: browser-engine-gecko-beta
         browser-engine-gecko: browser-engine-gecko
         browser-engine-system: browser-engine-system
         browser-errorpages: browser-errorpages
         browser-icons: browser-icons
         browser-menu: browser-menu
         browser-menu2: browser-menu2
-        browser-search: browser-search
         browser-session: browser-session
         browser-session-storage: browser-session-storage
         browser-state: browser-state
@@ -76,10 +74,6 @@ treeherder:
         lib-push-amazon: lib-push-amazon
         lib-push-firebase: lib-push-firebase
         lib-state: lib-state
-        samples-browser-beta: samples-browser-beta
-        samples-browser-release: samples-browser-release
-        samples-browser-system: samples-browser-system
-        samples-browser: samples-browser
         samples-crash: samples-crash
         samples-dataprotect: samples-dataprotect
         samples-firefox-accounts: samples-firefox-accounts
@@ -124,14 +118,12 @@ treeherder:
         ui-widgets: ui-widgets
 
         # These ones are too long to fit in 25 chars
-        browser-engine-gecko-nigh: browser-engine-gecko-nightly
         lib-fetch-httpurlconnect: lib-fetch-httpurlconnection
         feature-webcompat-report: feature-webcompat-reporter
 
         # Groups aren't generated off buildconfig.yml:
         samples-browser: samples-browser
-        samples-browser-beta: samples-browser-beta
-        samples-browser-release: samples-browser-release
+        samples-browser-gecko: samples-browser-gecko
         samples-browser-system: samples-browser-system
 
 

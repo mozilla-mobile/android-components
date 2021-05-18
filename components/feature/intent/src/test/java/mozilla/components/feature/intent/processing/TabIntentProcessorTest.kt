@@ -9,8 +9,6 @@ import android.content.Intent
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import mozilla.components.browser.search.SearchEngine
-import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.action.EngineAction
@@ -20,15 +18,16 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.search.SearchUseCases
-import mozilla.components.browser.search.ext.toDefaultSearchEngineProvider
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.SearchState
+import mozilla.components.feature.search.ext.createSearchEngine
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -50,18 +49,29 @@ class TabIntentProcessorTest {
     private val sessionManager = mock<SessionManager>()
     private val session = mock<Session>()
     private val sessionUseCases = SessionUseCases(store, sessionManager)
-    private val searchEngineManager = mock<SearchEngineManager>()
+
+    private val searchEngine = createSearchEngine(
+        name = "Test",
+        url = "https://localhost/?q={searchTerms}",
+        icon = mock()
+    )
+
+    private val state = BrowserState(
+        search = SearchState(
+            regionSearchEngines = listOf(searchEngine)
+        )
+    )
 
     private val tabsUseCases = TabsUseCases(store, sessionManager)
     private val searchUseCases = SearchUseCases(
         store,
-        searchEngineManager.toDefaultSearchEngineProvider(testContext),
         tabsUseCases
     )
 
     @Before
     fun setup() {
         whenever(sessionManager.selectedSession).thenReturn(session)
+        whenever(store.state).thenReturn(state)
     }
 
     @Test
@@ -83,7 +93,14 @@ class TabIntentProcessorTest {
         handler.process(intent)
 
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
         )
@@ -121,7 +138,14 @@ class TabIntentProcessorTest {
         handler.process(intent)
 
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
         )
@@ -159,7 +183,14 @@ class TabIntentProcessorTest {
         whenever(intent.dataString).thenReturn("http://mozilla.org")
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
         )
@@ -180,35 +211,70 @@ class TabIntentProcessorTest {
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("http://mozilla.org")
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
         )
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("see http://getpocket.com")
         handler.process(intent)
-        verify(sessionManager, times(2)).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager, times(2)).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.allValues.last().id, "http://getpocket.com", LoadUrlFlags.external())
         )
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("see http://mozilla.com and http://getpocket.com")
         handler.process(intent)
-        verify(sessionManager, times(3)).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager, times(3)).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.allValues.last().id, "http://mozilla.com", LoadUrlFlags.external())
         )
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("checkout the Tweet: http://tweets.mozilla.com")
         handler.process(intent)
-        verify(sessionManager, times(4)).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager, times(4)).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.allValues.last().id, "http://tweets.mozilla.com", LoadUrlFlags.external())
         )
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("checkout the Tweet: HTTP://tweets.mozilla.org")
         handler.process(intent)
-        verify(sessionManager, times(5)).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager, times(5)).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.allValues.last().id, "HTTP://tweets.mozilla.org", LoadUrlFlags.external())
         )
@@ -221,13 +287,12 @@ class TabIntentProcessorTest {
 
         val searchUseCases = SearchUseCases(
             store,
-            searchEngineManager.toDefaultSearchEngineProvider(testContext),
             TabsUseCases(store, sessionManager)
         )
         val sessionUseCases = SessionUseCases(store, sessionManager)
 
         val searchTerms = "mozilla android"
-        val searchUrl = "http://search-url.com?$searchTerms"
+        val searchUrl = "https://localhost/?q=mozilla%20android"
 
         val handler = TabIntentProcessor(TabsUseCases(store, sessionManager), sessionUseCases.loadUrl, searchUseCases.newTabSearch)
 
@@ -235,13 +300,16 @@ class TabIntentProcessorTest {
         whenever(intent.action).thenReturn(Intent.ACTION_SEND)
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn(searchTerms)
 
-        val searchEngine = mock<SearchEngine>()
-        whenever(searchEngine.buildSearchUrl(searchTerms)).thenReturn(searchUrl)
-        whenever(searchEngineManager.getDefaultSearchEngine(testContext)).thenReturn(searchEngine)
-
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.none())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, searchUrl, LoadUrlFlags.none())
         )
@@ -286,7 +354,14 @@ class TabIntentProcessorTest {
         whenever(intent.getStringExtra(SearchManager.QUERY)).thenReturn("http://mozilla.org")
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
         )
@@ -299,13 +374,12 @@ class TabIntentProcessorTest {
 
         val searchUseCases = SearchUseCases(
             store,
-            searchEngineManager.toDefaultSearchEngineProvider(testContext),
             TabsUseCases(store, sessionManager)
         )
         val sessionUseCases = SessionUseCases(store, sessionManager)
 
         val searchTerms = "mozilla android"
-        val searchUrl = "http://search-url.com?$searchTerms"
+        val searchUrl = "https://localhost/?q=mozilla%20android"
 
         val handler = TabIntentProcessor(TabsUseCases(store, sessionManager), sessionUseCases.loadUrl, searchUseCases.newTabSearch)
 
@@ -313,13 +387,16 @@ class TabIntentProcessorTest {
         whenever(intent.action).thenReturn(Intent.ACTION_SEARCH)
         whenever(intent.getStringExtra(SearchManager.QUERY)).thenReturn(searchTerms)
 
-        val searchEngine = mock<SearchEngine>()
-        whenever(searchEngine.buildSearchUrl(searchTerms)).thenReturn(searchUrl)
-        whenever(searchEngineManager.getDefaultSearchEngine(testContext)).thenReturn(searchEngine)
-
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.none())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, searchUrl, LoadUrlFlags.none())
         )
@@ -352,7 +429,14 @@ class TabIntentProcessorTest {
         whenever(intent.getStringExtra(SearchManager.QUERY)).thenReturn("http://mozilla.org")
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.external())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
         )
@@ -365,13 +449,12 @@ class TabIntentProcessorTest {
 
         val searchUseCases = SearchUseCases(
             store,
-            searchEngineManager.toDefaultSearchEngineProvider(testContext),
             TabsUseCases(store, sessionManager)
         )
         val sessionUseCases = SessionUseCases(store, sessionManager)
 
         val searchTerms = "mozilla android"
-        val searchUrl = "http://search-url.com?$searchTerms"
+        val searchUrl = "https://localhost/?q=mozilla%20android"
 
         val handler = TabIntentProcessor(TabsUseCases(store, sessionManager), sessionUseCases.loadUrl, searchUseCases.newTabSearch)
 
@@ -379,13 +462,16 @@ class TabIntentProcessorTest {
         whenever(intent.action).thenReturn(Intent.ACTION_WEB_SEARCH)
         whenever(intent.getStringExtra(SearchManager.QUERY)).thenReturn(searchTerms)
 
-        val searchEngine = mock<SearchEngine>()
-        whenever(searchEngine.buildSearchUrl(searchTerms)).thenReturn(searchUrl)
-        whenever(searchEngineManager.getDefaultSearchEngine(testContext)).thenReturn(searchEngine)
-
         handler.process(intent)
         val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(true), eq(null), eq(null), eq(null))
+        verify(sessionManager).add(
+            sessionCaptor.capture(),
+            eq(true),
+            eq(null),
+            eq(null),
+            eq(null),
+            eq(LoadUrlFlags.none())
+        )
         verify(store).dispatch(EngineAction.LoadUrlAction(
             sessionCaptor.value.id, searchUrl, LoadUrlFlags.none())
         )

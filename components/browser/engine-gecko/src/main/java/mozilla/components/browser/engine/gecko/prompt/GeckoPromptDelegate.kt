@@ -8,7 +8,12 @@ import android.content.Context
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteCreditCard
+import mozilla.components.browser.engine.gecko.ext.toCreditCard
+import mozilla.components.browser.engine.gecko.ext.toLogin
+import mozilla.components.browser.engine.gecko.ext.toLoginEntry
 import mozilla.components.concept.engine.prompt.Choice
+import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
@@ -23,6 +28,7 @@ import org.mozilla.geckoview.Autocomplete
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.PromptDelegate
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.AutocompleteRequest
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.BeforeUnloadPrompt
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt.Type.DATE
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.DateTimePrompt.Type.DATETIME_LOCAL
@@ -57,27 +63,49 @@ typealias AC_FILE_FACING_MODE = PromptRequest.File.FacingMode
 internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSession) :
     PromptDelegate {
 
-    private fun Autocomplete.LoginEntry.toLogin() = Login(
-        guid = guid,
-        origin = origin,
-        formActionOrigin = formActionOrigin,
-        httpRealm = httpRealm,
-        username = username,
-        password = password
-    )
+    /**
+     * Handle a credit card selection prompt request. This is triggered by the user
+     * focusing on a credit card input field.
+     *
+     * @param session The [GeckoSession] that triggered the request.
+     * @param request The [AutocompleteRequest] containing the credit card selection request.
+     */
+    override fun onCreditCardSelect(
+        session: GeckoSession,
+        request: AutocompleteRequest<Autocomplete.CreditCardSelectOption>
+    ): GeckoResult<PromptResponse>? {
+        val geckoResult = GeckoResult<PromptResponse>()
 
-    private fun Login.toLoginEntry() = Autocomplete.LoginEntry.Builder()
-        .guid(guid)
-        .origin(origin)
-        .formActionOrigin(formActionOrigin)
-        .httpRealm(httpRealm)
-        .username(username)
-        .password(password)
-        .build()
+        val onConfirm: (CreditCard) -> Unit = { creditCard ->
+            if (!request.isComplete) {
+                geckoResult.complete(
+                    request.confirm(
+                        Autocomplete.CreditCardSelectOption(creditCard.toAutocompleteCreditCard())
+                    )
+                )
+            }
+        }
+
+        val onDismiss: () -> Unit = {
+            request.dismissSafely(geckoResult)
+        }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.SelectCreditCard(
+                    creditCards = request.options.map { it.value.toCreditCard() },
+                    onDismiss = onDismiss,
+                    onConfirm = onConfirm
+                )
+            )
+        }
+
+        return geckoResult
+    }
 
     override fun onLoginSave(
         session: GeckoSession,
-        prompt: PromptDelegate.AutocompleteRequest<Autocomplete.LoginSaveOption>
+        prompt: AutocompleteRequest<Autocomplete.LoginSaveOption>
     ): GeckoResult<PromptResponse>? {
         val geckoResult = GeckoResult<PromptResponse>()
         val onConfirmSave: (Login) -> Unit = { login ->
@@ -104,7 +132,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
     override fun onLoginSelect(
         session: GeckoSession,
-        prompt: PromptDelegate.AutocompleteRequest<Autocomplete.LoginSelectOption>
+        prompt: AutocompleteRequest<Autocomplete.LoginSelectOption>
     ): GeckoResult<PromptResponse>? {
         val geckoResult = GeckoResult<PromptResponse>()
         val onConfirmSelect: (Login) -> Unit = { login ->

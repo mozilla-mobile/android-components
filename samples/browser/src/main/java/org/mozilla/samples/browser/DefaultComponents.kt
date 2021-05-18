@@ -62,7 +62,6 @@ import mozilla.components.feature.pwa.intent.TrustedWebActivityIntentProcessor
 import mozilla.components.feature.pwa.intent.WebAppIntentProcessor
 import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.feature.search.SearchUseCases
-import mozilla.components.feature.search.ext.toDefaultSearchEngineProvider
 import mozilla.components.feature.search.middleware.SearchMiddleware
 import mozilla.components.feature.search.region.RegionMiddleware
 import mozilla.components.feature.session.HistoryDelegate
@@ -211,7 +210,7 @@ open class DefaultComponents(private val applicationContext: Context) {
     }
 
     val searchUseCases by lazy {
-        SearchUseCases(store, store.toDefaultSearchEngineProvider(), tabsUseCases)
+        SearchUseCases(store, tabsUseCases)
     }
 
     val defaultSearchUseCase by lazy {
@@ -273,7 +272,9 @@ open class DefaultComponents(private val applicationContext: Context) {
         WebExtensionBrowserMenuBuilder(
             menuItems,
             store = store,
-            webExtIconTintColorResource = R.color.photonGrey90,
+            style = WebExtensionBrowserMenuBuilder.Style(
+                webExtIconTintColorResource = R.color.photonGrey90
+            ),
             onAddonsManagerTapped = {
                 val intent = Intent(applicationContext, AddonsActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK

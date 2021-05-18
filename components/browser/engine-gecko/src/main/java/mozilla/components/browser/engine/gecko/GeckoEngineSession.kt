@@ -266,7 +266,7 @@ class GeckoEngineSession(
          * [TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES].
          */
         val shouldBlockContent =
-                policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
+            policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
         val enabledInBrowsingMode = if (privateMode) {
             policy.useForPrivateSessions
@@ -439,6 +439,10 @@ class GeckoEngineSession(
         super.close()
         job.cancel()
         geckoSession.close()
+    }
+
+    override fun getBlockedSchemes(): List<String> {
+        return BLOCKED_SCHEMES
     }
 
     /**

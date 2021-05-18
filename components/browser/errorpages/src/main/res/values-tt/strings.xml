@@ -6,8 +6,21 @@
     <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
     <string name="mozac_browser_errorpages_generic_title">Сорауны тәмамлап булмый</string>
 
+    <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
+    <string name="mozac_browser_errorpages_generic_message"><![CDATA[
+      <p>Бу проблема яки хата турында өстәмә мәгълүмат әлегә юк.</p>
+    ]]></string>
+
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_title">Хәвефсез бәйләнеш кору хатасы</string>
+
+    <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
+      <ul>
+        <li>Күрәсегез килгән сәхифә күрсәтелә алмый, чөнки алынган мәгълүматларның чынлыгын раслау мөмкин түгел</li>
+        <li>Зинһар сайт ияләре белән элемтәгә кереп, аларга бу проблема турында сөйләгез.</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_title">Хәвефсез бәйләнеш кору хатасы</string>
@@ -23,6 +36,12 @@
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_advanced">Киңәйтелгән...</string>
 
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Кемдер үзенең сайтын бу сайт дип күрсәтергә тырыша кебек, шунлыктан дәвам итмәвегез хәерле.</label>
+        <br><br>
+        <label>Веб-сайтлар үзләренең чынлыгын сертификатлар ярдәмендә раслый. %1$s кушымтасы <b>%2$s</b> сайтына ышанмый, чөнки сертификатны чыгаручы я билгесез, я ул үзлегеннән имзаланган, я сервер дөрес арадашчы сертификатлар җибәрми.</label>
+    ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_cert_back">Кире кайту (киңәш ителә)</string>
 
@@ -31,6 +50,15 @@
 
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Бәйләнеш өзелде</string>
+
+    <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
+    <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
+      <p>Браузер уңышлы тоташты, ләкин мәгълүмат тапшырылганда бәйләнеш өзелеп китте. Янәдән тырышып карагыз.</p>
+      <ul>
+        <li>Сайт вакытлыча я бөтенләй эшләми, я бик мәшгуль. Берәздән янәдән ачып карагыз.</li>
+        <li>Әгәр һичбер сайт та ачылмаса, җиһазыгызның мобиль интернет я Wi-Fi бәйләнешләрен тикшерегез.</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_title">Бәйләнешне көтү вакыты чыкты</string>
@@ -74,6 +102,8 @@
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_no_internet_title">Интернетка тоташу юк</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Челтәргә бәйләнешегезне тикшерегез яки бераздан битне яңадан йөкләп карагыз.</string>
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Яңарту</string>
 
@@ -97,6 +127,9 @@
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_access_denied_title">Файлдан файдалануга рөхсәт бирелмәде</string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_proxy_connection_refused_title">Прокси-сервер бәйләнештән бар тартты</string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">Прокси-сервер табылмады</string>

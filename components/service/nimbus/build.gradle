@@ -7,15 +7,7 @@ buildscript {
         maven {
             url "https://maven.mozilla.org/maven2"
         }
-
-        dependencies {
-            classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
-        }
     }
-}
-
-plugins {
-    id "com.jetbrains.python.envs" version "0.0.26"
 }
 
 apply plugin: 'com.android.library'
@@ -44,8 +36,15 @@ android {
 }
 
 dependencies {
-    api Dependencies.mozilla_nimbus
+    // These dependencies are part of this module's public API.
+    api(Dependencies.mozilla_nimbus) {
+        // Use our own version of the Glean dependency,
+        // which might be different from the version declared by A-S.
+        exclude group: 'org.mozilla.components', module: 'service-glean'
+    }
 
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.androidx_constraintlayout
     implementation Dependencies.androidx_coordinatorlayout
     implementation Dependencies.androidx_recyclerview
     implementation Dependencies.kotlin_stdlib
@@ -53,9 +52,6 @@ dependencies {
     implementation project(':support-base')
     implementation project(':support-locale')
 
-    compileOnly project(":service-glean")
-    testImplementation project(":service-glean")
-    testImplementation Dependencies.mozilla_glean_forUnitTests
     testImplementation Dependencies.androidx_work_testing
 
     testImplementation Dependencies.mozilla_full_megazord_forUnitTests
@@ -67,7 +63,5 @@ dependencies {
     testImplementation project(':support-test')
 }
 
-ext.gleanGenerateMarkdownDocs = true
-apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

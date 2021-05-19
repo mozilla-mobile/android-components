@@ -92,6 +92,7 @@ class PromptRequestTest {
         filePickerRequest.onDismiss()
 
         val promptRequest = PromptRequest.Authentication(
+            "example.org",
             "title",
             "message",
             "username",

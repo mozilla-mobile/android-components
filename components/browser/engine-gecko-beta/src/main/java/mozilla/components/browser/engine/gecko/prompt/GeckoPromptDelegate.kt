@@ -294,6 +294,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         val geckoResult = GeckoResult<PromptResponse>()
         val title = geckoPrompt.title ?: ""
         val message = geckoPrompt.message ?: ""
+        val uri = geckoPrompt.authOptions.uri
         val flags = geckoPrompt.authOptions.flags
         val userName = geckoPrompt.authOptions.username ?: ""
         val password = geckoPrompt.authOptions.password ?: ""
@@ -320,6 +321,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         geckoEngineSession.notifyObservers {
             onPromptRequest(
                 PromptRequest.Authentication(
+                    uri,
                     title,
                     message,
                     userName,

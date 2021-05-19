@@ -5,7 +5,8 @@
 /*
 Establish communication with native application.
 */
-let port = browser.runtime.connectNative("mozacWebchannelBackground");
+const WEB_CHANNEL_BACKGROUND_MESSAGING_ID = "mozacWebchannelBackground";
+let port = browser.runtime.connectNative(WEB_CHANNEL_BACKGROUND_MESSAGING_ID);
 /*
 Handle messages from native application, register content script for specific url.
 */

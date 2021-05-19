@@ -12,6 +12,10 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **service-pocket**
+  * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/pocket/README.md) to get more info.
+
 * **feature-contextmenu**:
   * ⚠️ Long pressing on web content won't show a contextual menu if the URL of the touch target is one blocked from loading in the browser.
 
@@ -69,6 +73,9 @@ permalink: /changelog/
 
 * **service-nimbus**
   * Added UI components for displaying a list of branches and the selected branch related to a Nimbus experiments.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
 
 # 75.0.0
 

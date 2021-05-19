@@ -5,12 +5,13 @@
 package mozilla.components.service.sync.autofill
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardNumber
+import mozilla.components.concept.storage.CreditCardValidationDelegate
 import mozilla.components.concept.storage.CreditCardsAddressesStorage
 import mozilla.components.concept.storage.CreditCardsAddressesStorageDelegate
 
@@ -28,23 +29,43 @@ class GeckoCreditCardsAddressesStorageDelegate(
         return crypto.decrypt(key, encryptedCardNumber)
     }
 
-    override fun onAddressesFetch(): Deferred<List<Address>> {
-        return scope.async {
-            storage.value.getAllAddresses()
-        }
+    override suspend fun onAddressesFetch(): List<Address> = withContext(scope.coroutineContext) {
+        storage.value.getAllAddresses()
     }
 
     override fun onAddressSave(address: Address) {
         TODO("Not yet implemented")
     }
 
-    override fun onCreditCardsFetch(): Deferred<List<CreditCard>> {
-        return scope.async {
+    override suspend fun onCreditCardsFetch(): List<CreditCard> =
+        withContext(scope.coroutineContext) {
             storage.value.getAllCreditCards()
         }
-    }
 
     override fun onCreditCardSave(creditCard: CreditCard) {
-        TODO("Not yet implemented")
+        val validationDelegate = DefaultCreditCardValidationDelegate(storage)
+
+        scope.launch {
+            when (val result = validationDelegate.validate(creditCard)) {
+                is CreditCardValidationDelegate.Result.CanBeCreated -> {
+                    decrypt(creditCard.encryptedCardNumber)?.let { plaintextCardNumber ->
+                        storage.value.addCreditCard(
+                            creditCard.intoNewCreditCardFields(
+                                plaintextCardNumber
+                            )
+                        )
+                    }
+                }
+                is CreditCardValidationDelegate.Result.CanBeUpdated -> {
+                    storage.value.updateCreditCard(
+                        guid = result.foundCreditCard.guid,
+                        creditCardFields = creditCard.intoUpdatableCreditCardFields()
+                    )
+                }
+                is CreditCardValidationDelegate.Result.Error -> {
+                    // Do nothing since an error occurred and the credit card cannot be saved.
+                }
+            }
+        }
     }
 }

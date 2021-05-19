@@ -7,6 +7,7 @@ package mozilla.components.service.sync.autofill
 import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardNumber
+import mozilla.components.concept.storage.NewCreditCardFields
 import mozilla.components.concept.storage.UpdatableAddressFields
 import mozilla.components.concept.storage.UpdatableCreditCardFields
 
@@ -92,5 +93,35 @@ internal fun mozilla.appservices.autofill.CreditCard.into(): CreditCard {
         timeLastUsed = this.timeLastUsed,
         timeLastModified = this.timeLastModified,
         timesUsed = this.timesUsed
+    )
+}
+
+/**
+ * Conversion from [CreditCard] to [NewCreditCardFields].
+ *
+ * @param plaintextCardNumber A plaintext credit card number.
+ */
+internal fun CreditCard.intoNewCreditCardFields(plaintextCardNumber: CreditCardNumber.Plaintext): NewCreditCardFields {
+    return NewCreditCardFields(
+        billingName = this.billingName,
+        plaintextCardNumber = plaintextCardNumber,
+        cardNumberLast4 = this.cardNumberLast4,
+        expiryMonth = this.expiryMonth,
+        expiryYear = this.expiryYear,
+        cardType = this.cardType
+    )
+}
+
+/**
+ * Conversion from [CreditCard] to [UpdatableCreditCardFields].
+ */
+internal fun CreditCard.intoUpdatableCreditCardFields(): UpdatableCreditCardFields {
+    return UpdatableCreditCardFields(
+        billingName = this.billingName,
+        cardNumber = this.encryptedCardNumber,
+        cardNumberLast4 = this.cardNumberLast4,
+        expiryMonth = this.expiryMonth,
+        expiryYear = this.expiryYear,
+        cardType = this.cardType
     )
 }

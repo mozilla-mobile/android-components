@@ -182,6 +182,22 @@ class AutofillCreditCardsAddressesStorage(
         coroutineContext.cancel()
         conn.close()
     }
+
+    override suspend fun wipeLocalAddresses() = withContext(coroutineContext) {
+        val storage = conn.getStorage()
+
+        storage.getAllAddresses().forEach { address ->
+            storage.deleteAddress(address.guid)
+        }
+    }
+
+    override suspend fun wipeLocalCreditCards() = withContext(coroutineContext) {
+        val storage = conn.getStorage()
+
+        storage.getAllCreditCards().forEach { creditCard ->
+            storage.deleteCreditCard(creditCard.guid)
+        }
+    }
 }
 
 /**

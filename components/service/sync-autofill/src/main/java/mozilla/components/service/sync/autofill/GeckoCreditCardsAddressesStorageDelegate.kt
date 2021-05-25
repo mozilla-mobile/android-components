@@ -5,9 +5,8 @@
 package mozilla.components.service.sync.autofill
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardNumber
@@ -28,21 +27,18 @@ class GeckoCreditCardsAddressesStorageDelegate(
         return crypto.decrypt(key, encryptedCardNumber)
     }
 
-    override fun onAddressesFetch(): Deferred<List<Address>> {
-        return scope.async {
-            storage.value.getAllAddresses()
-        }
+    override suspend fun onAddressesFetch(): List<Address> = withContext(scope.coroutineContext) {
+        storage.value.getAllAddresses()
     }
 
     override fun onAddressSave(address: Address) {
         TODO("Not yet implemented")
     }
 
-    override fun onCreditCardsFetch(): Deferred<List<CreditCard>> {
-        return scope.async {
+    override suspend fun onCreditCardsFetch(): List<CreditCard> =
+        withContext(scope.coroutineContext) {
             storage.value.getAllCreditCards()
         }
-    }
 
     override fun onCreditCardSave(creditCard: CreditCard) {
         TODO("Not yet implemented")

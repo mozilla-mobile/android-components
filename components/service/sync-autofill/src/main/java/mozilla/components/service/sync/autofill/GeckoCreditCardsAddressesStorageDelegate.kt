@@ -17,10 +17,15 @@ import mozilla.components.concept.storage.CreditCardsAddressesStorageDelegate
 
 /**
  * [CreditCardsAddressesStorageDelegate] implementation.
+ *
+ * @param storage The [CreditCardsAddressesStorage] used for looking up addresses and credit cards to autofill.
+ * @param scope [CoroutineScope] for long running operations. Defaults to using the [Dispatchers.IO].
+ * @param isCreditCardAutofillEnabled callback allowing to limit [storage] operations if autofill is disabled.
  */
 class GeckoCreditCardsAddressesStorageDelegate(
     private val storage: Lazy<CreditCardsAddressesStorage>,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
+    private val isCreditCardAutofillEnabled: () -> Boolean = { false }
 ) : CreditCardsAddressesStorageDelegate {
 
     override fun decrypt(encryptedCardNumber: CreditCardNumber.Encrypted): CreditCardNumber.Plaintext? {
@@ -37,10 +42,15 @@ class GeckoCreditCardsAddressesStorageDelegate(
         TODO("Not yet implemented")
     }
 
-    override suspend fun onCreditCardsFetch(): List<CreditCard> =
-        withContext(scope.coroutineContext) {
+    override suspend fun onCreditCardsFetch(): List<CreditCard> {
+        if (isCreditCardAutofillEnabled().not()) {
+            return listOf()
+        }
+
+        return withContext(scope.coroutineContext) {
             storage.value.getAllCreditCards()
         }
+    }
 
     override fun onCreditCardSave(creditCard: CreditCard) {
         val validationDelegate = DefaultCreditCardValidationDelegate(storage)

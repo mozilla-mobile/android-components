@@ -6,6 +6,7 @@ package mozilla.components.service.sync.autofill
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardNumber
 import mozilla.components.concept.storage.NewCreditCardFields
 import mozilla.components.concept.storage.UpdatableAddressFields
@@ -20,6 +21,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class AutofillCreditCardsAddressesStorageTest {
@@ -59,6 +62,13 @@ class AutofillCreditCardsAddressesStorageTest {
         assertEquals(creditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(creditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(creditCardFields.cardType, creditCard.cardType)
+        assertEquals(
+            CreditCard.ellipsesStart +
+                CreditCard.ellipsis + CreditCard.ellipsis + CreditCard.ellipsis + CreditCard.ellipsis +
+                creditCardFields.cardNumberLast4 +
+                CreditCard.ellipsesEnd,
+            creditCard.obfuscatedCardNumber
+        )
     }
 
     @Test
@@ -402,5 +412,13 @@ class AutofillCreditCardsAddressesStorageTest {
         val isDeleteSuccessful = storage.deleteAddress(address.guid)
         assertTrue(isDeleteSuccessful)
         assertNull(storage.getAddress(address.guid))
+    }
+
+    @Test
+    fun `WHEN warmUp method is called THEN the database connection is established`(): Unit = runBlocking {
+        val storageSpy = spy(storage)
+        storageSpy.warmUp()
+
+        verify(storageSpy).conn
     }
 }

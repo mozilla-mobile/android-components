@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-prompts** **browser-storage-sync**
+  * ⚠️ A new `isCreditCardAutofillEnabled` callback is available in `PromptFeature` and `GeckoCreditCardsAddressesStorageDelegate` to allow clients controlling whether credit cards should be autofilled or not. Default is false*
+
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
   * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/pocket/README.md) to get more info.
@@ -76,6 +79,9 @@ permalink: /changelog/
 
 * **service-glean**
   * 🆙 Updated Glean to version 38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
+
+* **support-utils**:
+  * Added `CreditCardUtils` which provides methods for retrieving the credit card issuer network from a provided card number. [#9813](https://github.com/mozilla-mobile/android-components/issues/9813)
 
 # 75.0.0
 

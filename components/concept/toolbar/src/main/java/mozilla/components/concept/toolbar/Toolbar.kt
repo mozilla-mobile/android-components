@@ -244,7 +244,6 @@ interface Toolbar {
             imageButton.contentDescription = contentDescription
             imageButton.setOnClickListener { listener.invoke() }
 
-            @DrawableRes
             val backgroundResource = if (background == 0) {
                 parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
@@ -293,7 +292,6 @@ interface Toolbar {
 
             updateViewState()
 
-            @DrawableRes
             val backgroundResource = if (background == 0) {
                 parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {

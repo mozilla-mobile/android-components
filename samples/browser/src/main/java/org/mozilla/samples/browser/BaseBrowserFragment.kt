@@ -119,6 +119,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
                 ),
                 tabId = sessionId,
                 onNeedToRequestPermissions = { permissions ->
+                    @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/10358
                     requestPermissions(permissions, REQUEST_CODE_DOWNLOAD_PERMISSIONS)
                 }),
             owner = this,
@@ -160,6 +161,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
                 customTabId = sessionId,
                 fragmentManager = parentFragmentManager,
                 onNeedToRequestPermissions = { permissions ->
+                    @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/10358
                     requestPermissions(permissions, REQUEST_CODE_PROMPT_PERMISSIONS)
                 }),
             owner = this,
@@ -182,6 +184,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
                     mediaKeySystemAccess = SitePermissionsRules.Action.ASK_TO_ALLOW
                 ),
                 onNeedToRequestPermissions = { permissions ->
+                    @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/android-components/issues/10358
                     requestPermissions(permissions, REQUEST_CODE_APP_PERMISSIONS)
                 },
                 onShouldShowRequestPermissionRationale = { shouldShowRequestPermissionRationale(it) },

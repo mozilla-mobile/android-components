@@ -12,8 +12,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **concept-engine** and **browser-engine-gecko**
+  * 🌟️ Added `TrackingProtectionPolicy.cookiePolicyPrivateMode` it allows to control how cookies should behave in private mode, if not specified it defaults to the value of `TrackingProtectionPolicy.cookiePolicyPrivateMode`.
+
 * **feature-prompts** **browser-storage-sync**
   * ⚠️ A new `isCreditCardAutofillEnabled` callback is available in `PromptFeature` and `GeckoCreditCardsAddressesStorageDelegate` to allow clients controlling whether credit cards should be autofilled or not. Default is false*
+  * ⚠️ Emit fact when a credit card is selected from the autofill prompt.
 
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.

@@ -68,7 +68,9 @@ class WebExtensionTest {
         val extension: WebExtension = mock()
         assertFalse(extension.isUnsupported())
 
-        val metadata: Metadata = mock()
+        val metadata: Metadata = mock {
+            whenever(disabledFlags).thenReturn(mock())
+        }
         whenever(extension.getMetadata()).thenReturn(metadata)
         assertFalse(extension.isUnsupported())
 

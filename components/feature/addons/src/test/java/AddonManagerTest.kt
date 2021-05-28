@@ -111,7 +111,7 @@ class AddonManagerTest {
 
         // Add unsupported extension
         val unsupportedExtension: WebExtension = mock()
-        val unsupportedExtensionMetadata: Metadata = mock()
+        val unsupportedExtensionMetadata: Metadata = mock { whenever(disabledFlags).thenReturn(mock()) }
         whenever(unsupportedExtensionMetadata.name).thenReturn("name")
         whenever(unsupportedExtensionMetadata.description).thenReturn("description")
         whenever(unsupportedExtension.id).thenReturn("unsupported_ext")
@@ -174,11 +174,13 @@ class AddonManagerTest {
         val temporaryExtension: WebExtension = mock()
         val temporaryExtensionIcon: Bitmap = mock()
         val temporaryExtensionMetadata: Metadata = mock()
+        val metadataDisableFlags: DisabledFlags = mock()
         whenever(temporaryExtensionMetadata.temporary).thenReturn(true)
         whenever(temporaryExtensionMetadata.name).thenReturn("name")
         whenever(temporaryExtension.id).thenReturn("temp_ext")
         whenever(temporaryExtension.url).thenReturn("site_url")
         whenever(temporaryExtension.getMetadata()).thenReturn(temporaryExtensionMetadata)
+        whenever(temporaryExtensionMetadata.disabledFlags).thenReturn(metadataDisableFlags)
         whenever(temporaryExtension.loadIcon(TEMPORARY_ADDON_ICON_SIZE)).thenReturn(temporaryExtensionIcon)
         WebExtensionSupport.installedExtensions["temp_ext"] = temporaryExtension
 

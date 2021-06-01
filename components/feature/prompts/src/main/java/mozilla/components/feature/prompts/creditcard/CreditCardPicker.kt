@@ -9,7 +9,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.feature.prompts.concept.SelectablePromptView
-import mozilla.components.feature.prompts.consumePromptFrom
+import mozilla.components.feature.prompts.ext.consumePromptFrom
 import mozilla.components.feature.prompts.facts.emitCreditCardAutofillDismissedFact
 import mozilla.components.feature.prompts.facts.emitCreditCardAutofillShownFact
 import mozilla.components.support.base.log.logger.Logger

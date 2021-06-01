@@ -171,6 +171,13 @@
         ]
       }
     },
+    "en-AU": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google-b-m", "bing", "amazon-au", "ddg", "wikipedia"
+        ]
+      }
+    },
     "en-CA": {
       "default": {
         "visibleDefaultEngines": [
@@ -238,7 +245,7 @@
     "es-ES": {
       "default": {
         "visibleDefaultEngines": [
-          "google-b-m", "bing", "ddg", "wikipedia-es"
+          "google-b-m", "bing", "ddg", "wikipedia-es", "amazon-es"
         ]
       }
     },
@@ -286,6 +293,20 @@
       "default": {
         "visibleDefaultEngines": [
           "google-b-m", "amazondotcom", "ddg", "wikipedia-fi"
+        ]
+      }
+    },
+    "fr-CA": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google-b-m", "bing", "amazon-ca", "ddg", "wikipedia-fr"
+        ]
+      }
+    },
+    "fr-FR": {
+      "default": {
+        "visibleDefaultEngines": [
+          "google-b-m", "bing", "ddg", "qwant", "wikipedia-fr", "amazon-fr"
         ]
       }
     },
@@ -409,7 +430,7 @@
     "it": {
       "default": {
         "visibleDefaultEngines": [
-          "google-b-m", "bing", "ddg", "wikipedia-it"
+          "google-b-m", "bing", "ddg", "wikipedia-it", "amazon-it"
         ]
       }
     },
@@ -575,12 +596,7 @@
     "nl": {
       "default": {
         "visibleDefaultEngines": [
-          "google-b-m", "bing", "bolcom-nl", "ddg", "wikipedia-nl"
-        ]
-      },
-      "experimental-hidden": {
-        "visibleDefaultEngines": [
-          "amazon-nl"
+          "google-b-m", "bing", "bolcom-nl", "ddg", "wikipedia-nl", "amazon-nl"
         ]
       }
     },
@@ -709,7 +725,7 @@
     "sv-SE": {
       "default": {
         "visibleDefaultEngines": [
-          "google-b-m", "prisjakt-sv-SE", "ddg", "wikipedia-sv-SE"
+          "google-b-m", "prisjakt-sv-SE", "ddg", "wikipedia-sv-SE", "amazon-se"
         ]
       }
     },

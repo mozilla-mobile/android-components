@@ -40,6 +40,10 @@ import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.ext.onDone
+import mozilla.components.feature.prompts.facts.emitCancelFact
+import mozilla.components.feature.prompts.facts.emitDisplayFact
+import mozilla.components.feature.prompts.facts.emitNeverSaveFact
+import mozilla.components.feature.prompts.facts.emitSaveFact
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -338,9 +342,13 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                     }
                     is Result.CanBeUpdated -> {
                         setViewState(
-                            headline = if (result.foundLogin.username.isEmpty()) context?.getString(
-                                R.string.mozac_feature_prompt_login_add_username_headline
-                            ) else context?.getString(R.string.mozac_feature_prompt_login_update_headline),
+                            headline = if (result.foundLogin.username.isEmpty()) {
+                                context?.getString(
+                                    R.string.mozac_feature_prompt_login_add_username_headline
+                                )
+                            } else {
+                                context?.getString(R.string.mozac_feature_prompt_login_update_headline)
+                            },
                             negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
                             confirmText =
                             context?.getString(R.string.mozac_feature_prompt_update_confirmation)

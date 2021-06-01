@@ -17,11 +17,10 @@ object Versions {
 
     const val mockwebserver = "3.10.0"
 
-    const val dokka = "0.9.17"
     const val android_gradle_plugin = "4.0.1"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "27.0.1"
-    const val detekt = "1.9.1"
+    const val detekt = "1.17.1"
 
     const val sentry = "1.7.21"
     const val okhttp = "3.13.1"
@@ -30,7 +29,7 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "76.0.1"
+    const val mozilla_appservices = "77.0.2"
 
     const val mozilla_glean = "38.0.0"
 
@@ -122,7 +121,6 @@ object Dependencies {
 
     const val leakcanary = "com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}"
 
-    const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
     const val tools_androidmavenpublish = "digital.wup:android-maven-publish:${Versions.android_maven_publish_plugin}"

@@ -28,13 +28,12 @@ buildscript {
     dependencies {
         classpath Dependencies.tools_androidgradle
         classpath Dependencies.tools_kotlingradle
-        classpath Dependencies.tools_dokka
         classpath Dependencies.tools_androidmavenpublish
     }
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("1.9.1")  // Check version number in `Versions.detekt`
+    id("io.gitlab.arturbosch.detekt").version("1.17.1")  // Check version number in `Versions.detekt` (Dependencies.kt)
 }
 
 allprojects {
@@ -57,28 +56,6 @@ allprojects {
             mavenCentral()
         }
 
-        if (project.hasProperty("jcenterRepo")) {
-            maven {
-                name "BintrayJCenter"
-                url project.property("jcenterRepo")
-            }
-        } else {
-            jcenter() {
-                content {
-                    ////////////////////////////////////////////////////////////////////////////////
-                    // JCenter is going away. Please do not add any new dependencies here.
-                    // https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/
-                    ////////////////////////////////////////////////////////////////////////////////
-
-                    // Used by detekt
-                    // Issue for publishing to maven central: https://github.com/Kotlin/kotlinx.html/issues/173
-                    // Related detekt issue: https://github.com/detekt/detekt/issues/3461
-                    includeVersion("org.jetbrains.kotlinx", "kotlinx-html-jvm", "0.7.1")
-                    includeVersion("org.jetbrains.kotlinx", "kotlinx-html-common", "0.7.1")
-                }
-            }
-        }
-
         maven {
             name "Mozilla"
             url "https://maven.mozilla.org/maven2"
@@ -88,7 +65,6 @@ allprojects {
 
 subprojects {
     apply plugin: 'jacoco'
-    apply plugin: 'org.jetbrains.dokka-android'
 
     // Enable Kotlin warnings as errors for all modules
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
@@ -295,43 +271,6 @@ subprojects {
             }
         }
     }
-}
-
-evaluationDependsOnChildren()
-
-tasks.register("docs", org.jetbrains.dokka.gradle.DokkaAndroidTask) {
-    moduleName = "$rootProject.name"
-    outputDirectory = "$buildDir/javadoc"
-    outputFormat = "gfm"
-    jdkVersion = 7
-
-    subprojects.findAll {
-        it.hasProperty("android") && !it.name.startsWith("samples")
-    }.each {
-        classpath += files(it.android.getBootClasspath().join(File.pathSeparator))
-        it.android.libraryVariants.all { variant ->
-            classpath += files(variant.javaCompileProvider.get().classpath.files)
-        }
-    }
-
-    externalDocumentationLink {
-        url = new URL("https://mozilla.github.io/geckoview/javadoc/mozilla-central/package-list")
-    }
-
-    sourceDirs = files(subprojects.findAll {
-        !it.name.startsWith("samples")
-    }.collect { p ->
-        def path = new File(p.projectDir, "/src/main/java")
-
-        def relativePath = rootDir.toPath().relativize(path.toPath()).toString()
-        linkMapping {
-            dir = path
-            url = "https://github.com/mozilla-mobile/android-components/blob/master/$relativePath"
-            suffix = "#L"
-        }
-
-        return path
-    })
 }
 
 tasks.register("clean", Delete) {

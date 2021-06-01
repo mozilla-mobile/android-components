@@ -108,6 +108,9 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * 'save login'prompts will not be shown.
  * @property isSaveLoginEnabled A callback invoked when a login prompt is triggered. If false,
  * 'save login'prompts will not be shown.
+ * @property isCreditCardAutofillEnabled A callback invoked when credit card fields are detected in the webpage.
+ * If this resolves to `true` a prompt allowing the user to select the credit card details to be autocompleted
+ * will be shown.
  * @property loginExceptionStorage An implementation of [LoginExceptions] that saves and checks origins
  * the user does not want to see a save login dialog for.
  * @property loginPickerView The [SelectablePromptView] used for [LoginPicker] to display a
@@ -118,6 +121,8 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * a selectable prompt list of credit card options.
  * @property onManageCreditCards A callback invoked when a user selects "Manage credit cards" from
  * the select credit card prompt.
+ * @property onSelectCreditCard A callback invoked when a user selects a credit card from the
+ * select credit card prompt.
  * @property onNeedToRequestPermissions A callback invoked when permissions
  * need to be requested before a prompt (e.g. a file picker) can be displayed.
  * Once the request is completed, [onPermissionsResult] needs to be invoked.
@@ -131,11 +136,13 @@ class PromptFeature private constructor(
     private val shareDelegate: ShareDelegate,
     override val loginValidationDelegate: LoginValidationDelegate? = null,
     private val isSaveLoginEnabled: () -> Boolean = { false },
+    private val isCreditCardAutofillEnabled: () -> Boolean = { false },
     override val loginExceptionStorage: LoginExceptions? = null,
     private val loginPickerView: SelectablePromptView<Login>? = null,
     private val onManageLogins: () -> Unit = {},
     private val creditCardPickerView: SelectablePromptView<CreditCard>? = null,
     private val onManageCreditCards: () -> Unit = {},
+    private val onSelectCreditCard: () -> Unit = {},
     onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler,
     UserInteractionHandler {
@@ -160,11 +167,13 @@ class PromptFeature private constructor(
         shareDelegate: ShareDelegate = DefaultShareDelegate(),
         loginValidationDelegate: LoginValidationDelegate? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
+        isCreditCardAutofillEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
         loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
         creditCardPickerView: SelectablePromptView<CreditCard>? = null,
         onManageCreditCards: () -> Unit = {},
+        onSelectCreditCard: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = PromptContainer.Activity(activity),
@@ -174,12 +183,14 @@ class PromptFeature private constructor(
         shareDelegate = shareDelegate,
         loginValidationDelegate = loginValidationDelegate,
         isSaveLoginEnabled = isSaveLoginEnabled,
+        isCreditCardAutofillEnabled = isCreditCardAutofillEnabled,
         loginExceptionStorage = loginExceptionStorage,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
         onManageLogins = onManageLogins,
         creditCardPickerView = creditCardPickerView,
-        onManageCreditCards = onManageCreditCards
+        onManageCreditCards = onManageCreditCards,
+        onSelectCreditCard = onSelectCreditCard
     )
 
     constructor(
@@ -190,11 +201,13 @@ class PromptFeature private constructor(
         shareDelegate: ShareDelegate = DefaultShareDelegate(),
         loginValidationDelegate: LoginValidationDelegate? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
+        isCreditCardAutofillEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
         loginPickerView: SelectablePromptView<Login>? = null,
         onManageLogins: () -> Unit = {},
         creditCardPickerView: SelectablePromptView<CreditCard>? = null,
         onManageCreditCards: () -> Unit = {},
+        onSelectCreditCard: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = PromptContainer.Fragment(fragment),
@@ -204,12 +217,14 @@ class PromptFeature private constructor(
         shareDelegate = shareDelegate,
         loginValidationDelegate = loginValidationDelegate,
         isSaveLoginEnabled = isSaveLoginEnabled,
+        isCreditCardAutofillEnabled = isCreditCardAutofillEnabled,
         loginExceptionStorage = loginExceptionStorage,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
         onManageLogins = onManageLogins,
         creditCardPickerView = creditCardPickerView,
-        onManageCreditCards = onManageCreditCards
+        onManageCreditCards = onManageCreditCards,
+        onSelectCreditCard = onSelectCreditCard
     )
 
     @Deprecated("Pass only activity or fragment instead")
@@ -223,6 +238,7 @@ class PromptFeature private constructor(
         onManageLogins: () -> Unit = {},
         creditCardPickerView: SelectablePromptView<CreditCard>? = null,
         onManageCreditCards: () -> Unit = {},
+        onSelectCreditCard: () -> Unit = {},
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = activity?.let { PromptContainer.Activity(it) }
@@ -240,7 +256,8 @@ class PromptFeature private constructor(
         loginPickerView = loginPickerView,
         onManageLogins = onManageLogins,
         creditCardPickerView = creditCardPickerView,
-        onManageCreditCards = onManageCreditCards
+        onManageCreditCards = onManageCreditCards,
+        onSelectCreditCard = onSelectCreditCard
     )
 
     private val filePicker = FilePicker(container, store, customTabId, onNeedToRequestPermissions)
@@ -251,7 +268,15 @@ class PromptFeature private constructor(
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal var creditCardPicker =
-        creditCardPickerView?.let { CreditCardPicker(store, it, onManageCreditCards, customTabId) }
+        creditCardPickerView?.let {
+            CreditCardPicker(
+                store = store,
+                creditCardSelectBar = it,
+                manageCreditCardsCallback = onManageCreditCards,
+                selectCreditCardCallback = onSelectCreditCard,
+                sessionId = customTabId
+            )
+        }
 
     override val onNeedToRequestPermissions
         get() = filePicker.onNeedToRequestPermissions
@@ -335,13 +360,39 @@ class PromptFeature private constructor(
 
     /**
      * Notifies the feature of intent results for prompt requests handled by
-     * other apps like file chooser requests.
+     * other apps like credit card and file chooser requests.
      *
      * @param requestCode The code of the app that requested the intent.
      * @param data The result of the request.
+     * @param resultCode The code of the result.
      */
     override fun onActivityResult(requestCode: Int, data: Intent?, resultCode: Int): Boolean {
+        if (requestCode == PIN_REQUEST) {
+            if (resultCode == Activity.RESULT_OK) {
+                creditCardPicker?.onAuthSuccess()
+            } else {
+                creditCardPicker?.onAuthFailure()
+            }
+
+            return true
+        }
+
         return filePicker.onActivityResult(requestCode, resultCode, data)
+    }
+
+    /**
+     * Notifies the feature that the biometric authentication was completed. It will then
+     * either process or dismiss the prompt request.
+     *
+     * @param isAuthenticated True if the user is authenticated successfully from the biometric
+     * authentication prompt or false otherwise.
+     */
+    fun onBiometricResult(isAuthenticated: Boolean) {
+        if (isAuthenticated) {
+            creditCardPicker?.onAuthSuccess()
+        } else {
+            creditCardPicker?.onAuthFailure()
+        }
     }
 
     /**
@@ -369,7 +420,7 @@ class PromptFeature private constructor(
                 is File -> filePicker.handleFileRequest(promptRequest)
                 is Share -> handleShareRequest(promptRequest, session)
                 is SelectCreditCard -> {
-                    if (promptRequest.creditCards.isNotEmpty()) {
+                    if (isCreditCardAutofillEnabled() && promptRequest.creditCards.isNotEmpty()) {
                         creditCardPicker?.handleSelectCreditCardRequest(promptRequest)
                     }
                 }
@@ -607,7 +658,7 @@ class PromptFeature private constructor(
                         userName,
                         password,
                         onlyShowPassword,
-                        session.content.url
+                        uri
                     )
                 }
             }
@@ -755,6 +806,11 @@ class PromptFeature private constructor(
         }
 
         return result
+    }
+
+    companion object {
+        // The PIN request code
+        const val PIN_REQUEST = 303
     }
 }
 

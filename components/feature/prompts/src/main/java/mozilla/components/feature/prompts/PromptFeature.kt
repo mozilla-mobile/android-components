@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.map
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
-import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
@@ -61,6 +60,7 @@ import mozilla.components.feature.prompts.dialog.Prompter
 import mozilla.components.feature.prompts.dialog.SaveLoginDialogFragment
 import mozilla.components.feature.prompts.dialog.TextPromptDialogFragment
 import mozilla.components.feature.prompts.dialog.TimePickerDialogFragment
+import mozilla.components.feature.prompts.ext.consumePromptFrom
 import mozilla.components.feature.prompts.file.FilePicker
 import mozilla.components.feature.prompts.login.LoginExceptions
 import mozilla.components.feature.prompts.login.LoginPicker
@@ -778,23 +778,5 @@ class PromptFeature private constructor(
     companion object {
         // The PIN request code
         const val PIN_REQUEST = 303
-    }
-}
-
-internal fun BrowserStore.consumePromptFrom(
-    sessionId: String?,
-    activePrompt: WeakReference<PromptDialogFragment>? = null,
-    consume: (PromptRequest) -> Unit
-) {
-    if (sessionId == null) {
-        state.selectedTab
-    } else {
-        state.findTabOrCustomTabOrSelectedTab(sessionId)
-    }?.let { tab ->
-        activePrompt?.clear()
-        tab.content.promptRequest?.let {
-            consume(it)
-            dispatch(ContentAction.ConsumePromptRequestAction(tab.id))
-        }
     }
 }

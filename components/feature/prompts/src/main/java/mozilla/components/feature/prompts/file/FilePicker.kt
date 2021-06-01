@@ -20,7 +20,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.File
 import mozilla.components.feature.prompts.PromptContainer
-import mozilla.components.feature.prompts.consumePromptFrom
+import mozilla.components.feature.prompts.ext.consumePromptFrom
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger

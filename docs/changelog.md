@@ -12,8 +12,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **concept-engine** and **browser-engine-gecko**
+  * 🌟️ Added `TrackingProtectionPolicy.cookiePolicyPrivateMode` it allows to control how cookies should behave in private mode, if not specified it defaults to the value of `TrackingProtectionPolicy.cookiePolicyPrivateMode`.
+
 * **feature-prompts** **browser-storage-sync**
   * ⚠️ A new `isCreditCardAutofillEnabled` callback is available in `PromptFeature` and `GeckoCreditCardsAddressesStorageDelegate` to allow clients controlling whether credit cards should be autofilled or not. Default is false*
+  * ⚠️ Emit fact when a credit card is selected from the autofill prompt.
 
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
@@ -24,7 +28,8 @@ permalink: /changelog/
 
 * **feature-prompts**:
   * Refactor `LoginPickerView` into a more generic view `SelectablePromptView` that can be reused by any prompts that displays a list of selectable options. [#10216](https://github.com/mozilla-mobile/android-components/issues/10216)
-  * Added optional `creditCardPickerView` and `onManageCreditCards` parameters to `PromptFeature` for a new `CreditCardPicker` to display a view for selecting credit cards to autofill into a site. [#9457](https://github.com/mozilla-mobile/android-components/issues/9457)
+  * Added optional `creditCardPickerView`, `onManageCreditCards` and `onSelectCreditCard` parameters to `PromptFeature` for a new `CreditCardPicker` to display a view for selecting credit cards to autofill into a site. [#9457](https://github.com/mozilla-mobile/android-components/issues/9457), [#10369](https://github.com/mozilla-mobile/android-components/pull/10369)
+  * Added handling of biometric authentication for a credit card selection prompt request. [#10369](https://github.com/mozilla-mobile/android-components/pull/10369)
 
 * **concept-engine**
   * 🌟️ `getBlockedSchemes()` now exposes the list of url shemes that the engine won't load.

@@ -8,7 +8,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.concept.SelectablePromptView
-import mozilla.components.feature.prompts.consumePromptFrom
+import mozilla.components.feature.prompts.ext.consumePromptFrom
 import mozilla.components.support.base.log.logger.Logger
 
 /**

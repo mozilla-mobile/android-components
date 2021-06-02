@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.map
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
-import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
@@ -61,6 +60,7 @@ import mozilla.components.feature.prompts.dialog.Prompter
 import mozilla.components.feature.prompts.dialog.SaveLoginDialogFragment
 import mozilla.components.feature.prompts.dialog.TextPromptDialogFragment
 import mozilla.components.feature.prompts.dialog.TimePickerDialogFragment
+import mozilla.components.feature.prompts.ext.consumePromptFrom
 import mozilla.components.feature.prompts.file.FilePicker
 import mozilla.components.feature.prompts.login.LoginExceptions
 import mozilla.components.feature.prompts.login.LoginPicker
@@ -219,39 +219,6 @@ class PromptFeature private constructor(
         isSaveLoginEnabled = isSaveLoginEnabled,
         isCreditCardAutofillEnabled = isCreditCardAutofillEnabled,
         loginExceptionStorage = loginExceptionStorage,
-        onNeedToRequestPermissions = onNeedToRequestPermissions,
-        loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins,
-        creditCardPickerView = creditCardPickerView,
-        onManageCreditCards = onManageCreditCards,
-        onSelectCreditCard = onSelectCreditCard
-    )
-
-    @Deprecated("Pass only activity or fragment instead")
-    constructor(
-        activity: Activity? = null,
-        fragment: Fragment? = null,
-        store: BrowserStore,
-        customTabId: String? = null,
-        fragmentManager: FragmentManager,
-        loginPickerView: SelectablePromptView<Login>? = null,
-        onManageLogins: () -> Unit = {},
-        creditCardPickerView: SelectablePromptView<CreditCard>? = null,
-        onManageCreditCards: () -> Unit = {},
-        onSelectCreditCard: () -> Unit = {},
-        onNeedToRequestPermissions: OnNeedToRequestPermissions
-    ) : this(
-        container = activity?.let { PromptContainer.Activity(it) }
-            ?: fragment?.let { PromptContainer.Fragment(it) }
-            ?: throw IllegalStateException(
-                "activity and fragment references " +
-                    "must not be both null, at least one must be initialized."
-            ),
-        store = store,
-        customTabId = customTabId,
-        fragmentManager = fragmentManager,
-        shareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate = null,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
         onManageLogins = onManageLogins,
@@ -811,23 +778,5 @@ class PromptFeature private constructor(
     companion object {
         // The PIN request code
         const val PIN_REQUEST = 303
-    }
-}
-
-internal fun BrowserStore.consumePromptFrom(
-    sessionId: String?,
-    activePrompt: WeakReference<PromptDialogFragment>? = null,
-    consume: (PromptRequest) -> Unit
-) {
-    if (sessionId == null) {
-        state.selectedTab
-    } else {
-        state.findTabOrCustomTabOrSelectedTab(sessionId)
-    }?.let { tab ->
-        activePrompt?.clear()
-        tab.content.promptRequest?.let {
-            consume(it)
-            dispatch(ContentAction.ConsumePromptRequestAction(tab.id))
-        }
     }
 }

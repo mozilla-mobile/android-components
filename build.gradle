@@ -10,6 +10,7 @@ buildscript {
             maven {
                 name "Google"
                 url project.property("googleRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             google()
@@ -19,6 +20,7 @@ buildscript {
             maven {
                 name "MavenCentral"
                 url project.property("centralRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             mavenCentral()
@@ -42,6 +44,7 @@ allprojects {
             maven {
                 name "Google"
                 url project.property("googleRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             google()
@@ -51,6 +54,7 @@ allprojects {
             maven {
                 name "MavenCentral"
                 url project.property("centralRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             mavenCentral()
@@ -114,6 +118,22 @@ subprojects {
 
     afterEvaluate {
         if (it.hasProperty('android')) {
+
+            // Glean currently expects every module to have a BuildConfig with VERSION_CODE and
+            // VERSION_NAME fields. Since Android Gradle Plugin 4.1+ those fields do not get
+            // generated for Android libraries anymore. As a workaround we generate them here
+            // explicitly.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1713084
+            // https://issuetracker.google.com/issues/158695880
+            plugins.withId('com.android.library') {
+                android {
+                    defaultConfig {
+                        buildConfigField 'int', 'VERSION_CODE', "1"
+                        buildConfigField 'String', 'VERSION_NAME', "\"1.0\""
+                    }
+                }
+            }
+
             jacoco {
                 toolVersion = "0.8.6"
             }
@@ -200,6 +220,7 @@ subprojects {
                 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
                     kotlinOptions {
                         jvmTarget = "1.8"
+                        useIR = true
                     }
                 }
             }

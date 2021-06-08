@@ -3,6 +3,14 @@
 componentsVersion: 91.0.0
 # Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.
 projects:
+  compose-browser-toolbar:
+    path: components/compose/browser-toolbar
+    description: 'A customizable toolbar for browsers using Jetpack Compose.'
+    publish: true
+  compose-engine:
+    path: components/compose/engine
+    description: 'A component for integrating a concept-engine implementation into Jetpack Compose UI.'
+    publish: true
   concept-awesomebar:
     path: components/concept/awesomebar
     description: 'An abstract definition of an awesomebar component.'
@@ -211,10 +219,6 @@ projects:
     path: components/browser/menu2
     description: 'An immutable customizable menu for browsers.'
     publish: true
-  browser-session:
-    path: components/browser/session
-    description: 'An abstract layer hiding the actual browser engine implementation.'
-    publish: true
   browser-session-storage:
     path: components/browser/session-storage
     description: 'Component for saving and restoring the browser state.'
@@ -406,6 +410,10 @@ projects:
   samples-browser:
     path: samples/browser
     description: 'A simple browser composed from browser components.'
+    publish: false
+  samples-compose-browser:
+    path: samples/compose-browser
+    description: 'A simple browser composed from browser components using Jetpack Compose.'
     publish: false
   samples-crash:
     path: samples/crash

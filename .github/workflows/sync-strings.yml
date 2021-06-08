@@ -4,6 +4,10 @@
 
 name: "Sync Strings"
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   schedule:
     - cron: '0 2 * * *'
@@ -39,3 +43,4 @@ jobs:
           branch: automation/sync-strings-${{ steps.ac-version-for-fenix-beta.outputs.major-ac-version }}
           title: "Uplift Strings from master to releases/${{steps.ac-version-for-fenix-beta.outputs.major-ac-version}}.0"
           body: "This (automated) PR sync strings from `master` to `releases/${{steps.ac-version-for-fenix-beta.outputs.major-ac-version}}.0`"
+          labels: "🕵️‍♀️ needs review"

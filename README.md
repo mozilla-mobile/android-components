@@ -1,7 +1,6 @@
 # Android components
 
 [![Task Status](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/master/badge.svg)](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/master/latest)
-[![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/mozilla-mobile/android-components&style=flat)](https://mergify.io)
 [![chat.mozilla.org](https://img.shields.io/badge/chat-on%20matrix-51bb9c)](https://chat.mozilla.org/#/room/#android-components:mozilla.org)
 
@@ -80,9 +79,9 @@ High-level components for building browser(-like) apps.
 
 * ⚪ [**Menu 2**](components/browser/menu2/README.md) - A generic menu with customizable items primarily for browser toolbars.
 
-* 🔵 [**Session**](components/browser/session/README.md) - A generic representation of a browser session.
-
 * 🔵 [**Session-Storage**](components/browser/session-storage/README.md) - Component for saving and restoring the browser state.
+
+* 🔵 [**State**](components/browser/state/README.md) - Component for maintaining the centralized state of the browser and its components.
 
 * 🔵 [**Storage-Memory**](components/browser/storage-memory/README.md) - An in-memory implementation of browser storage.
 

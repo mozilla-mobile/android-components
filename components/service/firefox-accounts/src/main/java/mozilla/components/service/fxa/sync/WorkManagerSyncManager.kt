@@ -20,6 +20,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mozilla.appservices.syncmanager.SyncParams
 import mozilla.appservices.syncmanager.SyncServiceStatus
 import mozilla.components.concept.storage.KeyProvider
@@ -275,38 +277,40 @@ internal class WorkManagerSyncWorker(
     }
 
     @Suppress("ComplexMethod")
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         logger.debug("Starting sync... Tagged as: ${params.tags}")
 
         // If this is a "debouncing" sync task, and we've very recently synced successfully, skip it.
         if (isDebounced() && lastSyncedWithinStaggerBuffer()) {
-            return Result.success()
-        }
+            Result.success()
+        } else {
+            // Otherwise, proceed as normal and start preparing to sync.
 
-        // Otherwise, proceed as normal and start preparing to sync.
-
-        // We will need a list of SyncableStores.
-        val syncableStores = params.inputData.getStringArray(KEY_DATA_STORES)!!.associate {
-            // Convert from a string back to our SyncEngine type.
-            val engine = when (it) {
-                SyncEngine.History.nativeName -> SyncEngine.History
-                SyncEngine.Bookmarks.nativeName -> SyncEngine.Bookmarks
-                SyncEngine.Passwords.nativeName -> SyncEngine.Passwords
-                SyncEngine.Tabs.nativeName -> SyncEngine.Tabs
-                SyncEngine.CreditCards.nativeName -> SyncEngine.CreditCards
-                SyncEngine.Addresses.nativeName -> SyncEngine.Addresses
-                else -> throw IllegalStateException("Invalid syncable store: $it")
+            // We will need a list of SyncableStores.
+            val syncableStores = params.inputData.getStringArray(KEY_DATA_STORES)!!.associate {
+                // Convert from a string back to our SyncEngine type.
+                val engine = when (it) {
+                    SyncEngine.History.nativeName -> SyncEngine.History
+                    SyncEngine.Bookmarks.nativeName -> SyncEngine.Bookmarks
+                    SyncEngine.Passwords.nativeName -> SyncEngine.Passwords
+                    SyncEngine.Tabs.nativeName -> SyncEngine.Tabs
+                    SyncEngine.CreditCards.nativeName -> SyncEngine.CreditCards
+                    SyncEngine.Addresses.nativeName -> SyncEngine.Addresses
+                    else -> throw IllegalStateException("Invalid syncable store: $it")
+                }
+                engine to checkNotNull(GlobalSyncableStoreProvider.getLazyStoreWithKey(engine)) {
+                    "SyncableStore missing from GlobalSyncableStoreProvider: ${engine.nativeName}"
+                }
             }
-            engine to checkNotNull(GlobalSyncableStoreProvider.getLazyStoreWithKey(engine)) {
-                "SyncableStore missing from GlobalSyncableStoreProvider: ${engine.nativeName}"
-            }
-        }.ifEmpty {
-            // Short-circuit if there are no configured stores.
-            // Don't update the "last-synced" timestamp because we haven't actually synced anything.
-            return Result.success()
-        }
 
-        return doSync(syncableStores)
+            if (syncableStores.isEmpty()) {
+                // Short-circuit if there are no configured stores.
+                // Don't update the "last-synced" timestamp because we haven't actually synced anything.
+                Result.success()
+            } else {
+                doSync(syncableStores)
+            }
+        }
     }
 
     @Suppress("LongMethod", "ComplexMethod")

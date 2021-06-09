@@ -112,7 +112,7 @@ interface BookmarksStorage : Storage {
 }
 
 /**
- * Represents a bookmark metadata record which describes metadata for the page itself.
+ * Represents a bookmark record.
  *
  * @property type The [BookmarkNodeType] of this record.
  * @property guid The id.

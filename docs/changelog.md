@@ -64,8 +64,8 @@ permalink: /changelog/
   * `AutofillCreditCardsAddressesStorage` reflects these breaking changes.
   * Introduced a new `CreditCardCrypto` interface for for encrypting and decrypting a credit card number. [#10140](https://github.com/mozilla-mobile/android-components/issues/10140)
   * 🌟️ New APIs for managing keys - `ManagedKey`, `KeyProvider` and `KeyRecoveryHandler`. `AutofillCreditCardsAddressesStorage` implements these APIs for managing keys for credit card storage.
-  * Added `CreditCardValidationDelegate` which is a delegate that will check against the `CreditCardsAddressesStorage` to determine if a `CreditCard` can be persisted in storage. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
-  
+  * 🌟️ New support for bookmarks to retrieve latest added bookmark nodes. `PlacesBookmarksStorage` now implements `getRecentBookmarks`.
+
 * **service-firefox-accounts**
   * 🌟️ When configuring syncable storage layers, `SyncManager` now takes an optional `KeyProvider` to handle encryption/decryption of protected values.
   * 🌟️ Support for syncing Address and Credit Cards

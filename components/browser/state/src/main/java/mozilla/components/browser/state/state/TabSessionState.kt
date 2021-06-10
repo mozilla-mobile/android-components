@@ -7,6 +7,8 @@ package mozilla.components.browser.state.state
 import android.graphics.Bitmap
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.concept.storage.HistoryMetadataKey
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import java.util.UUID
 
 /**
@@ -36,7 +38,8 @@ data class TabSessionState(
     override val source: SessionState.Source = SessionState.Source.NONE,
     val parentId: String? = null,
     val lastAccess: Long = 0L,
-    val readerState: ReaderState = ReaderState()
+    val readerState: ReaderState = ReaderState(),
+    val historyMetadata: HistoryMetadataKey? = null
 ) : SessionState {
 
     override fun createCopy(
@@ -67,6 +70,7 @@ fun createTab(
     private: Boolean = false,
     id: String = UUID.randomUUID().toString(),
     parent: TabSessionState? = null,
+    parentId: String? = null,
     extensions: Map<String, WebExtensionState> = emptyMap(),
     readerState: ReaderState = ReaderState(),
     title: String = "",
@@ -77,7 +81,11 @@ fun createTab(
     engineSession: EngineSession? = null,
     engineSessionState: EngineSessionState? = null,
     crashed: Boolean = false,
-    mediaSessionState: MediaSessionState? = null
+    mediaSessionState: MediaSessionState? = null,
+    historyMetadata: HistoryMetadataKey? = null,
+    webAppManifest: WebAppManifest? = null,
+    searchTerms: String = "",
+    initialLoadFlags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none()
 ): TabSessionState {
     return TabSessionState(
         id = id,
@@ -85,9 +93,11 @@ fun createTab(
             url,
             private,
             title = title,
-            thumbnail = thumbnail
+            thumbnail = thumbnail,
+            webAppManifest = webAppManifest,
+            searchTerms = searchTerms
         ),
-        parentId = parent?.id,
+        parentId = parentId ?: parent?.id,
         extensionState = extensions,
         readerState = readerState,
         contextId = contextId,
@@ -96,8 +106,10 @@ fun createTab(
         engineState = EngineState(
             engineSession = engineSession,
             engineSessionState = engineSessionState,
-            crashed = crashed
+            crashed = crashed,
+            initialLoadFlags = initialLoadFlags
         ),
-        mediaSessionState = mediaSessionState
+        mediaSessionState = mediaSessionState,
+        historyMetadata = historyMetadata
     )
 }

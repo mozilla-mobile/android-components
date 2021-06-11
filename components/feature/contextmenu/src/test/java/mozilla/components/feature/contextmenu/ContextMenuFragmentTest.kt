@@ -74,7 +74,7 @@ class ContextMenuFragmentTest {
         val view = fragment.createDialogTitleView(inflater)
         val titleView = view.findViewById<TextView>(R.id.titleView)
 
-        titleView.performClick();
+        titleView.performClick()
 
         assertEquals(
             15,

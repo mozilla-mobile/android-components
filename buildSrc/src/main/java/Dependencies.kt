@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2020-10-13
+// FORCE REBUILD 2021-06-07
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.4.30"
+    const val kotlin = "1.4.32"
     const val coroutines = "1.4.2"
 
     const val junit = "4.12"
@@ -37,14 +37,14 @@ object Versions {
 
     object AndroidX {
         const val annotation = "1.1.0"
-        const val appcompat = "1.2.0"
+        const val appcompat = "1.3.0"
         const val browser = "1.3.0"
         const val biometric = "1.1.0"
         const val cardview = "1.0.0"
         const val constraintlayout = "2.0.4"
         const val coordinatorlayout = "1.1.0"
         const val core = "1.3.2"
-        const val fragment = "1.2.5"
+        const val fragment = "1.3.4"
         const val recyclerview = "1.2.0"
         const val test = "1.3.0"
         const val test_ext = "1.1.2"
@@ -52,6 +52,7 @@ object Versions {
         const val room = "2.2.5"
         const val paging = "2.1.2"
         const val palette = "1.0.0"
+        const val preferences = "1.1.1"
         const val lifecycle = "2.2.0"
         const val media = "1.2.0"
         const val work = "2.4.0"
@@ -102,6 +103,7 @@ object Dependencies {
     const val androidx_media = "androidx.media:media:${Versions.AndroidX.media}"
     const val androidx_paging = "androidx.paging:paging-runtime:${Versions.AndroidX.paging}"
     const val androidx_palette = "androidx.palette:palette-ktx:${Versions.AndroidX.palette}"
+    const val androidx_preferences = "androidx.preference:preference-ktx:${Versions.AndroidX.preferences}"
     const val androidx_recyclerview = "androidx.recyclerview:recyclerview:${Versions.AndroidX.recyclerview}"
     const val androidx_room_runtime = "androidx.room:room-ktx:${Versions.AndroidX.room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.AndroidX.room}"

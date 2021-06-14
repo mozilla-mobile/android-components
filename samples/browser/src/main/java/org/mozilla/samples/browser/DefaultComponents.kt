@@ -65,7 +65,7 @@ import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.middleware.LastAccessMiddleware
 import mozilla.components.feature.session.middleware.undo.UndoMiddleware
-import mozilla.components.feature.sitepermissions.SitePermissionsStorage
+import mozilla.components.feature.sitepermissions.OnDiskSitePermissionsStorage
 import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.crash.Crash
@@ -78,6 +78,7 @@ import mozilla.components.service.digitalassetlinks.local.StatementRelationCheck
 import mozilla.components.service.location.LocationService
 import org.mozilla.samples.browser.addons.AddonsActivity
 import org.mozilla.samples.browser.autofill.AutofillConfirmActivity
+import org.mozilla.samples.browser.autofill.AutofillSearchActivity
 import org.mozilla.samples.browser.autofill.AutofillUnlockActivity
 import org.mozilla.samples.browser.downloads.DownloadService
 import org.mozilla.samples.browser.ext.components
@@ -101,6 +102,7 @@ open class DefaultComponents(private val applicationContext: Context) {
             publicSuffixList = publicSuffixList,
             unlockActivity = AutofillUnlockActivity::class.java,
             confirmActivity = AutofillConfirmActivity::class.java,
+            searchActivity = AutofillSearchActivity::class.java,
             applicationName = "Sample Browser",
             httpClient = client
         )
@@ -140,7 +142,7 @@ open class DefaultComponents(private val applicationContext: Context) {
 
     val sessionStorage by lazy { SessionStorage(applicationContext, engine) }
 
-    val permissionStorage by lazy { SitePermissionsStorage(applicationContext) }
+    val permissionStorage by lazy { OnDiskSitePermissionsStorage(applicationContext) }
 
     val thumbnailStorage by lazy { ThumbnailStorage(applicationContext) }
 

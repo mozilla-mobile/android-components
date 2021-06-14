@@ -4,8 +4,9 @@
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-parcelize'
+
 apply plugin: 'kotlin-kapt'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -81,6 +82,7 @@ dependencies {
     androidTestImplementation Dependencies.androidx_test_core
     androidTestImplementation Dependencies.androidx_test_runner
     androidTestImplementation Dependencies.androidx_test_rules
+    androidTestImplementation Dependencies.testing_coroutines
 }
 
 apply from: '../../../publish.gradle'

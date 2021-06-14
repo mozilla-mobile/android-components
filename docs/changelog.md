@@ -4,16 +4,42 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 90.0.0-SNAPSHOT (In Development)
-
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v75.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/137?closed=1)
+# 91.0.0-SNAPSHOT (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v90.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/138?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **concept-engine**
+  * 🌟️ Adds a new `SitePermissionsStorage` interface that represents a common API to store site permissions.
+
+* **browser-engine-gecko**:
+  * ⚠️ **This is a breaking change**: `GeckoPermissionRequest.Content` changed its signature from `GeckoPermissionRequest.Content(uri: String, type: Int, callback: PermissionDelegate.Callback)` to `GeckoPermissionRequest.Content(uri: String, type: Int, geckoPermission: PermissionDelegate.ContentPermission, geckoResult: GeckoResult<Int>)`.
+  * 🌟️ Adds a new `GeckoSitePermissionsStorage` this allows to store permissions using the GV APIs for more information see [the geckoView ticket](https://bugzilla.mozilla.org/show_bug.cgi?id=1654832).
+  * 🌟️ Integrated the new GeckoView permissions APIs that will bring many improvements in how site permissions are handled, see the API abstract document for [more information](https://docs.google.com/document/d/1KUq0gejnFm5erkHNkswm8JsT7nLOmWvs1KEGFz9FWxk/edit#heading=h.ls1dr18v7zrx).
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsStorage` has been renamed to `OnDiskSitePermissionsStorage`.
+  * ⚠️ **This is a breaking change**: The `SitePermissions` has been moved to the package `mozilla.components.concept.engine.permission.SitePermissions`.
+
+# 90.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v90.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/137?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/.config.yml)
+
+* **feature-prompts**:
+  * ⚠️ **This is a breaking change**: [#8989](https://github.com/mozilla-mobile/android-components/issues/8989) - Add support for multiple prompts in ContentState and help avoid some Exceptions.
+
+* **concept-engine** and **browser-engine-gecko**
+  * 🌟️ Added `TrackingProtectionPolicy.cookiePolicyPrivateMode` it allows to control how cookies should behave in private mode, if not specified it defaults to the value of `TrackingProtectionPolicy.cookiePolicyPrivateMode`.
+
 * **feature-prompts** **browser-storage-sync**
   * ⚠️ A new `isCreditCardAutofillEnabled` callback is available in `PromptFeature` and `GeckoCreditCardsAddressesStorageDelegate` to allow clients controlling whether credit cards should be autofilled or not. Default is false*
+  * ⚠️ Emit fact when a credit card is selected from the autofill prompt.
 
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
@@ -24,7 +50,8 @@ permalink: /changelog/
 
 * **feature-prompts**:
   * Refactor `LoginPickerView` into a more generic view `SelectablePromptView` that can be reused by any prompts that displays a list of selectable options. [#10216](https://github.com/mozilla-mobile/android-components/issues/10216)
-  * Added optional `creditCardPickerView` and `onManageCreditCards` parameters to `PromptFeature` for a new `CreditCardPicker` to display a view for selecting credit cards to autofill into a site. [#9457](https://github.com/mozilla-mobile/android-components/issues/9457)
+  * Added optional `creditCardPickerView`, `onManageCreditCards` and `onSelectCreditCard` parameters to `PromptFeature` for a new `CreditCardPicker` to display a view for selecting credit cards to autofill into a site. [#9457](https://github.com/mozilla-mobile/android-components/issues/9457), [#10369](https://github.com/mozilla-mobile/android-components/pull/10369)
+  * Added handling of biometric authentication for a credit card selection prompt request. [#10369](https://github.com/mozilla-mobile/android-components/pull/10369)
 
 * **concept-engine**
   * 🌟️ `getBlockedSchemes()` now exposes the list of url shemes that the engine won't load.
@@ -56,6 +83,7 @@ permalink: /changelog/
   * `AutofillCreditCardsAddressesStorage` reflects these breaking changes.
   * Introduced a new `CreditCardCrypto` interface for for encrypting and decrypting a credit card number. [#10140](https://github.com/mozilla-mobile/android-components/issues/10140)
   * 🌟️ New APIs for managing keys - `ManagedKey`, `KeyProvider` and `KeyRecoveryHandler`. `AutofillCreditCardsAddressesStorage` implements these APIs for managing keys for credit card storage.
+  * 🌟️ New support for bookmarks to retrieve latest added bookmark nodes. `PlacesBookmarksStorage` now implements `getRecentBookmarks`.
 
 * **service-firefox-accounts**
   * 🌟️ When configuring syncable storage layers, `SyncManager` now takes an optional `KeyProvider` to handle encryption/decryption of protected values.
@@ -73,6 +101,9 @@ permalink: /changelog/
       }
     }
     ```
+
+* **feature-tab-collections**:
+    * [addTabsToCollection] now returns the id of the collection which the tabs were added to.
 
 * **service-nimbus**
   * Added UI components for displaying a list of branches and the selected branch related to a Nimbus experiments.

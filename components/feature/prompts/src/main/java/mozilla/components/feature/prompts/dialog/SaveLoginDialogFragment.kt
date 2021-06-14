@@ -40,6 +40,10 @@ import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.ext.onDone
+import mozilla.components.feature.prompts.facts.emitCancelFact
+import mozilla.components.feature.prompts.facts.emitDisplayFact
+import mozilla.components.feature.prompts.facts.emitNeverSaveFact
+import mozilla.components.feature.prompts.facts.emitSaveFact
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -91,8 +95,6 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     // from different threads, so we are using a copy-on-write list.
     private var potentialDupesList: CopyOnWriteArrayList<Login>? = null
 
-    override fun shouldDismissOnLoad(): Boolean = false
-
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return BottomSheetDialog(requireContext(), R.style.MozDialogStyle).apply {
             setCancelable(true)
@@ -128,7 +130,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
          */
         CoroutineScope(IO).launch {
             if (feature?.loginExceptionStorage?.isLoginExceptionByOrigin(origin) == true) {
-                feature?.onCancel(sessionId)
+                feature?.onCancel(sessionId, promptRequestUID)
                 dismiss()
             }
         }
@@ -155,7 +157,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                         feature?.loginExceptionStorage?.addLoginException(origin)
                     }
                 }
-                feature?.onCancel(sessionId)
+                feature?.onCancel(sessionId, promptRequestUID)
                 dismiss()
             }
         }
@@ -166,13 +168,13 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
-        feature?.onCancel(sessionId)
+        feature?.onCancel(sessionId, promptRequestUID)
         emitCancelFact()
     }
 
     private fun onPositiveClickAction() {
         feature?.onConfirm(
-            sessionId, Login(
+            sessionId, promptRequestUID, Login(
                 guid = guid,
                 origin = origin,
                 formActionOrigin = formActionOrigin,
@@ -395,11 +397,17 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         /**
          * A builder method for creating a [SaveLoginDialogFragment]
          * @param sessionId the id of the session for which this dialog will be created.
+         * @param promptRequestUID identifier of the [PromptRequest] for which this dialog is shown.
+         * @param shouldDismissOnLoad whether or not the dialog should automatically be dismissed
+         * when a new page is loaded.
          * @param hint a value that helps to determine the appropriate prompting behavior.
          * @param login represents login information on a given domain.
          * */
+        @Suppress("LongParameterList")
         fun newInstance(
             sessionId: String,
+            promptRequestUID: String,
+            shouldDismissOnLoad: Boolean,
             hint: Int,
             login: Login,
             icon: Bitmap? = null
@@ -410,6 +418,8 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
             with(arguments) {
                 putString(KEY_SESSION_ID, sessionId)
+                putString(KEY_PROMPT_UID, promptRequestUID)
+                putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
                 putInt(KEY_LOGIN_HINT, hint)
                 putString(KEY_LOGIN_USERNAME, login.username)
                 putString(KEY_LOGIN_PASSWORD, login.password)

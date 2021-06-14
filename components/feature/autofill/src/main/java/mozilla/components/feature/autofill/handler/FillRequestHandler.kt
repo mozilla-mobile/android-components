@@ -12,6 +12,7 @@ import android.service.autofill.FillRequest
 import android.service.autofill.FillResponse
 import androidx.annotation.RequiresApi
 import mozilla.components.feature.autofill.AutofillConfiguration
+import mozilla.components.feature.autofill.facts.emitAutofillRequestFact
 import mozilla.components.feature.autofill.response.dataset.DatasetBuilder
 import mozilla.components.feature.autofill.response.dataset.LoginDatasetBuilder
 import mozilla.components.feature.autofill.response.fill.AuthFillResponseBuilder
@@ -22,6 +23,8 @@ import mozilla.components.feature.autofill.structure.getLookupDomain
 import mozilla.components.feature.autofill.structure.parseStructure
 
 internal const val EXTRA_LOGIN_ID = "loginId"
+// Maximum number of logins we are going to display in the autofill overlay.
+internal const val MAX_LOGINS = 10
 
 /**
  * Class responsible for handling [FillRequest]s and returning [FillResponse]s.
@@ -53,14 +56,19 @@ internal class FillRequestHandler(
             parsedStructure.packageName
         )
 
-        val logins = configuration.storage.getByBaseDomain(lookupDomain)
+        val logins = configuration.storage
+            .getByBaseDomain(lookupDomain)
+            .take(MAX_LOGINS)
+
         if (logins.isEmpty()) {
+            emitAutofillRequestFact(hasLogins = false)
             return null
         }
 
         return if (!configuration.lock.keepUnlocked() && !forceUnlock) {
             AuthFillResponseBuilder(parsedStructure)
         } else {
+            emitAutofillRequestFact(hasLogins = true, needsConfirmation)
             LoginFillResponseBuilder(parsedStructure, logins, needsConfirmation)
         }
     }

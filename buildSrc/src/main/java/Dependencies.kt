@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2020-10-13
+// FORCE REBUILD 2021-06-07
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.4.30"
+    const val kotlin = "1.4.32"
     const val coroutines = "1.4.2"
 
     const val junit = "4.12"
@@ -17,7 +17,6 @@ object Versions {
 
     const val mockwebserver = "3.10.0"
 
-    const val dokka = "0.9.17"
     const val android_gradle_plugin = "4.0.1"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "27.0.1"
@@ -30,7 +29,7 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "76.0.1"
+    const val mozilla_appservices = "78.0.0"
 
     const val mozilla_glean = "38.0.0"
 
@@ -53,6 +52,7 @@ object Versions {
         const val room = "2.2.5"
         const val paging = "2.1.2"
         const val palette = "1.0.0"
+        const val preferences = "1.1.1"
         const val lifecycle = "2.2.0"
         const val media = "1.2.0"
         const val work = "2.4.0"
@@ -103,6 +103,7 @@ object Dependencies {
     const val androidx_media = "androidx.media:media:${Versions.AndroidX.media}"
     const val androidx_paging = "androidx.paging:paging-runtime:${Versions.AndroidX.paging}"
     const val androidx_palette = "androidx.palette:palette-ktx:${Versions.AndroidX.palette}"
+    const val androidx_preferences = "androidx.preference:preference-ktx:${Versions.AndroidX.preferences}"
     const val androidx_recyclerview = "androidx.recyclerview:recyclerview:${Versions.AndroidX.recyclerview}"
     const val androidx_room_runtime = "androidx.room:room-ktx:${Versions.AndroidX.room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.AndroidX.room}"
@@ -122,7 +123,6 @@ object Dependencies {
 
     const val leakcanary = "com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}"
 
-    const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
     const val tools_androidmavenpublish = "digital.wup:android-maven-publish:${Versions.android_maven_publish_plugin}"

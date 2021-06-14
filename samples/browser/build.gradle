@@ -4,7 +4,6 @@
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -48,6 +47,10 @@ android {
             setIgnore(true)
         }
     }
+
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 tasks.register("updateBorderifyExtensionVersion", Copy) { task ->
@@ -77,7 +80,6 @@ dependencies {
     implementation project(':browser-engine-system')
     implementation project(':browser-domains')
     implementation project(':browser-icons')
-    implementation project(':browser-session')
     implementation project(':browser-session-storage')
     implementation project(':browser-state')
     implementation project(':browser-tabstray')

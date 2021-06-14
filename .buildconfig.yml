@@ -1,6 +1,6 @@
 # Please keep this version in sync with version.txt
 # version.txt should be the new source of truth for version numbers
-componentsVersion: 90.0.0
+componentsVersion: 91.0.0
 # Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.
 projects:
   concept-awesomebar:
@@ -210,10 +210,6 @@ projects:
   browser-menu2:
     path: components/browser/menu2
     description: 'An immutable customizable menu for browsers.'
-    publish: true
-  browser-session:
-    path: components/browser/session
-    description: 'An abstract layer hiding the actual browser engine implementation.'
     publish: true
   browser-session-storage:
     path: components/browser/session-storage

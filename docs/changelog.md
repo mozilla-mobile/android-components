@@ -18,6 +18,7 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: `GeckoPermissionRequest.Content` changed its signature from `GeckoPermissionRequest.Content(uri: String, type: Int, callback: PermissionDelegate.Callback)` to `GeckoPermissionRequest.Content(uri: String, type: Int, geckoPermission: PermissionDelegate.ContentPermission, geckoResult: GeckoResult<Int>)`.
   * 🌟️ Adds a new `GeckoSitePermissionsStorage` this allows to store permissions using the GV APIs for more information see [the geckoView ticket](https://bugzilla.mozilla.org/show_bug.cgi?id=1654832).
   * 🌟️ Integrated the new GeckoView permissions APIs that will bring many improvements in how site permissions are handled, see the API abstract document for [more information](https://docs.google.com/document/d/1KUq0gejnFm5erkHNkswm8JsT7nLOmWvs1KEGFz9FWxk/edit#heading=h.ls1dr18v7zrx).
+  * 🌟️ Tracking protection exceptions have been migrated to the GeckoView storage see [#10245](https://github.com/mozilla-mobile/android-components/issues/10245), for more details.
 
 * **feature-sitepermissions**
   * ⚠️ **This is a breaking change**: The `SitePermissionsStorage` has been renamed to `OnDiskSitePermissionsStorage`.
@@ -91,6 +92,11 @@ permalink: /changelog/
 
 * **service-glean**
   * `ConceptFetchHttpUploader` adds support for private requests. By default, all requests are non-private.
+  * 🆙 Updated Glean to version 39.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v39.0.0))
+    * Also includes v38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
+    * ⚠️  Deprecation: The old event recording API is replaced by a new one, accepting a typed object. See the [event documentation](https://mozilla.github.io/glean/book/reference/metrics/event.html#recordobject) for details.
+    * Skip build info generation for libraries.
+
 
 * **lib-state**
   * 🌟️ Added `AbstractBinding` for simple features that want to observe changes to the `State` in a `Store` without needing to manually manage the CoroutineScope. This can now be handled like other `LifecycleAwareFeature` implementations:
@@ -107,9 +113,6 @@ permalink: /changelog/
 
 * **service-nimbus**
   * Added UI components for displaying a list of branches and the selected branch related to a Nimbus experiments.
-
-* **service-glean**
-  * 🆙 Updated Glean to version 38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
 
 * **support-utils**:
   * Added `CreditCardUtils` which provides methods for retrieving the credit card issuer network from a provided card number. [#9813](https://github.com/mozilla-mobile/android-components/issues/9813)

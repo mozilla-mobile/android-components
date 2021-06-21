@@ -83,6 +83,7 @@ class WebNotificationFeatureTest {
 
     @Test
     fun `engine notifies to show notification`() = runBlockingTest {
+        val notification = testNotification.copy(sourceUrl = "https://mozilla.org:443")
         val feature = WebNotificationFeature(
             context,
             engine,
@@ -92,17 +93,18 @@ class WebNotificationFeatureTest {
             null,
             coroutineContext
         )
-        val permission = SitePermissions(origin = "mozilla.org", notification = Status.ALLOWED, savedAt = 0)
+        val permission = SitePermissions(origin = "https://mozilla.org:443", notification = Status.ALLOWED, savedAt = 0)
 
         `when`(permissionsStorage.findSitePermissionsBy(any())).thenReturn(permission)
 
-        feature.onShowNotification(testNotification)
+        feature.onShowNotification(notification)
 
-        verify(notificationManager).notify(eq(testNotification.tag), eq(NOTIFICATION_ID), any())
+        verify(notificationManager).notify(eq(notification.tag), eq(NOTIFICATION_ID), any())
     }
 
     @Test
     fun `notification ignored if permissions are not allowed`() = runBlockingTest {
+        val notification = testNotification.copy(sourceUrl = "https://mozilla.org:443")
         val feature = WebNotificationFeature(
             context,
             engine,
@@ -115,18 +117,18 @@ class WebNotificationFeatureTest {
 
         // No permissions found.
 
-        feature.onShowNotification(testNotification)
+        feature.onShowNotification(notification)
 
-        verify(notificationManager, never()).notify(eq(testNotification.tag), eq(NOTIFICATION_ID), any())
+        verify(notificationManager, never()).notify(eq(notification.tag), eq(NOTIFICATION_ID), any())
 
         // When explicitly denied.
 
-        val permission = SitePermissions(origin = "mozilla.org", notification = Status.BLOCKED, savedAt = 0)
+        val permission = SitePermissions(origin = "https://mozilla.org:443", notification = Status.BLOCKED, savedAt = 0)
         `when`(permissionsStorage.findSitePermissionsBy(any())).thenReturn(permission)
 
         feature.onShowNotification(testNotification)
 
-        verify(notificationManager, never()).notify(eq(testNotification.tag), eq(NOTIFICATION_ID), any())
+        verify(notificationManager, never()).notify(eq(notification.tag), eq(NOTIFICATION_ID), any())
     }
 
     @Test

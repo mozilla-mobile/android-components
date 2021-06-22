@@ -7,6 +7,7 @@ package mozilla.components.service.nimbus.ui
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import org.mozilla.experiments.nimbus.Branch
 
@@ -23,11 +24,7 @@ class NimbusBranchItemViewHolder(
 ) : RecyclerView.ViewHolder(view) {
 
     internal fun bind(branch: Branch, selectedBranch: String) {
-        selectedIconView.visibility = if (selectedBranch == branch.slug) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
+        selectedIconView.isVisible = selectedBranch == branch.slug
         titleView.text = branch.slug
         summaryView.text = branch.slug
 

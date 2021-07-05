@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **feature-privatemode**
+  * Adds `clearFlagOnStop = true` in SecureWindowFeature to allow the option of keeping `FLAG_SECURE` when calling `stop()`
+
 * **browser-feature-awesomebar**:
   * 🌟️ Adds a new `maxNumberOfResults` to `HistoryStorageSuggestionProvider` as a way to lower the number of returned suggested history items to below the default of 20.
   * 🌟️ Adds a new `maxNumberOfResults` to `HistoryMetadataSuggestionProvider` as a way to lower the number of returned suggested history items to below the default of 5.

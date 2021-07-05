@@ -15,9 +15,10 @@ permalink: /changelog/
   * Adds `clearFlagOnStop = true` in SecureWindowFeature to allow the option of keeping `FLAG_SECURE` when calling `stop()`
 
 * **browser-feature-awesomebar**:
-  * 🌟️ Adds a new `maxNumberOfResults` to `HistoryStorageSuggestionProvider` as a way to lower the number of returned suggested history items to below the default of 20.
-  * 🌟️ Adds a new `maxNumberOfResults` to `HistoryMetadataSuggestionProvider` as a way to lower the number of returned suggested history items to below the default of 5.
+  * 🌟️ Adds a new `maxNumberOfSuggestions` parameter to `HistoryStorageSuggestionProvider` as a way to specify a different number than the default of 20 for how many history results to be returned.
+  * 🌟️ Adds a new `maxNumberOfSuggestions` parameter to `HistoryMetadataSuggestionProvider` as a way to specify a different number than the default of 5 for how many history results to be returned.
   * HistoryMetadataSuggestionProvider - only return pages user spent time on.
+  * `AwesomeBarFeature.addHistoryProvider` allows specifying a positive value for `maxNumberOfSuggestions`. If zero or a negative value is used the default number of history suggestions will be returned.
 
 * **concept-engine**
   * 🌟️ Adds a new `SitePermissionsStorage` interface that represents a common API to store site permissions.

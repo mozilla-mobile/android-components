@@ -172,13 +172,22 @@ class AwesomeBarFeature(
      * @param loadUrlUseCase the use case invoked to load the url when the user clicks on the suggestion.
      * @param engine optional [Engine] instance to call [Engine.speculativeConnect] for the
      * highest scored suggestion URL.
+     * @param maxNumberOfSuggestions optional parameter to specify the maximum number of returned suggestions.
+     * Zero or a negative value here means the default number of history suggestions will be returned.
      */
     fun addHistoryProvider(
         historyStorage: HistoryStorage,
         loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
-        engine: Engine? = null
+        engine: Engine? = null,
+        maxNumberOfSuggestions: Int = -1
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine))
+        awesomeBar.addProviders(
+            if (maxNumberOfSuggestions <= 0) {
+                HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine)
+            } else {
+                HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine, maxNumberOfSuggestions)
+            }
+        )
         return this
     }
 

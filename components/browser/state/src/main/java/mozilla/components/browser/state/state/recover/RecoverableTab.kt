@@ -6,6 +6,7 @@ package mozilla.components.browser.state.state.recover
 
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.storage.HistoryMetadataKey
 
@@ -25,6 +26,7 @@ import mozilla.components.concept.storage.HistoryMetadataKey
  * @property state The [EngineSessionState] needed for restoring the previous state of this tab.
  * @property readerState The last [ReaderState] of the tab.
  * @property lastAccess The last time this tab was selected.
+ * @property lastMediaAccess The last time media started playing in this tab.
  * @property private If tab was private.
  */
 data class RecoverableTab(
@@ -36,6 +38,7 @@ data class RecoverableTab(
     val state: EngineSessionState? = null,
     val readerState: ReaderState = ReaderState(),
     val lastAccess: Long = 0,
+    val lastMediaAccess: Long = 0,
     val private: Boolean = false,
     val historyMetadata: HistoryMetadataKey? = null
 )
@@ -52,11 +55,33 @@ fun TabSessionState.toRecoverableTab() = RecoverableTab(
     state = engineState.engineSessionState,
     readerState = readerState,
     lastAccess = lastAccess,
+    lastMediaAccess = lastMediaAccess,
     private = content.private,
     historyMetadata = historyMetadata
+)
+
+/**
+ * Creates a [TabSessionState] from this [RecoverableTab].
+ */
+fun RecoverableTab.toTabSessionState() = createTab(
+    id = id,
+    url = url,
+    parentId = parentId,
+    title = title,
+    contextId = contextId,
+    engineSessionState = state,
+    readerState = readerState,
+    lastAccess = lastAccess,
+    lastMediaAccess = lastMediaAccess,
+    private = private
 )
 
 /**
  * Creates a list of [RecoverableTab]s from a List of [TabSessionState]s.
  */
 fun List<TabSessionState>.toRecoverableTabs() = map { it.toRecoverableTab() }
+
+/**
+ * Creates a list of [TabSessionState]s from a List of [TabSessionState]s.
+ */
+fun List<RecoverableTab>.toTabSessionStates() = map { it.toTabSessionState() }

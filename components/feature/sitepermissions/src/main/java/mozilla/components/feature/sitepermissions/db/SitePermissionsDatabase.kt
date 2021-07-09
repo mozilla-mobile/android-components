@@ -12,12 +12,12 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import mozilla.components.feature.sitepermissions.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions
 
 /**
  * Internal database for saving site permissions.
  */
-@Database(entities = [SitePermissionsEntity::class], version = 5)
+@Database(entities = [SitePermissionsEntity::class], version = 7)
 @TypeConverters(StatusConverter::class)
 internal abstract class SitePermissionsDatabase : RoomDatabase() {
     abstract fun sitePermissionsDao(): SitePermissionsDao
@@ -42,6 +42,10 @@ internal abstract class SitePermissionsDatabase : RoomDatabase() {
                 Migrations.migration_3_4
             ).addMigrations(
                 Migrations.migration_4_5
+            ).addMigrations(
+                Migrations.migration_5_6
+            ).addMigrations(
+                Migrations.migration_6_7
             ).build().also { instance = it }
         }
     }
@@ -136,6 +140,26 @@ internal object Migrations {
             // it only supports 1 (ALLOWED) or -1 (BLOCKED)
             database.execSQL("UPDATE site_permissions SET autoplay_audible = -1 WHERE autoplay_audible = 0 ")
             database.execSQL("UPDATE site_permissions SET autoplay_inaudible = 1 WHERE autoplay_inaudible = 0 ")
+        }
+    }
+
+    @Suppress("MagicNumber")
+    val migration_5_6 = object : Migration(5, 6) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "UPDATE site_permissions SET origin = 'https://'||origin||':443'")
+        }
+    }
+
+    @Suppress("MagicNumber")
+    val migration_6_7 = object : Migration(6, 7) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Update any site with our previous default value (block audio and video)  to block audio only.
+            // autoplay_audible BLOCKED (-1) and autoplay_inaudible BLOCKED (-1) to
+            // autoplay_audible BLOCKED (-1) and autoplay_inaudible ALLOWED (1)
+            // This match the default value of desktop block audio only.
+            database.execSQL("UPDATE site_permissions SET autoplay_audible = -1, autoplay_inaudible= 1 " +
+                "WHERE autoplay_audible = -1 AND autoplay_inaudible = -1")
         }
     }
 }

@@ -4,13 +4,57 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 90.0.0-SNAPSHOT (In Development)
-
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v75.0.0...master)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/137?closed=1)
+# 91.0.0-SNAPSHOT (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v90.0.0...master)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/138?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+
+* **browser-state**:
+  * 🌟️ Adds a new `lastMediaAccess` in `TabSessionState` as an easy way to check the timestamp of when media last started playing on a particular webpage. The value will be 0 if no media was started. To observe the media playback and updating this property one needs to add a new `LastMediaAccessMiddleware` to `BrowserStore`.
+
+* **feature-search**
+  * Updated the icon of the bing search engine.
+
+* **browser-menu**
+  * Adds `showAddonsInMenu` in WebExtensionBrowserMenuBuilder to allow the option of removing `Add-ons` item even if another extensions are displayed
+
+* **feature-privatemode**
+  * Adds `clearFlagOnStop = true` in SecureWindowFeature to allow the option of keeping `FLAG_SECURE` when calling `stop()`
+
+* **browser-feature-awesomebar**:
+  * 🌟️ Adds a new `maxNumberOfSuggestions` parameter to `HistoryStorageSuggestionProvider` as a way to specify a different number than the default of 20 for how many history results to be returned.
+  * 🌟️ Adds a new `maxNumberOfSuggestions` parameter to `HistoryMetadataSuggestionProvider` as a way to specify a different number than the default of 5 for how many history results to be returned.
+  * HistoryMetadataSuggestionProvider - only return pages user spent time on.
+  * `AwesomeBarFeature.addHistoryProvider` allows specifying a positive value for `maxNumberOfSuggestions`. If zero or a negative value is used the default number of history suggestions will be returned.
+
+* **browser-storage-sync**
+  * Adds `CrashReporting` to the `RemoteTabsStorage`.
+
+* **concept-engine**
+  * 🌟️ Adds a new `SitePermissionsStorage` interface that represents a common API to store site permissions.
+
+* **browser-engine-gecko**:
+  * ⚠️ **This is a breaking change**: `GeckoPermissionRequest.Content` changed its signature from `GeckoPermissionRequest.Content(uri: String, type: Int, callback: PermissionDelegate.Callback)` to `GeckoPermissionRequest.Content(uri: String, type: Int, geckoPermission: PermissionDelegate.ContentPermission, geckoResult: GeckoResult<Int>)`.
+  * 🌟️ Adds a new `GeckoSitePermissionsStorage` this allows to store permissions using the GV APIs for more information see [the geckoView ticket](https://bugzilla.mozilla.org/show_bug.cgi?id=1654832).
+  * 🌟️ Integrated the new GeckoView permissions APIs that will bring many improvements in how site permissions are handled, see the API abstract document for [more information](https://docs.google.com/document/d/1KUq0gejnFm5erkHNkswm8JsT7nLOmWvs1KEGFz9FWxk/edit#heading=h.ls1dr18v7zrx).
+  * 🌟️ Tracking protection exceptions have been migrated to the GeckoView storage see [#10245](https://github.com/mozilla-mobile/android-components/issues/10245), for more details.
+
+* **feature-sitepermissions**
+  * ⚠️ **This is a breaking change**: The `SitePermissionsStorage` has been renamed to `OnDiskSitePermissionsStorage`.
+  * ⚠️ **This is a breaking change**: The `SitePermissions` has been moved to the package `mozilla.components.concept.engine.permission.SitePermissions`.
+
+# 90.0.0
+
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v90.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/137?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/.config.yml)
+
+* **lib-crash**:
+  * 🚒 Bug fixed [issue #10515](https://github.com/mozilla-mobile/android-components/issues/10515) - Populate the crash reporter view.
 
 * **feature-prompts**:
   * ⚠️ **This is a breaking change**: [#8989](https://github.com/mozilla-mobile/android-components/issues/8989) - Add support for multiple prompts in ContentState and help avoid some Exceptions.
@@ -64,6 +108,7 @@ permalink: /changelog/
   * `AutofillCreditCardsAddressesStorage` reflects these breaking changes.
   * Introduced a new `CreditCardCrypto` interface for for encrypting and decrypting a credit card number. [#10140](https://github.com/mozilla-mobile/android-components/issues/10140)
   * 🌟️ New APIs for managing keys - `ManagedKey`, `KeyProvider` and `KeyRecoveryHandler`. `AutofillCreditCardsAddressesStorage` implements these APIs for managing keys for credit card storage.
+  * 🌟️ New support for bookmarks to retrieve latest added bookmark nodes. `PlacesBookmarksStorage` now implements `getRecentBookmarks`.
 
 * **service-firefox-accounts**
   * 🌟️ When configuring syncable storage layers, `SyncManager` now takes an optional `KeyProvider` to handle encryption/decryption of protected values.
@@ -71,6 +116,11 @@ permalink: /changelog/
 
 * **service-glean**
   * `ConceptFetchHttpUploader` adds support for private requests. By default, all requests are non-private.
+  * 🆙 Updated Glean to version 39.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v39.0.0))
+    * Also includes v38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
+    * ⚠️  Deprecation: The old event recording API is replaced by a new one, accepting a typed object. See the [event documentation](https://mozilla.github.io/glean/book/reference/metrics/event.html#recordobject) for details.
+    * Skip build info generation for libraries.
+
 
 * **lib-state**
   * 🌟️ Added `AbstractBinding` for simple features that want to observe changes to the `State` in a `Store` without needing to manually manage the CoroutineScope. This can now be handled like other `LifecycleAwareFeature` implementations:
@@ -87,9 +137,6 @@ permalink: /changelog/
 
 * **service-nimbus**
   * Added UI components for displaying a list of branches and the selected branch related to a Nimbus experiments.
-
-* **service-glean**
-  * 🆙 Updated Glean to version 38.0.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v38.0.0))
 
 * **support-utils**:
   * Added `CreditCardUtils` which provides methods for retrieving the credit card issuer network from a provided card number. [#9813](https://github.com/mozilla-mobile/android-components/issues/9813)

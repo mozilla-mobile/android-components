@@ -11,8 +11,14 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
 
+* **browser-state**:
+  * 🌟️ Adds a new `lastMediaAccess` in `TabSessionState` as an easy way to check the timestamp of when media last started playing on a particular webpage. The value will be 0 if no media was started. To observe the media playback and updating this property one needs to add a new `LastMediaAccessMiddleware` to `BrowserStore`.
+
 * **feature-search**
   * Updated the icon of the bing search engine.
+
+* **browser-menu**
+  * Adds `showAddonsInMenu` in WebExtensionBrowserMenuBuilder to allow the option of removing `Add-ons` item even if another extensions are displayed
 
 * **feature-privatemode**
   * Adds `clearFlagOnStop = true` in SecureWindowFeature to allow the option of keeping `FLAG_SECURE` when calling `stop()`

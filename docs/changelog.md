@@ -8,7 +8,7 @@ permalink: /changelog/
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v91.0.0...master)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/138?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v91.0.0/buildSrc/src/main/java/Dependencies.kt)
-* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v91.0.0/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/v91.0.0/.config.yml)
 
 * **browser-errorpages**:

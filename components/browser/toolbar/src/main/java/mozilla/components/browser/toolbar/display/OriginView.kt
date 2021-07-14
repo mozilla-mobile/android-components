@@ -19,7 +19,7 @@ import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
 
 private const val TITLE_VIEW_WEIGHT = 5.7f
-private const val URL_VIEW_WEIGHT = 4.3f
+private const val URL_VIEW_WEIGHT = 5.7f
 
 /**
  * View displaying the URL and optionally the title of a website.

@@ -22,6 +22,7 @@ import mozilla.components.browser.state.state.recover.toTabSessionStates
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.feature.session.SessionUseCases.LoadUrlUseCase
 
 /**
@@ -120,6 +121,22 @@ class TabsUseCases(
          */
         override fun invoke(url: String, flags: LoadUrlFlags, additionalHeaders: Map<String, String>?) {
             this.invoke(url, selectTab = true, startLoading = true, parentId = null, flags = flags)
+        }
+
+        operator fun invoke(
+            url: String,
+            selectTab: Boolean,
+            startLoading: Boolean,
+            historyMetadata: HistoryMetadataKey,
+        ): String {
+            val tab = store.state.tabs.find { it.historyMetadata == historyMetadata }
+
+            return if (tab != null) {
+                store.dispatch(TabListAction.SelectTabAction(tab.id))
+                tab.id
+            } else {
+                this.invoke(url, selectTab = selectTab, startLoading = startLoading)
+            }
         }
 
         /**

@@ -7,8 +7,8 @@
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.4.32"
-    const val coroutines = "1.4.2"
+    const val kotlin = "1.5.20"
+    const val coroutines = "1.5.0"
 
     const val junit = "4.12"
     const val robolectric = "4.1"
@@ -17,7 +17,7 @@ object Versions {
 
     const val mockwebserver = "3.10.0"
 
-    const val android_gradle_plugin = "4.0.1"
+    const val android_gradle_plugin = "4.2.2"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "27.0.1"
     const val detekt = "1.17.1"
@@ -49,7 +49,7 @@ object Versions {
         const val test = "1.3.0"
         const val test_ext = "1.1.2"
         const val espresso = "3.3.0"
-        const val room = "2.2.5"
+        const val room = "2.3.0"
         const val paging = "2.1.2"
         const val palette = "1.0.0"
         const val preferences = "1.1.1"
@@ -70,7 +70,7 @@ object Versions {
 // Synchronized dependencies used by (some) modules
 @Suppress("Unused", "MaxLineLength")
 object Dependencies {
-    const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${Versions.kotlin}"
+    const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlin}"
     const val kotlin_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}"
 

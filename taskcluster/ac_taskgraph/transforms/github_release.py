@@ -6,7 +6,6 @@ Apply some defaults and minor modifications to the jobs defined in the github_re
 kind.
 """
 
-from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import resolve_keyed_by
@@ -38,8 +37,8 @@ def build_worker_definition(config, tasks):
             # We don't want to upload 10gb of artifacts to the release; let's
             # just create a release as a tag.
             "artifact-map": [],
-            "git-tag": config.params["head_tag"].decode("utf-8"),
-            "git-revision": config.params["head_rev"].decode("utf-8"),
+            "git-tag": config.params["head_tag"],
+            "git-revision": config.params["head_rev"],
             "release-name": task["worker"]["release-name"],
             "release-name": task["worker"]["release-name"].format(version=config.params["version"]),
         }

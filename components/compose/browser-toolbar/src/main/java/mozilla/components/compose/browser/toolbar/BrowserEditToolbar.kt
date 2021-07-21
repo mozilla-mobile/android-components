@@ -13,6 +13,7 @@ import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 
@@ -47,6 +48,7 @@ fun BrowserEditToolbar(
         keyboardActions = KeyboardActions(
             onGo = { onUrlCommitted(url) }
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RectangleShape
     )
 }

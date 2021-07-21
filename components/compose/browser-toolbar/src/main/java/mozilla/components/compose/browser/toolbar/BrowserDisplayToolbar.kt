@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.contentColorFor
@@ -28,8 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BrowserDisplayToolbar(
     url: String,
-    onUrlClicked: () -> Unit = {},
-    onMenuClicked: () -> Unit = {}
+    onUrlClicked: () -> Unit = {}
 ) {
     val backgroundColor = MaterialTheme.colors.primarySurface
     val foregroundColor = contentColorFor(backgroundColor)
@@ -46,8 +44,5 @@ fun BrowserDisplayToolbar(
                 .fillMaxWidth(),
             maxLines = 1
         )
-        Button(onClick = { onMenuClicked() }) {
-            Text(":")
-        }
     }
 }

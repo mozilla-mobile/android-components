@@ -4,6 +4,7 @@
 
 package mozilla.components.compose.browser.toolbar
 
+import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import mozilla.components.browser.state.helper.Target
@@ -19,14 +20,13 @@ import mozilla.components.browser.state.store.BrowserStore
  *
  * @param store The store to observe the [target] from.
  * @param target The target tab to observe.
- * @param onDisplayMenuClicked Function to get executed when the user clicks on the menu button in
- * "display" mode.
  * @param onTextEdit Function to get executed whenever the user edits the text in the toolbar in
  * "edit" mode.
  * @param onTextCommit Function to get executed when the user has finished editing the URL and wants
  * to load the entered text.
  * @param onDisplayToolbarClick Function to get executed when the user clicks on the URL in "display"
  * mode.
+ * @param onSettingMenuClicked Function is executed when user taps on settings in menu
  * @param hint Text displayed in the toolbar when there's no URL to display (no tab or empty URL)
  * @param editMode Whether the toolbar is in "edit" or "display" mode.
  * @param editText The text the user is editing in "edit" mode.
@@ -36,10 +36,10 @@ import mozilla.components.browser.state.store.BrowserStore
 fun BrowserToolbar(
     store: BrowserStore,
     target: Target,
-    onDisplayMenuClicked: () -> Unit,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
     onDisplayToolbarClick: () -> Unit,
+    onSettingMenuClicked: () -> Unit,
     hint: String = "",
     editMode: Boolean = false,
     editText: String? = null
@@ -49,25 +49,37 @@ fun BrowserToolbar(
         observe = { tab -> tab?.content?.url }
     )
 
+    val items = listOf(
+        BrowserToolbarActionMenuItem("Settings") { onSettingMenuClicked() },
+        BrowserToolbarActionMenuItem("Find in page") {},
+        BrowserToolbarActionMenuItem("Add to homescreen") {}
+    )
+
     val url = selectedTab?.content?.url ?: ""
     val input = when (editText) {
         null -> url
         else -> editText
     }
 
-    if (editMode) {
-        BrowserEditToolbar(
-            url = input,
-            onUrlCommitted = { text -> onTextCommit(text) },
-            onUrlEdit = { text -> onTextEdit(text) }
-        )
-    } else {
-        BrowserDisplayToolbar(
-            url = selectedTab?.content?.url ?: hint,
-            onUrlClicked = {
-                onDisplayToolbarClick()
-            },
-            onMenuClicked = { onDisplayMenuClicked() }
-        )
-    }
+    TopAppBar(
+        title = {
+            if (editMode) {
+                BrowserEditToolbar(
+                    url = input,
+                    onUrlCommitted = { text -> onTextCommit(text) },
+                    onUrlEdit = { text -> onTextEdit(text) }
+                )
+            } else {
+                BrowserDisplayToolbar(
+                    url = selectedTab?.content?.url ?: hint,
+                    onUrlClicked = {
+                        onDisplayToolbarClick()
+                    }
+                )
+            }
+        },
+        actions = {
+            BrowserToolbarActionMenu(items)
+        }
+    )
 }

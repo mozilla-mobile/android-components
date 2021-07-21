@@ -43,7 +43,7 @@ fun BrowserScreen(navController: NavController) {
             components().store,
             target,
             editMode = editState.value!!,
-            onDisplayMenuClicked = { navController.navigate("settings") },
+            onSettingMenuClicked = { navController.navigate("settings") },
             onTextCommit = { text ->
                 store.dispatch(BrowserScreenAction.ToggleEditMode(false))
                 loadUrl(text)

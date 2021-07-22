@@ -4,12 +4,17 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
 import android.util.AttributeSet
+import android.view.Gravity
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.ViewCompat
 import mozilla.components.browser.engine.gecko.selection.GeckoSelectionActionDelegate
@@ -29,6 +34,14 @@ class GeckoEngineView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView {
+    private val clippingValueIndicator = TextView(context).apply {
+        layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.RIGHT)
+        background = GradientDrawable(
+            LEFT_RIGHT, intArrayOf(Color.TRANSPARENT, Color.GRAY)
+        )
+        textAlignment = TEXT_ALIGNMENT_TEXT_END
+    }
+
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var geckoView = object : NestedGeckoView(context) {
 
@@ -94,6 +107,7 @@ class GeckoEngineView @JvmOverloads constructor(
 
     init {
         addView(geckoView)
+        addView(clippingValueIndicator)
     }
 
     /**
@@ -170,7 +184,9 @@ class GeckoEngineView @JvmOverloads constructor(
 
     override fun getInputResultDetail() = geckoView.inputResultDetail
 
+    @SuppressLint("SetTextI18n")
     override fun setVerticalClipping(clippingHeight: Int) {
+        clippingValueIndicator.text = "vertical clipping -> $clippingHeight"
         geckoView.setVerticalClipping(clippingHeight)
     }
 

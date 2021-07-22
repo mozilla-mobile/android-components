@@ -6,11 +6,21 @@ package mozilla.components.feature.session.behavior
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.FrameLayout.LayoutParams
+import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
+
+private val translationIndicatorId = View.generateViewId()
 
 /**
  * A [CoordinatorLayout.Behavior] implementation that allows the [EngineView] to automatically
@@ -32,6 +42,7 @@ class EngineViewBrowserToolbarBehavior(
     toolbarHeight: Int,
     toolbarPosition: ToolbarPosition
 ) : CoordinatorLayout.Behavior<View>(context, attrs) {
+    private lateinit var toolbarTranslationIndicator: TextView
 
     private val engineView = engineViewParent.findViewInHierarchy { it is EngineView } as EngineView?
     private var toolbarChangedAction: (Float) -> Unit?
@@ -53,6 +64,21 @@ class EngineViewBrowserToolbarBehavior(
         } else {
             bottomToolbarChangedAction
         }
+
+        (engineView as? ViewGroup)?.let {
+            it.findViewById<TextView>(translationIndicatorId)?.let { indicator ->
+                toolbarTranslationIndicator = indicator
+            } ?: it.addView(TextView(context).apply {
+                id = translationIndicatorId
+                layoutParams = LayoutParams(
+                    LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.LEFT
+                )
+                background = GradientDrawable(LEFT_RIGHT, intArrayOf(Color.GRAY, Color.TRANSPARENT))
+                textAlignment = FrameLayout.TEXT_ALIGNMENT_TEXT_START
+            }.also { indicator ->
+                toolbarTranslationIndicator = indicator
+            })
+        }
     }
 
     @SuppressLint("LogUsage")
@@ -72,8 +98,11 @@ class EngineViewBrowserToolbarBehavior(
      * Apply vertical clipping to [EngineView]. This requires [EngineViewBrowserToolbarBehavior] to be set
      * in/on the [EngineView] or its parent. Must be a direct descending child of [CoordinatorLayout].
      */
+    @SuppressLint("SetTextI18n")
     override fun onDependentViewChanged(parent: CoordinatorLayout, child: View, dependency: View): Boolean {
-        toolbarChangedAction.invoke(dependency.translationY)
+        toolbarChangedAction.invoke(dependency.translationY).also {
+            toolbarTranslationIndicator.text = "%.3f".format(dependency.translationY) + " <- toolbar translation"
+        }
 
         return true
     }

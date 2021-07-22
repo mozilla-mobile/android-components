@@ -63,7 +63,7 @@ class TabCounter @JvmOverloads constructor(
     @VisibleForTesting
     internal fun setColor(colorStateList: ColorStateList) {
         val tabCounterBox =
-            DrawableUtils.loadAndTintDrawable(context, R.drawable.mozac_ui_tabcounter_box, colorStateList)
+            DrawableUtils.loadAndTintDrawable(context, R.drawable.`mozac_ui_tabcounter_box`, colorStateList)
         counterBox.setImageDrawable(tabCounterBox)
         counterText.setTextColor(colorStateList)
     }

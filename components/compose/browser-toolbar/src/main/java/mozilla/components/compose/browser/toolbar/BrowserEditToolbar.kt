@@ -5,16 +5,23 @@
 package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 
 /**
  * Sub-component of the [BrowserToolbar] responsible for allowing the user to edit the current
@@ -28,7 +35,8 @@ import androidx.compose.ui.text.input.KeyboardType
 fun BrowserEditToolbar(
     url: String,
     onUrlEdit: (String) -> Unit = {},
-    onUrlCommitted: (String) -> Unit = {}
+    onUrlCommitted: (String) -> Unit = {},
+    editActions: @Composable () -> Unit = {}
 ) {
     val backgroundColor = MaterialTheme.colors.surface
     val foregroundColor = contentColorFor(backgroundColor)
@@ -43,10 +51,34 @@ fun BrowserEditToolbar(
             backgroundColor = backgroundColor
         ),
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Uri,
+            imeAction = ImeAction.Go
+        ),
         keyboardActions = KeyboardActions(
             onGo = { onUrlCommitted(url) }
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        trailingIcon = {
+            editActions()
+
+            if (url.isNotEmpty()) {
+                ClearButton(onButtonClicked = { onUrlEdit("") })
+            }
+        }
     )
+}
+
+@Composable
+fun ClearButton(onButtonClicked: () -> Unit = {}) {
+    IconButton(
+        modifier = Modifier.requiredSize(40.dp),
+        onClick = { onButtonClicked() }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.mozac_ic_clear),
+            contentDescription = stringResource(R.string.mozac_clear_button_description),
+            tint = Color.Black
+        )
+    }
 }

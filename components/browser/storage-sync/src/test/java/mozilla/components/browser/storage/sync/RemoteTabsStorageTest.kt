@@ -7,10 +7,11 @@ package mozilla.components.browser.storage.sync
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
-import mozilla.appservices.remotetabs.ClientTabs
+import mozilla.appservices.remotetabs.ClientRemoteTabs
 import mozilla.appservices.remotetabs.RemoteTab
-import mozilla.appservices.remotetabs.RemoteTabProviderException
-import mozilla.appservices.remotetabs.RemoteTabsProvider
+import mozilla.appservices.remotetabs.TabsStore as RemoteTabsProvider
+import mozilla.appservices.remotetabs.InternalException as RemoteTabProviderException
+import mozilla.appservices.remotetabs.DeviceType
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
@@ -73,12 +74,12 @@ class RemoteTabsStorageTest {
     @Test
     fun `getAll() translates tabs to our format`() = runBlocking {
         `when`(apiMock.getAll()).thenReturn(listOf(
-            ClientTabs("client1", listOf(
+            ClientRemoteTabs("client1", "", DeviceType.MOBILE, listOf(
                 RemoteTab("Foo", listOf("https://foo/1/1", "https://foo/1", "https://foo"), "https://foo/icon", 1574457405635)
             )),
-            ClientTabs("client2", listOf(
+            ClientRemoteTabs("client2", "", DeviceType.MOBILE, listOf(
                 RemoteTab("Bar", listOf("https://bar"), null, 1574458165555),
-                RemoteTab("Foo Bar", listOf("https://foo.bar"), "https://foo.bar/icon", null)
+                RemoteTab("Foo Bar", listOf("https://foo.bar"), "https://foo.bar/icon", 0)
             ))
         ))
 

@@ -278,7 +278,7 @@ class GeckoEngineTest {
 
         engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
 
-        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumBy { it.id }
+        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumOf { it.id }
         val artificialCategory =
             TrackingCategory.SCRIPTS_AND_SUB_RESOURCES.id
         assertEquals(
@@ -318,7 +318,7 @@ class GeckoEngineTest {
 
         engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
 
-        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumBy { it.id }
+        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumOf { it.id }
         val artificialCategory = TrackingCategory.SCRIPTS_AND_SUB_RESOURCES.id
 
         assertEquals(
@@ -594,7 +594,7 @@ class GeckoEngineTest {
         verify(runtimeSettings).remoteDebuggingEnabled = true
         verify(runtimeSettings).forceUserScalableEnabled = false
 
-        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumBy { it.id }
+        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumOf { it.id }
         val artificialCategory =
             TrackingCategory.SCRIPTS_AND_SUB_RESOURCES.id
         assertEquals(
@@ -1764,6 +1764,7 @@ class GeckoEngineTest {
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.FINGERPRINTING))
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.CRYPTOMINING))
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.MOZILLA_SOCIAL))
+        assertTrue(trackerLog.unBlockedBySmartBlock)
 
         assertTrue(onSuccessCalled)
         assertFalse(onErrorCalled)
@@ -1999,6 +2000,7 @@ class GeckoEngineTest {
         val loadedFingerprintingContent = createBlockingData(Event.LOADED_FINGERPRINTING_CONTENT)
         val loadedCyptominingContent = createBlockingData(Event.LOADED_CRYPTOMINING_CONTENT)
         val loadedSocialContent = createBlockingData(Event.LOADED_SOCIALTRACKING_CONTENT)
+        val unBlockedBySmartBlock = createBlockingData(Event.ALLOWED_TRACKING_CONTENT)
 
         val contentBlockingList = listOf(
             blockedTrackingContent,
@@ -2012,7 +2014,8 @@ class GeckoEngineTest {
             blockedSocialContent,
             loadedSocialContent,
             loadedCookieSocialTracker,
-            blockedCookieSocialTracker
+            blockedCookieSocialTracker,
+            unBlockedBySmartBlock
         )
 
         val addLogSecondEntry = object : ContentBlockingController.LogEntry() {}

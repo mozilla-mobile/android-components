@@ -103,6 +103,7 @@ subprojects {
     tasks.register("downloadDependencies") {
         doLast {
             configurations.getAsMap().each { name, config ->
+                println "Retrieving dependencies for $name"
                 try {
                     config.files
                 }

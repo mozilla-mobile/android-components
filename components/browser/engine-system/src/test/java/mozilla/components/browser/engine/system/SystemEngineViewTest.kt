@@ -467,7 +467,8 @@ class SystemEngineViewTest {
             "Components/1.0",
             "attachment; filename=\"image.png\"",
             "image/png",
-            1337)
+            1337
+        )
 
         assertTrue(observerNotified)
     }
@@ -1588,7 +1589,7 @@ class SystemEngineViewTest {
         val result = engineView.getInputResultDetail()
 
         assertNotNull(result)
-        assertTrue(result.isTouchUnhandled())
+        assertTrue(result.isTouchHandlingUnknown())
         assertFalse(result.canScrollToLeft())
         assertFalse(result.canScrollToTop())
         assertFalse(result.canScrollToRight())

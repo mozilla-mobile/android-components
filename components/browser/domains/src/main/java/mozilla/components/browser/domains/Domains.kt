@@ -35,8 +35,8 @@ object Domains {
 
         // First initialize the country specific lists following the default locale order
         countries
-                .filter { availableLists.contains(it) }
-                .forEach { loadDomainsForLanguage(context, domains, it) }
+            .filter { availableLists.contains(it) }
+            .forEach { loadDomainsForLanguage(context, domains, it) }
 
         // And then add domains from the global list
         loadDomainsForLanguage(context, domains, "global")
@@ -68,7 +68,7 @@ object Domains {
 
     private fun getCountriesInDefaultLocaleList(): Set<String> {
         val countries = java.util.LinkedHashSet<String>()
-        val addIfNotEmpty = { c: String -> if (!TextUtils.isEmpty(c)) countries.add(c.toLowerCase(Locale.US)) }
+        val addIfNotEmpty = { c: String -> if (!TextUtils.isEmpty(c)) countries.add(c.lowercase(Locale.US)) }
 
         if (SDK_INT >= VERSION_CODES.N) {
             val list = LocaleList.getDefault()

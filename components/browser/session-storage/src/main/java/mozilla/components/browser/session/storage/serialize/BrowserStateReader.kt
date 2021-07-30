@@ -9,6 +9,7 @@ import android.util.JsonReader
 import android.util.JsonToken
 import mozilla.components.browser.session.storage.RecoverableBrowserState
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.LastMediaAccessState
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
@@ -37,11 +38,13 @@ class BrowserStateReader {
         file: AtomicFile,
         predicate: (RecoverableTab) -> Boolean = { true }
     ): RecoverableBrowserState? {
-        return file.readJSON { browsingSession(
-            engine,
-            restoreSessionId = true,
-            restoreParentId = true,
-            predicate = predicate)
+        return file.readJSON {
+            browsingSession(
+                engine,
+                restoreSessionId = true,
+                restoreParentId = true,
+                predicate = predicate
+            )
         }
     }
 
@@ -164,6 +167,9 @@ private fun JsonReader.tabSession(): RecoverableTab? {
     var title: String? = null
     var contextId: String? = null
     var lastAccess: Long? = null
+    var lastMediaUrl: String? = null
+    var lastMediaAccess: Long? = null
+    var mediaSessionActive: Boolean? = null
 
     var readerStateActive: Boolean? = null
     var readerActiveUrl: String? = null
@@ -187,6 +193,9 @@ private fun JsonReader.tabSession(): RecoverableTab? {
             Keys.SESSION_HISTORY_METADATA_SEARCH_TERM -> historyMetadataSearchTerm = nextStringOrNull()
             Keys.SESSION_HISTORY_METADATA_REFERRER_URL -> historyMetadataReferrerUrl = nextStringOrNull()
             Keys.SESSION_LAST_ACCESS -> lastAccess = nextLong()
+            Keys.SESSION_LAST_MEDIA_URL -> lastMediaUrl = nextString()
+            Keys.SESSION_LAST_MEDIA_SESSION_ACTIVE -> mediaSessionActive = nextBoolean()
+            Keys.SESSION_LAST_MEDIA_ACCESS -> lastMediaAccess = nextLong()
             Keys.SESSION_SOURCE_KEY -> nextString()
             else -> throw IllegalArgumentException("Unknown session key: $name")
         }
@@ -215,6 +224,11 @@ private fun JsonReader.tabSession(): RecoverableTab? {
             null
         },
         private = false, // We never serialize private sessions
-        lastAccess = lastAccess ?: 0
+        lastAccess = lastAccess ?: 0,
+        lastMediaAccessState = LastMediaAccessState(
+            lastMediaUrl ?: "",
+            lastMediaAccess = lastMediaAccess ?: 0,
+            mediaSessionActive = mediaSessionActive ?: false
+        )
     )
 }

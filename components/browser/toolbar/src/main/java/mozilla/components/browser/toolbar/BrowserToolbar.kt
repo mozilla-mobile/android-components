@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
@@ -80,7 +81,7 @@ class BrowserToolbar @JvmOverloads constructor(
             false
         )
     )
-    @VisibleForTesting(otherwise = PRIVATE) internal set
+        @VisibleForTesting(otherwise = PRIVATE) internal set
 
     /**
      * Toolbar in "edit mode".
@@ -94,7 +95,7 @@ class BrowserToolbar @JvmOverloads constructor(
             false
         )
     )
-    @VisibleForTesting(otherwise = PRIVATE) internal set
+        @VisibleForTesting(otherwise = PRIVATE) internal set
 
     override var title: String
         get() = display.title
@@ -124,11 +125,11 @@ class BrowserToolbar @JvmOverloads constructor(
     override var siteTrackingProtection: Toolbar.SiteTrackingProtection =
         Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         set(value) {
-            if (field != value) {
-                display.setTrackingProtectionState(value)
-                field = value
+                if (field != value) {
+                    display.setTrackingProtectionState(value)
+                    field = value
+                }
             }
-        }
 
     override var private: Boolean
         get() = edit.private
@@ -168,7 +169,8 @@ class BrowserToolbar @JvmOverloads constructor(
                 0 + paddingLeft,
                 0 + paddingTop,
                 paddingLeft + child.measuredWidth,
-                paddingTop + child.measuredHeight)
+                paddingTop + child.measuredHeight
+            )
         }
     }
 
@@ -373,16 +375,27 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param background A custom (stateful) background drawable resource to be used.
      * @param padding a custom [Padding] for this Button.
+     * @param iconTintColorResource Optional ID of color resource to tint the icon.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
+    @Suppress("LongParameterList")
     open class Button(
         imageDrawable: Drawable,
         contentDescription: String,
         visible: () -> Boolean = { true },
         @DrawableRes background: Int = 0,
         val padding: Padding = DEFAULT_PADDING,
+        @ColorRes iconTintColorResource: Int = NO_ID,
         listener: () -> Unit
-    ) : Toolbar.ActionButton(imageDrawable, contentDescription, visible, background, padding, listener)
+    ) : Toolbar.ActionButton(
+        imageDrawable,
+        contentDescription,
+        visible,
+        background,
+        padding,
+        iconTintColorResource,
+        listener
+    )
 
     /**
      * An action button with two states, selected and unselected. When the button is pressed, the

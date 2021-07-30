@@ -25,7 +25,6 @@ import kotlinx.coroutines.withContext
 import mozilla.appservices.syncmanager.SyncParams
 import mozilla.appservices.syncmanager.SyncServiceStatus
 import mozilla.components.concept.storage.KeyProvider
-import mozilla.appservices.syncmanager.SyncManager as RustSyncManager
 import mozilla.components.service.fxa.FxaDeviceSettingsCache
 import mozilla.components.service.fxa.SyncAuthInfoCache
 import mozilla.components.service.fxa.SyncConfig
@@ -38,6 +37,7 @@ import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.sync.telemetry.SyncTelemetry
 import java.io.Closeable
 import java.util.concurrent.TimeUnit
+import mozilla.appservices.syncmanager.SyncManager as RustSyncManager
 
 private enum class SyncWorkerTag {
     Common,
@@ -213,20 +213,20 @@ internal class WorkManagerSyncDispatcher(
         // Periodic interval must be at least PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS,
         // e.g. not more frequently than 15 minutes.
         return PeriodicWorkRequestBuilder<WorkManagerSyncWorker>(period, unit, initialDelay, unit)
-                .setConstraints(
-                        Constraints.Builder()
-                                .setRequiredNetworkType(NetworkType.CONNECTED)
-                                .build()
-                )
-                .setInputData(data)
-                .addTag(SyncWorkerTag.Common.name)
-                .addTag(SyncWorkerTag.Debounce.name)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    SYNC_WORKER_BACKOFF_DELAY_MINUTES,
-                    TimeUnit.MINUTES
-                )
-                .build()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .setInputData(data)
+            .addTag(SyncWorkerTag.Common.name)
+            .addTag(SyncWorkerTag.Debounce.name)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                SYNC_WORKER_BACKOFF_DELAY_MINUTES,
+                TimeUnit.MINUTES
+            )
+            .build()
     }
 
     private fun regularSyncWorkRequest(
@@ -236,21 +236,21 @@ internal class WorkManagerSyncDispatcher(
     ): OneTimeWorkRequest {
         val data = getWorkerData(reason)
         return OneTimeWorkRequestBuilder<WorkManagerSyncWorker>()
-                .setConstraints(
-                        Constraints.Builder()
-                                .setRequiredNetworkType(NetworkType.CONNECTED)
-                                .build()
-                )
-                .setInputData(data)
-                .addTag(SyncWorkerTag.Common.name)
-                .addTag(if (debounce) SyncWorkerTag.Debounce.name else SyncWorkerTag.Immediate.name)
-                .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    SYNC_WORKER_BACKOFF_DELAY_MINUTES,
-                    TimeUnit.MINUTES
-                )
-                .build()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .setInputData(data)
+            .addTag(SyncWorkerTag.Common.name)
+            .addTag(if (debounce) SyncWorkerTag.Debounce.name else SyncWorkerTag.Immediate.name)
+            .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                SYNC_WORKER_BACKOFF_DELAY_MINUTES,
+                TimeUnit.MINUTES
+            )
+            .build()
     }
 
     private fun getWorkerData(reason: SyncReason): Data {
@@ -332,7 +332,6 @@ internal class WorkManagerSyncWorker(
                 // NB: History and Bookmarks will have the same handle.
                 SyncEngine.History -> RustSyncManager.setPlaces(it.value.lazyStore.value.getHandle())
                 SyncEngine.Bookmarks -> RustSyncManager.setPlaces(it.value.lazyStore.value.getHandle())
-                SyncEngine.Tabs -> RustSyncManager.setTabs(it.value.lazyStore.value.getHandle())
 
                 // These stores don't expose `getHandle` (yay!), and instead are able to handle
                 // sync manager registration on their own.
@@ -349,6 +348,9 @@ internal class WorkManagerSyncWorker(
                     it.value.lazyStore.value.registerWithSyncManager()
                 }
                 SyncEngine.Passwords -> {
+                    it.value.lazyStore.value.registerWithSyncManager()
+                }
+                SyncEngine.Tabs -> {
                     it.value.lazyStore.value.registerWithSyncManager()
                 }
                 else -> throw NotImplementedError("Unsupported engine: ${it.key}")

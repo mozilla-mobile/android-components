@@ -80,8 +80,8 @@ class BrowserToolbarBehavior(
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val shouldScroll: Boolean
         get() = engineView?.getInputResultDetail()?.let {
-                (it.canScrollToBottom() || it.canScrollToTop()) && isScrollEnabled
-            } ?: false
+            (it.canScrollToBottom() || it.canScrollToTop()) && isScrollEnabled
+        } ?: false
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var gesturesDetector: BrowserGestureDetector = createGestureDetector()
@@ -201,7 +201,7 @@ class BrowserToolbarBehavior(
         browserToolbar?.let { toolbar ->
             if (shouldScroll && startedScroll) {
                 yTranslator.translate(toolbar, distance)
-            } else {
+            } else if (engineView?.getInputResultDetail()?.isTouchHandlingUnknown() == false) {
                 // Force expand the toolbar if the user scrolled up, it is not already expanded and
                 // an animation to expand it is not already in progress,
                 // otherwise the user could get stuck in a state where they cannot show the toolbar
@@ -225,14 +225,17 @@ class BrowserToolbarBehavior(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun createGestureDetector() =
-        BrowserGestureDetector(context!!, BrowserGestureDetector.GesturesListener(
-            onVerticalScroll = ::tryToScrollVertically,
-            onScaleBegin = {
-                // Scale shouldn't animate the toolbar but a small y translation is still possible
-                // because of a previous scroll. Try to be swift about such an in progress animation.
-                yTranslator.snapImmediately(browserToolbar)
-            }
-        ))
+        BrowserGestureDetector(
+            context!!,
+            BrowserGestureDetector.GesturesListener(
+                onVerticalScroll = ::tryToScrollVertically,
+                onScaleBegin = {
+                    // Scale shouldn't animate the toolbar but a small y translation is still possible
+                    // because of a previous scroll. Try to be swift about such an in progress animation.
+                    yTranslator.snapImmediately(browserToolbar)
+                }
+            )
+        )
 
     @VisibleForTesting
     internal fun startNestedScroll(axes: Int, type: Int, toolbar: BrowserToolbar): Boolean {

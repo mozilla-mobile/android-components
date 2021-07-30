@@ -16,7 +16,6 @@ import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.fetch.Client
-import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.awesomebar.provider.ClipboardSuggestionProvider
@@ -42,13 +41,15 @@ class AwesomeBarFeature(
     onEditComplete: (() -> Unit)? = null
 ) {
     init {
-        toolbar.setOnEditListener(ToolbarEditListener(
-            awesomeBar,
-            onEditStart,
-            onEditComplete,
-            ::showAwesomeBar,
-            ::hideAwesomeBar
-        ))
+        toolbar.setOnEditListener(
+            ToolbarEditListener(
+                awesomeBar,
+                onEditStart,
+                onEditComplete,
+                ::showAwesomeBar,
+                ::hideAwesomeBar
+            )
+        )
 
         awesomeBar.setOnStopListener { toolbar.displayMode() }
         awesomeBar.setOnEditSuggestionListener(toolbar::setSearchTerms)
@@ -89,15 +90,17 @@ class AwesomeBarFeature(
         engine: Engine? = null,
         filterExactMatch: Boolean = false
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchSuggestionProvider(
-            searchEngine,
-            searchUseCase,
-            fetchClient,
-            limit,
-            mode,
-            engine,
-            filterExactMatch = filterExactMatch
-        ))
+        awesomeBar.addProviders(
+            SearchSuggestionProvider(
+                searchEngine,
+                searchUseCase,
+                fetchClient,
+                limit,
+                mode,
+                engine,
+                filterExactMatch = filterExactMatch
+            )
+        )
         return this
     }
 
@@ -128,16 +131,18 @@ class AwesomeBarFeature(
         engine: Engine? = null,
         filterExactMatch: Boolean = false
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchSuggestionProvider(
-            context,
-            store,
-            searchUseCase,
-            fetchClient,
-            limit,
-            mode,
-            engine,
-            filterExactMatch = filterExactMatch
-        ))
+        awesomeBar.addProviders(
+            SearchSuggestionProvider(
+                context,
+                store,
+                searchUseCase,
+                fetchClient,
+                limit,
+                mode,
+                engine,
+                filterExactMatch = filterExactMatch
+            )
+        )
         return this
     }
 
@@ -156,29 +161,40 @@ class AwesomeBarFeature(
         icon: Bitmap? = null,
         showDescription: Boolean = false
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchActionProvider(
-            store,
-            searchUseCase,
-            icon,
-            showDescription
-        ))
+        awesomeBar.addProviders(
+            SearchActionProvider(
+                store,
+                searchUseCase,
+                icon,
+                showDescription
+            )
+        )
         return this
     }
 
     /**
      * Add a [AwesomeBar.SuggestionProvider] for browsing history to the [AwesomeBar].
      *
-     * @param historyStorage and instance of the [BookmarksStorage] used to query matching bookmarks.
+     * @param historyStorage an instance of the [HistoryStorage] used to query matching history.
      * @param loadUrlUseCase the use case invoked to load the url when the user clicks on the suggestion.
      * @param engine optional [Engine] instance to call [Engine.speculativeConnect] for the
      * highest scored suggestion URL.
+     * @param maxNumberOfSuggestions optional parameter to specify the maximum number of returned suggestions.
+     * Zero or a negative value here means the default number of history suggestions will be returned.
      */
     fun addHistoryProvider(
         historyStorage: HistoryStorage,
         loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
-        engine: Engine? = null
+        engine: Engine? = null,
+        maxNumberOfSuggestions: Int = -1
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine))
+        awesomeBar.addProviders(
+            if (maxNumberOfSuggestions <= 0) {
+                HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine)
+            } else {
+                HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine, maxNumberOfSuggestions)
+            }
+        )
         return this
     }
 

@@ -22,6 +22,7 @@ import mozilla.components.browser.state.state.recover.toTabSessionStates
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.feature.session.SessionUseCases.LoadUrlUseCase
 
 /**
@@ -163,11 +164,13 @@ class TabsUseCases(
             // If an engine session is specified then loading will have already started when linking
             // the tab to its engine session. Otherwise we ask to load the URL here.
             if (startLoading && engineSession == null) {
-                store.dispatch(EngineAction.LoadUrlAction(
-                    tab.id,
-                    url,
-                    flags
-                ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        tab.id,
+                        url,
+                        flags
+                    )
+                )
             }
 
             return tab.id
@@ -227,11 +230,13 @@ class TabsUseCases(
             // If an engine session is specified then loading will have already started when linking
             // the tab to its engine session. Otherwise we ask to load the URL here.
             if (startLoading && engineSession == null) {
-                store.dispatch(EngineAction.LoadUrlAction(
-                    tab.id,
-                    url,
-                    flags
-                ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        tab.id,
+                        url,
+                        flags
+                    )
+                )
             }
 
             return tab.id
@@ -255,8 +260,12 @@ class TabsUseCases(
     class RemoveAllTabsUseCase internal constructor(
         private val store: BrowserStore
     ) {
-        operator fun invoke() {
-            store.dispatch(TabListAction.RemoveAllTabsAction)
+        /**
+         * Removes all tabs.
+         * @param recoverable Indicates whether removed tabs should be recoverable.
+         */
+        operator fun invoke(recoverable: Boolean = true) {
+            store.dispatch(TabListAction.RemoveAllTabsAction(recoverable))
         }
     }
 
@@ -370,17 +379,47 @@ class TabsUseCases(
         private val store: BrowserStore
     ) {
         /**
+         * Selects an already existing tab with the matching [HistoryMetadataKey] or otherwise
+         * creates a new tab with the given [url].
+         *
+         * @param url The URL to be selected or loaded in the new tab.
+         * @param historyMetadata The [HistoryMetadataKey] to match for existing tabs.
+         * @return The ID of the selected or created tab.
+         */
+        operator fun invoke(
+            url: String,
+            historyMetadata: HistoryMetadataKey
+        ): String {
+            val tab = store.state.tabs.find { it.historyMetadata == historyMetadata }
+
+            return if (tab != null) {
+                store.dispatch(TabListAction.SelectTabAction(tab.id))
+                tab.id
+            } else {
+                this.invoke(url)
+            }
+        }
+
+        /**
          * Selects an already existing tab displaying [url] or otherwise creates a new tab.
+         *
+         * @param url The URL to be loaded in the new tab.
+         * @param private Whether or not this session should use private mode.
+         * @param source The origin of a session to describe how and why it was created.
+         * @param flags The [LoadUrlFlags] to use when loading the provided URL.
+         * @return The ID of the selected or created tab.
          */
         operator fun invoke(
             url: String,
             private: Boolean = false,
             source: Source = Source.NEW_TAB,
             flags: LoadUrlFlags = LoadUrlFlags.none()
-        ) {
+        ): String {
             val existingTab = store.state.findTabByUrl(url)
-            if (existingTab != null) {
+
+            return if (existingTab != null) {
                 store.dispatch(TabListAction.SelectTabAction(existingTab.id))
+                existingTab.id
             } else {
                 val tab = createTab(
                     url = url,
@@ -389,11 +428,14 @@ class TabsUseCases(
                     initialLoadFlags = flags
                 )
                 store.dispatch(TabListAction.AddTabAction(tab, select = true))
-                store.dispatch(EngineAction.LoadUrlAction(
-                    tab.id,
-                    url,
-                    flags
-                ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        tab.id,
+                        url,
+                        flags
+                    )
+                )
+                tab.id
             }
         }
     }
@@ -419,10 +461,12 @@ class TabsUseCases(
                 engineSessionState = tab.engineState.engineSessionState
             )
 
-            store.dispatch(TabListAction.AddTabAction(
-                duplicate,
-                select = selectNewTab
-            ))
+            store.dispatch(
+                TabListAction.AddTabAction(
+                    duplicate,
+                    select = selectNewTab
+                )
+            )
         }
     }
 

@@ -4,12 +4,60 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 91.0.0-SNAPSHOT (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v90.0.0...master)
+# 92.0.0-SNAPSHOT (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v91.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/139?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **browser-toolbar**
+  * 🚒 Bug fixed [issue #10555](https://github.com/mozilla-mobile/android-components/issues/10555) - Prevent new touches from expanding a collapsed toolbar. Wait until there's a response from GeckoView on how the touch was handled to expand/collapse the toolbar.
+
+* **support-test**
+  * ⚠️  Deprecation: `createTestCoroutinesDispatcher()` should be replaced with the preferred `TestCoroutineDispatcher()` from the `kotlinx-coroutines-test` library.
+  * ⚠️ **This is a breaking change**: `MainCoroutineRule`'s constructor takes a more strict `TestCoroutineDispatcher` instead of a `CoroutineDispatcher`
+  * 🌟️ Adds `MainCoroutineRule.runBlockingTest`, which is a convenience method for `MainCoroutineRule.testDispatcher.runBlockingTest`. These methods are preferred over the global `runBlockingTest` because they reparent new child coroutines to the test coroutine context.
+
+* **feature-search**
+  * 🌟️ New `AdsTelemetry` based on a web extension that identify whether there are ads in search results of particular providers for which a (Component.FEATURE_SEARCH to SERP_SHOWN_WITH_ADDS) Fact will be emitted and whether an ad was clicked for which a (Component.FEATURE_SEARCH to SERP_ADD_CLICKED) Fact will be emitted if the `AdsTelemetryMiddleware` is set for `BrowserStore`.
+  * 🌟️ New `InContentTelemetry` based on a web extension that identify follow-on and organic web searches for which a (Component.FEATURE_SEARCH to IN_CONTENT_SEARCH) Fact will be emitted.
+
+* **feature-tabs**
+  * Adds `lastAccess` to the `Tab` data class that is used in `TabsTray`.
+  * Adds a new SelectOrAddUseCase for reopening existing tab with matching HistoryMetadataKey. [#10611](https://github.com/mozilla-mobile/android-components/issues/10611)
+  * Adds `recoverable` parameter to `RemoveAllTabsUseCase.invoke()` to specify whether `UndoMiddleware` should make the removed tabs recoverable.
+
+# 91.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v91.0.0...main)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/138?closed=1)
-* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Dependencies.kt)
-* [Gecko](https://github.com/mozilla-mobile/android-components/blob/master/buildSrc/src/main/java/Gecko.kt)
-* [Configuration](https://github.com/mozilla-mobile/android-components/blob/master/.config.yml)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v91.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v91.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v91.0.0/.config.yml)
+
+* **browser-errorpages**:
+  * `ErrorType.ERROR_SECURITY_SSL` will now no longer display `Advanced` button on the SSL Error Page.
+
+* **browser-state**:
+  * 🌟️ Adds a new `lastMediaAccess` in `TabSessionState` as an easy way to check the timestamp of when media last started playing on a particular webpage. The value will be 0 if no media was started. To observe the media playback and updating this property one needs to add a new `LastMediaAccessMiddleware` to `BrowserStore`.
+
+* **feature-search**
+  * Updated the icon of the bing search engine.
+
+* **browser-menu**
+  * Adds `showAddonsInMenu` in WebExtensionBrowserMenuBuilder to allow the option of removing `Add-ons` item even if another extensions are displayed
+
+* **feature-privatemode**
+  * Adds `clearFlagOnStop = true` in SecureWindowFeature to allow the option of keeping `FLAG_SECURE` when calling `stop()`
+
+* **browser-feature-awesomebar**:
+  * 🌟️ Adds a new `maxNumberOfSuggestions` parameter to `HistoryStorageSuggestionProvider` as a way to specify a different number than the default of 20 for how many history results to be returned.
+  * 🌟️ Adds a new `maxNumberOfSuggestions` parameter to `HistoryMetadataSuggestionProvider` as a way to specify a different number than the default of 5 for how many history results to be returned.
+  * HistoryMetadataSuggestionProvider - only return pages user spent time on.
+  * `AwesomeBarFeature.addHistoryProvider` allows specifying a positive value for `maxNumberOfSuggestions`. If zero or a negative value is used the default number of history suggestions will be returned.
+
+* **browser-storage-sync**
+  * Adds `CrashReporting` to the `RemoteTabsStorage`.
 
 * **concept-engine**
   * 🌟️ Adds a new `SitePermissionsStorage` interface that represents a common API to store site permissions.
@@ -32,6 +80,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/v90.0.0/.config.yml)
 
+* **lib-crash**:
+  * 🚒 Bug fixed [issue #10515](https://github.com/mozilla-mobile/android-components/issues/10515) - Populate the crash reporter view.
+
 * **feature-prompts**:
   * ⚠️ **This is a breaking change**: [#8989](https://github.com/mozilla-mobile/android-components/issues/8989) - Add support for multiple prompts in ContentState and help avoid some Exceptions.
 
@@ -44,7 +95,7 @@ permalink: /changelog/
 
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.
-  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/pocket/README.md) to get more info.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/main/components/service/pocket/README.md) to get more info.
 
 * **feature-contextmenu**:
   * ⚠️ Long pressing on web content won't show a contextual menu if the URL of the touch target is one blocked from loading in the browser.
@@ -71,7 +122,7 @@ permalink: /changelog/
   * 🚒 Bug fixed [issue #10157](https://github.com/mozilla-mobile/android-components/issues/10157) - Crash on startup when tying to restore data URLs from the db.
 
 * **browser-engine-gecko(-nightly/beta)**
-  * ⚠️ From now on there will be only one `concept-engine` implementation using [GeckoView](https://mozilla.github.io/geckoview/). On `master` this will be the Nightly version. In release versions it will be the corresponding Beta or Release version. More about this in [RFC 7](https://mozac.org/rfc/0007-synchronized-releases).
+  * ⚠️ From now on there will be only one `concept-engine` implementation using [GeckoView](https://mozilla.github.io/geckoview/). On `main` this will be the Nightly version. In release versions it will be the corresponding Beta or Release version. More about this in [RFC 7](https://mozac.org/rfc/0007-synchronized-releases).
   * Implements `onCreditCardSelect` in `GeckoPromptDelegate` to handle a credit card selection prompt request. [#10205](https://github.com/mozilla-mobile/android-components/issues/10205)
 
 * **concept-sync**, **browser-storage-sync**
@@ -808,7 +859,7 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Renames `TopSiteDao` to `PinnedSiteDao`.
   * ⚠️ **This is a breaking change**: Renames `TopSiteEntity` to `PinnedSiteEntity`.
   * ⚠️ **This is a breaking change**: Replaces `TopSite` interface with a new generic `TopSite` data class.
-  * Implements TopSitesFeature based on the RFC [0006-top-sites-feature.md](https://github.com/mozilla-mobile/android-components/blob/master/docs/rfcs/0006-top-sites-feature.md).
+  * Implements TopSitesFeature based on the RFC [0006-top-sites-feature.md](https://github.com/mozilla-mobile/android-components/blob/main/docs/rfcs/0006-top-sites-feature.md).
   * Downloads, redirect targets, reloads, embedded resources, and frames are no longer considered for inclusion in top sites. Please see [this Application Services PR](https://github.com/mozilla/application-services/pull/3505) for more details.
 
 * **lib-push-firebase**
@@ -1787,7 +1838,7 @@ permalink: /changelog/
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/96?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v37.0.0/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/v37.0.0/buildSrc/src/main/java/Gecko.kt)
-* [Configuration](https://github.com/mozilla-mobile/android-components/v37.0.0/master/buildSrc/src/main/java/Config.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/v37.0.0/main/buildSrc/src/main/java/Config.kt)
 
 * **lib-state**, **browser-state**
   * Added the ability to add `Middleware` instances to a `Store`. A `Middleware` can rewrite or intercept an `Action`, as well as dispatch additional `Action`s or perform side-effects when an `Action` gets dispatched.
@@ -2455,7 +2506,7 @@ permalink: /changelog/
 
 # 22.0.0
 
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v22.0.0...master)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v22.0.0...main)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/82?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v22.0.0/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/v22.0.0/buildSrc/src/main/java/Gecko.kt)
@@ -3496,7 +3547,7 @@ permalink: /changelog/
   * ⚠️ **This is a breaking change**: Public API for interacting with `FxaAccountManager` and sync changes
   * `FxaAccountManager` now has a new, simplified public API.
   * `BackgroundSyncManager` is longer exists; sync functionality exposed directly via `FxaAccountManager`.
-  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/master/components/service/firefox-accounts/README.md) for detailed description of the new API.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/main/components/service/firefox-accounts/README.md) for detailed description of the new API.
   * As part of these changes, token caching issue has been fixed. See [#3579](https://github.com/mozilla-mobile/android-components/pull/3579) for details.
 
 * **concept-engine**, **browser-engine-gecko(-beta/nightly)**.

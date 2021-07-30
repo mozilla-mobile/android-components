@@ -9,6 +9,7 @@ import android.util.JsonReader
 import android.util.JsonWriter
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.EngineState
+import mozilla.components.browser.state.state.LastMediaAccessState
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
@@ -144,6 +145,35 @@ class BrowserStateWriterReaderTest {
 
         assertNotNull(restoredTab.historyMetadata)
         assertEquals(tab.content.url, restoredTab.historyMetadata!!.url)
+    }
+
+    @Test
+    fun `Read and write tab with LastMediaAccessState`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+            lastMediaAccessState = LastMediaAccessState("https://www.mozilla.org", lastMediaAccess = 333L, true)
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab!!)
+
+        assertEquals("https://www.mozilla.org", restoredTab.lastMediaAccessState.lastMediaUrl)
+        assertEquals(333L, restoredTab.lastMediaAccessState.lastMediaAccess)
+        assertTrue(restoredTab.lastMediaAccessState.mediaSessionActive)
     }
 }
 

@@ -4,7 +4,6 @@
 
 package mozilla.components.browser.state.reducer
 
-import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContainerAction
 import mozilla.components.browser.state.action.ContentAction
@@ -15,6 +14,7 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.HistoryMetadataAction
 import mozilla.components.browser.state.action.InitAction
 import mozilla.components.browser.state.action.LastAccessAction
+import mozilla.components.browser.state.action.LocaleAction
 import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.action.ReaderAction
 import mozilla.components.browser.state.action.RecentlyClosedAction
@@ -25,7 +25,7 @@ import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.action.UndoAction
-import mozilla.components.browser.state.action.LocaleAction
+import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SessionState
@@ -68,13 +68,17 @@ internal object BrowserStateReducer {
 }
 
 /**
- * Finds the corresponding tab in the [BrowserState] and replaces it using [update].
+ * Finds the corresponding tab or custom tab in the [BrowserState] and updates it using [update].
+ *
+ * Consider using the specialized [updateTabState] or [updateCustomTabState] to limit the tabs to be updated
+ * if the properties you want changed are not common to both [SessionState] implementations.
+ *
  * @param tabId ID of the tab to change.
  * @param update Returns a new version of the tab state. Must be the same class,
  * preferably using [SessionState.createCopy].
  */
 @Suppress("Unchecked_Cast")
-internal fun BrowserState.updateTabState(
+internal fun BrowserState.updateTabOrCustomTabState(
     tabId: String,
     update: (SessionState) -> SessionState
 ): BrowserState {
@@ -85,6 +89,44 @@ internal fun BrowserState.updateTabState(
     if (newCustomTabs != null) return copy(customTabs = newCustomTabs)
 
     return this
+}
+
+/**
+ * Finds the corresponding tab in the [BrowserState] and replaces it using [update].
+ *
+ * This will only update a [TabSessionState] if such exists with the given [tabId].
+ * Consider using the other specialized [updateCustomTabState] method for updating only [CustomTabSessionState]
+ * or the general [updateTabOrCustomTabState] to update any tab or custom tab with a given [tabId].
+ *
+ * @param tabId ID of the tab to change.
+ * @param update Returns a new version of [TabSessionState].
+ */
+internal fun BrowserState.updateTabState(
+    tabId: String,
+    update: (TabSessionState) -> TabSessionState
+): BrowserState {
+    return tabs.updateTabs(tabId, update)?.let {
+        copy(tabs = it)
+    } ?: this
+}
+
+/**
+ * Finds the corresponding custom tab in the [BrowserState] and replaces it using [update].
+ *
+ * This will only update a [CustomTabSessionState] if such exists with the given [tabId].
+ * Consider using the other specialized [updateTabState] method for updating only [TabSessionState]
+ * or the general [updateTabOrCustomTabState] to update any tab or custom tab with a given [tabId].
+ *
+ * @param tabId ID of the tab to change.
+ * @param update Returns a new version of [CustomTabSessionState].
+ */
+internal fun BrowserState.updateCustomTabState(
+    tabId: String,
+    update: (CustomTabSessionState) -> CustomTabSessionState
+): BrowserState {
+    return customTabs.updateTabs(tabId, update)?.let {
+        copy(customTabs = it)
+    } ?: this
 }
 
 /**

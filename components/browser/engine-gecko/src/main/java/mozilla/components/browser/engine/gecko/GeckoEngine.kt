@@ -4,7 +4,6 @@
 
 package mozilla.components.browser.engine.gecko
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.util.JsonReader
@@ -88,8 +87,14 @@ class GeckoEngine(
         }
 
         override fun onToggleActionPopup(extension: WebExtension, action: Action): EngineSession? {
-            return webExtensionDelegate?.onToggleActionPopup(extension, GeckoEngineSession(runtime,
-                defaultSettings = defaultSettings), action)
+            return webExtensionDelegate?.onToggleActionPopup(
+                extension,
+                GeckoEngineSession(
+                    runtime,
+                    defaultSettings = defaultSettings
+                ),
+                action
+            )
         }
     }
     private val webExtensionTabHandler = object : TabHandler {
@@ -126,22 +131,25 @@ class GeckoEngine(
         onError: (Throwable) -> Unit
     ) {
         val geckoSession = (session as GeckoEngineSession).geckoSession
-        runtime.contentBlockingController.getLog(geckoSession).then({ contentLogList ->
-            val list = contentLogList ?: emptyList()
-            val logs = list.map { logEntry ->
-                logEntry.toTrackerLog()
-            }.filterNot {
-                !it.cookiesHasBeenBlocked &&
-                    it.blockedCategories.isEmpty() &&
-                    it.loadedCategories.isEmpty()
-            }
+        runtime.contentBlockingController.getLog(geckoSession).then(
+            { contentLogList ->
+                val list = contentLogList ?: emptyList()
+                val logs = list.map { logEntry ->
+                    logEntry.toTrackerLog()
+                }.filterNot {
+                    !it.cookiesHasBeenBlocked &&
+                        it.blockedCategories.isEmpty() &&
+                        it.loadedCategories.isEmpty()
+                }
 
-            onSuccess(logs)
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(throwable)
-            GeckoResult<Void>()
-        })
+                onSuccess(logs)
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(throwable)
+                GeckoResult<Void>()
+            }
+        )
     }
 
     /**
@@ -221,23 +229,29 @@ class GeckoEngine(
 
         val geckoResult = if (url.isResourceUrl()) {
             runtime.webExtensionController.ensureBuiltIn(url, id).apply {
-                then({
-                    onInstallSuccess(it!!)
-                    GeckoResult<Void>()
-                }, { throwable ->
-                    onError(id, throwable)
-                    GeckoResult<Void>()
-                })
+                then(
+                    {
+                        onInstallSuccess(it!!)
+                        GeckoResult<Void>()
+                    },
+                    { throwable ->
+                        onError(id, throwable)
+                        GeckoResult<Void>()
+                    }
+                )
             }
         } else {
             runtime.webExtensionController.install(url).apply {
-                then({
-                    onInstallSuccess(it!!)
-                    GeckoResult<Void>()
-                }, { throwable ->
-                    onError(id, throwable)
-                    GeckoResult<Void>()
-                })
+                then(
+                    {
+                        onInstallSuccess(it!!)
+                        GeckoResult<Void>()
+                    },
+                    { throwable ->
+                        onError(id, throwable)
+                        GeckoResult<Void>()
+                    }
+                )
             }
         }
         return geckoResult.asCancellableOperation()
@@ -251,14 +265,17 @@ class GeckoEngine(
         onSuccess: () -> Unit,
         onError: (String, Throwable) -> Unit
     ) {
-        runtime.webExtensionController.uninstall((ext as GeckoWebExtension).nativeExtension).then({
-            webExtensionDelegate?.onUninstalled(ext)
-            onSuccess()
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(ext.id, throwable)
-            GeckoResult<Void>()
-        })
+        runtime.webExtensionController.uninstall((ext as GeckoWebExtension).nativeExtension).then(
+            {
+                webExtensionDelegate?.onUninstalled(ext)
+                onSuccess()
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(ext.id, throwable)
+                GeckoResult<Void>()
+            }
+        )
     }
 
     /**
@@ -269,21 +286,24 @@ class GeckoEngine(
         onSuccess: (WebExtension?) -> Unit,
         onError: (String, Throwable) -> Unit
     ) {
-        runtime.webExtensionController.update((extension as GeckoWebExtension).nativeExtension).then({ geckoExtension ->
-            val updatedExtension = if (geckoExtension != null) {
-                GeckoWebExtension(geckoExtension, runtime).also {
-                    it.registerActionHandler(webExtensionActionHandler)
-                    it.registerTabHandler(webExtensionTabHandler, defaultSettings)
+        runtime.webExtensionController.update((extension as GeckoWebExtension).nativeExtension).then(
+            { geckoExtension ->
+                val updatedExtension = if (geckoExtension != null) {
+                    GeckoWebExtension(geckoExtension, runtime).also {
+                        it.registerActionHandler(webExtensionActionHandler)
+                        it.registerTabHandler(webExtensionTabHandler, defaultSettings)
+                    }
+                } else {
+                    null
                 }
-            } else {
-                null
+                onSuccess(updatedExtension)
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(extension.id, GeckoWebExtensionException(throwable))
+                GeckoResult<Void>()
             }
-            onSuccess(updatedExtension)
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(extension.id, GeckoWebExtensionException(throwable))
-            GeckoResult<Void>()
-        })
+        )
     }
 
     /**
@@ -317,7 +337,8 @@ class GeckoEngine(
                     GeckoWebExtension(updated, runtime),
                     newPermissions.toList() + newOrigins.toList()
                 ) {
-                    allow -> if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
+                    allow ->
+                    if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
                 }
                 return result
             }
@@ -337,22 +358,26 @@ class GeckoEngine(
      * See [Engine.listInstalledWebExtensions].
      */
     override fun listInstalledWebExtensions(onSuccess: (List<WebExtension>) -> Unit, onError: (Throwable) -> Unit) {
-        runtime.webExtensionController.list().then({
-            val extensions = it?.map {
-                extension -> GeckoWebExtension(extension, runtime)
-            } ?: emptyList()
+        runtime.webExtensionController.list().then(
+            {
+                val extensions = it?.map {
+                    extension ->
+                    GeckoWebExtension(extension, runtime)
+                } ?: emptyList()
 
-            extensions.forEach { extension ->
-                extension.registerActionHandler(webExtensionActionHandler)
-                extension.registerTabHandler(webExtensionTabHandler, defaultSettings)
+                extensions.forEach { extension ->
+                    extension.registerActionHandler(webExtensionActionHandler)
+                    extension.registerTabHandler(webExtensionTabHandler, defaultSettings)
+                }
+
+                onSuccess(extensions)
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(throwable)
+                GeckoResult<Void>()
             }
-
-            onSuccess(extensions)
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(throwable)
-            GeckoResult<Void>()
-        })
+        )
     }
 
     /**
@@ -364,15 +389,18 @@ class GeckoEngine(
         onSuccess: (WebExtension) -> Unit,
         onError: (Throwable) -> Unit
     ) {
-        runtime.webExtensionController.enable((extension as GeckoWebExtension).nativeExtension, source.id).then({
-            val enabledExtension = GeckoWebExtension(it!!, runtime)
-            webExtensionDelegate?.onEnabled(enabledExtension)
-            onSuccess(enabledExtension)
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(throwable)
-            GeckoResult<Void>()
-        })
+        runtime.webExtensionController.enable((extension as GeckoWebExtension).nativeExtension, source.id).then(
+            {
+                val enabledExtension = GeckoWebExtension(it!!, runtime)
+                webExtensionDelegate?.onEnabled(enabledExtension)
+                onSuccess(enabledExtension)
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(throwable)
+                GeckoResult<Void>()
+            }
+        )
     }
 
     /**
@@ -384,15 +412,18 @@ class GeckoEngine(
         onSuccess: (WebExtension) -> Unit,
         onError: (Throwable) -> Unit
     ) {
-        runtime.webExtensionController.disable((extension as GeckoWebExtension).nativeExtension, source.id).then({
-            val disabledExtension = GeckoWebExtension(it!!, runtime)
-            webExtensionDelegate?.onDisabled(disabledExtension)
-            onSuccess(disabledExtension)
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(throwable)
-            GeckoResult<Void>()
-        })
+        runtime.webExtensionController.disable((extension as GeckoWebExtension).nativeExtension, source.id).then(
+            {
+                val disabledExtension = GeckoWebExtension(it!!, runtime)
+                webExtensionDelegate?.onDisabled(disabledExtension)
+                onSuccess(disabledExtension)
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(throwable)
+                GeckoResult<Void>()
+            }
+        )
     }
 
     /**
@@ -407,15 +438,18 @@ class GeckoEngine(
         runtime.webExtensionController.setAllowedInPrivateBrowsing(
             (extension as GeckoWebExtension).nativeExtension,
             allowed
-        ).then({
-            val ext = GeckoWebExtension(it!!, runtime)
-            webExtensionDelegate?.onAllowedInPrivateBrowsingChanged(ext)
-            onSuccess(ext)
-            GeckoResult<Void>()
-        }, { throwable ->
-            onError(throwable)
-            GeckoResult<Void>()
-        })
+        ).then(
+            {
+                val ext = GeckoWebExtension(it!!, runtime)
+                webExtensionDelegate?.onAllowedInPrivateBrowsingChanged(ext)
+                onSuccess(ext)
+                GeckoResult<Void>()
+            },
+            { throwable ->
+                onError(throwable)
+                GeckoResult<Void>()
+            }
+        )
     }
 
     /**
@@ -484,13 +518,17 @@ class GeckoEngine(
             runtime.storageController.clearDataFromHost(host, flags)
         } else {
             runtime.storageController.clearData(flags)
-        }.then({
-            onSuccess()
-            GeckoResult<Void>()
-        }, {
-            throwable -> onError(throwable)
-            GeckoResult<Void>()
-        })
+        }.then(
+            {
+                onSuccess()
+                GeckoResult<Void>()
+            },
+            {
+                throwable ->
+                onError(throwable)
+                GeckoResult<Void>()
+            }
+        )
     }
 
     /**
@@ -529,10 +567,10 @@ class GeckoEngine(
         override var safeBrowsingPolicy: Array<SafeBrowsingPolicy> =
             arrayOf(SafeBrowsingPolicy.RECOMMENDED)
             set(value) {
-                val policy = value.sumBy { it.id }
-                runtime.settings.contentBlocking.setSafeBrowsing(policy)
-                field = value
-            }
+                    val policy = value.sumOf { it.id }
+                    runtime.settings.contentBlocking.setSafeBrowsing(policy)
+                    field = value
+                }
 
         override var trackingProtectionPolicy: TrackingProtectionPolicy? = null
             set(value) {
@@ -658,7 +696,7 @@ class GeckoEngine(
     @Suppress("ComplexMethod")
     internal fun ContentBlockingController.LogEntry.BlockingData.getLoadedCategory(): TrackingCategory {
         val socialTrackingProtectionEnabled = settings.trackingProtectionPolicy?.strictSocialTrackingProtection
-                ?: false
+            ?: false
 
         return when (category) {
             Event.LOADED_FINGERPRINTING_CONTENT -> TrackingCategory.FINGERPRINTING
@@ -709,7 +747,7 @@ class GeckoEngine(
             .filterNot { it == TrackingCategory.NONE }
             .distinct()
         /**
-         *  When a resource is shimmed we'll received a [REPLACED_UNSAFE_CONTENT] event with
+         *  When a resource is shimmed we'll received a [REPLACED_TRACKING_CONTENT] event with
          *  the quantity [BlockingData.count] of categories that were shimmed, but it doesn't
          *  specify which ones, it only tells us how many. For example:
          *     {
@@ -753,7 +791,8 @@ class GeckoEngine(
             url = origin,
             loadedCategories = loadedCategories.filterNot { it in shimmedCategories },
             blockedCategories = (blockedCategories + shimmedCategories).distinct(),
-            cookiesHasBeenBlocked = cookiesHasBeenBlocked
+            cookiesHasBeenBlocked = cookiesHasBeenBlocked,
+            unBlockedBySmartBlock = this.blockingData.any { it.unBlockedBySmartBlock() }
         )
     }
 }
@@ -767,10 +806,10 @@ internal fun ContentBlockingController.LogEntry.BlockingData.hasBlockedCookies()
         category == Event.COOKIES_BLOCKED_SOCIALTRACKER
 }
 
-// There is going to be a patch from GV for adding [REPLACED_UNSAFE_CONTENT] as
-// a valid option for [BlockingData.category]
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1669577
-@SuppressLint("SwitchIntDef")
+internal fun ContentBlockingController.LogEntry.BlockingData.unBlockedBySmartBlock(): Boolean {
+    return category == Event.ALLOWED_TRACKING_CONTENT
+}
+
 internal fun ContentBlockingController.LogEntry.BlockingData.getBlockedCategory(): TrackingCategory {
     return when (category) {
         Event.BLOCKED_FINGERPRINTING_CONTENT -> TrackingCategory.FINGERPRINTING

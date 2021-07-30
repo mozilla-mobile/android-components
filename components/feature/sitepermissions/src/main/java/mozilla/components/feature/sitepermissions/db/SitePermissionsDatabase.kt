@@ -17,7 +17,7 @@ import mozilla.components.concept.engine.permission.SitePermissions
 /**
  * Internal database for saving site permissions.
  */
-@Database(entities = [SitePermissionsEntity::class], version = 6)
+@Database(entities = [SitePermissionsEntity::class], version = 7)
 @TypeConverters(StatusConverter::class)
 internal abstract class SitePermissionsDatabase : RoomDatabase() {
     abstract fun sitePermissionsDao(): SitePermissionsDao
@@ -44,6 +44,8 @@ internal abstract class SitePermissionsDatabase : RoomDatabase() {
                 Migrations.migration_4_5
             ).addMigrations(
                 Migrations.migration_5_6
+            ).addMigrations(
+                Migrations.migration_6_7
             ).build().also { instance = it }
         }
     }
@@ -105,11 +107,14 @@ internal object Migrations {
             // the new autoplay fields autoplay_audible and autoplay_inaudible
             if (!haveAutoPlayColumns) {
                 database.execSQL(
-                        "ALTER TABLE site_permissions ADD COLUMN autoplay_audible INTEGER NOT NULL DEFAULT ''")
+                    "ALTER TABLE site_permissions ADD COLUMN autoplay_audible INTEGER NOT NULL DEFAULT ''"
+                )
                 database.execSQL(
-                        "ALTER TABLE site_permissions ADD COLUMN autoplay_inaudible INTEGER NOT NULL DEFAULT ''")
+                    "ALTER TABLE site_permissions ADD COLUMN autoplay_inaudible INTEGER NOT NULL DEFAULT ''"
+                )
 
-                database.execSQL(" UPDATE site_permissions" +
+                database.execSQL(
+                    " UPDATE site_permissions" +
                         " SET autoplay_audible = -1, " + // BLOCKED by default
                         " `autoplay_inaudible` = 1" // ALLOWED by default
                 )
@@ -123,7 +128,8 @@ internal object Migrations {
             val hasEmeColumn = database.query("SELECT * FROM site_permissions").columnCount == 11
             if (!hasEmeColumn) {
                 database.execSQL(
-                        "ALTER TABLE site_permissions ADD COLUMN media_key_system_access INTEGER NOT NULL DEFAULT 0")
+                    "ALTER TABLE site_permissions ADD COLUMN media_key_system_access INTEGER NOT NULL DEFAULT 0"
+                )
                 // default is NO_DECISION
                 database.execSQL("UPDATE site_permissions SET media_key_system_access = 0")
             }
@@ -145,7 +151,22 @@ internal object Migrations {
     val migration_5_6 = object : Migration(5, 6) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
-                "UPDATE site_permissions SET origin = 'https://'||origin||':443'")
+                "UPDATE site_permissions SET origin = 'https://'||origin||':443'"
+            )
+        }
+    }
+
+    @Suppress("MagicNumber")
+    val migration_6_7 = object : Migration(6, 7) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Update any site with our previous default value (block audio and video)  to block audio only.
+            // autoplay_audible BLOCKED (-1) and autoplay_inaudible BLOCKED (-1) to
+            // autoplay_audible BLOCKED (-1) and autoplay_inaudible ALLOWED (1)
+            // This match the default value of desktop block audio only.
+            database.execSQL(
+                "UPDATE site_permissions SET autoplay_audible = -1, autoplay_inaudible= 1 " +
+                    "WHERE autoplay_audible = -1 AND autoplay_inaudible = -1"
+            )
         }
     }
 }

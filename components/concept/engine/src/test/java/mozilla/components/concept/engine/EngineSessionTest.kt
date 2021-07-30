@@ -7,7 +7,11 @@ package mozilla.components.concept.engine
 import android.graphics.Bitmap
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import mozilla.components.concept.engine.content.blocking.Tracker
+import mozilla.components.concept.engine.history.HistoryItem
+import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.mock
@@ -22,10 +26,6 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.verifyZeroInteractions
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
-import mozilla.components.concept.engine.history.HistoryItem
-import mozilla.components.concept.engine.mediasession.MediaSession
 import java.lang.reflect.Modifier
 
 class EngineSessionTest {
@@ -660,7 +660,8 @@ class EngineSessionTest {
                 contentType = "application/vnd.android.package-archive",
                 cookie = "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1;",
                 isPrivate = true,
-                userAgent = "Components/1.0")
+                userAgent = "Components/1.0"
+            )
         }
 
         verify(observer).onExternalResource(
@@ -701,7 +702,7 @@ class EngineSessionTest {
         val recommendedPolicy = TrackingProtectionPolicy.recommended()
 
         assertEquals(
-            recommendedPolicy.trackingCategories.sumBy { it.id },
+            recommendedPolicy.trackingCategories.sumOf { it.id },
             TrackingCategory.RECOMMENDED.id
         )
 
@@ -711,7 +712,7 @@ class EngineSessionTest {
         val strictPolicy = TrackingProtectionPolicy.strict()
 
         assertEquals(
-            strictPolicy.trackingCategories.sumBy { it.id },
+            strictPolicy.trackingCategories.sumOf { it.id },
             TrackingCategory.STRICT.id
         )
 
@@ -721,7 +722,7 @@ class EngineSessionTest {
         val nonePolicy = TrackingProtectionPolicy.none()
 
         assertEquals(
-            nonePolicy.trackingCategories.sumBy { it.id },
+            nonePolicy.trackingCategories.sumOf { it.id },
             TrackingCategory.NONE.id
         )
 
@@ -741,7 +742,7 @@ class EngineSessionTest {
         )
 
         assertEquals(
-            newPolicy.trackingCategories.sumBy { it.id },
+            newPolicy.trackingCategories.sumOf { it.id },
             arrayOf(
                 TrackingCategory.AD,
                 TrackingCategory.SOCIAL,
@@ -750,7 +751,8 @@ class EngineSessionTest {
                 TrackingCategory.CRYPTOMINING,
                 TrackingCategory.FINGERPRINTING,
                 TrackingCategory.TEST
-            ).sumBy { it.id })
+            ).sumOf { it.id }
+        )
     }
 
     @Test
@@ -882,7 +884,7 @@ class EngineSessionTest {
 
         fun checkSavedFields(expect: TrackingProtectionPolicy, actual: TrackingProtectionPolicy) {
             TrackingProtectionPolicy::class.java.declaredMethods
-                .filter { method -> changedFields.all { !method.name.toLowerCase().contains(it.toLowerCase()) } }
+                .filter { method -> changedFields.all { !method.name.lowercase().contains(it.lowercase()) } }
                 .filter { it.parameterCount == 0 } // Only keep getters
                 .filter { it.modifiers and Modifier.PUBLIC != 0 }
                 .filter { it.modifiers and Modifier.STATIC == 0 }

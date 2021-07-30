@@ -5,7 +5,6 @@
 package mozilla.components.feature.media.service
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.MediaSessionState
@@ -17,9 +16,12 @@ import mozilla.components.feature.media.session.MediaSessionCallback
 import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.robolectric.testContext import mozilla.components.support.test.rule.MainCoroutineRule import org.junit.Rule import org.junit.Test
+import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.never
@@ -29,10 +31,10 @@ import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class MediaSessionServiceDelegateTest {
-    private val dispatcher: TestCoroutineDispatcher = TestCoroutineDispatcher()
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(dispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `media session state starts service in foreground`() {
@@ -44,10 +46,12 @@ class MediaSessionServiceDelegateTest {
         val delegate = MediaSessionServiceDelegate(testContext, service, store)
 
         delegate.onCreate()
-        delegate.onStartCommand(AbstractMediaSessionService.launchIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.launchIntent(
+                testContext,
+                service::class.java
+            )
+        )
 
         verify(service).startForeground(ArgumentMatchers.anyInt(), any())
         assertTrue(delegate.isForegroundService)
@@ -58,10 +62,12 @@ class MediaSessionServiceDelegateTest {
     @Test
     fun `deactivating media session stops service`() {
         val initialState = BrowserState(
-            tabs = listOf(createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(mock(), playbackState = MediaSession.PlaybackState.PLAYING)
-            ))
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(mock(), playbackState = MediaSession.PlaybackState.PLAYING)
+                )
+            )
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
@@ -86,10 +92,12 @@ class MediaSessionServiceDelegateTest {
     @Test
     fun `deactivating media session in custom tab stops service`() {
         val initialState = BrowserState(
-            customTabs = listOf(createCustomTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(mock(), playbackState = MediaSession.PlaybackState.PLAYING)
-            ))
+            customTabs = listOf(
+                createCustomTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(mock(), playbackState = MediaSession.PlaybackState.PLAYING)
+                )
+            )
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
@@ -117,13 +125,15 @@ class MediaSessionServiceDelegateTest {
     fun `launch intent will always call startForeground`() {
         val controller: MediaSession.Controller = mock()
         val initialState = BrowserState(
-            tabs = listOf(createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(
-                    controller,
-                    playbackState = MediaSession.PlaybackState.PLAYING
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = MediaSession.PlaybackState.PLAYING
+                    )
                 )
-            ))
+            )
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
@@ -137,16 +147,20 @@ class MediaSessionServiceDelegateTest {
         verify(controller, never()).pause()
         assertTrue(delegate.isForegroundService)
 
-        delegate.onStartCommand(AbstractMediaSessionService.launchIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.launchIntent(
+                testContext,
+                service::class.java
+            )
+        )
         verify(service, times(2)).startForeground(ArgumentMatchers.anyInt(), any())
 
-        delegate.onStartCommand(AbstractMediaSessionService.launchIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.launchIntent(
+                testContext,
+                service::class.java
+            )
+        )
         verify(service, times(3)).startForeground(ArgumentMatchers.anyInt(), any())
     }
 
@@ -154,13 +168,15 @@ class MediaSessionServiceDelegateTest {
     fun `pause intent will pause playing media session`() {
         val controller: MediaSession.Controller = mock()
         val initialState = BrowserState(
-            tabs = listOf(createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(
-                    controller,
-                    playbackState = MediaSession.PlaybackState.PLAYING
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = MediaSession.PlaybackState.PLAYING
+                    )
                 )
-            ))
+            )
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
@@ -174,10 +190,12 @@ class MediaSessionServiceDelegateTest {
         verify(controller, never()).pause()
         assertTrue(delegate.isForegroundService)
 
-        delegate.onStartCommand(AbstractMediaSessionService.pauseIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.pauseIntent(
+                testContext,
+                service::class.java
+            )
+        )
 
         verify(controller).pause()
     }
@@ -186,13 +204,15 @@ class MediaSessionServiceDelegateTest {
     fun `play intent will play paused media session`() {
         val controller: MediaSession.Controller = mock()
         val initialState = BrowserState(
-            tabs = listOf(createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(
-                    controller,
-                    playbackState = MediaSession.PlaybackState.PAUSED
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = MediaSession.PlaybackState.PAUSED
+                    )
                 )
-            ))
+            )
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
@@ -206,10 +226,12 @@ class MediaSessionServiceDelegateTest {
         verify(service).stopForeground(false)
         assertFalse(delegate.isForegroundService)
 
-        delegate.onStartCommand(AbstractMediaSessionService.playIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.playIntent(
+                testContext,
+                service::class.java
+            )
+        )
 
         verify(controller).play()
     }
@@ -240,17 +262,21 @@ class MediaSessionServiceDelegateTest {
         assertTrue(delegate.isForegroundService)
         verify(service, times(1)).startForeground(ArgumentMatchers.anyInt(), any())
 
-        delegate.onStartCommand(AbstractMediaSessionService.launchIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.launchIntent(
+                testContext,
+                service::class.java
+            )
+        )
 
         verify(service, times(2)).startForeground(ArgumentMatchers.anyInt(), any())
 
-        delegate.onStartCommand(AbstractMediaSessionService.pauseIntent(
-            testContext,
-            service::class.java
-        ))
+        delegate.onStartCommand(
+            AbstractMediaSessionService.pauseIntent(
+                testContext,
+                service::class.java
+            )
+        )
         verify(controller).pause()
         mediaSessionCallback.onPause()
         verify(service, times(2)).startForeground(ArgumentMatchers.anyInt(), any())
@@ -305,13 +331,15 @@ class MediaSessionServiceDelegateTest {
     fun `destroying service will stop all playback sessions`() {
         val controller: MediaSession.Controller = mock()
         val initialState = BrowserState(
-            tabs = listOf(createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(
-                    controller,
-                    playbackState = MediaSession.PlaybackState.PLAYING
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = MediaSession.PlaybackState.PLAYING
+                    )
                 )
-            ))
+            )
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()

@@ -57,9 +57,10 @@ class AppLinksInterceptor(
         context, launchInApp,
         alwaysDeniedSchemes = alwaysDeniedSchemes
     ),
-    private val launchFromInterceptor: Boolean = false
+    private val launchFromInterceptor: Boolean = false,
+    private val alwaysDeniedPackage: Set<String> = setOf(context.packageName)
 ) : RequestInterceptor {
-    @Suppress("ComplexMethod")
+    @Suppress("ComplexMethod", "ReturnCount")
     override fun onLoadRequest(
         engineSession: EngineSession,
         uri: String,
@@ -100,6 +101,12 @@ class AppLinksInterceptor(
         val result = handleRedirect(redirect, uri)
 
         if (redirect.isRedirect()) {
+            if (redirect.appIntent?.`package` != null &&
+                alwaysDeniedPackage.contains(redirect.appIntent.`package`)
+            ) {
+                return null
+            }
+
             if (launchFromInterceptor && result is RequestInterceptor.InterceptionResponse.AppIntent) {
                 result.appIntent.flags = result.appIntent.flags or Intent.FLAG_ACTIVITY_NEW_TASK
                 useCases.openAppLink(result.appIntent)

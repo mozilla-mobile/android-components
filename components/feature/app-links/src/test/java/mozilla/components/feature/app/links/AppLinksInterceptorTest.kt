@@ -265,7 +265,7 @@ class AppLinksInterceptorTest {
     }
 
     @Test
-    fun `blocklisted schemes request always ignored even if the engine does not support it`() {
+    fun `blacklisted schemes request always ignored even if the engine does not support it`() {
         val engineSession: EngineSession = mock()
         val supportedScheme = "supported"
         val notSupportedScheme = "not_supported"
@@ -282,6 +282,29 @@ class AppLinksInterceptorTest {
         val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), null, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
+        assertEquals(null, response)
+    }
+
+    @Test
+    fun `request target blacklisted package is always ignored even if the engine does not support it`() {
+        val engineSession: EngineSession = mock()
+        val supportedScheme = "supported"
+        val notSupportedScheme = "not_supported"
+        val deniedPackage = "denied_package_name"
+        val feature = AppLinksInterceptor(
+            context = mockContext,
+            interceptLinkClicks = false,
+            engineSupportedSchemes = setOf(supportedScheme),
+            alwaysDeniedSchemes = emptySet(),
+            launchInApp = { false },
+            useCases = mockUseCases,
+            alwaysDeniedPackage = setOf(deniedPackage)
+        )
+
+        val targetedUrl = "$notSupportedScheme://example.com/#Intent;package=$deniedPackage;end"
+        val targetedRedirect = AppLinkRedirect(Intent.parseUri(targetedUrl, 0), null, null)
+        whenever(mockGetRedirect.invoke(targetedUrl)).thenReturn(targetedRedirect)
+        val response = feature.onLoadRequest(engineSession, targetedUrl, null, false, false, false, false, false)
         assertEquals(null, response)
     }
 

@@ -5,7 +5,6 @@
 package mozilla.components.feature.tabs
 
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
@@ -48,7 +47,6 @@ import org.mockito.Mockito.verify
 const val DAY_IN_MS = 24 * 60 * 60 * 1000L
 
 class TabsUseCasesTest {
-    private val dispatcher: TestCoroutineDispatcher = TestCoroutineDispatcher()
 
     private lateinit var store: BrowserStore
     private lateinit var tabsUseCases: TabsUseCases
@@ -56,7 +54,8 @@ class TabsUseCasesTest {
     private lateinit var engineSession: EngineSession
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(dispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
 
     @Before
     fun setup() {
@@ -436,8 +435,10 @@ class TabsUseCasesTest {
 
     @Test
     fun `duplicateTab creates a duplicate of the given tab`() {
-        store.dispatch(TabListAction.AddTabAction(
-            createTab(id = "mozilla", url = "https://www.mozilla.org"))
+        store.dispatch(
+            TabListAction.AddTabAction(
+                createTab(id = "mozilla", url = "https://www.mozilla.org")
+            )
         ).joinBlocking()
         assertEquals(1, store.state.tabs.size)
 

@@ -8,7 +8,6 @@ import android.view.Window
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -26,7 +25,7 @@ import org.mockito.Mockito.verify
 class SecureWindowFeatureTest {
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(TestCoroutineDispatcher())
+    val coroutinesTestRule = MainCoroutineRule()
 
     private lateinit var window: Window
     private val tabId = "test-tab"

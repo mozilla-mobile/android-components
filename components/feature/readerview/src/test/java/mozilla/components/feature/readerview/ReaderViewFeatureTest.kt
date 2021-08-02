@@ -7,7 +7,6 @@ package mozilla.components.feature.readerview
 import android.content.Context
 import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.ReaderAction
@@ -59,10 +58,9 @@ import java.util.Locale
 @RunWith(AndroidJUnit4::class)
 class ReaderViewFeatureTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Before
     fun setup() {
@@ -103,11 +101,13 @@ class ReaderViewFeatureTest {
         val engine: Engine = mock()
         val view: ReaderViewControlsView = mock()
         val engineSession: EngineSession = mock()
-        val controller = spy(WebExtensionController(
-            READER_VIEW_EXTENSION_ID,
-            READER_VIEW_EXTENSION_URL,
-            READER_VIEW_CONTENT_PORT
-        ))
+        val controller = spy(
+            WebExtensionController(
+                READER_VIEW_EXTENSION_ID,
+                READER_VIEW_EXTENSION_URL,
+                READER_VIEW_CONTENT_PORT
+            )
+        )
         val tab = createTab(
             url = "https://www.mozilla.org",
             id = "test-tab",
@@ -219,7 +219,8 @@ class ReaderViewFeatureTest {
     fun `notifies readerable state changes of selected tab`() {
         val readerViewStatusChanges = mutableListOf<Pair<Boolean, Boolean>>()
         val onReaderViewStatusChange: onReaderViewStatusChange = {
-            readerable, active -> readerViewStatusChanges.add(Pair(readerable, active))
+            readerable, active ->
+            readerViewStatusChanges.add(Pair(readerable, active))
         }
 
         val engine: Engine = mock()
@@ -274,10 +275,14 @@ class ReaderViewFeatureTest {
         val config = message[ReaderViewFeature.ACTION_VALUE] as JSONObject?
         assertNotNull(config)
         assertEquals(FONT_SIZE_DEFAULT, config!![ReaderViewFeature.ACTION_VALUE_SHOW_FONT_SIZE])
-        assertEquals(ReaderViewFeature.FontType.SERIF.value.lowercase(Locale.ROOT),
-            config[ReaderViewFeature.ACTION_VALUE_SHOW_FONT_TYPE])
-        assertEquals(ReaderViewFeature.ColorScheme.LIGHT.name.lowercase(Locale.ROOT),
-            config[ReaderViewFeature.ACTION_VALUE_SHOW_COLOR_SCHEME])
+        assertEquals(
+            ReaderViewFeature.FontType.SERIF.value.lowercase(Locale.ROOT),
+            config[ReaderViewFeature.ACTION_VALUE_SHOW_FONT_TYPE]
+        )
+        assertEquals(
+            ReaderViewFeature.ColorScheme.LIGHT.name.lowercase(Locale.ROOT),
+            config[ReaderViewFeature.ACTION_VALUE_SHOW_COLOR_SCHEME]
+        )
     }
 
     @Test
@@ -289,10 +294,12 @@ class ReaderViewFeatureTest {
             id = "test-tab",
             engineSession = engineSession
         )
-        val store = spy(BrowserStore(
-            initialState = BrowserState(
-                tabs = listOf(tab),
-                selectedTabId = tab.id)
+        val store = spy(
+            BrowserStore(
+                initialState = BrowserState(
+                    tabs = listOf(tab),
+                    selectedTabId = tab.id
+                )
             )
         )
         val readerViewFeature = ReaderViewFeature(testContext, engine, store, mock())
@@ -339,10 +346,12 @@ class ReaderViewFeatureTest {
             readerState = ReaderState(active = true)
         )
 
-        val store = spy(BrowserStore(
-            initialState = BrowserState(
-                tabs = listOf(tab),
-                selectedTabId = tab.id)
+        val store = spy(
+            BrowserStore(
+                initialState = BrowserState(
+                    tabs = listOf(tab),
+                    selectedTabId = tab.id
+                )
             )
         )
         val readerViewFeature = ReaderViewFeature(testContext, engine, store, mock())
@@ -464,10 +473,12 @@ class ReaderViewFeatureTest {
             id = "test-tab",
             engineSession = engineSession
         )
-        val store = spy(BrowserStore(
-            initialState = BrowserState(
-                tabs = listOf(tab),
-                selectedTabId = tab.id)
+        val store = spy(
+            BrowserStore(
+                initialState = BrowserState(
+                    tabs = listOf(tab),
+                    selectedTabId = tab.id
+                )
             )
         )
 
@@ -516,10 +527,12 @@ class ReaderViewFeatureTest {
             id = "test-tab",
             engineSession = engineSession
         )
-        val store = spy(BrowserStore(
-            initialState = BrowserState(
-                tabs = listOf(tab),
-                selectedTabId = tab.id)
+        val store = spy(
+            BrowserStore(
+                initialState = BrowserState(
+                    tabs = listOf(tab),
+                    selectedTabId = tab.id
+                )
             )
         )
 

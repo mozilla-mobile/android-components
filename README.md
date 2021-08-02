@@ -27,7 +27,7 @@ Before you attempt to make a contribution please read the [Community Participati
 # Maven repository
 
 All components are getting published on [maven.mozilla.org](https://maven.mozilla.org/).
-To use them, you need to add the following to your project's top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/main/build.gradle)):
+To use them, you need to add the following to your project's top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
 
 ```groovy
 repositories {
@@ -35,6 +35,24 @@ repositories {
        url "https://maven.mozilla.org/maven2"
     }
 }
+```
+
+If you start with a new Android Studio project you have to add the `maven` block inside the `settings.gradle` file, e.g.:
+
+```groovy
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        jcenter() // Warning: this repository is going to shut down soon
+        maven {
+            url "https://maven.mozilla.org/maven2"
+        }
+    }
+}
+rootProject.name = "MyApp"
+include ':app'
 ```
 
 Each module that uses a component needs to specify it in its build file, in the `dependencies` block.  For example, to use the `Base` component (in the `support`) collection, you need:

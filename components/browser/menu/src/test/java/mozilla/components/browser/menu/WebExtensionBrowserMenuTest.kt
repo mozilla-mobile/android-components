@@ -11,7 +11,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.menu.WebExtensionBrowserMenu.Companion.getOrUpdateWebExtensionMenuItems
 import mozilla.components.browser.menu.WebExtensionBrowserMenu.Companion.webExtensionBrowserActions
 import mozilla.components.browser.menu.WebExtensionBrowserMenu.Companion.webExtensionPageActions
@@ -26,7 +25,6 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.WebExtensionBrowserAction
 import mozilla.components.concept.engine.webextension.WebExtensionPageAction
-import mozilla.components.support.base.facts.Action as FactsAction
 import mozilla.components.support.base.facts.processor.CollectionProcessor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -40,15 +38,15 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import mozilla.components.support.base.facts.Action as FactsAction
 
 @RunWith(AndroidJUnit4::class)
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 class WebExtensionBrowserMenuTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Before
     fun setup() {
@@ -178,7 +176,8 @@ class WebExtensionBrowserMenuTest {
                             "https://www.example.org", id = "tab1",
                             extensions = overriddenExtensions
                         )
-                    ), selectedTabId = "tab1",
+                    ),
+                    selectedTabId = "tab1",
                     extensions = extensions
                 )
             )

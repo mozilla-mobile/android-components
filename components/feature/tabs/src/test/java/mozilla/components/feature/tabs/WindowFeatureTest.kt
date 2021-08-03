@@ -5,7 +5,6 @@
 package mozilla.components.feature.tabs
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
@@ -28,10 +27,9 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class WindowFeatureTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     private lateinit var store: BrowserStore
     private lateinit var engineSession: EngineSession
@@ -44,13 +42,17 @@ class WindowFeatureTest {
     @Before
     fun setup() {
         engineSession = mock()
-        store = spy(BrowserStore(BrowserState(
-            tabs = listOf(
-                createTab(id = tabId, url = "https://www.mozilla.org", engineSession = engineSession),
-                createTab(id = privateTabId, url = "https://www.mozilla.org", private = true)
-            ),
-            selectedTabId = tabId
-        )))
+        store = spy(
+            BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(id = tabId, url = "https://www.mozilla.org", engineSession = engineSession),
+                        createTab(id = privateTabId, url = "https://www.mozilla.org", private = true)
+                    ),
+                    selectedTabId = tabId
+                )
+            )
+        )
         addTabUseCase = mock()
         removeTabUseCase = mock()
         tabsUseCases = mock()

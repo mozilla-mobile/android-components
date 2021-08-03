@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.fragment.app.FragmentManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
@@ -43,10 +42,9 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 @RunWith(AndroidJUnit4::class)
 class AppLinksFeatureTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     private lateinit var store: BrowserStore
     private lateinit var mockContext: Context
@@ -86,13 +84,15 @@ class AppLinksFeatureTest {
         `when`(mockGetRedirect.invoke(intentUrl)).thenReturn(appRedirect)
         `when`(mockGetRedirect.invoke(webUrlWithAppLink)).thenReturn(appRedirectFromWebUrl)
 
-        feature = spy(AppLinksFeature(
-            context = mockContext,
-            store = store,
-            fragmentManager = mockFragmentManager,
-            useCases = mockUseCases,
-            dialog = mockDialog
-        )).also {
+        feature = spy(
+            AppLinksFeature(
+                context = mockContext,
+                store = store,
+                fragmentManager = mockFragmentManager,
+                useCases = mockUseCases,
+                dialog = mockDialog
+            )
+        ).also {
             it.start()
         }
     }

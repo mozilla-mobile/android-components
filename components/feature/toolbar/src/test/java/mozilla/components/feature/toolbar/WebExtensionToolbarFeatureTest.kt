@@ -9,7 +9,6 @@ import android.graphics.Color
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
@@ -39,10 +38,10 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 class WebExtensionToolbarFeatureTest {
-    private val testDispatcher = TestCoroutineDispatcher()
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `render web extension actions from browser state`() {
@@ -69,7 +68,8 @@ class WebExtensionToolbarFeatureTest {
                             "https://www.example.org", id = "tab1",
                             extensions = overriddenExtensions
                         )
-                    ), selectedTabId = "tab1",
+                    ),
+                    selectedTabId = "tab1",
                     extensions = extensions
                 )
             )
@@ -357,14 +357,14 @@ class WebExtensionToolbarFeatureTest {
 
         val browserExtensions = HashMap<String, WebExtensionState>()
         browserExtensions["1"] =
-                WebExtensionState(id = "1", name = "extensionA", browserAction = actionExt1)
+            WebExtensionState(id = "1", name = "extensionA", browserAction = actionExt1)
         val browserState = BrowserState(extensions = browserExtensions)
         webExtToolbarFeature.renderWebExtensionActions(browserState, tabSessionState)
         verify(toolbar, never()).addBrowserAction(browserActionCaptor.capture())
 
         val browserExtensionsAllowedInPrivateBrowsing = HashMap<String, WebExtensionState>()
         browserExtensionsAllowedInPrivateBrowsing["1"] =
-                WebExtensionState(id = "1", allowedInPrivateBrowsing = true, name = "extensionA", browserAction = actionExt1)
+            WebExtensionState(id = "1", allowedInPrivateBrowsing = true, name = "extensionA", browserAction = actionExt1)
         val browserStateAllowedInPrivateBrowsing = BrowserState(extensions = browserExtensionsAllowedInPrivateBrowsing)
         webExtToolbarFeature.renderWebExtensionActions(browserStateAllowedInPrivateBrowsing, tabSessionState)
         verify(toolbar, times(1)).addBrowserAction(browserActionCaptor.capture())

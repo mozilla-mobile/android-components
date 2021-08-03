@@ -14,8 +14,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.TestAction
@@ -26,11 +24,9 @@ import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,21 +40,9 @@ import kotlin.coroutines.CoroutineContext
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
 class FragmentKtTest {
-    private val testDispatcher = TestCoroutineDispatcher()
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @After
-    fun teardown() {
-        Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
-    }
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Test
     @Synchronized
@@ -127,8 +111,8 @@ class FragmentKtTest {
         val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
 
         val store = Store(
-                TestState(counter = 23),
-                ::reducer
+            TestState(counter = 23),
+            ::reducer
         )
 
         var receivedValue = 0

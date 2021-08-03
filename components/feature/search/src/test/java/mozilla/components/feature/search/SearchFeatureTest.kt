@@ -1,6 +1,5 @@
 package mozilla.components.feature.search
 
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.selectedTab
@@ -26,10 +25,8 @@ private const val SELECTED_TAB_ID = "1"
 
 class SearchFeatureTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
 
     private lateinit var performSearch: (SearchRequest, String) -> Unit
     private lateinit var store: BrowserStore

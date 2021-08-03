@@ -300,6 +300,18 @@ class AppLinksUseCasesTest {
     }
 
     @Test
+    fun `A bad intent scheme uri should not cause a crash`() {
+        val uri = "intent://blank#Intent;package=com.twitter.android%23Intent%3B;end"
+        val context = createContext(Triple(uri, appPackage, ""))
+        val subject = AppLinksUseCases(context, { true })
+
+        val redirect = subject.appLinkRedirectIncludeInstall.invoke(uri)
+
+        assertTrue(redirect.hasExternalApp())
+        assertFalse(redirect.isInstallable())
+    }
+
+    @Test
     fun `A market scheme uri with no installed app is an install link`() {
         val uri = "intent://details/#Intent;scheme=market;package=com.google.play;end"
         val context = createContext(Triple(uri, appPackage, ""))
@@ -309,8 +321,10 @@ class AppLinksUseCasesTest {
 
         assertTrue(redirect.hasExternalApp())
         assertTrue(redirect.isInstallable())
-        assert(redirect.marketplaceIntent!!.flags and Intent.FLAG_ACTIVITY_NEW_TASK
-            == Intent.FLAG_ACTIVITY_NEW_TASK)
+        assert(
+            redirect.marketplaceIntent!!.flags and Intent.FLAG_ACTIVITY_NEW_TASK
+                == Intent.FLAG_ACTIVITY_NEW_TASK
+        )
     }
 
     @Test
@@ -565,5 +579,13 @@ class AppLinksUseCasesTest {
         assertNull(redirect.marketplaceIntent)
         assertNull(redirect.fallbackUrl)
         assertTrue(redirect.appIntent?.flags?.and(Intent.FLAG_ACTIVITY_CLEAR_TASK) == 0)
+    }
+
+    @Test
+    fun `Failed to parse uri should not cause a crash`() {
+        val uri = "intent://blank#Intent;package=test"
+        val result = AppLinksUseCases.safeParseUri(uri, 0)
+
+        assertNull(result)
     }
 }

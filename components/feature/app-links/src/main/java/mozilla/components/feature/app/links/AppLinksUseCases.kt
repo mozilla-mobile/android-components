@@ -61,14 +61,6 @@ class AppLinksUseCases(
         return context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
     }
 
-    private fun safeParseUri(uri: String, flags: Int): Intent? {
-        return try {
-            Intent.parseUri(uri, flags)
-        } catch (e: URISyntaxException) {
-            null
-        }
-    }
-
     /**
      * Parse a URL and check if it can be handled by an app elsewhere on the Android device.
      * If that app is not available, then a market place intent is also provided.
@@ -94,7 +86,8 @@ class AppLinksUseCases(
             // since redirectCache is mutable, get the latest
             val cache = redirectCache
             if (cache != null && urlHash == cache.cachedUrlHash &&
-                currentTimeStamp <= cache.cacheTimeStamp + APP_LINKS_CACHE_INTERVAL) {
+                currentTimeStamp <= cache.cacheTimeStamp + APP_LINKS_CACHE_INTERVAL
+            ) {
                 return cache.cachedAppLinkRedirect
             }
 
@@ -105,8 +98,10 @@ class AppLinksUseCases(
             val appIntent = when {
                 redirectData.resolveInfo == null && isEngineSupportedScheme -> null
                 redirectData.resolveInfo == null && redirectData.marketplaceIntent != null -> null
-                includeHttpAppLinks && (ignoreDefaultBrowser ||
-                    (redirectData.appIntent != null && isDefaultBrowser(redirectData.appIntent))) -> null
+                includeHttpAppLinks && (
+                    ignoreDefaultBrowser ||
+                        (redirectData.appIntent != null && isDefaultBrowser(redirectData.appIntent))
+                    ) -> null
                 includeHttpAppLinks && isAppIntentHttpOrHttps -> redirectData.appIntent
                 !launchInApp() && ENGINE_SUPPORTED_SCHEMES.contains(Uri.parse(url).scheme) -> null
                 else -> redirectData.appIntent
@@ -130,13 +125,14 @@ class AppLinksUseCases(
         private fun createBrowsableIntents(url: String): RedirectData {
             val intent = safeParseUri(url, Intent.URI_INTENT_SCHEME)
             val fallbackIntent = intent?.getStringExtra(EXTRA_BROWSER_FALLBACK_URL)?.let {
-                Intent.parseUri(it, 0)
+                safeParseUri(it, 0)
             }
 
             val marketplaceIntent = intent?.`package`?.let {
                 if (includeInstallAppFallback &&
-                        !context.packageManager.isPackageInstalled(it)) {
-                    Intent.parseUri(MARKET_INTENT_URI_PACKAGE_PREFIX + it, 0)
+                    !context.packageManager.isPackageInstalled(it)
+                ) {
+                    safeParseUri(MARKET_INTENT_URI_PACKAGE_PREFIX + it, 0)
                 } else {
                     null
                 }
@@ -164,7 +160,7 @@ class AppLinksUseCases(
             val resolveInfoList = appIntent?.let {
                 findActivities(appIntent).filter {
                     it.filter != null &&
-                    !(it.filter.countDataPaths() == 0 && it.filter.countDataAuthorities() == 0)
+                        !(it.filter.countDataPaths() == 0 && it.filter.countDataAuthorities() == 0)
                 }
             }
             val resolveInfo = resolveInfoList?.firstOrNull()
@@ -267,9 +263,20 @@ class AppLinksUseCases(
 
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         // list of scheme from https://searchfox.org/mozilla-central/source/netwerk/build/components.conf
-        internal val ENGINE_SUPPORTED_SCHEMES: Set<String> = setOf("about", "data", "file", "ftp", "http",
-            "https", "moz-extension", "moz-safe-about", "resource", "view-source", "ws", "wss", "blob")
+        internal val ENGINE_SUPPORTED_SCHEMES: Set<String> = setOf(
+            "about", "data", "file", "ftp", "http",
+            "https", "moz-extension", "moz-safe-about", "resource", "view-source", "ws", "wss", "blob"
+        )
 
         internal val ALWAYS_DENY_SCHEMES: Set<String> = setOf("jar", "file", "javascript", "data", "about")
+
+        @VisibleForTesting
+        internal fun safeParseUri(uri: String, flags: Int): Intent? {
+            return try {
+                Intent.parseUri(uri, flags)
+            } catch (e: URISyntaxException) {
+                null
+            }
+        }
     }
 }

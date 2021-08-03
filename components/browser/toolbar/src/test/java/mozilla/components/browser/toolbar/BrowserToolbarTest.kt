@@ -632,7 +632,8 @@ class BrowserToolbarTest {
             mock(),
             "imageDrawable",
             "imageSelectedDrawable",
-            visible = { false }) {}
+            visible = { false }
+        ) {}
 
         assertEquals(false, button.visible())
     }
@@ -645,13 +646,13 @@ class BrowserToolbarTest {
         var reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop") {}
         assertFalse(reloadPageAction.enabled)
         reloadPageAction.bind(view)
-        verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "stop"
+        verify(view).setImageDrawable(reloadImage)
+        verify(view).contentDescription = "reload"
 
         reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop", { false }) {}
         reloadPageAction.bind(view)
         verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "reload"
+        verify(view).contentDescription = "stop"
     }
 
     @Test
@@ -685,20 +686,29 @@ class BrowserToolbarTest {
         val edit = toolbar.edit
 
         // By default "private mode" is off.
-        assertEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertEquals(false, toolbar.private)
 
         // Turning on private mode sets flag
         toolbar.private = true
-        assertNotEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertNotEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertTrue(toolbar.private)
 
         // Turning private mode off again - should remove flag
         toolbar.private = false
-        assertEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertEquals(false, toolbar.private)
     }
 

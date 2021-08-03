@@ -7,7 +7,6 @@ package mozilla.components.lib.state.helpers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.TestAction
 import mozilla.components.lib.state.TestState
@@ -24,7 +23,7 @@ import org.junit.Test
 class AbstractBindingTest {
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(TestCoroutineDispatcher())
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Test
     fun `binding onState is invoked when a flow is created`() {

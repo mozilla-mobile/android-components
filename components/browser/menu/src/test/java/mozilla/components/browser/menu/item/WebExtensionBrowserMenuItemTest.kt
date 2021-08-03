@@ -14,7 +14,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.menu.R
 import mozilla.components.browser.menu.WebExtensionBrowserMenu
 import mozilla.components.concept.engine.webextension.Action
@@ -37,10 +36,9 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class WebExtensionBrowserMenuItemTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `web extension menu item is visible by default`() {
@@ -148,12 +146,12 @@ class WebExtensionBrowserMenuItemTest {
 
         val badgeText = ""
         val browserAction = Action(
-                title = "title",
-                loadIcon = { icon },
-                enabled = true,
-                badgeText = badgeText,
-                badgeTextColor = Color.WHITE,
-                badgeBackgroundColor = Color.BLUE
+            title = "title",
+            loadIcon = { icon },
+            enabled = true,
+            badgeText = badgeText,
+            badgeTextColor = Color.WHITE,
+            badgeBackgroundColor = Color.BLUE
         ) {}
 
         val action = WebExtensionBrowserMenuItem(browserAction, {})
@@ -179,12 +177,12 @@ class WebExtensionBrowserMenuItemTest {
         whenever(view.context).thenReturn(testContext)
 
         val browserAction = Action(
-                title = "title",
-                loadIcon = { throw IllegalArgumentException() },
-                enabled = true,
-                badgeText = "badgeText",
-                badgeTextColor = Color.WHITE,
-                badgeBackgroundColor = Color.BLUE
+            title = "title",
+            loadIcon = { throw IllegalArgumentException() },
+            enabled = true,
+            badgeText = "badgeText",
+            badgeTextColor = Color.WHITE,
+            badgeBackgroundColor = Color.BLUE
         ) {}
 
         val action = WebExtensionBrowserMenuItem(browserAction, {})
@@ -268,12 +266,12 @@ class WebExtensionBrowserMenuItemTest {
         verify(badgeView).text = "badgeText"
 
         val browserActionOverride = Action(
-                title = "override",
-                loadIcon = { icon },
-                enabled = true,
-                badgeText = "overrideBadge",
-                badgeTextColor = Color.WHITE,
-                badgeBackgroundColor = Color.BLUE
+            title = "override",
+            loadIcon = { icon },
+            enabled = true,
+            badgeText = "overrideBadge",
+            badgeTextColor = Color.WHITE,
+            badgeBackgroundColor = Color.BLUE
         ) {}
 
         item.action = browserActionOverride

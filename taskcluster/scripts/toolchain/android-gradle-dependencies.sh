@@ -24,7 +24,7 @@ DEPENDENCY_COMMANDS=$(echo "$FIRST_PASS_COMPONENTS" | sed "s/$/:downloadDependen
 
 NEXUS_PREFIX='http://localhost:8081/nexus/content/repositories'
 REPOS="-PgoogleRepo=$NEXUS_PREFIX/google/ -PcentralRepo=$NEXUS_PREFIX/central/"
-GRADLE_ARGS="--parallel $REPOS"
+GRADLE_ARGS="--parallel $REPOS -d"
 # First pass. We build everything to be sure to fetch all dependencies
 
 ./gradlew $GRADLE_ARGS $DEPENDENCY_COMMANDS

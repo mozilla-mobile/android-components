@@ -10,7 +10,6 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.widget.ImageView
 import androidx.annotation.MainThread
-import androidx.annotation.WorkerThread
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import mozilla.components.browser.icons.decoder.ICOIconDecoder
 import mozilla.components.browser.icons.extension.IconMessageHandler
 import mozilla.components.browser.icons.generator.DefaultIconGenerator
@@ -65,6 +65,9 @@ private const val EXTENSION_MESSAGING_NAME = "MozacBrowserIcons"
 
 // Number of worker threads we are using internally.
 private const val THREADS = 3
+
+// Maximum time we wait for the real favicon to be loaded before defaulting to using a generated one.
+private const val ICONS_TIMEOUT_MS = 100L
 
 internal val sharedMemoryCache = IconMemoryCache()
 internal val sharedDiskCache = IconDiskCache()
@@ -117,8 +120,7 @@ class BrowserIcons @Suppress("LongParameterList") constructor(
         }
     }
 
-    @WorkerThread
-    private fun loadIconInternal(initialRequest: IconRequest): Icon {
+    private suspend fun loadIconInternal(initialRequest: IconRequest): Icon {
         val desiredSize = DesiredSize(
             targetSize = context.resources.getDimensionPixelSize(initialRequest.size.dimen),
             minSize = minimumSize,
@@ -130,8 +132,9 @@ class BrowserIcons @Suppress("LongParameterList") constructor(
         val request = prepare(context, preparers, initialRequest)
 
         // (2) Then try to load an icon.
-        val (icon, resource) = load(context, request, loaders, decoders, desiredSize)
-            ?: generator.generate(context, request) to null
+        val (icon, resource) = withTimeoutOrNull(ICONS_TIMEOUT_MS) {
+            load(context, request, loaders, decoders, desiredSize)
+        } ?: generator.generate(context, request) to null
 
         // (3) Finally process the icon.
         return process(context, processors, request, resource, icon, desiredSize)
@@ -278,7 +281,7 @@ private fun prepare(context: Context, preparers: List<IconPreprarer>, request: I
         preparer.prepare(context, preparedRequest)
     }
 
-private fun load(
+private suspend fun load(
     context: Context,
     request: IconRequest,
     loaders: List<IconLoader>,

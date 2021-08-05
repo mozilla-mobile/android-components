@@ -4,6 +4,9 @@
 package mozilla.components.feature.syncedtabs
 
 import android.graphics.drawable.Drawable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.storage.sync.TabEntry
@@ -58,30 +61,28 @@ class SyncedTabsStorageSuggestionProvider(
     /**
      * Expects list of BookmarkNode to be specifically of bookmarks (e.g. nodes with a url).
      */
-    private suspend fun List<ClientTabPair>.into(): List<AwesomeBar.Suggestion> {
-        val iconRequests = this.map { client ->
-            client.tab.iconUrl?.let { iconUrl -> icons?.loadIcon(IconRequest(iconUrl)) }
-        }
-
-        return this.zip(iconRequests) { result, icon ->
-            AwesomeBar.Suggestion(
-                provider = this@SyncedTabsStorageSuggestionProvider,
-                icon = icon?.await()?.bitmap,
-                indicatorIcon = when (result.deviceType) {
-                    DeviceType.DESKTOP -> deviceIndicators.desktop
-                    DeviceType.MOBILE -> deviceIndicators.mobile
-                    DeviceType.TABLET -> deviceIndicators.tablet
-                    else -> null
-                },
-                flags = setOf(Flag.SYNC_TAB),
-                title = result.tab.title,
-                description = result.clientName,
-                onSuggestionClicked = {
-                    loadUrlUseCase.invoke(result.tab.url)
-                    emitSyncedTabSuggestionClickedFact()
-                }
-            )
-        }
+    private suspend fun List<ClientTabPair>.into(): List<AwesomeBar.Suggestion> = coroutineScope {
+        return@coroutineScope this@into.map {
+            async {
+                AwesomeBar.Suggestion(
+                    provider = this@SyncedTabsStorageSuggestionProvider,
+                    icon = it.tab.iconUrl?.let { iconUrl -> icons?.loadIcon(IconRequest(iconUrl)) }?.await()?.bitmap,
+                    indicatorIcon = when (it.deviceType) {
+                        DeviceType.DESKTOP -> deviceIndicators.desktop
+                        DeviceType.MOBILE -> deviceIndicators.mobile
+                        DeviceType.TABLET -> deviceIndicators.tablet
+                        else -> null
+                    },
+                    flags = setOf(Flag.SYNC_TAB),
+                    title = it.tab.title,
+                    description = it.clientName,
+                    onSuggestionClicked = {
+                        loadUrlUseCase.invoke(it.tab.url)
+                        emitSyncedTabSuggestionClickedFact()
+                    }
+                )
+            }
+        }.awaitAll()
     }
 }
 

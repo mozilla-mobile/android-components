@@ -6,9 +6,10 @@ package mozilla.components.feature.awesomebar.provider
 
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import mozilla.components.browser.icons.BrowserIcons
-import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
@@ -42,33 +43,31 @@ class SessionSuggestionProvider(
         val state = store.state
         val tabs = state.tabs
 
-        val suggestions = mutableListOf<AwesomeBar.Suggestion>()
-        val iconRequests: List<Deferred<Icon>?> = tabs.map { icons?.loadIcon(IconRequest(it.content.url)) }
-
-        tabs.zip(iconRequests) { result, icon ->
-            if (
-                result.contains(text) &&
-                !result.content.private &&
-                shouldIncludeSelectedTab(state, result)
-            ) {
-                suggestions.add(
-                    AwesomeBar.Suggestion(
-                        provider = this,
-                        id = result.id,
-                        title = if (result.content.title.isNotBlank()) result.content.title else result.content.url,
-                        description = resources.getString(R.string.switch_to_tab_description),
-                        flags = setOf(AwesomeBar.Suggestion.Flag.OPEN_TAB),
-                        icon = icon?.await()?.bitmap,
-                        indicatorIcon = indicatorIcon,
-                        onSuggestionClicked = {
-                            selectTabUseCase(result.id)
-                            emitOpenTabSuggestionClickedFact()
-                        }
-                    )
-                )
-            }
+        return coroutineScope {
+            tabs
+                .filter {
+                    it.contains(text) &&
+                        !it.content.private &&
+                        shouldIncludeSelectedTab(state, it)
+                }
+                .map {
+                    async {
+                        AwesomeBar.Suggestion(
+                            provider = this@SessionSuggestionProvider,
+                            id = it.id,
+                            title = if (it.content.title.isNotBlank()) it.content.title else it.content.url,
+                            description = resources.getString(R.string.switch_to_tab_description),
+                            flags = setOf(AwesomeBar.Suggestion.Flag.OPEN_TAB),
+                            icon = icons?.loadIcon(IconRequest(it.content.url))?.await()?.bitmap,
+                            indicatorIcon = indicatorIcon,
+                            onSuggestionClicked = {
+                                selectTabUseCase(it.id)
+                                emitOpenTabSuggestionClickedFact()
+                            }
+                        )
+                    }
+                }.awaitAll()
         }
-        return suggestions
     }
 
     private fun TabSessionState.contains(text: String) =

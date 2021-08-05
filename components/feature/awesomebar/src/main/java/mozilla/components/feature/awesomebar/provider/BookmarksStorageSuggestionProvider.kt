@@ -5,6 +5,9 @@
 package mozilla.components.feature.awesomebar.provider
 
 import android.graphics.drawable.Drawable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -58,24 +61,24 @@ class BookmarksStorageSuggestionProvider(
     /**
      * Expects list of BookmarkNode to be specifically of bookmarks (e.g. nodes with a url).
      */
-    private suspend fun List<BookmarkNode>.into(): List<AwesomeBar.Suggestion> {
-        val iconRequests = this.map { icons?.loadIcon(IconRequest(it.url!!)) }
-
-        return this.zip(iconRequests) { result, icon ->
-            AwesomeBar.Suggestion(
-                provider = this@BookmarksStorageSuggestionProvider,
-                id = result.guid,
-                icon = icon?.await()?.bitmap,
-                indicatorIcon = indicatorIcon,
-                flags = setOf(AwesomeBar.Suggestion.Flag.BOOKMARK),
-                title = result.title,
-                description = result.url,
-                editSuggestion = result.url,
-                onSuggestionClicked = {
-                    loadUrlUseCase.invoke(result.url!!)
-                    emitBookmarkSuggestionClickedFact()
-                }
-            )
-        }
+    private suspend fun List<BookmarkNode>.into(): List<AwesomeBar.Suggestion> = coroutineScope {
+        return@coroutineScope this@into.map {
+            async {
+                AwesomeBar.Suggestion(
+                    provider = this@BookmarksStorageSuggestionProvider,
+                    id = it.guid,
+                    icon = icons?.loadIcon(IconRequest(it.url!!))?.await()?.bitmap,
+                    indicatorIcon = indicatorIcon,
+                    flags = setOf(AwesomeBar.Suggestion.Flag.BOOKMARK),
+                    title = it.title,
+                    description = it.url,
+                    editSuggestion = it.url,
+                    onSuggestionClicked = {
+                        loadUrlUseCase.invoke(it.url!!)
+                        emitBookmarkSuggestionClickedFact()
+                    }
+                )
+            }
+        }.awaitAll()
     }
 }

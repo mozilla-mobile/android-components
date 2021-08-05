@@ -5,6 +5,9 @@
 package mozilla.components.feature.awesomebar.provider
 
 import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -61,18 +64,19 @@ internal suspend fun Iterable<HistoryMetadata>.into(
     provider: AwesomeBar.SuggestionProvider,
     icons: BrowserIcons?,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase
-): List<AwesomeBar.Suggestion> {
-    val iconRequests = this.map { icons?.loadIcon(IconRequest(it.key.url)) }
-    return this.zip(iconRequests) { result, icon ->
-        AwesomeBar.Suggestion(
-            provider = provider,
-            icon = icon?.await()?.bitmap,
-            title = result.title,
-            description = result.key.url,
-            editSuggestion = result.key.url,
-            onSuggestionClicked = {
-                loadUrlUseCase.invoke(result.key.url)
-            }
-        )
-    }
+): List<AwesomeBar.Suggestion> = coroutineScope {
+    return@coroutineScope this@into.map {
+        async {
+            AwesomeBar.Suggestion(
+                provider = provider,
+                icon = icons?.loadIcon(IconRequest(it.key.url))?.await()?.bitmap,
+                title = it.title,
+                description = it.key.url,
+                editSuggestion = it.key.url,
+                onSuggestionClicked = {
+                    loadUrlUseCase.invoke(it.key.url)
+                }
+            )
+        }
+    }.awaitAll()
 }

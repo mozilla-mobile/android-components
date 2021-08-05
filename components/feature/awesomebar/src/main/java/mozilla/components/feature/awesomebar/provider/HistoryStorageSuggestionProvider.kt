@@ -5,6 +5,9 @@
 package mozilla.components.feature.awesomebar.provider
 
 import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -50,6 +53,8 @@ class HistoryStorageSuggestionProvider(
             return emptyList()
         }
 
+        println("Storage provider $this will query for \"$text\"")
+
         // In case of duplicates we want to pick the suggestion with the highest score.
         // See: https://github.com/mozilla/application-services/issues/970
         val suggestions = historyStorage.getSuggestions(text, maxNumberOfSuggestions)
@@ -66,21 +71,22 @@ internal suspend fun Iterable<SearchResult>.into(
     provider: AwesomeBar.SuggestionProvider,
     icons: BrowserIcons?,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase
-): List<AwesomeBar.Suggestion> {
-    val iconRequests = this.map { icons?.loadIcon(IconRequest(it.url)) }
-    return this.zip(iconRequests) { result, icon ->
-        AwesomeBar.Suggestion(
-            provider = provider,
-            id = result.id,
-            icon = icon?.await()?.bitmap,
-            title = result.title,
-            description = result.url,
-            editSuggestion = result.url,
-            score = result.score,
-            onSuggestionClicked = {
-                loadUrlUseCase.invoke(result.url)
-                emitHistorySuggestionClickedFact()
-            }
-        )
-    }
+): List<AwesomeBar.Suggestion> = coroutineScope {
+    return@coroutineScope this@into.map {
+        async {
+            AwesomeBar.Suggestion(
+                provider = provider,
+                id = it.id,
+                icon = icons?.loadIcon(IconRequest(it.url))?.await()?.bitmap,
+                title = it.title,
+                description = it.url,
+                editSuggestion = it.url,
+                score = it.score,
+                onSuggestionClicked = {
+                    loadUrlUseCase.invoke(it.url)
+                    emitHistorySuggestionClickedFact()
+                }
+            )
+        }
+    }.awaitAll()
 }

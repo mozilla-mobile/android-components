@@ -583,9 +583,37 @@ class AppLinksUseCasesTest {
 
     @Test
     fun `Failed to parse uri should not cause a crash`() {
-        val uri = "intent://blank#Intent;package=test"
-        val result = AppLinksUseCases.safeParseUri(uri, 0)
+        val context = createContext()
+        val subject = AppLinksUseCases(context, { true })
+        var uri = "intent://blank#Intent;package=test"
+        var result = subject.safeParseUri(uri, 0)
 
         assertNull(result)
+
+        uri = "intent://blank#Intent;package=test;i.android.support.customtabs.extra.TOOLBAR_COLOR=2239095040;end"
+        result = subject.safeParseUri(uri, 0)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `Intent targeting same package should return null`() {
+        val context = createContext()
+        val subject = AppLinksUseCases(context, { true })
+        val uri = "intent://blank#Intent;package=$testBrowserPackage;end"
+        val result = subject.safeParseUri(uri, 0)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `Intent targeting external package should not return null`() {
+        val context = createContext()
+        val subject = AppLinksUseCases(context, { true })
+        val uri = "intent://blank#Intent;package=org.mozilla.test;end"
+        val result = subject.safeParseUri(uri, 0)
+
+        assertNotNull(result)
+        assertEquals(result?.`package`, "org.mozilla.test")
     }
 }

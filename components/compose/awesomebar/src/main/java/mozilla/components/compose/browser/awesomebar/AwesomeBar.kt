@@ -5,18 +5,13 @@
 package mozilla.components.compose.browser.awesomebar
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import mozilla.components.concept.awesomebar.AwesomeBar
 
 /**
@@ -26,34 +21,24 @@ import mozilla.components.concept.awesomebar.AwesomeBar
 fun AwesomeBar(
     text: String,
     providers: List<AwesomeBar.SuggestionProvider>,
-    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit
+    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit,
+    onAutoComplete: (AwesomeBar.Suggestion) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
     ) {
-        val suggestions = remember { mutableStateOf(emptyList<AwesomeBar.Suggestion>()) }
+        val fetcher = remember { SuggestionFetcher(providers) }
 
         LaunchedEffect(text) {
-            suggestions.value = providers.flatMap { provider -> provider.onInputChanged(text) }
+            fetcher.fetch(text)
         }
 
-        Suggestions(suggestions.value, onSuggestionClicked)
-    }
-}
-
-@Composable
-private fun Suggestions(
-    suggestions: List<AwesomeBar.Suggestion>,
-    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit
-) {
-    suggestions.forEach { suggestion ->
-        Text(
-            text = suggestion.title ?: "",
-            modifier = Modifier.padding(8.dp)
-                .fillMaxWidth()
-                .clickable { onSuggestionClicked(suggestion) }
+        Suggestions(
+            fetcher.state.value,
+            onSuggestionClicked,
+            onAutoComplete
         )
     }
 }

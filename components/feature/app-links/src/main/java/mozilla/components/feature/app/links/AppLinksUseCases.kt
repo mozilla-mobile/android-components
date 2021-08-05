@@ -20,6 +20,7 @@ import mozilla.components.support.ktx.android.content.pm.isPackageInstalled
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
 import java.lang.Exception
 import java.lang.NullPointerException
+import java.lang.NumberFormatException
 import java.net.URISyntaxException
 
 private const val EXTRA_BROWSER_FALLBACK_URL = "browser_fallback_url"
@@ -222,6 +223,25 @@ class AppLinksUseCases(
         }
     }
 
+    @VisibleForTesting
+    internal fun safeParseUri(uri: String, flags: Int): Intent? {
+        return try {
+            val intent = Intent.parseUri(uri, flags)
+            if (context.packageName != null && context.packageName == intent?.`package`) {
+                // Ignore intents that would open in the browser itself
+                null
+            } else {
+                intent
+            }
+        } catch (e: URISyntaxException) {
+            Logger.error("failed to parse URI", e)
+            null
+        } catch (e: NumberFormatException) {
+            Logger.error("failed to parse URI", e)
+            null
+        }
+    }
+
     val openAppLink: OpenAppLinkRedirect by lazy { OpenAppLinkRedirect(context) }
     val interceptedAppLinkRedirect: GetAppLinkRedirect by lazy {
         GetAppLinkRedirect(
@@ -269,14 +289,5 @@ class AppLinksUseCases(
         )
 
         internal val ALWAYS_DENY_SCHEMES: Set<String> = setOf("jar", "file", "javascript", "data", "about")
-
-        @VisibleForTesting
-        internal fun safeParseUri(uri: String, flags: Int): Intent? {
-            return try {
-                Intent.parseUri(uri, flags)
-            } catch (e: URISyntaxException) {
-                null
-            }
-        }
     }
 }

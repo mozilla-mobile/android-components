@@ -4,7 +4,9 @@
 
 package mozilla.components.browser.state.state.recover
 
+import mozilla.components.browser.state.state.LastMediaAccessState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.EngineSessionState
@@ -26,8 +28,11 @@ import mozilla.components.concept.storage.HistoryMetadataKey
  * @property state The [EngineSessionState] needed for restoring the previous state of this tab.
  * @property readerState The last [ReaderState] of the tab.
  * @property lastAccess The last time this tab was selected.
- * @property lastMediaAccess The last time media started playing in this tab.
+ * @property createdAt Timestamp of the tab's creation.
+ * @property lastMediaAccessState Details about the last time was playing in this tab.
  * @property private If tab was private.
+ * @property historyMetadata The last [HistoryMetadataKey] of the tab.
+ * @property source The last [Source] of the tab.
  * @property removalIndex The index of the tab at the time of removal.
  */
 data class RecoverableTab(
@@ -39,9 +44,11 @@ data class RecoverableTab(
     val state: EngineSessionState? = null,
     val readerState: ReaderState = ReaderState(),
     val lastAccess: Long = 0,
-    val lastMediaAccess: Long = 0,
+    val createdAt: Long = 0,
+    val lastMediaAccessState: LastMediaAccessState = LastMediaAccessState(),
     val private: Boolean = false,
     val historyMetadata: HistoryMetadataKey? = null,
+    val source: Source = Source.Internal.None,
     val removalIndex: Int? = null
 )
 
@@ -57,9 +64,11 @@ fun TabSessionState.toRecoverableTab(removalIndex: Int? = null) = RecoverableTab
     state = engineState.engineSessionState,
     readerState = readerState,
     lastAccess = lastAccess,
-    lastMediaAccess = lastMediaAccess,
+    createdAt = createdAt,
+    lastMediaAccessState = lastMediaAccessState,
     private = content.private,
     historyMetadata = historyMetadata,
+    source = source,
     removalIndex = removalIndex
 )
 
@@ -75,11 +84,15 @@ fun RecoverableTab.toTabSessionState() = createTab(
     engineSessionState = state,
     readerState = readerState,
     lastAccess = lastAccess,
-    lastMediaAccess = lastMediaAccess,
-    private = private
+    createdAt = createdAt,
+    lastMediaAccessState = lastMediaAccessState,
+    private = private,
+    historyMetadata = historyMetadata,
+    source = source,
+    restored = true
 )
 
 /**
- * Creates a list of [TabSessionState]s from a List of [TabSessionState]s.
+ * Creates a list of [TabSessionState]s from a List of [RecoverableTab]s.
  */
 fun List<RecoverableTab>.toTabSessionStates() = map { it.toTabSessionState() }

@@ -7,6 +7,7 @@ package mozilla.components.browser.session.storage.serialize
 import android.util.AtomicFile
 import android.util.JsonWriter
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.ktx.util.streamJSON
@@ -91,8 +92,17 @@ private fun JsonWriter.tab(
         name(Keys.SESSION_LAST_ACCESS)
         value(tab.lastAccess)
 
+        name(Keys.SESSION_CREATED_AT)
+        value(tab.createdAt)
+
+        name(Keys.SESSION_LAST_MEDIA_URL)
+        value(tab.lastMediaAccessState.lastMediaUrl)
+
+        name(Keys.SESSION_LAST_MEDIA_SESSION_ACTIVE)
+        value(tab.lastMediaAccessState.mediaSessionActive)
+
         name(Keys.SESSION_LAST_MEDIA_ACCESS)
-        value(tab.lastMediaAccess)
+        value(tab.lastMediaAccessState.lastMediaAccess)
 
         if (tab.readerState.active && tab.readerState.activeUrl != null) {
             name(Keys.SESSION_READER_MODE_ACTIVE_URL_KEY)
@@ -109,6 +119,19 @@ private fun JsonWriter.tab(
 
             name(Keys.SESSION_HISTORY_METADATA_REFERRER_URL)
             value(metadata.referrerUrl)
+        }
+
+        name(Keys.SESSION_SOURCE_ID)
+        value(tab.source.id)
+
+        (tab.source as? SessionState.Source.External)?.let { externalSource ->
+            externalSource.caller?.let { caller ->
+                name(Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_ID)
+                value(caller.packageId)
+
+                name(Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_CATEGORY)
+                value(caller.category.id)
+            }
         }
 
         endObject()

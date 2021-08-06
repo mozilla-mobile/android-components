@@ -18,6 +18,7 @@ import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -99,7 +100,8 @@ class ToolbarActivity : AppCompatActivity() {
      */
     private fun setupDefaultToolbar(private: Boolean = false) {
         binding.toolbar.setBackgroundColor(
-                ContextCompat.getColor(this, mozilla.components.ui.colors.R.color.photonBlue80))
+            ContextCompat.getColor(this, mozilla.components.ui.colors.R.color.photonBlue80)
+        )
 
         binding.toolbar.private = private
 
@@ -143,10 +145,19 @@ class ToolbarActivity : AppCompatActivity() {
         // Add a "reload" browser action that simulates reloading the current page
         // //////////////////////////////////////////////////////////////////////////////////////////
 
-        val reload = BrowserToolbar.Button(
-            resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_refresh)!!,
-            "Reload") {
-            simulateReload()
+        val reload = BrowserToolbar.TwoStateButton(
+            primaryImage = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_refresh)!!,
+            primaryContentDescription = "Reload",
+            secondaryImage = resources.getThemedDrawable(mozilla.components.ui.icons.R.drawable.mozac_ic_stop)!!,
+            secondaryContentDescription = "Stop",
+            isInPrimaryState = { loading.value != true },
+            disableInSecondaryState = false
+        ) {
+            if (loading.value == true) {
+                job?.cancel()
+            } else {
+                simulateReload()
+            }
         }
         binding.toolbar.addBrowserAction(reload)
 
@@ -175,7 +186,8 @@ class ToolbarActivity : AppCompatActivity() {
      */
     private fun setupCustomMenu() {
         binding.toolbar.setBackgroundColor(
-            ContextCompat.getColor(this, mozilla.components.ui.colors.R.color.photonBlue80))
+            ContextCompat.getColor(this, mozilla.components.ui.colors.R.color.photonBlue80)
+        )
 
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Create a menu with text and icons
@@ -320,7 +332,8 @@ class ToolbarActivity : AppCompatActivity() {
         }
 
         binding.toolbar.display.setUrlBackground(
-            ContextCompat.getDrawable(this, R.drawable.fenix_url_background))
+            ContextCompat.getDrawable(this, R.drawable.fenix_url_background)
+        )
         binding.toolbar.display.hint = "Search or enter address"
         binding.toolbar.display.setOnUrlLongClickListener {
             Toast.makeText(this, "Long click!", Toast.LENGTH_SHORT).show()
@@ -360,9 +373,11 @@ class ToolbarActivity : AppCompatActivity() {
         )
 
         binding.toolbar.edit.setUrlBackground(
-            ContextCompat.getDrawable(this, R.drawable.fenix_url_background))
+            ContextCompat.getDrawable(this, R.drawable.fenix_url_background)
+        )
         binding.toolbar.edit.setIcon(
-            ContextCompat.getDrawable(this, R.drawable.mozac_ic_search)!!, "Search")
+            ContextCompat.getDrawable(this, R.drawable.mozac_ic_search)!!, "Search"
+        )
 
         binding.toolbar.setOnUrlCommitListener { url ->
             simulateReload()
@@ -375,6 +390,7 @@ class ToolbarActivity : AppCompatActivity() {
     /**
      * A toolbar that looks like the toolbar in Fenix in a custom tab.
      */
+    @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
     @Suppress("MagicNumber")
     fun setupFenixCustomTabToolbar() {
         binding.toolbar.setBackgroundColor(0xFFFFFFFF.toInt())

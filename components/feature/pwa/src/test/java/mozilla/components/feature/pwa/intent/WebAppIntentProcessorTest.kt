@@ -71,18 +71,20 @@ class WebAppIntentProcessorTest {
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)
 
         val addTabUseCase: CustomTabsUseCases.AddWebAppTabUseCase = mock()
-        whenever(addTabUseCase.invoke(
-            url = "https://mozilla.com",
-            source = SessionState.Source.HOME_SCREEN,
-            customTabConfig = CustomTabConfig(
-                externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP,
-                enableUrlbarHiding = true,
-                showCloseButton = false,
-                showShareMenuItem = true
+        whenever(
+            addTabUseCase.invoke(
+                url = "https://mozilla.com",
+                source = SessionState.Source.Internal.HomeScreen,
+                customTabConfig = CustomTabConfig(
+                    externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP,
+                    enableUrlbarHiding = true,
+                    showCloseButton = false,
+                    showShareMenuItem = true
 
-            ),
-            webAppManifest = manifest
-        )).thenReturn("42")
+                ),
+                webAppManifest = manifest
+            )
+        ).thenReturn("42")
 
         val processor = WebAppIntentProcessor(store, addTabUseCase, mock(), storage)
 
@@ -114,7 +116,7 @@ class WebAppIntentProcessorTest {
 
         verify(addTabUseCase).invoke(
             url = "https://mozilla.com",
-            source = SessionState.Source.HOME_SCREEN,
+            source = SessionState.Source.Internal.HomeScreen,
             customTabConfig = CustomTabConfig(
                 externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP,
                 enableUrlbarHiding = true,
@@ -136,8 +138,8 @@ class WebAppIntentProcessorTest {
         val urlOverride = "https://mozilla.com/deep/link/index.html"
 
         val manifest = WebAppManifest(
-                name = "Test Manifest",
-                startUrl = "https://mozilla.com"
+            name = "Test Manifest",
+            startUrl = "https://mozilla.com"
         )
 
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)

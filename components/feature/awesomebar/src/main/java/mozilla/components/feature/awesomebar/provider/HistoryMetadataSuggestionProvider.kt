@@ -43,9 +43,6 @@ class HistoryMetadataSuggestionProvider(
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
 
-    override val shouldClearSuggestions: Boolean
-        get() = false
-
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
         if (text.isNullOrBlank()) {
             return emptyList()
@@ -56,22 +53,26 @@ class HistoryMetadataSuggestionProvider(
             .filter { it.totalViewTime > 0 }
 
         suggestions.firstOrNull()?.key?.url?.let { url -> engine?.speculativeConnect(url) }
-        return suggestions.into()
+        return suggestions.into(this, icons, loadUrlUseCase)
     }
+}
 
-    private suspend fun Iterable<HistoryMetadata>.into(): List<AwesomeBar.Suggestion> {
-        val iconRequests = this.map { icons?.loadIcon(IconRequest(it.key.url)) }
-        return this.zip(iconRequests) { result, icon ->
-            AwesomeBar.Suggestion(
-                provider = this@HistoryMetadataSuggestionProvider,
-                icon = icon?.await()?.bitmap,
-                title = result.title,
-                description = result.key.url,
-                editSuggestion = result.key.url,
-                onSuggestionClicked = {
-                    loadUrlUseCase.invoke(result.key.url)
-                }
-            )
-        }
+internal suspend fun Iterable<HistoryMetadata>.into(
+    provider: AwesomeBar.SuggestionProvider,
+    icons: BrowserIcons?,
+    loadUrlUseCase: SessionUseCases.LoadUrlUseCase
+): List<AwesomeBar.Suggestion> {
+    val iconRequests = this.map { icons?.loadIcon(IconRequest(it.key.url)) }
+    return this.zip(iconRequests) { result, icon ->
+        AwesomeBar.Suggestion(
+            provider = provider,
+            icon = icon?.await()?.bitmap,
+            title = result.title,
+            description = result.key.url,
+            editSuggestion = result.key.url,
+            onSuggestionClicked = {
+                loadUrlUseCase.invoke(result.key.url)
+            }
+        )
     }
 }

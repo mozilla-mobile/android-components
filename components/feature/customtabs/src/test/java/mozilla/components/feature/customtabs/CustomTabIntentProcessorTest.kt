@@ -77,7 +77,7 @@ class CustomTabIntentProcessorTest {
         val customTab = store.state.findCustomTab(customTabId!!)
         assertNotNull(customTab!!)
         assertEquals("http://mozilla.org", customTab.content.url)
-        assertEquals(Source.CUSTOM_TAB, customTab.source)
+        assertTrue(customTab.source is Source.External.CustomTab)
         assertNotNull(customTab.config)
         assertFalse(customTab.content.private)
     }
@@ -90,7 +90,7 @@ class CustomTabIntentProcessorTest {
         val customTabsUseCases = CustomTabsUseCases(store, useCases.loadUrl)
 
         val handler =
-                CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources)
+            CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources)
 
         val intent = mock<Intent>()
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
@@ -126,7 +126,7 @@ class CustomTabIntentProcessorTest {
         val customTab = store.state.findCustomTab(customTabId!!)
         assertNotNull(customTab!!)
         assertEquals("http://mozilla.org", customTab.content.url)
-        assertEquals(Source.CUSTOM_TAB, customTab.source)
+        assertTrue(customTab.source is Source.External.CustomTab)
         assertNotNull(customTab.config)
         assertFalse(customTab.content.private)
     }
@@ -139,7 +139,7 @@ class CustomTabIntentProcessorTest {
         val customTabsUseCases = CustomTabsUseCases(store, useCases.loadUrl)
 
         val handler =
-                CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources, true)
+            CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources, true)
 
         val intent = mock<Intent>()
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
@@ -168,7 +168,7 @@ class CustomTabIntentProcessorTest {
         val customTab = store.state.findCustomTab(customTabId!!)
         assertNotNull(customTab!!)
         assertEquals("http://mozilla.org", customTab.content.url)
-        assertEquals(Source.CUSTOM_TAB, customTab.source)
+        assertTrue(customTab.source is Source.External.CustomTab)
         assertNotNull(customTab.config)
         assertTrue(customTab.content.private)
     }

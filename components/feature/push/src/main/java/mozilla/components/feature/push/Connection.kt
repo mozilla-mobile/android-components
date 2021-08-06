@@ -11,12 +11,12 @@ import mozilla.appservices.push.BridgeType
 import mozilla.appservices.push.GeneralError
 import mozilla.appservices.push.PushAPI
 import mozilla.appservices.push.PushManager
-import mozilla.appservices.push.PushSubscriptionChanged as SubscriptionChanged
 import mozilla.appservices.push.SubscriptionResponse
 import java.io.Closeable
 import java.io.File
 import java.util.Locale
 import java.util.UUID
+import mozilla.appservices.push.PushSubscriptionChanged as SubscriptionChanged
 
 typealias PushScope = String
 typealias AppServerKey = String
@@ -269,7 +269,7 @@ internal fun ServiceType.toBridgeType() = when (this) {
  * Helper function to convert the [Protocol] into the required value the native implementation requires.
  */
 @VisibleForTesting
-internal fun Protocol.asString() = name.toLowerCase(Locale.ROOT)
+internal fun Protocol.asString() = name.lowercase(Locale.ROOT)
 
 /**
  * A channel ID from the provided scope.

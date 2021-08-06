@@ -26,9 +26,10 @@ import java.util.UUID
  * @property readerState the [ReaderState] of this tab.
  * @property contextId the session context ID of this tab.
  * @property lastAccess The last time this tab was selected (requires LastAccessMiddleware).
- * @property lastMediaAccess The last time media started playing in the current web document.
- * Defaults to [0] if media hasn't started playing.
+ * @property createdAt Timestamp of this tab's creation.
+ * @property lastMediaAccessState - [LastMediaAccessState] detailing the tab state when media started playing.
  * Requires [LastMediaAccessMiddleware] to update the value when playback starts.
+ * @property restored Indicates if this page was restored from a persisted state.
  */
 data class TabSessionState(
     override val id: String = UUID.randomUUID().toString(),
@@ -38,10 +39,12 @@ data class TabSessionState(
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
     override val mediaSessionState: MediaSessionState? = null,
     override val contextId: String? = null,
-    override val source: SessionState.Source = SessionState.Source.NONE,
+    override val source: SessionState.Source = SessionState.Source.Internal.None,
+    override val restored: Boolean = false,
     val parentId: String? = null,
     val lastAccess: Long = 0L,
-    val lastMediaAccess: Long = 0L,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastMediaAccessState: LastMediaAccessState = LastMediaAccessState(),
     val readerState: ReaderState = ReaderState(),
     val historyMetadata: HistoryMetadataKey? = null
 ) : SessionState {
@@ -81,8 +84,10 @@ fun createTab(
     thumbnail: Bitmap? = null,
     contextId: String? = null,
     lastAccess: Long = 0L,
-    lastMediaAccess: Long = 0L,
-    source: SessionState.Source = SessionState.Source.NONE,
+    createdAt: Long = System.currentTimeMillis(),
+    lastMediaAccessState: LastMediaAccessState = LastMediaAccessState(),
+    source: SessionState.Source = SessionState.Source.Internal.None,
+    restored: Boolean = false,
     engineSession: EngineSession? = null,
     engineSessionState: EngineSessionState? = null,
     crashed: Boolean = false,
@@ -107,8 +112,10 @@ fun createTab(
         readerState = readerState,
         contextId = contextId,
         lastAccess = lastAccess,
-        lastMediaAccess = lastMediaAccess,
+        createdAt = createdAt,
+        lastMediaAccessState = lastMediaAccessState,
         source = source,
+        restored = restored,
         engineState = EngineState(
             engineSession = engineSession,
             engineSessionState = engineSessionState,

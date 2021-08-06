@@ -27,7 +27,6 @@ import mozilla.components.browser.state.state.UndoHistoryState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
-import mozilla.components.browser.state.state.content.PermissionHighlightsState
 import mozilla.components.browser.state.state.content.ShareInternetResourceState
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
@@ -187,8 +186,9 @@ sealed class TabListAction : BrowserAction() {
 
     /**
      * Removes both private and normal [TabSessionState]s.
+     * @property recoverable Indicates whether removed tabs should be recoverable.
      */
-    object RemoveAllTabsAction : TabListAction()
+    data class RemoveAllTabsAction(val recoverable: Boolean = true) : TabListAction()
 
     /**
      * Removes all private [TabSessionState]s.
@@ -243,17 +243,24 @@ sealed class LastAccessAction : BrowserAction() {
     ) : LastAccessAction()
 
     /**
-     * Updates [TabSessionState.lastMediaAccess] for when media started playing in the tab identified by [tabId]
-     * or [MediaSession] is destroyed
+     * Updates [TabSessionState.lastMediaAccessState] for when media started playing in the tab identified by [tabId].
      *
      * @property tabId the ID of the tab to update.
      * @property lastMediaAccess the value to signify when the tab last started playing media.
      * Defaults to [System.currentTimeMillis].
-     * Use [0] to indicate media state of the current tab is reset (eg: when web document changed).
      */
     data class UpdateLastMediaAccessAction(
         val tabId: String,
         val lastMediaAccess: Long = System.currentTimeMillis()
+    ) : LastAccessAction()
+
+    /**
+     * Updates [TabSessionState.lastMediaAccessState] when the media session of this tab is deactivated.
+     *
+     * @property tabId the ID of the tab to update.
+     */
+    data class ResetLastMediaSessionAction(
+        val tabId: String
     ) : LastAccessAction()
 }
 
@@ -314,11 +321,75 @@ sealed class ContentAction : BrowserAction() {
     /**
      * Updates permissions highlights of the [ContentState] with the given [sessionId].
      */
-    data class UpdatePermissionHighlightsStateAction(
-        val sessionId: String,
-        val highlights: PermissionHighlightsState
-    ) : ContentAction()
+    sealed class UpdatePermissionHighlightsStateAction : ContentAction() {
+        /**
+         * Updates the notificationChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class NotificationChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
 
+        /**
+         * Updates the cameraChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class CameraChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the locationChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class LocationChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the microphoneChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class MicrophoneChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the persistentStorageChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class PersistentStorageChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the mediaKeySystemAccessChanged property of the [PermissionHighlightsState]
+         * with the given [tabId].
+         */
+        data class MediaKeySystemAccesChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayAudibleChanged property of the [PermissionHighlightsState]
+         * with the given [tabId].
+         */
+        data class AutoPlayAudibleChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayInaudibleChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class AutoPlayInAudibleChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayAudibleBlocking property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class AutoPlayAudibleBlockingAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayInaudibleBlocking property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class AutoPlayInAudibleBlockingAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates permissions highlights of the [ContentState] with the given [tabId]
+         * to its default value.
+         */
+        data class Reset(val tabId: String) : UpdatePermissionHighlightsStateAction()
+    }
     /**
      * Updates the title of the [ContentState] with the given [sessionId].
      */
@@ -334,7 +405,7 @@ sealed class ContentAction : BrowserAction() {
      * Updates the refreshCanceled state of the [ContentState] with the given [sessionId].
      */
     data class UpdateRefreshCanceledStateAction(val sessionId: String, val refreshCanceled: Boolean) :
-            ContentAction()
+        ContentAction()
 
     /**
      * Updates the search terms of the [ContentState] with the given [sessionId].

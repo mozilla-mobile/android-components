@@ -22,6 +22,10 @@ treeherder:
         browser-tabstray: browser-tabstray
         browser-thumbnails: browser-thumbnails
         browser-toolbar: browser-toolbar
+        compose-awesomebar: compose-engine
+        compose-browser-toolbar: awesomebar-browser-toolbar
+        compose-engine: compose-engine
+        compose-tabstray: compose-tabstray
         concept-awesomebar: concept-awesomebar
         concept-base: concept-base
         concept-engine: concept-engine
@@ -73,6 +77,7 @@ treeherder:
         lib-push-amazon: lib-push-amazon
         lib-push-firebase: lib-push-firebase
         lib-state: lib-state
+        samples-compose-browser: samples-compose-browser
         samples-crash: samples-crash
         samples-dataprotect: samples-dataprotect
         samples-firefox-accounts: samples-firefox-accounts

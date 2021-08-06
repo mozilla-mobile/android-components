@@ -78,10 +78,12 @@ class SearchUseCasesTest {
 
     @Test
     fun defaultSearch() {
-        store.dispatch(TabListAction.AddTabAction(
-            createTab("https://www.mozilla.org", id = "mozilla"),
-            select = true
-        )).joinBlocking()
+        store.dispatch(
+            TabListAction.AddTabAction(
+                createTab("https://www.mozilla.org", id = "mozilla"),
+                select = true
+            )
+        ).joinBlocking()
 
         useCases.defaultSearch(searchTerms)
         store.waitUntilIdle()
@@ -98,14 +100,14 @@ class SearchUseCasesTest {
         whenever(tabsUseCases.addTab).thenReturn(newTabUseCase)
         whenever(newTabUseCase(searchUrl)).thenReturn("2342")
 
-        useCases.newTabSearch(searchTerms, SessionState.Source.NEW_TAB)
+        useCases.newTabSearch(searchTerms, SessionState.Source.Internal.NewTab)
         store.waitUntilIdle()
 
         verify(newTabUseCase).invoke(
             searchUrl,
             parentId = null,
             selectTab = true,
-            source = SessionState.Source.NEW_TAB
+            source = SessionState.Source.Internal.NewTab
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -126,7 +128,7 @@ class SearchUseCasesTest {
             searchUrl,
             parentId = null,
             selectTab = true,
-            source = SessionState.Source.NEW_TAB
+            source = SessionState.Source.Internal.NewTab
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -138,7 +140,7 @@ class SearchUseCasesTest {
     fun newPrivateTabSearch() {
         val newTabUseCase: TabsUseCases.AddNewTabUseCase = mock()
         whenever(tabsUseCases.addTab).thenReturn(newTabUseCase)
-        whenever(newTabUseCase(searchUrl, source = SessionState.Source.NONE, private = true)).thenReturn("1177")
+        whenever(newTabUseCase(searchUrl, source = SessionState.Source.Internal.None, private = true)).thenReturn("1177")
 
         useCases.newPrivateTabSearch.invoke(searchTerms)
         store.waitUntilIdle()
@@ -148,7 +150,7 @@ class SearchUseCasesTest {
             parentId = null,
             selectTab = true,
             private = true,
-            source = SessionState.Source.NONE
+            source = SessionState.Source.Internal.None
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -160,7 +162,7 @@ class SearchUseCasesTest {
     fun newPrivateTabSearchWithParentSession() {
         val newTabUseCase: TabsUseCases.AddNewTabUseCase = mock()
         whenever(tabsUseCases.addTab).thenReturn(newTabUseCase)
-        whenever(newTabUseCase(searchUrl, source = SessionState.Source.NONE, parentId = "test-parent", private = true)).thenReturn("1177")
+        whenever(newTabUseCase(searchUrl, source = SessionState.Source.Internal.None, parentId = "test-parent", private = true)).thenReturn("1177")
 
         useCases.newPrivateTabSearch.invoke(searchTerms, parentSessionId = "test-parent")
 
@@ -171,7 +173,7 @@ class SearchUseCasesTest {
             parentId = "test-parent",
             selectTab = true,
             private = true,
-            source = SessionState.Source.NONE
+            source = SessionState.Source.Internal.None
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -181,31 +183,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `Selecting search engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 
@@ -239,31 +245,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `addSearchEngine - add bundled engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 
@@ -288,31 +298,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `addSearchEngine - add additional bundled engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 
@@ -337,31 +351,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `addSearchEngine - add custom engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 
@@ -391,31 +409,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `removeSearchEngine - remove bundled engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 
@@ -440,31 +462,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `removeSearchEngine - remove additional bundled engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 
@@ -489,31 +515,35 @@ class SearchUseCasesTest {
 
     @Test
     fun `removeSearchEngine - remove custom engine`() {
-        val store = BrowserStore(BrowserState(search = SearchState(
-            region = RegionState("US", "US"),
-            regionSearchEngines = listOf(
-                SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
-                SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            customSearchEngines = listOf(
-                SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
-                SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
-            ),
-            additionalSearchEngines = listOf(
-                SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            additionalAvailableSearchEngines = listOf(
-                SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
-                SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
-            ),
-            hiddenSearchEngines = listOf(
-                SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
-            ),
-            regionDefaultSearchEngineId = "engine-b",
-            userSelectedSearchEngineId = null,
-            userSelectedSearchEngineName = null
-        )))
+        val store = BrowserStore(
+            BrowserState(
+                search = SearchState(
+                    region = RegionState("US", "US"),
+                    regionSearchEngines = listOf(
+                        SearchEngine("engine-a", "Engine A", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-b", "Engine B", mock(), type = SearchEngine.Type.BUNDLED),
+                        SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    customSearchEngines = listOf(
+                        SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.CUSTOM),
+                        SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.CUSTOM)
+                    ),
+                    additionalSearchEngines = listOf(
+                        SearchEngine("engine-f", "Engine F", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    additionalAvailableSearchEngines = listOf(
+                        SearchEngine("engine-g", "Engine G", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),
+                        SearchEngine("engine-h", "Engine H", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL)
+                    ),
+                    hiddenSearchEngines = listOf(
+                        SearchEngine("engine-i", "Engine I", mock(), type = SearchEngine.Type.BUNDLED)
+                    ),
+                    regionDefaultSearchEngineId = "engine-b",
+                    userSelectedSearchEngineId = null,
+                    userSelectedSearchEngineName = null
+                )
+            )
+        )
 
         val useCases = SearchUseCases(store, mock())
 

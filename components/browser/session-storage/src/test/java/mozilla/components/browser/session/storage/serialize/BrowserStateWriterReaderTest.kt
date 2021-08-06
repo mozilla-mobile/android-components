@@ -9,7 +9,11 @@ import android.util.JsonReader
 import android.util.JsonWriter
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.EngineState
+import mozilla.components.browser.state.state.ExternalPackage
+import mozilla.components.browser.state.state.LastMediaAccessState
+import mozilla.components.browser.state.state.PackageCategory
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.Engine
@@ -93,22 +97,24 @@ class BrowserStateWriterReaderTest {
     }
 
     @Test
-    fun `Read tab with session source`() {
-        // We don't write tabs with session source anymore but need to be tolerant to
-        // session source being in the JSON to remain backward compatible.
+    fun `Read tab with deprecated session source`() {
+        // We don't persist session source of tabs unless it's an external source.
+        // However, in older versions we did persist other types of sources so need to be tolerant
+        // if these older cases are encountered in JSON to remain backward compatible.
         val engineState = createFakeEngineState()
         val engine = createFakeEngine(engineState)
         val tab = createTab(url = "https://www.mozilla.org", title = "Mozilla")
         val file = AtomicFile(
             File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
         )
-        writeTabWithSource(tab, file)
+        writeTabWithDeprecatedSource(tab, file)
 
-        // When reading we don't care about the source either as we will just set
-        // it to RESTORED. So we just need to make sure we de-serialized successfully.
+        // When reading a tab that didn't have a source persisted, we just need to make sure
+        // it is deserialized correctly. In this case, source defaults to `Internal.Restored`.
         val reader = BrowserStateReader()
         val restoredTab = reader.readTab(engine, file)
         assertNotNull(restoredTab!!)
+        assertEquals(SessionState.Source.Internal.None, restoredTab.source)
 
         assertEquals("https://www.mozilla.org", restoredTab.url)
         assertEquals("Mozilla", restoredTab.title)
@@ -147,7 +153,7 @@ class BrowserStateWriterReaderTest {
     }
 
     @Test
-    fun `Read and write tab with lastMediaAccess`() {
+    fun `Read and write tab with external custom tab source and full caller`() {
         val engineState = createFakeEngineState()
         val engine = createFakeEngine(engineState)
 
@@ -155,7 +161,9 @@ class BrowserStateWriterReaderTest {
             url = "https://www.mozilla.org",
             title = "Mozilla",
             contextId = "work",
-            lastMediaAccess = 333L
+            source = SessionState.Source.External.CustomTab(
+                caller = ExternalPackage("com.mozilla.test", PackageCategory.PRODUCTIVITY)
+            )
         )
 
         val writer = BrowserStateWriter()
@@ -170,7 +178,160 @@ class BrowserStateWriterReaderTest {
         val restoredTab = reader.readTab(engine, file)
         assertNotNull(restoredTab!!)
 
-        assertEquals(333L, restoredTab.lastMediaAccess)
+        assertNotNull(restoredTab.source)
+        assertTrue(restoredTab.source is SessionState.Source.External.CustomTab)
+        with(restoredTab.source as SessionState.Source.External.CustomTab) {
+            assertEquals("com.mozilla.test", this.caller!!.packageId)
+            assertEquals(PackageCategory.PRODUCTIVITY, this.caller!!.category)
+        }
+    }
+
+    @Test
+    fun `Read and write tab with external action view source and partial caller`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+            source = SessionState.Source.External.ActionView(
+                caller = ExternalPackage("com.mozilla.test", category = PackageCategory.UNKNOWN)
+            )
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab!!)
+
+        assertNotNull(restoredTab.source)
+        assertTrue(restoredTab.source is SessionState.Source.External.ActionView)
+        with(restoredTab.source as SessionState.Source.External.ActionView) {
+            assertEquals("com.mozilla.test", this.caller!!.packageId)
+            assertEquals(PackageCategory.UNKNOWN, this.caller!!.category)
+        }
+    }
+
+    @Test
+    fun `Read and write tab with external action send source and missing caller`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+            source = SessionState.Source.External.ActionSend(caller = null)
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab!!)
+
+        assertNotNull(restoredTab.source)
+        assertTrue(restoredTab.source is SessionState.Source.External.ActionSend)
+        with(restoredTab.source as SessionState.Source.External.ActionSend) {
+            assertNull(this.caller)
+        }
+    }
+
+    @Test
+    fun `Read and write tab with LastMediaAccessState`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+            lastMediaAccessState = LastMediaAccessState("https://www.mozilla.org", lastMediaAccess = 333L, true)
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab!!)
+
+        assertEquals("https://www.mozilla.org", restoredTab.lastMediaAccessState.lastMediaUrl)
+        assertEquals(333L, restoredTab.lastMediaAccessState.lastMediaAccess)
+        assertTrue(restoredTab.lastMediaAccessState.mediaSessionActive)
+    }
+
+    @Test
+    fun `Read and write tab with createdAt`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+        val currentTime = System.currentTimeMillis()
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work",
+            createdAt = currentTime
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab!!)
+
+        assertEquals(currentTime, restoredTab.createdAt)
+    }
+
+    @Test
+    fun `Read and write tab without createdAt`() {
+        val engineState = createFakeEngineState()
+        val engine = createFakeEngine(engineState)
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            title = "Mozilla",
+            contextId = "work"
+        )
+
+        val writer = BrowserStateWriter()
+        val reader = BrowserStateReader()
+
+        val file = AtomicFile(
+            File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+        )
+
+        assertTrue(writer.writeTab(tab, file))
+
+        val restoredTab = reader.readTab(engine, file)
+        assertNotNull(restoredTab!!)
+
+        assertNotNull(restoredTab.createdAt)
     }
 }
 
@@ -195,11 +356,11 @@ private fun createFakeEngine(engineState: EngineSessionState): Engine {
     return engine
 }
 
-private fun writeTabWithSource(tab: TabSessionState, file: AtomicFile) {
-    file.streamJSON { tabWithSource(tab) }
+private fun writeTabWithDeprecatedSource(tab: TabSessionState, file: AtomicFile) {
+    file.streamJSON { tabWithDeprecatedSource(tab) }
 }
 
-private fun JsonWriter.tabWithSource(
+private fun JsonWriter.tabWithDeprecatedSource(
     tab: TabSessionState
 ) {
     beginObject()
@@ -215,8 +376,8 @@ private fun JsonWriter.tabWithSource(
         name(Keys.SESSION_TITLE)
         value(tab.content.title)
 
-        name(Keys.SESSION_SOURCE_KEY)
-        value(tab.source.name)
+        name(Keys.SESSION_DEPRECATED_SOURCE_KEY)
+        value(tab.source.toString())
 
         endObject()
     }

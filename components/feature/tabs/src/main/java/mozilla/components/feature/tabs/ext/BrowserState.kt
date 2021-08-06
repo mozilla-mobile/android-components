@@ -8,13 +8,17 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.concept.tabstray.Tabs
 
-internal fun BrowserState.toTabs(
+/**
+ * Converts the tabs in [BrowserState], using [tabsFilter], to a [Tabs] object to be used in a
+ * tabs tray implementation.
+ */
+fun BrowserState.toTabs(
     tabsFilter: (TabSessionState) -> Boolean = { true }
 ) = Tabs(
     list = tabs
         .filter(tabsFilter)
         .map { it.toTab() },
     selectedIndex = tabs
-            .filter(tabsFilter)
-            .indexOfFirst { it.id == selectedTabId }
+        .filter(tabsFilter)
+        .indexOfFirst { it.id == selectedTabId }
 )

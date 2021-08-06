@@ -10,6 +10,7 @@ buildscript {
             maven {
                 name "Google"
                 url project.property("googleRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             google()
@@ -19,6 +20,7 @@ buildscript {
             maven {
                 name "MavenCentral"
                 url project.property("centralRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             mavenCentral()
@@ -42,6 +44,7 @@ allprojects {
             maven {
                 name "Google"
                 url project.property("googleRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             google()
@@ -51,6 +54,7 @@ allprojects {
             maven {
                 name "MavenCentral"
                 url project.property("centralRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             mavenCentral()
@@ -114,8 +118,24 @@ subprojects {
 
     afterEvaluate {
         if (it.hasProperty('android')) {
+
+            // Glean currently expects every module to have a BuildConfig with VERSION_CODE and
+            // VERSION_NAME fields. Since Android Gradle Plugin 4.1+ those fields do not get
+            // generated for Android libraries anymore. As a workaround we generate them here
+            // explicitly.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1713084
+            // https://issuetracker.google.com/issues/158695880
+            plugins.withId('com.android.library') {
+                android {
+                    defaultConfig {
+                        buildConfigField 'int', 'VERSION_CODE', "1"
+                        buildConfigField 'String', 'VERSION_NAME', "\"1.0\""
+                    }
+                }
+            }
+
             jacoco {
-                toolVersion = "0.8.6"
+                toolVersion = "0.8.7"
             }
 
             // Format test output
@@ -179,7 +199,11 @@ subprojects {
                     disable 'MissingTranslation',
                             'ExtraTranslation',
                             // We do not want to enforce this as a generic rule for all languages (see #6117, #6056, #6118)
-                            'TypographyEllipsis'
+                            'TypographyEllipsis',
+                            // https://github.com/mozilla-mobile/android-components/issues/10641
+                            'UnspecifiedImmutableFlag',
+                            // https://github.com/mozilla-mobile/android-components/issues/10643
+                            'UnusedResources'
                 }
 
                 packagingOptions {
@@ -200,6 +224,8 @@ subprojects {
                 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
                     kotlinOptions {
                         jvmTarget = "1.8"
+                        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+                        useIR = true
                     }
                 }
             }
@@ -219,10 +245,6 @@ subprojects {
                 // correct runtime classpath when invoked with Android Studio's built-in JUnit test runner.
                 // Success!
                 jnaForTest
-                // Robolectric, through `com.google.android.apps.common.testing.accessibility.framework`
-                // depends on an old version of protobuf that conflict with the Application Services one.
-                // See: https://github.com/mozilla/application-services/issues/2952
-                all*.exclude group: 'com.google.protobuf', module: 'protobuf-java'
             }
 
             dependencies {
@@ -334,7 +356,11 @@ configurations {
 }
 
 dependencies {
-    ktlint "com.github.shyiko:ktlint:0.31.0"
+    ktlint("com.pinterest:ktlint:0.41.0") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
+        }
+    }
     detektPlugins project(":tooling-detekt")
 }
 
@@ -342,12 +368,18 @@ tasks.register("ktlint", JavaExec) {
     group = "verification"
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
-    main = "com.github.shyiko.ktlint.Main"
-    args "components/**/*.kt" , "samples/**/*.kt", "!**/build", "buildSrc/**/*.kt"
+    main = "com.pinterest.ktlint.Main"
+    args "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
 }
 
 apply plugin: GitHubPlugin
 
+task ktlintFormat(type: JavaExec, group: "formatting") {
+    description = "Fix Kotlin code style deviations."
+    classpath = configurations.ktlint
+    main = "com.pinterest.ktlint.Main"
+    args "-F", "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
+}
 
 tasks.register("listRepositories") {
     doLast {

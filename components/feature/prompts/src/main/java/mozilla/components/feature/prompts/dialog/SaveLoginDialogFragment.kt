@@ -26,16 +26,16 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Deferred
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.feature.prompts.R
@@ -174,7 +174,8 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
     private fun onPositiveClickAction() {
         feature?.onConfirm(
-            sessionId, promptRequestUID, Login(
+            sessionId, promptRequestUID,
+            Login(
                 guid = guid,
                 origin = origin,
                 formActionOrigin = formActionOrigin,
@@ -377,12 +378,13 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             view?.findViewById<MaterialButton>(R.id.save_cancel)?.text = negativeText
         }
 
+        val confirmButton = view?.findViewById<Button>(R.id.save_confirm)
         if (confirmText != null) {
-            view?.findViewById<Button>(R.id.save_confirm)?.text = confirmText
+            confirmButton?.text = confirmText
         }
 
         if (confirmButtonEnabled != null) {
-            view?.findViewById<Button>(R.id.save_confirm)?.isEnabled = confirmButtonEnabled
+            confirmButton?.isEnabled = confirmButtonEnabled
         }
 
         if (passwordErrorText != null) {

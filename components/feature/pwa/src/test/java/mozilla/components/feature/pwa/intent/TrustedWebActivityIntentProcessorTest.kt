@@ -44,27 +44,35 @@ class TrustedWebActivityIntentProcessorTest {
 
         assertFalse(processor.process(Intent(ACTION_VIEW_PWA)))
         assertFalse(processor.process(Intent(ACTION_VIEW)))
-        assertFalse(processor.process(
-            Intent(ACTION_VIEW).apply { putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true) }
-        ))
-        assertFalse(processor.process(
-            Intent(ACTION_VIEW).apply {
-                putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, false)
-                putExtra(EXTRA_SESSION, null as Bundle?)
-            }
-        ))
-        assertFalse(processor.process(
-            Intent(ACTION_VIEW).apply {
-                putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true)
-                putExtra(EXTRA_SESSION, null as Bundle?)
-            }
-        ))
-        assertFalse(processor.process(
-            Intent(ACTION_VIEW, null).apply {
-                putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true)
-                putExtra(EXTRA_SESSION, null as Bundle?)
-            }
-        ))
+        assertFalse(
+            processor.process(
+                Intent(ACTION_VIEW).apply { putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true) }
+            )
+        )
+        assertFalse(
+            processor.process(
+                Intent(ACTION_VIEW).apply {
+                    putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, false)
+                    putExtra(EXTRA_SESSION, null as Bundle?)
+                }
+            )
+        )
+        assertFalse(
+            processor.process(
+                Intent(ACTION_VIEW).apply {
+                    putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true)
+                    putExtra(EXTRA_SESSION, null as Bundle?)
+                }
+            )
+        )
+        assertFalse(
+            processor.process(
+                Intent(ACTION_VIEW, null).apply {
+                    putExtra(EXTRA_LAUNCH_AS_TRUSTED_WEB_ACTIVITY, true)
+                    putExtra(EXTRA_SESSION, null as Bundle?)
+                }
+            )
+        )
     }
 
     @Test
@@ -82,7 +90,7 @@ class TrustedWebActivityIntentProcessorTest {
 
         verify(addTabUseCase).invoke(
             "https://example.com",
-            source = SessionState.Source.HOME_SCREEN,
+            source = SessionState.Source.Internal.HomeScreen,
             customTabConfig = CustomTabConfig(externalAppType = ExternalAppType.TRUSTED_WEB_ACTIVITY)
         )
     }

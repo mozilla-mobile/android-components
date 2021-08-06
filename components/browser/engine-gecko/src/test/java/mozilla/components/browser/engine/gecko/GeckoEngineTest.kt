@@ -12,6 +12,8 @@ import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.util.SpeculativeEngineSession
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionObserver
+import mozilla.components.browser.engine.gecko.webextension.mockNativeWebExtension
+import mozilla.components.browser.engine.gecko.webextension.mockNativeWebExtensionMetaData
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
@@ -33,8 +35,6 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
 import mozilla.components.test.ReflectionUtils
-import mozilla.components.browser.engine.gecko.webextension.mockNativeWebExtension
-import mozilla.components.browser.engine.gecko.webextension.mockNativeWebExtensionMetaData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -96,9 +96,11 @@ class GeckoEngineTest {
 
     @Test
     fun createView() {
-        assertTrue(GeckoEngine(context, runtime = runtime).createView(
-            Robolectric.buildActivity(Activity::class.java).get()
-        ) is GeckoEngineView)
+        assertTrue(
+            GeckoEngine(context, runtime = runtime).createView(
+                Robolectric.buildActivity(Activity::class.java).get()
+            ) is GeckoEngineView
+        )
     }
 
     @Test
@@ -278,7 +280,7 @@ class GeckoEngineTest {
 
         engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
 
-        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumBy { it.id }
+        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumOf { it.id }
         val artificialCategory =
             TrackingCategory.SCRIPTS_AND_SUB_RESOURCES.id
         assertEquals(
@@ -318,7 +320,7 @@ class GeckoEngineTest {
 
         engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
 
-        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumBy { it.id }
+        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumOf { it.id }
         val artificialCategory = TrackingCategory.SCRIPTS_AND_SUB_RESOURCES.id
 
         assertEquals(
@@ -570,7 +572,8 @@ class GeckoEngineTest {
         whenever(runtimeSettings.contentBlocking).thenReturn(contentBlockingSettings)
         whenever(runtimeSettings.fontInflationEnabled).thenReturn(true)
 
-        val engine = GeckoEngine(context,
+        val engine = GeckoEngine(
+            context,
             DefaultSettings(
                 trackingProtectionPolicy = TrackingProtectionPolicy.strict(),
                 javascriptEnabled = false,
@@ -584,7 +587,9 @@ class GeckoEngineTest {
                 preferredColorScheme = PreferredColorScheme.Light,
                 suspendMediaWhenInactive = true,
                 forceUserScalableContent = false
-            ), runtime)
+            ),
+            runtime
+        )
 
         verify(runtimeSettings).javaScriptEnabled = false
         verify(runtimeSettings).webFontsEnabled = false
@@ -594,7 +599,7 @@ class GeckoEngineTest {
         verify(runtimeSettings).remoteDebuggingEnabled = true
         verify(runtimeSettings).forceUserScalableEnabled = false
 
-        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumBy { it.id }
+        val trackingStrictCategories = TrackingProtectionPolicy.strict().trackingCategories.sumOf { it.id }
         val artificialCategory =
             TrackingCategory.SCRIPTS_AND_SUB_RESOURCES.id
         assertEquals(
@@ -899,7 +904,7 @@ class GeckoEngineTest {
         val extensionCaptor = argumentCaptor<WebExtension>()
         verify(webExtensionsDelegate).onInstallPermissionRequest(extensionCaptor.capture())
         val capturedExtension =
-                extensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
+            extensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
         assertEquals(extension, capturedExtension.nativeExtension)
 
         whenever(webExtensionsDelegate.onInstallPermissionRequest(any())).thenReturn(true)
@@ -965,7 +970,7 @@ class GeckoEngineTest {
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
         val result = geckoDelegateCaptor.value.onUpdatePrompt(
-                currentExtension, updatedExtension, updatedPermissions, emptyArray()
+            currentExtension, updatedExtension, updatedPermissions, emptyArray()
         )
         assertNotNull(result)
 
@@ -979,10 +984,10 @@ class GeckoEngineTest {
             onPermissionsGrantedCaptor.capture()
         )
         val current =
-                currentExtensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
+            currentExtensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
         assertEquals(currentExtension, current.nativeExtension)
         val updated =
-                updatedExtensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
+            updatedExtensionCaptor.value as mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
         assertEquals(updatedExtension, updated.nativeExtension)
 
         onPermissionsGrantedCaptor.value.invoke(true)
@@ -1315,7 +1320,8 @@ class GeckoEngineTest {
 
             engine.updateWebExtension(
                 extension,
-                onError = { _, e -> throwable = e as WebExtensionException
+                onError = { _, e ->
+                    throwable = e as WebExtensionException
                 }
             )
 
@@ -1645,10 +1651,13 @@ class GeckoEngineTest {
         result.completeExceptionally(exception)
 
         val engine = GeckoEngine(context, runtime = runtime)
-        engine.clearData(data = Engine.BrowsingData.all(), onError = {
-            onErrorCalled = true
-            throwable = it
-        })
+        engine.clearData(
+            data = Engine.BrowsingData.all(),
+            onError = {
+                onErrorCalled = true
+                throwable = it
+            }
+        )
         assertTrue(onErrorCalled)
         assertSame(exception, throwable)
     }
@@ -1662,9 +1671,11 @@ class GeckoEngineTest {
 
         val result = GeckoResult<Void>()
         whenever(runtime.storageController).thenReturn(storageController)
-        whenever(storageController.clearDataFromHost(
+        whenever(
+            storageController.clearDataFromHost(
                 eq("mozilla.org"),
-                eq(Engine.BrowsingData.all().types.toLong()))
+                eq(Engine.BrowsingData.all().types.toLong())
+            )
         ).thenReturn(result)
         result.complete(null)
 
@@ -1684,17 +1695,22 @@ class GeckoEngineTest {
         val exception = IOException()
         val result = GeckoResult<Void>()
         whenever(runtime.storageController).thenReturn(storageController)
-        whenever(storageController.clearDataFromHost(
+        whenever(
+            storageController.clearDataFromHost(
                 eq("mozilla.org"),
-                eq(Engine.BrowsingData.all().types.toLong()))
+                eq(Engine.BrowsingData.all().types.toLong())
+            )
         ).thenReturn(result)
         result.completeExceptionally(exception)
 
         val engine = GeckoEngine(context, runtime = runtime)
-        engine.clearData(data = Engine.BrowsingData.all(), host = "mozilla.org", onError = {
-            onErrorCalled = true
-            throwable = it
-        })
+        engine.clearData(
+            data = Engine.BrowsingData.all(), host = "mozilla.org",
+            onError = {
+                onErrorCalled = true
+                throwable = it
+            }
+        )
         assertTrue(onErrorCalled)
         assertSame(exception, throwable)
     }
@@ -1764,6 +1780,7 @@ class GeckoEngineTest {
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.FINGERPRINTING))
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.CRYPTOMINING))
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.MOZILLA_SOCIAL))
+        assertTrue(trackerLog.unBlockedBySmartBlock)
 
         assertTrue(onSuccessCalled)
         assertFalse(onErrorCalled)
@@ -1999,6 +2016,7 @@ class GeckoEngineTest {
         val loadedFingerprintingContent = createBlockingData(Event.LOADED_FINGERPRINTING_CONTENT)
         val loadedCyptominingContent = createBlockingData(Event.LOADED_CRYPTOMINING_CONTENT)
         val loadedSocialContent = createBlockingData(Event.LOADED_SOCIALTRACKING_CONTENT)
+        val unBlockedBySmartBlock = createBlockingData(Event.ALLOWED_TRACKING_CONTENT)
 
         val contentBlockingList = listOf(
             blockedTrackingContent,
@@ -2012,7 +2030,8 @@ class GeckoEngineTest {
             blockedSocialContent,
             loadedSocialContent,
             loadedCookieSocialTracker,
-            blockedCookieSocialTracker
+            blockedCookieSocialTracker,
+            unBlockedBySmartBlock
         )
 
         val addLogSecondEntry = object : ContentBlockingController.LogEntry() {}

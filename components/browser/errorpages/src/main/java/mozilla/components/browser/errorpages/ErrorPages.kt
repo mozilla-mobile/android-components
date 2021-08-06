@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.errorpages
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.annotation.StringRes
 import mozilla.components.support.ktx.android.content.appName
@@ -16,6 +17,7 @@ object ErrorPages {
     /**
      * Provides an encoded URL for an error page. Supports displaying images
      */
+    @SuppressLint("StringFormatInvalid")
     fun createUrlEncodedErrorPage(
         context: Context,
         errorType: ErrorType,
@@ -27,8 +29,9 @@ object ErrorPages {
         val description = context.getString(errorType.messageRes, uri)
         val imageName = if (errorType.imageNameRes != null) context.getString(errorType.imageNameRes) + ".svg" else ""
         val badCertAdvanced = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_advanced)
-        val badCertTechInfo = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_techInfo,
-                context.appName, uri.toString()
+        val badCertTechInfo = context.getString(
+            R.string.mozac_browser_errorpages_security_bad_cert_techInfo,
+            context.appName, uri.toString()
         )
         val badCertGoBack = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_back)
         val badCertAcceptTemporary = context.getString(

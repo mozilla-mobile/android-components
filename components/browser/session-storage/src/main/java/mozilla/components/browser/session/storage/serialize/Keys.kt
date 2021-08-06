@@ -22,12 +22,20 @@ internal object Keys {
     const val SESSION_READER_MODE_ACTIVE_URL_KEY = "readerModeArticleUrl"
     const val SESSION_TITLE = "title"
     const val SESSION_LAST_ACCESS = "lastAccess"
+    const val SESSION_CREATED_AT = "createdAt"
+    const val SESSION_LAST_MEDIA_URL = "lastMediaUrl"
     const val SESSION_LAST_MEDIA_ACCESS = "lastMediaAccess"
-    const val SESSION_SOURCE_KEY = "source"
+    const val SESSION_LAST_MEDIA_SESSION_ACTIVE = "mediaSessionActive"
+    // Deprecated for SESSION_SOURCE_ID, kept around for backwards compatibility.
+    const val SESSION_DEPRECATED_SOURCE_KEY = "source"
 
     const val SESSION_HISTORY_METADATA_URL = "historyMetadataUrl"
     const val SESSION_HISTORY_METADATA_SEARCH_TERM = "historyMetadataSearchTerm"
     const val SESSION_HISTORY_METADATA_REFERRER_URL = "historyMetadataReferrerUrl"
+
+    const val SESSION_SOURCE_ID = "sourceId"
+    const val SESSION_EXTERNAL_SOURCE_PACKAGE_ID = "externalPackageId"
+    const val SESSION_EXTERNAL_SOURCE_PACKAGE_CATEGORY = "externalPackageCategory"
 
     const val SESSION_KEY = "session"
     const val ENGINE_SESSION_KEY = "engineSession"

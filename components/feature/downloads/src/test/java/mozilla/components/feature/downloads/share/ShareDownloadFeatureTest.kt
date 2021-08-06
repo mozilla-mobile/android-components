@@ -8,7 +8,6 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.browser.state.action.ShareInternetResourceAction
 import mozilla.components.browser.state.state.BrowserState
@@ -48,12 +47,12 @@ class ShareDownloadFeatureTest {
     // When creating new directories use class' context property#cacheDir as a parent
     // This will ensure the effectiveness of @After. Otherwise leftover files may be left on the machine running tests.
 
-    private val testDispatcher = TestCoroutineDispatcher()
     private lateinit var context: Context
     private val testCacheDirName = "testCacheDir"
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Before
     fun setup() {
@@ -85,9 +84,13 @@ class ShareDownloadFeatureTest {
 
     @Test
     fun `ShareFeature starts the share process for AddShareAction which is immediately consumed`() {
-        val store = spy(BrowserStore(BrowserState(
-            tabs = listOf(TabSessionState("123", ContentState(url = "https://www.mozilla.org")))
-        )))
+        val store = spy(
+            BrowserStore(
+                BrowserState(
+                    tabs = listOf(TabSessionState("123", ContentState(url = "https://www.mozilla.org")))
+                )
+            )
+        )
         val shareFeature = spy(ShareDownloadFeature(context, mock(), store, "123"))
         doNothing().`when`(shareFeature).startSharing(any())
         val download = ShareInternetResourceState(url = "testDownload")

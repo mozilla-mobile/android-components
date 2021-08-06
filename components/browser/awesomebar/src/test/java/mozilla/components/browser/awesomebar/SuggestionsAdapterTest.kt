@@ -35,40 +35,13 @@ class SuggestionsAdapterTest {
         val adapter = SuggestionsAdapter(mock())
 
         val suggestions = listOf<AwesomeBar.Suggestion>(
-            mock(), mock(), mock())
+            mock(), mock(), mock()
+        )
 
         assertEquals(0, adapter.itemCount)
 
-        adapter.addSuggestions(mockProvider(), suggestions)
+        adapter.addSuggestions(mock(), suggestions)
 
-        assertEquals(3, adapter.itemCount)
-        assertEquals(suggestions, adapter.suggestions)
-    }
-
-    @Test
-    fun `addSuggestions() always clears previous suggestions of provider`() {
-        val adapter = SuggestionsAdapter(mock())
-
-        val provider = mockProvider()
-        `when`(provider.shouldClearSuggestions).thenReturn(true)
-
-        assertEquals(0, adapter.itemCount)
-
-        val suggestions = listOf<AwesomeBar.Suggestion>(mock(), mock(), mock())
-        adapter.addSuggestions(provider, suggestions)
-        assertEquals(3, adapter.itemCount)
-        assertEquals(suggestions, adapter.suggestions)
-
-        adapter.addSuggestions(provider, suggestions)
-        assertEquals(3, adapter.itemCount)
-        assertEquals(suggestions, adapter.suggestions)
-
-        // shouldClearSuggestions is used to indicate whether or not
-        // suggestions should be cleared right away on input changes.
-        // When we're adding newly computed suggestions, we should
-        // always clear old ones to prevent duplicates.
-        `when`(provider.shouldClearSuggestions).thenReturn(false)
-        adapter.addSuggestions(provider, suggestions)
         assertEquals(3, adapter.itemCount)
         assertEquals(suggestions, adapter.suggestions)
     }
@@ -76,9 +49,10 @@ class SuggestionsAdapterTest {
     @Test
     fun `removeSuggestions() should remove suggestions of provider`() {
         val adapter = SuggestionsAdapter(mock())
-        val provider = mockProvider()
+        val provider: AwesomeBar.SuggestionProvider = mock()
         val suggestions = listOf<AwesomeBar.Suggestion>(
-                mock(), mock(), mock())
+            mock(), mock(), mock()
+        )
 
         assertEquals(0, adapter.itemCount)
 
@@ -89,55 +63,21 @@ class SuggestionsAdapterTest {
     }
 
     @Test
-    fun `clearSuggestions removes suggestions from adapter`() {
-        val adapter = SuggestionsAdapter(mock())
-
-        adapter.addSuggestions(mockProvider(), listOf(
-            mock(), mock(), mock()))
-
-        assertEquals(3, adapter.itemCount)
-
-        adapter.optionallyClearSuggestions()
-
-        assertEquals(0, adapter.itemCount)
-    }
-
-    @Test
-    fun `clearSuggestions does not remove suggestions if provider has set shouldClearSuggestions to false`() {
-        val adapter = SuggestionsAdapter(mock())
-
-        adapter.addSuggestions(mockProvider(shouldClearSuggestions = false), listOf(
-            mock(), mock(), mock()))
-
-        assertEquals(3, adapter.itemCount)
-
-        adapter.optionallyClearSuggestions()
-
-        assertEquals(3, adapter.itemCount)
-
-        adapter.addSuggestions(mockProvider(shouldClearSuggestions = true), listOf(
-            mock(), mock(), mock(), mock()
-        ))
-
-        assertEquals(7, adapter.itemCount)
-
-        adapter.optionallyClearSuggestions()
-
-        assertEquals(3, adapter.itemCount)
-    }
-
-    @Test
     fun `Suggestions are getting ordered by weight descending`() {
         val adapter = SuggestionsAdapter(mock())
 
-        adapter.addSuggestions(mockProvider(), listOf(
-            AwesomeBar.Suggestion(mock(), title = "Hello", score = 10),
-            AwesomeBar.Suggestion(mock(), title = "World", score = 2),
-            AwesomeBar.Suggestion(mock(), title = "How", score = 7),
-            AwesomeBar.Suggestion(mock(), title = "is", score = 12),
-            AwesomeBar.Suggestion(mock(), title = "the", score = 0),
-            AwesomeBar.Suggestion(mock(), title = "weather", score = -2),
-            AwesomeBar.Suggestion(mock(), title = "tomorrow", score = 1000)))
+        adapter.addSuggestions(
+            mock(),
+            listOf(
+                AwesomeBar.Suggestion(mock(), title = "Hello", score = 10),
+                AwesomeBar.Suggestion(mock(), title = "World", score = 2),
+                AwesomeBar.Suggestion(mock(), title = "How", score = 7),
+                AwesomeBar.Suggestion(mock(), title = "is", score = 12),
+                AwesomeBar.Suggestion(mock(), title = "the", score = 0),
+                AwesomeBar.Suggestion(mock(), title = "weather", score = -2),
+                AwesomeBar.Suggestion(mock(), title = "tomorrow", score = 1000)
+            )
+        )
 
         assertEquals(7, adapter.itemCount)
 
@@ -157,19 +97,31 @@ class SuggestionsAdapterTest {
     fun `Adapter uses different view holder for suggestions with chips`() {
         val adapter = SuggestionsAdapter(mock())
 
-        adapter.addSuggestions(mockProvider(), listOf(
-            AwesomeBar.Suggestion(mock(), title = "Test"),
-            AwesomeBar.Suggestion(mock(), title = "World", chips = listOf(
-                AwesomeBar.Suggestion.Chip("Chip1"),
-                AwesomeBar.Suggestion.Chip("Chip2")))))
+        adapter.addSuggestions(
+            mock(),
+            listOf(
+                AwesomeBar.Suggestion(mock(), title = "Test"),
+                AwesomeBar.Suggestion(
+                    mock(), title = "World",
+                    chips = listOf(
+                        AwesomeBar.Suggestion.Chip("Chip1"),
+                        AwesomeBar.Suggestion.Chip("Chip2")
+                    )
+                )
+            )
+        )
 
         assertEquals(2, adapter.itemCount)
 
-        assertEquals(DefaultSuggestionViewHolder.Default.LAYOUT_ID,
-            adapter.getItemViewType(0))
+        assertEquals(
+            DefaultSuggestionViewHolder.Default.LAYOUT_ID,
+            adapter.getItemViewType(0)
+        )
 
-        assertEquals(DefaultSuggestionViewHolder.Chips.LAYOUT_ID,
-            adapter.getItemViewType(1))
+        assertEquals(
+            DefaultSuggestionViewHolder.Chips.LAYOUT_ID,
+            adapter.getItemViewType(1)
+        )
     }
 
     @Test
@@ -178,11 +130,15 @@ class SuggestionsAdapterTest {
 
         val parent = LinearLayout(testContext)
 
-        assertTrue(adapter.createViewHolder(parent, DefaultSuggestionViewHolder.Default.LAYOUT_ID).actual
-            is DefaultSuggestionViewHolder.Default)
+        assertTrue(
+            adapter.createViewHolder(parent, DefaultSuggestionViewHolder.Default.LAYOUT_ID).actual
+            is DefaultSuggestionViewHolder.Default
+        )
 
-        assertTrue(adapter.createViewHolder(parent, DefaultSuggestionViewHolder.Chips.LAYOUT_ID).actual
-            is DefaultSuggestionViewHolder.Chips)
+        assertTrue(
+            adapter.createViewHolder(parent, DefaultSuggestionViewHolder.Chips.LAYOUT_ID).actual
+            is DefaultSuggestionViewHolder.Chips
+        )
     }
 
     @Test(expected = Resources.NotFoundException::class)
@@ -204,7 +160,7 @@ class SuggestionsAdapterTest {
         val wrapper = ViewHolderWrapper(viewHolder, mock())
         doReturn(wrapper).`when`(adapter).onCreateViewHolder(any(), anyInt())
 
-        adapter.addSuggestions(mockProvider(), listOf(suggestion))
+        adapter.addSuggestions(mock(), listOf(suggestion))
 
         adapter.onBindViewHolder(wrapper, 0)
 
@@ -245,7 +201,8 @@ class SuggestionsAdapterTest {
 
         val viewHolder = adapter.createViewHolder(
             LinearLayout(testContext),
-            R.layout.mozac_browser_awesomebar_item_generic)
+            R.layout.mozac_browser_awesomebar_item_generic
+        )
 
         verify(layout).createViewHolder(any(), any(), eq(R.layout.mozac_browser_awesomebar_item_generic))
         assertEquals(holder, viewHolder.actual)
@@ -260,13 +217,5 @@ class SuggestionsAdapterTest {
         adapter.onViewRecycled(wrapper)
 
         verify(viewHolder).recycle()
-    }
-
-    private fun mockProvider(
-        shouldClearSuggestions: Boolean = true
-    ): AwesomeBar.SuggestionProvider {
-        val provider: AwesomeBar.SuggestionProvider = mock()
-        doReturn(shouldClearSuggestions).`when`(provider).shouldClearSuggestions
-        return provider
     }
 }

@@ -292,7 +292,7 @@ class SessionUseCasesTest {
         var createdTab: TabSessionState? = null
         var tabCreatedForUrl: String? = null
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
 
         val loadUseCase = SessionUseCases.DefaultLoadUrlUseCase(store) { url ->
             tabCreatedForUrl = url
@@ -316,7 +316,7 @@ class SessionUseCasesTest {
         var createdTab: TabSessionState? = null
         var tabCreatedForUrl: String? = null
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
         store.waitUntilIdle()
 
         val loadUseCase = SessionUseCases.LoadDataUseCase(store) { url ->
@@ -350,15 +350,18 @@ class SessionUseCasesTest {
 
     @Test
     fun `CrashRecoveryUseCase will restore list of crashed sessions`() {
-        val store = spy(BrowserStore(
-            middleware = listOf(middleware),
-            initialState = BrowserState(
-                tabs = listOf(
-                    createTab(url = "https://wwww.mozilla.org", id = "tab1", crashed = true)
-                ),
-                customTabs = listOf(
-                    createCustomTab("https://wwww.mozilla.org", id = "customTab1",
-                        crashed = true)
+        val store = spy(
+            BrowserStore(
+                middleware = listOf(middleware),
+                initialState = BrowserState(
+                    tabs = listOf(
+                        createTab(url = "https://wwww.mozilla.org", id = "tab1", crashed = true)
+                    ),
+                    customTabs = listOf(
+                        createCustomTab(
+                            "https://wwww.mozilla.org", id = "customTab1",
+                            crashed = true
+                        )
                     )
                 )
             )

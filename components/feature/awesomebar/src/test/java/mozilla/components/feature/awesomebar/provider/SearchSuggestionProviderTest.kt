@@ -12,8 +12,8 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Response
 import mozilla.components.feature.awesomebar.R
-import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.awesomebar.facts.AwesomeBarFacts
+import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.search.ext.createSearchEngine
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.support.base.Component
@@ -26,7 +26,6 @@ import mozilla.components.support.test.robolectric.testContext
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -286,8 +285,10 @@ class SearchSuggestionProviderTest {
 
             val paramIcon = testContext.getDrawable(R.drawable.mozac_ic_search)!!.toBitmap()
 
-            val provider = SearchSuggestionProvider(searchEngine, mock(), HttpURLConnectionClient(),
-                    icon = paramIcon)
+            val provider = SearchSuggestionProvider(
+                searchEngine, mock(), HttpURLConnectionClient(),
+                icon = paramIcon
+            )
 
             try {
                 val suggestions = provider.onInputChanged("fire")
@@ -297,12 +298,6 @@ class SearchSuggestionProviderTest {
                 server.shutdown()
             }
         }
-    }
-
-    @Test
-    fun `Provider should not clear suggestions`() {
-        val provider = SearchSuggestionProvider(mock(), mock(), mock())
-        assertFalse(provider.shouldClearSuggestions)
     }
 
     @Test
@@ -414,10 +409,10 @@ class SearchSuggestionProviderTest {
             val useCase: SearchUseCases.SearchUseCase = mock()
 
             val provider = SearchSuggestionProvider(
-                    searchEngine,
-                    useCase,
-                    HttpURLConnectionClient(),
-                    mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS
+                searchEngine,
+                useCase,
+                HttpURLConnectionClient(),
+                mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS
             )
 
             try {
@@ -457,12 +452,12 @@ class SearchSuggestionProviderTest {
             val useCase: SearchUseCases.SearchUseCase = mock()
 
             val provider = SearchSuggestionProvider(
-                    searchEngine,
-                    useCase,
-                    HttpURLConnectionClient(),
-                    mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS,
-                    limit = 3,
-                    showDescription = false
+                searchEngine,
+                useCase,
+                HttpURLConnectionClient(),
+                mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS,
+                limit = 3,
+                showDescription = false
             )
 
             try {

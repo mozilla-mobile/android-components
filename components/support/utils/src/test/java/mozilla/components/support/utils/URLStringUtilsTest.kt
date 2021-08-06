@@ -4,6 +4,7 @@
 
 package mozilla.components.support.utils
 
+import androidx.core.text.TextDirectionHeuristicCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.utils.URLStringUtils.isSearchTerm
 import mozilla.components.support.utils.URLStringUtils.isURLLike
@@ -14,6 +15,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
+import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
 class URLStringUtilsTest {
@@ -167,5 +171,45 @@ class URLStringUtilsTest {
     fun stripUrlSchemeAndSubdomainUrlNoMatch() {
         val testDisplayUrl = URLStringUtils.toDisplayUrl("zzz://www.mozillahttp://.com")
         assertEquals("zzz://www.mozillahttp://.com", testDisplayUrl)
+    }
+
+    @Test
+    fun showDisplayUrlAsLTREvenIfTextStartsWithArabicCharacters() {
+        val testDisplayUrl = URLStringUtils.toDisplayUrl("http://ختار.ار/www.mozilla.org/1")
+        assertEquals("\u200Eختار.ار/www.mozilla.org/1", testDisplayUrl)
+    }
+
+    @Test
+    fun toDisplayUrlAlwaysUseATextDirectionHeuristicToDetermineDirectionality() {
+        val textHeuristic = spy(TestTextDirectionHeuristicCompat())
+
+        URLStringUtils.toDisplayUrl("http://ختار.ار/www.mozilla.org/1", textHeuristic)
+        verify(textHeuristic).isRtl("ختار.ار/www.mozilla.org/1", 0, 1)
+
+        URLStringUtils.toDisplayUrl("http://www.mozilla.org/1", textHeuristic)
+        verify(textHeuristic).isRtl("mozilla.org/1", 0, 1)
+    }
+
+    @Test
+    fun toDisplayUrlHandlesBlankStrings() {
+        assertEquals("", URLStringUtils.toDisplayUrl(""))
+
+        assertEquals("  ", URLStringUtils.toDisplayUrl("  "))
+    }
+}
+
+/**
+ * Custom [TextDirectionHeuristicCompat] used only in tests to make possible testing of RTL checks.
+ * Overcomes the limitations not allowing Mockito to mock platform implementations.
+ *
+ * The return of both [isRtl] is non-deterministic. Setup a different behavior if needed.
+ */
+private open class TestTextDirectionHeuristicCompat : TextDirectionHeuristicCompat {
+    override fun isRtl(array: CharArray?, start: Int, count: Int): Boolean {
+        return Random.nextBoolean()
+    }
+
+    override fun isRtl(cs: CharSequence?, start: Int, count: Int): Boolean {
+        return Random.nextBoolean()
     }
 }

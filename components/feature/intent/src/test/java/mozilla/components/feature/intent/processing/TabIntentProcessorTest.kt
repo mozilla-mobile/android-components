@@ -8,11 +8,8 @@ import android.app.SearchManager
 import android.content.Intent
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.engine.EngineMiddleware
@@ -21,6 +18,7 @@ import mozilla.components.browser.state.selector.findTabByUrl
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SearchState
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
@@ -33,11 +31,14 @@ import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.anyBoolean
@@ -47,8 +48,10 @@ import org.mockito.Mockito.doReturn
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
 class TabIntentProcessorTest {
-    private val testDispatcher = TestCoroutineDispatcher()
-    private val scope = TestCoroutineScope(testDispatcher)
+
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
 
     private lateinit var middleware: CaptureActionsMiddleware<BrowserState, BrowserAction>
 
@@ -63,8 +66,6 @@ class TabIntentProcessorTest {
 
     @Before
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
-
         searchEngine = createSearchEngine(
             name = "Test",
             url = "https://localhost/?q={searchTerms}",
@@ -104,6 +105,7 @@ class TabIntentProcessorTest {
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(1, store.state.tabs.size)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionView)
 
         val tab = store.state.findTabByUrl("https://mozilla.org")
         assertNotNull(tab)
@@ -112,11 +114,16 @@ class TabIntentProcessorTest {
         store.dispatch(TabListAction.AddTabAction(otherTab, select = true)).joinBlocking()
         assertEquals(2, store.state.tabs.size)
         assertEquals(otherTab, store.state.selectedTab)
+        assertTrue(store.state.tabs[1].source is SessionState.Source.Internal.None)
 
+        // processing the same intent again doesn't add an additional tab
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(2, store.state.tabs.size)
         assertEquals(tab, store.state.selectedTab)
+        // sources of existing tabs weren't affected
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionView)
+        assertTrue(store.state.tabs[1].source is SessionState.Source.Internal.None)
     }
 
     @Test
@@ -131,6 +138,7 @@ class TabIntentProcessorTest {
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(1, store.state.tabs.size)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionView)
 
         val tab = store.state.findTabByUrl("https://mozilla.org")
         assertNotNull(tab)
@@ -186,30 +194,35 @@ class TabIntentProcessorTest {
         store.waitUntilIdle()
         assertEquals(1, store.state.tabs.size)
         assertEquals("https://mozilla.org", store.state.tabs[0].content.url)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionSend)
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("see https://getpocket.com")
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(2, store.state.tabs.size)
         assertEquals("https://getpocket.com", store.state.tabs[1].content.url)
+        assertTrue(store.state.tabs[1].source is SessionState.Source.External.ActionSend)
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("see https://firefox.com and https://mozilla.org")
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(3, store.state.tabs.size)
         assertEquals("https://firefox.com", store.state.tabs[2].content.url)
+        assertTrue(store.state.tabs[2].source is SessionState.Source.External.ActionSend)
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("checkout the Tweet: https://tweets.mozilla.com")
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(4, store.state.tabs.size)
         assertEquals("https://tweets.mozilla.com", store.state.tabs[3].content.url)
+        assertTrue(store.state.tabs[3].source is SessionState.Source.External.ActionSend)
 
         whenever(intent.getStringExtra(Intent.EXTRA_TEXT)).thenReturn("checkout the Tweet: HTTPS://tweets.mozilla.org")
         handler.process(intent)
         store.waitUntilIdle()
         assertEquals(5, store.state.tabs.size)
         assertEquals("HTTPS://tweets.mozilla.org", store.state.tabs[4].content.url)
+        assertTrue(store.state.tabs[4].source is SessionState.Source.External.ActionSend)
     }
 
     @Test
@@ -230,6 +243,7 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertEquals(searchUrl, store.state.tabs[0].content.url)
         assertEquals(searchTerms, store.state.tabs[0].content.searchTerms)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionSend)
     }
 
     @Test
@@ -271,6 +285,7 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertEquals("http://mozilla.org", store.state.tabs[0].content.url)
         assertEquals("", store.state.tabs[0].content.searchTerms)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionSearch)
     }
 
     @Test
@@ -291,6 +306,7 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertEquals(searchUrl, store.state.tabs[0].content.url)
         assertEquals(searchTerms, store.state.tabs[0].content.searchTerms)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionSearch)
     }
 
     @Test
@@ -319,6 +335,7 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertEquals("http://mozilla.org", store.state.tabs[0].content.url)
         assertEquals("", store.state.tabs[0].content.searchTerms)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionSearch)
     }
 
     @Test
@@ -338,5 +355,6 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertEquals(searchUrl, store.state.tabs[0].content.url)
         assertEquals(searchTerms, store.state.tabs[0].content.searchTerms)
+        assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionSearch)
     }
 }

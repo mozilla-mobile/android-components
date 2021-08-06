@@ -182,7 +182,7 @@ sealed class TabListAction : BrowserAction() {
      * @property tabs the [TabSessionState]s to restore.
      * @property selectedTabId the ID of the tab to select.
      */
-    data class RestoreAction(val tabs: List<TabSessionState>, val selectedTabId: String? = null) :
+    data class RestoreAction(val tabs: List<RecoverableTab>, val selectedTabId: String? = null) :
         TabListAction()
 
     /**

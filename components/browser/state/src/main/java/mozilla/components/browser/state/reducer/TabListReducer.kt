@@ -9,6 +9,7 @@ import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.recover.toTabSessionStates
 import kotlin.math.max
 
 internal object TabListReducer {
@@ -134,13 +135,23 @@ internal object TabListReducer {
 
             is TabListAction.RestoreAction -> {
                 // Verify that none of the tabs to restore already exist
-                action.tabs.forEach { requireUniqueTab(state, it) }
+                val restoredTabs = action.tabs.toTabSessionStates()
+                restoredTabs.forEach { requireUniqueTab(state, it) }
 
-                // We are adding the restored tabs first and then the already existing tabs. Since restore can or should
-                // happen asynchronously we may already have a tab at this point (e.g. from an `Intent`) and so we
-                // pretend we restored the list of tabs before any tab was added.
+                // We are adding the restored tabs at their original indices. If the removal index
+                // for some reason is null, the tab will be restored to the end of the tab list. The
+                // removal index will be reset to null when added to the combined list.
+                val combinedTabList = arrayListOf<TabSessionState>().apply {
+                    addAll(state.tabs)
+                    restoredTabs.forEachIndexed { index, restoredTab ->
+                        val removalIndex = action.tabs[index].removalIndex ?: size
+                        val restoreIndex = if (removalIndex > size) size else removalIndex
+                        add(restoreIndex, restoredTab)
+                    }
+                }
+
                 state.copy(
-                    tabs = action.tabs + state.tabs,
+                    tabs = combinedTabList,
                     selectedTabId = if (action.selectedTabId != null && state.selectedTabId == null) {
                         // We only want to update the selected tab if none has been already selected. Otherwise we may
                         // switch to a restored tab even though the user is already looking at an existing tab (e.g.

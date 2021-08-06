@@ -13,18 +13,20 @@ import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.selector.findTabIndex
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.state.recover.toRecoverableTab
 import mozilla.components.browser.state.state.recover.toTabSessionStates
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
 import mozilla.components.support.base.log.logger.Logger
-import java.util.UUID
+import java.util.*
 import mozilla.components.support.base.coroutines.Dispatchers as MozillaDispatchers
 
 /**
@@ -69,6 +71,9 @@ class UndoMiddleware(
 
             // Restore
             is UndoAction.RestoreRecoverableTabs -> restore(context.store, context.state)
+
+            // Do nothing when an action different from above is passed in.
+            else -> { }
         }
 
         next(action)
@@ -81,10 +86,12 @@ class UndoMiddleware(
     ) {
         clearJob?.cancel()
 
-        val recoverableTabs = tabs.mapNotNull {
-            it as? TabSessionState
-        }.map {
-            it.toRecoverableTab()
+        val recoverableTabs = arrayListOf<RecoverableTab>()
+        tabs.forEach {
+            if (it is TabSessionState) {
+                val index = context.state.findTabIndex(it.id)
+                recoverableTabs.add(it.toRecoverableTab(index))
+            }
         }
 
         if (recoverableTabs.isEmpty()) {
@@ -125,7 +132,7 @@ class UndoMiddleware(
             return@launch
         }
 
-        store.dispatch(TabListAction.RestoreAction(tabs.toTabSessionStates()))
+        store.dispatch(TabListAction.RestoreAction(tabs))
 
         // Restore the previous selection if needed.
         undoHistory.selectedTabId?.let { tabId ->

@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.menu.MenuController
 import mozilla.components.feature.tabs.R
@@ -121,7 +122,7 @@ class TabCounterToolbarButtonTest {
         button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
 
         store.dispatch(
-            TabListAction.RestoreAction(listOf(createTab("https://www.mozilla.org")))
+            TabListAction.RestoreAction(listOf(RecoverableTab("a", "https://www.mozilla.org")))
         ).joinBlocking()
 
         verify(button).updateCount(eq(1))

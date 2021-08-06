@@ -246,4 +246,19 @@ class SelectorsKtTest {
             assertNull(state.findTabByUrl("https://www.mozilla.com"))
         }
     }
+
+    @Test
+    fun `findTabIndex extension function`() {
+        val tab = createTab("https://www.firefox.com")
+        val otherTab = createTab("https://getpocket.com")
+        val customTab = createCustomTab("https://www.mozilla.org")
+
+        val state = BrowserState(
+            tabs = listOf(tab, otherTab),
+            customTabs = listOf(customTab))
+
+        assertEquals(0, state.findTabIndex(tab.id))
+        assertEquals(1, state.findTabIndex(otherTab.id))
+        assertNull(state.findTabIndex(customTab.id))
+    }
 }

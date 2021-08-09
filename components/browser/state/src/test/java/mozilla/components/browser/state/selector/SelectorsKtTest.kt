@@ -266,7 +266,8 @@ class SelectorsKtTest {
 
         val state = BrowserState(
             tabs = listOf(tab, otherTab),
-            customTabs = listOf(customTab))
+            customTabs = listOf(customTab)
+        )
 
         assertEquals(0, state.findTabIndex(tab.id))
         assertEquals(1, state.findTabIndex(otherTab.id))

@@ -780,7 +780,6 @@ class TabListActionTest {
         assertEquals("d", store.state.tabs[3].id)
     }
 
-
     @Test
     fun `RemoveAllTabsAction - Removes both private and non-private tabs (but not custom tabs)`() {
         val state = BrowserState(

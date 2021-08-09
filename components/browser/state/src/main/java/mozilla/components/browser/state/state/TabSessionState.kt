@@ -29,6 +29,7 @@ import java.util.UUID
  * @property createdAt Timestamp of this tab's creation.
  * @property lastMediaAccessState - [LastMediaAccessState] detailing the tab state when media started playing.
  * Requires [LastMediaAccessMiddleware] to update the value when playback starts.
+ * @property restored Indicates if this page was restored from a persisted state.
  */
 data class TabSessionState(
     override val id: String = UUID.randomUUID().toString(),
@@ -38,7 +39,8 @@ data class TabSessionState(
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
     override val mediaSessionState: MediaSessionState? = null,
     override val contextId: String? = null,
-    override val source: SessionState.Source = SessionState.Source.NONE,
+    override val source: SessionState.Source = SessionState.Source.Internal.None,
+    override val restored: Boolean = false,
     val parentId: String? = null,
     val lastAccess: Long = 0L,
     val createdAt: Long = System.currentTimeMillis(),
@@ -84,7 +86,8 @@ fun createTab(
     lastAccess: Long = 0L,
     createdAt: Long = System.currentTimeMillis(),
     lastMediaAccessState: LastMediaAccessState = LastMediaAccessState(),
-    source: SessionState.Source = SessionState.Source.NONE,
+    source: SessionState.Source = SessionState.Source.Internal.None,
+    restored: Boolean = false,
     engineSession: EngineSession? = null,
     engineSessionState: EngineSessionState? = null,
     crashed: Boolean = false,
@@ -112,6 +115,7 @@ fun createTab(
         createdAt = createdAt,
         lastMediaAccessState = lastMediaAccessState,
         source = source,
+        restored = restored,
         engineState = EngineState(
             engineSession = engineSession,
             engineSessionState = engineSessionState,

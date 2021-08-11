@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import mozilla.components.support.base.log.logger.Logger
-
 import java.util.ArrayList
 
 /**
@@ -65,7 +64,7 @@ class SafeIntent(val unsafe: Intent) {
     }
 
     fun <T : Parcelable> getParcelableExtra(name: String): T? = safeAccess {
-        unsafe.getParcelableExtra(name) as T
+        unsafe.getParcelableExtra(name) as? T
     }
 
     fun <T : Parcelable> getParcelableArrayListExtra(name: String): ArrayList<T>? {
@@ -76,7 +75,7 @@ class SafeIntent(val unsafe: Intent) {
     }
 
     fun getStringArrayListExtra(name: String): ArrayList<String>? = safeAccess {
-            getStringArrayListExtra(name)
+        getStringArrayListExtra(name)
     }
 
     @SuppressWarnings("TooGenericExceptionCaught")
@@ -97,3 +96,6 @@ class SafeIntent(val unsafe: Intent) {
  * Returns a [SafeIntent] for the given [Intent].
  */
 fun Intent.toSafeIntent(): SafeIntent = SafeIntent(this)
+
+const val EXTRA_ACTIVITY_REFERRER_PACKAGE = "activity_referrer_package"
+const val EXTRA_ACTIVITY_REFERRER_CATEGORY = "activity_referrer_category"

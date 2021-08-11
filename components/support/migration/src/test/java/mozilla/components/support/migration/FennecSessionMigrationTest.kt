@@ -7,6 +7,7 @@ package mozilla.components.support.migration
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,55 +24,79 @@ class FennecSessionMigrationTest {
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
 
-        assertEquals(6, snapshot.sessions.size)
-            assertEquals(5, snapshot.selectedSessionIndex)
+        assertEquals(6, snapshot.tabs.size)
+        assertEquals(snapshot.tabs[5].id, snapshot.selectedTabId)
 
-        snapshot.sessions[0].also {
-            assertEquals("https://en.m.wikipedia.org/wiki/James_Park_Woods",
-                it.session.url)
+        snapshot.tabs[0].also {
+            assertEquals(
+                "https://en.m.wikipedia.org/wiki/James_Park_Woods",
+                it.url
+            )
 
-            assertEquals("James Park Woods - Wikipedia",
-                it.session.title)
+            assertEquals(
+                "James Park Woods - Wikipedia",
+                it.title
+            )
         }
 
-        snapshot.sessions[1].also {
-            assertEquals("https://m.youtube.com/watch?v=fBbKagy1dD8",
-                it.session.url)
+        snapshot.tabs[1].also {
+            assertEquals(
+                "https://m.youtube.com/watch?v=fBbKagy1dD8",
+                it.url
+            )
 
-            assertEquals("35 DIY IDEAS YOU NEED IN YOUR LIFE RIGHT NOW - YouTube",
-                it.session.title)
+            assertEquals(
+                "35 DIY IDEAS YOU NEED IN YOUR LIFE RIGHT NOW - YouTube",
+                it.title
+            )
         }
 
-        snapshot.sessions[2].also {
-            assertEquals("about:addons",
-                it.session.url)
+        snapshot.tabs[2].also {
+            assertEquals(
+                "about:addons",
+                it.url
+            )
 
-            assertEquals("Add-ons",
-                it.session.title)
+            assertEquals(
+                "Add-ons",
+                it.title
+            )
         }
 
-        snapshot.sessions[3].also {
-            assertEquals("about:firefox",
-                it.session.url)
+        snapshot.tabs[3].also {
+            assertEquals(
+                "about:firefox",
+                it.url
+            )
 
-            assertEquals("About Fennec",
-                it.session.title)
+            assertEquals(
+                "About Fennec",
+                it.title
+            )
         }
 
-        snapshot.sessions[4].also {
-            assertEquals("https://www.theverge.com/2019/9/18/20871860/huawei-mate-30-photos-videos-leak-watch-gt-2-fitness-band-tv-android-tablet-harmony-os",
-                it.session.url)
+        snapshot.tabs[4].also {
+            assertEquals(
+                "https://www.theverge.com/2019/9/18/20871860/huawei-mate-30-photos-videos-leak-watch-gt-2-fitness-band-tv-android-tablet-harmony-os",
+                it.url
+            )
 
-            assertEquals("Huawei’s Thursday event lineup apparently leaks in full",
-                it.session.title)
+            assertEquals(
+                "Huawei’s Thursday event lineup apparently leaks in full",
+                it.title
+            )
         }
 
-        snapshot.sessions[5].also {
-            assertEquals("https://www.microsoft.com/de-de/p/surface-pro-6/8ZCNC665SLQ5?activetab=pivot%3aoverviewtab",
-                it.session.url)
+        snapshot.tabs[5].also {
+            assertEquals(
+                "https://www.microsoft.com/de-de/p/surface-pro-6/8ZCNC665SLQ5?activetab=pivot%3aoverviewtab",
+                it.url
+            )
 
-            assertEquals("Entdecken Sie das Surface Pro 6 – Ultraleicht und vielseitig – Microsoft Surface",
-                it.session.title)
+            assertEquals(
+                "Entdecken Sie das Surface Pro 6 – Ultraleicht und vielseitig – Microsoft Surface",
+                it.title
+            )
         }
     }
 
@@ -96,15 +121,19 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertEquals(1, snapshot.sessions.size)
-        assertEquals(0, snapshot.selectedSessionIndex)
+        assertEquals(1, snapshot.tabs.size)
+        assertEquals(snapshot.tabs[0].id, snapshot.selectedTabId)
 
-        snapshot.sessions[0].also {
-            assertEquals("https://en.m.wikipedia.org/wiki/Main_Page",
-                it.session.url)
+        snapshot.tabs[0].also {
+            assertEquals(
+                "https://en.m.wikipedia.org/wiki/Main_Page",
+                it.url
+            )
 
-            assertEquals("Wikipedia, the free encyclopedia",
-                it.session.title)
+            assertEquals(
+                "Wikipedia, the free encyclopedia",
+                it.title
+            )
         }
     }
 
@@ -115,8 +144,8 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertTrue(snapshot.sessions.isEmpty())
-        assertEquals(-1, snapshot.selectedSessionIndex)
+        assertTrue(snapshot.tabs.isEmpty())
+        assertNull(snapshot.selectedTabId)
     }
 
     @Test
@@ -126,23 +155,31 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertEquals(2, snapshot.sessions.size)
-        assertEquals(1, snapshot.selectedSessionIndex)
+        assertEquals(2, snapshot.tabs.size)
+        assertEquals(snapshot.tabs[1].id, snapshot.selectedTabId)
 
-        snapshot.sessions[0].also {
-            assertEquals("https://en.m.wikipedia.org/wiki/Climbing",
-                it.session.url)
+        snapshot.tabs[0].also {
+            assertEquals(
+                "https://en.m.wikipedia.org/wiki/Climbing",
+                it.url
+            )
 
-            assertEquals("Climbing - Wikipedia",
-                it.session.title)
+            assertEquals(
+                "Climbing - Wikipedia",
+                it.title
+            )
         }
 
-        snapshot.sessions[1].also {
-            assertEquals("https://www.mozilla.org/en-US/firefox/accounts/",
-                it.session.url)
+        snapshot.tabs[1].also {
+            assertEquals(
+                "https://www.mozilla.org/en-US/firefox/accounts/",
+                it.url
+            )
 
-            assertEquals("There is a way to protect your privacy. Join Firefox.",
-                it.session.title)
+            assertEquals(
+                "There is a way to protect your privacy. Join Firefox.",
+                it.title
+            )
         }
     }
 
@@ -154,8 +191,8 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertEquals(21, snapshot.sessions.size)
-        assertEquals(12, snapshot.selectedSessionIndex)
+        assertEquals(21, snapshot.tabs.size)
+        assertEquals(snapshot.tabs[12].id, snapshot.selectedTabId)
     }
 
     /**
@@ -172,23 +209,31 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertEquals(2, snapshot.sessions.size)
-        assertEquals(1, snapshot.selectedSessionIndex)
+        assertEquals(2, snapshot.tabs.size)
+        assertEquals(snapshot.tabs[1].id, snapshot.selectedTabId)
 
-        snapshot.sessions[0].also {
-            assertEquals("https://www.spiegel.de/",
-                it.session.url)
+        snapshot.tabs[0].also {
+            assertEquals(
+                "https://www.spiegel.de/",
+                it.url
+            )
 
-            assertEquals("DER SPIEGEL | Online-Nachrichten",
-                it.session.title)
+            assertEquals(
+                "DER SPIEGEL | Online-Nachrichten",
+                it.title
+            )
         }
 
-        snapshot.sessions[1].also {
-            assertEquals("https://www.spiegel.de/politik/deutschland/fdp-parteivorstand-spricht-lindner-nach-kemmerich-wahl-vertrauen-aus-a-47e0a21c-7617-4549-b6dc-716c0363cbc2",
-                it.session.url)
+        snapshot.tabs[1].also {
+            assertEquals(
+                "https://www.spiegel.de/politik/deutschland/fdp-parteivorstand-spricht-lindner-nach-kemmerich-wahl-vertrauen-aus-a-47e0a21c-7617-4549-b6dc-716c0363cbc2",
+                it.url
+            )
 
-            assertEquals("FDP-Parteivorstand spricht Lindner Vertrauen aus - DER SPIEGEL - Politik",
-                it.session.title)
+            assertEquals(
+                "FDP-Parteivorstand spricht Lindner Vertrauen aus - DER SPIEGEL - Politik",
+                it.title
+            )
         }
     }
 
@@ -205,8 +250,8 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertEquals(0, snapshot.sessions.size)
-        assertEquals(-1, snapshot.selectedSessionIndex)
+        assertEquals(0, snapshot.tabs.size)
+        assertNull(snapshot.selectedTabId)
     }
 
     @Test
@@ -217,15 +262,19 @@ class FennecSessionMigrationTest {
 
         assertTrue(result is Result.Success)
         val snapshot = (result as Result.Success).value
-        assertEquals(1, snapshot.sessions.size)
-        assertEquals(0, snapshot.selectedSessionIndex)
+        assertEquals(1, snapshot.tabs.size)
+        assertEquals(snapshot.tabs[0].id, snapshot.selectedTabId)
 
-        snapshot.sessions[0].also {
-            assertEquals("https://www.mozilla.org/",
-                it.session.url)
+        snapshot.tabs[0].also {
+            assertEquals(
+                "https://www.mozilla.org/",
+                it.url
+            )
 
-            assertEquals("https://www.mozilla.org/",
-                it.session.title)
+            assertEquals(
+                "https://www.mozilla.org/",
+                it.title
+            )
         }
     }
 }

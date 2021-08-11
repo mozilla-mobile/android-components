@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- The default document title of an error page (i.e., the contents of the `<title>` tag). -->
-    <string name="mozac_browser_errorpages_page_title">পাতা লোড হতে সমস্যা হচ্ছে</string>
-
     <!-- The button that appears at the bottom of an error page. -->
     <string name="mozac_browser_errorpages_page_refresh">আবার চেষ্টা করুন</string>
-
-    <!-- The button that appears at the bottom of an error page. -->
-    <string name="mozac_browser_errorpages_page_go_back">ফিরে যান</string>
 
     <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
     <string name="mozac_browser_errorpages_generic_title">অনুরোধ পূরণ করা সম্ভব নয়</string>
@@ -28,8 +22,22 @@
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_title">নিরাপদ সংযোগ স্থাপনে ব্যর্থ হয়েছে</string>
 
+    <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
+      <ul>
+        <li>সম্ভবত সার্ভারের কনফিগারেশনে সমস্যা হয়েছে অথবা কোনো ব্যক্তি এই সার্ভারের পরিচয় জাল করার চেষ্টা করছে।</li>
+        <li>আপনি যদি আগে এই সার্ভারের সাথে সফলভাবে সংযোগ স্থাপন করে থাকেন, তাহলে সম্ভবত কোনো অস্থায়ী কারণে এই সমস্যা দেখা দিয়েছে এবং কিছুক্ষণ পর আবার চেষ্টা করুন।</li>
+      </ul>
+    ]]></string>
+
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_advanced">উন্নতপর্যায়ের...</string>
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label> কেউ সাইটটি ছদ্মবেশ তৈরি করার চেষ্টা করছেন এবং আপনার চালিয়ে যাওয়া উচিত নয় </label>
+        <br> <br>
+        <label> ওয়েবসাইটগুলি সার্টিফিকেটের মাধ্যমে তাদের পরিচয় প্রমাণ করে। %1$s <b>%2$s</b> কে বিশ্বাস করে না কারণ এটির সার্টিফিকেটের জারিকারী অজানা, সার্টিফিকেটটি স্ব-স্বাক্ষরিত, অথবা সার্ভার সঠিক মধ্যবর্তী সার্টিফিকেট প্রেরণ করছে না </label>
+        ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_cert_back">ফিরে যান (প্রস্তাবিত)</string>
     <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
@@ -46,6 +54,11 @@
 
     <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
     <string name="mozac_browser_errorpages_unknown_socket_type_title">সার্ভার থেকে অপ্রত্যাশিত প্রতিক্রিয়া দেখাচ্ছে</string>
+
+    <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
+    <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[
+      <p>সাইটটি একটি নেটওয়ার্ক অনুরোধের অপ্রত্যাশিত উত্তর দিয়েছে যার ফলে ব্রাউজার এটি চালিয়ে যেতে পারছে না।</p>
+    ]]></string>
 
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_title">পাতাটি সঠিকভাবে পুনঃনির্দেশনা দিচ্ছে না</string>

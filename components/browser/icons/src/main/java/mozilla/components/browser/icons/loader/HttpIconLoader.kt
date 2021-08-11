@@ -17,6 +17,7 @@ import mozilla.components.concept.fetch.Response
 import mozilla.components.concept.fetch.isSuccess
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
+import mozilla.components.support.ktx.kotlin.sanitizeURL
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -41,7 +42,7 @@ class HttpIconLoader(
         // recently: https://github.com/mozilla-mobile/android-components/issues/2591
 
         val downloadRequest = Request(
-            url = resource.url,
+            url = resource.url.sanitizeURL(),
             method = Request.Method.GET,
             cookiePolicy = if (request.isPrivate) {
                 Request.CookiePolicy.OMIT
@@ -51,7 +52,9 @@ class HttpIconLoader(
             connectTimeout = Pair(CONNECT_TIMEOUT, TimeUnit.SECONDS),
             readTimeout = Pair(READ_TIMEOUT, TimeUnit.SECONDS),
             redirect = Request.Redirect.FOLLOW,
-            useCaches = true)
+            useCaches = true,
+            private = request.isPrivate
+        )
 
         return try {
             val response = httpClient.fetch(downloadRequest)
@@ -63,12 +66,12 @@ class HttpIconLoader(
             }
         } catch (e: IOException) {
             logger.debug("IOException while trying to download icon resource", e)
-            return IconLoader.Result.NoResult
+            IconLoader.Result.NoResult
         }
     }
 
     private fun shouldDownload(resource: IconRequest.Resource): Boolean {
-        return resource.url.toUri().isHttpOrHttps && !failureCache.hasFailedRecently(resource.url)
+        return resource.url.sanitizeURL().toUri().isHttpOrHttps && !failureCache.hasFailedRecently(resource.url)
     }
 }
 

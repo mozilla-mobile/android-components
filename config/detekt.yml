@@ -53,7 +53,7 @@ complexity:
     includeStaticDeclarations: false
   ComplexMethod:
     active: true
-    threshold: 10
+    threshold: 18
     ignoreSingleWhenExpression: true
   LabeledExpression:
     active: false
@@ -84,10 +84,10 @@ complexity:
     ignoreStringsRegex: '$^'
   TooManyFunctions:
     active: true
-    thresholdInFiles: 11
-    thresholdInClasses: 11
-    thresholdInInterfaces: 11
-    thresholdInObjects: 11
+    thresholdInFiles: 26
+    thresholdInClasses: 26
+    thresholdInInterfaces: 26
+    thresholdInObjects: 26
     thresholdInEnums: 11
 
 empty-blocks:
@@ -298,7 +298,7 @@ style:
     active: true
     maxLineLength: 120
     excludePackageStatements: false
-    excludeImportStatements: false
+    excludeImportStatements: true
   MayBeConst:
     active: true
   ModifierOrder:

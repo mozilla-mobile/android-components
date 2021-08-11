@@ -5,11 +5,11 @@
 package mozilla.components.support.migration
 
 import android.content.Context
-import mozilla.components.browser.search.SearchEngineManager
+import mozilla.components.browser.state.action.SearchAction
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.base.log.logger.Logger
 
 private const val PREF_FENNEC_DEFAULT_ENGINE_KEY = "search.engines.defaultname"
-private const val PREF_FENIX_DEFAULT_ENGINE_KEY = "pref_key_search_engine"
 
 /**
  * Implementation for migrating the default search engine from Fennec to Fenix.
@@ -27,26 +27,26 @@ internal object SearchEngineMigration {
      */
     suspend fun migrate(
         context: Context,
-        searchEngineManager: SearchEngineManager
+        store: BrowserStore
     ): Result<SearchEngineMigrationResult> {
         val fennecSearchEngine = retrieveFennecDefaultSearchEngineName(context)
         if (fennecSearchEngine == null) {
             logger.debug("Could not locate Fennec search engine preference")
             return Result.Failure(
-                SearchEngineMigrationException(SearchEngineMigrationResult.Failure.NoDefault))
+                SearchEngineMigrationException(SearchEngineMigrationResult.Failure.NoDefault)
+            )
         }
 
         logger.debug("Found search engine from Fennec: $fennecSearchEngine")
 
-        return determineNewDefault(context, searchEngineManager, fennecSearchEngine)
+        return determineNewDefault(store, fennecSearchEngine)
     }
 
     private suspend fun determineNewDefault(
-        context: Context,
-        searchEngineManager: SearchEngineManager,
+        store: BrowserStore,
         name: String
     ): Result<SearchEngineMigrationResult> {
-        val searchEngines = searchEngineManager.getSearchEnginesAsync(context)
+        val searchEngines = store.state.search.regionSearchEngines
 
         logger.debug("Got ${searchEngines.size} search engines from SearchEngineManager.")
 
@@ -60,25 +60,22 @@ internal object SearchEngineMigration {
             if (engine.name.contains(name, ignoreCase = true)) {
                 logger.debug("Setting new default: ${engine.name}")
 
-                val fenixPreferences = context.getSharedPreferences(
-                    FennecSettingsMigration.FENIX_SHARED_PREFS_NAME,
-                    Context.MODE_PRIVATE
+                store.dispatch(
+                    SearchAction.SelectSearchEngineAction(
+                        engine.id, engine.name
+                    )
                 )
-
-                fenixPreferences.edit()
-                    .putString(PREF_FENIX_DEFAULT_ENGINE_KEY, engine.name)
-                    .apply()
-
-                searchEngineManager.defaultSearchEngine = engine
 
                 return Result.Success(SearchEngineMigrationResult.Success.SearchEngineMigrated)
             }
         }
 
         logger.debug("Could not find matching search engine")
-        return Result.Failure(SearchEngineMigrationException(
-            SearchEngineMigrationResult.Failure.NoMatch
-        ))
+        return Result.Failure(
+            SearchEngineMigrationException(
+                SearchEngineMigrationResult.Failure.NoMatch
+            )
+        )
     }
 
     private fun retrieveFennecDefaultSearchEngineName(context: Context): String? {

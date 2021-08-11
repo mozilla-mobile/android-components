@@ -6,19 +6,35 @@
 
 /* globals AboutCompatBroker, AVAILABLE_INJECTIONS, AVAILABLE_SHIMS,
            AVAILABLE_PIP_OVERRIDES, AVAILABLE_UA_OVERRIDES, CUSTOM_FUNCTIONS,
-           Injections, PictureInPictureOverrides, Shims, UAOverrides */
+           Injections, Shims, UAOverrides */
 
-const injections = new Injections(AVAILABLE_INJECTIONS, CUSTOM_FUNCTIONS);
-const uaOverrides = new UAOverrides(AVAILABLE_UA_OVERRIDES);
-const pipOverrides = new PictureInPictureOverrides(AVAILABLE_PIP_OVERRIDES);
-const shims = new Shims(AVAILABLE_SHIMS);
+let injections, uaOverrides;
 
-const aboutCompatBroker = new AboutCompatBroker({
-  injections,
-  uaOverrides,
-});
+try {
+  injections = new Injections(AVAILABLE_INJECTIONS, CUSTOM_FUNCTIONS);
+  injections.bootup();
+} catch (e) {
+  console.error("Injections failed to start", e);
+  injections = undefined;
+}
 
-aboutCompatBroker.bootup();
-injections.bootup();
-uaOverrides.bootup();
-pipOverrides.bootup();
+try {
+  uaOverrides = new UAOverrides(AVAILABLE_UA_OVERRIDES);
+  uaOverrides.bootup();
+} catch (e) {
+  console.error("UA overrides failed to start", e);
+  uaOverrides = undefined;
+}
+
+try {
+  const aboutCompatBroker = new AboutCompatBroker({ injections, uaOverrides });
+  aboutCompatBroker.bootup();
+} catch (e) {
+  console.error("about:compat broker failed to start", e);
+}
+
+try {
+  new Shims(AVAILABLE_SHIMS);
+} catch (e) {
+  console.error("Shims failed to start", e);
+}

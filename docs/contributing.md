@@ -12,8 +12,8 @@ Before contributing, please review our [Community Participation Guidelines](http
 
 ## Docs
 
-* [Contributing to Mozilla Mobile's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/master/android/CONTRIBUTING.md)
-* [Contributing code to Mozilla's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/master/android/CONTRIBUTING_code.md)
+* [Contributing to Mozilla Mobile's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/main/android/CONTRIBUTING.md)
+* [Contributing code to Mozilla's Android projects](https://github.com/mozilla-mobile/shared-docs/blob/main/android/CONTRIBUTING_code.md)
 
 ### Project
 
@@ -33,6 +33,7 @@ Before contributing, please review our [Community Participation Guidelines](http
 * [Deprecating components and code]({{ site.baseurl }}/contributing/deprecating)
 * [Merge day process]({{ site.baseurl }}/contributing/merge-day)
 * [Updating the tracking protection lists process]({{ site.baseurl }}/contributing/update-tracking-protection-list)
+* [Updating to a newer Application Services]({{ site.baseurl }}/contributing/app-services-upgrades)
 
 ### Accepted RFCs
 
@@ -42,6 +43,7 @@ Before contributing, please review our [Community Participation Guidelines](http
 * [0004 - Introducing a Top Sites Feature]({{ site.baseurl }}/rfc/0004-top-sites-feature)
 * [0005 - Migrate feature-sitepermissions to be compatible with the new GeckoView permission API]({{ site.baseurl }}/rfc/0005-migrate-sitepermission-ac-store-geckoview-store)
 * [0006 - Determining the set of default search engines]({{ site.baseurl }}/rfc/0006-search-defaults)
+* [0007 - Synchronizing the branching and versioning of Android Components with the Mozilla release trains]({{ site.baseurl }}/rfc/0007-synchronized-releases)
 
 ### Presentations
 

@@ -9,8 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.setMain
+import mozilla.components.support.base.utils.NamedThreadFactory
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 import java.util.concurrent.Executors
@@ -18,14 +21,16 @@ import java.util.concurrent.Executors
 /**
  * Create single threaded dispatcher for test environment.
  */
-fun createTestCoroutinesDispatcher(): CoroutineDispatcher =
-    Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+@Deprecated("Use `TestCoroutineDispatcher()` from the kotlinx-coroutines-test library", ReplaceWith("TestCoroutineDispatcher()"))
+fun createTestCoroutinesDispatcher(): CoroutineDispatcher = Executors.newSingleThreadExecutor(
+    NamedThreadFactory("TestCoroutinesDispatcher")
+).asCoroutineDispatcher()
 
 /**
  * JUnit rule to change Dispatchers.Main in coroutines.
  */
 @ExperimentalCoroutinesApi
-class MainCoroutineRule(val testDispatcher: CoroutineDispatcher = createTestCoroutinesDispatcher()) : TestWatcher() {
+class MainCoroutineRule(val testDispatcher: TestCoroutineDispatcher = TestCoroutineDispatcher()) : TestWatcher() {
 
     override fun starting(description: Description?) {
         super.starting(description)
@@ -36,7 +41,26 @@ class MainCoroutineRule(val testDispatcher: CoroutineDispatcher = createTestCoro
         super.finished(description)
         Dispatchers.resetMain()
 
-        // If a TestCoroutineDispatcher was used, call its cleanup method
-        (testDispatcher as? TestCoroutineDispatcher)?.cleanupTestCoroutines()
+        testDispatcher.cleanupTestCoroutines()
+    }
+
+    /**
+     * Convenience function to access [testDispatcher]'s [TestCoroutineDispatcher.runBlockingTest],
+     * e.g. instead of:
+     * ```
+     * fun testCode() = mainCoroutineRule.testDispatcher.runBlockingTest { ... }
+     * ```
+     *
+     * you can run:
+     * ```
+     * fun testCode() = mainCoroutineRule.runBlockingTest { ... }
+     * ```
+     *
+     * Note: using [TestCoroutineDispatcher.runBlockingTest] is preferred over using the global
+     * [runBlockingTest] because new coroutines created inside it will automatically be reparented
+     * to the test coroutine context.
+     */
+    fun runBlockingTest(testBlock: suspend TestCoroutineScope.() -> Unit) {
+        testDispatcher.runBlockingTest(testBlock)
     }
 }

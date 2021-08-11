@@ -9,13 +9,15 @@ import android.content.DialogInterface.BUTTON_POSITIVE
 import android.widget.CheckBox
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.R.id
+import mozilla.components.support.test.ext.appCompatContext
 import mozilla.components.support.test.mock
-import mozilla.ext.appCompatContext
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,6 +43,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 true,
@@ -58,20 +61,21 @@ class MultiButtonDialogFragmentTest {
         dialog.show()
 
         val titleTextView = dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)
-        val messageTextView = dialog.findViewById<TextView>(android.R.id.message)
-        val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
+        val messageTextView = dialog.findViewById<TextView>(R.id.message)
+        val checkBox = dialog.findViewById<CheckBox>(id.mozac_feature_prompts_no_more_dialogs_check_box)
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         val negativeButton = (dialog).getButton(DialogInterface.BUTTON_NEGATIVE)
         val neutralButton = (dialog).getButton(DialogInterface.BUTTON_NEUTRAL)
 
         assertEquals(fragment.sessionId, "sessionId")
+        assertEquals(fragment.promptRequestUID, "uid")
         assertEquals(fragment.message, "message")
         assertEquals(fragment.hasShownManyDialogs, true)
 
         assertEquals(titleTextView.text, "title")
         assertEquals(fragment.title, "title")
-        assertEquals(messageTextView.text, "message")
-        assertNotNull(checkBox)
+        assertEquals(messageTextView.text.toString(), "message")
+        assertTrue(checkBox.isVisible)
 
         assertEquals(positiveButton.text, "positiveButton")
         assertEquals(negativeButton.text, "negativeButton")
@@ -84,6 +88,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 false,
@@ -100,9 +105,9 @@ class MultiButtonDialogFragmentTest {
 
         dialog.show()
 
-        val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
+        val checkBox = dialog.findViewById<CheckBox>(id.mozac_feature_prompts_no_more_dialogs_check_box)
 
-        assertNull(checkBox)
+        assertFalse(checkBox.isVisible)
     }
 
     @Test
@@ -111,6 +116,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 false,
@@ -129,7 +135,7 @@ class MultiButtonDialogFragmentTest {
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", false to MultiButtonDialogFragment.ButtonType.POSITIVE)
+        verify(mockFeature).onConfirm("sessionId", "uid", false to MultiButtonDialogFragment.ButtonType.POSITIVE)
     }
 
     @Test
@@ -138,6 +144,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 false,
@@ -156,7 +163,7 @@ class MultiButtonDialogFragmentTest {
         val negativeButton = (dialog as AlertDialog).getButton(DialogInterface.BUTTON_NEGATIVE)
         negativeButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", false to MultiButtonDialogFragment.ButtonType.NEGATIVE)
+        verify(mockFeature).onConfirm("sessionId", "uid", false to MultiButtonDialogFragment.ButtonType.NEGATIVE)
     }
 
     @Test
@@ -165,6 +172,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 false,
@@ -183,7 +191,7 @@ class MultiButtonDialogFragmentTest {
         val neutralButton = (dialog as AlertDialog).getButton(DialogInterface.BUTTON_NEUTRAL)
         neutralButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", false to MultiButtonDialogFragment.ButtonType.NEUTRAL)
+        verify(mockFeature).onConfirm("sessionId", "uid", false to MultiButtonDialogFragment.ButtonType.NEUTRAL)
     }
 
     @Test
@@ -192,6 +200,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 true,
@@ -207,14 +216,14 @@ class MultiButtonDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
-        val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
+        val checkBox = dialog.findViewById<CheckBox>(id.mozac_feature_prompts_no_more_dialogs_check_box)
 
         checkBox.isChecked = true
 
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", true to MultiButtonDialogFragment.ButtonType.POSITIVE)
+        verify(mockFeature).onConfirm("sessionId", "uid", true to MultiButtonDialogFragment.ButtonType.POSITIVE)
     }
 
     @Test
@@ -222,6 +231,7 @@ class MultiButtonDialogFragmentTest {
         val fragment = spy(
             MultiButtonDialogFragment.newInstance(
                 "sessionId",
+                "uid",
                 "title",
                 "message",
                 true,
@@ -236,6 +246,6 @@ class MultiButtonDialogFragmentTest {
 
         fragment.onCancel(mock())
 
-        verify(mockFeature).onCancel("sessionId")
+        verify(mockFeature).onCancel("sessionId", "uid")
     }
 }

@@ -20,6 +20,7 @@ import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.Point
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraAccessException
@@ -28,8 +29,11 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.OutputConfiguration
+import android.hardware.camera2.params.SessionConfiguration
 import android.media.Image
 import android.media.ImageReader
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -40,14 +44,16 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat.getColor
 import androidx.fragment.app.Fragment
 import com.google.zxing.BinaryBitmap
+import com.google.zxing.LuminanceSource
 import com.google.zxing.MultiFormatReader
-import com.google.zxing.NotFoundException
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import kotlinx.coroutines.CoroutineScope
@@ -59,9 +65,11 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.hasCamera
 import java.io.Serializable
 import java.util.ArrayList
-import java.util.Arrays
 import java.util.Collections
 import java.util.Comparator
+import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
@@ -75,7 +83,7 @@ import kotlin.math.min
  * https://github.com/googlesamples/android-Camera2Basic
  * https://github.com/kismkof/camera2basic
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("LargeClass")
 class QrFragment : Fragment() {
     private val logger = Logger("mozac-qr")
     @VisibleForTesting
@@ -171,6 +179,8 @@ class QrFragment : Fragment() {
      */
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
+    @VisibleForTesting
+    internal var backgroundExecutor: ExecutorService? = null
     private var previewRequestBuilder: CaptureRequest.Builder? = null
     private var previewRequest: CaptureRequest? = null
 
@@ -199,12 +209,11 @@ class QrFragment : Fragment() {
                 val availableImage = image
                 if (availableImage != null && scanCompleteListener != null) {
                     val source = readImageSource(availableImage)
-                    val bitmap = BinaryBitmap(HybridBinarizer(source))
                     if (qrState == STATE_FIND_QRCODE) {
                         qrState = STATE_DECODE_PROGRESS
 
                         coroutineScope.launch {
-                            tryScanningBitmap(bitmap)
+                            tryScanningSource(source)
                         }
                     }
                 }
@@ -230,6 +239,9 @@ class QrFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         startBackgroundThread()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            startExecutorService()
+        }
         // When the screen is turned off and turned back on, the SurfaceTexture is already
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
@@ -244,6 +256,7 @@ class QrFragment : Fragment() {
     override fun onPause() {
         closeCamera()
         stopBackgroundThread()
+        stopExecutorService()
         super.onPause()
     }
 
@@ -272,6 +285,15 @@ class QrFragment : Fragment() {
         }
     }
 
+    internal fun startExecutorService() {
+        backgroundExecutor = Executors.newSingleThreadExecutor()
+    }
+
+    internal fun stopExecutorService() {
+        backgroundExecutor?.shutdownNow()
+        backgroundExecutor = null
+    }
+
     /**
      * Sets up member variables related to camera.
      *
@@ -280,6 +302,8 @@ class QrFragment : Fragment() {
      */
     @Suppress("ComplexMethod")
     internal fun setUpCameraOutputs(width: Int, height: Int) {
+        val displayRotation = getScreenRotation()
+
         val manager = activity?.getSystemService(Context.CAMERA_SERVICE) as CameraManager? ?: return
 
         for (cameraId in manager.cameraIdList) {
@@ -290,13 +314,13 @@ class QrFragment : Fragment() {
                 continue
             }
 
-            val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: continue
+            val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                ?: continue
             val largest = Collections.max(map.getOutputSizes(ImageFormat.YUV_420_888).asList(), CompareSizesByArea())
             imageReader = ImageReader.newInstance(MAX_PREVIEW_WIDTH, MAX_PREVIEW_HEIGHT, ImageFormat.YUV_420_888, 2)
-                    .apply { setOnImageAvailableListener(imageAvailableListener, backgroundHandler) }
+                .apply { setOnImageAvailableListener(imageAvailableListener, backgroundHandler) }
 
             // Find out if we need to swap dimension to get the preview size relative to sensor coordinate.
-            val displayRotation = activity?.windowManager?.defaultDisplay?.rotation
 
             sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) as Int
 
@@ -307,8 +331,8 @@ class QrFragment : Fragment() {
                 else -> false
             }
 
-            val displaySize = Point()
-            activity?.windowManager?.defaultDisplay?.getSize(displaySize)
+            val displaySize = activity?.windowManager?.getDisplaySize() ?: Point()
+
             var rotatedPreviewWidth = width
             var rotatedPreviewHeight = height
             var maxPreviewWidth = displaySize.x
@@ -324,9 +348,11 @@ class QrFragment : Fragment() {
             maxPreviewWidth = min(maxPreviewWidth, MAX_PREVIEW_WIDTH)
             maxPreviewHeight = min(maxPreviewHeight, MAX_PREVIEW_HEIGHT)
 
-            val optimalSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture::class.java),
+            val optimalSize = chooseOptimalSize(
+                map.getOutputSizes(SurfaceTexture::class.java),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                maxPreviewHeight, largest)
+                maxPreviewHeight, largest
+            )
 
             adjustPreviewSize(optimalSize)
             this.cameraId = cameraId
@@ -422,10 +448,11 @@ class QrFragment : Fragment() {
      * @param viewWidth The width of `textureView`
      * @param viewHeight The height of `textureView`
      */
-    private fun configureTransform(viewWidth: Int, viewHeight: Int) {
-        val activity = activity ?: return
+    @VisibleForTesting
+    internal fun configureTransform(viewWidth: Int, viewHeight: Int) {
         val size = previewSize ?: return
-        val rotation = activity.windowManager.defaultDisplay.rotation
+
+        val rotation = getScreenRotation()
         val matrix = Matrix()
         val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
         val bufferRect = RectF(0f, 0f, size.height.toFloat(), size.width.toFloat())
@@ -454,7 +481,7 @@ class QrFragment : Fragment() {
 
         val size = previewSize as Size
         // We configure the size of default buffer to be the size of camera preview we want.
-        texture.setDefaultBufferSize(size.width, size.height)
+        texture?.setDefaultBufferSize(size.width, size.height)
 
         val surface = Surface(texture)
         val mImageSurface = imageReader?.surface
@@ -471,8 +498,10 @@ class QrFragment : Fragment() {
                     override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                         if (null == cameraDevice) return
 
-                        previewRequestBuilder?.set(CaptureRequest.CONTROL_AF_MODE,
-                                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+                        previewRequestBuilder?.set(
+                            CaptureRequest.CONTROL_AF_MODE,
+                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+                        )
 
                         previewRequest = previewRequestBuilder?.build()
                         captureSession = cameraCaptureSession
@@ -490,11 +519,37 @@ class QrFragment : Fragment() {
                         logger.error("Failed to configure CameraCaptureSession")
                     }
                 }
-
-                it.createCaptureSession(Arrays.asList(mImageSurface, surface), stateCallback, null)
+                createCaptureSessionCompat(it, mImageSurface as Surface, surface, stateCallback)
             }
         }
     }
+
+    @VisibleForTesting
+    internal fun createCaptureSessionCompat(
+        camera: CameraDevice,
+        imageSurface: Surface,
+        surface: Surface,
+        stateCallback: CameraCaptureSession.StateCallback
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (shouldStartExecutorService()) {
+                startExecutorService()
+            }
+            val sessionConfig = SessionConfiguration(
+                SessionConfiguration.SESSION_REGULAR,
+                listOf(OutputConfiguration(imageSurface), OutputConfiguration(surface)),
+                backgroundExecutor as Executor,
+                stateCallback
+            )
+            camera.createCaptureSession(sessionConfig)
+        } else {
+            @Suppress("DEPRECATION")
+            camera.createCaptureSession(listOf(imageSurface, surface), stateCallback, null)
+        }
+    }
+
+    @VisibleForTesting
+    internal fun shouldStartExecutorService(): Boolean = backgroundExecutor == null
 
     @Suppress("TooGenericExceptionCaught")
     private fun handleCaptureException(msg: String, block: () -> Unit) {
@@ -574,7 +629,8 @@ class QrFragment : Fragment() {
             val h = aspectRatio.height
             for (option in choices) {
                 if (option.width <= maxWidth && option.height <= maxHeight &&
-                        option.height == option.width * h / w) {
+                    option.height == option.width * h / w
+                ) {
                     if (option.width >= textureViewWidth && option.height >= textureViewHeight) {
                         bigEnough.add(option)
                     } else {
@@ -607,21 +663,21 @@ class QrFragment : Fragment() {
     }
 
     @VisibleForTesting
-    internal fun tryScanningBitmap(bitmap: BinaryBitmap) {
-        scanCompleteListener?.let {
-            decodeBitmap(bitmap)?.let {
-                scanCompleteListener?.onScanComplete(it)
-            }
+    internal fun tryScanningSource(source: LuminanceSource) {
+        if (qrState != STATE_DECODE_PROGRESS) {
+            return
+        }
+        val result = decodeSource(source) ?: decodeSource(source.invert())
+        result?.let {
+            scanCompleteListener?.onScanComplete(it)
         }
     }
 
     @VisibleForTesting
-    internal fun decodeBitmap(bitmap: BinaryBitmap): String? {
-        if (qrState != STATE_DECODE_PROGRESS) {
-            return null
-        }
-
+    @Suppress("TooGenericExceptionCaught")
+    internal fun decodeSource(source: LuminanceSource): String? {
         return try {
+            val bitmap = createBinaryBitmap(source)
             val rawResult = multiFormatReader.decodeWithState(bitmap)
             if (rawResult != null) {
                 qrState = STATE_QRCODE_EXIST
@@ -630,11 +686,58 @@ class QrFragment : Fragment() {
                 qrState = STATE_FIND_QRCODE
                 null
             }
-        } catch (e: NotFoundException) {
+        } catch (e: Exception) {
             qrState = STATE_FIND_QRCODE
             null
         } finally {
             multiFormatReader.reset()
         }
     }
+
+    @VisibleForTesting
+    internal fun createBinaryBitmap(source: LuminanceSource) =
+        BinaryBitmap(HybridBinarizer(source))
+
+    /**
+     * Returns the screen rotation
+     *
+     * @return the actual rotation of the device is one of these values:
+     *  [Surface.ROTATION_0], [Surface.ROTATION_90], [Surface.ROTATION_180], [Surface.ROTATION_270]
+     */
+    @VisibleForTesting
+    internal fun getScreenRotation(): Int? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            this.context?.display?.rotation
+        } else {
+            @Suppress("DEPRECATION")
+            activity?.windowManager?.defaultDisplay?.rotation
+        }
+    }
+}
+
+/**
+ * Returns the size of the display, in pixels.
+ */
+@VisibleForTesting
+internal fun WindowManager.getDisplaySize(): Point {
+    val size = Point()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        // Tests for this branch will be added after
+        // https://github.com/mozilla-mobile/android-components/issues/9684 is implemented.
+        val windowMetrics = this.currentWindowMetrics
+        val windowInsets: WindowInsets = windowMetrics.windowInsets
+
+        val insets = windowInsets.getInsetsIgnoringVisibility(
+            WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+        )
+        val insetsWidth = insets.right + insets.left
+        val insetsHeight = insets.top + insets.bottom
+
+        val bounds: Rect = windowMetrics.bounds
+        size.set(bounds.width() - insetsWidth, bounds.height() - insetsHeight)
+    } else {
+        @Suppress("DEPRECATION")
+        this.defaultDisplay.getSize(size)
+    }
+    return size
 }

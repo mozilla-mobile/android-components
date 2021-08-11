@@ -4,57 +4,59 @@
 
 package mozilla.components.ui.tabcounter
 
+import android.content.res.ColorStateList
+import android.view.LayoutInflater
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.ui.tabcounter.TabCounter.Companion.ONE_DIGIT_SIZE_RATIO
 import mozilla.components.ui.tabcounter.TabCounter.Companion.SO_MANY_TABS_OPEN
-import mozilla.components.ui.tabcounter.TabCounter.Companion.TWO_DIGITS_SIZE_RATIO
+import mozilla.components.ui.tabcounter.databinding.MozacUiTabcounterLayoutBinding
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class TabCounterTest {
 
-    @Test
-    fun `Default tab count is 0`() {
-        val tabCounter = TabCounter(testContext)
+    private lateinit var tabCounter: TabCounter
+    private lateinit var binding: MozacUiTabcounterLayoutBinding
 
-        assertEquals("0", tabCounter.getText())
-
-        assertEquals(ONE_DIGIT_SIZE_RATIO, tabCounter.currentTextRatio)
+    @Before
+    fun setUp() {
+        tabCounter = TabCounter(testContext)
+        binding =
+            MozacUiTabcounterLayoutBinding.inflate(LayoutInflater.from(testContext), tabCounter)
     }
 
     @Test
-    fun `Set tab count as 1`() {
-        val tabCounter = TabCounter(testContext)
+    fun `Default tab count is set to zero`() {
+        assertEquals("0", binding.counterText.text)
+    }
 
+    @Test
+    fun `Set tab count as single digit value shows count`() {
         tabCounter.setCount(1)
-
-        assertEquals("1", tabCounter.getText())
-
-        assertEquals(ONE_DIGIT_SIZE_RATIO, tabCounter.currentTextRatio)
+        assertEquals("1", binding.counterText.text)
     }
 
     @Test
-    fun `Set tab count as 99`() {
-        val tabCounter = TabCounter(testContext)
-
+    fun `Set tab count as two digit number shows count`() {
         tabCounter.setCount(99)
-
-        assertEquals("99", tabCounter.getText())
-
-        assertEquals(TWO_DIGITS_SIZE_RATIO, tabCounter.currentTextRatio)
+        assertEquals("99", binding.counterText.text)
     }
 
     @Test
-    fun `Set tab count as 100`() {
-        val tabCounter = TabCounter(testContext)
-
+    fun `Setting tab count as three digit value shows correct icon`() {
         tabCounter.setCount(100)
+        assertEquals(SO_MANY_TABS_OPEN, binding.counterText.text)
+    }
 
-        assertEquals(SO_MANY_TABS_OPEN, tabCounter.getText())
+    @Test
+    fun `Setting tab color shows correct icon`() {
+        val colorStateList: ColorStateList = mock()
 
-        assertEquals(ONE_DIGIT_SIZE_RATIO, tabCounter.currentTextRatio)
+        tabCounter.setColor(colorStateList)
+        assertEquals(binding.counterText.textColors, colorStateList)
     }
 }

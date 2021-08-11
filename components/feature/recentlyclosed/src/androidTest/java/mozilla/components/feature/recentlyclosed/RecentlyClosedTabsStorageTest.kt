@@ -6,6 +6,7 @@ package mozilla.components.feature.recentlyclosed
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.JsonReader
 import android.util.JsonWriter
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.room.Room
@@ -15,14 +16,14 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.runBlockingTest
-import mozilla.components.browser.state.state.ClosedTabSessionState
+import mozilla.components.browser.state.state.recover.RecoverableTab
+import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
-import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.feature.recentlyclosed.db.RecentlyClosedTabEntity
 import mozilla.components.feature.recentlyclosed.db.RecentlyClosedTabsDatabase
@@ -73,19 +74,19 @@ class RecentlyClosedTabsStorageTest {
     @Test
     fun testAddingTabsWithMax() = runBlockingTest {
         // Test tab
-        val closedTab = ClosedTabSessionState(
+        val closedTab = RecoverableTab(
             id = "first-tab",
             title = "Mozilla",
             url = "https://mozilla.org",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         // Test tab
-        val secondClosedTab = ClosedTabSessionState(
+        val secondClosedTab = RecoverableTab(
             id = "second-tab",
             title = "Pocket",
             url = "https://pocket.com",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         storage.addTabsToCollectionWithMax(listOf(closedTab, secondClosedTab), 1)
@@ -97,14 +98,14 @@ class RecentlyClosedTabsStorageTest {
         Assert.assertEquals(1, tabs.size)
         Assert.assertEquals(secondClosedTab.url, tabs[0].url)
         Assert.assertEquals(secondClosedTab.title, tabs[0].title)
-        Assert.assertEquals(secondClosedTab.createdAt, tabs[0].createdAt)
+        Assert.assertEquals(secondClosedTab.lastAccess, tabs[0].lastAccess)
 
         // Test tab
-        val thirdClosedTab = ClosedTabSessionState(
+        val thirdClosedTab = RecoverableTab(
             id = "third-tab",
             title = "Firefox",
             url = "https://firefox.com",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         storage.addTabsToCollectionWithMax(listOf(thirdClosedTab), 1)
@@ -116,25 +117,50 @@ class RecentlyClosedTabsStorageTest {
         Assert.assertEquals(1, newTabs.size)
         Assert.assertEquals(thirdClosedTab.url, newTabs[0].url)
         Assert.assertEquals(thirdClosedTab.title, newTabs[0].title)
-        Assert.assertEquals(thirdClosedTab.createdAt, newTabs[0].createdAt)
+        Assert.assertEquals(thirdClosedTab.lastAccess, newTabs[0].lastAccess)
+    }
+
+    @Test
+    fun testAllowAddingSameTabTwice() = runBlockingTest {
+        // Test tab
+        val closedTab = RecoverableTab(
+            id = "first-tab",
+            title = "Mozilla",
+            url = "https://mozilla.org",
+            lastAccess = System.currentTimeMillis()
+        )
+
+        storage.addTabsToCollectionWithMax(listOf(closedTab), 2)
+        dispatcher.advanceUntilIdle()
+
+        val updatedTab = closedTab.copy(title = "updated")
+        storage.addTabsToCollectionWithMax(listOf(updatedTab), 2)
+        dispatcher.advanceUntilIdle()
+
+        val tabs = storage.getTabs().first()
+
+        Assert.assertEquals(1, tabs.size)
+        Assert.assertEquals(updatedTab.url, tabs[0].url)
+        Assert.assertEquals(updatedTab.title, tabs[0].title)
+        Assert.assertEquals(updatedTab.lastAccess, tabs[0].lastAccess)
     }
 
     @Test
     fun testRemovingAllTabs() = runBlockingTest {
         // Test tab
-        val closedTab = ClosedTabSessionState(
+        val closedTab = RecoverableTab(
             id = "first-tab",
             title = "Mozilla",
             url = "https://mozilla.org",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         // Test tab
-        val secondClosedTab = ClosedTabSessionState(
+        val secondClosedTab = RecoverableTab(
             id = "second-tab",
             title = "Pocket",
             url = "https://pocket.com",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         storage.addTabsToCollectionWithMax(listOf(closedTab, secondClosedTab), 2)
@@ -146,10 +172,10 @@ class RecentlyClosedTabsStorageTest {
         Assert.assertEquals(2, tabs.size)
         Assert.assertEquals(closedTab.url, tabs[0].url)
         Assert.assertEquals(closedTab.title, tabs[0].title)
-        Assert.assertEquals(closedTab.createdAt, tabs[0].createdAt)
+        Assert.assertEquals(closedTab.lastAccess, tabs[0].lastAccess)
         Assert.assertEquals(secondClosedTab.url, tabs[1].url)
         Assert.assertEquals(secondClosedTab.title, tabs[1].title)
-        Assert.assertEquals(secondClosedTab.createdAt, tabs[1].createdAt)
+        Assert.assertEquals(secondClosedTab.lastAccess, tabs[1].lastAccess)
 
         storage.removeAllTabs()
 
@@ -163,19 +189,19 @@ class RecentlyClosedTabsStorageTest {
     @Test
     fun testRemovingOneTab() = runBlockingTest {
         // Test tab
-        val closedTab = ClosedTabSessionState(
+        val closedTab = RecoverableTab(
             id = "first-tab",
             title = "Mozilla",
             url = "https://mozilla.org",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         // Test tab
-        val secondClosedTab = ClosedTabSessionState(
+        val secondClosedTab = RecoverableTab(
             id = "second-tab",
             title = "Pocket",
             url = "https://pocket.com",
-            createdAt = System.currentTimeMillis()
+            lastAccess = System.currentTimeMillis()
         )
 
         storage.addTabState(closedTab)
@@ -188,10 +214,10 @@ class RecentlyClosedTabsStorageTest {
         Assert.assertEquals(2, tabs.size)
         Assert.assertEquals(closedTab.url, tabs[0].url)
         Assert.assertEquals(closedTab.title, tabs[0].title)
-        Assert.assertEquals(closedTab.createdAt, tabs[0].createdAt)
+        Assert.assertEquals(closedTab.lastAccess, tabs[0].lastAccess)
         Assert.assertEquals(secondClosedTab.url, tabs[1].url)
         Assert.assertEquals(secondClosedTab.title, tabs[1].title)
-        Assert.assertEquals(secondClosedTab.createdAt, tabs[1].createdAt)
+        Assert.assertEquals(secondClosedTab.lastAccess, tabs[1].lastAccess)
 
         storage.removeTab(tabs[0])
 
@@ -202,7 +228,7 @@ class RecentlyClosedTabsStorageTest {
         Assert.assertEquals(1, newTabs.size)
         Assert.assertEquals(secondClosedTab.url, newTabs[0].url)
         Assert.assertEquals(secondClosedTab.title, newTabs[0].title)
-        Assert.assertEquals(secondClosedTab.createdAt, newTabs[0].createdAt)
+        Assert.assertEquals(secondClosedTab.lastAccess, newTabs[0].lastAccess)
     }
 
     class FakeEngine : Engine {
@@ -216,6 +242,12 @@ class RecentlyClosedTabsStorageTest {
             throw UnsupportedOperationException()
 
         override fun createSessionState(json: JSONObject) = FakeEngineSessionState()
+
+        override fun createSessionStateFrom(reader: JsonReader): EngineSessionState {
+            reader.beginObject()
+            reader.endObject()
+            return FakeEngineSessionState()
+        }
 
         override fun name(): String =
             throw UnsupportedOperationException()
@@ -234,6 +266,5 @@ class RecentlyClosedTabsStorageTest {
             writer.beginObject()
             writer.endObject()
         }
-        override fun toJSON() = JSONObject()
     }
 }

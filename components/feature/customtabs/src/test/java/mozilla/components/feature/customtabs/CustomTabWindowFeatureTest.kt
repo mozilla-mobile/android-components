@@ -10,7 +10,6 @@ import android.graphics.Color
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
@@ -38,7 +37,7 @@ import org.mockito.Mockito.verifyZeroInteractions
 class CustomTabWindowFeatureTest {
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(TestCoroutineDispatcher())
+    val coroutinesTestRule = MainCoroutineRule()
 
     private lateinit var store: BrowserStore
     private val sessionId = "session-uuid"
@@ -49,11 +48,15 @@ class CustomTabWindowFeatureTest {
     fun setup() {
         activity = mock()
 
-        store = spy(BrowserStore(BrowserState(
-            customTabs = listOf(
-                createCustomTab(id = sessionId, url = "https://www.mozilla.org")
+        store = spy(
+            BrowserStore(
+                BrowserState(
+                    customTabs = listOf(
+                        createCustomTab(id = sessionId, url = "https://www.mozilla.org")
+                    )
+                )
             )
-        )))
+        )
 
         whenever(activity.packageName).thenReturn("org.mozilla.firefox")
     }
@@ -95,7 +98,7 @@ class CustomTabWindowFeatureTest {
 
         val newConfig = createCustomTabConfigFromIntent(intent.intent, null)
         assertEquals("org.mozilla.firefox", intent.intent.`package`)
-        assertEqualConfigs(config, newConfig)
+        assertEquals(config, newConfig)
     }
 
     @Test
@@ -112,7 +115,7 @@ class CustomTabWindowFeatureTest {
 
         val newConfig = createCustomTabConfigFromIntent(intent.intent, null)
         assertEquals("org.mozilla.firefox", intent.intent.`package`)
-        assertEqualConfigs(config, newConfig)
+        assertEquals(config, newConfig)
     }
 
     @Test
@@ -134,7 +137,7 @@ class CustomTabWindowFeatureTest {
 
         val newConfig = createCustomTabConfigFromIntent(intent.intent, null)
         assertEquals("org.mozilla.firefox", intent.intent.`package`)
-        assertEqualConfigs(config, newConfig)
+        assertEquals(config, newConfig)
     }
 
     @Test
@@ -150,9 +153,5 @@ class CustomTabWindowFeatureTest {
         verify(activity, never()).startActivity(any(), any())
         verifyZeroInteractions(launchUrlFallback)
         verify(store, never()).dispatch(ContentAction.ConsumeWindowRequestAction(sessionId))
-    }
-
-    private fun assertEqualConfigs(expected: CustomTabConfig, actual: CustomTabConfig) {
-        assertEquals(expected.copy(id = ""), actual.copy(id = ""))
     }
 }

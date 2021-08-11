@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
 
 import datetime
 import re
@@ -45,13 +44,6 @@ def handle_coverage(config, tasks):
     for task in tasks:
         if task.pop('include-coverage', False):
             task['run']['gradlew'].insert(0, '-Pcoverage')
-            task['run']['post-gradlew'] = [['automation/taskcluster/action/upload_coverage_report.sh']]
-            task['run']['secrets'] = [{
-                'name': 'project/mobile/android-components/public-tokens',
-                'key': 'codecov',
-                'path': '.cc_token',
-            }]
-
         yield task
 
 
@@ -91,7 +83,7 @@ def get_nightly_version(config, version):
     try:
         _ = match.group()
     except AttributeError:
-        raise Exception('version {} does not follow semver'.format(version))
+        raise Exception(f'version {version} does not follow semver')
     version_dict = match.groupdict()
     return '{}.{}.{}'.format(
             version_dict['major_number'],
@@ -119,12 +111,12 @@ def _deep_format(object, field, **format_kwargs):
     one_before_last_object = object
     object = object[last_key]
 
-    if isinstance(object, text_type):
+    if isinstance(object, str):
         one_before_last_object[last_key] = object.format(**format_kwargs)
     elif isinstance(object, list):
         one_before_last_object[last_key] = [item.format(**format_kwargs) for item in object]
     else:
-        raise ValueError('Unsupported type for object: {}'.format(object))
+        raise ValueError(f'Unsupported type for object: {object}')
 
 
 @transforms.add
@@ -140,7 +132,7 @@ def add_artifacts(config, tasks):
         component = task["attributes"]["component"]
         build_artifact_definitions = task.setdefault("worker", {}).setdefault("artifacts", [])
 
-        for key in ["tests-artifact-template", "lint-artifact-template", "text-artifact-template"]:
+        for key in ["tests-artifact-template", "lint-artifact-template", "text-artifact-template", "jacoco-coverage-template"]:
             if key in task:
                 optional_artifact_template = task.pop(key, {})
                 build_artifact_definitions.append({
@@ -169,7 +161,7 @@ def add_artifacts(config, tasks):
                     if version in path:
                         artifact_file_names_per_extension[ext] = path.replace(version, nightly_version)
 
-            for extension, artifact_file_name in artifact_file_names_per_extension.iteritems():
+            for extension, artifact_file_name in artifact_file_names_per_extension.items():
                 artifact_full_name = artifact_template["name"].format(
                     artifact_file_name=artifact_file_name,
                 )

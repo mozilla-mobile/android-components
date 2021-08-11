@@ -16,10 +16,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.components.browser.thumbnails.R
 import mozilla.components.browser.thumbnails.utils.ThumbnailDiskCache
-import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.images.DesiredSize
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.concept.base.images.ImageSaveRequest
+import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.base.utils.NamedThreadFactory
+import mozilla.components.support.images.DesiredSize
 import mozilla.components.support.images.decoder.AndroidImageDecoder
 import java.util.concurrent.Executors
 
@@ -35,8 +36,10 @@ internal val sharedDiskCache = ThumbnailDiskCache()
  */
 class ThumbnailStorage(
     private val context: Context,
-    jobDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(THREADS)
-        .asCoroutineDispatcher()
+    jobDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(
+        THREADS,
+        NamedThreadFactory("ThumbnailStorage")
+    ).asCoroutineDispatcher()
 ) {
     private val decoders = AndroidImageDecoder()
     private val logger = Logger("ThumbnailStorage")
@@ -83,6 +86,7 @@ class ThumbnailStorage(
     private fun loadThumbnailInternal(request: ImageLoadRequest): Bitmap? {
         val desiredSize = DesiredSize(
             targetSize = request.size,
+            minSize = request.size,
             maxSize = maximumSize,
             maxScaleFactor = MAXIMUM_SCALE_FACTOR
         )

@@ -6,14 +6,17 @@ package mozilla.components.concept.toolbar
 
 import android.graphics.drawable.Drawable
 import android.view.View
+import android.view.View.NO_ID
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import androidx.annotation.ColorRes
 import androidx.annotation.Dimension
 import androidx.annotation.Dimension.DP
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.content.ContextCompat
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.setPadding
@@ -22,7 +25,6 @@ import java.lang.ref.WeakReference
 /**
  * Interface to be implemented by components that provide browser toolbar functionality.
  */
-@Suppress("TooManyFunctions")
 interface Toolbar {
     /**
      * Sets/Gets the title to be displayed on the toolbar.
@@ -46,6 +48,11 @@ interface Toolbar {
      * Sets/Gets the site security to be displayed on the toolbar.
      */
     var siteSecure: SiteSecurity
+
+    /**
+     * Sets/Gets the highlight icon to be displayed on the toolbar.
+     */
+    var highlight: Highlight
 
     /**
      * Sets/Gets the site tracking protection state to be displayed on the toolbar.
@@ -163,6 +170,24 @@ interface Toolbar {
     fun editMode()
 
     /**
+     * Dismisses the display toolbar popup menu
+     */
+    fun dismissMenu()
+
+    /**
+     * Enable scrolling of the dynamic toolbar. Restore this functionality after [disableScrolling] stopped it.
+     *
+     * The toolbar may have other intrinsic checks depending on which the toolbar will be animated or not.
+     */
+    fun enableScrolling()
+
+    /**
+     * Completely disable scrolling of the dynamic toolbar.
+     * Use [enableScrolling] to restore the functionality.
+     */
+    fun disableScrolling()
+
+    /**
      * Listener to be invoked when the user edits the URL.
      */
     interface OnEditListener {
@@ -206,23 +231,33 @@ interface Toolbar {
      * @param contentDescription The content description to use.
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param padding A optional custom padding.
+     * @param iconTintColorResource Optional ID of color resource to tint the icon.
+     * @param longClickListener Callback that will be invoked whenever the button is long-pressed.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
+    @Suppress("LongParameterList")
     open class ActionButton(
         val imageDrawable: Drawable? = null,
         val contentDescription: String,
         override val visible: () -> Boolean = { true },
         private val background: Int = 0,
         private val padding: Padding? = null,
+        @ColorRes val iconTintColorResource: Int = ViewGroup.NO_ID,
+        private val longClickListener: (() -> Unit)? = null,
         private val listener: () -> Unit
     ) : Action {
 
         override fun createView(parent: ViewGroup): View = AppCompatImageButton(parent.context).also { imageButton ->
             imageButton.setImageDrawable(imageDrawable)
             imageButton.contentDescription = contentDescription
+            imageButton.setTintResource(iconTintColorResource)
             imageButton.setOnClickListener { listener.invoke() }
+            imageButton.setOnLongClickListener {
+                longClickListener?.invoke()
+                true
+            }
+            imageButton.isLongClickable = longClickListener != null
 
-            @DrawableRes
             val backgroundResource = if (background == 0) {
                 parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
@@ -271,7 +306,6 @@ interface Toolbar {
 
             updateViewState()
 
-            @DrawableRes
             val backgroundResource = if (background == 0) {
                 parent.context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless)
             } else {
@@ -407,5 +441,25 @@ interface Toolbar {
          * Tracking protection has been disabled for all sites.
          */
         OFF_GLOBALLY,
+    }
+
+    /**
+     * Indicates the reason why a highlight icon is shown or hidden.
+     */
+    enum class Highlight {
+        /**
+         * The site has changed its permissions from their default values.
+         */
+        PERMISSIONS_CHANGED,
+        /**
+         * The site does not show a dot indicator.
+         */
+        NONE
+    }
+}
+
+private fun AppCompatImageButton.setTintResource(@ColorRes tintColorResource: Int) {
+    if (tintColorResource != NO_ID) {
+        imageTintList = ContextCompat.getColorStateList(context, tintColorResource)
     }
 }

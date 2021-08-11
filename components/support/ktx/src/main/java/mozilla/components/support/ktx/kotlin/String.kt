@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("TooManyFunctions")
-
 package mozilla.components.support.ktx.kotlin
 
 import mozilla.components.support.utils.URLStringUtils
@@ -75,9 +73,12 @@ fun String.toDate(format: String, locale: Locale = Locale.ROOT): Date {
 fun String.sha1(): String {
     val characters = "0123456789abcdef"
     val digest = MessageDigest.getInstance("SHA-1").digest(toByteArray())
-    return digest.joinToString(separator = "", transform = { byte ->
-        String(charArrayOf(characters[byte.toInt() shr 4 and 0x0f], characters[byte.toInt() and 0x0f]))
-    })
+    return digest.joinToString(
+        separator = "",
+        transform = { byte ->
+            String(charArrayOf(characters[byte.toInt() shr 4 and 0x0f], characters[byte.toInt() and 0x0f]))
+        }
+    )
 }
 
 /**
@@ -88,11 +89,11 @@ fun String.sha1(): String {
  */
 fun String.toDate(
     vararg possibleFormats: String = arrayOf(
-            "yyyy-MM-dd'T'HH:mm",
-            "yyyy-MM-dd",
-            "yyyy-'W'ww",
-            "yyyy-MM",
-            "HH:mm"
+        "yyyy-MM-dd'T'HH:mm",
+        "yyyy-MM-dd",
+        "yyyy-'W'ww",
+        "yyyy-MM",
+        "HH:mm"
     )
 ): Date? {
     possibleFormats.forEach {
@@ -135,6 +136,33 @@ fun String.isSameOriginAs(other: String): Boolean {
 }
 
 /**
+ * Returns an origin (protocol, host and port) from an URL string.
+ */
+fun String.getOrigin(): String? {
+    return try {
+        val url = URL(this)
+        val port = if (url.port == -1) url.defaultPort else url.port
+        URL(url.protocol, url.host, port, "").toString()
+    } catch (e: MalformedURLException) {
+        null
+    }
+}
+
+/**
+ * Returns an origin without the default port.
+ * For example for an input of "https://mozilla.org:443" you will get "https://mozilla.org".
+ */
+fun String.stripDefaultPort(): String {
+    return try {
+        val url = URL(this)
+        val port = if (url.port == url.defaultPort) -1 else url.port
+        URL(url.protocol, url.host, port, "").toString()
+    } catch (e: MalformedURLException) {
+        this
+    }
+}
+
+/**
  * Remove any unwanted character in url like spaces at the beginning or end.
  */
 fun String.sanitizeURL(): String {
@@ -146,7 +174,13 @@ fun String.sanitizeURL(): String {
  * For example for an input of "/../../../../../../directory/file.txt" you will get "file.txt"
  */
 fun String.sanitizeFileName(): String {
-    return this.substringAfterLast(File.separatorChar)
+    val file = File(this.substringAfterLast(File.separatorChar))
+    // Remove unwanted subsequent dots in the file name.
+    return if (file.extension.trim().isNotEmpty() && file.nameWithoutExtension.isNotEmpty()) {
+        file.name.replace("\\.\\.+".toRegex(), ".")
+    } else {
+        file.name.replace(".", "")
+    }
 }
 
 /**
@@ -173,3 +207,22 @@ fun String.urlEncode(): String {
 fun String.takeOrReplace(maximumLength: Int, replacement: String): String {
     return if (this.length > maximumLength) replacement else this
 }
+
+/**
+ * Returns the extension (without ".") declared in the mime type of this data url.
+ * In the event that this data url does not contain a mime type or image extension could be read
+ * for any reason [defaultExtension] will be returned
+ *
+ * @param defaultExtension default extension if one could not be read from the mime type. Default is "jpg".
+ */
+fun String.getDataUrlImageExtension(defaultExtension: String = "jpg"): String {
+    return ("data:image\\/([a-zA-Z0-9-.+]+).*").toRegex()
+        .find(this)?.groups?.get(1)?.value ?: defaultExtension
+}
+
+/**
+ * Returns this char sequence if it's not null or empty
+ * or the result of calling [defaultValue] function if the char sequence is null or empty.
+ */
+inline fun <C, R> C?.ifNullOrEmpty(defaultValue: () -> R): C where C : CharSequence, R : C =
+    if (isNullOrEmpty()) defaultValue() else this

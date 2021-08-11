@@ -4,6 +4,7 @@
 
 package mozilla.components.support.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -12,8 +13,8 @@ import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.VisibleForTesting
-import java.util.HashMap
 import androidx.core.net.toUri
+import java.util.HashMap
 
 /**
  * Helpful tools for dealing with other browsers on this device.
@@ -26,6 +27,7 @@ import androidx.core.net.toUri
  * val browsers = Browsers.forUrl(context, url)`
  * ```
  */
+@SuppressLint("QueryPermissionsNeeded") // Yes, this class needs the permission to read all packages
 class Browsers private constructor(
     context: Context,
     uri: Uri
@@ -126,10 +128,11 @@ class Browsers private constructor(
         get() =
             defaultBrowser != null && (
                 defaultBrowser.packageName == KnownBrowser.FIREFOX.packageName ||
-                defaultBrowser.packageName == KnownBrowser.FIREFOX_BETA.packageName ||
-                defaultBrowser.packageName == KnownBrowser.FIREFOX_AURORA.packageName ||
-                defaultBrowser.packageName == KnownBrowser.FIREFOX_NIGHTLY.packageName ||
-                defaultBrowser.packageName == KnownBrowser.FIREFOX_FDROID.packageName)
+                    defaultBrowser.packageName == KnownBrowser.FIREFOX_BETA.packageName ||
+                    defaultBrowser.packageName == KnownBrowser.FIREFOX_AURORA.packageName ||
+                    defaultBrowser.packageName == KnownBrowser.FIREFOX_NIGHTLY.packageName ||
+                    defaultBrowser.packageName == KnownBrowser.FIREFOX_FDROID.packageName
+                )
 
     /**
      * List of [ActivityInfo] of all known installed browsers.
@@ -139,34 +142,36 @@ class Browsers private constructor(
     /**
      * Does this device have a default browser that is not Firefox (release) or **this** app calling the method.
      */
-    val hasThirdPartyDefaultBrowser: Boolean = (defaultBrowser != null &&
-        defaultBrowser.packageName != KnownBrowser.FIREFOX.packageName &&
-        !(firefoxBrandedBrowser != null && defaultBrowser.packageName == firefoxBrandedBrowser.packageName) &&
-        defaultBrowser.packageName != packageName)
+    val hasThirdPartyDefaultBrowser: Boolean = (
+        defaultBrowser != null &&
+            defaultBrowser.packageName != KnownBrowser.FIREFOX.packageName &&
+            !(firefoxBrandedBrowser != null && defaultBrowser.packageName == firefoxBrandedBrowser.packageName) &&
+            defaultBrowser.packageName != packageName
+        )
 
     /**
      * Does this device have multiple third-party browser installed?
      */
     val hasMultipleThirdPartyBrowsers: Boolean
         get() {
-        if (browsers.size > 1) {
-            // There are more than us and Firefox.
-            return true
-        }
-
-        for (info in browsers.values) {
-            if (info !== defaultBrowser &&
-                info.packageName != KnownBrowser.FIREFOX.packageName &&
-                info.packageName != packageName
-            ) {
-                // There's at least one browser that is not *this app* or Firefox and also not the
-                // default browser.
+            if (browsers.size > 1) {
+                // There are more than us and Firefox.
                 return true
             }
-        }
 
-        return false
-    }
+            for (info in browsers.values) {
+                if (info !== defaultBrowser &&
+                    info.packageName != KnownBrowser.FIREFOX.packageName &&
+                    info.packageName != packageName
+                ) {
+                    // There's at least one browser that is not *this app* or Firefox and also not the
+                    // default browser.
+                    return true
+                }
+            }
+
+            return false
+        }
 
     /**
      * Does this device have [browser] installed?
@@ -281,6 +286,15 @@ class Browsers private constructor(
         private val SAMPLE_BROWSER_URI = Uri.parse(SAMPLE_BROWSER_HTTP_URL)
 
         /**
+         * Returns `true` is the provided [packageName] matches a known browser.
+         */
+        fun isBrowser(packageName: String): Boolean {
+            return KnownBrowser.values().asSequence().firstOrNull { browser ->
+                browser.packageName == packageName
+            } != null
+        }
+
+        /**
          * Collect information about all installed browsers and return a [Browsers] object containing that data.
          */
         fun all(context: Context): Browsers = Browsers(context, SAMPLE_BROWSER_URI)
@@ -310,14 +324,18 @@ class Browsers private constructor(
             }
 
             val httpResults = packageManager.queryIntentActivities(httpIntent, flag)
-                    .orEmpty()
-                    .filter { it.activityInfo.exported &&
-                            (includeThisApp || it.activityInfo.packageName != context.packageName) }
+                .orEmpty()
+                .filter {
+                    it.activityInfo.exported &&
+                        (includeThisApp || it.activityInfo.packageName != context.packageName)
+                }
 
             val httpsResults = packageManager.queryIntentActivities(httpsIntent, flag)
-                    .orEmpty()
-                    .filter { it.activityInfo.exported &&
-                            (includeThisApp || it.activityInfo.packageName != context.packageName) }
+                .orEmpty()
+                .filter {
+                    it.activityInfo.exported &&
+                        (includeThisApp || it.activityInfo.packageName != context.packageName)
+                }
 
             // There apps that have the same activityInfo.name to make it unique we
             // combine the activityInfo.packageName + activityInfo.name
@@ -347,9 +365,13 @@ class Browsers private constructor(
                 PackageManager.MATCH_DEFAULT_ONLY
             }
             return packageManager.queryIntentActivities(intent, flag)
-                    .orEmpty()
-                    .filter { it.activityInfo.exported && (includeThisApp ||
-                            it.activityInfo.packageName != context.packageName) }
+                .orEmpty()
+                .filter {
+                    it.activityInfo.exported && (
+                        includeThisApp ||
+                            it.activityInfo.packageName != context.packageName
+                        )
+                }
         }
     }
 }

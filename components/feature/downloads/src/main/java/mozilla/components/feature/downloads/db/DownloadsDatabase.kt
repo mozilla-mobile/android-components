@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.downloads.db
 
-import mozilla.components.browser.state.state.content.DownloadState
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
@@ -13,11 +12,12 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import mozilla.components.browser.state.state.content.DownloadState
 
 /**
  * Internal database for saving downloads.
  */
-@Database(entities = [DownloadEntity::class], version = 3)
+@Database(entities = [DownloadEntity::class], version = 4)
 @TypeConverters(StatusConverter::class)
 internal abstract class DownloadsDatabase : RoomDatabase() {
     abstract fun downloadDao(): DownloadDao
@@ -36,7 +36,8 @@ internal abstract class DownloadsDatabase : RoomDatabase() {
                 "mozac_downloads_database"
             ).addMigrations(
                 Migrations.migration_1_2,
-                Migrations.migration_2_3
+                Migrations.migration_2_3,
+                Migrations.migration_3_4
             ).build().also {
                 instance = it
             }
@@ -49,7 +50,8 @@ internal object Migrations {
     val migration_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
-                    "ALTER TABLE downloads ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0")
+                "ALTER TABLE downloads ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0"
+            )
         }
     }
     val migration_2_3 = object : Migration(2, 3) {
@@ -62,6 +64,13 @@ internal object Migrations {
             database.execSQL("DROP TABLE downloads")
             // Rename the table name to the correct one
             database.execSQL("ALTER TABLE temp_downloads RENAME TO downloads")
+        }
+    }
+
+    val migration_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Clear any data urls.
+            database.execSQL("UPDATE downloads SET url='' WHERE url LIKE 'data:%' ")
         }
     }
 }

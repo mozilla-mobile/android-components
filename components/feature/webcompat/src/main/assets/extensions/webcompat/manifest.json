@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Mozilla Android Components - Web Compatibility Interventions",
   "description": "Urgent post-release fixes for web compatibility.",
-  "version": "17.0.0",
+  "version": "25.4.0",
 
   "applications": {
     "gecko": {
@@ -36,44 +36,12 @@
         "events": ["startup"]
       }
     },
-    "experiments": {
-      "schema": "experiment-apis/experiments.json",
-      "parent": {
-        "scopes": ["addon_parent"],
-        "script": "experiment-apis/experiments.js",
-        "paths": [["experiments"]]
-      }
-    },
     "matchPatterns": {
       "schema": "experiment-apis/matchPatterns.json",
       "child": {
         "scopes": ["addon_child"],
         "script": "experiment-apis/matchPatterns.js",
         "paths": [["matchPatterns"]]
-      }
-    },
-    "pictureInPictureChild": {
-      "schema": "experiment-apis/pictureInPicture.json",
-      "child": {
-        "scopes": ["addon_child"],
-        "script": "experiment-apis/pictureInPicture.js",
-        "paths": [["pictureInPictureChild"]]
-      }
-    },
-    "pictureInPictureParent": {
-      "schema": "experiment-apis/pictureInPicture.json",
-      "parent": {
-        "scopes": ["addon_parent"],
-        "script": "experiment-apis/pictureInPicture.js",
-        "paths": [["pictureInPictureParent"]]
-      }
-    },
-    "sharedPreferences": {
-      "schema": "experiment-apis/sharedPreferences.json",
-      "parent": {
-        "scopes": ["addon_parent"],
-        "script": "experiment-apis/sharedPreferences.js",
-        "paths": [["sharedPreferences"]]
       }
     },
     "systemManufacturer": {
@@ -110,13 +78,11 @@
       "lib/messaging_helper.js",
       "lib/intervention_helpers.js",
       "data/injections.js",
-      "data/picture_in_picture_overrides.js",
       "data/shims.js",
       "data/ua_overrides.js",
       "lib/about_compat_broker.js",
       "lib/custom_functions.js",
       "lib/injections.js",
-      "lib/picture_in_picture_overrides.js",
       "lib/shims.js",
       "lib/ua_overrides.js",
       "run.js"
@@ -124,21 +90,40 @@
   },
 
   "web_accessible_resources": [
+    "shims/adform.js",
+    "shims/adnexus-prebid.js",
     "shims/adsafeprotected-ima.js",
+    "shims/apstag.js",
     "shims/bmauth.js",
+    "shims/chartbeat.js",
+    "shims/criteo.js",
+    "shims/cxense.js",
     "shims/eluminate.js",
     "shims/empty-script.js",
+    "shims/empty-shim.txt",
     "shims/facebook-sdk.js",
+    "shims/facebook.svg",
+    "shims/google-ads.js",
+    "shims/google-analytics-and-tag-manager.js",
     "shims/google-analytics-ecommerce-plugin.js",
     "shims/google-analytics-legacy.js",
-    "shims/google-analytics-tag-manager.js",
-    "shims/google-analytics.js",
+    "shims/google-ima.js",
+    "shims/google-page-ad.js",
     "shims/google-publisher-tags.js",
+    "shims/google-safeframe.html",
+    "shims/iaspet.js",
     "shims/live-test-shim.js",
+    "shims/moat.js",
     "shims/mochitest-shim-1.js",
     "shims/mochitest-shim-2.js",
     "shims/mochitest-shim-3.js",
+    "shims/optimizely.js",
+    "shims/play.svg",
     "shims/rambler-authenticator.js",
-    "shims/rich-relevance.js"
+    "shims/rich-relevance.js",
+    "shims/tracking-pixel.png",
+    "shims/vast2.xml",
+    "shims/vast3.xml",
+    "shims/vmad.xml"
   ]
 }

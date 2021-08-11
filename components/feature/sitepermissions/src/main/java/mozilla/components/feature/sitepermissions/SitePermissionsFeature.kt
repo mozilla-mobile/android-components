@@ -15,43 +15,56 @@ import androidx.annotation.VisibleForTesting
 import androidx.fragment.app.FragmentManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayAudibleBlockingAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayAudibleChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayInAudibleBlockingAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayInAudibleChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.CameraChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.LocationChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.MediaKeySystemAccesChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.MicrophoneChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.NotificationChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.PersistentStorageChangedAction
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.permission.Permission
+import mozilla.components.concept.engine.permission.Permission.AppAudio
+import mozilla.components.concept.engine.permission.Permission.AppCamera
+import mozilla.components.concept.engine.permission.Permission.AppLocationCoarse
+import mozilla.components.concept.engine.permission.Permission.AppLocationFine
 import mozilla.components.concept.engine.permission.Permission.ContentAudioCapture
 import mozilla.components.concept.engine.permission.Permission.ContentAudioMicrophone
 import mozilla.components.concept.engine.permission.Permission.ContentAutoPlayAudible
 import mozilla.components.concept.engine.permission.Permission.ContentAutoPlayInaudible
 import mozilla.components.concept.engine.permission.Permission.ContentGeoLocation
+import mozilla.components.concept.engine.permission.Permission.ContentMediaKeySystemAccess
 import mozilla.components.concept.engine.permission.Permission.ContentNotification
+import mozilla.components.concept.engine.permission.Permission.ContentPersistentStorage
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCamera
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCapture
-import mozilla.components.concept.engine.permission.Permission.ContentPersistentStorage
-import mozilla.components.concept.engine.permission.Permission.AppLocationCoarse
-import mozilla.components.concept.engine.permission.Permission.AppLocationFine
-import mozilla.components.concept.engine.permission.Permission.AppAudio
-import mozilla.components.concept.engine.permission.Permission.AppCamera
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.ALLOWED
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.BLOCKED
+import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions.Status.ALLOWED
+import mozilla.components.concept.engine.permission.SitePermissions.Status.BLOCKED
+import mozilla.components.concept.engine.permission.SitePermissionsStorage
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature.DialogConfig
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.ktx.android.content.isPermissionGranted
-import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
+import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
+import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 import java.security.InvalidParameterException
 
 internal const val FRAGMENT_TAG = "mozac_feature_sitepermissions_prompt_dialog"
@@ -62,8 +75,6 @@ internal const val FRAGMENT_TAG = "mozac_feature_sitepermissions_prompt_dialog"
  * Once the dialog is closed the [PermissionRequest] will be consumed.
  *
  * @property context a reference to the context.
- * @property sessionManager the [SessionManager] instance in order to subscribe
- * to the selected [Session].
  * @property sessionId optional sessionId to be observed if null the selected session will be observed.
  * @property storage the object in charge of persisting all the [SitePermissions] objects.
  * @property sitePermissionsRules indicates how permissions should behave per permission category.
@@ -80,7 +91,7 @@ internal const val FRAGMENT_TAG = "mozac_feature_sitepermissions_prompt_dialog"
 class SitePermissionsFeature(
     private val context: Context,
     private var sessionId: String? = null,
-    private val storage: SitePermissionsStorage = SitePermissionsStorage(context),
+    private val storage: SitePermissionsStorage = OnDiskSitePermissionsStorage(context),
     var sitePermissionsRules: SitePermissionsRules? = null,
     private val fragmentManager: FragmentManager,
     var promptsStyling: PromptsStyling? = null,
@@ -97,6 +108,7 @@ class SitePermissionsFeature(
     }
     private var sitePermissionScope: CoroutineScope? = null
     private var appPermissionScope: CoroutineScope? = null
+    private var loadingScope: CoroutineScope? = null
 
     @ExperimentalCoroutinesApi
     override fun start() {
@@ -110,6 +122,23 @@ class SitePermissionsFeature(
 
         setupPermissionRequestsCollector()
         setupAppPermissionRequestsCollector()
+        setupLoadingCollector()
+    }
+
+    @VisibleForTesting
+    internal fun setupLoadingCollector() {
+        loadingScope = store.flowScoped { flow ->
+            flow.mapNotNull { state ->
+                state.findTabOrCustomTabOrSelectedTab(sessionId)
+            }.ifChanged { it.content.loading }.collect { tab ->
+                if (tab.content.loading) {
+                    // Clears stale permission indicators in the toolbar,
+                    // after the session starts loading.
+                    store.dispatch(UpdatePermissionHighlightsStateAction.Reset(tab.id))
+                    storage.clearTemporaryPermissions()
+                }
+            }
+        }
     }
 
     @VisibleForTesting
@@ -136,22 +165,27 @@ class SitePermissionsFeature(
                 }
                     .filterChanged { it }
                     .collect { permissionRequest ->
+                        val origin: String = permissionRequest.uri?.getOrigin().orEmpty()
 
-                        val host =
-                            getCurrentContentState()?.url
-                                ?: ""
-
-                        if (permissionRequest.permissions.all { it.isSupported() }) {
-                            onContentPermissionRequested(
-                                permissionRequest,
-                                host.tryGetHostFromUrl()
-                            )
+                        if (origin.isEmpty()) {
+                            permissionRequest.consumeAndReject()
                         } else {
-                            consumePermissionRequest(permissionRequest)
-                            permissionRequest.reject()
+                            if (permissionRequest.permissions.all { it.isSupported() }) {
+                                onContentPermissionRequested(
+                                    permissionRequest,
+                                    origin
+                                )
+                            } else {
+                                permissionRequest.consumeAndReject()
+                            }
                         }
                     }
             }
+    }
+
+    private fun PermissionRequest.consumeAndReject() {
+        consumePermissionRequest(this)
+        this.reject()
     }
 
     @VisibleForTesting
@@ -184,6 +218,7 @@ class SitePermissionsFeature(
     override fun stop() {
         sitePermissionScope?.cancel()
         appPermissionScope?.cancel()
+        loadingScope?.cancel()
     }
 
     /**
@@ -251,6 +286,8 @@ class SitePermissionsFeature(
             getCurrentContentState()?.let { contentState ->
                 storeSitePermissions(contentState, permissionRequest, ALLOWED)
             }
+        } else {
+            storage.saveTemporary(permissionRequest)
         }
     }
 
@@ -295,22 +332,22 @@ class SitePermissionsFeature(
         if (contentState.private) {
             return
         }
+        updatePermissionToolbarIndicator(request, status, true)
         coroutineScope.launch {
-            synchronized(storage) {
-                val host = contentState.url.tryGetHostFromUrl()
+            request.uri?.getOrigin()?.let { origin ->
                 var sitePermissions =
-                    storage.findSitePermissionsBy(host)
+                    storage.findSitePermissionsBy(origin)
 
                 if (sitePermissions == null) {
                     sitePermissions =
                         request.toSitePermissions(
-                            host,
+                            origin,
                             status = status,
                             permissions = request.permissions
                         )
-                    storage.save(sitePermissions)
+                    storage.save(sitePermissions, request)
                 } else {
-                    sitePermissions = request.toSitePermissions(host, status, sitePermissions)
+                    sitePermissions = request.toSitePermissions(origin, status, sitePermissions)
                     storage.update(sitePermissions)
                 }
             }
@@ -326,12 +363,14 @@ class SitePermissionsFeature(
             getCurrentContentState()?.let { contentState ->
                 storeSitePermissions(contentState, permissionRequest, BLOCKED)
             }
+        } else {
+            storage.saveTemporary(permissionRequest)
         }
     }
 
     internal suspend fun onContentPermissionRequested(
         permissionRequest: PermissionRequest,
-        host: String,
+        origin: String,
         coroutineScope: CoroutineScope = ioCoroutineScope
     ): SitePermissionsDialogFragment? {
         // We want to warranty that all media permissions have the required system
@@ -343,15 +382,13 @@ class SitePermissionsFeature(
         }
 
         val permissionFromStorage = withContext(coroutineScope.coroutineContext) {
-            storage.findSitePermissionsBy(host)
+            storage.findSitePermissionsBy(origin)
         }
 
-        val prompt = if (shouldApplyRules(permissionFromStorage) ||
-            permissionRequest.isForAutoplay()
-        ) {
-            handleRuledFlow(permissionRequest, host)
+        val prompt = if (shouldApplyRules(permissionFromStorage)) {
+            handleRuledFlow(permissionRequest, origin)
         } else {
-            handleNoRuledFlow(permissionFromStorage, permissionRequest, host)
+            handleNoRuledFlow(permissionFromStorage, permissionRequest, origin)
         }
         prompt?.show(fragmentManager, FRAGMENT_TAG)
         return prompt
@@ -366,11 +403,18 @@ class SitePermissionsFeature(
         return if (shouldShowPrompt(permissionRequest, permissionFromStorage)) {
             createPrompt(permissionRequest, host)
         } else {
-            if (permissionFromStorage.isGranted(permissionRequest)) {
+            val status = if (permissionFromStorage.isGranted(permissionRequest)) {
                 permissionRequest.grant()
+                ALLOWED
             } else {
                 permissionRequest.reject()
+                BLOCKED
             }
+            updatePermissionToolbarIndicator(
+                permissionRequest,
+                status,
+                permissionFromStorage != null
+            )
             consumePermissionRequest(permissionRequest)
             null
         }
@@ -381,41 +425,113 @@ class SitePermissionsFeature(
         permissionRequest: PermissionRequest,
         permissionFromStorage: SitePermissions?
     ): Boolean {
-        return (permissionFromStorage == null || !permissionRequest.doNotAskAgain(
-            permissionFromStorage
-        ))
+        return if (permissionRequest.isForAutoplay()) {
+            false
+        } else {
+            (
+                permissionFromStorage == null ||
+                    !permissionRequest.doNotAskAgain(permissionFromStorage)
+                )
+        }
     }
 
     @VisibleForTesting
     internal fun handleRuledFlow(
         permissionRequest: PermissionRequest,
-        host: String
+        origin: String
     ): SitePermissionsDialogFragment? {
-        // For now we only support autoplay via sitePermissionsRules until we add support for
-        // autoplay for specific sites see Fenix issue  #8603
-        return if (permissionRequest.isForAutoplay() && sitePermissionsRules == null) {
-            permissionRequest.reject()
-            consumePermissionRequest(permissionRequest)
-            null
-        } else {
-            when (sitePermissionsRules?.getActionFrom(permissionRequest)) {
-                SitePermissionsRules.Action.ALLOWED -> {
-                    permissionRequest.grant()
-                    consumePermissionRequest(permissionRequest)
-                    null
+        return when (sitePermissionsRules?.getActionFrom(permissionRequest)) {
+            SitePermissionsRules.Action.ALLOWED -> {
+                permissionRequest.grant()
+                consumePermissionRequest(permissionRequest)
+                updatePermissionToolbarIndicator(permissionRequest, ALLOWED)
+                null
+            }
+            SitePermissionsRules.Action.BLOCKED -> {
+                permissionRequest.reject()
+                consumePermissionRequest(permissionRequest)
+                updatePermissionToolbarIndicator(permissionRequest, BLOCKED)
+                null
+            }
+            SitePermissionsRules.Action.ASK_TO_ALLOW -> {
+                createPrompt(permissionRequest, origin)
+            }
+            null -> {
+                consumePermissionRequest(permissionRequest)
+                null
+            }
+        }
+    }
+
+    @VisibleForTesting
+    @Suppress("ComplexMethod")
+    internal fun updatePermissionToolbarIndicator(
+        request: PermissionRequest,
+        value: SitePermissions.Status,
+        permanent: Boolean = false
+    ) {
+        val isAutoPlayAudibleBlocking: Boolean? =
+            if (request.isForAutoplayAudible()) value == BLOCKED else null
+        val isAutoPlayInAudibleBlocking: Boolean? =
+            if (request.isForAutoplayInaudible()) value == BLOCKED else null
+
+        getCurrentTabState()?.let { tab ->
+            // At the moment, we don't have APIs for controlling temporary permissions,
+            // after they are ALLOWED/BLOCKED, for this reason, we are not notifying users
+            // when permissions have changed from their default values,
+            // as they are not going have a way to change permissions.
+            // Either way, temporary permissions have to be ALLOWED/BLOCKED per sessions
+            // users are already aware of them.
+            // The autoplay permissions work a bit different, as it is a global permissions,
+            // users are never prompt to select its value, and it can't be temporary,
+            // they only can change it's value per site persistently.
+            if (permanent || request.isForAutoplay()) {
+                val action = when {
+                    request.isForNotification() -> NotificationChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.notification?.toStatus()
+                    )
+                    request.isForCamera() -> CameraChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.camera?.toStatus()
+                    )
+                    request.isForLocation() -> LocationChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.location?.toStatus()
+                    )
+                    request.isForMicrophone() -> MicrophoneChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.microphone?.toStatus()
+                    )
+                    request.isForPersistentStorage() -> PersistentStorageChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.persistentStorage?.toStatus()
+                    )
+                    request.isForMediaKeySystemAccess() -> MediaKeySystemAccesChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.mediaKeySystemAccess?.toStatus()
+                    )
+                    request.isForAutoplayAudible() -> AutoPlayAudibleChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.autoplayAudible?.toAutoplayStatus()
+                            ?.toStatus()
+                    )
+                    request.isForAutoplayInaudible() -> AutoPlayInAudibleChangedAction(
+                        tab.id,
+                        value != sitePermissionsRules?.autoplayInaudible?.toAutoplayStatus()
+                            ?.toStatus()
+                    )
+                    else -> null
                 }
-                SitePermissionsRules.Action.BLOCKED -> {
-                    permissionRequest.reject()
-                    consumePermissionRequest(permissionRequest)
-                    null
+                action?.let {
+                    store.dispatch(it)
                 }
-                SitePermissionsRules.Action.ASK_TO_ALLOW -> {
-                    createPrompt(permissionRequest, host)
-                }
-                null -> {
-                    consumePermissionRequest(permissionRequest)
-                    null
-                }
+            }
+            isAutoPlayAudibleBlocking?.let {
+                store.dispatch(AutoPlayAudibleBlockingAction(tab.id, it))
+            }
+            isAutoPlayInAudibleBlocking?.let {
+                store.dispatch(AutoPlayInAudibleBlockingAction(tab.id, it))
             }
         }
     }
@@ -441,6 +557,9 @@ class SitePermissionsFeature(
                 }
                 is ContentPersistentStorage -> {
                     permissionFromStore.localStorage.doNotAskAgain()
+                }
+                is ContentMediaKeySystemAccess -> {
+                    permissionFromStore.mediaKeySystemAccess.doNotAskAgain()
                 }
                 else -> false
             }
@@ -475,6 +594,39 @@ class SitePermissionsFeature(
     private fun PermissionRequest.isForAutoplay() =
         this.permissions.any { it is ContentAutoPlayInaudible || it is ContentAutoPlayAudible }
 
+    private fun PermissionRequest.isForNotification() =
+        this.permissions.any { it is ContentNotification }
+
+    private fun PermissionRequest.isForCamera() =
+        this.permissions.any {
+            it is ContentVideoCamera || it is ContentVideoCapture || it is AppCamera
+        }
+
+    private fun PermissionRequest.isForAutoplayInaudible() =
+        this.permissions.any { it is ContentAutoPlayInaudible }
+
+    private fun PermissionRequest.isForAutoplayAudible() =
+        this.permissions.any { it is ContentAutoPlayAudible }
+
+    private fun PermissionRequest.isForLocation() =
+        this.permissions.any {
+            it is ContentGeoLocation ||
+                it is AppLocationCoarse ||
+                it is AppLocationFine
+        }
+
+    private fun PermissionRequest.isForMicrophone() =
+        this.permissions.any {
+            it is ContentAudioCapture || it is ContentAudioMicrophone ||
+                it is AppAudio
+        }
+
+    private fun PermissionRequest.isForPersistentStorage() =
+        this.permissions.any { it is ContentPersistentStorage }
+
+    private fun PermissionRequest.isForMediaKeySystemAccess() =
+        this.permissions.any { it is ContentMediaKeySystemAccess }
+
     @VisibleForTesting
     internal fun updateSitePermissionsStatus(
         status: SitePermissions.Status,
@@ -495,13 +647,16 @@ class SitePermissionsFeature(
                 sitePermissions.copy(camera = status)
             }
             is ContentAutoPlayAudible -> {
-                sitePermissions.copy(autoplayAudible = status)
+                sitePermissions.copy(autoplayAudible = status.toAutoplayStatus())
             }
             is ContentAutoPlayInaudible -> {
-                sitePermissions.copy(autoplayInaudible = status)
+                sitePermissions.copy(autoplayInaudible = status.toAutoplayStatus())
             }
             is ContentPersistentStorage -> {
                 sitePermissions.copy(localStorage = status)
+            }
+            is ContentMediaKeySystemAccess -> {
+                sitePermissions.copy(mediaKeySystemAccess = status)
             }
             else ->
                 throw InvalidParameterException("$permission is not a valid permission.")
@@ -530,6 +685,7 @@ class SitePermissionsFeature(
         }
     }
 
+    @Suppress("LongMethod")
     @VisibleForTesting
     internal fun handlingSingleContentPermissions(
         permissionRequest: PermissionRequest,
@@ -596,6 +752,17 @@ class SitePermissionsFeature(
                     shouldSelectRememberChoice = true
                 )
             }
+            is ContentMediaKeySystemAccess -> {
+                createSinglePermissionPrompt(
+                    context,
+                    host,
+                    permissionRequest,
+                    R.string.mozac_feature_sitepermissions_media_key_system_access_title,
+                    R.drawable.mozac_ic_link,
+                    showDoNotAskAgainCheckBox = false,
+                    shouldSelectRememberChoice = true
+                )
+            }
             else ->
                 throw InvalidParameterException("$permission is not a valid permission.")
         }
@@ -616,7 +783,7 @@ class SitePermissionsFeature(
         val title = context.getString(titleId, host)
 
         val currentSessionId: String = store.state.findTabOrCustomTabOrSelectedTab(sessionId)?.id
-                ?: throw IllegalStateException("Unable to find session for $sessionId or selected session")
+            ?: throw IllegalStateException("Unable to find session for $sessionId or selected session")
 
         return SitePermissionsDialogFragment.newInstance(
             currentSessionId,
@@ -697,7 +864,7 @@ class SitePermissionsFeature(
     @VisibleForTesting
     internal fun noPermissionRequests(contentState: ContentState) =
         contentState.appPermissionRequestsList.isEmpty() &&
-                contentState.permissionRequestsList.isEmpty()
+            contentState.permissionRequestsList.isEmpty()
 }
 
 internal fun SitePermissions?.isGranted(permissionRequest: PermissionRequest): Boolean {
@@ -731,6 +898,15 @@ internal fun isPermissionGranted(
         is ContentPersistentStorage -> {
             permissionFromStorage.localStorage.isAllowed()
         }
+        is ContentMediaKeySystemAccess -> {
+            permissionFromStorage.mediaKeySystemAccess.isAllowed()
+        }
+        is ContentAutoPlayAudible -> {
+            permissionFromStorage.autoplayAudible.isAllowed()
+        }
+        is ContentAutoPlayInaudible -> {
+            permissionFromStorage.autoplayInaudible.isAllowed()
+        }
         else ->
             throw InvalidParameterException("$permission is not a valid permission.")
     }
@@ -743,7 +919,8 @@ private fun Permission.isSupported(): Boolean {
         is ContentPersistentStorage,
         is ContentAudioCapture, is ContentAudioMicrophone,
         is ContentVideoCamera, is ContentVideoCapture,
-        is ContentAutoPlayAudible, is ContentAutoPlayInaudible -> true
+        is ContentAutoPlayAudible, is ContentAutoPlayInaudible,
+        is ContentMediaKeySystemAccess -> true
         else -> false
     }
 }

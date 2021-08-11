@@ -8,9 +8,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.feature.top.sites.TopSite.Type.FRECENT
 import mozilla.components.feature.top.sites.ext.hasUrl
 import mozilla.components.feature.top.sites.ext.toTopSite
+import mozilla.components.feature.top.sites.facts.emitTopSitesCountFact
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import kotlin.coroutines.CoroutineContext
@@ -65,10 +67,10 @@ class DefaultTopSitesStorage(
         }
     }
 
-    override fun renameTopSite(topSite: TopSite, title: String) {
+    override fun updateTopSite(topSite: TopSite, title: String, url: String) {
         scope.launch {
             if (topSite.type != FRECENT) {
-                pinnedSitesStorage.renamePinnedSite(topSite, title)
+                pinnedSitesStorage.updatePinnedSite(topSite, title, url)
             }
 
             notifyObservers { onStorageUpdated() }
@@ -77,18 +79,18 @@ class DefaultTopSitesStorage(
 
     override suspend fun getTopSites(
         totalSites: Int,
-        includeFrecent: Boolean
+        frecencyConfig: FrecencyThresholdOption?
     ): List<TopSite> {
         val topSites = ArrayList<TopSite>()
         val pinnedSites = pinnedSitesStorage.getPinnedSites().take(totalSites)
         val numSitesRequired = totalSites - pinnedSites.size
         topSites.addAll(pinnedSites)
 
-        if (includeFrecent && numSitesRequired > 0) {
+        if (frecencyConfig != null && numSitesRequired > 0) {
             // Get 'totalSites' sites for duplicate entries with
             // existing pinned sites
             val frecentSites = historyStorage
-                .getTopFrecentSites(totalSites)
+                .getTopFrecentSites(totalSites, frecencyConfig)
                 .map { it.toTopSite() }
                 .filter { !pinnedSites.hasUrl(it.url) }
                 .take(numSitesRequired)
@@ -96,6 +98,7 @@ class DefaultTopSitesStorage(
             topSites.addAll(frecentSites)
         }
 
+        emitTopSitesCountFact(pinnedSites.size)
         cachedTopSites = topSites
 
         return topSites

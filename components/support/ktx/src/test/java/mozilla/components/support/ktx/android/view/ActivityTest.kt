@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+// Deprecation to be fixed in https://github.com/mozilla-mobile/android-components/issues/8517
+@file:Suppress("DEPRECATION")
 package mozilla.components.support.ktx.android.view
 
 import android.app.Activity
@@ -22,12 +23,14 @@ class ActivityTest {
         val activity = mock<Activity>()
         val mockWindow = mock<Window>()
         val mockDecorView = mock<View>()
-        val expectedFlags = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            or View.SYSTEM_UI_FLAG_FULLSCREEN
-            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+        val expectedFlags = (
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
 
         `when`(activity.window).thenReturn(mockWindow)
         `when`(mockWindow.decorView).thenReturn(mockDecorView)

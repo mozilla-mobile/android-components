@@ -11,8 +11,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.toolbar.Toolbar
+import mozilla.components.concept.toolbar.Toolbar.Highlight
 import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
 import mozilla.components.feature.toolbar.internal.URLRenderer
 import mozilla.components.lib.state.ext.flowScoped
@@ -22,7 +24,6 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * Presenter implementation for a toolbar implementation in order to update the toolbar whenever
  * the state of the selected session.
  */
-@Suppress("TooManyFunctions")
 class ToolbarPresenter(
     private val toolbar: Toolbar,
     private val store: BrowserStore,
@@ -78,8 +79,17 @@ class ToolbarPresenter(
 
                 else -> SiteTrackingProtection.OFF_GLOBALLY
             }
+
+            updateHighlight(tab)
         } else {
             clear()
+        }
+    }
+
+    private fun updateHighlight(tab: SessionState) {
+        toolbar.highlight = when {
+            tab.content.permissionHighlights.permissionsChanged -> Highlight.PERMISSIONS_CHANGED
+            else -> Highlight.NONE
         }
     }
 
@@ -93,5 +103,6 @@ class ToolbarPresenter(
         toolbar.siteSecure = Toolbar.SiteSecurity.INSECURE
 
         toolbar.siteTrackingProtection = SiteTrackingProtection.OFF_GLOBALLY
+        toolbar.highlight = Highlight.NONE
     }
 }

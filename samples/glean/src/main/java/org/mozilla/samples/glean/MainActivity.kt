@@ -4,40 +4,39 @@
 
 package org.mozilla.samples.glean
 
-import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
+import androidx.annotation.MainThread
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_main.*
 import org.mozilla.experiments.nimbus.EnrolledExperiment
+import org.mozilla.experiments.nimbus.NimbusInterface
 import org.mozilla.samples.glean.GleanMetrics.BrowserEngagement
 import org.mozilla.samples.glean.GleanMetrics.Test
+import org.mozilla.samples.glean.databinding.ActivityMainBinding
 import org.mozilla.samples.glean.library.SamplesGleanLibrary
 
 /**
  * Main Activity of the glean-sample-app
  */
-open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.ExperimentUpdateListener {
-
-    // This BroadcastReceiver and list are not relevant to the Glean SDK, but is relevant to the
-    // Nimbus experiments library.
-    private var experimentUpdateReceiver: ExperimentUpdateReceiver? = null
-    private var activeExperiments: List<EnrolledExperiment> = listOf()
+open class MainActivity : AppCompatActivity(), NimbusInterface.Observer {
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+
+        setContentView(binding.root)
 
         // Generate an event when user clicks on the button.
-        buttonGenerateData.setOnClickListener {
+        binding.buttonGenerateData.setOnClickListener {
             // These first two actions, adding to the string list and incrementing the counter are
             // tied to a user lifetime metric which is persistent from launch to launch.
 
             // Adds the EditText's text content as a new string in the string list metric from the
             // metrics.yaml file.
-            Test.stringList.add(etStringListInput.text.toString())
+            Test.stringList.add(binding.etStringListInput.text.toString())
             // Clear current text to help indicate something happened
-            etStringListInput.setText("")
+            binding.etStringListInput.setText("")
 
             // Increments the test_counter metric from the metrics.yaml file.
             Test.counter.add()
@@ -47,10 +46,10 @@ open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.Experime
             // 'extras' field a dictionary of values.  Note that the dictionary keys must be
             // declared in the metrics.yaml file under the 'extra_keys' section of an event metric.
             BrowserEngagement.click.record(
-                    mapOf(
-                            BrowserEngagement.clickKeys.key1 to "extra_value_1",
-                            BrowserEngagement.clickKeys.key2 to "extra_value_2"
-                    )
+                BrowserEngagement.ClickExtra(
+                    key1 = "extra_value_1",
+                    key2 = "extra_value_2"
+                )
             )
         }
 
@@ -60,14 +59,8 @@ open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.Experime
         SamplesGleanLibrary.recordMetric()
         SamplesGleanLibrary.recordExperiment()
 
-        // The following is not relevant to the Glean SDK, but to the Nimbus experiments library.
-        // Set up the ExperimentUpdateReceiver to receive experiment updated Intents.
+        // The following is not relevant to the Glean SDK, but to the Nimbus experiments library
         setupNimbusExperiments()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(experimentUpdateReceiver)
     }
 
     /** Begin Nimbus component specific functions */
@@ -77,43 +70,55 @@ open class MainActivity : AppCompatActivity(), ExperimentUpdateReceiver.Experime
      * button. This is not relevant to the Glean SDK, but to the Nimbus experiments library.
      */
     private fun setupNimbusExperiments() {
-        experimentUpdateReceiver = ExperimentUpdateReceiver(this)
-        val filter = IntentFilter()
-        filter.addAction("org.mozilla.samples.glean.experiments.updated")
-        registerReceiver(experimentUpdateReceiver, filter)
+        // Register the main activity as a Nimbus observer
+        GleanApplication.nimbus.register(this)
 
-        // Handle logic for the "test-color" experiment on click.
-        buttonCheckExperiments.setOnClickListener {
-            onExperimentsUpdated()
+        // Attach the click listener for the experiments button to the updateExperiments function
+        binding.buttonCheckExperiments.setOnClickListener {
+            // Once the experiments are fetched, then the activity's (a Nimbus observer)
+            // `onExperimentFetched()` method is called.
+            GleanApplication.nimbus.fetchExperiments()
         }
+
+        configureButton()
     }
 
     /**
-     * This function will be called by the ExperimentUpdateListener interface when the experiments
-     * are updated. This is not relevant to the Glean SDK, but to the Nimbus experiments library.
+     * Event to indicate that the experiments have been fetched from the endpoint
      */
-    override fun onExperimentsUpdated() {
-        textViewExperimentStatus.setBackgroundColor(Color.WHITE)
-        textViewExperimentStatus.text = getString(R.string.experiment_not_active)
+    override fun onExperimentsFetched() {
+        println("Experiments fetched")
+        GleanApplication.nimbus.applyPendingExperiments()
+    }
 
-        val nimbus = GleanApplication.nimbus
-        activeExperiments = nimbus.getActiveExperiments()
-        if (activeExperiments.any { it.slug == "test-color" }) {
-            val color = when (nimbus.getExperimentBranch("test-color")) {
-                "blue" -> Color.BLUE
-                "red" -> Color.RED
-                "control" -> Color.DKGRAY
-                else -> Color.WHITE
-            }
-
-            // Dispatch the UI work back to the appropriate thread
-            this@MainActivity.runOnUiThread {
-                textViewExperimentStatus.setBackgroundColor(color)
-                textViewExperimentStatus.text = getString(
-                    R.string.experiment_active_branch,
-                    "Experiment Branch: ${nimbus.getExperimentBranch("test-color")}")
-            }
+    /**
+     * Event to indicate that the experiment enrollments have been applied. Developers normally
+     * shouldn't care to observe this and rather rely on `onExperimentsFetched` and `withExperiment`
+     */
+    override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
+        runOnUiThread {
+            configureButton()
         }
+    }
+
+    @MainThread
+    private fun configureButton() {
+        val nimbus = GleanApplication.nimbus
+        val branch = nimbus.getExperimentBranch("sample-experiment-feature")
+
+        val color = when (branch) {
+            "blue" -> Color.BLUE
+            "red" -> Color.RED
+            "control" -> Color.DKGRAY
+            else -> Color.WHITE
+        }
+        val text = when (branch) {
+            null -> getString(R.string.experiment_not_active)
+            else -> getString(R.string.experiment_active_branch, branch)
+        }
+
+        binding.textViewExperimentStatus.setBackgroundColor(color)
+        binding.textViewExperimentStatus.text = text
     }
 
     /** End Nimbus component functions */

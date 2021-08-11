@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import androidx.core.graphics.drawable.toDrawable
 import kotlinx.coroutines.MainScope
@@ -29,15 +30,23 @@ import mozilla.components.support.base.log.Log
  *
  * @param action the [Action] to display.
  * @param listener a callback to be invoked when this menu item is clicked.
+ * @param isCollapsingMenuLimit Whether this menu item can serve as the limit of a collapsing menu.
+ * @param isSticky whether this item menu should not be scrolled offscreen (downwards or upwards
+ * depending on the menu position).
  */
 class WebExtensionBrowserMenuItem(
     internal var action: Action,
     internal val listener: () -> Unit,
-    internal val id: String = ""
+    internal val id: String = "",
+    override val isCollapsingMenuLimit: Boolean = false,
+    override val isSticky: Boolean = false
 ) : BrowserMenuItem {
     override var visible: () -> Boolean = { true }
 
     override fun getLayoutResource() = R.layout.mozac_browser_menu_web_extension
+
+    @VisibleForTesting
+    internal var iconTintColorResource: Int? = null
 
     @Suppress("TooGenericExceptionCaught")
     override fun bind(menu: BrowserMenu, view: View) {
@@ -56,11 +65,7 @@ class WebExtensionBrowserMenuItem(
         action.badgeTextColor?.let { badgeView.setTextColor(it) }
         action.badgeBackgroundColor?.let { badgeView.background?.setTint(it) }
 
-        MainScope().launch {
-            loadIcon(view.context, imageView.measuredHeight)?.let {
-                imageView.setImageDrawable(it)
-            }
-        }
+        setupIcon(view, imageView, iconTintColorResource)
 
         container.setOnClickListener {
             listener.invoke()
@@ -102,6 +107,16 @@ class WebExtensionBrowserMenuItem(
         onClick = listener
     )
 
+    @VisibleForTesting
+    internal fun setupIcon(view: View, imageView: ImageView, iconTintColorResource: Int?) {
+        MainScope().launch {
+            loadIcon(view.context, imageView.measuredHeight)?.let {
+                iconTintColorResource?.let { tint -> imageView.setTintResource(tint) }
+                imageView.setImageDrawable(it)
+            }
+        }
+    }
+
     @Suppress("TooGenericExceptionCaught")
     private suspend fun loadIcon(context: Context, height: Int): Drawable? {
         return try {
@@ -116,6 +131,12 @@ class WebExtensionBrowserMenuItem(
 
             getDrawable(context, R.drawable.mozac_ic_web_extension_default_icon)
         }
+    }
+    /**
+     * Sets the tint to be applied to the extension icon
+     */
+    fun setIconTint(iconTintColorResource: Int?) {
+        iconTintColorResource?.let { this.iconTintColorResource = it }
     }
 }
 

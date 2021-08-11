@@ -8,15 +8,24 @@ import android.content.Context
 import android.content.Intent
 import androidx.fragment.app.FragmentManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.session.LegacySessionManager
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
-import mozilla.components.concept.engine.Engine
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.AppIntentState
+import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.support.test.any
+import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.rule.MainCoroutineRule
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
@@ -33,16 +42,18 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 @RunWith(AndroidJUnit4::class)
 class AppLinksFeatureTest {
 
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
+
+    private lateinit var store: BrowserStore
     private lateinit var mockContext: Context
-    private lateinit var mockSessionManager: SessionManager
     private lateinit var mockFragmentManager: FragmentManager
     private lateinit var mockUseCases: AppLinksUseCases
     private lateinit var mockGetRedirect: AppLinksUseCases.GetAppLinkRedirect
     private lateinit var mockOpenRedirect: AppLinksUseCases.OpenAppLinkRedirect
     private lateinit var mockEngineSession: EngineSession
-    private lateinit var mockLegacySessionManager: LegacySessionManager
     private lateinit var mockDialog: RedirectDialogFragment
-
     private lateinit var feature: AppLinksFeature
 
     private val webUrl = "https://example.com"
@@ -51,11 +62,9 @@ class AppLinksFeatureTest {
 
     @Before
     fun setup() {
+        store = BrowserStore()
         mockContext = mock()
 
-        val engine = mock<Engine>()
-        mockLegacySessionManager = mock()
-        mockSessionManager = spy(SessionManager(engine, delegate = mockLegacySessionManager))
         mockFragmentManager = mock()
         `when`(mockFragmentManager.beginTransaction()).thenReturn(mock())
         mockUseCases = mock()
@@ -75,75 +84,64 @@ class AppLinksFeatureTest {
         `when`(mockGetRedirect.invoke(intentUrl)).thenReturn(appRedirect)
         `when`(mockGetRedirect.invoke(webUrlWithAppLink)).thenReturn(appRedirectFromWebUrl)
 
-        feature = spy(AppLinksFeature(
-            context = mockContext,
-            sessionManager = mockSessionManager,
-            fragmentManager = mockFragmentManager,
-            useCases = mockUseCases,
-            dialog = mockDialog
-        ))
+        feature = spy(
+            AppLinksFeature(
+                context = mockContext,
+                store = store,
+                fragmentManager = mockFragmentManager,
+                useCases = mockUseCases,
+                dialog = mockDialog
+            )
+        ).also {
+            it.start()
+        }
     }
 
-    private fun createSession(isPrivate: Boolean, url: String = "https://mozilla.com"): Session {
-        val session = mock<Session>()
-        `when`(session.private).thenReturn(isPrivate)
-        `when`(session.url).thenReturn(url)
-        return session
-    }
-
-    private fun userTapsOnSession(url: String, private: Boolean) {
-        feature.observer.onLaunchIntentRequest(
-            createSession(private),
-            url = url,
-            appIntent = mock()
-        )
-    }
-
-    @Test
-    fun `when valid sessionId is provided, observe its session`() {
-        feature = AppLinksFeature(
-            mockContext,
-            sessionManager = mockSessionManager,
-            sessionId = "123",
-            useCases = mockUseCases
-        )
-        val mockSession = createSession(false)
-        `when`(mockLegacySessionManager.findSessionById(anyString())).thenReturn(mockSession)
-
-        feature.start()
-
-        verify(mockSession).register(feature.observer)
-    }
-
-    @Test
-    fun `when sessionId is NOT provided, observe selected session`() {
-        feature = AppLinksFeature(
-            mockContext,
-            sessionManager = mockSessionManager,
-            useCases = mockUseCases
-        )
-
-        feature.start()
-
-        verify(mockSessionManager).register(feature.observer)
-    }
-
-    @Test
-    fun `when start is called must register SessionManager observers`() {
-        feature.start()
-        verify(mockSessionManager).register(feature.observer)
-    }
-
-    @Test
-    fun `when stop is called must unregister SessionManager observers `() {
+    @After
+    fun teardown() {
         feature.stop()
-        verify(mockSessionManager).unregister(feature.observer)
+    }
+
+    @Test
+    fun `feature observes app intents when started`() {
+        val tab = createTab(webUrl)
+        store.dispatch(TabListAction.AddTabAction(tab)).joinBlocking()
+        verify(feature, never()).handleAppIntent(any(), any(), any())
+
+        val intent: Intent = mock()
+        val appIntent = AppIntentState(intentUrl, intent)
+        store.dispatch(ContentAction.UpdateAppIntentAction(tab.id, appIntent)).joinBlocking()
+
+        val tabWithPendingAppIntent = store.state.findTab(tab.id)!!
+        assertNotNull(tabWithPendingAppIntent.content.appIntent)
+
+        testDispatcher.advanceUntilIdle()
+        verify(feature).handleAppIntent(tabWithPendingAppIntent, intentUrl, intent)
+
+        store.waitUntilIdle()
+        val tabWithConsumedAppIntent = store.state.findTab(tab.id)!!
+        assertNull(tabWithConsumedAppIntent.content.appIntent)
+    }
+
+    @Test
+    fun `feature doesn't observes app intents when stopped`() {
+        val tab = createTab(webUrl)
+        store.dispatch(TabListAction.AddTabAction(tab)).joinBlocking()
+        verify(feature, never()).handleAppIntent(any(), any(), any())
+
+        feature.stop()
+
+        val intent: Intent = mock()
+        val appIntent = AppIntentState(intentUrl, intent)
+        store.dispatch(ContentAction.UpdateAppIntentAction(tab.id, appIntent)).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+        verify(feature, never()).handleAppIntent(any(), any(), any())
     }
 
     @Test
     fun `in non-private mode an external app is opened without a dialog`() {
-        feature.start()
-        userTapsOnSession(intentUrl, false)
+        val tab = createTab(webUrl)
+        feature.handleAppIntent(tab, intentUrl, mock())
 
         verifyNoMoreInteractions(mockDialog)
         verify(mockOpenRedirect).invoke(any(), anyBoolean(), any())
@@ -151,8 +149,8 @@ class AppLinksFeatureTest {
 
     @Test
     fun `in private mode an external app dialog is shown`() {
-        feature.start()
-        userTapsOnSession(intentUrl, true)
+        val tab = createTab(webUrl, private = true)
+        feature.handleAppIntent(tab, intentUrl, mock())
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
         verify(mockOpenRedirect, never()).invoke(any(), anyBoolean(), any())
@@ -160,8 +158,8 @@ class AppLinksFeatureTest {
 
     @Test
     fun `reused redirect dialog if exists`() {
-        feature.start()
-        userTapsOnSession(intentUrl, true)
+        val tab = createTab(webUrl, private = true)
+        feature.handleAppIntent(tab, intentUrl, mock())
 
         val dialog = feature.getOrCreateDialog()
         assertEquals(dialog, feature.getOrCreateDialog())
@@ -169,14 +167,14 @@ class AppLinksFeatureTest {
 
     @Test
     fun `redirect dialog is only added once`() {
-        feature.start()
-        userTapsOnSession(intentUrl, true)
+        val tab = createTab(webUrl, private = true)
+        feature.handleAppIntent(tab, intentUrl, mock())
 
         verify(mockDialog).showNow(eq(mockFragmentManager), anyString())
 
         doReturn(mockDialog).`when`(feature).getOrCreateDialog()
         doReturn(mockDialog).`when`(mockFragmentManager).findFragmentByTag(RedirectDialogFragment.FRAGMENT_TAG)
-        userTapsOnSession(intentUrl, true)
+        feature.handleAppIntent(tab, intentUrl, mock())
         verify(mockDialog, times(1)).showNow(mockFragmentManager, RedirectDialogFragment.FRAGMENT_TAG)
     }
 }

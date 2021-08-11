@@ -5,12 +5,13 @@
 package mozilla.components.browser.storage.memory
 
 import androidx.annotation.VisibleForTesting
+import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.storage.HistoryAutocompleteResult
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
-import mozilla.components.concept.storage.SearchResult
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
+import mozilla.components.concept.storage.SearchResult
 import mozilla.components.concept.storage.TopFrecentSiteInfo
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
@@ -24,7 +25,6 @@ const val AUTOCOMPLETE_SOURCE_NAME = "memoryHistory"
 /**
  * An in-memory implementation of [mozilla.components.concept.storage.HistoryStorage].
  */
-@SuppressWarnings("TooManyFunctions")
 class InMemoryHistoryStorage : HistoryStorage {
     @VisibleForTesting
     internal var pages: HashMap<String, MutableList<Visit>> = linkedMapOf()
@@ -81,12 +81,14 @@ class InMemoryHistoryStorage : HistoryStorage {
         pages.forEach {
             it.value.forEach { visit ->
                 if (visit.timestamp >= start && visit.timestamp <= end && !excludeTypes.contains(visit.type)) {
-                    visits.add(VisitInfo(
-                        url = it.key,
-                        title = pageMeta[it.key]?.title,
-                        visitTime = visit.timestamp,
-                        visitType = visit.type
-                    ))
+                    visits.add(
+                        VisitInfo(
+                            url = it.key,
+                            title = pageMeta[it.key]?.title,
+                            visitTime = visit.timestamp,
+                            visitType = visit.type
+                        )
+                    )
                 }
             }
         }
@@ -94,7 +96,10 @@ class InMemoryHistoryStorage : HistoryStorage {
         return visits
     }
 
-    override suspend fun getTopFrecentSites(numItems: Int): List<TopFrecentSiteInfo> {
+    override suspend fun getTopFrecentSites(
+        numItems: Int,
+        frecencyThreshold: FrecencyThresholdOption
+    ): List<TopFrecentSiteInfo> {
         throw UnsupportedOperationException("getTopFrecentSites is not yet supported by the in-memory history storage")
     }
 
@@ -128,7 +133,8 @@ class InMemoryHistoryStorage : HistoryStorage {
     override fun getAutocompleteSuggestion(query: String): HistoryAutocompleteResult? = synchronized(pages) {
         return segmentAwareDomainMatch(query, pages.keys)?.let { urlMatch ->
             HistoryAutocompleteResult(
-                query, urlMatch.matchedSegment, urlMatch.url, AUTOCOMPLETE_SOURCE_NAME, pages.size)
+                query, urlMatch.matchedSegment, urlMatch.url, AUTOCOMPLETE_SOURCE_NAME, pages.size
+            )
         }
     }
 
@@ -146,9 +152,11 @@ class InMemoryHistoryStorage : HistoryStorage {
 
     override suspend fun deleteVisitsBetween(startTime: Long, endTime: Long) = synchronized(pages) {
         pages.entries.forEach {
-            it.setValue(it.value.filterNot { visit ->
-                visit.timestamp >= startTime && visit.timestamp <= endTime
-            }.toMutableList())
+            it.setValue(
+                it.value.filterNot { visit ->
+                    visit.timestamp >= startTime && visit.timestamp <= endTime
+                }.toMutableList()
+            )
         }
         pages = pages.filter { it.value.isNotEmpty() } as HashMap<String, MutableList<Visit>>
     }

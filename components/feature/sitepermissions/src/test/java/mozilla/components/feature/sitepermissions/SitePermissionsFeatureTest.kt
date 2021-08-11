@@ -18,26 +18,46 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runBlockingTest
 import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayAudibleBlockingAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayAudibleChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayInAudibleBlockingAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayInAudibleChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.CameraChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.LocationChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.MediaKeySystemAccesChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.MicrophoneChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.NotificationChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.PersistentStorageChangedAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.permission.Permission
 import mozilla.components.concept.engine.permission.Permission.AppAudio
 import mozilla.components.concept.engine.permission.Permission.ContentAudioCapture
 import mozilla.components.concept.engine.permission.Permission.ContentAudioMicrophone
+import mozilla.components.concept.engine.permission.Permission.ContentAutoPlayAudible
 import mozilla.components.concept.engine.permission.Permission.ContentAutoPlayInaudible
 import mozilla.components.concept.engine.permission.Permission.ContentGeoLocation
+import mozilla.components.concept.engine.permission.Permission.ContentMediaKeySystemAccess
 import mozilla.components.concept.engine.permission.Permission.ContentNotification
+import mozilla.components.concept.engine.permission.Permission.ContentPersistentStorage
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCamera
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCapture
 import mozilla.components.concept.engine.permission.Permission.Generic
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.ALLOWED
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.BLOCKED
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.NO_DECISION
+import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions.AutoplayStatus
+import mozilla.components.concept.engine.permission.SitePermissions.Status.ALLOWED
+import mozilla.components.concept.engine.permission.SitePermissions.Status.BLOCKED
+import mozilla.components.concept.engine.permission.SitePermissions.Status.NO_DECISION
+import mozilla.components.concept.engine.permission.SitePermissionsStorage
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.test.any
+import mozilla.components.support.test.eq
+import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
@@ -50,6 +70,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.anyBoolean
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.doNothing
@@ -121,6 +142,39 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
+    fun `GIVEN a tab load THEN stale permission indicators should be clear up and temporary permissions`() {
+        sitePermissionFeature.start()
+
+        verify(sitePermissionFeature).setupLoadingCollector()
+
+        // when
+        mockStore.dispatch(ContentAction.UpdateLoadingStateAction(SESSION_ID, true)).joinBlocking()
+
+        // then
+        verify(mockStore).dispatch(
+            UpdatePermissionHighlightsStateAction.Reset(SESSION_ID)
+        )
+        verify(mockStorage).clearTemporaryPermissions()
+    }
+
+    @Test
+    fun `GIVEN a tab load after stop is called THEN none stale permission indicators should be clear up`() {
+        sitePermissionFeature.start()
+
+        verify(sitePermissionFeature).setupLoadingCollector()
+
+        sitePermissionFeature.stop()
+
+        // when
+        mockStore.dispatch(ContentAction.UpdateLoadingStateAction(SESSION_ID, true)).joinBlocking()
+
+        // then
+        verify(mockStore, never()).dispatch(
+            UpdatePermissionHighlightsStateAction.Reset(SESSION_ID)
+        )
+    }
+
+    @Test
     fun `GIVEN a sessionId WHEN calling consumePermissionRequest THEN dispatch ConsumePermissionsRequest action with given id`() {
         // when
         sitePermissionFeature.consumePermissionRequest(mockPermissionRequest, "sessionIdTest")
@@ -128,7 +182,7 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockStore).dispatch(
             ContentAction.ConsumePermissionsRequest
-                ("sessionIdTest", mockPermissionRequest)
+            ("sessionIdTest", mockPermissionRequest)
         )
     }
 
@@ -140,7 +194,7 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockStore).dispatch(
             ContentAction.ConsumePermissionsRequest
-                (selectedTab.id, mockPermissionRequest)
+            (selectedTab.id, mockPermissionRequest)
         )
     }
 
@@ -152,7 +206,7 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockStore).dispatch(
             ContentAction.ConsumeAppPermissionsRequest
-                ("sessionIdTest", mockAppPermissionRequest)
+            ("sessionIdTest", mockAppPermissionRequest)
         )
     }
 
@@ -164,7 +218,7 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockStore).dispatch(
             ContentAction.ConsumeAppPermissionsRequest
-                (selectedTab.id, mockAppPermissionRequest)
+            (selectedTab.id, mockAppPermissionRequest)
         )
     }
 
@@ -221,14 +275,14 @@ class SitePermissionsFeatureTest {
     fun `GIVEN shouldStore false WHEN onContentPermissionGranted() THEN storeSitePermissions() MUST NOT BE called`() {
         // given
         doNothing().`when`(sitePermissionFeature)
-                .storeSitePermissions(any(), any(), any(), any())
+            .storeSitePermissions(any(), any(), any(), any())
 
         // when
         sitePermissionFeature.onContentPermissionGranted(mockPermissionRequest, false)
 
         // then
         verify(sitePermissionFeature, never())
-                .storeSitePermissions(selectedTab.content, mockPermissionRequest, ALLOWED)
+            .storeSitePermissions(selectedTab.content, mockPermissionRequest, ALLOWED)
     }
 
     @Test
@@ -238,7 +292,8 @@ class SitePermissionsFeatureTest {
         doNothing().`when`(sitePermissionFeature)
             .onContentPermissionGranted(mockPermissionRequest, true)
         doReturn(mockPermissionRequest).`when`(sitePermissionFeature).findRequestedPermission(
-            anyString())
+            anyString()
+        )
 
         // when
         sitePermissionFeature.onPositiveButtonPress(PERMISSION_ID, SESSION_ID, true)
@@ -257,7 +312,8 @@ class SitePermissionsFeatureTest {
         doNothing().`when`(sitePermissionFeature)
             .onContentPermissionDeny(mockPermissionRequest, true)
         doReturn(mockPermissionRequest).`when`(sitePermissionFeature).findRequestedPermission(
-            anyString())
+            anyString()
+        )
 
         // when
         sitePermissionFeature.onNegativeButtonPress(PERMISSION_ID, SESSION_ID, true)
@@ -276,7 +332,8 @@ class SitePermissionsFeatureTest {
         doNothing().`when`(sitePermissionFeature)
             .onContentPermissionDeny(mockPermissionRequest, false)
         doReturn(mockPermissionRequest).`when`(sitePermissionFeature).findRequestedPermission(
-            anyString())
+            anyString()
+        )
 
         // when
         sitePermissionFeature.onDismiss(PERMISSION_ID, SESSION_ID)
@@ -289,16 +346,20 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
-    fun `GIVEN a new permissionRequest WHEN storeSitePermissions() THEN save(permissionRequest) is called`() {
+    fun `GIVEN a new permissionRequest WHEN storeSitePermissions() THEN save(permissionRequest) is called`() = runBlockingTest {
         // given
         val sitePermissions = SitePermissions(origin = "origin", savedAt = 0)
-        doReturn(null).`when`(mockStorage).findSitePermissionsBy(ArgumentMatchers.anyString())
+        doReturn(null).`when`(mockStorage).findSitePermissionsBy(ArgumentMatchers.anyString(), anyBoolean())
+        doNothing().`when`(sitePermissionFeature).updatePermissionToolbarIndicator(
+            any(), any(),
+            anyBoolean()
+        )
         val mockPermissionRequest: PermissionRequest = mock {
             whenever(permissions).thenReturn(listOf(Permission.AppAudio(id = "permission")))
+            whenever(uri).thenReturn(URL)
         }
         doReturn(sitePermissions).`when`(sitePermissionFeature)
             .updateSitePermissionsStatus(any(), any(), any())
-        whenever(mockContentState.url).thenReturn(URL)
 
         // when
         sitePermissionFeature.storeSitePermissions(
@@ -309,21 +370,26 @@ class SitePermissionsFeatureTest {
         )
 
         // then
-        verify(mockStorage).save(sitePermissions)
+        verify(mockStorage).save(sitePermissions, mockPermissionRequest)
+        verify(sitePermissionFeature).updatePermissionToolbarIndicator(
+            mockPermissionRequest,
+            ALLOWED,
+            true
+        )
     }
 
     @Test
-    fun `GIVEN an already saved permissionRequest WHEN storeSitePermissions() THEN update(permissionRequest) is called`() {
+    fun `GIVEN an already saved permissionRequest WHEN storeSitePermissions() THEN update(permissionRequest) is called`() = runBlockingTest {
         // given
         val sitePermissions = SitePermissions(origin = "origin", savedAt = 0)
         doReturn(sitePermissions).`when`(mockStorage)
-            .findSitePermissionsBy(ArgumentMatchers.anyString())
+            .findSitePermissionsBy(ArgumentMatchers.anyString(), anyBoolean())
         val mockPermissionRequest: PermissionRequest = mock {
+            whenever(uri).thenReturn(URL)
             whenever(permissions).thenReturn(listOf(AppAudio(id = "permission")))
         }
         doReturn(sitePermissions).`when`(sitePermissionFeature)
             .updateSitePermissionsStatus(any(), any(), any())
-        whenever(mockContentState.url).thenReturn(URL)
 
         // when
         sitePermissionFeature.storeSitePermissions(
@@ -334,11 +400,11 @@ class SitePermissionsFeatureTest {
         )
 
         // then
-        verify(mockStorage).update(sitePermissions)
+        verify(mockStorage).update(eq(sitePermissions))
     }
 
     @Test
-    fun `GIVEN a permissionRequest WITH a private tab WHEN storeSitePermissions() THEN save or update MUST NOT BE called`() {
+    fun `GIVEN a permissionRequest WITH a private tab WHEN storeSitePermissions() THEN save or update MUST NOT BE called`() = runBlockingTest {
         // then
         sitePermissionFeature.storeSitePermissions(
             selectedTab.content.copy(private = true),
@@ -348,12 +414,12 @@ class SitePermissionsFeatureTest {
         )
 
         // when
-        verify(mockStorage, never()).save(any())
+        verify(mockStorage, never()).save(any(), any())
         verify(mockStorage, never()).update(any())
     }
 
     @Test
-    fun `GIVEN permissionRequest WHEN onContentPermissionDeny THEN reject(), storeSitePermissions are called`() {
+    fun `GIVEN a permanent permissionRequest WHEN onContentPermissionDeny THEN reject(), storeSitePermissions are called`() {
         // given
         doNothing().`when`(mockPermissionRequest).reject()
         doNothing().`when`(sitePermissionFeature).storeSitePermissions(any(), any(), any(), any())
@@ -367,6 +433,40 @@ class SitePermissionsFeatureTest {
             selectedTab.content,
             mockPermissionRequest,
             BLOCKED
+        )
+    }
+
+    @Test
+    fun `GIVEN a temporary permissionRequest WHEN denying THEN store it on memory`() {
+        doNothing().`when`(mockPermissionRequest).reject()
+        doNothing().`when`(sitePermissionFeature).storeSitePermissions(any(), any(), any(), any())
+
+        sitePermissionFeature.onContentPermissionDeny(mockPermissionRequest, shouldStore = false)
+
+        verify(mockPermissionRequest).reject()
+        verify(mockStorage).saveTemporary(mockPermissionRequest)
+
+        verify(sitePermissionFeature, never()).storeSitePermissions(
+            selectedTab.content,
+            mockPermissionRequest,
+            BLOCKED
+        )
+    }
+
+    @Test
+    fun `GIVEN a temporary permissionRequest WHEN granting THEN store it on memory`() {
+        doNothing().`when`(mockPermissionRequest).reject()
+        doNothing().`when`(sitePermissionFeature).storeSitePermissions(any(), any(), any(), any())
+
+        sitePermissionFeature.onContentPermissionGranted(mockPermissionRequest, shouldStore = false)
+
+        verify(mockPermissionRequest).grant()
+        verify(mockStorage).saveTemporary(mockPermissionRequest)
+
+        verify(sitePermissionFeature, never()).storeSitePermissions(
+            selectedTab.content,
+            mockPermissionRequest,
+            ALLOWED
         )
     }
 
@@ -389,7 +489,7 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
-    fun `GIVEN location permissionRequest and shouldApplyRules is true WHEN onContentPermissionRequested() THEN handleRuledFlow is called`() {
+    fun `GIVEN location permissionRequest and shouldApplyRules is true WHEN onContentPermissionRequested() THEN handleRuledFlow is called`() = runBlockingTest {
         // given
         val mockPermissionRequest: PermissionRequest = mock {
             whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
@@ -416,7 +516,7 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
-    fun `GIVEN location permissionRequest and shouldApplyRules is false WHEN onContentPermissionRequested() THEN handleNoRuledFlow is called`() {
+    fun `GIVEN location permissionRequest and shouldApplyRules is false WHEN onContentPermissionRequested() THEN handleNoRuledFlow is called`() = runBlockingTest {
         // given
         val mockPermissionRequest: PermissionRequest = mock {
             whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
@@ -443,6 +543,62 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
+    fun `GIVEN autoplay permissionRequest and shouldApplyRules is false WHEN onContentPermissionRequested() THEN handleNoRuledFlow is called`() = runBlockingTest {
+        // given
+        val mockPermissionRequest: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentAutoPlayInaudible(id = "permission")))
+        }
+        val sitePermissions = SitePermissions(origin = "origin", savedAt = 0)
+        val sitePermissionsDialogFragment = SitePermissionsDialogFragment()
+
+        doReturn(sitePermissions).`when`(mockStorage).findSitePermissionsBy(URL)
+        doReturn(false).`when`(sitePermissionFeature).shouldApplyRules(any())
+        doReturn(sitePermissionsDialogFragment).`when`(sitePermissionFeature)
+            .handleNoRuledFlow(sitePermissions, mockPermissionRequest, URL)
+
+        // when
+        runBlockingTest {
+            sitePermissionFeature.onContentPermissionRequested(
+                mockPermissionRequest,
+                URL,
+                testScope
+            )
+        }
+
+        // then
+        verify(mockStorage).findSitePermissionsBy(URL)
+        verify(sitePermissionFeature).handleNoRuledFlow(sitePermissions, mockPermissionRequest, URL)
+    }
+
+    @Test
+    fun `GIVEN shouldShowPrompt with isForAutoplay false AND null permissionFromStorage THEN return true`() = runBlockingTest {
+        // given
+        val mockPermissionRequest: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(Permission.ContentGeoLocation(id = "permission")))
+        }
+
+        // when
+        val shouldShowPrompt = sitePermissionFeature.shouldShowPrompt(mockPermissionRequest, null)
+
+        // then
+        assertTrue(shouldShowPrompt)
+    }
+
+    @Test
+    fun `GIVEN shouldShowPrompt with isForAutoplay true THEN return false`() {
+        // given
+        val mockPermissionRequest: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(Permission.ContentAutoPlayInaudible(id = "permission")))
+        }
+
+        // when
+        val shouldShowPrompt = sitePermissionFeature.shouldShowPrompt(mockPermissionRequest, mock())
+
+        // then
+        assertFalse(shouldShowPrompt)
+    }
+
+    @Test
     fun `GIVEN shouldShowPrompt true WHEN handleNoRuledFlow THEN createPrompt is called`() {
         // given
         val sitePermissionsDialogFragment = SitePermissionsDialogFragment()
@@ -463,6 +619,7 @@ class SitePermissionsFeatureTest {
     fun `GIVEN shouldShowPrompt false and permissionFromStorage not granted WHEN handleNoRuledFlow THEN reject, consumePermissionRequest are called `() {
         // given
         doReturn(false).`when`(sitePermissionFeature).shouldShowPrompt(mockPermissionRequest, null)
+        doNothing().`when`(sitePermissionFeature).updatePermissionToolbarIndicator(mockPermissionRequest, BLOCKED)
 
         // when
         sitePermissionFeature.handleNoRuledFlow(null, mockPermissionRequest, URL)
@@ -470,6 +627,220 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockPermissionRequest).reject()
         verify(sitePermissionFeature).consumePermissionRequest(mockPermissionRequest)
+        verify(sitePermissionFeature).updatePermissionToolbarIndicator(
+            mockPermissionRequest,
+            BLOCKED
+        )
+    }
+
+    @Test
+    fun `GIVEN AutoplayAudible request WHEN calling updatePermissionToolbarIndicator THEN dispatch AutoPlayAudibleBlockingAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentAutoPlayAudible(id = "permission")))
+        }
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED)
+
+        verify(mockStore).dispatch(AutoPlayAudibleBlockingAction(tab1.id, true))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED)
+
+        verify(mockStore).dispatch(AutoPlayAudibleBlockingAction(tab1.id, false))
+    }
+
+    @Test
+    fun `GIVEN AutoplayInaudible request WHEN calling updatePermissionToolbarIndicator THEN dispatch AutoPlayInAudibleBlockingAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentAutoPlayInaudible(id = "permission")))
+        }
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED)
+
+        verify(mockStore).dispatch(AutoPlayInAudibleBlockingAction(tab1.id, true))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED)
+
+        verify(mockStore).dispatch(AutoPlayInAudibleBlockingAction(tab1.id, false))
+    }
+
+    @Test
+    fun `GIVEN notification request WHEN calling updatePermissionToolbarIndicator THEN dispatch NotificationChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentNotification(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules).notification
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, false)
+
+        verify(mockStore, never()).dispatch(any<NotificationChangedAction>())
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(NotificationChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(NotificationChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN camera request WHEN calling updatePermissionToolbarIndicator THEN dispatch CameraChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentVideoCamera(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules).camera
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, false)
+
+        verify(mockStore, never()).dispatch(any<CameraChangedAction>())
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(CameraChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(CameraChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN location request WHEN calling updatePermissionToolbarIndicator THEN dispatch CameraChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules).location
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, false)
+
+        verify(mockStore, never()).dispatch(any<LocationChangedAction>())
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(LocationChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(LocationChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN microphone request WHEN calling updatePermissionToolbarIndicator THEN dispatch MicrophoneChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentAudioCapture(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules).microphone
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, false)
+
+        verify(mockStore, never()).dispatch(any<MicrophoneChangedAction>())
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(MicrophoneChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(MicrophoneChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN persistentStorage request WHEN calling updatePermissionToolbarIndicator THEN dispatch PersistentStorageChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentPersistentStorage(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules).persistentStorage
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, false)
+
+        verify(mockStore, never()).dispatch(any<PersistentStorageChangedAction>())
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(PersistentStorageChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(PersistentStorageChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN mediaKeySystemAccess request WHEN calling updatePermissionToolbarIndicator THEN dispatch MediaKeySystemAccesChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentMediaKeySystemAccess(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules).mediaKeySystemAccess
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, false)
+
+        verify(mockStore, never()).dispatch(any<MediaKeySystemAccesChangedAction>())
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(MediaKeySystemAccesChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(MediaKeySystemAccesChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN autoplayAudible request WHEN calling updatePermissionToolbarIndicator THEN dispatch AutoPlayAudibleChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentAutoPlayAudible(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.AutoplayAction.BLOCKED).`when`(mockSitePermissionRules).autoplayAudible
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(AutoPlayAudibleChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(AutoPlayAudibleChangedAction(tab1.id, true))
+    }
+
+    @Test
+    fun `GIVEN autoplayInaudible request WHEN calling updatePermissionToolbarIndicator THEN dispatch AutoPlayInAudibleChangedAction`() {
+        val tab1 = createTab("https://www.mozilla.org", id = "1")
+        val request: PermissionRequest = mock {
+            whenever(permissions).thenReturn(listOf(ContentAutoPlayInaudible(id = "permission")))
+        }
+
+        doReturn(tab1).`when`(sitePermissionFeature).getCurrentTabState()
+        doReturn(SitePermissionsRules.AutoplayAction.BLOCKED).`when`(mockSitePermissionRules).autoplayInaudible
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, BLOCKED, true)
+
+        verify(mockStore).dispatch(AutoPlayInAudibleChangedAction(tab1.id, false))
+
+        sitePermissionFeature.updatePermissionToolbarIndicator(request, ALLOWED, true)
+
+        verify(mockStore).dispatch(AutoPlayInAudibleChangedAction(tab1.id, true))
     }
 
     @Test
@@ -479,6 +850,9 @@ class SitePermissionsFeatureTest {
         val mockPermissionRequest: PermissionRequest = mock {
             whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
         }
+        doNothing().`when`(sitePermissionFeature)
+            .updatePermissionToolbarIndicator(mockPermissionRequest, ALLOWED, true)
+
         doReturn(false).`when`(sitePermissionFeature)
             .shouldShowPrompt(mockPermissionRequest, sitePermissions)
 
@@ -488,61 +862,17 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockPermissionRequest, atLeastOnce()).grant()
         verify(sitePermissionFeature).consumePermissionRequest(mockPermissionRequest)
+        verify(sitePermissionFeature).updatePermissionToolbarIndicator(mockPermissionRequest, ALLOWED, true)
     }
 
     @Test
-    fun `GIVEN permissionRequest with isForAutoplay true and sitePermissionsRules null WHEN handleRuledFlow THEN reject, consumePermissionRequest are called`() {
+    fun `GIVEN permissionRequest with isForAutoplay true and BLOCKED WHEN handleRuledFlow THEN reject, consumePermissionRequest are called`() {
         // given
         val mockPermissionRequest: PermissionRequest = mock {
-            whenever(permissions).thenReturn(listOf(ContentAutoPlayInaudible(id = "permission")))
+            whenever(permissions).thenReturn(listOf(ContentAutoPlayAudible(id = "permission")))
         }
-
-        val sitePermissionFeature = spy(
-            SitePermissionsFeature(
-                context = testContext,
-                sitePermissionsRules = null,
-                onNeedToRequestPermissions = mockOnNeedToRequestPermissions,
-                storage = mockStorage,
-                fragmentManager = mockFragmentManager,
-                onShouldShowRequestPermissionRationale = { false },
-                store = mockStore,
-                sessionId = SESSION_ID
-            )
-        )
-
-        // when
-        sitePermissionFeature.handleRuledFlow(mockPermissionRequest, URL)
-
-        // then
-        verify(mockPermissionRequest).reject()
-        verify(sitePermissionFeature).consumePermissionRequest(mockPermissionRequest)
-    }
-
-    @Test
-    fun `GIVEN permissionRequest with isForAutoplay false and ALLOWED WHEN handleRuledFlow THEN grant, consumePermissionRequest are called`() {
-        // given
-        val mockPermissionsRules: SitePermissionsRules = mock()
-        val mockPermissionRequest: PermissionRequest = mock {
-            whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
-        }
-        doReturn(mockPermissionsRules).`when`(sitePermissionFeature).sitePermissionsRules
-        doReturn(SitePermissionsRules.Action.ALLOWED).`when`(mockPermissionsRules)
-            .getActionFrom(mockPermissionRequest)
-
-        // when
-        sitePermissionFeature.handleRuledFlow(mockPermissionRequest, URL)
-
-        // then
-        verify(mockPermissionRequest).grant()
-        verify(sitePermissionFeature).consumePermissionRequest(mockPermissionRequest)
-    }
-
-    @Test
-    fun `GIVEN permissionRequest with isForAutoplay false and BLOCKED WHEN handleRuledFlow THEN reject, consumePermissionRequest are called`() {
-        // given
-        val mockPermissionRequest: PermissionRequest = mock {
-            whenever(permissions).thenReturn(listOf(ContentGeoLocation(id = "permission")))
-        }
+        doNothing().`when`(sitePermissionFeature)
+            .updatePermissionToolbarIndicator(mockPermissionRequest, BLOCKED)
         doReturn(mockSitePermissionRules).`when`(sitePermissionFeature).sitePermissionsRules
         doReturn(SitePermissionsRules.Action.BLOCKED).`when`(mockSitePermissionRules)
             .getActionFrom(mockPermissionRequest)
@@ -553,6 +883,10 @@ class SitePermissionsFeatureTest {
         // then
         verify(mockPermissionRequest).reject()
         verify(sitePermissionFeature).consumePermissionRequest(mockPermissionRequest)
+        verify(sitePermissionFeature).updatePermissionToolbarIndicator(
+            mockPermissionRequest,
+            BLOCKED
+        )
     }
 
     @Test
@@ -647,14 +981,18 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
-    fun `is SitePermission granted in the storage`() {
+    fun `is SitePermission granted in the storage`() = runBlockingTest {
         val sitePermissionsList = listOf(
             ContentGeoLocation(),
             ContentNotification(),
             ContentAudioCapture(),
             ContentAudioMicrophone(),
             ContentVideoCamera(),
-            ContentVideoCapture()
+            ContentVideoCapture(),
+            ContentPersistentStorage(),
+            ContentAutoPlayAudible(),
+            ContentAutoPlayInaudible(),
+            ContentMediaKeySystemAccess()
         )
 
         sitePermissionsList.forEach { permission ->
@@ -662,11 +1000,15 @@ class SitePermissionsFeatureTest {
             val sitePermissionFromStorage: SitePermissions = mock()
 
             doReturn(listOf(permission)).`when`(request).permissions
-            doReturn(sitePermissionFromStorage).`when`(mockStorage).findSitePermissionsBy(anyString())
+            doReturn(sitePermissionFromStorage).`when`(mockStorage).findSitePermissionsBy(anyString(), anyBoolean())
             doReturn(ALLOWED).`when`(sitePermissionFromStorage).location
             doReturn(ALLOWED).`when`(sitePermissionFromStorage).notification
             doReturn(ALLOWED).`when`(sitePermissionFromStorage).camera
             doReturn(ALLOWED).`when`(sitePermissionFromStorage).microphone
+            doReturn(ALLOWED).`when`(sitePermissionFromStorage).localStorage
+            doReturn(ALLOWED).`when`(sitePermissionFromStorage).mediaKeySystemAccess
+            doReturn(AutoplayStatus.ALLOWED).`when`(sitePermissionFromStorage).autoplayAudible
+            doReturn(AutoplayStatus.ALLOWED).`when`(sitePermissionFromStorage).autoplayInaudible
 
             val isAllowed = sitePermissionFromStorage.isGranted(request)
             assertTrue(isAllowed)
@@ -674,7 +1016,7 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
-    fun `is SitePermission blocked in the storage`() {
+    fun `is SitePermission blocked in the storage`() = runBlockingTest {
         val sitePermissionsList = listOf(
             ContentGeoLocation(),
             ContentNotification(),
@@ -691,7 +1033,7 @@ class SitePermissionsFeatureTest {
             val sitePermissionFromStorage: SitePermissions = mock()
 
             doReturn(listOf(permission)).`when`(request).permissions
-            doReturn(sitePermissionFromStorage).`when`(mockStorage).findSitePermissionsBy(anyString())
+            doReturn(sitePermissionFromStorage).`when`(mockStorage).findSitePermissionsBy(anyString(), anyBoolean())
             doReturn(BLOCKED).`when`(sitePermissionFromStorage).location
             doReturn(BLOCKED).`when`(sitePermissionFromStorage).notification
             doReturn(BLOCKED).`when`(sitePermissionFromStorage).camera
@@ -763,16 +1105,17 @@ class SitePermissionsFeatureTest {
     }
 
     @Test
-    fun `getInitialSitePermissions - WHEN sitePermissionsRules is present the function MUST use the sitePermissionsRules values to create a SitePermissions object`() {
+    fun `getInitialSitePermissions - WHEN sitePermissionsRules is present the function MUST use the sitePermissionsRules values to create a SitePermissions object`() = runBlockingTest {
 
         val rules = SitePermissionsRules(
-                location = SitePermissionsRules.Action.BLOCKED,
-                camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
-                notification = SitePermissionsRules.Action.ASK_TO_ALLOW,
-                microphone = SitePermissionsRules.Action.BLOCKED,
-                autoplayAudible = SitePermissionsRules.Action.BLOCKED,
-                autoplayInaudible = SitePermissionsRules.Action.ALLOWED,
-                persistentStorage = SitePermissionsRules.Action.BLOCKED
+            location = SitePermissionsRules.Action.BLOCKED,
+            camera = SitePermissionsRules.Action.ASK_TO_ALLOW,
+            notification = SitePermissionsRules.Action.ASK_TO_ALLOW,
+            microphone = SitePermissionsRules.Action.BLOCKED,
+            autoplayAudible = SitePermissionsRules.AutoplayAction.BLOCKED,
+            autoplayInaudible = SitePermissionsRules.AutoplayAction.ALLOWED,
+            persistentStorage = SitePermissionsRules.Action.BLOCKED,
+            mediaKeySystemAccess = SitePermissionsRules.Action.ASK_TO_ALLOW
         )
 
         sitePermissionFeature.sitePermissionsRules = rules
@@ -784,18 +1127,19 @@ class SitePermissionsFeatureTest {
         assertEquals(NO_DECISION, sitePermissions.camera)
         assertEquals(NO_DECISION, sitePermissions.notification)
         assertEquals(BLOCKED, sitePermissions.microphone)
-        assertEquals(BLOCKED, sitePermissions.autoplayAudible)
-        assertEquals(ALLOWED, sitePermissions.autoplayInaudible)
+        assertEquals(BLOCKED, sitePermissions.autoplayAudible.toStatus())
+        assertEquals(ALLOWED, sitePermissions.autoplayInaudible.toStatus())
         assertEquals(BLOCKED, sitePermissions.localStorage)
+        assertEquals(NO_DECISION, sitePermissions.mediaKeySystemAccess)
     }
 
     @Test
-    fun `any media request must be rejected WHEN system permissions are not granted first`() {
+    fun `any media request must be rejected WHEN system permissions are not granted first`() = runBlocking() {
         val permissions = listOf(
-                ContentVideoCapture("", "back camera"),
-                ContentVideoCamera("", "front camera"),
-                ContentAudioCapture(),
-                ContentAudioMicrophone()
+            ContentVideoCapture("", "back camera"),
+            ContentVideoCamera("", "front camera"),
+            ContentAudioCapture(),
+            ContentAudioMicrophone()
         )
 
         permissions.forEach { permission ->
@@ -825,6 +1169,8 @@ class SitePermissionsFeatureTest {
                 assertFalse(grantWasCalled)
             }
         }
+
+        Unit
     }
 
     private fun mockFragmentManager(): FragmentManager {

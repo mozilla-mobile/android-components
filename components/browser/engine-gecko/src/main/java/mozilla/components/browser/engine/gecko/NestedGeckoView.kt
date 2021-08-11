@@ -4,16 +4,15 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.MotionEvent
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.NestedScrollingChild
 import androidx.core.view.NestedScrollingChildHelper
 import androidx.core.view.ViewCompat
-import mozilla.components.concept.engine.EngineView
+import mozilla.components.concept.engine.InputResultDetail
 import org.mozilla.geckoview.GeckoView
-import org.mozilla.geckoview.PanZoomController.INPUT_RESULT_HANDLED
-import org.mozilla.geckoview.PanZoomController.INPUT_RESULT_UNHANDLED
 
 /**
  * geckoView that supports nested scrolls (for using in a CoordinatorLayout).
@@ -26,7 +25,7 @@ import org.mozilla.geckoview.PanZoomController.INPUT_RESULT_UNHANDLED
  * https://github.com/takahirom/webview-in-coordinatorlayout
  */
 
-@Suppress("TooManyFunctions", "ClickableViewAccessibility")
+@Suppress("ClickableViewAccessibility")
 open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrollingChild {
 
     @VisibleForTesting
@@ -44,11 +43,11 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
     internal var childHelper: NestedScrollingChildHelper = NestedScrollingChildHelper(this)
 
     /**
-     * Integer indicating how user's MotionEvent was handled.
+     * How user's MotionEvent will be handled.
      *
-     * There must be a 1-1 relation between this values and [EngineView.InputResult]'s.
+     * @see InputResultDetail
      */
-    internal var inputResult: Int = INPUT_RESULT_UNHANDLED
+    internal var inputResultDetail = InputResultDetail.newInstance(true)
 
     init {
         isNestedScrollingEnabled = true
@@ -62,7 +61,8 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
 
         when (action) {
             MotionEvent.ACTION_MOVE -> {
-                val allowScroll = !shouldPinOnScreen() && inputResult == INPUT_RESULT_HANDLED
+                val allowScroll = !shouldPinOnScreen() && inputResultDetail.isTouchHandledByBrowser()
+
                 var deltaY = lastY - eventY
 
                 if (allowScroll && dispatchNestedPreScroll(0, deltaY, scrollConsumed, scrollOffset)) {
@@ -81,8 +81,7 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
             }
 
             MotionEvent.ACTION_DOWN -> {
-                // A new gesture started. Reset handled status and ask GV if it can handle this.
-                inputResult = INPUT_RESULT_UNHANDLED
+                // A new gesture started. Ask GV if it can handle this.
                 updateInputResult(event)
 
                 nestedOffsetY = 0
@@ -96,7 +95,12 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
             }
 
             // We don't care about other touch events
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> stopNestedScroll()
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                stopNestedScroll()
+                // Reset handled status so that parents of this View would not get the old value
+                // when querying it for a newly started touch event.
+                inputResultDetail = InputResultDetail.newInstance(true)
+            }
         }
 
         // Execute event handler from parent class in all cases
@@ -113,13 +117,14 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
         return super.onTouchEvent(event)
     }
 
+    @SuppressLint("WrongThread") // Lint complains startNestedScroll() needs to be called on the main thread
     @VisibleForTesting
     internal fun updateInputResult(event: MotionEvent) {
-        super.onTouchEventForResult(event)
+        super.onTouchEventForDetailResult(event)
             .accept {
-                // This should never be null.
-                // Prefer to crash and investigate after rather than not knowing about problems with this.
-                inputResult = it!!
+                inputResultDetail = inputResultDetail.copy(
+                    it?.handledResult(), it?.scrollableDirections(), it?.overscrollDirections()
+                )
                 startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL)
             }
     }

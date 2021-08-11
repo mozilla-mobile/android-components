@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
+import androidx.annotation.VisibleForTesting
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import mozilla.components.browser.menu.BrowserMenu
@@ -28,10 +29,16 @@ import mozilla.components.concept.menu.candidate.TextStyle
  * @param iconTintColorResource Optional ID of color resource to tint the icon.
  * @param textColorResource Optional ID of color resource to tint the text.
  * @property subMenu Target sub menu to be shown when this menu item is clicked.
+ * @param isCollapsingMenuLimit Whether this menu item can serve as the limit of a collapsing menu.
+ * @param isSticky whether this item menu should not be scrolled offscreen (downwards or upwards
+ * depending on the menu position).
+ * @param endOfMenuAlwaysVisible when is set to true makes sure the bottom of the menu is always visible
+ * otherwise, the top of the menu is always visible.
  */
 @Suppress("LongParameterList")
 class ParentBrowserMenuItem(
-    private val label: String,
+    @VisibleForTesting
+    internal val label: String,
     @DrawableRes
     private val imageResource: Int,
     @ColorRes
@@ -39,8 +46,10 @@ class ParentBrowserMenuItem(
     @ColorRes
     private val textColorResource: Int = NO_ID,
     internal val subMenu: BrowserMenu,
+    override val isCollapsingMenuLimit: Boolean = false,
+    override val isSticky: Boolean = false,
     endOfMenuAlwaysVisible: Boolean = false
-) : AbstractParentBrowserMenuItem(subMenu, endOfMenuAlwaysVisible) {
+) : AbstractParentBrowserMenuItem(subMenu, isCollapsingMenuLimit, endOfMenuAlwaysVisible) {
 
     override var visible: () -> Boolean = { true }
     override fun getLayoutResource() = R.layout.mozac_browser_menu_item_image_text

@@ -13,8 +13,8 @@ import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.readerview.ReaderViewFeature
 import mozilla.components.feature.readerview.view.ReaderViewControlsView
-import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.samples.browser.R
 
 @Suppress("UndocumentedPublicClass")
@@ -30,8 +30,8 @@ class ReaderViewIntegration(
     private var readerViewButtonVisible = false
 
     private val readerViewButton: BrowserToolbar.ToggleButton = BrowserToolbar.ToggleButton(
-        image = context.getDrawable(R.drawable.mozac_ic_reader_mode)!!,
-        imageSelected = context.getDrawable(R.drawable.mozac_ic_reader_mode)!!.mutate().apply {
+        image = ContextCompat.getDrawable(context, R.drawable.mozac_ic_reader_mode)!!,
+        imageSelected = ContextCompat.getDrawable(context, R.drawable.mozac_ic_reader_mode)!!.mutate().apply {
             setTint(ContextCompat.getColor(context, R.color.photonBlue40))
         },
         contentDescription = context.getString(R.string.mozac_reader_view_description),

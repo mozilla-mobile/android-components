@@ -52,13 +52,15 @@ private const val VIEW_HOLDER_TYPE_ADDON = 2
  * @property addonsManagerDelegate Delegate that will provides method for handling the add-on items.
  * @param addons The list of add-on based on the AMO store.
  * @property style Indicates how items should look like.
+ * @property excludedAddonIDs The list of add-on IDs to be excluded from the recommended section.
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("LargeClass")
 class AddonsManagerAdapter(
     private val addonCollectionProvider: AddonCollectionProvider,
     private val addonsManagerDelegate: AddonsManagerAdapterDelegate,
     addons: List<Addon>,
-    private val style: Style? = null
+    private val style: Style? = null,
+    private val excludedAddonIDs: List<String> = emptyList()
 ) : ListAdapter<Any, CustomViewHolder>(DifferCallback) {
     private val scope = CoroutineScope(Dispatchers.IO)
     private val logger = Logger("AddonsManagerAdapter")
@@ -72,7 +74,7 @@ class AddonsManagerAdapter(
     internal var addonsMap: MutableMap<String, Addon> = addons.associateBy({ it.id }, { it }).toMutableMap()
 
     init {
-        submitList(createListWithSections(addons))
+        submitList(createListWithSections(addons, excludedAddonIDs))
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CustomViewHolder {
@@ -270,7 +272,9 @@ class AddonsManagerAdapter(
                     val context = iconView.context
                     val att = context.theme.resolveAttribute(android.R.attr.textColorPrimary)
                     iconView.setColorFilter(ContextCompat.getColor(context, att))
-                    iconView.setImageDrawable(context.getDrawable(R.drawable.mozac_ic_extensions))
+                    iconView.setImageDrawable(
+                        ContextCompat.getDrawable(context, R.drawable.mozac_ic_extensions)
+                    )
                 }
                 logger.error("Attempt to fetch the ${addon.id} icon failed", e)
             }
@@ -279,7 +283,7 @@ class AddonsManagerAdapter(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     @Suppress("ComplexMethod")
-    internal fun createListWithSections(addons: List<Addon>): List<Any> {
+    internal fun createListWithSections(addons: List<Addon>, excludedAddonIDs: List<String> = emptyList()): List<Any> {
         val itemsWithSections = ArrayList<Any>()
         val installedAddons = ArrayList<Addon>()
         val recommendedAddons = ArrayList<Addon>()
@@ -310,7 +314,10 @@ class AddonsManagerAdapter(
         // Add recommended section and addons if available
         if (recommendedAddons.isNotEmpty()) {
             itemsWithSections.add(Section(R.string.mozac_feature_addons_recommended_section, true))
-            itemsWithSections.addAll(recommendedAddons)
+            val filteredRecommendedAddons = recommendedAddons.filter {
+                it.id !in excludedAddonIDs
+            }
+            itemsWithSections.addAll(filteredRecommendedAddons)
         }
 
         // Add unsupported section
@@ -395,7 +402,7 @@ class AddonsManagerAdapter(
      */
     fun updateAddon(addon: Addon) {
         addonsMap[addon.id] = addon
-        submitList(createListWithSections(addonsMap.values.toList()))
+        submitList(createListWithSections(addonsMap.values.toList(), excludedAddonIDs))
     }
 
     /**

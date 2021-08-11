@@ -4,6 +4,7 @@
 
 package mozilla.components.support.webextensions
 
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -11,10 +12,13 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.WebExtensionAction
-import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.selector.allTabs
+import mozilla.components.browser.state.selector.findTabOrCustomTab
+import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.state.createTab
@@ -53,15 +57,9 @@ typealias onUpdatePermissionRequest = (
  * is completed and the [WebExtensionRuntime] (engine) has direct access to the
  * [BrowserStore]: https://github.com/orgs/mozilla-mobile/projects/31
  */
-@Suppress("TooManyFunctions")
 object WebExtensionSupport {
     private val logger = Logger("mozac-webextensions")
-    private var onUpdatePermissionRequest: ((
-        current: WebExtension,
-        updated: WebExtension,
-        newPermissions: List<String>,
-        onPermissionsGranted: (Boolean) -> Unit
-    ) -> Unit)? = null
+    private var onUpdatePermissionRequest: onUpdatePermissionRequest? = null
     private var onExtensionsLoaded: ((List<WebExtension>) -> Unit)? = null
     private var onCloseTabOverride: ((WebExtension?, String) -> Unit)? = null
     private var onSelectTabOverride: ((WebExtension?, String) -> Unit)? = null
@@ -104,9 +102,9 @@ object WebExtensionSupport {
     ) : TabHandler {
 
         override fun onCloseTab(webExtension: WebExtension, engineSession: EngineSession): Boolean {
-            val tab = store.state.findTab(sessionId)
+            val tab = store.state.findTabOrCustomTab(sessionId)
             return if (tab != null) {
-                closeTab(tab.id, store, onCloseTabOverride, webExtension)
+                closeTab(tab.id, tab.isCustomTab(), store, onCloseTabOverride, webExtension)
                 true
             } else {
                 false
@@ -119,9 +117,9 @@ object WebExtensionSupport {
             active: Boolean,
             url: String?
         ): Boolean {
-            val tab = store.state.findTab(sessionId)
+            val tab = store.state.findTabOrCustomTab(sessionId)
             return if (tab != null) {
-                if (active) {
+                if (active && !tab.isCustomTab()) {
                     onSelectTabOverride?.invoke(webExtension, tab.id)
                         ?: store.dispatch(TabListAction.SelectTabAction(tab.id))
                 }
@@ -213,10 +211,10 @@ object WebExtensionSupport {
                     val popupSessionId = store.state.extensions[extension.id]?.popupSessionId
                     if (popupSessionId != null && store.state.tabs.find { it.id == popupSessionId } != null) {
                         if (popupSessionId == store.state.selectedTabId) {
-                            closeTab(popupSessionId, store, onCloseTabOverride, extension)
+                            closeTab(popupSessionId, false, store, onCloseTabOverride, extension)
                         } else {
                             onSelectTabOverride?.invoke(extension, popupSessionId)
-                                    ?: store.dispatch(TabListAction.SelectTabAction(popupSessionId))
+                                ?: store.dispatch(TabListAction.SelectTabAction(popupSessionId))
                         }
                         null
                     } else {
@@ -248,9 +246,11 @@ object WebExtensionSupport {
 
             override fun onAllowedInPrivateBrowsingChanged(extension: WebExtension) {
                 installedExtensions[extension.id] = extension
-                store.dispatch(WebExtensionAction.UpdateWebExtensionAllowedInPrivateBrowsingAction(
-                    extension.id, extension.isAllowedInPrivateBrowsing()
-                ))
+                store.dispatch(
+                    WebExtensionAction.UpdateWebExtensionAllowedInPrivateBrowsingAction(
+                        extension.id, extension.isAllowedInPrivateBrowsing()
+                    )
+                )
             }
 
             override fun onInstallPermissionRequest(extension: WebExtension): Boolean {
@@ -294,14 +294,16 @@ object WebExtensionSupport {
     private fun registerInstalledExtensions(store: BrowserStore, runtime: WebExtensionRuntime) {
         runtime.listInstalledWebExtensions(
             onSuccess = {
-                extensions -> extensions.forEach { registerInstalledExtension(store, it) }
+                extensions ->
+                extensions.forEach { registerInstalledExtension(store, it) }
                 emitWebExtensionsInitializedFact(extensions)
                 closeUnsupportedTabs(store, extensions)
                 initializationResult.complete(Unit)
                 onExtensionsLoaded?.invoke(extensions.filter { !it.isBuiltIn() })
             },
             onError = {
-                throwable -> logger.error("Failed to query installed extension", throwable)
+                throwable ->
+                logger.error("Failed to query installed extension", throwable)
                 initializationResult.completeExceptionally(throwable)
             }
         )
@@ -317,7 +319,7 @@ object WebExtensionSupport {
         // Register action handler for all existing engine sessions on the new extension,
         // an issue was filed to get us an API, so we don't have to do this per extension:
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1603559
-        store.state.tabs
+        store.state.allTabs
             .forEach { tab ->
                 tab.engineState.engineSession?.let { session ->
                     registerSessionHandlers(webExtension, store, session, tab.id)
@@ -343,14 +345,14 @@ object WebExtensionSupport {
         // startup and might not be ready yet.
         var scope: CoroutineScope? = null
         scope = store.flowScoped { flow ->
-            flow.map { state -> state.tabs.filter { it.source == SessionState.Source.RESTORED }.size }
+            flow.map { state -> state.tabs.filter { it.restored }.size }
                 .ifChanged()
                 .collect { size ->
                     if (size > 0) {
                         store.state.tabs.forEach { tab ->
                             val tabUrl = tab.content.url
                             if (tabUrl.isExtensionUrl() && supportedUrls.none { tabUrl.startsWith(it) }) {
-                                closeTab(tab.id, store, onCloseTabOverride)
+                                closeTab(tab.id, false, store, onCloseTabOverride)
                             }
                         }
                         scope?.cancel()
@@ -367,7 +369,7 @@ object WebExtensionSupport {
         store.dispatch(WebExtensionAction.UpdateWebExtensionAction(updatedExtension.toState()))
 
         // Register action handler for all existing engine sessions on the new extension
-        store.state.tabs.forEach { tab ->
+        store.state.allTabs.forEach { tab ->
             tab.engineState.engineSession?.let { session ->
                 registerSessionHandlers(updatedExtension, store, session, tab.id)
             }
@@ -382,7 +384,7 @@ object WebExtensionSupport {
         // We need to observe for the entire lifetime of the application,
         // as web extension support is not tied to any particular view.
         store.flowScoped { flow ->
-            flow.mapNotNull { state -> state.tabs }
+            flow.mapNotNull { state -> state.allTabs }
                 .filterChanged {
                     it.engineState.engineSession
                 }
@@ -439,14 +441,26 @@ object WebExtensionSupport {
 
     private fun closeTab(
         id: String,
+        customTab: Boolean,
         store: BrowserStore,
         onCloseTabOverride: ((WebExtension?, String) -> Unit)? = null,
         webExtension: WebExtension? = null
     ) {
-        onCloseTabOverride?.invoke(webExtension, id) ?: store.dispatch(TabListAction.RemoveTabAction(id))
+        if (onCloseTabOverride != null) {
+            onCloseTabOverride.invoke(webExtension, id)
+        } else {
+            val action = if (customTab) {
+                CustomTabListAction.RemoveCustomTabAction(id)
+            } else {
+                TabListAction.RemoveTabAction(id)
+            }
+
+            store.dispatch(action)
+        }
     }
 
-    private fun WebExtension.toState() =
+    @VisibleForTesting
+    internal fun WebExtension.toState() =
         WebExtensionState(
             id,
             url,
@@ -454,4 +468,6 @@ object WebExtensionSupport {
             isEnabled(),
             isAllowedInPrivateBrowsing()
         )
+
+    private fun SessionState.isCustomTab() = this is CustomTabSessionState
 }

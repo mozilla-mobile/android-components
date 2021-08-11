@@ -7,8 +7,9 @@ package mozilla.components.feature.contextmenu
 import android.content.res.Resources
 import android.util.Patterns
 import androidx.annotation.VisibleForTesting
-import mozilla.components.feature.search.SearchAdapter
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
+import mozilla.components.feature.contextmenu.facts.emitTextSelectionClickFact
+import mozilla.components.feature.search.SearchAdapter
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 internal const val SEARCH = "CUSTOM_CONTEXT_MENU_SEARCH"
@@ -51,12 +52,16 @@ class DefaultSelectionActionDelegate(
     override fun isActionAvailable(id: String, selectedText: String): Boolean {
         val isPrivate = searchAdapter.isPrivateSession()
         return (id == SHARE && shareTextClicked != null) ||
-                (id == EMAIL && emailTextClicked != null &&
-                    Patterns.EMAIL_ADDRESS.matcher(selectedText.trim()).matches()) ||
-                (id == CALL &&
-                    callTextClicked != null && Patterns.PHONE.matcher(selectedText.trim()).matches()) ||
-                (id == SEARCH && !isPrivate) ||
-                (id == SEARCH_PRIVATELY && isPrivate)
+            (
+                id == EMAIL && emailTextClicked != null &&
+                    Patterns.EMAIL_ADDRESS.matcher(selectedText.trim()).matches()
+                ) ||
+            (
+                id == CALL &&
+                    callTextClicked != null && Patterns.PHONE.matcher(selectedText.trim()).matches()
+                ) ||
+            (id == SEARCH && !isPrivate) ||
+            (id == SEARCH_PRIVATELY && isPrivate)
     }
 
     override fun getActionTitle(id: String): CharSequence? = when (id) {
@@ -68,28 +73,33 @@ class DefaultSelectionActionDelegate(
         else -> null
     }
 
-    override fun performAction(id: String, selectedText: String): Boolean = when (id) {
-        SEARCH -> {
-            searchAdapter.sendSearch(false, selectedText)
-            true
+    override fun performAction(id: String, selectedText: String): Boolean {
+        emitTextSelectionClickFact(id)
+        return when (id) {
+            SEARCH -> {
+                searchAdapter.sendSearch(false, selectedText)
+                true
+            }
+            SEARCH_PRIVATELY -> {
+                searchAdapter.sendSearch(true, selectedText)
+                true
+            }
+            SHARE -> {
+                shareTextClicked?.invoke(selectedText)
+                true
+            }
+            EMAIL -> {
+                emailTextClicked?.invoke(selectedText.trim())
+                true
+            }
+            CALL -> {
+                callTextClicked?.invoke(selectedText.trim())
+                true
+            }
+            else -> {
+                false
+            }
         }
-        SEARCH_PRIVATELY -> {
-            searchAdapter.sendSearch(true, selectedText)
-            true
-        }
-        SHARE -> {
-            shareTextClicked?.invoke(selectedText)
-            true
-        }
-        EMAIL -> {
-            emailTextClicked?.invoke(selectedText.trim())
-            true
-        }
-        CALL -> {
-            callTextClicked?.invoke(selectedText.trim())
-            true
-        }
-        else -> false
     }
 
     /**

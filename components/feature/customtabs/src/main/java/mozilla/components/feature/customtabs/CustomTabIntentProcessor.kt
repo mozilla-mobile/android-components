@@ -9,13 +9,11 @@ import android.content.Intent.ACTION_VIEW
 import android.content.res.Resources
 import android.provider.Browser
 import androidx.annotation.VisibleForTesting
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.state.state.SessionState
-import mozilla.components.concept.engine.EngineSession
+import mozilla.components.browser.state.state.externalPackage
 import mozilla.components.feature.intent.ext.putSessionId
 import mozilla.components.feature.intent.processing.IntentProcessor
-import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeIntent
 
@@ -23,8 +21,7 @@ import mozilla.components.support.utils.toSafeIntent
  * Processor for intents which trigger actions related to custom tabs.
  */
 class CustomTabIntentProcessor(
-    private val sessionManager: SessionManager,
-    private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
+    private val addCustomTabUseCase: CustomTabsUseCases.AddCustomTabUseCase,
     private val resources: Resources,
     private val isPrivate: Boolean = false
 ) : IntentProcessor {
@@ -58,12 +55,16 @@ class CustomTabIntentProcessor(
         val url = safeIntent.dataString
 
         return if (!url.isNullOrEmpty() && matches(intent)) {
-            val session = Session(url, private = isPrivate, source = SessionState.Source.CUSTOM_TAB)
-            session.customTabConfig = createCustomTabConfigFromIntent(intent, resources)
-
-            sessionManager.add(session)
-            loadUrlUseCase(url, session, EngineSession.LoadUrlFlags.external(), getAdditionalHeaders(safeIntent))
-            intent.putSessionId(session.id)
+            val config = createCustomTabConfigFromIntent(intent, resources)
+            val caller = safeIntent.externalPackage()
+            val customTabId = addCustomTabUseCase(
+                url,
+                config,
+                isPrivate,
+                getAdditionalHeaders(safeIntent),
+                source = SessionState.Source.External.CustomTab(caller)
+            )
+            intent.putSessionId(customTabId)
 
             true
         } else {

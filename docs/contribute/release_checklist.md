@@ -7,14 +7,14 @@ permalink: /contributing/release-checklist
 ## Before the release
 
 - Make sure version number is correct or update version in `.buildconfig.yml`.
-- Update [CHANGELOG](https://github.com/mozilla-mobile/android-components/blob/master/docs/changelog.md)
+- Update [CHANGELOG](https://github.com/mozilla-mobile/android-components/blob/main/docs/changelog.md)
   - Use milestone and commit log for identifying interesting changes.
   - Add the milestone to any related issue that doesn't have it.
 - Close milestone
   - Milestone should be 100% complete. Incomplete issues should have been moved in planning meeting.
 
 ## Release
-
+- Create a branch with the format `releases/[major_version].0`, for example, `releases/49.0`.
 - Create a new tag/release on GitHub.
   - Tag: v2.0 (_v_ prefix!)
   - Release 2.0
@@ -38,5 +38,6 @@ Release notes: https://mozilla-mobile.github.io/android-components/changelog/
 Milestone: https://github.com/mozilla-mobile/android-components/milestone/15?closed=1
 ```
 - Update version number in repository
-  - [.buildconfig.yml](https://github.com/mozilla-mobile/android-components/blob/master/.buildconfig.yml#L1)
+  - [.buildconfig.yml](https://github.com/mozilla-mobile/android-components/blob/main/.buildconfig.yml#L1)
+  - Update the [`version.txt`](https://github.com/mozilla-mobile/android-components/blob/main/version.txt) as well.
 - Create the next milestone

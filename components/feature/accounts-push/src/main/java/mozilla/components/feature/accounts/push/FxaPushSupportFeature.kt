@@ -11,10 +11,13 @@ import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.base.crash.CrashReporting
+import mozilla.components.concept.push.exceptions.SubscriptionException
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.concept.sync.Device
@@ -26,13 +29,13 @@ import mozilla.components.feature.accounts.push.ext.redactPartialUri
 import mozilla.components.feature.push.AutoPushFeature
 import mozilla.components.feature.push.AutoPushSubscription
 import mozilla.components.feature.push.PushScope
-import mozilla.components.concept.sync.AccountObserver as SyncAccountObserver
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.manager.ext.withConstellation
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.utils.SharedPreferencesCache
 import org.json.JSONObject
 import java.util.UUID
+import mozilla.components.concept.sync.AccountObserver as SyncAccountObserver
 
 internal const val PREFERENCE_NAME = "mozac_feature_accounts_push"
 internal const val PREF_LAST_VERIFIED = "last_verified_push_subscription"
@@ -122,6 +125,7 @@ internal class AccountObserver(
     private val logger = Logger(AccountObserver::class.java.simpleName)
     private val verificationDelegate = VerificationDelegate(context, push.config.disableRateLimit)
 
+    @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
     override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
 
         val constellationObserver = ConstellationObserver(
@@ -149,14 +153,17 @@ internal class AccountObserver(
                     CoroutineScope(Dispatchers.Main).launch {
                         account.deviceConstellation().setDevicePushSubscription(subscription.into())
                     }
-                })
+                }
+            )
         }
 
         // NB: can we just expose registerDeviceObserver on account manager?
         // registration could happen after onDevicesUpdate has been called, without having to tie this
         // into the account "auth lifecycle".
         // See https://github.com/mozilla-mobile/android-components/issues/8766
-        account.deviceConstellation().registerDeviceObserver(constellationObserver, lifecycleOwner, autoPause)
+        GlobalScope.launch(Dispatchers.Main) {
+            account.deviceConstellation().registerDeviceObserver(constellationObserver, lifecycleOwner, autoPause)
+        }
     }
 
     override fun onLoggedOut() {
@@ -188,7 +195,9 @@ internal class ConstellationObserver(
 
     override fun onDevicesUpdate(constellation: ConstellationState) {
         logger.info("onDevicesUpdate triggered.")
-        val updateSubscription = constellation.currentDevice?.subscriptionExpired ?: false
+        val updateSubscription = constellation.currentDevice?.let {
+            it.subscription == null || it.subscriptionExpired
+        } ?: false
 
         // If our subscription has not expired, we do nothing.
         // If our last check was recent (see: PERIODIC_INTERVAL_MILLISECONDS), we do nothing.
@@ -203,17 +212,8 @@ internal class ConstellationObserver(
             logger.info("Proceeding to renew registration")
         }
 
-        logger.info("We have been notified that our push subscription has expired; re-subscribing.")
-        push.unsubscribe(
-            scope = scope,
-            onUnsubscribeError = ::onUnsubscribeError,
-            onUnsubscribe = ::onUnsubscribeResult
-        )
-        push.subscribe(
-            scope = scope,
-            onSubscribeError = ::onSubscribeError,
-            onSubscribe = { onSubscribe(constellation, it) }
-        )
+        logger.info("Our push subscription either doesn't exist or is expired; renewing registration.")
+        push.renewRegistration()
 
         logger.info("Incrementing verifier")
         logger.info("Verifier state before: timestamp=${verifier.innerTimestamp}, count=${verifier.innerCount}")
@@ -227,11 +227,10 @@ internal class ConstellationObserver(
 
         val oldEndpoint = constellation.currentDevice?.subscription?.endpoint
         if (subscription.endpoint == oldEndpoint) {
-            val exception = IllegalStateException(
+            val exception = SubscriptionException(
                 "New push endpoint matches existing one",
                 Throwable(
-                    "New endpoint: ${subscription.endpoint.redactPartialUri()}\n" +
-                    "Old endpoint: ${oldEndpoint.redactPartialUri()}"
+                    "Endpoint: ${subscription.endpoint.redactPartialUri()}"
                 )
             )
 
@@ -246,42 +245,33 @@ internal class ConstellationObserver(
     }
 
     internal fun onSubscribeError(e: Exception) {
-        logger.warn("Re-subscribing failed; FxA push events will not be received.", e)
-        breadcrumb(
-            exception = e,
-            message = "Re-subscribing to failed FxA push after subscriptionExpired"
-        )
+        val errorMessage = "Re-subscribing failed; FxA push events will not be received."
+
+        logger.warn(errorMessage, e)
+        crashReporter?.submitCaughtException(SubscriptionException(errorMessage, e))
     }
 
     internal fun onUnsubscribeError(e: Exception) {
-        logger.warn("Un-subscribing failed; subscribe may return the same endpoint", e)
-        breadcrumb(
-            exception = e,
-            message = "Un-subscribing to failed FxA push after subscriptionExpired"
+        val errorMessage = "Un-subscribing to failed FxA push after subscriptionExpired"
+
+        logger.warn(errorMessage, e)
+        crashReporter?.recordCrashBreadcrumb(
+            Breadcrumb(
+                category = ConstellationObserver::class.java.simpleName,
+                message = errorMessage,
+                data = mapOf(
+                    "exception" to e.javaClass.name,
+                    "message" to e.message.orEmpty()
+                )
+            )
         )
     }
 
-    internal fun onUnsubscribeResult(success: Boolean) {
+    private fun onUnsubscribeResult(success: Boolean) {
         logger.info("Un-subscribing successful: $success")
         if (success) {
             logger.info("Subscribe call should give you a new endpoint.")
         }
-    }
-
-    private fun breadcrumb(
-        exception: Exception,
-        message: String
-    ) {
-        crashReporter?.recordCrashBreadcrumb(
-            Breadcrumb(
-                category = ConstellationObserver::class.java.simpleName,
-                message = message,
-                data = mapOf(
-                    "exception" to exception.javaClass.name,
-                    "message" to exception.message.orEmpty()
-                )
-            )
-        )
     }
 }
 

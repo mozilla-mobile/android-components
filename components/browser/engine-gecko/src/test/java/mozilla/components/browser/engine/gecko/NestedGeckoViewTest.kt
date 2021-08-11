@@ -19,6 +19,7 @@ import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.mockMotionEvent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,7 +97,7 @@ class NestedGeckoViewTest {
         val nestedWebView = spy(NestedGeckoView(context))
         val mockChildHelper: NestedScrollingChildHelper = mock()
         nestedWebView.childHelper = mockChildHelper
-        nestedWebView.inputResult = INPUT_RESULT_HANDLED
+        nestedWebView.inputResultDetail = nestedWebView.inputResultDetail.copy(INPUT_RESULT_HANDLED)
         doReturn(true).`when`(nestedWebView).callSuperOnTouchEvent(any())
 
         doReturn(true).`when`(mockChildHelper).dispatchNestedPreScroll(
@@ -126,15 +127,23 @@ class NestedGeckoViewTest {
     @Test
     fun `verify onTouchEvent when ACTION_UP or ACTION_CANCEL`() {
         val nestedWebView = spy(NestedGeckoView(context))
+        nestedWebView.inputResultDetail = nestedWebView.inputResultDetail.copy(INPUT_RESULT_HANDLED)
         val mockChildHelper: NestedScrollingChildHelper = mock()
         nestedWebView.childHelper = mockChildHelper
         doReturn(true).`when`(nestedWebView).callSuperOnTouchEvent(any())
 
         nestedWebView.onTouchEvent(mockMotionEvent(ACTION_UP))
         verify(mockChildHelper).stopNestedScroll()
+        // ACTION_UP should call "inputResultDetail.reset()". Test that call's effect.
+        assertTrue(nestedWebView.inputResultDetail.isTouchHandlingUnknown())
+        assertFalse(nestedWebView.inputResultDetail.isTouchHandledByBrowser())
 
+        nestedWebView.inputResultDetail = nestedWebView.inputResultDetail.copy(INPUT_RESULT_HANDLED)
         nestedWebView.onTouchEvent(mockMotionEvent(ACTION_CANCEL))
         verify(mockChildHelper, times(2)).stopNestedScroll()
+        // ACTION_CANCEL should call "inputResultDetail.reset()". Test that call's effect.
+        assertTrue(nestedWebView.inputResultDetail.isTouchHandlingUnknown())
+        assertFalse(nestedWebView.inputResultDetail.isTouchHandledByBrowser())
 
         // onTouchEventForResult should be called only for ACTION_DOWN
         verify(nestedWebView, times(0)).updateInputResult(any())

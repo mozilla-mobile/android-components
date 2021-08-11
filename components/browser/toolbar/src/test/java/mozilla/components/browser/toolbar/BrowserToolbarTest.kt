@@ -12,11 +12,16 @@ import android.view.ViewParent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.widget.ImageButton
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.toolbar.behavior.BrowserToolbarBehavior
+import mozilla.components.browser.toolbar.behavior.ToolbarPosition
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.browser.toolbar.display.DisplayToolbarViews
+import mozilla.components.browser.toolbar.display.MenuButton
 import mozilla.components.browser.toolbar.edit.EditToolbar
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.Toolbar
@@ -25,6 +30,7 @@ import mozilla.components.concept.toolbar.Toolbar.SiteTrackingProtection
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -172,9 +178,12 @@ class BrowserToolbarTest {
         toolbar.displayProgress(50)
         toolbar.displayProgress(100)
 
+        // make sure multiple calls to 100% does not trigger "loading" announcement
+        toolbar.displayProgress(100)
+
         val captor = ArgumentCaptor.forClass(AccessibilityEvent::class.java)
 
-        verify(root, times(4)).requestSendAccessibilityEvent(any(), captor.capture())
+        verify(root, times(5)).requestSendAccessibilityEvent(any(), captor.capture())
 
         assertEquals(AccessibilityEvent.TYPE_ANNOUNCEMENT, captor.allValues[0].eventType)
         assertEquals(testContext.getString(R.string.mozac_browser_toolbar_progress_loading), captor.allValues[0].text[0])
@@ -188,6 +197,10 @@ class BrowserToolbarTest {
         assertEquals(100, captor.allValues[2].maxScrollY)
 
         assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[3].eventType)
+        assertEquals(100, captor.allValues[3].scrollY)
+        assertEquals(100, captor.allValues[3].maxScrollY)
+
+        assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[4].eventType)
         assertEquals(100, captor.allValues[3].scrollY)
         assertEquals(100, captor.allValues[3].maxScrollY)
     }
@@ -619,7 +632,8 @@ class BrowserToolbarTest {
             mock(),
             "imageDrawable",
             "imageSelectedDrawable",
-            visible = { false }) {}
+            visible = { false }
+        ) {}
 
         assertEquals(false, button.visible())
     }
@@ -632,13 +646,13 @@ class BrowserToolbarTest {
         var reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop") {}
         assertFalse(reloadPageAction.enabled)
         reloadPageAction.bind(view)
-        verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "stop"
+        verify(view).setImageDrawable(reloadImage)
+        verify(view).contentDescription = "reload"
 
         reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop", { false }) {}
         reloadPageAction.bind(view)
         verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "reload"
+        verify(view).contentDescription = "stop"
     }
 
     @Test
@@ -672,20 +686,29 @@ class BrowserToolbarTest {
         val edit = toolbar.edit
 
         // By default "private mode" is off.
-        assertEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertEquals(false, toolbar.private)
 
         // Turning on private mode sets flag
         toolbar.private = true
-        assertNotEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertNotEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertTrue(toolbar.private)
 
         // Turning private mode off again - should remove flag
         toolbar.private = false
-        assertEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertEquals(false, toolbar.private)
     }
 
@@ -711,5 +734,49 @@ class BrowserToolbarTest {
         toolbar.onStop()
 
         verify(toolbar.display).onStop()
+    }
+
+    @Test
+    fun `dismiss menu is forwarded to display toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.display = mock()
+        val displayToolbarViews: DisplayToolbarViews = mock()
+        val menuButton: MenuButton = mock()
+
+        whenever(toolbar.display.views).thenReturn(displayToolbarViews)
+        whenever(displayToolbarViews.menu).thenReturn(menuButton)
+
+        toolbar.dismissMenu()
+        verify(menuButton).dismissMenu()
+    }
+
+    @Test
+    fun `enable scrolling is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.enableScrolling()
+
+        verify(behavior).enableScrolling()
+    }
+
+    @Test
+    fun `disable scrolling is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.disableScrolling()
+
+        verify(behavior).disableScrolling()
     }
 }

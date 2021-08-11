@@ -15,6 +15,7 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.feature.awesomebar.R
+import mozilla.components.feature.awesomebar.facts.emitOpenTabSuggestionClickedFact
 import mozilla.components.feature.tabs.TabsUseCases
 import java.util.UUID
 
@@ -59,7 +60,10 @@ class SessionSuggestionProvider(
                         flags = setOf(AwesomeBar.Suggestion.Flag.OPEN_TAB),
                         icon = icon?.await()?.bitmap,
                         indicatorIcon = indicatorIcon,
-                        onSuggestionClicked = { selectTabUseCase(result.id) }
+                        onSuggestionClicked = {
+                            selectTabUseCase(result.id)
+                            emitOpenTabSuggestionClickedFact()
+                        }
                     )
                 )
             }
@@ -68,7 +72,7 @@ class SessionSuggestionProvider(
     }
 
     private fun TabSessionState.contains(text: String) =
-            (content.url.contains(text, ignoreCase = true) || content.title.contains(text, ignoreCase = true))
+        (content.url.contains(text, ignoreCase = true) || content.title.contains(text, ignoreCase = true))
 
     private fun shouldIncludeSelectedTab(state: BrowserState, tab: TabSessionState): Boolean {
         return if (excludeSelectedSession) {

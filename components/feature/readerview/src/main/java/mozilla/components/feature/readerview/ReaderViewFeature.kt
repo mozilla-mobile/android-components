@@ -47,7 +47,6 @@ typealias onReaderViewStatusChange = (available: Boolean, active: Boolean) -> Un
  * loaded or refreshed, on any navigation (back or forward), and when the
  * selected session changes.
  */
-@Suppress("TooManyFunctions")
 class ReaderViewFeature(
     private val context: Context,
     private val engine: Engine,
@@ -217,9 +216,12 @@ class ReaderViewFeature(
 
     private fun ensureExtensionInstalled() {
         val feature = WeakReference(this)
-        extensionController.install(engine, onSuccess = {
-            feature.get()?.connectReaderViewContentScript()
-        })
+        extensionController.install(
+            engine,
+            onSuccess = {
+                feature.get()?.connectReaderViewContentScript()
+            }
+        )
     }
 
     /**
@@ -321,8 +323,8 @@ class ReaderViewFeature(
             val colorScheme = config?.colorScheme ?: ColorScheme.LIGHT
             val configJson = JSONObject()
                 .put(ACTION_VALUE_SHOW_FONT_SIZE, fontSize)
-                .put(ACTION_VALUE_SHOW_FONT_TYPE, fontType.value.toLowerCase(Locale.ROOT))
-                .put(ACTION_VALUE_SHOW_COLOR_SCHEME, colorScheme.name.toLowerCase(Locale.ROOT))
+                .put(ACTION_VALUE_SHOW_FONT_TYPE, fontType.value.lowercase(Locale.ROOT))
+                .put(ACTION_VALUE_SHOW_COLOR_SCHEME, colorScheme.name.lowercase(Locale.ROOT))
 
             return JSONObject()
                 .put(ACTION_MESSAGE_KEY, ACTION_SHOW)

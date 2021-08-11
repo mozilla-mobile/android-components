@@ -55,8 +55,9 @@ internal class ColorPickerDialogFragment : PromptDialogFragment(), DialogInterfa
 
     override fun onClick(dialog: DialogInterface?, which: Int) {
         when (which) {
-            DialogInterface.BUTTON_POSITIVE -> feature?.onConfirm(sessionId, selectedColor.toHexColor())
-            DialogInterface.BUTTON_NEGATIVE -> feature?.onCancel(sessionId)
+            DialogInterface.BUTTON_POSITIVE ->
+                feature?.onConfirm(sessionId, promptRequestUID, selectedColor.toHexColor())
+            DialogInterface.BUTTON_NEGATIVE -> feature?.onCancel(sessionId, promptRequestUID)
         }
     }
 
@@ -124,9 +125,16 @@ internal class ColorPickerDialogFragment : PromptDialogFragment(), DialogInterfa
 
     companion object {
 
-        fun newInstance(sessionId: String, defaultColor: String) = ColorPickerDialogFragment().apply {
+        fun newInstance(
+            sessionId: String,
+            promptRequestUID: String,
+            shouldDismissOnLoad: Boolean,
+            defaultColor: String
+        ) = ColorPickerDialogFragment().apply {
             arguments = (arguments ?: Bundle()).apply {
                 putString(KEY_SESSION_ID, sessionId)
+                putString(KEY_PROMPT_UID, promptRequestUID)
+                putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
                 putInt(KEY_SELECTED_COLOR, defaultColor.toColor())
             }
         }

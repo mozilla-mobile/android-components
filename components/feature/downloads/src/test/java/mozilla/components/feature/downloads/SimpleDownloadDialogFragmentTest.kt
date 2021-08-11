@@ -23,8 +23,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
-import org.robolectric.annotation.Config
+import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
+import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
 @Config(application = TestApplication::class)
@@ -54,12 +55,14 @@ class SimpleDownloadDialogFragmentTest {
         }
 
         val fragment = Mockito.spy(SimpleDownloadDialogFragment.newInstance())
+        doNothing().`when`(fragment).dismiss()
 
         fragment.onStartDownload = onStartDownload
         fragment.testingContext = testContext
 
         doReturn(testContext).`when`(fragment).requireContext()
-        doReturn(mockFragmentManager()).`when`(fragment).fragmentManager
+        @Suppress("DEPRECATION")
+        doReturn(mockFragmentManager()).`when`(fragment).requireFragmentManager()
 
         val downloadDialog = fragment.onCreateDialog(null)
         downloadDialog.show()
@@ -79,12 +82,14 @@ class SimpleDownloadDialogFragmentTest {
         }
 
         val fragment = Mockito.spy(SimpleDownloadDialogFragment.newInstance())
+        doNothing().`when`(fragment).dismiss()
 
         fragment.onCancelDownload = onCancelDownload
         fragment.testingContext = testContext
 
         doReturn(testContext).`when`(fragment).requireContext()
-        doReturn(mockFragmentManager()).`when`(fragment).fragmentManager
+        @Suppress("DEPRECATION")
+        doReturn(mockFragmentManager()).`when`(fragment).requireFragmentManager()
 
         val downloadDialog = fragment.onCreateDialog(null)
         downloadDialog.show()

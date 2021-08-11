@@ -26,20 +26,24 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Deferred
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.ext.onDone
+import mozilla.components.feature.prompts.facts.emitCancelFact
+import mozilla.components.feature.prompts.facts.emitDisplayFact
+import mozilla.components.feature.prompts.facts.emitNeverSaveFact
+import mozilla.components.feature.prompts.facts.emitSaveFact
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -61,7 +65,7 @@ private const val KEY_LOGIN_HTTP_REALM = "KEY_LOGIN_HTTP_REALM"
  * [android.support.v4.app.DialogFragment] implementation to display a
  * dialog that allows users to save/update usernames and passwords for a given domain.
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("LargeClass")
 internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
     private inner class SafeArgString(private val key: String) {
@@ -90,8 +94,6 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     // List of potential dupes ignoring username. We could potentially both read and write this list
     // from different threads, so we are using a copy-on-write list.
     private var potentialDupesList: CopyOnWriteArrayList<Login>? = null
-
-    override fun shouldDismissOnLoad(): Boolean = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return BottomSheetDialog(requireContext(), R.style.MozDialogStyle).apply {
@@ -128,7 +130,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
          */
         CoroutineScope(IO).launch {
             if (feature?.loginExceptionStorage?.isLoginExceptionByOrigin(origin) == true) {
-                feature?.onCancel(sessionId)
+                feature?.onCancel(sessionId, promptRequestUID)
                 dismiss()
             }
         }
@@ -155,7 +157,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                         feature?.loginExceptionStorage?.addLoginException(origin)
                     }
                 }
-                feature?.onCancel(sessionId)
+                feature?.onCancel(sessionId, promptRequestUID)
                 dismiss()
             }
         }
@@ -166,13 +168,14 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
-        feature?.onCancel(sessionId)
+        feature?.onCancel(sessionId, promptRequestUID)
         emitCancelFact()
     }
 
     private fun onPositiveClickAction() {
         feature?.onConfirm(
-            sessionId, Login(
+            sessionId, promptRequestUID,
+            Login(
                 guid = guid,
                 origin = origin,
                 formActionOrigin = formActionOrigin,
@@ -338,9 +341,13 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                     }
                     is Result.CanBeUpdated -> {
                         setViewState(
-                            headline = if (result.foundLogin.username.isEmpty()) context?.getString(
-                                R.string.mozac_feature_prompt_login_add_username_headline
-                            ) else context?.getString(R.string.mozac_feature_prompt_login_update_headline),
+                            headline = if (result.foundLogin.username.isEmpty()) {
+                                context?.getString(
+                                    R.string.mozac_feature_prompt_login_add_username_headline
+                                )
+                            } else {
+                                context?.getString(R.string.mozac_feature_prompt_login_update_headline)
+                            },
                             negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
                             confirmText =
                             context?.getString(R.string.mozac_feature_prompt_update_confirmation)
@@ -371,12 +378,13 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             view?.findViewById<MaterialButton>(R.id.save_cancel)?.text = negativeText
         }
 
+        val confirmButton = view?.findViewById<Button>(R.id.save_confirm)
         if (confirmText != null) {
-            view?.findViewById<Button>(R.id.save_confirm)?.text = confirmText
+            confirmButton?.text = confirmText
         }
 
         if (confirmButtonEnabled != null) {
-            view?.findViewById<Button>(R.id.save_confirm)?.isEnabled = confirmButtonEnabled
+            confirmButton?.isEnabled = confirmButtonEnabled
         }
 
         if (passwordErrorText != null) {
@@ -391,11 +399,17 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         /**
          * A builder method for creating a [SaveLoginDialogFragment]
          * @param sessionId the id of the session for which this dialog will be created.
+         * @param promptRequestUID identifier of the [PromptRequest] for which this dialog is shown.
+         * @param shouldDismissOnLoad whether or not the dialog should automatically be dismissed
+         * when a new page is loaded.
          * @param hint a value that helps to determine the appropriate prompting behavior.
          * @param login represents login information on a given domain.
          * */
+        @Suppress("LongParameterList")
         fun newInstance(
             sessionId: String,
+            promptRequestUID: String,
+            shouldDismissOnLoad: Boolean,
             hint: Int,
             login: Login,
             icon: Bitmap? = null
@@ -406,6 +420,8 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
             with(arguments) {
                 putString(KEY_SESSION_ID, sessionId)
+                putString(KEY_PROMPT_UID, promptRequestUID)
+                putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
                 putInt(KEY_LOGIN_HINT, hint)
                 putString(KEY_LOGIN_USERNAME, login.username)
                 putString(KEY_LOGIN_PASSWORD, login.password)

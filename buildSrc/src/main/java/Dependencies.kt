@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2020-10-13
+// FORCE REBUILD 2021-07-05
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
-    const val kotlin = "1.4.10"
-    const val coroutines = "1.3.9"
+    const val kotlin = "1.5.10"
+    const val coroutines = "1.5.0"
 
     const val junit = "4.12"
     const val robolectric = "4.1"
@@ -17,11 +17,10 @@ object Versions {
 
     const val mockwebserver = "3.10.0"
 
-    const val dokka = "0.9.17"
-    const val android_gradle_plugin = "4.0.1"
+    const val android_gradle_plugin = "7.0.0"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "27.0.1"
-    const val detekt = "1.9.1"
+    const val detekt = "1.17.1"
 
     const val sentry = "1.7.21"
     const val okhttp = "3.13.1"
@@ -30,47 +29,53 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "67.0.0"
+    const val mozilla_appservices = "82.1.0"
 
-    const val mozilla_glean = "33.0.4"
+    const val mozilla_glean = "39.0.3"
 
-    const val material = "1.1.0"
-    const val nearby = "17.0.0"
+    const val material = "1.2.1"
+
+    const val compose_version = "1.0.0"
 
     object AndroidX {
+        const val activityCompose = "1.3.0"
         const val annotation = "1.1.0"
-        const val appcompat = "1.1.0"
-        const val browser = "1.2.0"
+        const val appcompat = "1.3.0"
+        const val browser = "1.3.0"
+        const val biometric = "1.1.0"
         const val cardview = "1.0.0"
-        const val constraintlayout = "1.1.3"
-        const val core = "1.2.0"
-        const val fragment = "1.1.0"
-        const val recyclerview = "1.0.0"
-        const val test = "1.2.0"
-        const val test_ext = "1.1.1"
-        const val espresso = "3.2.0"
-        const val room = "2.2.5"
-        const val paging = "2.1.0"
+        const val compose = compose_version
+        const val constraintlayout = "2.0.4"
+        const val coordinatorlayout = "1.1.0"
+        const val core = "1.3.2"
+        const val fragment = "1.3.4"
+        const val recyclerview = "1.2.0"
+        const val test = "1.3.0"
+        const val test_ext = "1.1.2"
+        const val espresso = "3.3.0"
+        const val room = "2.3.0"
+        const val paging = "2.1.2"
         const val palette = "1.0.0"
+        const val preferences = "1.1.1"
         const val lifecycle = "2.2.0"
-        const val media = "1.1.0"
-        const val work = "2.2.0"
+        const val media = "1.2.0"
+        const val navigation = "2.4.0-alpha04"
+        const val work = "2.4.0"
         const val arch = "2.1.0"
         const val uiautomator = "2.2.0"
         const val localbroadcastmanager = "1.0.0"
-        const val swiperefreshlayout = "1.0.0"
+        const val swiperefreshlayout = "1.1.0"
     }
 
     object Firebase {
-        const val core = "16.0.1"
-        const val messaging = "17.3.4"
+        const val messaging = "20.3.0"
     }
 }
 
 // Synchronized dependencies used by (some) modules
 @Suppress("Unused", "MaxLineLength")
 object Dependencies {
-    const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${Versions.kotlin}"
+    const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlin}"
     const val kotlin_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}"
 
@@ -83,15 +88,26 @@ object Dependencies {
     const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"
     const val testing_leakcanary = "com.squareup.leakcanary:leakcanary-android-instrumentation:${Versions.leakcanary}"
 
+    const val androidx_activity_compose = "androidx.activity:activity-compose:${Versions.AndroidX.activityCompose}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.AndroidX.annotation}"
     const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.AndroidX.appcompat}"
     const val androidx_arch_core_common = "androidx.arch.core:core-common:${Versions.AndroidX.arch}"
     const val androidx_arch_core_testing = "androidx.arch.core:core-testing:${Versions.AndroidX.arch}"
+    const val androidx_biometric = "androidx.biometric:biometric:${Versions.AndroidX.biometric}"
     const val androidx_browser = "androidx.browser:browser:${Versions.AndroidX.browser}"
     const val androidx_cardview = "androidx.cardview:cardview:${Versions.AndroidX.cardview}"
+    const val androidx_compose_ui = "androidx.compose.ui:ui:${Versions.AndroidX.compose}"
+    const val androidx_compose_ui_graphics = "androidx.compose.ui:ui-graphics:${Versions.AndroidX.compose}"
+    const val androidx_compose_ui_test = "androidx.compose.ui:ui-test-junit4:${Versions.AndroidX.compose}"
+    const val androidx_compose_ui_test_manifest = "androidx.compose.ui:ui-test-manifest:${Versions.AndroidX.compose}"
+    const val androidx_compose_ui_tooling = "androidx.compose.ui:ui-tooling:${Versions.AndroidX.compose}"
+    const val androidx_compose_foundation = "androidx.compose.foundation:foundation:${Versions.AndroidX.compose}"
+    const val androidx_compose_material = "androidx.compose.material:material:${Versions.AndroidX.compose}"
+    const val androidx_compose_navigation = "androidx.navigation:navigation-compose:${Versions.AndroidX.navigation}"
     const val androidx_constraintlayout = "androidx.constraintlayout:constraintlayout:${Versions.AndroidX.constraintlayout}"
     const val androidx_core = "androidx.core:core:${Versions.AndroidX.core}"
     const val androidx_core_ktx = "androidx.core:core-ktx:${Versions.AndroidX.core}"
+    const val androidx_coordinatorlayout = "androidx.coordinatorlayout:coordinatorlayout:${Versions.AndroidX.coordinatorlayout}"
     const val androidx_fragment = "androidx.fragment:fragment:${Versions.AndroidX.fragment}"
     const val androidx_lifecycle_livedata = "androidx.lifecycle:lifecycle-livedata-ktx:${Versions.AndroidX.lifecycle}"
     const val androidx_lifecycle_runtime = "androidx.lifecycle:lifecycle-runtime-ktx:${Versions.AndroidX.lifecycle}"
@@ -101,12 +117,13 @@ object Dependencies {
     const val androidx_media = "androidx.media:media:${Versions.AndroidX.media}"
     const val androidx_paging = "androidx.paging:paging-runtime:${Versions.AndroidX.paging}"
     const val androidx_palette = "androidx.palette:palette-ktx:${Versions.AndroidX.palette}"
+    const val androidx_preferences = "androidx.preference:preference-ktx:${Versions.AndroidX.preferences}"
     const val androidx_recyclerview = "androidx.recyclerview:recyclerview:${Versions.AndroidX.recyclerview}"
     const val androidx_room_runtime = "androidx.room:room-ktx:${Versions.AndroidX.room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.AndroidX.room}"
     const val androidx_room_testing = "androidx.room:room-testing:${Versions.AndroidX.room}"
     const val androidx_test_core = "androidx.test:core-ktx:${Versions.AndroidX.test}"
-    const val androidx_test_junit = "androidx.test.ext:junit:${Versions.AndroidX.test_ext}"
+    const val androidx_test_junit = "androidx.test.ext:junit-ktx:${Versions.AndroidX.test_ext}"
     const val androidx_test_runner = "androidx.test:runner:${Versions.AndroidX.test}"
     const val androidx_test_rules = "androidx.test:rules:${Versions.AndroidX.test}"
     const val androidx_test_uiautomator = "androidx.test.uiautomator:uiautomator:${Versions.AndroidX.uiautomator}"
@@ -117,11 +134,9 @@ object Dependencies {
     const val androidx_swiperefreshlayout = "androidx.swiperefreshlayout:swiperefreshlayout:${Versions.AndroidX.swiperefreshlayout}"
 
     const val google_material = "com.google.android.material:material:${Versions.material}"
-    const val google_nearby = "com.google.android.gms:play-services-nearby:${Versions.nearby}"
 
     const val leakcanary = "com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}"
 
-    const val tools_dokka = "org.jetbrains.dokka:dokka-android-gradle-plugin:${Versions.dokka}"
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
     const val tools_androidmavenpublish = "digital.wup:android-maven-publish:${Versions.android_maven_publish_plugin}"
@@ -133,20 +148,16 @@ object Dependencies {
     const val tools_detekt_api = "io.gitlab.arturbosch.detekt:detekt-api:${Versions.detekt}"
     const val tools_detekt_test = "io.gitlab.arturbosch.detekt:detekt-test:${Versions.detekt}"
 
+    val mozilla_geckoview = "org.mozilla.geckoview:${Gecko.channel.artifactName}:${Gecko.version}"
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
-
     const val mozilla_nimbus = "org.mozilla.appservices:nimbus:${Versions.mozilla_appservices}"
-
     const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-forUnitTests:${Versions.mozilla_glean}"
-
+    const val mozilla_sync_autofill = "org.mozilla.appservices:autofill:${Versions.mozilla_appservices}"
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"
     const val mozilla_sync_manager = "org.mozilla.appservices:syncmanager:${Versions.mozilla_appservices}"
-
     const val mozilla_push = "org.mozilla.appservices:push:${Versions.mozilla_appservices}"
-
     const val mozilla_remote_tabs = "org.mozilla.appservices:tabs:${Versions.mozilla_appservices}"
-
     const val mozilla_httpconfig = "org.mozilla.appservices:httpconfig:${Versions.mozilla_appservices}"
     const val mozilla_full_megazord = "org.mozilla.appservices:full-megazord:${Versions.mozilla_appservices}"
     const val mozilla_full_megazord_forUnitTests = "org.mozilla.appservices:full-megazord-forUnitTests:${Versions.mozilla_appservices}"

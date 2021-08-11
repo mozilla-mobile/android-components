@@ -22,6 +22,7 @@ import mozilla.components.browser.awesomebar.facts.emitProviderQueryTimingFact
 import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.transform.SuggestionTransformer
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.support.base.utils.NamedThreadFactory
 import java.util.concurrent.Executors
 
 private const val PROVIDER_QUERY_THREADS = 3
@@ -32,14 +33,17 @@ internal const val INITIAL_NUMBER_OF_PROVIDERS = 5
 /**
  * A customizable [AwesomeBar] implementation.
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("LargeClass")
 class BrowserAwesomeBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : RecyclerView(context, attrs, defStyleAttr), AwesomeBar {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var jobDispatcher = Executors.newFixedThreadPool(PROVIDER_QUERY_THREADS).asCoroutineDispatcher()
+    internal var jobDispatcher = Executors.newFixedThreadPool(
+        PROVIDER_QUERY_THREADS,
+        NamedThreadFactory("BrowserAwesomeBar")
+    ).asCoroutineDispatcher()
     private val providers: MutableList<AwesomeBar.SuggestionProvider> = mutableListOf()
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val uniqueSuggestionIds = LruCache<String, Long>(INITIAL_NUMBER_OF_PROVIDERS * PROVIDER_MAX_SUGGESTIONS)
@@ -50,6 +54,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
     internal var listener: (() -> Unit)? = null
     internal var editSuggestionListener: ((String) -> Unit)? = null
     internal val styling: BrowserAwesomeBarStyling
+    var customizeForBottomToolbar: Boolean = false
 
     /**
      * The [SuggestionLayout] implementation controls layout inflation and view binding for suggestions.
@@ -100,9 +105,11 @@ class BrowserAwesomeBar @JvmOverloads constructor(
         providers.forEach { provider ->
             val existingProvider = this.providers.find { it.id == provider.id }
             existingProvider?.let {
-                throw IllegalStateException("Failed to add provider " +
+                throw IllegalStateException(
+                    "Failed to add provider " +
                         "${provider.id} of type ${provider::class.java.name}. " +
-                        "Provider with the same ID already exists: ${it::class.java.name}")
+                        "Provider with the same ID already exists: ${it::class.java.name}"
+                )
             }
             this.providers.add(provider)
         }
@@ -153,8 +160,6 @@ class BrowserAwesomeBar @JvmOverloads constructor(
         job?.cancel()
 
         job = scope.launch {
-            suggestionsAdapter.optionallyClearSuggestions()
-
             providers.forEach { provider ->
                 launch {
                     // At this point, we have a timing value for a provider.

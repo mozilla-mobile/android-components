@@ -9,14 +9,18 @@ import android.content.Intent
 import android.media.AudioManager
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.mediasession.MediaSession
+import mozilla.components.feature.media.ext.findActiveMediaTab
 import mozilla.components.feature.media.ext.getTitleOrUrl
 import mozilla.components.feature.media.ext.nonPrivateUrl
 import mozilla.components.feature.media.ext.toPlaybackState
@@ -25,8 +29,9 @@ import mozilla.components.feature.media.facts.emitNotificationPlayFact
 import mozilla.components.feature.media.facts.emitStatePauseFact
 import mozilla.components.feature.media.facts.emitStatePlayFact
 import mozilla.components.feature.media.facts.emitStateStopFact
-import mozilla.components.feature.media.notification.MediaNotification
 import mozilla.components.feature.media.focus.AudioFocus
+import mozilla.components.feature.media.notification.MediaNotification
+import mozilla.components.feature.media.session.MediaSessionCallback
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.base.log.logger.Logger
@@ -48,26 +53,31 @@ internal class MediaSessionServiceDelegate(
     private val audioFocus: AudioFocus by lazy {
         AudioFocus(context.getSystemService(Context.AUDIO_SERVICE) as AudioManager, store)
     }
+    private val notificationId by lazy {
+        SharedIdsHelper.getIdForTag(context, AbstractMediaSessionService.NOTIFICATION_TAG)
+    }
     private var scope: CoroutineScope? = null
     private var controller: MediaSession.Controller? = null
+    private var notificationScope: CoroutineScope? = null
+
+    @VisibleForTesting
+    internal var isForegroundService: Boolean = false
 
     fun onCreate() {
         logger.debug("Service created")
+        mediaSession.setCallback(MediaSessionCallback(store))
+        notificationScope = MainScope()
+
         scope = store.flowScoped { flow ->
-            flow.map {
-                it.tabs + it.customTabs
-            }.map { tab ->
-                tab.filter { it.mediaSessionState != null &&
-                    it.mediaSessionState!!.playbackState != MediaSession.PlaybackState.UNKNOWN }
-            }.ifChanged().collect { states ->
-                processMediaSessionStates(states)
-            }
+            flow.map { state -> state.findActiveMediaTab() }
+                .ifChanged { tab -> tab?.mediaSessionState }
+                .collect { state -> processMediaSessionState(state) }
         }
     }
 
     fun onDestroy() {
-        scope?.cancel()
-
+        notificationScope?.cancel()
+        destroy()
         logger.debug("Service destroyed")
     }
 
@@ -76,8 +86,7 @@ internal class MediaSessionServiceDelegate(
 
         when (intent?.action) {
             AbstractMediaSessionService.ACTION_LAUNCH -> {
-                // Nothing to do here. The service will subscribe to the store in onCreate() and
-                // update its state from the store.
+                startForegroundNotification()
             }
             AbstractMediaSessionService.ACTION_PLAY -> {
                 controller?.play()
@@ -100,26 +109,32 @@ internal class MediaSessionServiceDelegate(
         shutdown()
     }
 
-    private fun processMediaSessionStates(sessionStates: List<SessionState>) {
-        val activeState = sessionStates.sortedByDescending { it.mediaSessionState }.firstOrNull()
-
-        if (activeState == null) {
-            updateNotification(activeState)
+    private fun processMediaSessionState(state: SessionState?) {
+        if (state == null) {
             shutdown()
             return
         }
 
-        when (activeState.mediaSessionState?.playbackState) {
+        when (state.mediaSessionState?.playbackState) {
             MediaSession.PlaybackState.PLAYING -> {
-                audioFocus.request(activeState.id)
+                audioFocus.request(state.id)
                 emitStatePlayFact()
+                startForegroundNotificationIfNeeded()
             }
-            MediaSession.PlaybackState.PAUSED -> emitStatePauseFact()
-            else -> emitStateStopFact()
+            MediaSession.PlaybackState.PAUSED -> {
+                emitStatePauseFact()
+                stopForeground()
+            }
+            else -> {
+                emitStateStopFact()
+                stopForeground()
+            }
         }
 
-        updateMediaSession(activeState)
-        updateNotification(activeState)
+        updateMediaSession(state)
+        notificationScope?.launch() {
+            updateNotification(state)
+        }
     }
 
     private fun updateMediaSession(sessionState: SessionState) {
@@ -129,44 +144,52 @@ internal class MediaSessionServiceDelegate(
             MediaMetadataCompat.Builder()
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_TITLE,
-                    sessionState.getTitleOrUrl(context))
+                    sessionState.getTitleOrUrl(context)
+                )
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_ARTIST,
-                    sessionState.nonPrivateUrl)
+                    sessionState.nonPrivateUrl
+                )
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
-                .build())
+                .build()
+        )
     }
 
-    private fun updateNotification(sessionState: SessionState?) {
-        controller = sessionState?.mediaSessionState?.controller
-        val notificationId = SharedIdsHelper.getIdForTag(
-            context,
-            AbstractMediaSessionService.NOTIFICATION_TAG
-        )
+    private fun startForegroundNotification() {
+        val notification = notification.createDummy(mediaSession)
+        service.startForeground(notificationId, notification)
+        isForegroundService = true
+    }
 
+    private fun startForegroundNotificationIfNeeded() {
+        if (!isForegroundService) {
+            startForegroundNotification()
+        }
+    }
+
+    private fun stopForeground() {
+        service.stopForeground(false)
+        isForegroundService = false
+    }
+
+    private suspend fun updateNotification(sessionState: SessionState?) {
         val notification = notification.create(sessionState, mediaSession)
 
-        // Android wants us to always, always, ALWAYS call startForeground() if
-        // startForegroundService() was invoked. Even if we already did that for this service or
-        // if we are stopping foreground or stopping the whole service. No matter what. Always
-        // call startForeground().
-        service.startForeground(notificationId, notification)
+        sessionState?.mediaSessionState?.let {
+            controller = it.controller
 
-        val mediaSessionState = sessionState?.mediaSessionState
-        if (mediaSessionState != null &&
-            mediaSessionState.playbackState != MediaSession.PlaybackState.PLAYING) {
-            service.stopForeground(false)
-
-            NotificationManagerCompat.from(context)
-                .notify(notificationId, notification)
-        }
-
-        if (mediaSessionState == null) {
-            service.stopForeground(true)
+            NotificationManagerCompat.from(context).notify(notificationId, notification)
         }
     }
 
-    private fun shutdown() {
+    @VisibleForTesting
+    internal fun destroy() {
+        scope?.cancel()
+        audioFocus.abandon()
+    }
+
+    @VisibleForTesting
+    internal fun shutdown() {
         mediaSession.release()
         service.stopSelf()
     }

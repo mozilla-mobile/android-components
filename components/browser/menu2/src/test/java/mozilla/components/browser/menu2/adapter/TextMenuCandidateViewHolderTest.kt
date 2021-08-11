@@ -41,6 +41,9 @@ class TextMenuCandidateViewHolderTest {
         doReturn(context).`when`(view).context
         doReturn(textView).`when`(view).findViewById<TextView>(R.id.label)
 
+        val resources: Resources = mock()
+        doReturn(resources).`when`(context).resources
+
         doReturn(mock<Resources.Theme>()).`when`(context).theme
     }
 
@@ -91,19 +94,23 @@ class TextMenuCandidateViewHolderTest {
         verify(view, never()).setBackgroundColor(anyInt())
         verify(view, never()).setBackgroundResource(anyInt())
 
-        holder.bind(TextMenuCandidate(
-            "hello",
-            effect = HighPriorityHighlightEffect(Color.RED)
-        ))
+        holder.bind(
+            TextMenuCandidate(
+                "hello",
+                effect = HighPriorityHighlightEffect(Color.RED)
+            )
+        )
         verify(view).setBackgroundColor(Color.RED)
         verify(view, never()).setBackgroundResource(anyInt())
 
         clearInvocations(view)
 
-        holder.bind(TextMenuCandidate(
-            "hello",
-            effect = null
-        ))
+        holder.bind(
+            TextMenuCandidate(
+                "hello",
+                effect = null
+            )
+        )
         verify(view, never()).setBackgroundColor(anyInt())
         verify(view).setBackgroundResource(anyInt())
     }

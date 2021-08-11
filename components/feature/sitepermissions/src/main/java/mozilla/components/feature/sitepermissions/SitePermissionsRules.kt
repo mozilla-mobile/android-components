@@ -6,39 +6,24 @@ package mozilla.components.feature.sitepermissions
 
 import mozilla.components.concept.engine.permission.Permission
 import mozilla.components.concept.engine.permission.PermissionRequest
+import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions.AutoplayStatus
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action.ASK_TO_ALLOW
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action.BLOCKED
 
 /**
  * Indicate how site permissions must behave by permission category.
  */
-data class SitePermissionsRules internal constructor(
+data class SitePermissionsRules constructor(
     val camera: Action,
     val location: Action,
     val notification: Action,
     val microphone: Action,
-    val autoplayAudible: Action,
-    val autoplayInaudible: Action,
-    val persistentStorage: Action
+    val autoplayAudible: AutoplayAction,
+    val autoplayInaudible: AutoplayAction,
+    val persistentStorage: Action,
+    val mediaKeySystemAccess: Action
 ) {
-
-    constructor(
-        camera: Action,
-        location: Action,
-        notification: Action,
-        microphone: Action,
-        autoplayAudible: AutoplayAction,
-        autoplayInaudible: AutoplayAction,
-        persistentStorage: Action
-    ) : this(
-        camera = camera,
-        location = location,
-        notification = notification,
-        microphone = microphone,
-        autoplayAudible = autoplayAudible.toAction(),
-        autoplayInaudible = autoplayInaudible.toAction(),
-        persistentStorage = persistentStorage
-    )
 
     enum class Action {
         ALLOWED, BLOCKED, ASK_TO_ALLOW;
@@ -59,6 +44,13 @@ data class SitePermissionsRules internal constructor(
         internal fun toAction(): Action = when (this) {
             ALLOWED -> Action.ALLOWED
             BLOCKED -> Action.BLOCKED
+        }
+        /**
+         * Convert from an AutoplayAction to an AutoplayStatus.
+         */
+        fun toAutoplayStatus(): AutoplayStatus = when (this) {
+            ALLOWED -> AutoplayStatus.ALLOWED
+            BLOCKED -> AutoplayStatus.BLOCKED
         }
     }
 
@@ -88,10 +80,13 @@ data class SitePermissionsRules internal constructor(
                 camera
             }
             is Permission.ContentAutoPlayAudible -> {
-                autoplayAudible
+                autoplayAudible.toAction()
             }
             is Permission.ContentAutoPlayInaudible -> {
-                autoplayInaudible
+                autoplayInaudible.toAction()
+            }
+            is Permission.ContentMediaKeySystemAccess -> {
+                mediaKeySystemAccess
             }
             else -> ASK_TO_ALLOW
         }
@@ -110,15 +105,16 @@ data class SitePermissionsRules internal constructor(
      */
     fun toSitePermissions(origin: String, savedAt: Long = System.currentTimeMillis()): SitePermissions {
         return SitePermissions(
-                origin = origin,
-                location = location.toStatus(),
-                notification = notification.toStatus(),
-                microphone = microphone.toStatus(),
-                camera = camera.toStatus(),
-                autoplayAudible = autoplayAudible.toStatus(),
-                autoplayInaudible = autoplayInaudible.toStatus(),
-                localStorage = persistentStorage.toStatus(),
-                savedAt = savedAt
+            origin = origin,
+            location = location.toStatus(),
+            notification = notification.toStatus(),
+            microphone = microphone.toStatus(),
+            camera = camera.toStatus(),
+            autoplayAudible = autoplayAudible.toAutoplayStatus(),
+            autoplayInaudible = autoplayInaudible.toAutoplayStatus(),
+            localStorage = persistentStorage.toStatus(),
+            mediaKeySystemAccess = mediaKeySystemAccess.toStatus(),
+            savedAt = savedAt
         )
     }
 }

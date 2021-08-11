@@ -59,7 +59,8 @@ val Addon.updatedAtDate: Date get() = dateParser.parse(updatedAt)!!
  */
 internal fun Map<String, String>.translate(addon: Addon, context: Context): String {
     val lang = Locale.getDefault().language
-    return get(lang) ?: getOrElse(addon.defaultLocale) {
+    val safeLang = if (!lang.isNullOrEmpty()) lang.lowercase(Locale.getDefault()) else lang
+    return get(safeLang) ?: getOrElse(addon.defaultLocale) {
         context.getString(R.string.mozac_feature_addons_failed_to_translate, lang, addon.defaultLocale)
     }
 }
@@ -95,9 +96,9 @@ fun AddonUpdater.Status?.toLocalizedString(context: Context): String {
  */
 fun AddonUpdater.UpdateAttempt.showInformationDialog(context: Context) {
     AlertDialog.Builder(context)
-            .setTitle(R.string.mozac_feature_addons_updater_dialog_title)
-            .setMessage(getDialogMessage(context))
-            .show()
+        .setTitle(R.string.mozac_feature_addons_updater_dialog_title)
+        .setMessage(getDialogMessage(context))
+        .show()
 }
 
 private fun AddonUpdater.UpdateAttempt.getDialogMessage(context: Context): String {

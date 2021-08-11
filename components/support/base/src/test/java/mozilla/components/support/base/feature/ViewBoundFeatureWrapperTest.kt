@@ -5,6 +5,8 @@
 package mozilla.components.support.base.feature
 
 import android.app.Activity
+import android.app.Activity.RESULT_OK
+import android.content.Intent
 import android.view.View
 import android.view.WindowManager
 import androidx.lifecycle.Lifecycle
@@ -47,11 +49,41 @@ class ViewBoundFeatureWrapperTest {
         assertTrue(wrapper.onBackPressed())
         assertTrue(feature.onBackPressedInvoked)
 
-        assertFalse(ViewBoundFeatureWrapper(
-            feature = MockFeatureWithUserInteractionHandler(onBackPressed = false),
+        assertFalse(
+            ViewBoundFeatureWrapper(
+                feature = MockFeatureWithUserInteractionHandler(onBackPressed = false),
+                owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
+                view = mock()
+            ).onBackPressed()
+        )
+    }
+
+    @Test
+    fun `Calling onActivityResult on an empty wrapper returns false`() {
+        val wrapper = ViewBoundFeatureWrapper<MockFeature>()
+        assertFalse(wrapper.onActivityResult(0, mock(), RESULT_OK))
+    }
+
+    @Test
+    fun `onActivityResult is forwarded to feature`() {
+        val feature = MockFeatureWithActivityResultHandler(onActivityResult = true)
+
+        val wrapper = ViewBoundFeatureWrapper(
+            feature = feature,
             owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
             view = mock()
-        ).onBackPressed())
+        )
+
+        assertTrue(wrapper.onActivityResult(1, null, RESULT_OK))
+        assertTrue(feature.onActivityResultHandled)
+
+        assertFalse(
+            ViewBoundFeatureWrapper(
+                feature = MockFeatureWithActivityResultHandler(onActivityResult = false),
+                owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
+                view = mock()
+            ).onActivityResult(0, mock(), RESULT_OK)
+        )
     }
 
     @Test
@@ -67,7 +99,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = view)
+            view = view
+        )
 
         verify(lifecycle).addObserver(any())
         verify(view).addOnAttachStateChangeListener(any())
@@ -86,7 +119,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = view)
+            view = view
+        )
 
         verify(feature, never()).start()
         assertFalse(feature.started)
@@ -110,7 +144,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = view)
+            view = view
+        )
 
         verify(feature, never()).stop()
         assertFalse(feature.started)
@@ -134,7 +169,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = MockFeature(),
             owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
-            view = view)
+            view = view
+        )
 
         verify(wrapper, never()).clear()
 
@@ -154,7 +190,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
-            view = mock())
+            view = mock()
+        )
 
         assertEquals(feature, wrapper.get())
 
@@ -165,53 +202,61 @@ class ViewBoundFeatureWrapperTest {
 
     @Test
     fun `WithFeature block is executed if feature reference is set`() {
-        assertTrue(run {
-            var blockExecuted = false
+        assertTrue(
+            run {
+                var blockExecuted = false
 
-            val wrapper = ViewBoundFeatureWrapper<MockFeature>()
-            wrapper.withFeature {
-                blockExecuted = true
+                val wrapper = ViewBoundFeatureWrapper<MockFeature>()
+                wrapper.withFeature {
+                    blockExecuted = true
+                }
+
+                assertFalse(blockExecuted)
+                true
             }
+        )
 
-            assertFalse(blockExecuted)
-            true
-        })
+        assertTrue(
+            run {
+                var blockExecuted = false
 
-        assertTrue(run {
-            var blockExecuted = false
+                val wrapper = ViewBoundFeatureWrapper<MockFeature>()
+                wrapper.set(
+                    feature = MockFeature(),
+                    owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
+                    view = mock()
+                )
 
-            val wrapper = ViewBoundFeatureWrapper<MockFeature>()
-            wrapper.set(
-                feature = MockFeature(),
-                owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
-                view = mock())
+                wrapper.withFeature {
+                    blockExecuted = true
+                }
 
-            wrapper.withFeature {
-                blockExecuted = true
+                assertTrue(blockExecuted)
+                true
             }
+        )
 
-            assertTrue(blockExecuted)
-            true
-        })
+        assertTrue(
+            run {
+                var blockExecuted = false
 
-        assertTrue(run {
-            var blockExecuted = false
+                val wrapper = ViewBoundFeatureWrapper<MockFeature>()
+                wrapper.set(
+                    feature = MockFeature(),
+                    owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
+                    view = mock()
+                )
 
-            val wrapper = ViewBoundFeatureWrapper<MockFeature>()
-            wrapper.set(
-                feature = MockFeature(),
-                owner = MockedLifecycleOwner(MockedLifecycle(Lifecycle.State.CREATED)),
-                view = mock())
+                wrapper.clear()
 
-            wrapper.clear()
+                wrapper.withFeature {
+                    blockExecuted = true
+                }
 
-            wrapper.withFeature {
-                blockExecuted = true
+                assertFalse(blockExecuted)
+                true
             }
-
-            assertFalse(blockExecuted)
-            true
-        })
+        )
     }
 
     @Test
@@ -227,7 +272,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = view)
+            view = view
+        )
 
         verify(lifecycle, never()).removeObserver(any())
         verify(view, never()).removeOnAttachStateChangeListener(any())
@@ -250,7 +296,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = mock())
+            view = mock()
+        )
 
         lifecycle.observer!!.start()
 
@@ -273,7 +320,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = mock())
+            view = mock()
+        )
 
         lifecycle.observer!!.start()
         lifecycle.observer!!.stop()
@@ -356,7 +404,8 @@ class ViewBoundFeatureWrapperTest {
         wrapper.set(
             feature = feature,
             owner = owner,
-            view = view)
+            view = view
+        )
 
         verify(wrapper, never()).clear()
 
@@ -388,6 +437,18 @@ private class MockFeatureWithUserInteractionHandler(
     override fun onBackPressed(): Boolean {
         onBackPressedInvoked = true
         return onBackPressed
+    }
+}
+
+private class MockFeatureWithActivityResultHandler(
+    private val onActivityResult: Boolean = false
+) : MockFeature(), ActivityResultHandler {
+    var onActivityResultHandled = false
+        private set
+
+    override fun onActivityResult(requestCode: Int, data: Intent?, resultCode: Int): Boolean {
+        onActivityResultHandled = true
+        return onActivityResult
     }
 }
 

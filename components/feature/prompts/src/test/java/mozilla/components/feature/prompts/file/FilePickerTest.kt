@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.pm.PackageManager.PERMISSION_DENIED
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.action.ContentAction
@@ -28,10 +29,12 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.grantPermission
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -42,6 +45,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyZeroInteractions
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class FilePickerTest {
@@ -72,18 +76,18 @@ class FilePickerTest {
     @Test
     fun `FilePicker acts on a given (custom tab) session or the selected session`() {
         val customTabContent: ContentState = mock()
-        whenever(customTabContent.promptRequest).thenReturn(request)
+        whenever(customTabContent.promptRequests).thenReturn(listOf(request))
         val customTab = CustomTabSessionState("custom-tab", customTabContent, mock(), mock())
 
         whenever(state.customTabs).thenReturn(listOf(customTab))
         filePicker = FilePicker(fragment, store, customTab.id) { }
         filePicker.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, 0, null)
-        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(customTab.id))
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(customTab.id, request))
 
         val selected = prepareSelectedSession(request)
         filePicker = FilePicker(fragment, store) { }
         filePicker.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, 0, null)
-        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id))
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, request))
     }
 
     @Test
@@ -91,9 +95,11 @@ class FilePickerTest {
         var onRequestPermissionWasCalled = false
         val context = ApplicationProvider.getApplicationContext<Context>()
 
-        filePicker = spy(FilePicker(fragment, store) {
-            onRequestPermissionWasCalled = true
-        })
+        filePicker = spy(
+            FilePicker(fragment, store) {
+                onRequestPermissionWasCalled = true
+            }
+        )
 
         doReturn(context).`when`(fragment).context
 
@@ -153,7 +159,7 @@ class FilePickerTest {
         filePicker.onPermissionsDenied()
 
         assertTrue(onDismissWasCalled)
-        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id))
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, filePickerRequest))
     }
 
     @Test
@@ -176,7 +182,7 @@ class FilePickerTest {
         filePicker.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
 
         assertTrue(onSingleFileSelectionWasCalled)
-        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id))
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, filePickerRequest))
     }
 
     @Test
@@ -210,7 +216,7 @@ class FilePickerTest {
         filePicker.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
 
         assertTrue(onMultipleFileSelectionWasCalled)
-        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id))
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, filePickerRequest))
     }
 
     @Test
@@ -227,7 +233,7 @@ class FilePickerTest {
         filePicker.onActivityResult(FILE_PICKER_ACTIVITY_REQUEST_CODE, RESULT_CANCELED, intent)
 
         assertTrue(onDismissWasCalled)
-        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id))
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, filePickerRequest))
     }
 
     @Test
@@ -245,8 +251,16 @@ class FilePickerTest {
 
         assertFalse(wasConfirmed)
         assertFalse(wasDismissed)
-        verify(store, never()).dispatch(ContentAction.ConsumePromptRequestAction(selected.id))
+        verify(store, never()).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, request))
         verify(spiedFilePicker, never()).handleFilePickerIntentResult(intent, request)
+    }
+
+    @Test
+    fun `onActivityResult returns false if the request code is not the same`() {
+        val intent = Intent()
+        val result = filePicker.onActivityResult(10101, RESULT_OK, intent)
+
+        assertFalse(result)
     }
 
     @Test
@@ -272,9 +286,11 @@ class FilePickerTest {
     fun `askAndroidPermissionsForRequest should cache the current request and then ask for permissions`() {
         val permissions = listOf("PermissionA")
         var permissionsRequested = emptyArray<String>()
-        filePicker = spy(FilePicker(fragment, store, null) { requested ->
-            permissionsRequested = requested
-        })
+        filePicker = spy(
+            FilePicker(fragment, store, null) { requested ->
+                permissionsRequested = requested
+            }
+        )
 
         filePicker.askAndroidPermissionsForRequest(permissions, request)
 
@@ -282,10 +298,78 @@ class FilePickerTest {
         assertArrayEquals(permissions.toTypedArray(), permissionsRequested)
     }
 
+    @Test
+    fun `handleFilePickerIntentResult called with null Intent will make captureUri null`() {
+        stubContext()
+        captureUri = "randomSaveLocationOnDisk".toUri()
+        val onSingleFileSelection: (Context, Uri) -> Unit = { _, _ -> Unit }
+        val promptRequest = mock<PromptRequest.File>()
+        doReturn(onSingleFileSelection).`when`(promptRequest).onSingleFileSelected
+
+        filePicker.handleFilePickerIntentResult(null, promptRequest)
+
+        assertNull(captureUri)
+    }
+
+    @Test
+    fun `handleFilePickerIntentResult called with valid Intent will make captureUri null also if request is dismissed`() {
+        stubContext()
+        captureUri = "randomSaveLocationOnDisk".toUri()
+        val promptRequest = mock<PromptRequest.File>()
+        doReturn({ }).`when`(promptRequest).onDismiss
+        // A private file cannot be picked so the request will be dismissed.
+        val intent = Intent().apply {
+            data = ("file://" + File(testContext.applicationInfo.dataDir, "randomFile").canonicalPath).toUri()
+        }
+
+        filePicker.handleFilePickerIntentResult(intent, promptRequest)
+
+        assertNull(captureUri)
+    }
+
+    @Test
+    fun `handleFilePickerIntentResult for multiple files selection will make captureUri null`() {
+        stubContext()
+        captureUri = "randomSaveLocationOnDisk".toUri()
+        val onMultipleFilesSelected: (Context, Array<Uri>) -> Unit = { _, _ -> Unit }
+        val promptRequest = mock<PromptRequest.File>()
+        doReturn(onMultipleFilesSelected).`when`(promptRequest).onMultipleFilesSelected
+        doReturn(true).`when`(promptRequest).isMultipleFilesSelection
+        val intent = Intent().apply {
+            clipData = (ClipData.newRawUri("Test", "https://www.mozilla.org".toUri()))
+        }
+
+        filePicker.handleFilePickerIntentResult(intent, promptRequest)
+
+        assertNull(captureUri)
+    }
+
+    @Test
+    fun `handleFilePickerIntentResult for multiple files selection will make captureUri null also if request is dismissed`() {
+        stubContext()
+        captureUri = "randomSaveLocationOnDisk".toUri()
+        val promptRequest = mock<PromptRequest.File>()
+        doReturn({ }).`when`(promptRequest).onDismiss
+        doReturn(true).`when`(promptRequest).isMultipleFilesSelection
+        // A private file cannot be picked so the request will be dismissed.
+        val intent = Intent().apply {
+            clipData = (
+                ClipData.newRawUri(
+                    "Test",
+                    ("file://" + File(testContext.applicationInfo.dataDir, "randomFile").canonicalPath).toUri()
+                )
+                )
+        }
+
+        filePicker.handleFilePickerIntentResult(intent, promptRequest)
+
+        assertNull(captureUri)
+    }
+
     private fun prepareSelectedSession(request: PromptRequest? = null): TabSessionState {
         val promptRequest: PromptRequest = request ?: mock()
         val content: ContentState = mock()
-        whenever(content.promptRequest).thenReturn(promptRequest)
+        whenever(content.promptRequests).thenReturn(listOf(promptRequest))
 
         val selected = TabSessionState("browser-tab", content, mock(), mock())
         whenever(state.selectedTabId).thenReturn(selected.id)

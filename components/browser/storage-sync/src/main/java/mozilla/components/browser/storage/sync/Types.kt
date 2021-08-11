@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @file:Suppress("MatchingDeclarationName")
+
 package mozilla.components.browser.storage.sync
 
 import mozilla.appservices.places.BookmarkFolder
@@ -12,6 +13,11 @@ import mozilla.appservices.places.BookmarkTreeNode
 import mozilla.appservices.places.SyncAuthInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
+import mozilla.components.concept.storage.DocumentType
+import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryMetadata
+import mozilla.components.concept.storage.HistoryMetadataKey
+import mozilla.components.concept.storage.HistoryMetadataObservation
 import mozilla.components.concept.storage.TopFrecentSiteInfo
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
@@ -29,6 +35,15 @@ internal fun mozilla.components.concept.sync.SyncAuthInfo.into(): SyncAuthInfo {
         syncKey = this.syncKey,
         tokenserverURL = this.tokenServerUrl
     )
+}
+
+/**
+ * Conversion from a generic [FrecencyThresholdOption] into its richer comrade within the 'places' lib.
+ */
+internal fun FrecencyThresholdOption.into() = when (this) {
+    FrecencyThresholdOption.NONE -> mozilla.appservices.places.FrecencyThresholdOption.NONE
+    FrecencyThresholdOption.SKIP_ONE_TIME_PAGES ->
+        mozilla.appservices.places.FrecencyThresholdOption.SKIP_ONE_TIME_PAGES
 }
 
 /**
@@ -79,14 +94,115 @@ internal fun mozilla.appservices.places.TopFrecentSiteInfo.into(): TopFrecentSit
 internal fun BookmarkTreeNode.asBookmarkNode(): BookmarkNode {
     return when (this) {
         is BookmarkItem -> {
-            BookmarkNode(BookmarkNodeType.ITEM, this.guid, this.parentGUID, this.position, this.title, this.url, null)
+            BookmarkNode(
+                BookmarkNodeType.ITEM,
+                this.guid,
+                this.parentGUID,
+                this.position,
+                this.title,
+                this.url,
+                this.dateAdded,
+                null
+            )
         }
         is BookmarkFolder -> {
-            BookmarkNode(BookmarkNodeType.FOLDER, this.guid, this.parentGUID, this.position, this.title, null,
-                this.children?.map(BookmarkTreeNode::asBookmarkNode))
+            BookmarkNode(
+                BookmarkNodeType.FOLDER,
+                this.guid,
+                this.parentGUID,
+                this.position,
+                this.title,
+                null,
+                this.dateAdded,
+                this.children?.map(BookmarkTreeNode::asBookmarkNode)
+            )
         }
         is BookmarkSeparator -> {
-            BookmarkNode(BookmarkNodeType.SEPARATOR, this.guid, this.parentGUID, this.position, null, null, null)
+            BookmarkNode(
+                BookmarkNodeType.SEPARATOR,
+                this.guid,
+                this.parentGUID,
+                this.position,
+                null,
+                null,
+                this.dateAdded,
+                null
+            )
+        }
+    }
+}
+
+internal fun HistoryMetadataKey.into(): mozilla.appservices.places.HistoryMetadataKey {
+    return mozilla.appservices.places.HistoryMetadataKey(
+        url = this.url,
+        referrerUrl = this.referrerUrl,
+        searchTerm = this.searchTerm
+    )
+}
+
+internal fun mozilla.appservices.places.HistoryMetadataKey.into(): HistoryMetadataKey {
+    return HistoryMetadataKey(
+        url = this.url,
+        referrerUrl = if (this.referrerUrl.isNullOrEmpty()) { null } else { this.referrerUrl },
+        searchTerm = if (this.searchTerm.isNullOrEmpty()) { null } else { this.searchTerm }
+    )
+}
+
+internal fun mozilla.appservices.places.DocumentType.into(): DocumentType {
+    return when (this) {
+        mozilla.appservices.places.DocumentType.Regular -> DocumentType.Regular
+        mozilla.appservices.places.DocumentType.Media -> DocumentType.Media
+    }
+}
+
+internal fun mozilla.appservices.places.HistoryMetadata.into(): HistoryMetadata {
+    // Protobuf doesn't support passing around `null` value, so these get converted to some defaults
+    // as they go from Rust to Kotlin. E.g. an empty string in place of a `null`.
+    // That means places.HistoryMetadata will never have `null` values.
+    // But, we actually do want a real `null` value here - hence the explicit check.
+    return HistoryMetadata(
+        key = this.key.into(),
+        title = if (this.title.isNullOrEmpty()) null else this.title,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        totalViewTime = this.totalViewTime,
+        documentType = this.documentType.into()
+    )
+}
+
+internal fun List<mozilla.appservices.places.HistoryMetadata>.into(): List<HistoryMetadata> {
+    return map { it.into() }
+}
+
+internal fun DocumentType.into(): mozilla.appservices.places.DocumentType {
+    return when (this) {
+        DocumentType.Regular -> mozilla.appservices.places.DocumentType.Regular
+        DocumentType.Media -> mozilla.appservices.places.DocumentType.Media
+    }
+}
+
+internal fun HistoryMetadata.into(): mozilla.appservices.places.HistoryMetadata {
+    return mozilla.appservices.places.HistoryMetadata(
+        key = this.key.into(),
+        title = this.title,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        totalViewTime = this.totalViewTime,
+        documentType = this.documentType.into()
+    )
+}
+
+internal fun HistoryMetadataObservation.into(): mozilla.appservices.places.HistoryMetadataObservation {
+    return when (this) {
+        is HistoryMetadataObservation.ViewTimeObservation -> {
+            mozilla.appservices.places.HistoryMetadataObservation.ViewTimeObservation(
+                viewTime = this.viewTime
+            )
+        }
+        is HistoryMetadataObservation.DocumentTypeObservation -> {
+            mozilla.appservices.places.HistoryMetadataObservation.DocumentTypeObservation(
+                documentType = this.documentType.into()
+            )
         }
     }
 }

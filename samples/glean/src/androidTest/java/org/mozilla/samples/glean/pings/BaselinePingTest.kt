@@ -6,14 +6,9 @@ package org.mozilla.samples.glean.pings
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.rule.ActivityTestRule
-
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.mozilla.samples.glean.MainActivity
 import androidx.test.uiautomator.UiDevice
 import mozilla.components.service.glean.testing.GleanTestLocalServer
 import okhttp3.mockwebserver.Dispatcher
@@ -23,9 +18,13 @@ import okhttp3.mockwebserver.RecordedRequest
 import org.json.JSONObject
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import java.util.concurrent.TimeUnit
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.mozilla.samples.glean.MainActivity
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
+import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 
 /**
@@ -59,7 +58,7 @@ class BaselinePingTest {
     private val server = createMockWebServer()
 
     @get:Rule
-    val activityRule: ActivityTestRule<MainActivity> = ActivityTestRule(MainActivity::class.java)
+    val activityRule: ActivityScenarioRule<MainActivity> = ActivityScenarioRule(MainActivity::class.java)
 
     @get:Rule
     val gleanRule = GleanTestLocalServer(context, server.port)
@@ -85,8 +84,7 @@ class BaselinePingTest {
         pingName: String,
         pingReason: String?,
         maxAttempts: Int = 3
-    ): JSONObject?
-    {
+    ): JSONObject? {
         var attempts = 0
         do {
             attempts += 1
@@ -124,7 +122,7 @@ class BaselinePingTest {
         device.pressHome()
 
         // Validate the received data.
-        val baselinePing = waitForPingContent("baseline", "background")!!
+        val baselinePing = waitForPingContent("baseline", "inactive")!!
         val metrics = baselinePing.getJSONObject("metrics")
 
         // Make sure we have a 'duration' field with a reasonable value: it should be >= 1, since

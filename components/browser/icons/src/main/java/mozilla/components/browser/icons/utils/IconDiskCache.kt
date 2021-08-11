@@ -6,6 +6,8 @@ package mozilla.components.browser.icons.utils
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
+import androidx.annotation.VisibleForTesting
 import com.jakewharton.disklrucache.DiskLruCache
 import mozilla.components.browser.icons.Icon
 import mozilla.components.browser.icons.IconRequest
@@ -33,11 +35,14 @@ private const val WEBP_QUALITY = 90
  * Caching bitmaps and resource URLs on disk.
  */
 class IconDiskCache :
-    DiskIconLoader.LoaderDiskCache, DiskIconPreparer.PreparerDiskCache,
+    DiskIconLoader.LoaderDiskCache,
+    DiskIconPreparer.PreparerDiskCache,
     DiskIconProcessor.ProcessorDiskCache {
     private val logger = Logger("Icons/IconDiskCache")
-    private var iconResourcesCache: DiskLruCache? = null
-    private var iconDataCache: DiskLruCache? = null
+    @VisibleForTesting
+    internal var iconResourcesCache: DiskLruCache? = null
+    @VisibleForTesting
+    internal var iconDataCache: DiskLruCache? = null
     private val iconResourcesCacheWriteLock = Any()
     private val iconDataCacheWriteLock = Any()
 
@@ -101,13 +106,19 @@ class IconDiskCache :
     }
 
     internal fun putIconBitmap(context: Context, resource: IconRequest.Resource, bitmap: Bitmap) {
+        val compressFormat = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
         try {
             synchronized(iconDataCacheWriteLock) {
                 val editor = getIconDataCache(context)
                     .edit(createKey(resource.url)) ?: return
 
                 editor.newOutputStream(0).use { stream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, WEBP_QUALITY, stream)
+                    bitmap.compress(compressFormat, WEBP_QUALITY, stream)
                 }
 
                 editor.commit()
@@ -118,8 +129,17 @@ class IconDiskCache :
     }
 
     internal fun clear(context: Context) {
-        getIconResourcesCache(context).delete()
-        getIconDataCache(context).delete()
+        try {
+            getIconResourcesCache(context).delete()
+        } catch (e: IOException) {
+            logger.warn("Icon resource cache could not be cleared. Perhaps there is none?")
+        }
+
+        try {
+            getIconDataCache(context).delete()
+        } catch (e: IOException) {
+            logger.warn("Icon data cache could not be cleared. Perhaps there is none?")
+        }
 
         iconResourcesCache = null
         iconDataCache = null

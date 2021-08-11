@@ -7,7 +7,6 @@
 package mozilla.components.support.migration
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.support.migration.state.MigrationAction
 import mozilla.components.support.migration.state.MigrationProgress
 import mozilla.components.support.migration.state.MigrationStore
@@ -26,10 +25,9 @@ import org.mockito.Mockito.verifyZeroInteractions
 @RunWith(AndroidJUnit4::class)
 class MigrationObserverTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `listener is invoked on state observation`() {

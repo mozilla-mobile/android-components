@@ -44,7 +44,7 @@ open class GeckoSelectionActionDelegate(
         val selectedText = mSelection?.text
 
         val customActionIsAvailable = !selectedText.isNullOrEmpty() &&
-        customDelegate.isActionAvailable(id, selectedText)
+            customDelegate.isActionAvailable(id, selectedText)
 
         return customActionIsAvailable ||
             super.isActionAvailable(id)
@@ -58,8 +58,13 @@ open class GeckoSelectionActionDelegate(
     }
 
     override fun performAction(id: String, item: MenuItem): Boolean {
-        val selectedText = mSelection?.text ?: return super.performAction(id, item)
+        /* Temporary, removed once https://bugzilla.mozilla.org/show_bug.cgi?id=1694983 is fixed */
+        try {
+            val selectedText = mSelection?.text ?: return super.performAction(id, item)
 
-        return customDelegate.performAction(id, selectedText) || super.performAction(id, item)
+            return customDelegate.performAction(id, selectedText) || super.performAction(id, item)
+        } catch (e: SecurityException) {
+            return false
+        }
     }
 }

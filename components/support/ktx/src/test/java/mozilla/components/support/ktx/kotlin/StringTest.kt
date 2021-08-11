@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -172,7 +173,7 @@ class StringTest {
 
     @Test
     fun sanitizeFileName() {
-        var file = "/../../../../../../../../../../directory/file.txt"
+        var file = "/../../../../../../../../../../directory/file.......txt"
         val fileName = "file.txt"
 
         assertEquals(fileName, file.sanitizeFileName())
@@ -180,5 +181,56 @@ class StringTest {
         file = "/root/directory/file.txt"
 
         assertEquals(fileName, file.sanitizeFileName())
+
+        assertEquals("file", "file".sanitizeFileName())
+
+        assertEquals("file", "file..".sanitizeFileName())
+
+        assertEquals("file", "file.".sanitizeFileName())
+
+        assertEquals("file", ".file".sanitizeFileName())
+
+        assertEquals("test.2020.12.01.txt", "test.2020.12.01.txt".sanitizeFileName())
+    }
+
+    @Test
+    fun `getDataUrlImageExtension returns a default extension if one cannot be extracted from the data url`() {
+        val base64Image = "data:;base64,testImage"
+
+        val result = base64Image.getDataUrlImageExtension()
+
+        assertEquals("jpg", result)
+    }
+
+    @Test
+    fun `getDataUrlImageExtension returns an extension based on the media type included in the the data url`() {
+        val base64Image = "data:image/gif;base64,testImage"
+
+        val result = base64Image.getDataUrlImageExtension()
+
+        assertEquals("gif", result)
+    }
+
+    @Test
+    fun `ifNullOrEmpty returns the same if this CharSequence is not null and not empty`() {
+        val randomString = "something"
+
+        assertSame(randomString, randomString.ifNullOrEmpty { "something else" })
+    }
+
+    @Test
+    fun `ifNullOrEmpty returns the invocation of the passed in argument if this CharSequence is null`() {
+        val nullString: String? = null
+        val validResult = "notNullString"
+
+        assertSame(validResult, nullString.ifNullOrEmpty { validResult })
+    }
+
+    @Test
+    fun `ifNullOrEmpty returns the invocation of the passed in argument if this CharSequence is empty`() {
+        val nullString = ""
+        val validResult = "notEmptyString"
+
+        assertSame(validResult, nullString.ifNullOrEmpty { validResult })
     }
 }

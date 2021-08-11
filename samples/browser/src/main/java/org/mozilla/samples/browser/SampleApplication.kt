@@ -5,11 +5,11 @@
 package org.mozilla.samples.browser
 
 import android.app.Application
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.appservices.Megazord
-import mozilla.components.browser.session.Session
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.feature.addons.update.GlobalAddonDependencyProvider
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
@@ -25,12 +25,14 @@ import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.ktx.android.content.runOnlyInMainProcess
 import mozilla.components.support.rustlog.RustLog
 import mozilla.components.support.webextensions.WebExtensionSupport
+import java.util.concurrent.TimeUnit
 
 class SampleApplication : Application() {
     private val logger = Logger("SampleApplication")
 
     val components by lazy { Components(this) }
 
+    @DelicateCoroutinesApi // Usage of GlobalScope
     override fun onCreate() {
         super.onCreate()
 
@@ -55,6 +57,7 @@ class SampleApplication : Application() {
         Facts.registerProcessor(LogFactProcessor())
 
         components.engine.warmUp()
+        restoreBrowserState()
 
         GlobalScope.launch(Dispatchers.IO) {
             components.webAppManifestStorage.warmUpScopes(System.currentTimeMillis())
@@ -70,17 +73,15 @@ class SampleApplication : Application() {
                 components.store,
                 onNewTabOverride = {
                     _, engineSession, url ->
-                        val session = Session(url)
-                        components.sessionManager.add(session, true, engineSession)
-                        session.id
+                    components.tabsUseCases.addTab(url, selectTab = true, engineSession = engineSession)
                 },
                 onCloseTabOverride = {
-                    _, sessionId -> components.tabsUseCases.removeTab(sessionId)
+                    _, sessionId ->
+                    components.tabsUseCases.removeTab(sessionId)
                 },
                 onSelectTabOverride = {
                     _, sessionId ->
-                        val selected = components.sessionManager.findSessionById(sessionId)
-                        selected?.let { components.tabsUseCases.selectTab(it) }
+                    components.tabsUseCases.selectTab(sessionId)
                 },
                 onUpdatePermissionRequest = components.addonUpdater::onUpdatePermissionRequest,
                 onExtensionsLoaded = { extensions ->
@@ -92,6 +93,16 @@ class SampleApplication : Application() {
             // Web extension support is only available for engine gecko
             Logger.error("Failed to initialize web extension support", e)
         }
+    }
+
+    @DelicateCoroutinesApi
+    private fun restoreBrowserState() = GlobalScope.launch(Dispatchers.Main) {
+        components.tabsUseCases.restore(components.sessionStorage)
+
+        components.sessionStorage.autoSave(components.store)
+            .periodicallyInForeground(interval = 30, unit = TimeUnit.SECONDS)
+            .whenGoingToBackground()
+            .whenSessionsChange()
     }
 
     override fun onTrimMemory(level: Int) {

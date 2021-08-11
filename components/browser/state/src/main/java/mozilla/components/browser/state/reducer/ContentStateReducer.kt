@@ -6,13 +6,19 @@ package mozilla.components.browser.state.reducer
 
 import android.net.Uri
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction
 import mozilla.components.browser.state.ext.containsPermission
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.HistoryState
+import mozilla.components.browser.state.state.content.PermissionHighlightsState
+import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.support.ktx.android.net.isInScope
 import mozilla.components.support.ktx.android.net.sameSchemeAndHostAs
+import mozilla.components.support.ktx.kotlin.isSameOriginAs
 
+@Suppress("LargeClass")
 internal object ContentStateReducer {
     /**
      * [ContentAction] Reducer function for modifying a specific [ContentState] of a [SessionState].
@@ -27,13 +33,29 @@ internal object ContentStateReducer {
                 it.copy(thumbnail = null)
             }
             is ContentAction.UpdateUrlAction -> updateContentState(state, action.sessionId) {
-                val icon = if (!isHostEquals(it.url, action.url)) {
-                    null
-                } else {
-                    it.icon
-                }
-
-                it.copy(url = action.url, icon = icon)
+                it.copy(
+                    url = action.url,
+                    icon = if (!isHostEquals(it.url, action.url)) {
+                        null
+                    } else {
+                        it.icon
+                    },
+                    title = if (!isUrlSame(it.url, action.url)) {
+                        ""
+                    } else {
+                        it.title
+                    },
+                    webAppManifest = if (!isInScope(it.webAppManifest, action.url)) {
+                        null
+                    } else {
+                        it.webAppManifest
+                    },
+                    permissionRequestsList = if (!it.url.isSameOriginAs(action.url)) {
+                        emptyList()
+                    } else {
+                        it.permissionRequestsList
+                    }
+                )
             }
             is ContentAction.UpdateProgressAction -> updateContentState(state, action.sessionId) {
                 it.copy(progress = action.progress)
@@ -68,13 +90,9 @@ internal object ContentStateReducer {
             is ContentAction.UpdateDownloadAction -> updateContentState(state, action.sessionId) {
                 it.copy(download = action.download.copy(sessionId = action.sessionId))
             }
-            is ContentAction.ConsumeDownloadAction -> updateContentState(state, action.sessionId) {
-                if (it.download != null && it.download.id == action.downloadId) {
-                    it.copy(download = null)
-                } else {
-                    it
-                }
-            }
+            is ContentAction.ConsumeDownloadAction -> consumeDownload(state, action.sessionId, action.downloadId)
+            is ContentAction.CancelDownloadAction -> consumeDownload(state, action.sessionId, action.downloadId)
+
             is ContentAction.UpdateHitResultAction -> updateContentState(state, action.sessionId) {
                 it.copy(hitResult = action.hitResult)
             }
@@ -82,10 +100,10 @@ internal object ContentStateReducer {
                 it.copy(hitResult = null)
             }
             is ContentAction.UpdatePromptRequestAction -> updateContentState(state, action.sessionId) {
-                it.copy(promptRequest = action.promptRequest)
+                it.copy(promptRequests = it.promptRequests + action.promptRequest)
             }
             is ContentAction.ConsumePromptRequestAction -> updateContentState(state, action.sessionId) {
-                it.copy(promptRequest = null)
+                it.copy(promptRequests = it.promptRequests - action.promptRequest)
             }
             is ContentAction.AddFindResultAction -> updateContentState(state, action.sessionId) {
                 it.copy(findResults = it.findResults + action.findResult)
@@ -195,7 +213,92 @@ internal object ContentStateReducer {
             is ContentAction.UpdateLoadRequestAction -> updateContentState(state, action.sessionId) {
                 it.copy(loadRequest = action.loadRequest)
             }
+            is ContentAction.SetRecordingDevices -> updateContentState(state, action.sessionId) {
+                it.copy(recordingDevices = action.devices)
+            }
+            is ContentAction.UpdateDesktopModeAction -> updateContentState(state, action.sessionId) {
+                it.copy(desktopMode = action.enabled)
+            }
+            is UpdatePermissionHighlightsStateAction.NotificationChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(notificationChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.CameraChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(cameraChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.LocationChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(locationChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.MediaKeySystemAccesChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(mediaKeySystemAccessChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.MicrophoneChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(microphoneChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.PersistentStorageChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(persistentStorageChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.AutoPlayAudibleBlockingAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(autoPlayAudibleBlocking = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.AutoPlayInAudibleChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(autoPlayInaudibleChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.AutoPlayInAudibleBlockingAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(autoPlayInaudibleBlocking = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.AutoPlayAudibleChangedAction -> {
+                updatePermissionHighlightsState(state, action.tabId) {
+                    it.copy(autoPlayAudibleChanged = action.value)
+                }
+            }
+            is UpdatePermissionHighlightsStateAction.Reset -> {
+                updatePermissionHighlightsState(state, action.tabId) { PermissionHighlightsState() }
+            }
+
+            is ContentAction.UpdateAppIntentAction -> updateContentState(state, action.sessionId) {
+                it.copy(appIntent = action.appIntent)
+            }
+            is ContentAction.ConsumeAppIntentAction -> updateContentState(state, action.sessionId) {
+                it.copy(appIntent = null)
+            }
         }
+    }
+    private fun consumeDownload(state: BrowserState, sessionId: String, downloadId: String): BrowserState {
+        return updateContentState(state, sessionId) {
+            if (it.download != null && it.download.id == downloadId) {
+                it.copy(download = null)
+            } else {
+                it
+            }
+        }
+    }
+}
+
+private inline fun updatePermissionHighlightsState(
+    state: BrowserState,
+    tabId: String,
+    crossinline update: (PermissionHighlightsState) -> PermissionHighlightsState
+): BrowserState {
+    return updateContentState(state, tabId) {
+        it.copy(permissionHighlights = update(it.permissionHighlights))
     }
 }
 
@@ -204,7 +307,7 @@ private inline fun updateContentState(
     tabId: String,
     crossinline update: (ContentState) -> ContentState
 ): BrowserState {
-    return state.updateTabState(tabId) { current ->
+    return state.updateTabOrCustomTabState(tabId) { current ->
         current.createCopy(content = update(current.content))
     }
 }
@@ -214,4 +317,27 @@ private fun isHostEquals(sessionUrl: String, newUrl: String): Boolean {
     val newUri = Uri.parse(newUrl)
 
     return sessionUri.sameSchemeAndHostAs(newUri)
+}
+
+private fun isUrlSame(originalUrl: String, newUrl: String): Boolean {
+    val originalUri = Uri.parse(originalUrl)
+    val uri = Uri.parse(newUrl)
+
+    return uri.port == originalUri.port &&
+        uri.host == originalUri.host &&
+        uri.path?.trimStart('/') == originalUri.path?.trimStart('/') &&
+        uri.query == originalUri.query
+}
+
+/**
+ * Checks that the [newUrl] is in scope of the web app manifest.
+ *
+ * https://www.w3.org/TR/appmanifest/#dfn-within-scope
+ */
+private fun isInScope(manifest: WebAppManifest?, newUrl: String): Boolean {
+    val scope = manifest?.scope ?: manifest?.startUrl ?: return false
+    val scopeUri = Uri.parse(scope)
+    val newUri = Uri.parse(newUrl)
+
+    return newUri.isInScope(listOf(scopeUri))
 }

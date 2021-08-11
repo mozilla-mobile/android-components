@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import mozilla.components.browser.state.state.ClosedTab
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.recentlyclosed.db.RecentlyClosedTabsDatabase
 import mozilla.components.feature.recentlyclosed.db.toRecentlyClosedTabEntity
@@ -24,12 +24,11 @@ import java.io.File
 /**
  * A storage implementation that saves snapshots of recently closed tabs / sessions.
  */
-@Suppress("TooManyFunctions")
-class RecentlyClosedTabsStorage(
+internal class RecentlyClosedTabsStorage(
     context: Context,
     private val engine: Engine,
     private val scope: CoroutineScope = CoroutineScope(IO)
-) {
+) : RecentlyClosedMiddleware.Storage {
     private val filesDir by lazy { context.filesDir }
 
     @VisibleForTesting
@@ -37,27 +36,27 @@ class RecentlyClosedTabsStorage(
         lazy { RecentlyClosedTabsDatabase.get(context) }
 
     /**
-     * Returns an observable list of [ClosedTab]s.
+     * Returns an observable list of [RecoverableTab]s.
      */
-    fun getTabs(): Flow<List<ClosedTab>> {
+    override fun getTabs(): Flow<List<RecoverableTab>> {
         return database.value.recentlyClosedTabDao().getTabs().map { list ->
-            list.map { it.toClosedTab(filesDir, engine) }
+            list.map { it.toRecoverableTab(filesDir, engine) }
         }
     }
 
     /**
-     * Removes the given [ClosedTab].
+     * Removes the given [RecoverableTab].
      */
-    fun removeTab(recentlyClosedTab: ClosedTab) {
+    override fun removeTab(recentlyClosedTab: RecoverableTab) {
         val entity = recentlyClosedTab.toRecentlyClosedTabEntity()
         entity.getStateFile(filesDir).delete()
         database.value.recentlyClosedTabDao().deleteTab(entity)
     }
 
     /**
-     * Removes all [ClosedTab]s.
+     * Removes all [RecoverableTab]s.
      */
-    fun removeAllTabs() {
+    override fun removeAllTabs() {
         getStateDirectory(filesDir).truncateDirectory()
         database.value.recentlyClosedTabDao().removeAllTabs()
     }
@@ -71,8 +70,8 @@ class RecentlyClosedTabsStorage(
     /**
      * Adds up to [maxTabs] [TabSessionState]s to storage, and then prunes storage to keep only the newest [maxTabs].
      */
-    internal fun addTabsToCollectionWithMax(
-        tab: List<ClosedTab>,
+    override fun addTabsToCollectionWithMax(
+        tab: List<RecoverableTab>,
         maxTabs: Int
     ) {
         tab.takeLast(maxTabs).forEach {
@@ -95,12 +94,12 @@ class RecentlyClosedTabsStorage(
 
     @VisibleForTesting
     internal fun addTabState(
-        tab: ClosedTab
+        tab: RecoverableTab
     ) {
         val entity = tab.toRecentlyClosedTabEntity()
 
         val success = entity.getStateFile(filesDir).streamJSON {
-            val state = tab.engineSessionState
+            val state = tab.state
             if (state == null) {
                 beginObject().endObject()
             } else {

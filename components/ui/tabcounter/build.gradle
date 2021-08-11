@@ -4,6 +4,7 @@
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -19,6 +20,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
@@ -26,6 +31,10 @@ dependencies {
     implementation project(':support-utils')
 
     implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.androidx_core_ktx
+    implementation project(':concept-menu')
+    implementation project(':browser-menu2')
+    implementation project(':support-base')
 
     testImplementation project(":support-test")
 

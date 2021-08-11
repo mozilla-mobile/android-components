@@ -10,17 +10,20 @@ import android.provider.Browser
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.state.action.BrowserAction
+import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.action.EngineAction
+import mozilla.components.browser.state.selector.findCustomTab
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.intent.ext.EXTRA_SESSION_ID
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.support.test.any
-import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
@@ -32,22 +35,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
 class CustomTabIntentProcessorTest {
-
     @Test
     fun processCustomTabIntentWithDefaultHandlers() {
-        val store: BrowserStore = mock()
-        val engine: Engine = mock()
-        val sessionManager = spy(SessionManager(engine))
-        val useCases = SessionUseCases(store, sessionManager)
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(middleware = listOf(middleware))
+        val useCases = SessionUseCases(store)
+        val customTabsUseCases = CustomTabsUseCases(store, useCases.loadUrl)
 
         val handler =
-            CustomTabIntentProcessor(sessionManager, useCases.loadUrl, testContext.resources)
+            CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources)
 
         val intent = mock<Intent>()
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
@@ -57,30 +58,39 @@ class CustomTabIntentProcessorTest {
 
         handler.process(intent)
 
-        val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(false), eq(null), eq(null), eq(null))
-        verify(store).dispatch(EngineAction.LoadUrlAction(
-            sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
-        )
+        store.waitUntilIdle()
+
+        var customTabId: String? = null
+
+        middleware.assertFirstAction(CustomTabListAction.AddCustomTabAction::class) { action ->
+            customTabId = action.tab.id
+        }
+
+        middleware.assertFirstAction(EngineAction.LoadUrlAction::class) { action ->
+            assertEquals(customTabId, action.tabId)
+            assertEquals("http://mozilla.org", action.url)
+            assertEquals(LoadUrlFlags.external(), action.flags)
+        }
+
         verify(intent).putExtra(eq(EXTRA_SESSION_ID), any<String>())
 
-        val customTabSession = sessionManager.all[0]
-        assertNotNull(customTabSession)
-        assertEquals("http://mozilla.org", customTabSession.url)
-        assertEquals(Source.CUSTOM_TAB, customTabSession.source)
-        assertNotNull(customTabSession.customTabConfig)
-        assertFalse(customTabSession.private)
+        val customTab = store.state.findCustomTab(customTabId!!)
+        assertNotNull(customTab!!)
+        assertEquals("http://mozilla.org", customTab.content.url)
+        assertTrue(customTab.source is Source.External.CustomTab)
+        assertNotNull(customTab.config)
+        assertFalse(customTab.content.private)
     }
 
     @Test
     fun processCustomTabIntentWithAdditionalHeaders() {
-        val store: BrowserStore = mock()
-        val engine: Engine = mock()
-        val sessionManager = spy(SessionManager(engine))
-        val useCases = SessionUseCases(store, sessionManager)
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(middleware = listOf(middleware))
+        val useCases = SessionUseCases(store)
+        val customTabsUseCases = CustomTabsUseCases(store, useCases.loadUrl)
 
         val handler =
-                CustomTabIntentProcessor(sessionManager, useCases.loadUrl, testContext.resources)
+            CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources)
 
         val intent = mock<Intent>()
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
@@ -96,30 +106,40 @@ class CustomTabIntentProcessorTest {
 
         handler.process(intent)
 
-        val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(false), eq(null), eq(null), eq(null))
-        verify(store).dispatch(EngineAction.LoadUrlAction(
-            sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external(), headers)
-        )
+        store.waitUntilIdle()
+
+        var customTabId: String? = null
+
+        middleware.assertFirstAction(CustomTabListAction.AddCustomTabAction::class) { action ->
+            customTabId = action.tab.id
+        }
+
+        middleware.assertFirstAction(EngineAction.LoadUrlAction::class) { action ->
+            assertEquals(customTabId, action.tabId)
+            assertEquals("http://mozilla.org", action.url)
+            assertEquals(LoadUrlFlags.external(), action.flags)
+            assertEquals(headers, action.additionalHeaders)
+        }
+
         verify(intent).putExtra(eq(EXTRA_SESSION_ID), any<String>())
 
-        val customTabSession = sessionManager.all[0]
-        assertNotNull(customTabSession)
-        assertEquals("http://mozilla.org", customTabSession.url)
-        assertEquals(Source.CUSTOM_TAB, customTabSession.source)
-        assertNotNull(customTabSession.customTabConfig)
-        assertFalse(customTabSession.private)
+        val customTab = store.state.findCustomTab(customTabId!!)
+        assertNotNull(customTab!!)
+        assertEquals("http://mozilla.org", customTab.content.url)
+        assertTrue(customTab.source is Source.External.CustomTab)
+        assertNotNull(customTab.config)
+        assertFalse(customTab.content.private)
     }
 
     @Test
     fun processPrivateCustomTabIntentWithDefaultHandlers() {
-        val store: BrowserStore = mock()
-        val engine: Engine = mock()
-        val sessionManager = spy(SessionManager(engine))
-        val useCases = SessionUseCases(store, sessionManager)
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = BrowserStore(middleware = listOf(middleware))
+        val useCases = SessionUseCases(store)
+        val customTabsUseCases = CustomTabsUseCases(store, useCases.loadUrl)
 
         val handler =
-                CustomTabIntentProcessor(sessionManager, useCases.loadUrl, testContext.resources, true)
+            CustomTabIntentProcessor(customTabsUseCases.add, testContext.resources, true)
 
         val intent = mock<Intent>()
         whenever(intent.action).thenReturn(Intent.ACTION_VIEW)
@@ -129,18 +149,27 @@ class CustomTabIntentProcessorTest {
 
         handler.process(intent)
 
-        val sessionCaptor = argumentCaptor<Session>()
-        verify(sessionManager).add(sessionCaptor.capture(), eq(false), eq(null), eq(null), eq(null))
-        verify(store).dispatch(EngineAction.LoadUrlAction(
-            sessionCaptor.value.id, "http://mozilla.org", LoadUrlFlags.external())
-        )
+        store.waitUntilIdle()
+
+        var customTabId: String? = null
+
+        middleware.assertFirstAction(CustomTabListAction.AddCustomTabAction::class) { action ->
+            customTabId = action.tab.id
+        }
+
+        middleware.assertFirstAction(EngineAction.LoadUrlAction::class) { action ->
+            assertEquals(customTabId, action.tabId)
+            assertEquals("http://mozilla.org", action.url)
+            assertEquals(LoadUrlFlags.external(), action.flags)
+        }
+
         verify(intent).putExtra(eq(EXTRA_SESSION_ID), any<String>())
 
-        val customTabSession = sessionManager.all[0]
-        assertNotNull(customTabSession)
-        assertEquals("http://mozilla.org", customTabSession.url)
-        assertEquals(Source.CUSTOM_TAB, customTabSession.source)
-        assertNotNull(customTabSession.customTabConfig)
-        assertTrue(customTabSession.private)
+        val customTab = store.state.findCustomTab(customTabId!!)
+        assertNotNull(customTab!!)
+        assertEquals("http://mozilla.org", customTab.content.url)
+        assertTrue(customTab.source is Source.External.CustomTab)
+        assertNotNull(customTab.config)
+        assertTrue(customTab.content.private)
     }
 }

@@ -15,7 +15,7 @@ import android.provider.MediaStore.EXTRA_OUTPUT
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.fragment.app.Fragment
-import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
+import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.File
@@ -26,6 +26,15 @@ import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.android.net.isUnderPrivateAppDirectory
+
+/**
+ * The image capture intent doesn't return the URI where the image is saved,
+ * so we track it here.
+ *
+ * Top-level scoped to survive activity recreation in the "Don't keep activities" scenario.
+ */
+@VisibleForTesting
+internal var captureUri: Uri? = null
 
 /**
  * @property container The [Activity] or [Fragment] which hosts the file picker.
@@ -42,12 +51,6 @@ internal class FilePicker(
 ) : PermissionsFeature {
 
     private val logger = Logger("FilePicker")
-
-    /**
-     * The image capture intent doesn't return the URI where the image is saved,
-     * so we track it here.
-     */
-    private var captureUri: Uri? = null
 
     /**
      * Cache of the current request to be used after permission is granted.
@@ -110,24 +113,31 @@ internal class FilePicker(
      * @param requestCode The code of the app that requested the intent.
      * @param intent The result of the request.
      */
-    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
-        val request = getActivePromptRequest() ?: return
+    fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?): Boolean {
+        var resultHandled = false
+        val request = getActivePromptRequest() ?: return false
         if (requestCode == FILE_PICKER_ACTIVITY_REQUEST_CODE && request is File) {
-            store.consumePromptFrom(sessionId) {
+            store.consumePromptFrom(sessionId, request.uid) {
                 if (resultCode == RESULT_OK) {
                     handleFilePickerIntentResult(intent, request)
                 } else {
                     request.onDismiss()
                 }
             }
+            resultHandled = true
         }
         if (request !is File) {
             logger.error("Invalid PromptRequest expected File but $request was provided")
         }
+
+        return resultHandled
     }
 
     private fun getActivePromptRequest(): PromptRequest? =
-            store.state.findTabOrCustomTabOrSelectedTab(sessionId)?.content?.promptRequest
+        store.state.findCustomTabOrSelectedTab(sessionId)?.content?.promptRequests?.lastOrNull {
+            prompt ->
+            prompt is File
+        }
 
     /**
      * Notifies the feature that the permissions request was completed. It will then
@@ -168,8 +178,8 @@ internal class FilePicker(
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun onPermissionsDenied() {
         // Nothing left to do. Consume / cleanup the requests.
-        store.consumePromptFrom(sessionId) { request ->
-            if (request is File) request.onDismiss()
+        store.consumePromptFrom<File>(sessionId) { request ->
+            request.onDismiss()
         }
     }
 
@@ -197,6 +207,8 @@ internal class FilePicker(
                 }
             } ?: request.onDismiss()
         }
+
+        captureUri = null
     }
 
     private fun saveCaptureUriIfPresent(intent: Intent) =

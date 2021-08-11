@@ -31,7 +31,7 @@ class BookmarksStorageSuggestionProviderTest {
 
     private val newItem = BookmarkNode(
         BookmarkNodeType.ITEM, "123", "456", null,
-        "Mozilla", "http://www.mozilla.org", null
+        "Mozilla", "http://www.mozilla.org", 0, null
     )
 
     @Test
@@ -89,12 +89,6 @@ class BookmarksStorageSuggestionProviderTest {
     }
 
     @Test
-    fun `Provider suggestion should get cleared when text changes`() {
-        val provider = BookmarksStorageSuggestionProvider(mock(), mock())
-        assertTrue(provider.shouldClearSuggestions)
-    }
-
-    @Test
     fun `provider calls speculative connect for URL of first suggestion`() = runBlocking {
         val engine: Engine = mock()
         val provider = BookmarksStorageSuggestionProvider(bookmarks, mock(), engine = engine)
@@ -130,6 +124,11 @@ class BookmarksStorageSuggestionProviderTest {
         }
 
         override suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode> {
+            // "Not needed for the test"
+            throw NotImplementedError()
+        }
+
+        override suspend fun getRecentBookmarks(limit: Int, maxAge: Long?, currentTime: Long): List<BookmarkNode> {
             // "Not needed for the test"
             throw NotImplementedError()
         }
@@ -171,7 +170,7 @@ class BookmarksStorageSuggestionProviderTest {
         ): String {
             val id = UUID.randomUUID().toString()
             bookmarkMap[id] =
-                BookmarkNode(BookmarkNodeType.ITEM, id, parentGuid, position, title, url, null)
+                BookmarkNode(BookmarkNodeType.ITEM, id, parentGuid, position, title, url, 0, null)
             return id
         }
 

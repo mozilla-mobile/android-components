@@ -65,7 +65,7 @@ import mozilla.components.concept.toolbar.Toolbar
  * Progress (optional):
  *     A horizontal progress bar showing the loading progress (at the top or bottom of the toolbar).
  */
-@Suppress("LargeClass", "TooManyFunctions")
+@Suppress("LargeClass")
 class DisplayToolbar internal constructor(
     private val context: Context,
     private val toolbar: BrowserToolbar,
@@ -77,7 +77,8 @@ class DisplayToolbar internal constructor(
     enum class Indicators {
         SECURITY,
         TRACKING_PROTECTION,
-        EMPTY
+        EMPTY,
+        HIGHLIGHT
     }
 
     /**
@@ -92,6 +93,7 @@ class DisplayToolbar internal constructor(
      * @property text Text color of the URL.
      * @property trackingProtection Color tint for the tracking protection icons.
      * @property separator Color tint for the separator shown between indicators.
+     * @property highlight Color tint for the highlight icon.
      *
      * Set/Get the site security icon colours. It uses a pair of color integers which represent the
      * insecure and secure colours respectively.
@@ -105,7 +107,8 @@ class DisplayToolbar internal constructor(
         @ColorInt val title: Int,
         @ColorInt val text: Int,
         @ColorInt val trackingProtection: Int?,
-        @ColorInt val separator: Int
+        @ColorInt val separator: Int,
+        @ColorInt val highlight: Int?
     )
 
     /**
@@ -118,12 +121,15 @@ class DisplayToolbar internal constructor(
      * enabled and no trackers have been blocked.
      * @property trackingProtectionException An icon that is shown if tracking protection is enabled
      * but the current page is in the "exception list".
+     * @property highlight An icon that is shown if any event needs to be brought
+     * to the user's attention. Like the autoplay permission been blocked.
      */
     data class Icons(
         val emptyIcon: Drawable?,
         val trackingProtectionTrackersBlocked: Drawable,
         val trackingProtectionNothingBlocked: Drawable,
-        val trackingProtectionException: Drawable
+        val trackingProtectionException: Drawable,
+        val highlight: Drawable
     )
 
     /**
@@ -162,7 +168,8 @@ class DisplayToolbar internal constructor(
                     }
                 }
             }
-        }
+        },
+        highlight = rootView.findViewById(R.id.mozac_browser_toolbar_permission_indicator)
     )
 
     /**
@@ -177,24 +184,29 @@ class DisplayToolbar internal constructor(
         title = views.origin.titleColor,
         text = views.origin.textColor,
         trackingProtection = null,
-        separator = ContextCompat.getColor(context, R.color.photonGrey80)
+        separator = ContextCompat.getColor(context, R.color.photonGrey80),
+        highlight = null
     )
-    set(value) {
-        field = value
+        set(value) {
+            field = value
 
-        updateSiteSecurityIcon()
-        views.emptyIndicator.setColorFilter(value.emptyIcon)
-        views.menu.setColorFilter(value.menu)
-        views.origin.hintColor = value.hint
-        views.origin.titleColor = value.title
-        views.origin.textColor = value.text
-        views.separator.setColorFilter(value.separator)
+            updateSiteSecurityIcon()
+            views.emptyIndicator.setColorFilter(value.emptyIcon)
+            views.menu.setColorFilter(value.menu)
+            views.origin.hintColor = value.hint
+            views.origin.titleColor = value.title
+            views.origin.textColor = value.text
+            views.separator.setColorFilter(value.separator)
 
-        if (value.trackingProtection != null) {
-            views.trackingProtectionIndicator.setTint(value.trackingProtection)
-            views.trackingProtectionIndicator.setColorFilter(value.trackingProtection)
+            if (value.trackingProtection != null) {
+                views.trackingProtectionIndicator.setTint(value.trackingProtection)
+                views.trackingProtectionIndicator.setColorFilter(value.trackingProtection)
+            }
+
+            if (value.highlight != null) {
+                views.highlight.setTint(value.highlight)
+            }
         }
-    }
 
     /**
      * Customizable icons in "edit mode".
@@ -209,23 +221,27 @@ class DisplayToolbar internal constructor(
         ),
         trackingProtectionException = requireNotNull(
             getDrawable(context, TrackingProtectionIconView.DEFAULT_ICON_OFF_FOR_A_SITE)
+        ),
+        highlight = requireNotNull(
+            getDrawable(context, R.drawable.mozac_dot_notification)
         )
     )
-    set(value) {
-        field = value
+        set(value) {
+            field = value
 
-        views.emptyIndicator.setImageDrawable(value.emptyIcon)
+            views.emptyIndicator.setImageDrawable(value.emptyIcon)
 
-        views.trackingProtectionIndicator.setIcons(
-            value.trackingProtectionNothingBlocked,
-            value.trackingProtectionTrackersBlocked,
-            value.trackingProtectionException
-        )
-    }
+            views.trackingProtectionIndicator.setIcons(
+                value.trackingProtectionNothingBlocked,
+                value.trackingProtectionTrackersBlocked,
+                value.trackingProtectionException
+            )
+            views.highlight.setIcon(value.highlight)
+        }
 
     /**
-    * Allows customization of URL for display purposes.
-    */
+     * Allows customization of URL for display purposes.
+     */
     var urlFormatter: ((CharSequence) -> CharSequence)? = null
 
     /**
@@ -423,6 +439,12 @@ class DisplayToolbar internal constructor(
             View.GONE
         }
 
+        views.highlight.visibility = if (!urlEmpty && indicators.contains(Indicators.HIGHLIGHT)) {
+            setHighlight(toolbar.highlight)
+        } else {
+            View.GONE
+        }
+
         updateSeparatorVisibility()
     }
 
@@ -496,6 +518,16 @@ class DisplayToolbar internal constructor(
         updateSeparatorVisibility()
     }
 
+    internal fun setHighlight(state: Toolbar.Highlight): Int {
+        if (!indicators.contains(Indicators.HIGHLIGHT)) {
+            return views.highlight.visibility
+        }
+
+        views.highlight.state = state
+
+        return views.highlight.visibility
+    }
+
     internal fun onStop() {
         views.menu.dismissMenu()
     }
@@ -526,10 +558,15 @@ class DisplayToolbar internal constructor(
      */
     internal fun updateProgress(progress: Int) {
         if (!views.progress.isVisible && progress > 0) {
-            // Loading has just started, make visible and announce "loading" for accessibility.
+            // Loading has just started, make visible.
             views.progress.visibility = View.VISIBLE
-            views.progress.announceForAccessibility(
-                context.getString(R.string.mozac_browser_toolbar_progress_loading))
+
+            // Announce "loading" for accessibility if it has not been completed
+            if (progress < views.progress.max) {
+                views.progress.announceForAccessibility(
+                    context.getString(R.string.mozac_browser_toolbar_progress_loading)
+                )
+            }
         }
 
         views.progress.progress = progress
@@ -609,6 +646,7 @@ class DisplayToolbar internal constructor(
 /**
  * Internal holder for view references.
  */
+@Suppress("LongParameterList")
 internal class DisplayToolbarViews(
     val browserActions: ActionContainer,
     val pageActions: ActionContainer,
@@ -620,5 +658,6 @@ internal class DisplayToolbarViews(
     val securityIndicator: SiteSecurityIconView,
     val trackingProtectionIndicator: TrackingProtectionIconView,
     val origin: OriginView,
-    val progress: ProgressBar
+    val progress: ProgressBar,
+    val highlight: HighlightView
 )

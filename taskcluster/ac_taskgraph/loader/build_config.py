@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
 
 import logging
 import os
@@ -30,12 +29,8 @@ _GIT_ZERO_HASHES = (
 CONFIGURATIONS_WITH_DEPENDENCIES = (
     "api",
     "compileOnly",
-# This seem like they should be included as well (because of https://github.com/mozilla-mobile/android-components/blob/2bc8627e160196c544bb8584cf926765fce4889c/samples/browser/build.gradle#L131)
-# but gradle doesn't accept them as a configuration for some reason.
-#    "geckoNightlyImplementation",
-#    "geckoBetaImplementation",
-#    "geckoReleaseImplementation",
     "implementation",
+    "testImplementation"
 )
 ALL_COMPONENTS = object()
 
@@ -48,7 +43,7 @@ def get_components_changed(files_changed):
         ->
         {service-sync-logins}
     """
-    return set(["-".join(f.split("/")[1:3]) for f in files_changed if f.startswith("components")])
+    return {"-".join(f.split("/")[1:3]) for f in files_changed if f.startswith("components")}
 
 
 cached_deps = {}
@@ -70,13 +65,13 @@ def get_upstream_deps_for_components(components):
         # gradle to spit out JSON that would be much better.
         # This is filed as https://github.com/mozilla-mobile/android-components/issues/7814
         current_component = None
-        for line in subprocess.check_output(cmd).splitlines():
+        for line in subprocess.check_output(cmd, universal_newlines=True).splitlines():
             # If we find the start of a new component section, update our tracking variable
             if line.startswith("Project"):
                 current_component = line.split(":")[1]
 
             # If we find a new local dependency, add it.
-            if line.startswith("+--- project") or line.startswith("\--- project"):
+            if line.startswith("+--- project") or line.startswith(r"\--- project"):
                 component_dependencies[current_component].add(line.split(" ")[2])
 
     return [(k, sorted(component_dependencies[k])) for k in sorted(component_dependencies)]
@@ -103,10 +98,10 @@ def get_affected_components(files_changed, files_affecting_components, upstream_
     # find their upstream and downstream dependencies.
     for c in affected_components.copy():
         if upstream_component_dependencies[c]:
-            logger.info("Adding direct upstream dependencies for '%s': %s" % (c, " ".join(sorted(upstream_component_dependencies[c]))))
+            logger.info("Adding direct upstream dependencies for '{}': {}".format(c, " ".join(sorted(upstream_component_dependencies[c]))))
             affected_components.update(upstream_component_dependencies[c])
         if downstream_component_dependencies[c]:
-            logger.info("Adding direct downstream dependencies for '%s': %s" % (c, " ".join(sorted(downstream_component_dependencies[c]))))
+            logger.info("Adding direct downstream dependencies for '{}': {}".format(c, " ".join(sorted(downstream_component_dependencies[c]))))
             affected_components.update(downstream_component_dependencies[c])
 
     return affected_components
@@ -121,7 +116,7 @@ def loader(kind, path, config, params, loaded_tasks):
 
     for component, deps in get_upstream_deps_for_components([c["name"] for c in get_components()]):
         if deps:
-            logger.info("Found direct upstream dependencies for component '%s': %s" % (component, deps))
+            logger.info(f"Found direct upstream dependencies for component '{component}': {deps}")
         else:
             logger.info("No direct upstream dependencies found for component '%s'" % component)
         upstream_component_dependencies[component] = deps
@@ -135,8 +130,13 @@ def loader(kind, path, config, params, loaded_tasks):
     elif params["tasks_for"] == "github-push":
         if params["base_rev"] in _GIT_ZERO_HASHES:
             logger.warn("base_rev is a zero hash, meaning there is no previous push. Building every component...")
+        elif params["head_ref"] == "refs/heads/main":
+            # Disable the affected_components optimization to make sure we execute all tests to get
+            # a complete code coverage report for pushes to 'main'.
+            # See https://github.com/mozilla-mobile/android-components/issues/9382#issuecomment-760506327
+            logger.info("head_ref is refs/heads/main. Building every component...")
         else:
-            logger.info("Processing push for commit range %s -> %s" % (params["base_rev"], params["head_rev"]))
+            logger.info("Processing push for commit range {} -> {}".format(params["base_rev"], params["head_rev"]))
             files_changed = get_files_changed_push(params["base_repository"], params["base_rev"], params["head_rev"])
             affected_components = get_affected_components(files_changed, config.get("files-affecting-components"), upstream_component_dependencies, downstream_component_dependencies)
 

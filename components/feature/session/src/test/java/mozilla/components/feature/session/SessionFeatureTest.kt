@@ -5,17 +5,14 @@
 package mozilla.components.feature.session
 
 import android.view.View
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import mozilla.components.browser.session.engine.EngineMiddleware
+import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
@@ -25,33 +22,25 @@ import mozilla.components.concept.engine.EngineView
 import mozilla.components.support.test.any
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
-import org.junit.After
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
 class SessionFeatureTest {
-    private val testDispatcher = TestCoroutineDispatcher()
-    private val scope = TestCoroutineScope(testDispatcher)
 
-    @Before
-    @ExperimentalCoroutinesApi
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @After
-    @ExperimentalCoroutinesApi
-    fun tearDown() {
-        Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
-    }
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `start renders selected session`() {
@@ -209,7 +198,7 @@ class SessionFeatureTest {
         verify(view).render(engineSession)
         verify(view, never()).release()
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
         verify(view).release()
     }
 
@@ -294,10 +283,12 @@ class SessionFeatureTest {
     @Test
     fun `onBackPressed() invokes GoBackUseCase if back navigation is possible`() {
         run {
-            val store = BrowserStore(BrowserState(
-                tabs = listOf(createTab("https://www.mozilla.org", id = "A")),
-                selectedTabId = "A"
-            ))
+            val store = BrowserStore(
+                BrowserState(
+                    tabs = listOf(createTab("https://www.mozilla.org", id = "A")),
+                    selectedTabId = "A"
+                )
+            )
 
             val useCase: SessionUseCases.GoBackUseCase = mock()
 
@@ -308,15 +299,19 @@ class SessionFeatureTest {
         }
 
         run {
-            val store = BrowserStore(BrowserState(
-                tabs = listOf(createTab("https://www.mozilla.org", id = "A")),
-                selectedTabId = "A"
-            ))
+            val store = BrowserStore(
+                BrowserState(
+                    tabs = listOf(createTab("https://www.mozilla.org", id = "A")),
+                    selectedTabId = "A"
+                )
+            )
 
-            store.dispatch(ContentAction.UpdateBackNavigationStateAction(
-                "A",
-                canGoBack = true
-            )).joinBlocking()
+            store.dispatch(
+                ContentAction.UpdateBackNavigationStateAction(
+                    "A",
+                    canGoBack = true
+                )
+            ).joinBlocking()
 
             val useCase: SessionUseCases.GoBackUseCase = mock()
 
@@ -351,7 +346,32 @@ class SessionFeatureTest {
         verify(view).release()
     }
 
-    private fun prepareStore(): BrowserStore = BrowserStore(
+    @Test
+    fun `presenter observes crash state and does not create new engine session immediately`() {
+        val middleware = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+        val store = prepareStore(middleware)
+
+        val actualView: View = mock()
+        val view: EngineView = mock()
+        doReturn(actualView).`when`(view).asView()
+
+        val engineSession: EngineSession = mock()
+        store.dispatch(EngineAction.LinkEngineSessionAction("A", engineSession)).joinBlocking()
+
+        val feature = SessionFeature(store, mock(), view, tabId = "A")
+        verify(view, never()).render(any())
+        feature.start()
+
+        store.dispatch(CrashAction.SessionCrashedAction("A")).joinBlocking()
+        testDispatcher.advanceUntilIdle()
+        store.waitUntilIdle()
+        verify(view, atLeastOnce()).release()
+        middleware.assertNotDispatched(EngineAction.CreateEngineSessionAction::class)
+    }
+
+    private fun prepareStore(
+        middleware: CaptureActionsMiddleware<BrowserState, BrowserAction>? = null
+    ): BrowserStore = BrowserStore(
         BrowserState(
             tabs = listOf(
                 createTab("https://www.mozilla.org", id = "A"),
@@ -363,9 +383,8 @@ class SessionFeatureTest {
             ),
             selectedTabId = "B"
         ),
-        middleware = EngineMiddleware.create(
+        middleware = (if (middleware != null) listOf(middleware) else emptyList()) + EngineMiddleware.create(
             engine = mock(),
-            sessionLookup = { null },
             scope = scope
         )
     )

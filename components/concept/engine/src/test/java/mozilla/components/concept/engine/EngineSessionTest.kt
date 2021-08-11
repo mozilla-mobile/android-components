@@ -7,8 +7,11 @@ package mozilla.components.concept.engine
 import android.graphics.Bitmap
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import mozilla.components.concept.engine.content.blocking.Tracker
-import mozilla.components.concept.engine.media.Media
+import mozilla.components.concept.engine.history.HistoryItem
+import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.mock
@@ -23,10 +26,6 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.verifyZeroInteractions
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy
-import mozilla.components.concept.engine.history.HistoryItem
-import mozilla.components.concept.engine.mediasession.MediaSession
 import java.lang.reflect.Modifier
 
 class EngineSessionTest {
@@ -42,9 +41,7 @@ class EngineSessionTest {
         val windowRequest = mock(WindowRequest::class.java)
         session.register(observer)
 
-        val mediaAdded: Media = mock()
-        val mediaRemoved: Media = mock()
-        var mediaSessionController: MediaSession.Controller = mock()
+        val mediaSessionController: MediaSession.Controller = mock()
         val mediaSessionMetadata: MediaSession.Metadata = mock()
         val mediaSessionFeature: MediaSession.Feature = mock()
         val mediaSessionPositionState: MediaSession.PositionState = mock()
@@ -71,8 +68,6 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(permissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onMediaAdded(mediaAdded) }
-        session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onMediaActivated(mediaSessionController) }
         session.notifyInternalObservers { onMediaDeactivated() }
         session.notifyInternalObservers { onMediaMetadataChanged(mediaSessionMetadata) }
@@ -106,8 +101,6 @@ class EngineSessionTest {
         verify(observer).onContentPermissionRequest(permissionRequest)
         verify(observer).onCancelContentPermissionRequest(permissionRequest)
         verify(observer).onWindowRequest(windowRequest)
-        verify(observer).onMediaAdded(mediaAdded)
-        verify(observer).onMediaRemoved(mediaRemoved)
         verify(observer).onMediaActivated(mediaSessionController)
         verify(observer).onMediaDeactivated()
         verify(observer).onMediaMetadataChanged(mediaSessionMetadata)
@@ -159,9 +152,7 @@ class EngineSessionTest {
         session.notifyInternalObservers { onLaunchIntentRequest("https://www.mozilla.org", null) }
         session.unregister(observer)
 
-        val mediaAdded: Media = mock()
-        val mediaRemoved: Media = mock()
-        var mediaSessionController: MediaSession.Controller = mock()
+        val mediaSessionController: MediaSession.Controller = mock()
         val mediaSessionMetadata: MediaSession.Metadata = mock()
         val mediaSessionFeature: MediaSession.Feature = mock()
         val mediaSessionPositionState: MediaSession.PositionState = mock()
@@ -184,8 +175,6 @@ class EngineSessionTest {
         session.notifyInternalObservers { onCancelContentPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onAppPermissionRequest(otherPermissionRequest) }
         session.notifyInternalObservers { onWindowRequest(windowRequest) }
-        session.notifyInternalObservers { onMediaAdded(mediaAdded) }
-        session.notifyInternalObservers { onMediaRemoved(mediaRemoved) }
         session.notifyInternalObservers { onMediaActivated(mediaSessionController) }
         session.notifyInternalObservers { onMediaDeactivated() }
         session.notifyInternalObservers { onMediaMetadataChanged(mediaSessionMetadata) }
@@ -235,8 +224,6 @@ class EngineSessionTest {
         verify(observer, never()).onContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onCancelContentPermissionRequest(otherPermissionRequest)
         verify(observer, never()).onWindowRequest(otherWindowRequest)
-        verify(observer, never()).onMediaAdded(mediaAdded)
-        verify(observer, never()).onMediaRemoved(mediaRemoved)
         verify(observer, never()).onMediaActivated(mediaSessionController)
         verify(observer, never()).onMediaDeactivated()
         verify(observer, never()).onMediaMetadataChanged(mediaSessionMetadata)
@@ -673,7 +660,8 @@ class EngineSessionTest {
                 contentType = "application/vnd.android.package-archive",
                 cookie = "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1;",
                 isPrivate = true,
-                userAgent = "Components/1.0")
+                userAgent = "Components/1.0"
+            )
         }
 
         verify(observer).onExternalResource(
@@ -711,26 +699,35 @@ class EngineSessionTest {
 
     @Test
     fun `tracking protection policies have correct categories`() {
+        val recommendedPolicy = TrackingProtectionPolicy.recommended()
 
-        assertEquals(TrackingProtectionPolicy.RECOMMENDED, TrackingProtectionPolicy.recommended())
+        assertEquals(
+            recommendedPolicy.trackingCategories.sumOf { it.id },
+            TrackingCategory.RECOMMENDED.id
+        )
+
+        assertEquals(recommendedPolicy.cookiePolicy.id, CookiePolicy.ACCEPT_NON_TRACKERS.id)
+        assertEquals(recommendedPolicy.cookiePolicyPrivateMode.id, recommendedPolicy.cookiePolicy.id)
 
         val strictPolicy = TrackingProtectionPolicy.strict()
 
         assertEquals(
-            strictPolicy.trackingCategories.sumBy { it.id },
+            strictPolicy.trackingCategories.sumOf { it.id },
             TrackingCategory.STRICT.id
         )
 
         assertEquals(strictPolicy.cookiePolicy.id, CookiePolicy.ACCEPT_NON_TRACKERS.id)
+        assertEquals(strictPolicy.cookiePolicyPrivateMode.id, strictPolicy.cookiePolicy.id)
 
         val nonePolicy = TrackingProtectionPolicy.none()
 
         assertEquals(
-            nonePolicy.trackingCategories.sumBy { it.id },
+            nonePolicy.trackingCategories.sumOf { it.id },
             TrackingCategory.NONE.id
         )
 
         assertEquals(nonePolicy.cookiePolicy.id, CookiePolicy.ACCEPT_ALL.id)
+        assertEquals(nonePolicy.cookiePolicyPrivateMode.id, CookiePolicy.ACCEPT_ALL.id)
 
         val newPolicy = TrackingProtectionPolicy.select(
             trackingCategories = arrayOf(
@@ -745,7 +742,7 @@ class EngineSessionTest {
         )
 
         assertEquals(
-            newPolicy.trackingCategories.sumBy { it.id },
+            newPolicy.trackingCategories.sumOf { it.id },
             arrayOf(
                 TrackingCategory.AD,
                 TrackingCategory.SOCIAL,
@@ -754,7 +751,8 @@ class EngineSessionTest {
                 TrackingCategory.CRYPTOMINING,
                 TrackingCategory.FINGERPRINTING,
                 TrackingCategory.TEST
-            ).sumBy { it.id })
+            ).sumOf { it.id }
+        )
     }
 
     @Test
@@ -834,8 +832,6 @@ class EngineSessionTest {
         defaultObserver.onContentPermissionRequest(mock(PermissionRequest::class.java))
         defaultObserver.onCancelContentPermissionRequest(mock(PermissionRequest::class.java))
         defaultObserver.onWindowRequest(mock(WindowRequest::class.java))
-        defaultObserver.onMediaAdded(mock())
-        defaultObserver.onMediaRemoved(mock())
         defaultObserver.onCrash()
     }
 
@@ -888,7 +884,7 @@ class EngineSessionTest {
 
         fun checkSavedFields(expect: TrackingProtectionPolicy, actual: TrackingProtectionPolicy) {
             TrackingProtectionPolicy::class.java.declaredMethods
-                .filter { method -> changedFields.all { !method.name.toLowerCase().contains(it.toLowerCase()) } }
+                .filter { method -> changedFields.all { !method.name.lowercase().contains(it.lowercase()) } }
                 .filter { it.parameterCount == 0 } // Only keep getters
                 .filter { it.modifiers and Modifier.PUBLIC != 0 }
                 .filter { it.modifiers and Modifier.STATIC == 0 }
@@ -913,8 +909,6 @@ class EngineSessionTest {
         val bitmap: Bitmap = mock()
         val permissionRequest = mock(PermissionRequest::class.java)
         val windowRequest = mock(WindowRequest::class.java)
-        val mediaAdded: Media = mock()
-        val mediaRemoved: Media = mock()
         val tracker: Tracker = mock()
 
         observer.onLocationChange("https://www.mozilla.org")
@@ -937,8 +931,6 @@ class EngineSessionTest {
         observer.onCancelContentPermissionRequest(permissionRequest)
         observer.onAppPermissionRequest(permissionRequest)
         observer.onWindowRequest(windowRequest)
-        observer.onMediaAdded(mediaAdded)
-        observer.onMediaRemoved(mediaRemoved)
         observer.onCrash()
         observer.onLoadRequest("https://www.mozilla.org", true, true)
         observer.onLaunchIntentRequest("https://www.mozilla.org", null)
@@ -971,9 +963,7 @@ open class DummyEngineSession : EngineSession() {
 
     override fun goToHistoryIndex(index: Int) {}
 
-    override fun enableTrackingProtection(policy: TrackingProtectionPolicy) {}
-
-    override fun disableTrackingProtection() {}
+    override fun updateTrackingProtection(policy: TrackingProtectionPolicy) {}
 
     override fun toggleDesktopMode(enable: Boolean, reload: Boolean) {}
 
@@ -984,6 +974,8 @@ open class DummyEngineSession : EngineSession() {
     override fun clearFindMatches() {}
 
     override fun exitFullScreenMode() {}
+
+    override fun purgeHistory() {}
 
     // Helper method to access the protected method from test cases.
     fun notifyInternalObservers(block: Observer.() -> Unit) {

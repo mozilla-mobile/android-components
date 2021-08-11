@@ -29,13 +29,13 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach() 
 
 dependencies {
     implementation project(':browser-state')
-    implementation project(':browser-session')
     implementation project(':concept-storage')
     implementation project(':concept-engine')
     implementation project(':support-utils')
     implementation project(':support-ktx')
 
     implementation Dependencies.kotlin_stdlib
+    implementation Dependencies.androidx_core_ktx
     implementation Dependencies.google_material
     implementation Dependencies.androidx_swiperefreshlayout
 

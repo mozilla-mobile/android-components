@@ -9,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
-import kotlinx.android.synthetic.main.fragment_browser.view.*
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.feature.customtabs.CustomTabWindowFeature
 import mozilla.components.feature.customtabs.CustomTabsToolbarFeature
@@ -35,20 +34,24 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
         get() = arguments?.getWebAppManifest()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        val layout = super.onCreateView(inflater, container, savedInstanceState)
+        super.onCreateView(inflater, container, savedInstanceState)
+        val binding = super.binding
 
         val manifest = this.manifest
 
         customTabsToolbarFeature.set(
             feature = CustomTabsToolbarFeature(
-                components.sessionManager,
-                layout.toolbar,
+                components.store,
+                binding.toolbar,
                 sessionId,
+                components.customTabsUseCases,
                 components.menuBuilder,
                 window = activity?.window,
-                closeListener = { activity?.finish() }),
+                closeListener = { activity?.finish() }
+            ),
             owner = this,
-            view = layout)
+            view = binding.root
+        )
 
         hideToolbarFeature.set(
             feature = WebAppHideToolbarFeature(
@@ -57,10 +60,11 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
                 sessionId,
                 manifest
             ) { toolbarVisible ->
-                layout.toolbar.isVisible = toolbarVisible
+                binding.toolbar.isVisible = toolbarVisible
             },
             owner = this,
-            view = layout.toolbar)
+            view = binding.toolbar
+        )
 
         val windowFeature = CustomTabWindowFeature(
             requireActivity(),
@@ -80,7 +84,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
                 ),
                 ManifestUpdateFeature(
                     requireContext(),
-                    components.sessionManager,
+                    components.store,
                     components.webAppShortcutManager,
                     components.webAppManifestStorage,
                     sessionId!!,
@@ -90,7 +94,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
             viewLifecycleOwner.lifecycle.addObserver(
                 WebAppSiteControlsFeature(
                     context?.applicationContext!!,
-                    components.sessionManager,
+                    components.store,
                     components.sessionUseCases.reload,
                     sessionId!!,
                     manifest,
@@ -99,7 +103,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment(), UserInteractionHandler
             )
         }
 
-        return layout
+        return binding.root
     }
 
     /**

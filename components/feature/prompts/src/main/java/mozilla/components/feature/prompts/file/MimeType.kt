@@ -7,6 +7,7 @@ package mozilla.components.feature.prompts.file
 import android.Manifest.permission.CAMERA
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.Manifest.permission.RECORD_AUDIO
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_GET_CONTENT
@@ -47,7 +48,7 @@ internal sealed class MimeType(
 
             val photoFile = try {
                 val filename = SimpleDateFormat("yyyy-MM-ddHH.mm.ss", US).format(Date())
-                createTempFile(filename, ".jpg", context.cacheDir)
+                java.io.File.createTempFile(filename, ".jpg", context.cacheDir)
             } catch (e: IOException) {
                 return null
             }
@@ -127,6 +128,7 @@ internal sealed class MimeType(
 /**
  * Return the intent only if its type has any corresponding apps on the device.
  */
+@SuppressLint("QueryPermissionsNeeded") // We expect our browsers to have the QUERY_ALL_PACKAGES permission
 private fun Intent.withDeviceSupport(context: Context) =
     if (resolveActivity(context.packageManager) != null) this else null
 

@@ -44,6 +44,10 @@ job-defaults:
         type: file
         name: public/github/customCheckRunText.md
         path: '/builds/worker/github/customCheckRunText.md'
+    jacoco-coverage-template:
+        type: directory
+        name: public/reports/jacoco
+        path: '/builds/worker/checkouts/src/{component_path}/build/reports/jacoco'
     attributes:
         code-review:
             by-build-type:
@@ -126,16 +130,6 @@ job-defaults:
 
 overriden-jobs:
     # Treeherder group names are too long to fit in 25 chars
-    browser-engine-gecko-nightly:
-        treeherder:
-            symbol: 'browser-engine-gecko-nigh(B)'
-    nightly-browser-engine-gecko-nightly:
-        treeherder:
-            symbol: 'browser-engine-gecko-nigh(BN)'
-    release-browser-engine-gecko-nightly:
-        treeherder:
-            symbol: 'browser-engine-gecko-nigh(BR)'
-
     lib-fetch-httpurlconnection:
         treeherder:
             symbol: 'lib-fetch-httpurlconnect(B)'

@@ -8,9 +8,10 @@ import android.content.Context
 import androidx.core.net.toUri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import mozilla.components.feature.sitepermissions.SitePermissions
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.ALLOWED
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.BLOCKED
+import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions.AutoplayStatus
+import mozilla.components.concept.engine.permission.SitePermissions.Status.ALLOWED
+import mozilla.components.concept.engine.permission.SitePermissions.Status.BLOCKED
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -45,6 +46,8 @@ class SitePermissionsDaoTest {
 
         assertEquals(origin, siteFromDb.origin)
         assertEquals(BLOCKED, siteFromDb.camera)
+        assertEquals(AutoplayStatus.BLOCKED, siteFromDb.autoplayAudible)
+        assertEquals(AutoplayStatus.ALLOWED, siteFromDb.autoplayInaudible)
     }
 
     @Test
@@ -70,12 +73,22 @@ class SitePermissionsDaoTest {
         var siteFromDb = dao.getSitePermissionsBy(origin)!!.toSitePermission()
 
         assertEquals(BLOCKED, siteFromDb.camera)
+        assertEquals(AutoplayStatus.BLOCKED, siteFromDb.autoplayAudible)
+        assertEquals(AutoplayStatus.ALLOWED, siteFromDb.autoplayInaudible)
 
-        dao.update(siteFromDb.copy(camera = ALLOWED).toSitePermissionsEntity())
+        dao.update(
+            siteFromDb.copy(
+                camera = ALLOWED,
+                autoplayInaudible = AutoplayStatus.ALLOWED,
+                autoplayAudible = AutoplayStatus.ALLOWED
+            ).toSitePermissionsEntity()
+        )
 
         siteFromDb = dao.getSitePermissionsBy(origin)!!.toSitePermission()
 
         assertEquals(ALLOWED, siteFromDb.camera)
+        assertEquals(AutoplayStatus.ALLOWED, siteFromDb.autoplayAudible)
+        assertEquals(AutoplayStatus.ALLOWED, siteFromDb.autoplayInaudible)
 
         dao.deleteSitePermissions(siteFromDb.toSitePermissionsEntity())
 

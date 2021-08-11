@@ -27,6 +27,7 @@ import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -46,14 +47,18 @@ class SyncedTabsStorageTest {
 
     @Before
     fun setup() {
-        store = spy(BrowserStore(BrowserState(
-            tabs = listOf(
-                createTab(id = "tab1", url = "https://www.mozilla.org", lastAccess = 123L),
-                createTab(id = "tab2", url = "https://www.foo.bar", lastAccess = 124L),
-                createTab(id = "private", url = "https://private.tab", private = true, lastAccess = 125L)
-            ),
-            selectedTabId = "tab1"
-        )))
+        store = spy(
+            BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(id = "tab1", url = "https://www.mozilla.org", lastAccess = 123L),
+                        createTab(id = "tab2", url = "https://www.foo.bar", lastAccess = 124L),
+                        createTab(id = "private", url = "https://private.tab", private = true, lastAccess = 125L)
+                    ),
+                    selectedTabId = "tab1"
+                )
+            )
+        )
         tabsStorage = mock()
         accountManager = mock()
     }
@@ -66,13 +71,17 @@ class SyncedTabsStorageTest {
             tabsStorage
         )
         feature.start()
+
         // This action will change the state due to lastUsed timestamp, but will run the flow.
-        store.dispatch(TabListAction.RemoveAllPrivateTabsAction)
-        verify(tabsStorage).store(listOf(
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 123L),
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 124L)
-            // Private tab is absent.
-        ))
+        store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+
+        verify(tabsStorage).store(
+            listOf(
+                Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 123L),
+                Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 124L)
+                // Private tab is absent.
+            )
+        )
     }
 
     @Test
@@ -84,15 +93,19 @@ class SyncedTabsStorageTest {
         )
         feature.start()
         // Run the flow.
-        store.dispatch(TabListAction.RemoveAllPrivateTabsAction)
-        verify(tabsStorage).store(listOf(
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 123L),
-            Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 124L)
-        ))
+        store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+
+        verify(tabsStorage).store(
+            listOf(
+                Tab(history = listOf(TabEntry(title = "", url = "https://www.mozilla.org", iconUrl = null)), active = 0, lastUsed = 123L),
+                Tab(history = listOf(TabEntry(title = "", url = "https://www.foo.bar", iconUrl = null)), active = 0, lastUsed = 124L)
+            )
+        )
 
         feature.stop()
         // Run the flow.
-        store.dispatch(TabListAction.RemoveAllPrivateTabsAction)
+        store.dispatch(TabListAction.RemoveAllPrivateTabsAction).joinBlocking()
+
         verify(tabsStorage, never()).store(listOf() /* any() is not working so we send garbage */)
     }
 
@@ -128,11 +141,13 @@ class SyncedTabsStorageTest {
         doReturn(listOf(device1, device2)).`when`(feature).syncClients()
         val tabsClient1 = listOf(Tab(listOf(TabEntry("Foo", "https://foo.bar", null)), 0, 0))
         val tabsClient2 = listOf(Tab(listOf(TabEntry("Foo", "https://foo.bar", null)), 0, 0))
-        whenever(tabsStorage.getAll()).thenReturn(mapOf(
-            SyncClient("client1") to tabsClient1,
-            SyncClient("client2") to tabsClient2,
-            SyncClient("client-unknown") to listOf(Tab(listOf(TabEntry("Foo", "https://foo.bar", null)), 0, 0))
-        ))
+        whenever(tabsStorage.getAll()).thenReturn(
+            mapOf(
+                SyncClient("client1") to tabsClient1,
+                SyncClient("client2") to tabsClient2,
+                SyncClient("client-unknown") to listOf(Tab(listOf(TabEntry("Foo", "https://foo.bar", null)), 0, 0))
+            )
+        )
 
         val result = feature.getSyncedDeviceTabs()
         assertEquals(device1, result[0].device)
@@ -169,16 +184,18 @@ class SyncedTabsStorageTest {
         whenever(accountManager.authenticatedAccount()).thenReturn(account)
         whenever(account.deviceConstellation()).thenReturn(constellation)
         whenever(constellation.state()).thenReturn(state)
-        val otherDevices = listOf(Device(
-            id = "client2",
-            displayName = "Bar Client",
-            deviceType = DeviceType.MOBILE,
-            isCurrentDevice = false,
-            lastAccessTime = null,
-            capabilities = listOf(),
-            subscriptionExpired = false,
-            subscription = null
-        ))
+        val otherDevices = listOf(
+            Device(
+                id = "client2",
+                displayName = "Bar Client",
+                deviceType = DeviceType.MOBILE,
+                isCurrentDevice = false,
+                lastAccessTime = null,
+                capabilities = listOf(),
+                subscriptionExpired = false,
+                subscription = null
+            )
+        )
         whenever(state.otherDevices).thenReturn(otherDevices)
         assertEquals(otherDevices, feature.syncClients())
     }

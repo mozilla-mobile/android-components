@@ -83,6 +83,19 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/mozac_ic_site_security" />
 
+    <mozilla.components.browser.toolbar.display.HighlightView
+        android:id="@+id/mozac_browser_toolbar_permission_indicator"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toBottomOf="@+id/mozac_browser_toolbar_security_indicator"
+        app:layout_constraintEnd_toEndOf="@+id/mozac_browser_toolbar_security_indicator"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        android:tint="@color/photonBlue40"
+        app:srcCompat="@drawable/mozac_dot_notification" />
+
     <!-- URL & Title -->
 
     <mozilla.components.browser.toolbar.display.OriginView

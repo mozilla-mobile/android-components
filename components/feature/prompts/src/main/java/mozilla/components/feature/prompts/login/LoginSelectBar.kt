@@ -15,20 +15,22 @@ import androidx.core.content.withStyledAttributes
 import androidx.core.view.isVisible
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.TextViewCompat
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.R
+import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.support.ktx.android.view.hideKeyboard
 
 /**
- * A customizable multiple login selection bar implementing [LoginPickerView].
+ * A customizable multiple login selection bar implementing [SelectablePromptView].
  */
 class LoginSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : ConstraintLayout(context, attrs, defStyleAttr), LoginPickerView {
+) : ConstraintLayout(context, attrs, defStyleAttr), SelectablePromptView<Login> {
 
     var headerTextStyle: Int? = null
 
@@ -47,16 +49,20 @@ class LoginSelectBar @JvmOverloads constructor(
         }
     }
 
-    override var listener: LoginPickerView.Listener? = null
+    override var listener: SelectablePromptView.Listener<Login>? = null
 
-    override fun showPicker(list: List<Login>) {
-        tryInflate().also {
-            listAdapter.submitList(list)
-            loginPickerView?.isVisible = true
+    override fun showPrompt(options: List<Login>) {
+        if (loginPickerView == null) {
+            loginPickerView =
+                View.inflate(context, R.layout.mozac_feature_login_multiselect_view, this)
+            bindViews()
         }
+
+        listAdapter.submitList(options)
+        loginPickerView?.isVisible = true
     }
 
-    override fun hidePicker() {
+    override fun hidePrompt() {
         this.isVisible = false
         loginsList?.isVisible = false
         listAdapter.submitList(mutableListOf())
@@ -75,24 +81,13 @@ class LoginSelectBar @JvmOverloads constructor(
     private var expandArrowHead: AppCompatImageView? = null
 
     private var listAdapter = BasicLoginAdapter {
-        listener?.onLoginSelected(it)
-    }
-
-    override fun tryInflate(): Boolean {
-        return if (loginPickerView == null) {
-            loginPickerView =
-                View.inflate(context, R.layout.mozac_feature_login_multiselect_view, this)
-            bindViews()
-            true
-        } else {
-            false
-        }
+        listener?.onOptionSelect(it)
     }
 
     private fun bindViews() {
         manageLoginsButton = findViewById<AppCompatTextView>(R.id.manage_logins).apply {
             setOnClickListener {
-                listener?.onManageLogins()
+                listener?.onManageOptions()
             }
         }
         loginsList = findViewById(R.id.logins_list)
@@ -114,7 +109,10 @@ class LoginSelectBar @JvmOverloads constructor(
                 }
             }
         loginsList?.apply {
-            layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
+            layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false).also {
+                val dividerItemDecoration = DividerItemDecoration(context, it.orientation)
+                addItemDecoration(dividerItemDecoration)
+            }
             adapter = listAdapter
         }
     }

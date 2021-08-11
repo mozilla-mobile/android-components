@@ -5,28 +5,29 @@
 package mozilla.components.service.fxa
 
 import android.content.Context
+import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
-import mozilla.appservices.fxaclient.FirefoxAccount
-import mozilla.appservices.fxaclient.FxaException
-import mozilla.components.concept.sync.ConstellationState
-import mozilla.components.concept.sync.Device
-import mozilla.components.concept.sync.DeviceConstellation
-import mozilla.components.concept.sync.DeviceConstellationObserver
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.sync.AccountEvent
 import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.AuthType
+import mozilla.components.concept.sync.ConstellationState
+import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DeviceConfig
+import mozilla.components.concept.sync.DeviceConstellation
+import mozilla.components.concept.sync.DeviceConstellationObserver
 import mozilla.components.concept.sync.DevicePushSubscription
-import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.sync.ServiceResult
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.sync.telemetry.SyncTelemetry
+import mozilla.appservices.fxaclient.FxaErrorException as FxaException
+import mozilla.appservices.fxaclient.PersistedFirefoxAccount as FirefoxAccount
 
 internal sealed class FxaDeviceConstellationException : Exception() {
     /**
@@ -38,7 +39,6 @@ internal sealed class FxaDeviceConstellationException : Exception() {
 /**
  * Provides an implementation of [DeviceConstellation] backed by a [FirefoxAccount].
  */
-@SuppressWarnings("TooManyFunctions")
 class FxaDeviceConstellation(
     private val account: FirefoxAccount,
     private val scope: CoroutineScope,
@@ -119,6 +119,7 @@ class FxaDeviceConstellation(
         }
     }
 
+    @MainThread
     override fun registerDeviceObserver(
         observer: DeviceConstellationObserver,
         owner: LifecycleOwner,
@@ -142,7 +143,7 @@ class FxaDeviceConstellation(
     ) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "updating device push subscription") {
             account.setDevicePushSubscription(
-                    subscription.endpoint, subscription.publicKey, subscription.authKey
+                subscription.endpoint, subscription.publicKey, subscription.authKey
             )
         }
     }
@@ -163,7 +164,17 @@ class FxaDeviceConstellation(
         }
 
         if (result != null) {
-            crashReporter?.submitCaughtException(SendCommandException(result))
+            when (result) {
+                // Don't submit network exceptions to our crash reporter. They're just noise.
+                is FxaException.Network -> {
+                    logger.warn("Failed to 'sendCommandToDevice' due to a network exception")
+                }
+                else -> {
+                    logger.warn("Failed to 'sendCommandToDevice'", result)
+                    crashReporter?.submitCaughtException(SendCommandException(result))
+                }
+            }
+
             false
         } else {
             true
@@ -200,8 +211,9 @@ class FxaDeviceConstellation(
             // Find the current device.
             val currentDevice = allDevices.find { it.isCurrentDevice }?.also {
                 // Check if our current device's push subscription needs to be renewed.
-                if (it.subscriptionExpired) {
-                    logger.info("Current device needs push endpoint registration")
+                if (it.subscription == null || it.subscriptionExpired) {
+                    logger.info("Current device needs push endpoint registration, so checking for missed commands")
+                    pollForCommands()
                 }
             }
 

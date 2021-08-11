@@ -5,24 +5,22 @@
 package mozilla.components.feature.recentlyclosed
 
 import android.content.Context
-import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.BrowserAction
+import mozilla.components.browser.state.action.InitAction
 import mozilla.components.browser.state.action.RecentlyClosedAction
-import mozilla.components.browser.state.action.TabListAction
-import mozilla.components.browser.state.selector.findTab
-import mozilla.components.browser.state.selector.normalTabs
+import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.ClosedTab
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
-import java.util.UUID
 
 /**
  * [Middleware] implementation for handling [RecentlyClosedAction]s and syncing the closed tabs in
@@ -32,13 +30,9 @@ class RecentlyClosedMiddleware(
     applicationContext: Context,
     private val maxSavedTabs: Int,
     private val engine: Engine,
+    private val storage: Lazy<Storage> = lazy { RecentlyClosedTabsStorage(applicationContext, engine = engine) },
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) : Middleware<BrowserState, BrowserAction> {
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal val recentlyClosedTabsStorage: RecentlyClosedTabsStorage by lazy {
-        RecentlyClosedTabsStorage(applicationContext, engine = engine)
-    }
 
     @Suppress("ComplexMethod")
     override fun invoke(
@@ -47,43 +41,31 @@ class RecentlyClosedMiddleware(
         action: BrowserAction
     ) {
         when (action) {
-            is TabListAction.RemoveAllNormalTabsAction -> {
-                context.store.dispatch(
-                    RecentlyClosedAction.AddClosedTabsAction(
-                        context.state.normalTabs.toClosedTab()
-                    )
-                )
-            }
-            is TabListAction.RemoveAllTabsAction -> {
-                context.store.dispatch(
-                    RecentlyClosedAction.AddClosedTabsAction(
-                        context.state.normalTabs.toClosedTab()
-                    )
-                )
-            }
-            is TabListAction.RemoveTabAction -> {
-                val tab = context.state.findTab(action.tabId) ?: return
-                if (!tab.content.private) {
+            is UndoAction.ClearRecoverableTabs -> {
+                if (action.tag == context.state.undoHistory.tag) {
+                    // If the user has removed tabs and not invoked "undo" then let's save all non
+                    // private tabs.
                     context.store.dispatch(
                         RecentlyClosedAction.AddClosedTabsAction(
-                            listOf(tab).toClosedTab()
+                            context.state.undoHistory.tabs.filter { tab -> !tab.private }
                         )
                     )
                 }
             }
-            is TabListAction.RemoveTabsAction -> {
-                val tabs = action.tabIds.mapNotNull { context.state.findTab(it) }
-                    .filterNot { it.content.private }
-                context.store.dispatch(
-                    RecentlyClosedAction.AddClosedTabsAction(
-                        tabs.toClosedTab()
+            is UndoAction.AddRecoverableTabs -> {
+                if (context.state.undoHistory.tabs.isNotEmpty()) {
+                    // If new tabs get added to the undo history and there were some previously
+                    // then add them to the list of closed tabs now since they will never go through
+                    // the clear call above.
+                    context.store.dispatch(
+                        RecentlyClosedAction.AddClosedTabsAction(
+                            context.state.undoHistory.tabs.filter { tab -> !tab.private }
+                        )
                     )
-                )
+                }
             }
             is RecentlyClosedAction.AddClosedTabsAction -> {
-                addTabsToStorage(
-                    action.tabs
-                )
+                addTabsToStorage(action.tabs)
             }
             is RecentlyClosedAction.RemoveAllClosedTabAction -> {
                 removeAllTabs()
@@ -91,7 +73,7 @@ class RecentlyClosedMiddleware(
             is RecentlyClosedAction.RemoveClosedTabAction -> {
                 removeTab(action)
             }
-            is RecentlyClosedAction.InitializeRecentlyClosedState -> {
+            is InitAction -> {
                 initializeRecentlyClosed(context.store)
             }
         }
@@ -107,30 +89,18 @@ class RecentlyClosedMiddleware(
         }
     }
 
-    private fun List<TabSessionState>.toClosedTab(): List<ClosedTab> {
-        return this.map {
-            ClosedTab(
-                id = UUID.randomUUID().toString(),
-                title = it.content.title,
-                url = it.content.url,
-                createdAt = System.currentTimeMillis(),
-                engineSessionState = it.engineState.engineSessionState
-            )
-        }
-    }
-
     private fun initializeRecentlyClosed(
         store: Store<BrowserState, BrowserAction>
     ) = scope.launch {
-        recentlyClosedTabsStorage.getTabs().collect { tabs ->
+        storage.value.getTabs().collect { tabs ->
             store.dispatch(RecentlyClosedAction.ReplaceTabsAction(tabs))
         }
     }
 
     private fun addTabsToStorage(
-        tabList: List<ClosedTab>
+        tabList: List<RecoverableTab>
     ) = scope.launch {
-        recentlyClosedTabsStorage.addTabsToCollectionWithMax(
+        storage.value.addTabsToCollectionWithMax(
             tabList, maxSavedTabs
         )
     }
@@ -138,10 +108,36 @@ class RecentlyClosedMiddleware(
     private fun removeTab(
         action: RecentlyClosedAction.RemoveClosedTabAction
     ) = scope.launch {
-        recentlyClosedTabsStorage.removeTab(action.tab)
+        storage.value.removeTab(action.tab)
     }
 
     private fun removeAllTabs() = scope.launch {
-        recentlyClosedTabsStorage.removeAllTabs()
+        storage.value.removeAllTabs()
+    }
+
+    /**
+     * Interface for a storage saving snapshots of recently closed tabs / sessions.
+     */
+    interface Storage {
+        /**
+         * Returns an observable list of recently closed tabs as List of [RecoverableTab]s.
+         */
+        fun getTabs(): Flow<List<RecoverableTab>>
+
+        /**
+         * Removes the given saved [RecoverableTab].
+         */
+        fun removeTab(recentlyClosedTab: RecoverableTab)
+
+        /**
+         * Removes all saved [RecoverableTab]s.
+         */
+        fun removeAllTabs()
+
+        /**
+         * Adds up to [maxTabs] [TabSessionState]s to storage, and then prunes storage to keep only
+         * the newest [maxTabs].
+         */
+        fun addTabsToCollectionWithMax(tab: List<RecoverableTab>, maxTabs: Int)
     }
 }

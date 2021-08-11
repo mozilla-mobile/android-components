@@ -25,23 +25,29 @@ class SettingsUseCasesTest {
         val engineSessionA: EngineSession = mock()
         val engineSessionB: EngineSession = mock()
 
-        val store = BrowserStore(BrowserState(
-            tabs = listOf(
-                createTab("https://www.mozilla.org", id = "A"),
-                createTab("https://www.mozilla.org", id = "B")
-            ),
-            selectedTabId = "A"
-        ))
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "A"),
+                    createTab("https://www.mozilla.org", id = "B")
+                ),
+                selectedTabId = "A"
+            )
+        )
 
-        store.dispatch(EngineAction.LinkEngineSessionAction(
-            sessionId = "A",
-            engineSession = engineSessionA
-        )).joinBlocking()
+        store.dispatch(
+            EngineAction.LinkEngineSessionAction(
+                tabId = "A",
+                engineSession = engineSessionA
+            )
+        ).joinBlocking()
 
-        store.dispatch(EngineAction.LinkEngineSessionAction(
-            sessionId = "B",
-            engineSession = engineSessionB
-        )).joinBlocking()
+        store.dispatch(
+            EngineAction.LinkEngineSessionAction(
+                tabId = "B",
+                engineSession = engineSessionB
+            )
+        ).joinBlocking()
 
         val engine: Engine = mock()
         val settings: Settings = mock()
@@ -51,8 +57,8 @@ class SettingsUseCasesTest {
 
         useCases.updateTrackingProtection(TrackingProtectionPolicy.none())
         verify(settings).trackingProtectionPolicy = TrackingProtectionPolicy.none()
-        verify(engineSessionA).enableTrackingProtection(TrackingProtectionPolicy.none())
-        verify(engineSessionB).enableTrackingProtection(TrackingProtectionPolicy.none())
+        verify(engineSessionA).updateTrackingProtection(TrackingProtectionPolicy.none())
+        verify(engineSessionB).updateTrackingProtection(TrackingProtectionPolicy.none())
         verify(engine).clearSpeculativeSession()
 
         reset(engine)
@@ -60,8 +66,8 @@ class SettingsUseCasesTest {
 
         useCases.updateTrackingProtection(TrackingProtectionPolicy.strict())
         verify(settings).trackingProtectionPolicy = TrackingProtectionPolicy.strict()
-        verify(engineSessionA).enableTrackingProtection(TrackingProtectionPolicy.strict())
-        verify(engineSessionB).enableTrackingProtection(TrackingProtectionPolicy.strict())
+        verify(engineSessionA).updateTrackingProtection(TrackingProtectionPolicy.strict())
+        verify(engineSessionB).updateTrackingProtection(TrackingProtectionPolicy.strict())
         verify(engine).clearSpeculativeSession()
     }
 }

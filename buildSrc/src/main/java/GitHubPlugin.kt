@@ -14,7 +14,7 @@ open class GitHubPlugin : Plugin<Project> {
     companion object {
         private const val REPO_OWNER = "mozilla-mobile"
         private const val REPO_NAME = "android-components"
-        private const val BASE_BRANCH_NAME = "master"
+        private const val BASE_BRANCH_NAME = "main"
         private const val HEAD = "MickeyMoz"
         private const val TOKEN_FILE_PATH = ".github_token"
     }
@@ -60,12 +60,14 @@ open class GitHubPlugin : Plugin<Project> {
         repoName: String,
         user: String
     ) {
-        val bodyJson = ("{\n" +
-            "  \"title\": \" $title\",\n" +
-            "  \"body\": \"$body\",\n" +
-            "  \"head\": \"$user:$branchName\",\n" +
-            "  \"base\": \"$baseBranch\"\n" +
-            "}")
+        val bodyJson = (
+            "{\n" +
+                "  \"title\": \" $title\",\n" +
+                "  \"body\": \"$body\",\n" +
+                "  \"head\": \"$user:$branchName\",\n" +
+                "  \"base\": \"$baseBranch\"\n" +
+                "}"
+            )
 
         val result = client.createPullRequest(owner, repoName, bodyJson)
 
@@ -83,10 +85,12 @@ open class GitHubPlugin : Plugin<Project> {
 
     @Suppress("TooGenericExceptionThrown")
     private fun createIssue(title: String, body: String, owner: String, repoName: String) {
-        val bodyJson = ("{\n" +
-            "  \"title\": \"$title\",\n" +
-            "  \"body\": \"$body\"" +
-            "}")
+        val bodyJson = (
+            "{\n" +
+                "  \"title\": \"$title\",\n" +
+                "  \"body\": \"$body\"" +
+                "}"
+            )
 
         val result = client.createIssue(owner, repoName, bodyJson)
         val successFul = result.first

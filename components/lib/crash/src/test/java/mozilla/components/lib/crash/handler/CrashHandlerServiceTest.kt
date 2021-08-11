@@ -10,7 +10,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.support.test.any
@@ -31,26 +30,27 @@ import org.robolectric.Robolectric
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class CrashHandlerServiceTest {
-    private val testDispatcher = TestCoroutineDispatcher()
-    private val scope: CoroutineScope = TestCoroutineScope(testDispatcher)
     private var service: CrashHandlerService? = null
     private var reporter: CrashReporter? = null
     private var intent: Intent? = null
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val scope: CoroutineScope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
 
     @Before
     fun setUp() {
         service = spy(Robolectric.setupService(CrashHandlerService::class.java))
         service!!.startService(Intent())
-        reporter = spy(CrashReporter(
-            context = testContext,
-            shouldPrompt = CrashReporter.Prompt.NEVER,
-            services = listOf(mock()),
-            nonFatalCrashIntent = mock(),
-            scope = scope
-        )).install(testContext)
+        reporter = spy(
+            CrashReporter(
+                context = testContext,
+                shouldPrompt = CrashReporter.Prompt.NEVER,
+                services = listOf(mock()),
+                nonFatalCrashIntent = mock(),
+                scope = scope
+            )
+        ).install(testContext)
 
         intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
         intent!!.component = ComponentName(

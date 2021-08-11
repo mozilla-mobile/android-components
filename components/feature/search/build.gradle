@@ -25,7 +25,7 @@ android {
             resources {
                 // We want to access the assets from unit tests. With this configuration we can just
                 // read the files directly and do not need to rely on Robolectric.
-                srcDir "${rootDir}/components/browser/search/src/main/assets/"
+                srcDir "${projectDir}/src/main/assets/"
             }
         }
     }
@@ -39,9 +39,8 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 }
 
 dependencies {
-    api project(':browser-search')
-
-    implementation project(':browser-session')
+    implementation project(":feature-tabs")
+    implementation project(':browser-state')
     implementation project(':concept-engine')
     implementation project(':service-location')
     implementation project(':support-utils')
@@ -57,6 +56,18 @@ dependencies {
     testImplementation Dependencies.testing_mockito
     testImplementation Dependencies.testing_coroutines
 }
+
+
+tasks.register("updateAdsExtensionVersion", org.gradle.api.tasks.Copy) { task ->
+    updateExtensionVersion(task, 'src/main/assets/extensions/ads')
+}
+
+tasks.register("updateCookiesExtensionVersion", org.gradle.api.tasks.Copy) { task ->
+    updateExtensionVersion(task, 'src/main/assets/extensions/search')
+}
+
+preBuild.dependsOn "updateAdsExtensionVersion"
+preBuild.dependsOn "updateCookiesExtensionVersion"
 
 apply from: '../../../publish.gradle'
 ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)

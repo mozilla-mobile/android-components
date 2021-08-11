@@ -53,7 +53,7 @@ class DefaultIconGeneratorTest {
         assertEquals("Ä", generator.getRepresentativeCharacter("http://www.ätzend.de"))
         assertEquals("名", generator.getRepresentativeCharacter("http://名がドメイン.com"))
         assertEquals("C", generator.getRepresentativeCharacter("http://√.com"))
-        assertEquals("ß", generator.getRepresentativeCharacter("http://ß.de"))
+        assertEquals("SS", generator.getRepresentativeCharacter("http://ß.de"))
         assertEquals("Ԛ", generator.getRepresentativeCharacter("http://ԛәлп.com/")) // cyrillic
 
         // Punycode
@@ -96,8 +96,12 @@ class DefaultIconGeneratorTest {
     fun generate() = runBlocking {
         val generator = DefaultIconGenerator()
 
-        val icon = generator.generate(testContext, IconRequest(
-            url = "https://m.facebook.com"))
+        val icon = generator.generate(
+            testContext,
+            IconRequest(
+                url = "https://m.facebook.com"
+            )
+        )
 
         assertNotNull(icon.bitmap)
         assertNotNull(icon.color)

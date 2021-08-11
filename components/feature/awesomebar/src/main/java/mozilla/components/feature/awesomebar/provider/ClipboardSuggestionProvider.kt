@@ -8,10 +8,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.awesomebar.R
+import mozilla.components.feature.awesomebar.facts.emitClipboardSuggestionClickedFact
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.support.utils.WebURLFinder
 import java.util.UUID
@@ -44,10 +46,12 @@ class ClipboardSuggestionProvider(
 
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-    override fun onInputStarted(): List<AwesomeBar.Suggestion> = createClipboardSuggestion()
+    override fun onInputStarted(): List<AwesomeBar.Suggestion> {
+        return createClipboardSuggestion()
+    }
 
     override suspend fun onInputChanged(text: String) =
-            if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) createClipboardSuggestion() else emptyList()
+        if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) createClipboardSuggestion() else emptyList()
 
     private fun createClipboardSuggestion(): List<AwesomeBar.Suggestion> {
         val url = getTextFromClipboard(clipboardManager)?.let {
@@ -56,23 +60,22 @@ class ClipboardSuggestionProvider(
 
         engine?.speculativeConnect(url)
 
-        return listOf(AwesomeBar.Suggestion(
-            provider = this,
-            id = url,
-            description = url,
-            editSuggestion = url,
-            flags = setOf(AwesomeBar.Suggestion.Flag.CLIPBOARD),
-            icon = icon ?: context.getDrawable(R.drawable.mozac_ic_search)?.toBitmap(),
-            title = title,
-            onSuggestionClicked = {
-                loadUrlUseCase.invoke(url)
-            }
-        ))
+        return listOf(
+            AwesomeBar.Suggestion(
+                provider = this,
+                id = url,
+                description = url,
+                editSuggestion = url,
+                flags = setOf(AwesomeBar.Suggestion.Flag.CLIPBOARD),
+                icon = icon ?: ContextCompat.getDrawable(context, R.drawable.mozac_ic_search)?.toBitmap(),
+                title = title,
+                onSuggestionClicked = {
+                    loadUrlUseCase.invoke(url)
+                    emitClipboardSuggestionClickedFact()
+                }
+            )
+        )
     }
-
-    override val shouldClearSuggestions: Boolean
-        // We do not want the suggestion of this provider to disappear and re-appear when text changes.
-        get() = false
 }
 
 private fun findUrl(text: String): String? {

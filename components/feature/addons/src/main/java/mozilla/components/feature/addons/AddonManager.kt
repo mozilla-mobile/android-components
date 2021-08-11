@@ -22,8 +22,8 @@ import mozilla.components.feature.addons.update.AddonUpdater
 import mozilla.components.feature.addons.update.AddonUpdater.Status
 import mozilla.components.support.webextensions.WebExtensionSupport
 import mozilla.components.support.webextensions.WebExtensionSupport.installedExtensions
-import java.util.Locale
 import java.util.Collections.newSetFromMap
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -72,10 +72,12 @@ class AddonManager(
 
             // Get all available/supported addons from provider and add state if installed.
             // NB: We're keeping translations only for the default locale.
-            val locales = listOf(Locale.getDefault().language)
-            val supportedAddons = addonsProvider.getAvailableAddons(allowCache)
+            val userLanguage = Locale.getDefault().language
+            val locales = listOf(userLanguage)
+            val supportedAddons = addonsProvider.getAvailableAddons(allowCache, language = userLanguage)
                 .map {
-                    addon -> addon.filterTranslations(locales)
+                    addon ->
+                    addon.filterTranslations(locales)
                 }
                 .map { addon ->
                     installedExtensions[addon.id]?.let {

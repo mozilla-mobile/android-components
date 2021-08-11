@@ -5,6 +5,7 @@
 package mozilla.components.browser.state.state
 
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.manifest.WebAppManifest
 import java.util.UUID
 
 /**
@@ -18,6 +19,7 @@ import java.util.UUID
  * values for this tab.
  * @property mediaSessionState the [MediaSessionState] of this session.
  * @property contextId the session context ID of this custom tab.
+ * @property source the [SessionState.Source] of this session.
  */
 data class CustomTabSessionState(
     override val id: String = UUID.randomUUID().toString(),
@@ -28,7 +30,8 @@ data class CustomTabSessionState(
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
     override val mediaSessionState: MediaSessionState? = null,
     override val contextId: String? = null,
-    override val source: SessionState.Source = SessionState.Source.CUSTOM_TAB
+    override val source: SessionState.Source = SessionState.Source.Internal.CustomTab,
+    override val restored: Boolean = false
 ) : SessionState {
 
     override fun createCopy(
@@ -58,20 +61,32 @@ fun createCustomTab(
     url: String,
     id: String = UUID.randomUUID().toString(),
     config: CustomTabConfig = CustomTabConfig(),
+    title: String = "",
     contextId: String? = null,
     engineSession: EngineSession? = null,
     mediaSessionState: MediaSessionState? = null,
-    crashed: Boolean = false
+    crashed: Boolean = false,
+    source: SessionState.Source = SessionState.Source.Internal.CustomTab,
+    private: Boolean = false,
+    webAppManifest: WebAppManifest? = null,
+    initialLoadFlags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none()
 ): CustomTabSessionState {
     return CustomTabSessionState(
         id = id,
-        content = ContentState(url),
+        source = source,
+        content = ContentState(
+            url = url,
+            title = title,
+            private = private,
+            webAppManifest = webAppManifest
+        ),
         config = config,
         mediaSessionState = mediaSessionState,
         contextId = contextId,
         engineState = EngineState(
             engineSession = engineSession,
-            crashed = crashed
+            crashed = crashed,
+            initialLoadFlags = initialLoadFlags
         )
     )
 }

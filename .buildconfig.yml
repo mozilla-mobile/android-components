@@ -1,5 +1,24 @@
-componentsVersion: 68.0.0
+# Please keep this version in sync with version.txt
+# version.txt should be the new source of truth for version numbers
+componentsVersion: 93.0.0
+# Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.
 projects:
+  compose-awesomebar:
+    path: components/compose/awesomebar
+    description: 'An awesomebar component showing search results matching text entered into the toolbar.'
+    publish: true
+  compose-browser-toolbar:
+    path: components/compose/browser-toolbar
+    description: 'A customizable toolbar for browsers using Jetpack Compose.'
+    publish: true
+  compose-engine:
+    path: components/compose/engine
+    description: 'A component for integrating a concept-engine implementation into Jetpack Compose UI.'
+    publish: true
+  compose-tabstray:
+    path: components/compose/tabstray
+    description: 'A customizable tabs tray using Jetpack Compose.'
+    publish: true
   concept-awesomebar:
     path: components/concept/awesomebar
     description: 'An abstract definition of an awesomebar component.'
@@ -40,6 +59,10 @@ projects:
     path: components/concept/sync
     description: 'An abstract definition of a browser data synchronization layer.'
     publish: true
+  feature-autofill:
+    path: components/feature/autofill
+    description: 'Component adding support for Android`s Autofill framework.'
+    publish: true
   feature-awesomebar:
     path: components/feature/awesomebar
     description: 'Component connecting a concept-toolbar with a concept-awesomebar.'
@@ -79,10 +102,6 @@ projects:
   feature-logins:
     path: components/feature/logins
     description: 'Feature component for logins related features.'
-    publish: true
-  feature-p2p:
-    path: components/feature/p2p
-    description: 'Feature used for peer-to-peer communication.'
     publish: true
   feature-webnotifications:
     path: components/feature/webnotifications
@@ -160,6 +179,10 @@ projects:
     path: components/feature/qr
     description: 'A feature that provides functionality for scanning QR codes.'
     publish: true
+  feature-webauthn:
+    path: components/feature/webauthn
+    description: 'A feature that provides WebAuthn functionality for supported engines.'
+    publish: true
   feature-webcompat:
     path: components/feature/webcompat
     description: 'Feature that provides hotfixes for websites from Mozilla''s Web Compatibility team'
@@ -184,14 +207,6 @@ projects:
     path: components/browser/engine-gecko
     description: 'Engine implementation based on GeckoView.'
     publish: true
-  browser-engine-gecko-beta:
-    path: components/browser/engine-gecko-beta
-    description: 'Engine implementation based on GeckoView (Beta channel).'
-    publish: true
-  browser-engine-gecko-nightly:
-    path: components/browser/engine-gecko-nightly
-    description: 'Engine implementation based on GeckoView (Nightly).'
-    publish: true
   browser-engine-system:
     path: components/browser/engine-system
     description: 'Engine implementation based on the system WebView.'
@@ -212,13 +227,9 @@ projects:
     path: components/browser/menu2
     description: 'An immutable customizable menu for browsers.'
     publish: true
-  browser-search:
-    path: components/browser/search
-    description: 'Search plugins and companion code to load, parse and use them.'
-    publish: true
-  browser-session:
-    path: components/browser/session
-    description: 'An abstract layer hiding the actual browser engine implementation.'
+  browser-session-storage:
+    path: components/browser/session-storage
+    description: 'Component for saving and restoring the browser state.'
     publish: true
   browser-state:
     path: components/browser/state
@@ -276,21 +287,17 @@ projects:
     path: components/service/location
     description: 'A library for providing location-based services.'
     publish: true
+  service-sync-autofill:
+    path: components/service/sync-autofill
+    description: 'A library for autofilling addresses and credit cards.'
+    publish: true
   service-sync-logins:
     path: components/service/sync-logins
     description: 'A library for integrating with Firefox Sync - Logins.'
     publish: true
-  service-fretboard:
-    path: components/service/fretboard
-    description: 'An Android framework for segmenting users in order to run A/B tests and rollout features gradually.'
-    publish: true
   service-digitalassetlinks:
     path: components/service/digitalassetlinks
     description: 'A library for communicating with the Digital Asset Links API.'
-    publish: true
-  service-experiments:
-    path: components/service/experiments
-    description: 'An Android SDK for running experiments on user segments in multiple branches.'
     publish: true
   service-glean:
     path: components/service/glean
@@ -380,10 +387,6 @@ projects:
     path: components/lib/jexl
     description: 'Javascript Expression Language: Powerful context-based expression parser and evaluator.'
     publish: true
-  lib-nearby:
-    path: components/lib/nearby
-    description: 'A library for communication with nearby devices Android devices.'
-    publish: true
   lib-publicsuffixlist:
     path: components/lib/publicsuffixlist
     description: 'A library for reading and using the public suffix list.'
@@ -416,6 +419,10 @@ projects:
     path: samples/browser
     description: 'A simple browser composed from browser components.'
     publish: false
+  samples-compose-browser:
+    path: samples/compose-browser
+    description: 'A simple browser composed from browser components using Jetpack Compose.'
+    publish: false
   samples-crash:
     path: samples/crash
     description: 'An app showing the integration of the lib-crash component.'
@@ -431,10 +438,6 @@ projects:
   samples-glean-library:
     path: samples/glean/samples-glean-library
     description: 'A third-party library used by samples-glean to demonstrate multi-library support for Glean.'
-    publish: false
-  samples-nearby-chat:
-    path: samples/nearby-chat
-    description: 'A simple app demoing use of the Nearby library to communicate between two devices.'
     publish: false
   samples-sync:
     path: samples/sync

@@ -4,7 +4,6 @@
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -25,15 +24,16 @@ android {
 
 dependencies {
     implementation project(':concept-engine')
-    implementation project(':browser-session')
+    implementation project(':browser-state')
     implementation project(':feature-search')
     implementation project(':feature-session')
+    implementation project(':feature-tabs')
     implementation project(':support-utils')
     implementation project(':support-ktx')
     implementation Dependencies.kotlin_stdlib
 
-    testImplementation project(':browser-search')
     testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
     testImplementation Dependencies.androidx_browser
     testImplementation Dependencies.androidx_test_junit
     testImplementation Dependencies.testing_robolectric

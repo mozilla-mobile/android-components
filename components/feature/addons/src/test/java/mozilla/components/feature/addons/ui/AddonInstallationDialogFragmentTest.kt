@@ -16,7 +16,6 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
@@ -36,6 +35,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
@@ -43,10 +43,10 @@ import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class AddonInstallationDialogFragmentTest {
-    private val testDispatcher = TestCoroutineDispatcher()
-    private val scope = TestCoroutineScope(testDispatcher)
+
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
 
     @Test
     fun `build dialog`() {
@@ -86,7 +86,9 @@ class AddonInstallationDialogFragmentTest {
         }
 
         doReturn(testContext).`when`(fragment).requireContext()
-        doReturn(mockFragmentManager()).`when`(fragment).fragmentManager
+
+        @Suppress("DEPRECATION")
+        doReturn(mockFragmentManager()).`when`(fragment).requireFragmentManager()
 
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
@@ -114,7 +116,10 @@ class AddonInstallationDialogFragmentTest {
         }
 
         doReturn(testContext).`when`(fragment).requireContext()
-        doReturn(mockFragmentManager()).`when`(fragment).fragmentManager
+
+        @Suppress("DEPRECATION")
+        doReturn(mockFragmentManager()).`when`(fragment).requireFragmentManager()
+        doReturn(mockFragmentManager()).`when`(fragment).getParentFragmentManager()
 
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
@@ -204,7 +209,9 @@ class AddonInstallationDialogFragmentTest {
         addonCollectionProvider: AddonCollectionProvider,
         promptsStyling: AddonInstallationDialogFragment.PromptsStyling? = null
     ): AddonInstallationDialogFragment {
-        return spy(AddonInstallationDialogFragment.newInstance(addon, addonCollectionProvider, promptsStyling = promptsStyling))
+        return spy(AddonInstallationDialogFragment.newInstance(addon, addonCollectionProvider, promptsStyling = promptsStyling)).apply {
+            doNothing().`when`(this).dismiss()
+        }
     }
 
     private fun mockFragmentManager(): FragmentManager {

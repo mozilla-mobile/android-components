@@ -53,11 +53,13 @@ class AppLinksInterceptor(
     private val engineSupportedSchemes: Set<String> = ENGINE_SUPPORTED_SCHEMES,
     private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES,
     private val launchInApp: () -> Boolean = { false },
-    private val useCases: AppLinksUseCases = AppLinksUseCases(context, launchInApp,
-        alwaysDeniedSchemes = alwaysDeniedSchemes),
+    private val useCases: AppLinksUseCases = AppLinksUseCases(
+        context, launchInApp,
+        alwaysDeniedSchemes = alwaysDeniedSchemes
+    ),
     private val launchFromInterceptor: Boolean = false
 ) : RequestInterceptor {
-
+    @Suppress("ComplexMethod")
     override fun onLoadRequest(
         engineSession: EngineSession,
         uri: String,
@@ -75,10 +77,14 @@ class AppLinksInterceptor(
 
         val doNotIntercept = when {
             uriScheme == null -> true
+            // A subframe request not triggered by the user should not go to an external app.
+            (!hasUserGesture && isSubframeRequest) -> true
             // If request not from an user gesture, allowed redirect and direct navigation
             // or if we're already on the site then let's not go to an external app.
-            ((!hasUserGesture && !isAllowedRedirect && !isDirectNavigation) ||
-                isSameDomain(lastUri, uri)) && engineSupportsScheme -> true
+            (
+                (!hasUserGesture && !isAllowedRedirect && !isDirectNavigation) ||
+                    isSameDomain(lastUri, uri)
+                ) && engineSupportsScheme -> true
             // If scheme not in safelist then follow user preference
             (!interceptLinkClicks || !launchInApp()) && engineSupportsScheme -> true
             // Never go to an external app when scheme is in blocklist

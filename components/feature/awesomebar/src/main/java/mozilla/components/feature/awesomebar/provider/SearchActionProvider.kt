@@ -5,9 +5,11 @@
 package mozilla.components.feature.awesomebar.provider
 
 import android.graphics.Bitmap
-import mozilla.components.browser.search.DefaultSearchEngineProvider
-import mozilla.components.browser.search.SearchEngine
+import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.feature.awesomebar.facts.emitSearchActionClickedFact
 import mozilla.components.feature.search.SearchUseCases
 
 private const val FIXED_ID = "@@@search.action.provider.fixed.id@@"
@@ -17,10 +19,11 @@ private const val FIXED_ID = "@@@search.action.provider.fixed.id@@"
  * entered text and invokes a search with the given [SearchEngine] if clicked.
  */
 class SearchActionProvider(
-    private val defaultSearchEngineProvider: DefaultSearchEngineProvider,
+    private val store: BrowserStore,
     private val searchUseCase: SearchUseCases.SearchUseCase,
     private val icon: Bitmap? = null,
-    private val showDescription: Boolean = true
+    private val showDescription: Boolean = true,
+    private val searchEngine: SearchEngine? = null
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = java.util.UUID.randomUUID().toString()
 
@@ -29,22 +32,23 @@ class SearchActionProvider(
             return emptyList()
         }
 
-        val searchEngine = defaultSearchEngineProvider.retrieveDefaultSearchEngine()
+        val searchEngine = searchEngine ?: store.state.search.selectedOrDefaultSearchEngine
             ?: return emptyList()
 
-        return listOf(AwesomeBar.Suggestion(
-            provider = this,
-            // We always use the same ID for the entered text so that this suggestion gets replaced "in place".
-            id = FIXED_ID,
-            title = text,
-            description = if (showDescription) searchEngine.name else null,
-            icon = icon ?: searchEngine.icon,
-            score = Int.MAX_VALUE,
-            onSuggestionClicked = {
-                searchUseCase.invoke(text)
-            }
-        ))
+        return listOf(
+            AwesomeBar.Suggestion(
+                provider = this,
+                // We always use the same ID for the entered text so that this suggestion gets replaced "in place".
+                id = FIXED_ID,
+                title = text,
+                description = if (showDescription) searchEngine.name else null,
+                icon = icon ?: searchEngine.icon,
+                score = Int.MAX_VALUE - 1,
+                onSuggestionClicked = {
+                    searchUseCase.invoke(text)
+                    emitSearchActionClickedFact()
+                }
+            )
+        )
     }
-
-    override val shouldClearSuggestions: Boolean = false
 }

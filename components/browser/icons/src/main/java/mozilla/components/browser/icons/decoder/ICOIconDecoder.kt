@@ -5,9 +5,9 @@
 package mozilla.components.browser.icons.decoder
 
 import android.graphics.Bitmap
-import mozilla.components.support.images.DesiredSize
 import mozilla.components.browser.icons.decoder.ico.decodeDirectoryEntries
 import mozilla.components.browser.icons.utils.findBestSize
+import mozilla.components.support.images.DesiredSize
 import mozilla.components.support.images.decoder.ImageDecoder
 
 // Some geometry of an ICO file.
@@ -24,7 +24,7 @@ internal const val ZERO_BYTE = 0.toByte()
  */
 class ICOIconDecoder : ImageDecoder {
     override fun decode(data: ByteArray, desiredSize: DesiredSize): Bitmap? {
-        val (targetSize, maxSize, maxScaleFactor) = desiredSize
+        val (targetSize, _, maxSize, maxScaleFactor) = desiredSize
         val entries = decodeDirectoryEntries(data, maxSize)
 
         val bestEntry = entries.map { entry ->

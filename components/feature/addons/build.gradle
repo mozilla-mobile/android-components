@@ -4,7 +4,8 @@
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-parcelize'
+
 apply plugin: 'kotlin-kapt'
 
 android {
@@ -37,6 +38,13 @@ android {
     lintOptions {
         warningsAsErrors true
         abortOnError true
+
+        // https://github.com/mozilla-mobile/android-components/issues/10642
+        disable 'UnusedResources'
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 }
 

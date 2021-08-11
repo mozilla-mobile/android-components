@@ -8,8 +8,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.async
-import mozilla.appservices.logins.InvalidLoginReason
-import mozilla.appservices.logins.InvalidRecordException
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
@@ -41,13 +39,13 @@ class DefaultLoginValidationDelegate(
             } else {
                 // Matching guid, non-blank matching username -> update
                 potentialDupesList.find { it.guid == newLogin.guid && it.username == newLogin.username }
-                // Matching guid, blank username -> update
+                    // Matching guid, blank username -> update
                     ?: potentialDupesList.find { it.guid == newLogin.guid && it.username.isEmpty() }
                     // Matching username -> update
                     ?: potentialDupesList.find { it.username == newLogin.username }
                     // Non matching guid, blank username -> update
                     ?: potentialDupesList.find { it.username.isEmpty() }
-                    // else create
+                // else create
             }
             if (foundLogin == null) Result.CanBeCreated else Result.CanBeUpdated(foundLogin)
         }
@@ -84,13 +82,17 @@ class DefaultLoginValidationDelegate(
                 }
                 result
             } catch (e: InvalidRecordException) {
-                when (e.reason) {
-                    InvalidLoginReason.DUPLICATE_LOGIN -> Result.Error.Duplicate
-                    InvalidLoginReason.EMPTY_PASSWORD -> Result.Error.EmptyPassword
-                    InvalidLoginReason.EMPTY_ORIGIN -> Result.Error.GeckoError(e)
-                    InvalidLoginReason.BOTH_TARGETS -> Result.Error.GeckoError(e)
-                    InvalidLoginReason.NO_TARGET -> Result.Error.GeckoError(e)
-                    InvalidLoginReason.ILLEGAL_FIELD_VALUE -> Result.Error.GeckoError(e)
+                // This feels a bit hacky but unforunately a current limitation of uniffi
+                // and how it sends errors across ffi
+                // Potentially update after: https://github.com/mozilla/uniffi-rs/issues/460
+                when (e.message) {
+                    "InvalidLogin::DuplicateLogin" -> Result.Error.DuplicateLogin
+                    "InvalidLogin::EmptyPassword" -> Result.Error.EmptyPassword
+                    "InvalidLogin::EmptyOrigin" -> Result.Error.EmptyOrigin
+                    "InvalidLogin::BothTargets" -> Result.Error.BothTargets
+                    "InvalidLogin::NoTarget" -> Result.Error.NoTarget
+                    "InvalidLogin::IllegalFieldValue" -> Result.Error.IllegalFieldValue
+                    else -> Result.Error.GeckoError(e)
                 }
             }
         }

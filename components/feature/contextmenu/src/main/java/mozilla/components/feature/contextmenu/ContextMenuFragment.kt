@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.state.state.SessionState
 
+private const val EXPANDED_TITLE_MAX_LINES = 15
 private const val KEY_TITLE = "title"
 private const val KEY_SESSION_ID = "session_id"
 private const val KEY_IDS = "ids"
@@ -31,10 +32,21 @@ private const val KEY_LABELS = "labels"
 class ContextMenuFragment : DialogFragment() {
     internal var feature: ContextMenuFeature? = null
 
-    @VisibleForTesting internal val itemIds: List<String> by lazy { arguments!!.getStringArrayList(KEY_IDS)!! }
-    @VisibleForTesting internal val itemLabels: List<String> by lazy { arguments!!.getStringArrayList(KEY_LABELS)!! }
-    @VisibleForTesting internal val sessionId: String by lazy { arguments!!.getString(KEY_SESSION_ID)!! }
-    @VisibleForTesting internal val title: String by lazy { arguments!!.getString(KEY_TITLE)!! }
+    @VisibleForTesting internal val itemIds: List<String> by lazy {
+        requireArguments().getStringArrayList(KEY_IDS)!!
+    }
+
+    @VisibleForTesting internal val itemLabels: List<String> by lazy {
+        requireArguments().getStringArrayList(KEY_LABELS)!!
+    }
+
+    @VisibleForTesting internal val sessionId: String by lazy {
+        requireArguments().getString(KEY_SESSION_ID)!!
+    }
+
+    @VisibleForTesting internal val title: String by lazy {
+        requireArguments().getString(KEY_TITLE)!!
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val inflater = LayoutInflater.from(requireContext())
@@ -55,6 +67,10 @@ class ContextMenuFragment : DialogFragment() {
             R.id.titleView
         ).apply {
             text = title
+
+            setOnClickListener {
+                maxLines = EXPANDED_TITLE_MAX_LINES
+            }
         }
     }
 
@@ -111,7 +127,8 @@ internal class ContextMenuAdapter(
     private val inflater: LayoutInflater
 ) : RecyclerView.Adapter<ContextMenuViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, position: Int) = ContextMenuViewHolder(
-        inflater.inflate(R.layout.mozac_feature_contextmenu_item, parent, false))
+        inflater.inflate(R.layout.mozac_feature_contextmenu_item, parent, false)
+    )
 
     override fun getItemCount(): Int = fragment.itemIds.size
 

@@ -17,35 +17,35 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import mozilla.components.browser.search.SearchEngineManager
-import mozilla.components.browser.session.SessionManager
+import mozilla.components.browser.session.storage.RecoverableBrowserState
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
 import mozilla.components.feature.addons.update.AddonUpdater
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.glean.Glean
 import mozilla.components.service.sync.logins.SyncableLoginsStorage
-import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.migration.FennecMigrator.Builder
 import mozilla.components.support.migration.GleanMetrics.MigrationAddons
-import mozilla.components.support.migration.state.MigrationAction
-import mozilla.components.support.migration.state.MigrationStore
-import mozilla.components.support.migration.GleanMetrics.Pings
-import mozilla.components.support.migration.GleanMetrics.Migration as MigrationPing
 import mozilla.components.support.migration.GleanMetrics.MigrationBookmarks
 import mozilla.components.support.migration.GleanMetrics.MigrationFxa
 import mozilla.components.support.migration.GleanMetrics.MigrationGecko
 import mozilla.components.support.migration.GleanMetrics.MigrationHistory
 import mozilla.components.support.migration.GleanMetrics.MigrationLogins
-import mozilla.components.support.migration.GleanMetrics.MigrationTelemetryIdentifiers
 import mozilla.components.support.migration.GleanMetrics.MigrationOpenTabs
 import mozilla.components.support.migration.GleanMetrics.MigrationPinnedSites
 import mozilla.components.support.migration.GleanMetrics.MigrationSearch
 import mozilla.components.support.migration.GleanMetrics.MigrationSettings
+import mozilla.components.support.migration.GleanMetrics.MigrationTelemetryIdentifiers
+import mozilla.components.support.migration.GleanMetrics.Pings
+import mozilla.components.support.migration.state.MigrationAction
+import mozilla.components.support.migration.state.MigrationStore
 import java.io.File
 import java.lang.AssertionError
 import java.util.Date
@@ -54,6 +54,7 @@ import java.util.concurrent.Executors
 import kotlin.Exception
 import kotlin.IllegalStateException
 import kotlin.coroutines.CoroutineContext
+import mozilla.components.support.migration.GleanMetrics.Migration as MigrationPing
 
 /**
  * Supported Fennec migrations and their current versions.
@@ -218,7 +219,7 @@ sealed class FennecMigratorException(cause: Exception) : Exception(cause) {
  * @param bookmarksStorage An optional instance of [PlacesBookmarksStorage] used to store migrated bookmarks data.
  * @param coroutineContext An instance of [CoroutineContext] used for executing async migration tasks.
  */
-@Suppress("LargeClass", "TooManyFunctions", "LongParameterList")
+@Suppress("LargeClass", "LongParameterList")
 class FennecMigrator private constructor(
     private val context: Context,
     private val crashReporter: CrashReporting,
@@ -226,8 +227,8 @@ class FennecMigrator private constructor(
     private val historyStorage: Lazy<PlacesHistoryStorage>?,
     private val bookmarksStorage: Lazy<PlacesBookmarksStorage>?,
     private val loginsStorage: Lazy<SyncableLoginsStorage>?,
-    private val sessionManager: SessionManager?,
-    private val searchEngineManager: SearchEngineManager?,
+    private val tabsUseCases: TabsUseCases?,
+    private val store: BrowserStore?,
     private val accountManager: Lazy<FxaAccountManager>?,
     private val fxaExpectChinaServers: Boolean,
     private val engine: Engine?,
@@ -244,14 +245,13 @@ class FennecMigrator private constructor(
     /**
      * Data migration builder. Allows configuring which migrations to run, their versions and relative order.
      */
-    @Suppress("TooManyFunctions")
     class Builder(private val context: Context, private val crashReporter: CrashReporting) {
+        private var store: BrowserStore? = null
         private var historyStorage: Lazy<PlacesHistoryStorage>? = null
         private var bookmarksStorage: Lazy<PlacesBookmarksStorage>? = null
         private var loginsStorage: Lazy<SyncableLoginsStorage>? = null
         private var loginsStorageKey: String? = null
-        private var sessionManager: SessionManager? = null
-        private var searchEngineManager: SearchEngineManager? = null
+        private var tabsUseCases: TabsUseCases? = null
         private var accountManager: Lazy<FxaAccountManager>? = null
         private var fxaExpectChinaServers: Boolean = false
         private var engine: Engine? = null
@@ -353,11 +353,11 @@ class FennecMigrator private constructor(
         /**
          * Enable open tabs migration.
          *
-         * @param sessionManager An instance of [SessionManager] used for restoring migrated [SessionManager.Snapshot].
+         * @param tabsUseCases Use case instance for restoring migrated browser state.
          * @param version Version of the migration; defaults to the current version.
          */
-        fun migrateOpenTabs(sessionManager: SessionManager, version: Int = Migration.OpenTabs.currentVersion): Builder {
-            this.sessionManager = sessionManager
+        fun migrateOpenTabs(tabsUseCases: TabsUseCases, version: Int = Migration.OpenTabs.currentVersion): Builder {
+            this.tabsUseCases = tabsUseCases
             migrations.add(VersionedMigration(Migration.OpenTabs, version))
             return this
         }
@@ -365,15 +365,13 @@ class FennecMigrator private constructor(
         /**
          * Enable default search engine migration.
          *
-         * @param searchEngineManager An instance of [SearchEngineManager] used for restoring the
-         * migrated default search engine.
          * @param version Version of the migration; defaults to the current version.
          */
         fun migrateSearchEngine(
-            searchEngineManager: SearchEngineManager,
+            store: BrowserStore,
             version: Int = Migration.SearchEngine.currentVersion
         ): Builder {
-            this.searchEngineManager = searchEngineManager
+            this.store = store
             migrations.add(VersionedMigration(Migration.SearchEngine, version))
             return this
         }
@@ -447,8 +445,8 @@ class FennecMigrator private constructor(
                 historyStorage,
                 bookmarksStorage,
                 loginsStorage,
-                sessionManager,
-                searchEngineManager,
+                tabsUseCases,
+                store,
                 accountManager,
                 fxaExpectChinaServers,
                 engine,
@@ -661,10 +659,12 @@ class FennecMigrator private constructor(
             Pings.migration.submit()
 
             // Notify MigrationStore about result.
-            store.dispatch(MigrationAction.MigrationRunResult(
-                versionedMigration.migration,
-                migrationRun
-            ))
+            store.dispatch(
+                MigrationAction.MigrationRunResult(
+                    versionedMigration.migration,
+                    migrationRun
+                )
+            )
 
             // Save result of this migration immediately, so that we keep it even if we crash later
             // in the process and do not rerun this migration version.
@@ -766,6 +766,50 @@ class FennecMigrator private constructor(
         }
     }
 
+    @SuppressWarnings("TooGenericExceptionCaught")
+    private suspend fun migrateOpenTabs(): Result<RecoverableBrowserState> {
+        if (profile == null) {
+            crashReporter.submitCaughtException(IllegalStateException("Missing Profile path"))
+            MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_MISSING_PROFILE.code)
+            return Result.Failure(IllegalStateException("Missing Profile path"))
+        }
+
+        logger.debug("Migrating session...")
+        val result = try {
+            FennecSessionMigration.migrate(File(profile.path), crashReporter)
+        } catch (e: Exception) {
+            MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_MIGRATE_EXCEPTION.code)
+            crashReporter.submitCaughtException(
+                FennecMigratorException.MigrateOpenTabsException(e)
+            )
+            return Result.Failure(e)
+        }
+
+        return try {
+            if (result is Result.Success<RecoverableBrowserState>) {
+                logger.debug("Loading migrated session snapshot...")
+                MigrationOpenTabs.detected.add(result.value.tabs.size)
+                withContext(Dispatchers.Main) {
+                    tabsUseCases!!.restore(result.value)
+                    // Note that this is assuming that sessionManager starts off empty before the
+                    // migration.
+                    MigrationOpenTabs.migrated.add(result.value.tabs.size)
+                    MigrationOpenTabs.successReason.add(SuccessReasonTelemetryCodes.OPEN_TABS_MIGRATED.code)
+                }
+                result
+            } else {
+                MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_NO_SNAPSHOT.code)
+                result
+            }
+        } catch (e: Exception) {
+            MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_RESTORE_EXCEPTION.code)
+            crashReporter.submitCaughtException(
+                FennecMigratorException.MigrateOpenTabsException(e)
+            )
+            Result.Failure(e)
+        }
+    }
+
     @Suppress("ComplexMethod", "TooGenericExceptionCaught", "LongMethod", "ReturnCount")
     private suspend fun migrateLogins(): Result<LoginsMigrationResult> {
         if (profile == null) {
@@ -832,11 +876,13 @@ class FennecMigrator private constructor(
                     }
 
                     is LoginsMigrationResult.Success.ImportedLoginRecords -> {
-                        logger.debug("""Imported login records! Details:
+                        logger.debug(
+                            """Imported login records! Details:
                     Total detected=${success.totalRecordsDetected},
                     failed to process=${success.failedToProcess},
                     failed to import=${success.failedToImport}
-                """.trimIndent())
+                            """.trimIndent()
+                        )
                         MigrationLogins.successReason.add(SuccessReasonTelemetryCodes.LOGINS_MIGRATED.code)
                         MigrationLogins.detected.add(success.totalRecordsDetected)
                         MigrationLogins.failureCounts["process"].add(success.failedToProcess)
@@ -848,50 +894,6 @@ class FennecMigrator private constructor(
         } catch (e: Exception) {
             crashReporter.submitCaughtException(FennecMigratorException.MigrateLoginsException(e))
             MigrationLogins.failureReason.add(FailureReasonTelemetryCodes.LOGINS_UNEXPECTED_EXCEPTION.code)
-            Result.Failure(e)
-        }
-    }
-
-    @SuppressWarnings("TooGenericExceptionCaught")
-    private suspend fun migrateOpenTabs(): Result<SessionManager.Snapshot> {
-        if (profile == null) {
-            crashReporter.submitCaughtException(IllegalStateException("Missing Profile path"))
-            MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_MISSING_PROFILE.code)
-            return Result.Failure(IllegalStateException("Missing Profile path"))
-        }
-
-        logger.debug("Migrating session...")
-        val result = try {
-            FennecSessionMigration.migrate(File(profile.path), crashReporter)
-        } catch (e: Exception) {
-            MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_MIGRATE_EXCEPTION.code)
-            crashReporter.submitCaughtException(
-                FennecMigratorException.MigrateOpenTabsException(e)
-            )
-            return Result.Failure(e)
-        }
-
-        return try {
-            if (result is Result.Success<SessionManager.Snapshot>) {
-                logger.debug("Loading migrated session snapshot...")
-                MigrationOpenTabs.detected.add(result.value.sessions.size)
-                withContext(Dispatchers.Main) {
-                    sessionManager!!.restore(result.value)
-                    // Note that this is assuming that sessionManager starts off empty before the
-                    // migration.
-                    MigrationOpenTabs.migrated.add(sessionManager.all.size)
-                    MigrationOpenTabs.successReason.add(SuccessReasonTelemetryCodes.OPEN_TABS_MIGRATED.code)
-                }
-                result
-            } else {
-                MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_NO_SNAPSHOT.code)
-                result
-            }
-        } catch (e: Exception) {
-            MigrationOpenTabs.failureReason.add(FailureReasonTelemetryCodes.OPEN_TABS_RESTORE_EXCEPTION.code)
-            crashReporter.submitCaughtException(
-                FennecMigratorException.MigrateOpenTabsException(e)
-            )
             Result.Failure(e)
         }
     }
@@ -930,8 +932,10 @@ class FennecMigrator private constructor(
                             result
                         }
                         is FxaMigrationResult.Failure.CustomServerConfigPresent -> {
-                            logger.error("Custom config present: token=${failure.customTokenServer}," +
-                                "idp=${failure.customIdpServer}")
+                            logger.error(
+                                "Custom config present: token=${failure.customTokenServer}," +
+                                    "idp=${failure.customIdpServer}"
+                            )
                             MigrationFxa.failureReason.add(FailureReasonTelemetryCodes.FXA_CUSTOM_SERVER.code)
                             MigrationFxa.hasCustomIdpServer.set(failure.customIdpServer)
                             MigrationFxa.hasCustomTokenServer.set(failure.customTokenServer)
@@ -1117,11 +1121,10 @@ class FennecMigrator private constructor(
 
     @SuppressWarnings("TooGenericExceptionCaught", "NestedBlockDepth")
     private suspend fun migrateSearchEngine(): Result<SearchEngineMigrationResult> {
-        val manager = searchEngineManager
-            ?: throw AssertionError("Migrating search engines without search engine manager set")
+        val store = store ?: throw AssertionError("Migrating search engines without browser store set")
 
         return try {
-            val result = SearchEngineMigration.migrate(context, manager)
+            val result = SearchEngineMigration.migrate(context, store)
 
             if (result is Result.Failure<SearchEngineMigrationResult>) {
                 val migrationFailureWrapper = result.throwables.first() as SearchEngineMigrationException

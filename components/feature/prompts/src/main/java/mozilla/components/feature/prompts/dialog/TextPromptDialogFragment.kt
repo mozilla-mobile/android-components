@@ -11,16 +11,11 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
-import android.view.View
-import android.view.View.VISIBLE
-import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import mozilla.components.feature.prompts.R
 
-private const val KEY_MANY_ALERTS = "KEY_MANY_ALERTS"
-private const val KEY_USER_CHECK_BOX = "KEY_USER_CHECK_BOX"
 private const val KEY_USER_EDIT_TEXT = "KEY_USER_EDIT_TEXT"
 private const val KEY_LABEL_INPUT = "KEY_LABEL_INPUT"
 private const val KEY_DEFAULT_INPUT_VALUE = "KEY_DEFAULT_INPUT_VALUE"
@@ -29,13 +24,7 @@ private const val KEY_DEFAULT_INPUT_VALUE = "KEY_DEFAULT_INPUT_VALUE"
  * [androidx.fragment.app.DialogFragment] implementation to display a
  * <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt">Window.prompt()</a> with native dialogs.
  */
-internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
-
-    /**
-     * Tells if a checkbox should be shown for preventing this [sessionId] from showing more dialogs.
-     */
-    internal val hasShownManyDialogs: Boolean by lazy { safeArguments.getBoolean(KEY_MANY_ALERTS) }
-
+internal class TextPromptDialogFragment : AbstractPromptTextDialogFragment(), TextWatcher {
     /**
      * Contains the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt#Parameters">default()</a>
      * value provided by this [sessionId].
@@ -47,16 +36,6 @@ internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
      * value provided by this [sessionId].
      */
     internal val labelInput: String? by lazy { safeArguments.getString(KEY_LABEL_INPUT) }
-
-    /**
-     * Stores the user's decision from the checkbox
-     * for preventing this [sessionId] from showing more dialogs.
-     */
-    internal var userSelectionNoMoreDialogs: Boolean
-        get() = safeArguments.getBoolean(KEY_USER_CHECK_BOX)
-        set(value) {
-            safeArguments.putBoolean(KEY_USER_CHECK_BOX, value)
-        }
 
     private var userSelectionEditText: String
         get() = safeArguments.getString(KEY_USER_EDIT_TEXT, defaultInputValue)
@@ -75,11 +54,11 @@ internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
     }
 
     override fun onCancel(dialog: DialogInterface) {
-        feature?.onCancel(sessionId)
+        feature?.onCancel(sessionId, promptRequestUID)
     }
 
     private fun onPositiveClickAction() {
-        feature?.onConfirm(sessionId, userSelectionNoMoreDialogs to userSelectionEditText)
+        feature?.onConfirm(sessionId, promptRequestUID, userSelectionNoMoreDialogs to userSelectionEditText)
     }
 
     @SuppressLint("InflateParams")
@@ -94,22 +73,9 @@ internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
         editText.setText(defaultInputValue)
         editText.addTextChangedListener(this)
 
-        if (hasShownManyDialogs) {
-            addCheckBox(view)
-        }
+        addCheckBoxIfNeeded(view)
 
         return builder.setView(view)
-    }
-
-    @SuppressLint("InflateParams")
-    private fun addCheckBox(view: View) {
-        if (hasShownManyDialogs) {
-            val checkBox = view.findViewById<CheckBox>(R.id.no_more_dialogs_check_box)
-            checkBox.setOnCheckedChangeListener { _, isChecked ->
-                userSelectionNoMoreDialogs = isChecked
-            }
-            checkBox.visibility = VISIBLE
-        }
     }
 
     override fun afterTextChanged(editable: Editable) {
@@ -124,6 +90,9 @@ internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
         /**
          * A builder method for creating a [TextPromptDialogFragment]
          * @param sessionId to create the dialog.
+         * @param promptRequestUID identifier of the [PromptRequest] for which this dialog is shown.
+         * @param shouldDismissOnLoad whether or not the dialog should automatically be dismissed
+         * when a new page is loaded.
          * @param title the title of the dialog.
          * @param inputLabel
          * @param defaultInputValue
@@ -131,8 +100,11 @@ internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
          * in a short period of time, if is true a checkbox will be part of the dialog, for the user
          * to choose if wants to prevent this [sessionId] continuing showing dialogs.
          */
+        @Suppress("LongParameterList")
         fun newInstance(
             sessionId: String,
+            promptRequestUID: String,
+            shouldDismissOnLoad: Boolean,
             title: String,
             inputLabel: String,
             defaultInputValue: String,
@@ -144,6 +116,8 @@ internal class TextPromptDialogFragment : PromptDialogFragment(), TextWatcher {
 
             with(arguments) {
                 putString(KEY_SESSION_ID, sessionId)
+                putString(KEY_PROMPT_UID, promptRequestUID)
+                putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
                 putString(KEY_TITLE, title)
                 putString(KEY_LABEL_INPUT, inputLabel)
                 putString(KEY_DEFAULT_INPUT_VALUE, defaultInputValue)

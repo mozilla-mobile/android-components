@@ -13,8 +13,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.fragment_add_ons.*
-import kotlinx.android.synthetic.main.overlay_add_on_progress.view.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -27,23 +25,29 @@ import mozilla.components.feature.addons.ui.AddonsManagerAdapterDelegate
 import mozilla.components.feature.addons.ui.PermissionsDialogFragment
 import mozilla.components.feature.addons.ui.translateName
 import org.mozilla.samples.browser.R
+import org.mozilla.samples.browser.databinding.FragmentAddOnsBinding
+import org.mozilla.samples.browser.databinding.OverlayAddOnProgressBinding
 import org.mozilla.samples.browser.ext.components
 import java.util.concurrent.CancellationException
 
 /**
  * Fragment use for managing add-ons.
  */
-@Suppress("TooManyFunctions")
 class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
     private lateinit var recyclerView: RecyclerView
     private val scope = CoroutineScope(Dispatchers.IO)
     private var adapter: AddonsManagerAdapter? = null
+
+    private var _binding: FragmentAddOnsBinding? = null
+    private val binding get() = _binding!!
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        return inflater.inflate(R.layout.fragment_add_ons, container, false)
+        _binding = FragmentAddOnsBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(rootView: View, savedInstanceState: Bundle?) {
@@ -136,11 +140,15 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
     }
 
     private fun findPreviousPermissionDialogFragment(): PermissionsDialogFragment? {
-        return fragmentManager?.findFragmentByTag(PERMISSIONS_DIALOG_FRAGMENT_TAG) as? PermissionsDialogFragment
+        return parentFragmentManager.findFragmentByTag(
+            PERMISSIONS_DIALOG_FRAGMENT_TAG
+        ) as? PermissionsDialogFragment
     }
 
     private fun findPreviousInstallationDialogFragment(): AddonInstallationDialogFragment? {
-        return fragmentManager?.findFragmentByTag(INSTALLATION_DIALOG_FRAGMENT_TAG) as? AddonInstallationDialogFragment
+        return parentFragmentManager.findFragmentByTag(
+            INSTALLATION_DIALOG_FRAGMENT_TAG
+        ) as? AddonInstallationDialogFragment
     }
 
     private fun showPermissionDialog(addon: Addon) {
@@ -153,8 +161,8 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
             onPositiveButtonClicked = onConfirmPermissionButtonClicked
         )
 
-        if (!isAlreadyADialogCreated() && fragmentManager != null) {
-            dialog.show(requireFragmentManager(), PERMISSIONS_DIALOG_FRAGMENT_TAG)
+        if (!isAlreadyADialogCreated() && isAdded) {
+            dialog.show(parentFragmentManager, PERMISSIONS_DIALOG_FRAGMENT_TAG)
         }
     }
 
@@ -162,15 +170,15 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
         if (isInstallationInProgress) {
             return
         }
-        val addonCollectionProvider = context!!.components.addonCollectionProvider
+        val addonCollectionProvider = requireContext().components.addonCollectionProvider
         val dialog = AddonInstallationDialogFragment.newInstance(
             addon = addon,
             addonCollectionProvider = addonCollectionProvider,
             onConfirmButtonClicked = onConfirmInstallationButtonClicked
         )
 
-        if (!isAlreadyADialogCreated() && fragmentManager != null) {
-            dialog.show(requireFragmentManager(), INSTALLATION_DIALOG_FRAGMENT_TAG)
+        if (!isAlreadyADialogCreated() && isAdded) {
+            dialog.show(parentFragmentManager, INSTALLATION_DIALOG_FRAGMENT_TAG)
         }
     }
 
@@ -184,7 +192,9 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
     }
 
     private val onConfirmPermissionButtonClicked: ((Addon) -> Unit) = { addon ->
-        addonProgressOverlay.visibility = View.VISIBLE
+        val includedBinding = OverlayAddOnProgressBinding.bind(binding.root)
+
+        includedBinding.root.visibility = View.VISIBLE
         isInstallationInProgress = true
 
         val installOperation = requireContext().components.addonManager.installAddon(
@@ -192,7 +202,7 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
             onSuccess = { installedAddon ->
                 context?.let {
                     adapter?.updateAddon(installedAddon)
-                    addonProgressOverlay.visibility = View.GONE
+                    includedBinding.root.visibility = View.GONE
                     isInstallationInProgress = false
                     showInstallationDialog(installedAddon)
                 }
@@ -201,27 +211,33 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
                 // No need to display an error message if installation was cancelled by the user.
                 if (e !is CancellationException) {
                     Toast.makeText(
-                        requireContext(), getString(
-                        R.string.mozac_feature_addons_failed_to_install,
-                        addon.translateName(requireContext())
-                ),
+                        requireContext(),
+                        getString(
+                            R.string.mozac_feature_addons_failed_to_install,
+                            addon.translateName(requireContext())
+                        ),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
 
-                addonProgressOverlay.visibility = View.GONE
+                includedBinding.root.visibility = View.GONE
                 isInstallationInProgress = false
             }
         )
 
-        addonProgressOverlay.cancel_button.setOnClickListener {
+        includedBinding.cancelButton.setOnClickListener {
             MainScope().launch {
                 // Hide the installation progress overlay once cancellation is successful.
                 if (installOperation.cancel().await()) {
-                    addonProgressOverlay.visibility = View.GONE
+                    includedBinding.root.visibility = View.GONE
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     /**

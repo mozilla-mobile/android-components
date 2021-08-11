@@ -67,10 +67,12 @@ class BrowserIconsTest {
     fun `WHEN resources are provided THEN an icon will be downloaded from one of them`() = runBlocking {
         val server = MockWebServer()
 
-        server.enqueue(MockResponse().setBody(
+        server.enqueue(
+            MockResponse().setBody(
 
-            Okio.buffer(Okio.source(javaClass.getResourceAsStream("/png/mozac.png")!!)).buffer
-        ))
+                Okio.buffer(Okio.source(javaClass.getResourceAsStream("/png/mozac.png")!!)).buffer
+            )
+        )
 
         server.start()
 
@@ -118,9 +120,11 @@ class BrowserIconsTest {
     fun `WHEN icon is loaded twice THEN second load is delivered from memory cache`() = runBlocking {
         val server = MockWebServer()
 
-        server.enqueue(MockResponse().setBody(
-            Okio.buffer(Okio.source(javaClass.getResourceAsStream("/png/mozac.png")!!)).buffer
-        ))
+        server.enqueue(
+            MockResponse().setBody(
+                Okio.buffer(Okio.source(javaClass.getResourceAsStream("/png/mozac.png")!!)).buffer
+            )
+        )
 
         server.start()
 
@@ -159,9 +163,11 @@ class BrowserIconsTest {
     fun `WHEN icon is loaded again and not in memory cache THEN second load is delivered from disk cache`() = runBlocking {
         val server = MockWebServer()
 
-        server.enqueue(MockResponse().setBody(
-            Okio.buffer(Okio.source(javaClass.getResourceAsStream("/png/mozac.png")!!)).buffer
-        ))
+        server.enqueue(
+            MockResponse().setBody(
+                Okio.buffer(Okio.source(javaClass.getResourceAsStream("/png/mozac.png")!!)).buffer
+            )
+        )
 
         server.start()
 
@@ -281,6 +287,8 @@ class BrowserIconsTest {
         sharedDiskCache.putResources(testContext, request)
         val bitmap: Bitmap = mock()
         `when`(bitmap.compress(any(), ArgumentMatchers.anyInt(), any())).thenAnswer {
+            @Suppress("DEPRECATION")
+            // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/9555
             assertEquals(Bitmap.CompressFormat.WEBP, it.arguments[0] as Bitmap.CompressFormat)
             assertEquals(90, it.arguments[1] as Int) // Quality
 

@@ -6,8 +6,7 @@ package mozilla.components.feature.media.session
 
 import android.support.v4.media.session.MediaSessionCompat
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.feature.media.ext.pauseIfPlaying
-import mozilla.components.feature.media.ext.playIfPaused
+import mozilla.components.feature.media.ext.findActiveMediaTab
 import mozilla.components.support.base.log.logger.Logger
 
 internal class MediaSessionCallback(
@@ -18,18 +17,12 @@ internal class MediaSessionCallback(
     override fun onPlay() {
         logger.debug("play()")
 
-        store
-            .state
-            .media
-            .playIfPaused()
+        store.state.findActiveMediaTab()?.mediaSessionState?.controller?.play()
     }
 
     override fun onPause() {
         logger.debug("pause()")
 
-        store
-            .state
-            .media
-            .pauseIfPlaying()
+        store.state.findActiveMediaTab()?.mediaSessionState?.controller?.pause()
     }
 }

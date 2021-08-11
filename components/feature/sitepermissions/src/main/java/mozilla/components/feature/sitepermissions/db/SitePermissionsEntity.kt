@@ -7,7 +7,7 @@ package mozilla.components.feature.sitepermissions.db
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import mozilla.components.feature.sitepermissions.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions
 
 /**
  * Internal entity representing a site permission as it gets saved to the database.
@@ -38,10 +38,13 @@ internal data class SitePermissionsEntity(
     var localStorage: SitePermissions.Status,
 
     @ColumnInfo(name = "autoplay_audible")
-    var autoplayAudible: SitePermissions.Status,
+    var autoplayAudible: SitePermissions.AutoplayStatus,
 
     @ColumnInfo(name = "autoplay_inaudible")
-    var autoplayInaudible: SitePermissions.Status,
+    var autoplayInaudible: SitePermissions.AutoplayStatus,
+
+    @ColumnInfo(name = "media_key_system_access")
+    var mediaKeySystemAccess: SitePermissions.Status,
 
     @ColumnInfo(name = "saved_at")
     var savedAt: Long
@@ -58,6 +61,7 @@ internal data class SitePermissionsEntity(
             localStorage,
             autoplayAudible,
             autoplayInaudible,
+            mediaKeySystemAccess,
             savedAt
         )
     }
@@ -74,6 +78,7 @@ internal fun SitePermissions.toSitePermissionsEntity(): SitePermissionsEntity {
         localStorage,
         autoplayAudible,
         autoplayInaudible,
+        mediaKeySystemAccess,
         savedAt
     )
 }

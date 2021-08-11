@@ -21,7 +21,7 @@ pull_request_rules:
     conditions:
       - author=mozilla-l10n-automation-bot
       - status-success=complete-pr
-      - files~=(strings.xml)
+      - files~=(strings.xml|l10n.toml)
     actions:
       review:
         type: APPROVE
@@ -31,8 +31,7 @@ pull_request_rules:
         strict: smart
   - name: Release automation
     conditions:
-      - base~=releases/.*
-      - author=st3fan
+      - author=github-actions[bot]
       - status-success=complete-pr
       - files~=(.buildconfig.yml|Gecko.kt)
     actions:

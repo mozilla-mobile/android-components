@@ -5,7 +5,6 @@
 package mozilla.components.concept.tabstray
 
 import android.graphics.Bitmap
-import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.engine.mediasession.MediaSession
 
 /**
@@ -14,19 +13,21 @@ import mozilla.components.concept.engine.mediasession.MediaSession
  * @property id Unique ID of the tab.
  * @property url Current URL of the tab.
  * @property title Current title of the tab (or an empty [String]]).
+ * @property private whether or not the session is private.
  * @property icon Current icon of the tab (or null)
  * @property thumbnail Current thumbnail of the tab (or null)
- * @property mediaState Current media state for the tab (or null)
  * @property playbackState Current media session playback state for the tab (or null)
  * @property controller Current media session controller for the tab (or null)
+ * @property lastAccess The last time this tab was selected.
  */
 data class Tab(
     val id: String,
     val url: String,
     val title: String = "",
+    val private: Boolean = false,
     val icon: Bitmap? = null,
     val thumbnail: Bitmap? = null,
-    val mediaState: Media.State? = null,
     val playbackState: MediaSession.PlaybackState? = null,
-    val controller: MediaSession.Controller? = null
+    val controller: MediaSession.Controller? = null,
+    val lastAccess: Long = 0L
 )

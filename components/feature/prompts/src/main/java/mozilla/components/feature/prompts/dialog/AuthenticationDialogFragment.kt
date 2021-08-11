@@ -22,7 +22,7 @@ import mozilla.components.feature.prompts.R
 private const val KEY_USERNAME_EDIT_TEXT = "KEY_USERNAME_EDIT_TEXT"
 private const val KEY_PASSWORD_EDIT_TEXT = "KEY_PASSWORD_EDIT_TEXT"
 private const val KEY_ONLY_SHOW_PASSWORD = "KEY_ONLY_SHOW_PASSWORD"
-private const val KEY_SESSION_URL = "KEY_SESSION_URL"
+private const val KEY_URL = "KEY_SESSION_URL"
 
 /**
  * [android.support.v4.app.DialogFragment] implementation to display a
@@ -33,10 +33,10 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
 
     internal val onlyShowPassword: Boolean by lazy { safeArguments.getBoolean(KEY_ONLY_SHOW_PASSWORD) }
 
-    private var sessionUrl: String
-        get() = safeArguments.getString(KEY_SESSION_URL, "")
+    private var url: String?
+        get() = safeArguments.getString(KEY_URL, null)
         set(value) {
-            safeArguments.putString(KEY_SESSION_URL, value)
+            safeArguments.putString(KEY_URL, value)
         }
 
     internal var username: String
@@ -57,7 +57,7 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
             .setMessage(message)
             .setCancelable(true)
             .setNegativeButton(R.string.mozac_feature_prompts_cancel) { _, _ ->
-                feature?.onCancel(sessionId)
+                feature?.onCancel(sessionId, promptRequestUID)
             }
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 onPositiveClickAction()
@@ -67,11 +67,11 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
 
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
-        feature?.onCancel(sessionId)
+        feature?.onCancel(sessionId, promptRequestUID)
     }
 
     private fun onPositiveClickAction() {
-        feature?.onConfirm(sessionId, username to password)
+        feature?.onConfirm(sessionId, promptRequestUID, username to password)
     }
 
     @SuppressLint("InflateParams")
@@ -89,7 +89,7 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
         // Username field uses the AutofillEditText so if the user focus is here, the autofill
         // application can get the web domain info without searching through the view tree.
         val usernameEditText = view.findViewById<AutofillEditText>(R.id.username)
-        usernameEditText.sessionUrl = sessionUrl
+        usernameEditText.url = url
 
         if (onlyShowPassword) {
             usernameEditText.visibility = GONE
@@ -111,7 +111,7 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
         // Password field uses the AutofillEditText so if the user focus is here, the autofill
         // application can get the web domain info without searching through the view tree.
         val passwordEditText = view.findViewById<AutofillEditText>(R.id.password)
-        passwordEditText.sessionUrl = sessionUrl
+        passwordEditText.url = url
 
         passwordEditText.setText(password)
         passwordEditText.addTextChangedListener(object : TextWatcher {
@@ -129,6 +129,9 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
         /**
          * A builder method for creating a [AuthenticationDialogFragment]
          * @param sessionId the id of the session for which this dialog will be created.
+         * @param promptRequestUID identifier of the [PromptRequest] for which this dialog is shown.
+         * @param shouldDismissOnLoad whether or not the dialog should automatically be dismissed
+         * when a new page is loaded.
          * @param title the title of the dialog.
          * @param message the text that will go below title.
          * @param username the default value of the username text field.
@@ -138,12 +141,14 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
         @Suppress("LongParameterList")
         fun newInstance(
             sessionId: String,
+            promptRequestUID: String,
+            shouldDismissOnLoad: Boolean,
             title: String,
             message: String,
             username: String,
             password: String,
             onlyShowPassword: Boolean,
-            url: String
+            url: String?
         ): AuthenticationDialogFragment {
 
             val fragment = AuthenticationDialogFragment()
@@ -151,12 +156,14 @@ internal class AuthenticationDialogFragment : PromptDialogFragment() {
 
             with(arguments) {
                 putString(KEY_SESSION_ID, sessionId)
+                putString(KEY_PROMPT_UID, promptRequestUID)
+                putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
                 putString(KEY_TITLE, title)
                 putString(KEY_MESSAGE, message)
                 putBoolean(KEY_ONLY_SHOW_PASSWORD, onlyShowPassword)
                 putString(KEY_USERNAME_EDIT_TEXT, username)
                 putString(KEY_PASSWORD_EDIT_TEXT, password)
-                putString(KEY_SESSION_URL, url)
+                putString(KEY_URL, url)
             }
 
             fragment.arguments = arguments

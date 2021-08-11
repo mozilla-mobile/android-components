@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.launch
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.ToolbarFeature
@@ -54,7 +54,11 @@ internal class URLRenderer(
      * Posts this [url] to the renderer.
      */
     fun post(url: String) {
-        channel.sendBlocking(url)
+        try {
+            channel.trySendBlocking(url)
+        } catch (e: InterruptedException) {
+            // Ignore
+        }
     }
 
     @VisibleForTesting
@@ -104,7 +108,8 @@ private suspend fun SpannableStringBuilder.colorRegistrableDomain(
         ForegroundColorSpan(configuration.registrableDomainColor),
         index,
         index + registrableDomain.length,
-        SPAN_INCLUSIVE_INCLUSIVE)
+        SPAN_INCLUSIVE_INCLUSIVE
+    )
 }
 
 private fun SpannableStringBuilder.color(@ColorInt urlColor: Int?) {
@@ -114,5 +119,6 @@ private fun SpannableStringBuilder.color(@ColorInt urlColor: Int?) {
         ForegroundColorSpan(urlColor),
         0,
         length,
-        SPAN_INCLUSIVE_INCLUSIVE)
+        SPAN_INCLUSIVE_INCLUSIVE
+    )
 }

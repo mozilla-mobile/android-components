@@ -31,15 +31,21 @@ private val defaultHighlight = BrowserMenuHighlightableItem.Highlight(0, 0, 0, 0
  * @param startImageResource ID of a drawable resource to be shown as a leftmost icon.
  * @param iconTintColorResource Optional ID of color resource to tint the icon.
  * @param textColorResource Optional ID of color resource to tint the text.
+ * @param isCollapsingMenuLimit Whether this menu item can serve as the limit of a collapsing menu.
+ * @param isSticky whether this item menu should not be scrolled offscreen (downwards or upwards
+ * depending on the menu position).
  * @param highlight Highlight object representing how the menu item will be displayed when highlighted.
  * @param isHighlighted Whether or not to display the highlight
  * @param listener Callback to be invoked when this menu item is clicked.
  */
+@Suppress("LongParameterList")
 class BrowserMenuHighlightableItem(
     private val label: String,
     @DrawableRes private val startImageResource: Int,
-    @ColorRes private val iconTintColorResource: Int = NO_ID,
+    @ColorRes iconTintColorResource: Int = NO_ID,
     @ColorRes private val textColorResource: Int = NO_ID,
+    override val isCollapsingMenuLimit: Boolean = false,
+    override val isSticky: Boolean = false,
     override val highlight: BrowserMenuHighlight,
     override val isHighlighted: () -> Boolean = { true },
     private val listener: () -> Unit = {}
@@ -48,8 +54,11 @@ class BrowserMenuHighlightableItem(
     startImageResource,
     iconTintColorResource,
     textColorResource,
+    isCollapsingMenuLimit,
+    isSticky,
     listener
-), HighlightableMenuItem {
+),
+    HighlightableMenuItem {
 
     @Deprecated("Use the new constructor")
     @Suppress("Deprecation") // Constructor uses old highlight type
@@ -61,6 +70,8 @@ class BrowserMenuHighlightableItem(
         iconTintColorResource: Int = NO_ID,
         @ColorRes
         textColorResource: Int = NO_ID,
+        isCollapsingMenuLimit: Boolean = false,
+        isSticky: Boolean = false,
         highlight: Highlight? = null,
         listener: () -> Unit = {}
     ) : this(
@@ -68,6 +79,8 @@ class BrowserMenuHighlightableItem(
         imageResource,
         iconTintColorResource,
         textColorResource,
+        isCollapsingMenuLimit,
+        isSticky,
         highlight ?: defaultHighlight,
         { highlight != null },
         listener
@@ -153,10 +166,14 @@ class BrowserMenuHighlightableItem(
         return when (highlight) {
             is BrowserMenuHighlight.HighPriority -> base.copy(
                 text = highlight.label ?: label,
-                end = if (highlight.endImageResource == NO_ID) null else DrawableMenuIcon(
-                    context,
-                    highlight.endImageResource
-                ),
+                end = if (highlight.endImageResource == NO_ID) {
+                    null
+                } else {
+                    DrawableMenuIcon(
+                        context,
+                        highlight.endImageResource
+                    )
+                },
                 effect = HighPriorityHighlightEffect(
                     backgroundTint = highlight.backgroundTint
                 )

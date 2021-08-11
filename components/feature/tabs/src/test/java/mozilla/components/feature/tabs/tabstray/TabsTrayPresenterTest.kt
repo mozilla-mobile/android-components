@@ -12,16 +12,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import mozilla.components.browser.state.action.MediaAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.MediaState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.tabstray.Tabs
 import mozilla.components.concept.tabstray.TabsTray
 import mozilla.components.feature.tabs.ext.toTabs
-import mozilla.components.support.test.any
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import org.junit.After
@@ -195,7 +192,7 @@ class TabsTrayPresenterTest {
 
         assertEquals(2, tabsTray.updateTabs!!.list.size)
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
         testDispatcher.advanceUntilIdle()
 
         assertEquals(0, tabsTray.updateTabs!!.list.size)
@@ -245,43 +242,6 @@ class TabsTrayPresenterTest {
     }
 
     @Test
-    fun `tabs tray will get updated if mediaState changes`() {
-        val store = BrowserStore(
-            BrowserState(
-                tabs = listOf(
-                    createTab("https://www.mozilla.org", id = "a"),
-                    createTab("https://getpocket.com", id = "b"),
-                    createTab("https://developer.mozilla.org", id = "c"),
-                    createTab("https://www.firefox.com", id = "d"),
-                    createTab("https://www.google.com", id = "e")
-                ),
-                selectedTabId = "a"
-            )
-        )
-
-        val tabsTray: MockedTabsTray = spy(MockedTabsTray())
-        val presenter = TabsTrayPresenter(
-            tabsTray,
-            store,
-            tabsFilter = { true },
-            closeTabsTray = mock()
-        )
-
-        presenter.start()
-        testDispatcher.advanceUntilIdle()
-
-        store.dispatch(
-            MediaAction.UpdateMediaAggregateAction(
-                store.state.media.aggregate.copy(activeTabId = "a", state = MediaState.State.PLAYING)
-            )
-        ).joinBlocking()
-
-        testDispatcher.advanceUntilIdle()
-
-        verify(tabsTray, times(2)).updateTabs(any())
-    }
-
-    @Test
     fun `presenter will close tabs tray when all sessions get removed`() {
         val store = BrowserStore(
             BrowserState(
@@ -303,14 +263,15 @@ class TabsTrayPresenterTest {
             tabsTray,
             store,
             tabsFilter = { true },
-            closeTabsTray = { closed = true })
+            closeTabsTray = { closed = true }
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
 
         assertFalse(closed)
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
         testDispatcher.advanceUntilIdle()
 
         assertTrue(closed)
@@ -337,7 +298,8 @@ class TabsTrayPresenterTest {
             tabsTray,
             store,
             tabsFilter = { true },
-            closeTabsTray = { closed = true })
+            closeTabsTray = { closed = true }
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -433,7 +395,8 @@ class TabsTrayPresenterTest {
             tabsTray,
             store,
             tabsFilter = { it.content.private },
-            closeTabsTray = { invoked = true })
+            closeTabsTray = { invoked = true }
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -478,4 +441,6 @@ private class MockedTabsTray : TabsTray {
     override fun pauseObserver(observer: TabsTray.Observer) {}
 
     override fun resumeObserver(observer: TabsTray.Observer) {}
+
+    override fun isTabSelected(tabs: Tabs, position: Int): Boolean = false
 }

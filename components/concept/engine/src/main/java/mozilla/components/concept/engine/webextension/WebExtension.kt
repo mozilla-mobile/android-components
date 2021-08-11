@@ -7,6 +7,7 @@ package mozilla.components.concept.engine.webextension
 import android.graphics.Bitmap
 import android.net.Uri
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.Settings
 import org.json.JSONObject
 
 /**
@@ -19,7 +20,6 @@ import org.json.JSONObject
  * @property supportActions whether or not browser and page actions are handled when
  * received from the web extension
  */
-@Suppress("TooManyFunctions")
 abstract class WebExtension(
     val id: String,
     val url: String,
@@ -127,8 +127,10 @@ abstract class WebExtension(
      *
      * @param tabHandler the [TabHandler] to be invoked when the web extension
      * wants to open a new tab.
+     * @param defaultSettings used to pass default tab settings to any tabs opened by
+     * a web extension.
      */
-    abstract fun registerTabHandler(tabHandler: TabHandler)
+    abstract fun registerTabHandler(tabHandler: TabHandler, defaultSettings: Settings?)
 
     /**
      * Registers a [TabHandler] for the provided [EngineSession]. The handler
@@ -467,7 +469,10 @@ class DisabledFlags internal constructor(val value: Int) {
 /**
  * Returns whether or not the extension is disabled because it is unsupported.
  */
-fun WebExtension.isUnsupported() = getMetadata()?.disabledFlags?.contains(DisabledFlags.APP_SUPPORT) == true
+fun WebExtension.isUnsupported(): Boolean {
+    val flags = getMetadata()?.disabledFlags
+    return flags?.contains(DisabledFlags.APP_SUPPORT) == true
+}
 
 /**
  * An unexpected event that occurs when trying to perform an action on the extension like

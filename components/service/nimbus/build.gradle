@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+buildscript {
+    repositories {
+        maven {
+            url "https://maven.mozilla.org/maven2"
+        }
+    }
+}
+
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
@@ -28,16 +36,22 @@ android {
 }
 
 dependencies {
-    api Dependencies.mozilla_nimbus
+    // These dependencies are part of this module's public API.
+    api(Dependencies.mozilla_nimbus) {
+        // Use our own version of the Glean dependency,
+        // which might be different from the version declared by A-S.
+        exclude group: 'org.mozilla.components', module: 'service-glean'
+    }
 
+    implementation Dependencies.androidx_core_ktx
+    implementation Dependencies.androidx_constraintlayout
+    implementation Dependencies.androidx_coordinatorlayout
+    implementation Dependencies.androidx_recyclerview
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines
     implementation project(':support-base')
     implementation project(':support-locale')
 
-    compileOnly project(":service-glean")
-    testImplementation project(":service-glean")
-    testImplementation Dependencies.mozilla_glean_forUnitTests
     testImplementation Dependencies.androidx_work_testing
 
     testImplementation Dependencies.mozilla_full_megazord_forUnitTests

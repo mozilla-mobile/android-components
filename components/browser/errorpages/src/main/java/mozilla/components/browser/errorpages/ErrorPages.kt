@@ -4,8 +4,8 @@
 
 package mozilla.components.browser.errorpages
 
+import android.annotation.SuppressLint
 import android.content.Context
-import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import mozilla.components.support.ktx.android.content.appName
 import mozilla.components.support.ktx.kotlin.urlEncode
@@ -15,57 +15,9 @@ object ErrorPages {
     private const val HTML_RESOURCE_FILE = "error_page_js.html"
 
     /**
-     * Load and generate error page for the given error type and html/css resources.
-     * Encoded in Base64 & does NOT support loading images
-     */
-    fun createErrorPage(
-        context: Context,
-        errorType: ErrorType,
-        uri: String? = null,
-        @RawRes htmlResource: Int = R.raw.error_pages,
-        @RawRes cssResource: Int = R.raw.error_style
-    ): String {
-        val css = context.resources.openRawResource(cssResource).bufferedReader().use {
-            it.readText()
-        }
-
-        val showSSLAdvanced: Boolean = when (errorType) {
-            ErrorType.ERROR_SECURITY_SSL, ErrorType.ERROR_SECURITY_BAD_CERT -> true
-            else -> false
-        }
-
-        var htmlPage = context.resources.openRawResource(htmlResource)
-            .bufferedReader()
-            .use { it.readText() }
-            .replace("%pageTitle%", context.getString(R.string.mozac_browser_errorpages_page_title))
-            .replace("%backButton%", context.getString(R.string.mozac_browser_errorpages_page_go_back))
-            .replace("%button%", context.getString(errorType.refreshButtonRes))
-            .replace("%messageShort%", context.getString(errorType.titleRes))
-            .replace("%messageLong%", context.getString(errorType.messageRes, uri))
-            .replace("<ul>", "<ul role=\"presentation\">")
-            .replace("%css%", css)
-
-        htmlPage.apply {
-            if (showSSLAdvanced) {
-                htmlPage = replace("%showSSL%", "true")
-                    .replace("%badCertAdvanced%",
-                        context.getString(R.string.mozac_browser_errorpages_security_bad_cert_advanced))
-                    .replace("%badCertTechInfo%",
-                        context.getString(R.string.mozac_browser_errorpages_security_bad_cert_techInfo,
-                            context.appName, uri.toString()))
-                    .replace("%badCertGoBack%",
-                        context.getString(R.string.mozac_browser_errorpages_security_bad_cert_back))
-                    .replace("%badCertAcceptTemporary%",
-                        context.getString(R.string.mozac_browser_errorpages_security_bad_cert_accept_temporary))
-            }
-        }
-
-        return htmlPage
-    }
-
-    /**
      * Provides an encoded URL for an error page. Supports displaying images
      */
+    @SuppressLint("StringFormatInvalid")
     fun createUrlEncodedErrorPage(
         context: Context,
         errorType: ErrorType,
@@ -77,8 +29,9 @@ object ErrorPages {
         val description = context.getString(errorType.messageRes, uri)
         val imageName = if (errorType.imageNameRes != null) context.getString(errorType.imageNameRes) + ".svg" else ""
         val badCertAdvanced = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_advanced)
-        val badCertTechInfo = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_techInfo,
-                context.appName, uri.toString()
+        val badCertTechInfo = context.getString(
+            R.string.mozac_browser_errorpages_security_bad_cert_techInfo,
+            context.appName, uri.toString()
         )
         val badCertGoBack = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_back)
         val badCertAcceptTemporary = context.getString(
@@ -86,7 +39,7 @@ object ErrorPages {
         )
 
         val showSSLAdvanced: String = when (errorType) {
-            ErrorType.ERROR_SECURITY_SSL, ErrorType.ERROR_SECURITY_BAD_CERT -> true
+            ErrorType.ERROR_SECURITY_BAD_CERT -> true
             else -> false
         }.toString()
 

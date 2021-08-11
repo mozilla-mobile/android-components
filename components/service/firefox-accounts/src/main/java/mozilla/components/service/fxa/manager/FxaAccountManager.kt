@@ -13,27 +13,32 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import mozilla.appservices.syncmanager.DeviceSettings
-import mozilla.components.concept.sync.AuthFlowError
+import mozilla.components.concept.base.crash.CrashReporting
+import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.AccountObserver
-import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.AuthFlowError
 import mozilla.components.concept.sync.AuthFlowUrl
 import mozilla.components.concept.sync.AuthType
-import mozilla.components.concept.sync.AccountEventsObserver
+import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceConfig
 import mozilla.components.concept.sync.InFlightMigrationState
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.ServiceResult
 import mozilla.components.service.fxa.AccountManagerException
+import mozilla.components.service.fxa.AccountOnDisk
 import mozilla.components.service.fxa.AccountStorage
-import mozilla.components.service.fxa.FxaDeviceSettingsCache
 import mozilla.components.service.fxa.FxaAuthData
+import mozilla.components.service.fxa.FxaDeviceSettingsCache
+import mozilla.components.service.fxa.Result
 import mozilla.components.service.fxa.SecureAbove22AccountStorage
 import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SharedPrefAccountStorage
+import mozilla.components.service.fxa.StorageWrapper
 import mozilla.components.service.fxa.SyncAuthInfoCache
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.asAuthFlowUrl
 import mozilla.components.service.fxa.asSyncAuthInfo
 import mozilla.components.service.fxa.intoSyncType
 import mozilla.components.service.fxa.sharing.AccountSharing
@@ -43,16 +48,12 @@ import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.service.fxa.sync.WorkManagerSyncManager
 import mozilla.components.service.fxa.sync.clearSyncState
-import mozilla.components.concept.base.crash.CrashReporting
-import mozilla.components.service.fxa.AccountOnDisk
-import mozilla.components.service.fxa.Result
-import mozilla.components.service.fxa.StorageWrapper
-import mozilla.components.service.fxa.asAuthFlowUrl
 import mozilla.components.service.fxa.withRetries
 import mozilla.components.service.fxa.withServiceRetries
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import mozilla.components.support.base.utils.NamedThreadFactory
 import org.json.JSONObject
 import java.io.Closeable
 import java.lang.Exception
@@ -128,8 +129,9 @@ open class FxaAccountManager(
     private val crashReporter: CrashReporting? = null,
     // We want a single-threaded execution model for our account-related "actions" (state machine side-effects).
     // That is, we want to ensure a sequential execution flow, but on a background thread.
-    private val coroutineContext: CoroutineContext = Executors
-        .newSingleThreadExecutor().asCoroutineDispatcher() + SupervisorJob()
+    private val coroutineContext: CoroutineContext = Executors.newSingleThreadExecutor(
+        NamedThreadFactory("FxaAccountManager")
+    ).asCoroutineDispatcher() + SupervisorJob()
 ) : Closeable, Observable<AccountObserver> by ObserverRegistry() {
     private val logger = Logger("FirefoxAccountStateMachine")
 
@@ -296,7 +298,7 @@ open class FxaAccountManager(
                     maybeUpdateSyncAuthInfoCache()
 
                     // Access to syncManager is guarded by `this`.
-                    synchronized(this) {
+                    synchronized(this@FxaAccountManager) {
                         checkNotNull(syncManager == null) {
                             "Sync is not configured. Construct this class with a 'syncConfig' or use 'setSyncConfig'"
                         }
@@ -853,11 +855,13 @@ open class FxaAccountManager(
         maybeUpdateSyncAuthInfoCache()
 
         // Sync workers also need to know about the current FxA device.
-        FxaDeviceSettingsCache(context).setToCache(DeviceSettings(
-            fxaDeviceId = account.getCurrentDeviceId()!!,
-            name = deviceConfig.name,
-            type = deviceConfig.type.intoSyncType()
-        ))
+        FxaDeviceSettingsCache(context).setToCache(
+            DeviceSettings(
+                fxaDeviceId = account.getCurrentDeviceId()!!,
+                name = deviceConfig.name,
+                type = deviceConfig.type.intoSyncType()
+            )
+        )
 
         // If device supports SEND_TAB, and we're not recovering from an auth problem...
         if (deviceConfig.capabilities.contains(DeviceCapability.SEND_TAB) && authType != AuthType.Recovered) {

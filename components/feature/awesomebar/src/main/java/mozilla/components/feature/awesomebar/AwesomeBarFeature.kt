@@ -10,15 +10,12 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.view.View
 import mozilla.components.browser.icons.BrowserIcons
-import mozilla.components.browser.search.DefaultSearchEngineProvider
-import mozilla.components.browser.search.SearchEngine
-import mozilla.components.browser.search.SearchEngineManager
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.fetch.Client
-import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.awesomebar.provider.ClipboardSuggestionProvider
@@ -44,13 +41,15 @@ class AwesomeBarFeature(
     onEditComplete: (() -> Unit)? = null
 ) {
     init {
-        toolbar.setOnEditListener(ToolbarEditListener(
-            awesomeBar,
-            onEditStart,
-            onEditComplete,
-            ::showAwesomeBar,
-            ::hideAwesomeBar
-        ))
+        toolbar.setOnEditListener(
+            ToolbarEditListener(
+                awesomeBar,
+                onEditStart,
+                onEditComplete,
+                ::showAwesomeBar,
+                ::hideAwesomeBar
+            )
+        )
 
         awesomeBar.setOnStopListener { toolbar.displayMode() }
         awesomeBar.setOnEditSuggestionListener(toolbar::setSearchTerms)
@@ -91,26 +90,28 @@ class AwesomeBarFeature(
         engine: Engine? = null,
         filterExactMatch: Boolean = false
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchSuggestionProvider(
-            searchEngine,
-            searchUseCase,
-            fetchClient,
-            limit,
-            mode,
-            engine,
-            filterExactMatch = filterExactMatch
-        ))
+        awesomeBar.addProviders(
+            SearchSuggestionProvider(
+                searchEngine,
+                searchUseCase,
+                fetchClient,
+                limit,
+                mode,
+                engine,
+                filterExactMatch = filterExactMatch
+            )
+        )
         return this
     }
 
     /**
      * Adds a [AwesomeBar.SuggestionProvider] for search engine suggestions to the [AwesomeBar].
      * If the default search engine is to be used for fetching search engine suggestions then
-     * this method is preferable over [addSearchProvider], as it will lazily load the default
-     * search engine using the provided [SearchEngineManager].
+     * this method is preferable over [addSearchProvider], as it will read the search engine from
+     * the provided [BrowserStore].
      *
      * @param context the activity or application context, required to load search engines.
-     * @param searchEngineManager The search engine manager to look up search engines.
+     * @param store The [BrowserStore] to lookup search engines from.
      * @param searchUseCase The use case to invoke for searches.
      * @param fetchClient The HTTP client for requesting suggestions from the search engine.
      * @param limit The maximum number of suggestions that should be returned. It needs to be >= 1.
@@ -122,7 +123,7 @@ class AwesomeBarFeature(
     @Suppress("LongParameterList")
     fun addSearchProvider(
         context: Context,
-        defaultSearchEngineProvider: DefaultSearchEngineProvider,
+        store: BrowserStore,
         searchUseCase: SearchUseCases.SearchUseCase,
         fetchClient: Client,
         limit: Int = 15,
@@ -130,16 +131,18 @@ class AwesomeBarFeature(
         engine: Engine? = null,
         filterExactMatch: Boolean = false
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchSuggestionProvider(
-            context,
-            defaultSearchEngineProvider,
-            searchUseCase,
-            fetchClient,
-            limit,
-            mode,
-            engine,
-            filterExactMatch = filterExactMatch
-        ))
+        awesomeBar.addProviders(
+            SearchSuggestionProvider(
+                context,
+                store,
+                searchUseCase,
+                fetchClient,
+                limit,
+                mode,
+                engine,
+                filterExactMatch = filterExactMatch
+            )
+        )
         return this
     }
 
@@ -147,40 +150,51 @@ class AwesomeBarFeature(
      * Adds an [AwesomeBar.SuggestionProvider] implementation that always returns a suggestion that
      * mirrors the entered text and invokes a search with the given [SearchEngine] if clicked.
      *
-     * @param searchEngine The search engine to search with.
+     * @param store The [BrowserStore] to read the default search engine from.
      * @param searchUseCase The use case to invoke for searches.
      * @param icon The image to display next to the result. If not specified, the engine icon is used.
      * @param showDescription whether or not to add the search engine name as description.
      */
     fun addSearchActionProvider(
-        defaultSearchEngineProvider: DefaultSearchEngineProvider,
+        store: BrowserStore,
         searchUseCase: SearchUseCases.SearchUseCase,
         icon: Bitmap? = null,
         showDescription: Boolean = false
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(SearchActionProvider(
-            defaultSearchEngineProvider,
-            searchUseCase,
-            icon,
-            showDescription
-        ))
+        awesomeBar.addProviders(
+            SearchActionProvider(
+                store,
+                searchUseCase,
+                icon,
+                showDescription
+            )
+        )
         return this
     }
 
     /**
      * Add a [AwesomeBar.SuggestionProvider] for browsing history to the [AwesomeBar].
      *
-     * @param historyStorage and instance of the [BookmarksStorage] used to query matching bookmarks.
+     * @param historyStorage an instance of the [HistoryStorage] used to query matching history.
      * @param loadUrlUseCase the use case invoked to load the url when the user clicks on the suggestion.
      * @param engine optional [Engine] instance to call [Engine.speculativeConnect] for the
      * highest scored suggestion URL.
+     * @param maxNumberOfSuggestions optional parameter to specify the maximum number of returned suggestions.
+     * Zero or a negative value here means the default number of history suggestions will be returned.
      */
     fun addHistoryProvider(
         historyStorage: HistoryStorage,
         loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
-        engine: Engine? = null
+        engine: Engine? = null,
+        maxNumberOfSuggestions: Int = -1
     ): AwesomeBarFeature {
-        awesomeBar.addProviders(HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine))
+        awesomeBar.addProviders(
+            if (maxNumberOfSuggestions <= 0) {
+                HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine)
+            } else {
+                HistoryStorageSuggestionProvider(historyStorage, loadUrlUseCase, icons, engine, maxNumberOfSuggestions)
+            }
+        )
         return this
     }
 

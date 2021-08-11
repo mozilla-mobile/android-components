@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("TooManyFunctions")
-
 package mozilla.components.concept.engine.manifest.parser
 
 import mozilla.components.concept.engine.manifest.Size
@@ -63,7 +61,7 @@ private fun parsePurposes(json: JSONObject): Set<WebAppManifest.Icon.Purpose> {
 
     return purpose
         .mapNotNull {
-            when (it.toLowerCase(Locale.ROOT)) {
+            when (it.lowercase(Locale.ROOT)) {
                 "monochrome" -> WebAppManifest.Icon.Purpose.MONOCHROME
                 "maskable" -> WebAppManifest.Icon.Purpose.MASKABLE
                 "any" -> WebAppManifest.Icon.Purpose.ANY
@@ -73,7 +71,7 @@ private fun parsePurposes(json: JSONObject): Set<WebAppManifest.Icon.Purpose> {
         .toSet()
 }
 
-internal fun serializeEnumName(name: String) = name.toLowerCase(Locale.ROOT).replace('_', '-')
+internal fun serializeEnumName(name: String) = name.lowercase(Locale.ROOT).replace('_', '-')
 
 internal fun serializeIcons(icons: List<WebAppManifest.Icon>): JSONArray {
     val list = icons.map { icon ->

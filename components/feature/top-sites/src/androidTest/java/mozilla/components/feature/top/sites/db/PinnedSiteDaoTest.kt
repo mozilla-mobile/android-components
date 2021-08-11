@@ -54,16 +54,17 @@ class PinnedSiteDaoTest {
         val pinnedSites = pinnedSiteDao.getPinnedSites()
 
         assertEquals(1, pinnedSites.size)
+        assertEquals(1, pinnedSiteDao.getPinnedSitesCount())
         assertEquals(topSite, pinnedSites[0])
     }
 
     @Test
     fun testUpdatingTopSite() {
         val topSite = PinnedSiteEntity(
-                title = "Mozilla",
-                url = "https://www.mozilla.org",
-                isDefault = false,
-                createdAt = 200
+            title = "Mozilla",
+            url = "https://www.mozilla.org",
+            isDefault = false,
+            createdAt = 200
         ).also {
             it.id = pinnedSiteDao.insertPinnedSite(it)
         }
@@ -75,6 +76,7 @@ class PinnedSiteDaoTest {
         val pinnedSites = pinnedSiteDao.getPinnedSites()
 
         assertEquals(1, pinnedSites.size)
+        assertEquals(1, pinnedSiteDao.getPinnedSitesCount())
         assertEquals(topSite, pinnedSites[0])
         assertEquals(topSite.title, pinnedSites[0].title)
         assertEquals(topSite.url, pinnedSites[0].url)
@@ -100,11 +102,17 @@ class PinnedSiteDaoTest {
             it.id = pinnedSiteDao.insertPinnedSite(it)
         }
 
+        var pinnedSites = pinnedSiteDao.getPinnedSites()
+
+        assertEquals(2, pinnedSites.size)
+        assertEquals(2, pinnedSiteDao.getPinnedSitesCount())
+
         pinnedSiteDao.deletePinnedSite(topSite1)
 
-        val pinnedSites = pinnedSiteDao.getPinnedSites()
+        pinnedSites = pinnedSiteDao.getPinnedSites()
 
         assertEquals(1, pinnedSites.size)
+        assertEquals(1, pinnedSiteDao.getPinnedSitesCount())
         assertEquals(topSite2, pinnedSites[0])
     }
 }

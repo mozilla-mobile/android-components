@@ -40,6 +40,15 @@ class DownloadStorage(context: Context) {
     }
 
     /**
+     * Returns a [List] of all the [DownloadState] instances.
+     */
+    suspend fun getDownloadsList(): List<DownloadState> {
+        return downloadDao.getDownloadsList().map { entity ->
+            entity.toDownloadState()
+        }
+    }
+
+    /**
      * Returns all saved [DownloadState] instances as a [DataSource.Factory].
      */
     fun getDownloadsPaged(): DataSource.Factory<Int, DownloadState> = downloadDao
@@ -77,13 +86,13 @@ class DownloadStorage(context: Context) {
          */
         fun isSameDownload(first: DownloadState, second: DownloadState): Boolean {
             return first.id == second.id &&
-                    first.fileName == second.fileName &&
-                    first.url == second.url &&
-                    first.contentType == second.contentType &&
-                    first.contentLength == second.contentLength &&
-                    first.status == second.status &&
-                    first.destinationDirectory == second.destinationDirectory &&
-                    first.createdTime == second.createdTime
+                first.fileName == second.fileName &&
+                first.url == second.url &&
+                first.contentType == second.contentType &&
+                first.contentLength == second.contentLength &&
+                first.status == second.status &&
+                first.destinationDirectory == second.destinationDirectory &&
+                first.createdTime == second.createdTime
         }
     }
 }

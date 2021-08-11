@@ -15,6 +15,7 @@ internal object TabListReducer {
     /**
      * [TabListAction] Reducer function for modifying the list of [TabSessionState] objects in [BrowserState.tabs].
      */
+    @Suppress("LongMethod")
     fun reduce(state: BrowserState, action: TabListAction): BrowserState {
         return when (action) {
             is TabListAction.AddTabAction -> {
@@ -262,7 +263,8 @@ private fun findNearbyTab(
     for (steps in 1..maxSteps) {
         listOf(index - steps, index + steps).forEach { current ->
             if (current in 0..tabs.lastIndex &&
-                predicate(tabs[current])) {
+                predicate(tabs[current])
+            ) {
                 return tabs[current]
             }
         }

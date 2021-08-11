@@ -8,7 +8,8 @@ import android.content.DialogInterface
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.ext.appCompatContext
+import mozilla.components.feature.prompts.R
+import mozilla.components.support.test.ext.appCompatContext
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -33,6 +34,8 @@ class ConfirmDialogFragmentTest {
         fragment = spy(
             ConfirmDialogFragment.newInstance(
                 "sessionId",
+                "uid",
+                true,
                 "title",
                 "message",
                 "positiveLabel",
@@ -51,18 +54,19 @@ class ConfirmDialogFragmentTest {
         dialog.show()
 
         val titleTextView = dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)
-        val messageTextView = dialog.findViewById<TextView>(android.R.id.message)
+        val messageTextView = dialog.findViewById<TextView>(R.id.message)
 
         assertEquals(fragment.sessionId, "sessionId")
+        assertEquals(fragment.promptRequestUID, "uid")
         assertEquals(fragment.message, "message")
 
         val positiveButton = (dialog as AlertDialog).getButton(DialogInterface.BUTTON_POSITIVE)
         val negativeButton = dialog.getButton(DialogInterface.BUTTON_NEGATIVE)
 
-        assertEquals(titleTextView.text, "title")
-        assertEquals(messageTextView.text, "message")
-        assertEquals(positiveButton.text, "positiveLabel")
-        assertEquals(negativeButton.text, "negativeLabel")
+        assertEquals("title", titleTextView.text)
+        assertEquals("message", messageTextView.text.toString())
+        assertEquals("positiveLabel", positiveButton.text)
+        assertEquals("negativeLabel", negativeButton.text)
     }
 
     @Test
@@ -78,7 +82,7 @@ class ConfirmDialogFragmentTest {
         val positiveButton = (dialog as AlertDialog).getButton(DialogInterface.BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", null)
+        verify(mockFeature).onConfirm("sessionId", "uid", false)
     }
 
     @Test
@@ -94,7 +98,7 @@ class ConfirmDialogFragmentTest {
         val negativeButton = (dialog as AlertDialog).getButton(DialogInterface.BUTTON_NEGATIVE)
         negativeButton.performClick()
 
-        verify(mockFeature).onCancel("sessionId")
+        verify(mockFeature).onCancel("sessionId", "uid", false)
     }
 
     @Test
@@ -115,6 +119,6 @@ class ConfirmDialogFragmentTest {
 
         fragment.onCancel(dialog)
 
-        verify(mockFeature).onCancel("sessionId")
+        verify(mockFeature).onCancel("sessionId", "uid", false)
     }
 }

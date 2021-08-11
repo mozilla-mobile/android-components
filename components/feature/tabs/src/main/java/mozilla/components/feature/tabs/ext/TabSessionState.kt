@@ -4,24 +4,25 @@
 
 package mozilla.components.feature.tabs.ext
 
-import mozilla.components.browser.state.state.MediaState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.concept.engine.media.Media
 import mozilla.components.concept.tabstray.Tab
 
-internal fun TabSessionState.toTab(
-    mediaState: MediaState.State
-) = Tab(
+internal fun TabSessionState.toTab() = Tab(
     id,
     content.url,
     content.title,
+    content.private,
     content.icon,
     content.thumbnail,
-    when (mediaState) {
-        MediaState.State.PLAYING -> Media.State.PLAYING
-        MediaState.State.PAUSED -> Media.State.PAUSED
-        else -> null
-    },
     mediaSessionState?.playbackState,
-    mediaSessionState?.controller
+    mediaSessionState?.controller,
+    lastAccess
 )
+
+/**
+ * Check whether this tab has played media before - any media which started playing in this HTML document,
+ * irrespective of it's current state (eg: playing, paused, stopped).
+ */
+fun TabSessionState.hasMediaPlayed(): Boolean {
+    return lastMediaAccessState.lastMediaUrl == content.url || lastMediaAccessState.mediaSessionActive
+}

@@ -11,8 +11,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.feature.prompts.R.id
+import mozilla.components.support.test.ext.appCompatContext
 import mozilla.components.support.test.mock
-import mozilla.ext.appCompatContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -39,7 +39,7 @@ class TextPromptDialogFragmentTest {
     fun `build dialog`() {
 
         val fragment = spy(
-            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", true)
+            TextPromptDialogFragment.newInstance("sessionId", "uid", true, "title", "label", "defaultValue", true)
         )
 
         doReturn(appCompatContext).`when`(fragment).requireContext()
@@ -51,9 +51,10 @@ class TextPromptDialogFragmentTest {
         val titleTextView = dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)
         val inputLabel = dialog.findViewById<TextView>(id.input_label)
         val inputValue = dialog.findViewById<TextView>(id.input_value)
-        val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
+        val checkBox = dialog.findViewById<CheckBox>(id.mozac_feature_prompts_no_more_dialogs_check_box)
 
         assertEquals(fragment.sessionId, "sessionId")
+        assertEquals(fragment.promptRequestUID, "uid")
         assertEquals(fragment.title, "title")
         assertEquals(fragment.labelInput, "label")
         assertEquals(fragment.defaultInputValue, "defaultValue")
@@ -76,7 +77,7 @@ class TextPromptDialogFragmentTest {
     fun `TextPrompt with hasShownManyDialogs equals false should not have a checkbox`() {
 
         val fragment = spy(
-            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", false)
+            TextPromptDialogFragment.newInstance("sessionId", "uid", false, "title", "label", "defaultValue", false)
         )
 
         doReturn(appCompatContext).`when`(fragment).requireContext()
@@ -85,7 +86,7 @@ class TextPromptDialogFragmentTest {
 
         dialog.show()
 
-        val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
+        val checkBox = dialog.findViewById<CheckBox>(id.mozac_feature_prompts_no_more_dialogs_check_box)
 
         assertFalse(checkBox.isVisible)
     }
@@ -94,7 +95,7 @@ class TextPromptDialogFragmentTest {
     fun `Clicking on positive button notifies the feature`() {
 
         val fragment = spy(
-            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", false)
+            TextPromptDialogFragment.newInstance("sessionId", "uid", true, "title", "label", "defaultValue", false)
         )
 
         fragment.feature = mockFeature
@@ -107,14 +108,14 @@ class TextPromptDialogFragmentTest {
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", false to "defaultValue")
+        verify(mockFeature).onConfirm("sessionId", "uid", false to "defaultValue")
     }
 
     @Test
     fun `After checking no more dialogs checkbox feature onNoMoreDialogsChecked must be called`() {
 
         val fragment = spy(
-            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", true)
+            TextPromptDialogFragment.newInstance("sessionId", "uid", false, "title", "label", "defaultValue", true)
         )
 
         fragment.feature = mockFeature
@@ -124,21 +125,21 @@ class TextPromptDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
-        val checkBox = dialog.findViewById<CheckBox>(id.no_more_dialogs_check_box)
+        val checkBox = dialog.findViewById<CheckBox>(id.mozac_feature_prompts_no_more_dialogs_check_box)
 
         checkBox.isChecked = true
 
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
 
-        verify(mockFeature).onConfirm("sessionId", true to "defaultValue")
+        verify(mockFeature).onConfirm("sessionId", "uid", true to "defaultValue")
     }
 
     @Test
     fun `touching outside of the dialog must notify the feature onCancel`() {
 
         val fragment = spy(
-            TextPromptDialogFragment.newInstance("sessionId", "title", "label", "defaultValue", true)
+            TextPromptDialogFragment.newInstance("sessionId", "uid", true, "title", "label", "defaultValue", true)
         )
 
         fragment.feature = mockFeature
@@ -147,6 +148,6 @@ class TextPromptDialogFragmentTest {
 
         fragment.onCancel(mock())
 
-        verify(mockFeature).onCancel("sessionId")
+        verify(mockFeature).onCancel("sessionId", "uid")
     }
 }

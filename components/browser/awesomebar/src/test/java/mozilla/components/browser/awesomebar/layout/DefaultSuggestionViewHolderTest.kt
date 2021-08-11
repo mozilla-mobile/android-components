@@ -7,6 +7,7 @@ package mozilla.components.browser.awesomebar.layout
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.awesomebar.BrowserAwesomeBar
@@ -34,7 +35,8 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `DefaultViewHolder sets title and description`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_generic, null, false)
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
 
         val awesomeBar = BrowserAwesomeBar(testContext)
         val viewHolder = DefaultSuggestionViewHolder.Default(awesomeBar, view)
@@ -42,7 +44,8 @@ class DefaultSuggestionViewHolderTest {
         val suggestion = AwesomeBar.Suggestion(
             mock(),
             title = "Hello World",
-            description = "https://www.mozilla.org")
+            description = "https://www.mozilla.org"
+        )
 
         viewHolder.bind(suggestion) {
             // Do nothing
@@ -57,16 +60,70 @@ class DefaultSuggestionViewHolderTest {
     }
 
     @Test
+    fun `DefaultViewHolder has a rotated image for edit button if set as such in awesomebar`() {
+        val view = LayoutInflater.from(testContext).inflate(
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
+
+        val awesomeBar = BrowserAwesomeBar(testContext)
+        awesomeBar.customizeForBottomToolbar = true
+        val viewHolder = DefaultSuggestionViewHolder.Default(awesomeBar, view)
+
+        val suggestion = AwesomeBar.Suggestion(
+            mock(),
+            title = "Hello World",
+            description = "https://www.mozilla.org",
+            editSuggestion = "https://www.mozilla.org"
+        )
+
+        viewHolder.bind(suggestion, awesomeBar.customizeForBottomToolbar) {
+            // Do nothing
+        }
+
+        val editArrowButton = view.findViewById<ImageButton>(R.id.mozac_browser_awesomebar_edit_suggestion)
+        assertEquals(View.VISIBLE, editArrowButton.visibility)
+        assertEquals(270f, editArrowButton.rotation)
+    }
+
+    @Test
+    fun `DefaultViewHolder does not have a rotated image for edit button if set as such in awesomebar`() {
+        val view = LayoutInflater.from(testContext).inflate(
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
+
+        val awesomeBar = BrowserAwesomeBar(testContext)
+        awesomeBar.customizeForBottomToolbar = false
+        val viewHolder = DefaultSuggestionViewHolder.Default(awesomeBar, view)
+
+        val suggestion = AwesomeBar.Suggestion(
+            mock(),
+            title = "Hello World",
+            description = "https://www.mozilla.org",
+            editSuggestion = "https://www.mozilla.org"
+        )
+
+        viewHolder.bind(suggestion, awesomeBar.customizeForBottomToolbar) {
+            // Do nothing
+        }
+
+        val editArrowButton = view.findViewById<ImageButton>(R.id.mozac_browser_awesomebar_edit_suggestion)
+        assertEquals(View.VISIBLE, editArrowButton.visibility)
+        assertEquals(0f, editArrowButton.rotation)
+    }
+
+    @Test
     fun `DefaultViewHolder without description hides description view`() {
         val view = LayoutInflater.from(testContext).inflate(
-                R.layout.mozac_browser_awesomebar_item_generic, null, false)
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
 
         val awesomeBar = BrowserAwesomeBar(testContext)
         val viewHolder = DefaultSuggestionViewHolder.Default(awesomeBar, view)
 
         val suggestion = AwesomeBar.Suggestion(
-                mock(),
-                title = "Hello World")
+            mock(),
+            title = "Hello World"
+        )
 
         viewHolder.bind(suggestion) {
             // Do nothing
@@ -82,10 +139,12 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `Clicking on default suggestion view invokes callback`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_generic, null, false)
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
 
         val viewHolder = DefaultSuggestionViewHolder.Default(
-            BrowserAwesomeBar(testContext), view)
+            BrowserAwesomeBar(testContext), view
+        )
 
         var callbackExecuted = false
         val suggestion = AwesomeBar.Suggestion(
@@ -107,18 +166,19 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `Clicking on edit suggestion button invokes callback`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_generic, null, false)
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
 
         var callbackExecuted = false
 
         val viewHolder = DefaultSuggestionViewHolder.Default(
-                BrowserAwesomeBar(testContext).apply {
-                    setOnEditSuggestionListener {
-                        assertEquals("Hello World", it)
-                        callbackExecuted = true
-                    }
-                },
-                view
+            BrowserAwesomeBar(testContext).apply {
+                setOnEditSuggestionListener {
+                    assertEquals("Hello World", it)
+                    callbackExecuted = true
+                }
+            },
+            view
         )
 
         val suggestion = AwesomeBar.Suggestion(
@@ -137,7 +197,8 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `Edit suggestion button is hidden when editSuggestion is empty`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_generic, null, false)
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
 
         val viewHolder = DefaultSuggestionViewHolder.Default(
             BrowserAwesomeBar(testContext),
@@ -160,17 +221,21 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `ChipsSuggestionViewHolder adds views for chips`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_chips, null, false)
+            R.layout.mozac_browser_awesomebar_item_chips, null, false
+        )
 
         val viewHolder = DefaultSuggestionViewHolder.Chips(
-            BrowserAwesomeBar(testContext), view)
+            BrowserAwesomeBar(testContext), view
+        )
 
         val suggestion = AwesomeBar.Suggestion(
             mock(),
             chips = listOf(
                 AwesomeBar.Suggestion.Chip("Hello"),
                 AwesomeBar.Suggestion.Chip("World"),
-                AwesomeBar.Suggestion.Chip("Example")))
+                AwesomeBar.Suggestion.Chip("Example")
+            )
+        )
 
         val container = view.findViewById<ViewGroup>(R.id.mozac_browser_awesomebar_chips)
 
@@ -190,10 +255,12 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `Clicking on a chip invokes callback`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_chips, null, false)
+            R.layout.mozac_browser_awesomebar_item_chips, null, false
+        )
 
         val viewHolder = DefaultSuggestionViewHolder.Chips(
-            BrowserAwesomeBar(testContext), view)
+            BrowserAwesomeBar(testContext), view
+        )
 
         var chipClicked: String? = null
 
@@ -202,10 +269,12 @@ class DefaultSuggestionViewHolderTest {
             chips = listOf(
                 AwesomeBar.Suggestion.Chip("Hello"),
                 AwesomeBar.Suggestion.Chip("World"),
-                AwesomeBar.Suggestion.Chip("Example")),
+                AwesomeBar.Suggestion.Chip("Example")
+            ),
             onChipClicked = {
                 chipClicked = it.title
-            })
+            }
+        )
 
         viewHolder.bind(suggestion) {
             // Do nothing.
@@ -226,7 +295,8 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `FlowLayout for chips has spacing applied`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_chips, null, false)
+            R.layout.mozac_browser_awesomebar_item_chips, null, false
+        )
 
         val flowLayout = view.findViewById<FlowLayout>(R.id.mozac_browser_awesomebar_chips)
 
@@ -241,7 +311,8 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `DefaultViewHolder truncates title and description if needed`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_generic, null, false)
+            R.layout.mozac_browser_awesomebar_item_generic, null, false
+        )
 
         MAX_TEXT_LENGTH = 5
         val awesomeBar = BrowserAwesomeBar(testContext)
@@ -250,7 +321,8 @@ class DefaultSuggestionViewHolderTest {
         val suggestion = AwesomeBar.Suggestion(
             mock(),
             title = "123456789",
-            description = "123456789")
+            description = "123456789"
+        )
 
         viewHolder.bind(suggestion) {
             // Do nothing
@@ -267,11 +339,13 @@ class DefaultSuggestionViewHolderTest {
     @Test
     fun `ChipsSuggestionViewHolder truncates title if needed`() {
         val view = LayoutInflater.from(testContext).inflate(
-            R.layout.mozac_browser_awesomebar_item_chips, null, false)
+            R.layout.mozac_browser_awesomebar_item_chips, null, false
+        )
 
         MAX_TEXT_LENGTH = 5
         val viewHolder = DefaultSuggestionViewHolder.Chips(
-            BrowserAwesomeBar(testContext), view)
+            BrowserAwesomeBar(testContext), view
+        )
 
         val suggestion = AwesomeBar.Suggestion(
             mock(),

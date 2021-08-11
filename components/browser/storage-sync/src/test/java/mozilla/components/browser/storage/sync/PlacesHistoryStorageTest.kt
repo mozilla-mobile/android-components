@@ -10,7 +10,13 @@ import mozilla.appservices.places.InternalPanic
 import mozilla.appservices.places.PlacesException
 import mozilla.appservices.places.PlacesReaderConnection
 import mozilla.appservices.places.PlacesWriterConnection
+import mozilla.appservices.places.VisitObservation
 import mozilla.components.concept.storage.BookmarkNode
+import mozilla.components.concept.storage.DocumentType
+import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryMetadata
+import mozilla.components.concept.storage.HistoryMetadataKey
+import mozilla.components.concept.storage.HistoryMetadataObservation
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.RedirectSource
@@ -22,6 +28,7 @@ import mozilla.components.support.test.robolectric.testContext
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -80,22 +87,27 @@ class PlacesHistoryStorageTest {
         assertEquals(VisitType.DOWNLOAD, recordedVisits[8].visitType)
 
         // Can use WebView-style getVisited API.
-        assertEquals(listOf(
+        assertEquals(
+            listOf(
                 "http://www.firefox.com/1", "http://www.firefox.com/2", "http://www.firefox.com/3",
                 "http://www.firefox.com/4", "http://www.firefox.com/5", "http://www.firefox.com/6",
                 "http://www.firefox.com/7", "http://www.firefox.com/8", "http://www.firefox.com/9"
-        ), history.getVisited())
+            ),
+            history.getVisited()
+        )
 
         // Can use GeckoView-style getVisited API.
         assertEquals(
-                listOf(false, true, true, true, true, true, true, false, true, true, true),
-                history.getVisited(listOf(
-                        "http://www.mozilla.com",
-                        "http://www.firefox.com/1", "http://www.firefox.com/2", "http://www.firefox.com/3",
-                        "http://www.firefox.com/4", "http://www.firefox.com/5", "http://www.firefox.com/6",
-                        "http://www.firefox.com/oops",
-                        "http://www.firefox.com/7", "http://www.firefox.com/8", "http://www.firefox.com/9"
-                ))
+            listOf(false, true, true, true, true, true, true, false, true, true, true),
+            history.getVisited(
+                listOf(
+                    "http://www.mozilla.com",
+                    "http://www.firefox.com/1", "http://www.firefox.com/2", "http://www.firefox.com/3",
+                    "http://www.firefox.com/4", "http://www.firefox.com/5", "http://www.firefox.com/6",
+                    "http://www.firefox.com/oops",
+                    "http://www.firefox.com/7", "http://www.firefox.com/8", "http://www.firefox.com/9"
+                )
+            )
         )
 
         // Can query using pagination.
@@ -156,15 +168,24 @@ class PlacesHistoryStorageTest {
             history.recordVisit(url, PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         }
 
-        var infos = history.getTopFrecentSites(0)
+        var infos = history.getTopFrecentSites(0, frecencyThreshold = FrecencyThresholdOption.NONE)
         assertEquals(0, infos.size)
 
-        infos = history.getTopFrecentSites(3)
+        infos = history.getTopFrecentSites(0, frecencyThreshold = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES)
+        assertEquals(0, infos.size)
+
+        infos = history.getTopFrecentSites(3, frecencyThreshold = FrecencyThresholdOption.NONE)
         assertEquals(3, infos.size)
         assertEquals("https://www.mozilla.com/foo/bar/baz", infos[0].url)
         assertEquals("https://www.example.com/123", infos[1].url)
+        assertEquals("https://news.ycombinator.com/", infos[2].url)
 
-        infos = history.getTopFrecentSites(5)
+        infos = history.getTopFrecentSites(3, frecencyThreshold = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES)
+        assertEquals(2, infos.size)
+        assertEquals("https://www.mozilla.com/foo/bar/baz", infos[0].url)
+        assertEquals("https://www.example.com/123", infos[1].url)
+
+        infos = history.getTopFrecentSites(5, frecencyThreshold = FrecencyThresholdOption.NONE)
         assertEquals(5, infos.size)
         assertEquals("https://www.mozilla.com/foo/bar/baz", infos[0].url)
         assertEquals("https://www.example.com/123", infos[1].url)
@@ -172,13 +193,26 @@ class PlacesHistoryStorageTest {
         assertEquals("https://mozilla.com/a1/b2/c3", infos[3].url)
         assertEquals("https://www.example.com/12345", infos[4].url)
 
-        infos = history.getTopFrecentSites(100)
+        infos = history.getTopFrecentSites(5, frecencyThreshold = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES)
+        assertEquals(2, infos.size)
+        assertEquals("https://www.mozilla.com/foo/bar/baz", infos[0].url)
+        assertEquals("https://www.example.com/123", infos[1].url)
+
+        infos = history.getTopFrecentSites(100, frecencyThreshold = FrecencyThresholdOption.NONE)
         assertEquals(5, infos.size)
         assertEquals("https://www.mozilla.com/foo/bar/baz", infos[0].url)
         assertEquals("https://www.example.com/123", infos[1].url)
         assertEquals("https://news.ycombinator.com/", infos[2].url)
         assertEquals("https://mozilla.com/a1/b2/c3", infos[3].url)
         assertEquals("https://www.example.com/12345", infos[4].url)
+
+        infos = history.getTopFrecentSites(100, frecencyThreshold = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES)
+        assertEquals(2, infos.size)
+        assertEquals("https://www.mozilla.com/foo/bar/baz", infos[0].url)
+        assertEquals("https://www.example.com/123", infos[1].url)
+
+        infos = history.getTopFrecentSites(-4, frecencyThreshold = FrecencyThresholdOption.SKIP_ONE_TIME_PAGES)
+        assertEquals(0, infos.size)
     }
 
     @Test
@@ -230,8 +264,8 @@ class PlacesHistoryStorageTest {
         history.recordVisit("https://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         history.recordVisit("https://www.wikipedia.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         assertEquals(
-                listOf("https://www.mozilla.org/", "https://www.firefox.com/", "https://www.wikipedia.org/"),
-                history.getVisited()
+            listOf("https://www.mozilla.org/", "https://www.firefox.com/", "https://www.wikipedia.org/"),
+            history.getVisited()
         )
     }
 
@@ -773,13 +807,18 @@ class PlacesHistoryStorageTest {
         visits = history.getDetailedVisits(0, Long.MAX_VALUE)
         assertEquals(152, visits.size)
 
-        assertEquals(listOf(false, false, true, true, false), history.reader.getVisited(listOf(
-            "files:///",
-            "https://news.ycombinator.com/",
-            "https://www.theguardian.com/film/2017/jul/24/stranger-things-thor-ragnarok-comic-con-2017",
-            "http://www.bbc.com/news/world-us-canada-40662772",
-            "https://mobile.reuters.com/"
-        )))
+        assertEquals(
+            listOf(false, false, true, true, false),
+            history.reader.getVisited(
+                listOf(
+                    "files:///",
+                    "https://news.ycombinator.com/",
+                    "https://www.theguardian.com/film/2017/jul/24/stranger-things-thor-ragnarok-comic-con-2017",
+                    "http://www.bbc.com/news/world-us-canada-40662772",
+                    "https://mobile.reuters.com/"
+                )
+            )
+        )
 
         with(visits[0]) {
             assertEquals("Apple", this.title)
@@ -799,15 +838,20 @@ class PlacesHistoryStorageTest {
         visits = history.getDetailedVisits(0, Long.MAX_VALUE)
         assertEquals(6, visits.size)
 
-        assertEquals(listOf(false, true, true, true, true, true, true), history.reader.getVisited(listOf(
-            "files:///",
-            "https://news.ycombinator.com/",
-            "https://news.ycombinator.com/item?id=21224209",
-            "https://mobile.twitter.com/random_walker/status/1182635589604171776",
-            "https://www.mozilla.org/en-US/",
-            "https://www.mozilla.org/en-US/firefox/accounts/",
-            "https://mobile.reuters.com/"
-        )))
+        assertEquals(
+            listOf(false, true, true, true, true, true, true),
+            history.reader.getVisited(
+                listOf(
+                    "files:///",
+                    "https://news.ycombinator.com/",
+                    "https://news.ycombinator.com/item?id=21224209",
+                    "https://mobile.twitter.com/random_walker/status/1182635589604171776",
+                    "https://www.mozilla.org/en-US/",
+                    "https://www.mozilla.org/en-US/firefox/accounts/",
+                    "https://mobile.reuters.com/"
+                )
+            )
+        )
 
         with(visits[0]) {
             assertEquals("Hacker News", this.title)
@@ -857,13 +901,18 @@ class PlacesHistoryStorageTest {
         visits = history.getDetailedVisits(0, Long.MAX_VALUE)
         assertEquals(6, visits.size)
 
-        assertEquals(listOf(true, true, true, true, true), history.reader.getVisited(listOf(
-            "https://www.newegg.com/",
-            "https://news.ycombinator.com/",
-            "https://terrytao.wordpress.com/2020/04/12/john-conway/",
-            "https://news.ycombinator.com/item?id=22862053",
-            "https://malleable.systems/"
-        )))
+        assertEquals(
+            listOf(true, true, true, true, true),
+            history.reader.getVisited(
+                listOf(
+                    "https://www.newegg.com/",
+                    "https://news.ycombinator.com/",
+                    "https://terrytao.wordpress.com/2020/04/12/john-conway/",
+                    "https://news.ycombinator.com/item?id=22862053",
+                    "https://malleable.systems/"
+                )
+            )
+        )
 
         with(visits[0]) {
             assertEquals("Computer Parts, PC Components, Laptop Computers, LED LCD TV, Digital Cameras and more - Newegg.com", this.title)
@@ -901,6 +950,223 @@ class PlacesHistoryStorageTest {
             assertEquals(1586838164613, this.visitTime)
             assertEquals(VisitType.LINK, this.visitType)
         }
+    }
+
+    @Test
+    fun `record and get latest history metadata by url`() = runBlocking {
+        val metaKey = HistoryMetadataKey(
+            url = "https://doc.rust-lang.org/std/macro.assert_eq.html",
+            searchTerm = "rust assert_eq",
+            referrerUrl = "http://www.google.com/"
+        )
+
+        assertNull(history.getLatestHistoryMetadataForUrl(metaKey.url))
+        history.noteHistoryMetadataObservation(metaKey, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular))
+        history.noteHistoryMetadataObservation(metaKey, HistoryMetadataObservation.ViewTimeObservation(5000))
+
+        val dbMeta = history.getLatestHistoryMetadataForUrl(metaKey.url)
+        assertNotNull(dbMeta)
+        assertHistoryMetadataRecord(metaKey, 5000, DocumentType.Regular, dbMeta!!)
+    }
+
+    @Test
+    fun `get history query`() = runBlocking {
+        assertEquals(0, history.queryHistoryMetadata("keystore", 1).size)
+
+        val metaKey1 = HistoryMetadataKey(
+            url = "https://sql.telemetry.mozilla.org/dashboard/android-keystore-reliability-experiment",
+            searchTerm = "keystore reliability",
+            referrerUrl = "http://self.mozilla.com/"
+        )
+        history.noteHistoryMetadataObservation(metaKey1, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular))
+        history.noteHistoryMetadataObservation(metaKey1, HistoryMetadataObservation.ViewTimeObservation(20000))
+
+        val metaKey2 = HistoryMetadataKey(
+            url = "https://www.youtube.com/watch?v=F7PQdCDiE44",
+            searchTerm = "crisis",
+            referrerUrl = "https://www.google.com/search?client=firefox-b-d&q=dw+crisis"
+        )
+        history.noteHistoryMetadataObservation(metaKey2, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media))
+        history.noteHistoryMetadataObservation(metaKey2, HistoryMetadataObservation.ViewTimeObservation(30000))
+
+        history.writer.noteObservation(
+            VisitObservation(
+                url = "https://www.youtube.com/watch?v=F7PQdCDiE44",
+                title = "DW next crisis",
+                visitType = mozilla.appservices.places.VisitType.LINK
+            )
+        )
+
+        val metaKey3 = HistoryMetadataKey(
+            url = "https://www.cbc.ca/news/canada/toronto/covid-19-ontario-april-16-2021-new-restrictions-modelling-1.5990092",
+            searchTerm = "ford covid19",
+            referrerUrl = "https://duckduckgo.com/?q=ford+covid19&t=hc&va=u&ia=web"
+        )
+        history.noteHistoryMetadataObservation(metaKey3, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular))
+        history.noteHistoryMetadataObservation(metaKey3, HistoryMetadataObservation.ViewTimeObservation(20000))
+
+        val metaKey4 = HistoryMetadataKey(
+            url = "https://www.youtube.com/watch?v=TfXbzbJQHuw",
+            searchTerm = "dw nyc rich",
+            referrerUrl = "https://duckduckgo.com/?q=dw+nyc+rich&t=hc&va=u&ia=web"
+        )
+        history.noteHistoryMetadataObservation(metaKey4, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media))
+        history.noteHistoryMetadataObservation(metaKey4, HistoryMetadataObservation.ViewTimeObservation(20000))
+
+        assertEquals(0, history.queryHistoryMetadata("keystore", 0).size)
+
+        // query by url
+        with(history.queryHistoryMetadata("dashboard", 10)) {
+            assertEquals(1, this.size)
+            assertHistoryMetadataRecord(metaKey1, 20000, DocumentType.Regular, this[0])
+        }
+
+        // query by title
+        with(history.queryHistoryMetadata("next crisis", 10)) {
+            assertEquals(1, this.size)
+            assertHistoryMetadataRecord(metaKey2, 30000, DocumentType.Media, this[0])
+        }
+
+        // query by search term
+        with(history.queryHistoryMetadata("covid19", 10)) {
+            assertEquals(1, this.size)
+            assertHistoryMetadataRecord(metaKey3, 20000, DocumentType.Regular, this[0])
+        }
+
+        // multiple results, mixed search targets
+        with(history.queryHistoryMetadata("dw", 10)) {
+            assertEquals(2, this.size)
+            assertHistoryMetadataRecord(metaKey2, 30000, DocumentType.Media, this[0])
+            assertHistoryMetadataRecord(metaKey4, 20000, DocumentType.Media, this[1])
+        }
+
+        // limit is respected
+        with(history.queryHistoryMetadata("dw", 1)) {
+            assertEquals(1, this.size)
+            assertHistoryMetadataRecord(metaKey2, 30000, DocumentType.Media, this[0])
+        }
+    }
+
+    @Test
+    fun `get history metadata between`() = runBlocking {
+        assertEquals(0, history.getHistoryMetadataBetween(-1, 0).size)
+        assertEquals(0, history.getHistoryMetadataBetween(0, Long.MAX_VALUE).size)
+        assertEquals(0, history.getHistoryMetadataBetween(Long.MAX_VALUE, Long.MIN_VALUE).size)
+        assertEquals(0, history.getHistoryMetadataBetween(Long.MIN_VALUE, Long.MAX_VALUE).size)
+
+        val beginning = System.currentTimeMillis()
+
+        val metaKey1 = HistoryMetadataKey(
+            url = "https://www.youtube.com/watch?v=lNeRQuiKBd4",
+            referrerUrl = "http://www.twitter.com"
+        )
+        history.noteHistoryMetadataObservation(metaKey1, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media))
+        history.noteHistoryMetadataObservation(metaKey1, HistoryMetadataObservation.ViewTimeObservation(20000))
+        val afterMeta1 = System.currentTimeMillis()
+
+        val metaKey2 = HistoryMetadataKey(
+            url = "https://www.youtube.com/watch?v=Cs1b5qvCZ54",
+            searchTerm = "путин валдай",
+            referrerUrl = "http://www.yandex.ru"
+        )
+        history.noteHistoryMetadataObservation(metaKey2, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media))
+        history.noteHistoryMetadataObservation(metaKey2, HistoryMetadataObservation.ViewTimeObservation(200))
+        val afterMeta2 = System.currentTimeMillis()
+
+        val metaKey3 = HistoryMetadataKey(
+            url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+            searchTerm = "repairable wireless headset",
+            referrerUrl = "http://www.google.com"
+        )
+        history.noteHistoryMetadataObservation(metaKey3, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular))
+        history.noteHistoryMetadataObservation(metaKey3, HistoryMetadataObservation.ViewTimeObservation(2000))
+
+        assertEquals(3, history.getHistoryMetadataBetween(0, Long.MAX_VALUE).size)
+        assertEquals(0, history.getHistoryMetadataBetween(Long.MAX_VALUE, 0).size)
+        assertEquals(0, history.getHistoryMetadataBetween(Long.MIN_VALUE, 0).size)
+
+        with(history.getHistoryMetadataBetween(beginning, afterMeta1)) {
+            assertEquals(1, this.size)
+            assertEquals("https://www.youtube.com/watch?v=lNeRQuiKBd4", this[0].key.url)
+        }
+        with(history.getHistoryMetadataBetween(beginning, afterMeta2)) {
+            assertEquals(2, this.size)
+            assertEquals("https://www.youtube.com/watch?v=Cs1b5qvCZ54", this[0].key.url)
+            assertEquals("https://www.youtube.com/watch?v=lNeRQuiKBd4", this[1].key.url)
+        }
+        with(history.getHistoryMetadataBetween(afterMeta1, afterMeta2)) {
+            assertEquals(1, this.size)
+            assertEquals("https://www.youtube.com/watch?v=Cs1b5qvCZ54", this[0].key.url)
+        }
+    }
+
+    @Test
+    fun `get history metadata since`() = runBlocking {
+        val beginning = System.currentTimeMillis()
+
+        assertEquals(0, history.getHistoryMetadataSince(-1).size)
+        assertEquals(0, history.getHistoryMetadataSince(0).size)
+        assertEquals(0, history.getHistoryMetadataSince(Long.MIN_VALUE).size)
+        assertEquals(0, history.getHistoryMetadataSince(Long.MAX_VALUE).size)
+        assertEquals(0, history.getHistoryMetadataSince(beginning).size)
+
+        val metaKey1 = HistoryMetadataKey(
+            url = "https://www.youtube.com/watch?v=lNeRQuiKBd4",
+            referrerUrl = "http://www.twitter.com/"
+        )
+        history.noteHistoryMetadataObservation(metaKey1, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media))
+        history.noteHistoryMetadataObservation(metaKey1, HistoryMetadataObservation.ViewTimeObservation(20000))
+
+        val afterMeta1 = System.currentTimeMillis()
+
+        val metaKey2 = HistoryMetadataKey(
+            url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+            searchTerm = "repairable wireless headset",
+            referrerUrl = "http://www.google.com/"
+        )
+        history.noteHistoryMetadataObservation(metaKey2, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular))
+        history.noteHistoryMetadataObservation(metaKey2, HistoryMetadataObservation.ViewTimeObservation(2000))
+
+        val afterMeta2 = System.currentTimeMillis()
+
+        val metaKey3 = HistoryMetadataKey(
+            url = "https://www.youtube.com/watch?v=Cs1b5qvCZ54",
+            searchTerm = "путин валдай",
+            referrerUrl = "http://www.yandex.ru/"
+        )
+        history.noteHistoryMetadataObservation(metaKey3, HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media))
+        history.noteHistoryMetadataObservation(metaKey3, HistoryMetadataObservation.ViewTimeObservation(200))
+
+        // order is by updatedAt
+        with(history.getHistoryMetadataSince(beginning)) {
+            assertEquals(3, this.size)
+            assertHistoryMetadataRecord(metaKey3, 200, DocumentType.Media, this[0])
+            assertHistoryMetadataRecord(metaKey2, 2000, DocumentType.Regular, this[1])
+            assertHistoryMetadataRecord(metaKey1, 20000, DocumentType.Media, this[2])
+        }
+
+        // search is inclusive of time
+        with(history.getHistoryMetadataSince(afterMeta1)) {
+            assertEquals(2, this.size)
+            assertHistoryMetadataRecord(metaKey3, 200, DocumentType.Media, this[0])
+            assertHistoryMetadataRecord(metaKey2, 2000, DocumentType.Regular, this[1])
+        }
+
+        with(history.getHistoryMetadataSince(afterMeta2)) {
+            assertEquals(1, this.size)
+            assertHistoryMetadataRecord(metaKey3, 200, DocumentType.Media, this[0])
+        }
+    }
+
+    private fun assertHistoryMetadataRecord(
+        expectedKey: HistoryMetadataKey,
+        expectedTotalViewTime: Int,
+        expectedDocumentType: DocumentType,
+        db_meta: HistoryMetadata
+    ) {
+        assertEquals(expectedKey, db_meta.key)
+        assertEquals(expectedTotalViewTime, db_meta.totalViewTime)
+        assertEquals(expectedDocumentType, db_meta.documentType)
     }
 }
 

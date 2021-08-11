@@ -29,8 +29,7 @@ internal class TrackingProtectionIconView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : AppCompatImageView(context, attrs, defStyleAttr) {
-
-    var siteTrackingProtection: SiteTrackingProtection = ON_NO_TRACKERS_BLOCKED
+    var siteTrackingProtection: SiteTrackingProtection? = null
         set(value) {
             if (value != field) {
                 field = value
@@ -66,7 +65,7 @@ internal class TrackingProtectionIconView @JvmOverloads constructor(
 
     @Synchronized
     private fun updateIcon() {
-        val update = siteTrackingProtection.toUpdate()
+        val update = siteTrackingProtection?.toUpdate() ?: return
 
         isVisible = update.visible
 
@@ -97,14 +96,15 @@ internal class TrackingProtectionIconView @JvmOverloads constructor(
         val DEFAULT_ICON_ON_TRACKERS_BLOCKED =
             R.drawable.mozac_ic_tracking_protection_on_trackers_blocked
         val DEFAULT_ICON_OFF_FOR_A_SITE =
-            R.drawable.mozac_ic_tracking_protection_on_trackers_blocked
+            R.drawable.mozac_ic_tracking_protection_off_for_a_site
     }
 
     private fun SiteTrackingProtection.toUpdate(): Update = when (this) {
         ON_NO_TRACKERS_BLOCKED -> Update(
             iconOnNoTrackersBlocked,
             R.string.mozac_browser_toolbar_content_description_tracking_protection_on_no_trackers_blocked,
-            true)
+            true
+        )
 
         ON_TRACKERS_BLOCKED -> Update(
             iconOnTrackersBlocked,
@@ -126,7 +126,7 @@ internal class TrackingProtectionIconView @JvmOverloads constructor(
     }
 }
 
-private class Update(
+internal class Update(
     val drawable: Drawable?,
     @StringRes val contentDescription: Int?,
     val visible: Boolean

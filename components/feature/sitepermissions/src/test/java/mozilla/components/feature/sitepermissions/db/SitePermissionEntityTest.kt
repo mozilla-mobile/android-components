@@ -4,10 +4,11 @@
 
 package mozilla.components.feature.sitepermissions.db
 
-import mozilla.components.feature.sitepermissions.SitePermissions
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.ALLOWED
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.BLOCKED
-import mozilla.components.feature.sitepermissions.SitePermissions.Status.NO_DECISION
+import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissions.AutoplayStatus
+import mozilla.components.concept.engine.permission.SitePermissions.Status.ALLOWED
+import mozilla.components.concept.engine.permission.SitePermissions.Status.BLOCKED
+import mozilla.components.concept.engine.permission.SitePermissions.Status.NO_DECISION
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -23,8 +24,9 @@ class SitePermissionEntityTest {
             microphone = NO_DECISION,
             camera = NO_DECISION,
             bluetooth = ALLOWED,
-            autoplayInaudible = BLOCKED,
-            autoplayAudible = NO_DECISION,
+            autoplayInaudible = AutoplayStatus.ALLOWED,
+            autoplayAudible = AutoplayStatus.BLOCKED,
+            mediaKeySystemAccess = NO_DECISION,
             savedAt = 0
         )
 
@@ -40,6 +42,7 @@ class SitePermissionEntityTest {
             assertEquals(bluetooth, domainClass.bluetooth)
             assertEquals(autoplayAudible, domainClass.autoplayAudible)
             assertEquals(autoplayInaudible, domainClass.autoplayInaudible)
+            assertEquals(mediaKeySystemAccess, domainClass.mediaKeySystemAccess)
             assertEquals(savedAt, domainClass.savedAt)
         }
     }
@@ -54,6 +57,9 @@ class SitePermissionEntityTest {
             microphone = NO_DECISION,
             camera = NO_DECISION,
             bluetooth = ALLOWED,
+            autoplayInaudible = AutoplayStatus.ALLOWED,
+            autoplayAudible = AutoplayStatus.BLOCKED,
+            mediaKeySystemAccess = NO_DECISION,
             savedAt = 0
         )
 
@@ -67,6 +73,9 @@ class SitePermissionEntityTest {
             assertEquals(microphone, domainClass.microphone)
             assertEquals(camera, domainClass.camera)
             assertEquals(bluetooth, domainClass.bluetooth)
+            assertEquals(autoplayAudible, domainClass.autoplayAudible)
+            assertEquals(autoplayInaudible, domainClass.autoplayInaudible)
+            assertEquals(mediaKeySystemAccess, domainClass.mediaKeySystemAccess)
             assertEquals(savedAt, domainClass.savedAt)
         }
     }

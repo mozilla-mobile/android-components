@@ -4,10 +4,18 @@
 
 package mozilla.components.browser.engine.gecko.mediasession
 
+import android.graphics.Bitmap
+import kotlinx.coroutines.withTimeoutOrNull
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
+import mozilla.components.browser.engine.gecko.await
 import mozilla.components.concept.engine.mediasession.MediaSession
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.Image.ImageProcessingException
 import org.mozilla.geckoview.MediaSession as GeckoViewMediaSession
+
+private const val ARTWORK_RETRIEVE_TIMEOUT = 1000L
+private const val ARTWORK_IMAGE_SIZE = 48
+private const val ARTWORK_ERROR_SIZE = 1
 
 internal class GeckoMediaSessionDelegate(
     private val engineSession: GeckoEngineSession
@@ -30,9 +38,30 @@ internal class GeckoMediaSessionDelegate(
         mediaSession: GeckoViewMediaSession,
         metaData: GeckoViewMediaSession.Metadata
     ) {
+        val getArtwork: (suspend () -> Bitmap?)? = metaData.artwork?.let {
+            {
+                try {
+                    var bitmap = withTimeoutOrNull(ARTWORK_RETRIEVE_TIMEOUT) {
+                        it.getBitmap(ARTWORK_IMAGE_SIZE).await()
+                    }
+
+                    /* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1697255 */
+                    if (bitmap != null &&
+                        (bitmap.height <= ARTWORK_ERROR_SIZE || bitmap.width <= ARTWORK_ERROR_SIZE)
+                    ) {
+                        bitmap = null
+                    }
+
+                    bitmap
+                } catch (e: ImageProcessingException) {
+                    null
+                }
+            }
+        }
+
         engineSession.notifyObservers {
             onMediaMetadataChanged(
-                MediaSession.Metadata(metaData.title, metaData.artist, metaData.album)
+                MediaSession.Metadata(metaData.title, metaData.artist, metaData.album, getArtwork)
             )
         }
     }
@@ -72,8 +101,10 @@ internal class GeckoMediaSessionDelegate(
     ) {
         engineSession.notifyObservers {
             onMediaPositionStateChanged(
-                MediaSession.PositionState(positionState.duration, positionState.position,
-                    positionState.playbackRate)
+                MediaSession.PositionState(
+                    positionState.duration, positionState.position,
+                    positionState.playbackRate
+                )
             )
         }
     }

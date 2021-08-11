@@ -7,7 +7,6 @@ package mozilla.components.feature.addons.ui
 import android.widget.ImageButton
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.support.test.any
@@ -30,10 +29,9 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 class UnsupportedAddonsAdapterTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `removing successfully notifies the adapter item changed`() {
@@ -80,10 +78,10 @@ class UnsupportedAddonsAdapterTest {
         )
         val removeButtonTwo = ImageButton(testContext)
         val unsupportedViewHolderTwo = UnsupportedAddonsAdapter.UnsupportedAddonViewHolder(
-                view = mock(),
-                iconView = mock(),
-                titleView = mock(),
-                removeButton = removeButtonTwo
+            view = mock(),
+            iconView = mock(),
+            titleView = mock(),
+            removeButton = removeButtonTwo
         )
         val addonManager: AddonManager = mock()
         val addonOne = Addon("id1")

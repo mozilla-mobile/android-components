@@ -8,8 +8,11 @@ import android.graphics.Bitmap
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
 import mozilla.components.browser.state.state.content.HistoryState
+import mozilla.components.browser.state.state.content.PermissionHighlightsState
+import mozilla.components.browser.state.state.content.ShareInternetResourceState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
@@ -31,8 +34,9 @@ import mozilla.components.concept.engine.window.WindowRequest
  * be used as a preview in e.g. a tab switcher.
  * @property icon the icon of the page currently loaded by this session.
  * @property download Last unhandled download request.
+ * @property share Last unhandled request to share an internet resource that first needs to be downloaded.
  * @property hitResult the target of the latest long click operation.
- * @property promptRequest the last received [PromptRequest].
+ * @property promptRequests current[PromptRequest]s.
  * @property findResults the list of results of the latest "find in page" operation.
  * @property windowRequest the last received [WindowRequest].
  * @property searchRequest the last received [SearchRequest]
@@ -44,12 +48,18 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property firstContentfulPaint whether or not the first contentful paint has happened.
  * @property pictureInPictureEnabled True if the session is being displayed in PIP mode.
  * @property loadRequest last [LoadRequestState] if this session.
- * @property permissionRequestsList Holds unprocessed content requests.
+ * @property permissionIndicator Holds the state of any site permission that was granted/denied
+ * that should be brought to the user's attention, for example when media content is not able to
+ * play because the autoplay settings.
  * @property appPermissionRequestsList Holds unprocessed app requests.
  * @property refreshCanceled Indicates if an intent of refreshing was canceled.
  * True if a page refresh was cancelled by the user, defaults to false. Note that this is not about
  * stopping an ongoing page load but useful in cases like swipe-to-refresh which allow users to
  * cancel or abort before a page is refreshed.
+ * @property recordingDevices List of recording devices (e.g. camera or microphone) currently in use
+ * by web content.
+ * @property desktopMode true if desktop mode is enabled, otherwise false.
+ * @property appIntent the last received [AppIntentState].
  */
 data class ContentState(
     val url: String,
@@ -62,8 +72,9 @@ data class ContentState(
     val thumbnail: Bitmap? = null,
     val icon: Bitmap? = null,
     val download: DownloadState? = null,
+    val share: ShareInternetResourceState? = null,
     val hitResult: HitResult? = null,
-    val promptRequest: PromptRequest? = null,
+    val promptRequests: List<PromptRequest> = emptyList(),
     val findResults: List<FindResultState> = emptyList(),
     val windowRequest: WindowRequest? = null,
     val searchRequest: SearchRequest? = null,
@@ -74,9 +85,13 @@ data class ContentState(
     val webAppManifest: WebAppManifest? = null,
     val firstContentfulPaint: Boolean = false,
     val history: HistoryState = HistoryState(),
+    val permissionHighlights: PermissionHighlightsState = PermissionHighlightsState(),
     val permissionRequestsList: List<PermissionRequest> = emptyList(),
     val appPermissionRequestsList: List<PermissionRequest> = emptyList(),
     val pictureInPictureEnabled: Boolean = false,
     val loadRequest: LoadRequestState? = null,
-    val refreshCanceled: Boolean = false
+    val refreshCanceled: Boolean = false,
+    val recordingDevices: List<RecordingDevice> = emptyList(),
+    val desktopMode: Boolean = false,
+    val appIntent: AppIntentState? = null
 )

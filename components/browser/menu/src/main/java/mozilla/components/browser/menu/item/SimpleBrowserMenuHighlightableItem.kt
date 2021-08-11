@@ -27,6 +27,9 @@ import mozilla.components.concept.menu.candidate.TextStyle
  * @param textColorResource Optional ID of color resource to tint the text.
  * @param textSize The size of the label.
  * @param backgroundTint Tint for the menu item background color
+ * @param isCollapsingMenuLimit Whether this menu item can serve as the limit of a collapsing menu.
+ * @param isSticky whether this item menu should not be scrolled offscreen (downwards or upwards
+ * depending on the menu position).
  * @param isHighlighted Whether or not to display the highlight
  * @param listener Callback to be invoked when this menu item is clicked.
  */
@@ -36,6 +39,8 @@ class SimpleBrowserMenuHighlightableItem(
     @ColorRes private val textColorResource: Int = NO_ID,
     private val textSize: Float = NO_ID.toFloat(),
     @ColorInt val backgroundTint: Int,
+    override val isCollapsingMenuLimit: Boolean = false,
+    override val isSticky: Boolean = false,
     var isHighlighted: () -> Boolean = { true },
     private val listener: () -> Unit = {}
 ) : BrowserMenuItem {
@@ -91,15 +96,15 @@ class SimpleBrowserMenuHighlightableItem(
 
     override fun asCandidate(context: Context): MenuCandidate {
         val textStyle = TextStyle(
-                size = if (textSize == NO_ID.toFloat()) null else textSize,
-                color = if (textColorResource == NO_ID) null else ContextCompat.getColor(context, textColorResource)
+            size = if (textSize == NO_ID.toFloat()) null else textSize,
+            color = if (textColorResource == NO_ID) null else ContextCompat.getColor(context, textColorResource)
         )
         val containerStyle = ContainerStyle(isVisible = visible())
         return TextMenuCandidate(
-                label,
-                textStyle = textStyle,
-                containerStyle = containerStyle,
-                onClick = listener
+            label,
+            textStyle = textStyle,
+            containerStyle = containerStyle,
+            onClick = listener
         )
     }
 }

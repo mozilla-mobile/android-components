@@ -2,24 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("TooManyFunctions")
-
 package mozilla.components.support.ktx.android.content
 
 import android.app.ActivityManager
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_DIAL
 import android.content.Intent.ACTION_SEND
 import android.content.Intent.ACTION_SENDTO
 import android.content.Intent.EXTRA_EMAIL
+import android.content.Intent.EXTRA_STREAM
 import android.content.Intent.EXTRA_SUBJECT
 import android.content.Intent.EXTRA_TEXT
+import android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.hardware.camera2.CameraManager
 import android.net.Uri
+import android.os.Build
 import android.os.Process
 import android.provider.ContactsContract
 import android.view.accessibility.AccessibilityManager
@@ -30,11 +33,13 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.checkSelfPermission
+import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.R
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
+import java.io.File
 
 /**
  * The (visible) version name of the application, as specified by the <manifest> tag's versionName
@@ -114,13 +119,63 @@ fun Context.share(text: String, subject: String = getString(R.string.mozac_suppo
 }
 
 /**
+ * Shares content via [ACTION_SEND] intent.
+ *
+ * @param text the data to be shared [EXTRA_TEXT]
+ * @param subject of the intent [EXTRA_TEXT]
+ * @return true it is able to share false otherwise.
+ */
+fun Context.shareMedia(
+    filePath: String,
+    contentType: String?,
+    subject: String? = null,
+    message: String? = null
+): Boolean {
+    val contentUri = FileProvider.getUriForFile(
+        this,
+        "${applicationContext.packageName}.feature.downloads.fileprovider", // (packageName + FILE_PROVIDER_EXTENSION)
+        File(filePath)
+    )
+
+    val intent = Intent().apply {
+        action = ACTION_SEND
+        type = contentType ?: contentResolver.getType(contentUri)
+        flags = FLAG_ACTIVITY_NEW_DOCUMENT or FLAG_GRANT_READ_URI_PERMISSION
+        putExtra(EXTRA_STREAM, contentUri)
+        if (subject != null) {
+            putExtra(EXTRA_SUBJECT, subject)
+        }
+        if (message != null) {
+            putExtra(EXTRA_TEXT, message)
+        }
+    }
+
+    val shareIntent = Intent.createChooser(intent, getString(R.string.mozac_support_ktx_menu_share_with)).apply {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android Q allows us to show a thumbnail preview of the file to be shared.
+            clipData = ClipData.newRawUri(contentUri.toString(), contentUri)
+        }
+
+        flags = FLAG_ACTIVITY_NEW_TASK or FLAG_GRANT_READ_URI_PERMISSION
+    }
+
+    return try {
+        startActivity(shareIntent)
+        true
+    } catch (error: ActivityNotFoundException) {
+        Log.log(Log.Priority.WARN, message = "No activity to share to found", throwable = error, tag = "shareMedia")
+
+        false
+    }
+}
+
+/**
  * Emails content via [ACTION_SENDTO] intent.
  *
  * @param address the email address to send to [EXTRA_EMAIL]
  * @param subject of the intent [EXTRA_TEXT]
  * @return true it is able to share email false otherwise.
  */
-@SuppressWarnings("TooManyFunctions")
 fun Context.email(
     address: String,
     subject: String = getString(R.string.mozac_support_ktx_share_dialog_title)

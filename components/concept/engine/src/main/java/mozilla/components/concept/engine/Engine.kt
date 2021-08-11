@@ -6,10 +6,12 @@ package mozilla.components.concept.engine
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.JsonReader
 import androidx.annotation.MainThread
+import mozilla.components.concept.base.profiler.Profiler
+import mozilla.components.concept.engine.activity.ActivityDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
-import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
@@ -20,7 +22,6 @@ import org.json.JSONObject
 /**
  * Entry point for interacting with the engine implementation.
  */
-@Suppress("TooManyFunctions")
 interface Engine : WebExtensionRuntime, DataCleanable {
 
     /**
@@ -97,6 +98,11 @@ interface Engine : WebExtensionRuntime, DataCleanable {
     fun createSessionState(json: JSONObject): EngineSessionState
 
     /**
+     * Creates a new [EngineSessionState] instances from the serialized JSON representation.
+     */
+    fun createSessionStateFrom(reader: JsonReader): EngineSessionState
+
+    /**
      * Returns the name of this engine. The returned string might be used
      * in filenames and must therefore only contain valid filename
      * characters.
@@ -154,6 +160,19 @@ interface Engine : WebExtensionRuntime, DataCleanable {
     fun registerWebPushDelegate(
         webPushDelegate: WebPushDelegate
     ): WebPushHandler = throw UnsupportedOperationException("Web Push support is not available in this engine")
+
+    /**
+     * Registers an [ActivityDelegate] to be notified on activity events that are needed by the engine.
+     */
+    fun registerActivityDelegate(
+        activityDelegate: ActivityDelegate
+    ): Unit = throw UnsupportedOperationException("This engine does not have support for an Activity delegate.")
+
+    /**
+     * Un-registers the attached [ActivityDelegate] if one was added with [registerActivityDelegate].
+     */
+    fun unregisterActivityDelegate(): Unit =
+        throw UnsupportedOperationException("This engine does not have support for an Activity delegate.")
 
     /**
      * Fetch a list of trackers logged for a given [session] .

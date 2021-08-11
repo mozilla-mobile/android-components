@@ -5,8 +5,8 @@
 package mozilla.components.feature.tab.collections.adapter
 
 import android.content.Context
-import mozilla.components.browser.session.SessionManager
-import mozilla.components.browser.session.ext.readSnapshotItem
+import mozilla.components.browser.session.storage.serialize.BrowserStateReader
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.tab.collections.Tab
 import mozilla.components.feature.tab.collections.TabCollection
@@ -33,7 +33,7 @@ internal class TabCollectionAdapter(
         context: Context,
         engine: Engine,
         restoreSessionId: Boolean
-    ): List<SessionManager.Snapshot.Item> {
+    ): List<RecoverableTab> {
         return restore(context, engine, entity.tabs, restoreSessionId)
     }
 
@@ -42,9 +42,10 @@ internal class TabCollectionAdapter(
         engine: Engine,
         tabs: List<Tab>,
         restoreSessionId: Boolean
-    ): List<SessionManager.Snapshot.Item> {
+    ): List<RecoverableTab> {
         val entities = entity.tabs.filter {
-            candidate -> tabs.find { tab -> tab.id == candidate.id } != null
+            candidate ->
+            tabs.find { tab -> tab.id == candidate.id } != null
         }
         return restore(context, engine, entities, restoreSessionId)
     }
@@ -54,9 +55,11 @@ internal class TabCollectionAdapter(
         engine: Engine,
         tabs: List<TabEntity>,
         restoreSessionId: Boolean
-    ): List<SessionManager.Snapshot.Item> {
+    ): List<RecoverableTab> {
+        val reader = BrowserStateReader()
         return tabs.mapNotNull { tab ->
-            tab.getStateFile(context.filesDir).readSnapshotItem(engine, restoreSessionId)
+            val file = tab.getStateFile(context.filesDir)
+            reader.readTab(engine, file, restoreSessionId, restoreParentId = false)
         }
     }
 

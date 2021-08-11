@@ -6,10 +6,12 @@ package mozilla.components.browser.thumbnails.utils
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.Build
+import androidx.annotation.VisibleForTesting
 import com.jakewharton.disklrucache.DiskLruCache
-import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.concept.base.images.ImageSaveRequest
+import mozilla.components.support.base.log.logger.Logger
 import java.io.File
 import java.io.IOException
 
@@ -22,12 +24,18 @@ private const val WEBP_QUALITY = 90
  */
 class ThumbnailDiskCache {
     private val logger = Logger("ThumbnailDiskCache")
-    private var thumbnailCache: DiskLruCache? = null
+
+    @VisibleForTesting
+    internal var thumbnailCache: DiskLruCache? = null
     private val thumbnailCacheWriteLock = Any()
 
     internal fun clear(context: Context) {
         synchronized(thumbnailCacheWriteLock) {
-            getThumbnailCache(context).delete()
+            try {
+                getThumbnailCache(context).delete()
+            } catch (e: IOException) {
+                logger.warn("Thumbnail cache could not be cleared. Perhaps there are none?")
+            }
             thumbnailCache = null
         }
     }
@@ -60,13 +68,20 @@ class ThumbnailDiskCache {
      * @param bitmap the thumbnail [Bitmap] to store.
      */
     internal fun putThumbnailBitmap(context: Context, request: ImageSaveRequest, bitmap: Bitmap) {
+        val compressFormat = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+
         try {
             synchronized(thumbnailCacheWriteLock) {
                 val editor = getThumbnailCache(context)
                     .edit(request) ?: return
 
                 editor.newOutputStream(0).use { stream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, WEBP_QUALITY, stream)
+                    bitmap.compress(compressFormat, WEBP_QUALITY, stream)
                 }
 
                 editor.commit()

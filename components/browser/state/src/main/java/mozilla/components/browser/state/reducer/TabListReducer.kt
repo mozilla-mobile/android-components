@@ -139,13 +139,15 @@ internal object TabListReducer {
                 restoredTabs.forEach { requireUniqueTab(state, it) }
 
                 // We are adding the restored tabs at their original indices. If the removal index
-                // for some reason is null, the tab will be restored to the end of the tab list. The
-                // removal index will be reset to null when added to the combined list.
-                val combinedTabList = arrayListOf<TabSessionState>().apply {
+                // for some reason is -1, the tab will be restored to the end of the tab list. The
+                // removal index will be reset to -1 when added to the combined list.
+                val combinedTabList = mutableListOf<TabSessionState>().apply {
                     addAll(state.tabs)
                     restoredTabs.forEachIndexed { index, restoredTab ->
-                        val removalIndex = action.tabs[index].removalIndex ?: size
-                        val restoreIndex = if (removalIndex > size) size else removalIndex
+                        val removalIndex = action.tabs[index].index
+                        val restoreIndex =
+                            if (removalIndex > size || removalIndex < 0) size
+                            else removalIndex
                         add(restoreIndex, restoredTab)
                     }
                 }

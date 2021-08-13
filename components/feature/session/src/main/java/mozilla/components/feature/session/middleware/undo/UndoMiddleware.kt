@@ -13,7 +13,6 @@ import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.selector.findTab
-import mozilla.components.browser.state.selector.findTabIndex
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
@@ -25,7 +24,7 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
 import mozilla.components.support.base.log.logger.Logger
-import java.util.UUID
+import java.util.*
 import mozilla.components.support.base.coroutines.Dispatchers as MozillaDispatchers
 
 /**
@@ -87,11 +86,11 @@ class UndoMiddleware(
     ) {
         clearJob?.cancel()
 
-        val recoverableTabs = arrayListOf<RecoverableTab>()
-        tabs.forEach {
-            if (it is TabSessionState) {
-                val index = context.state.findTabIndex(it.id)
-                recoverableTabs.add(it.toRecoverableTab(index))
+        val recoverableTabs = mutableListOf<RecoverableTab>()
+        tabs.forEach { tab ->
+            if (tab is TabSessionState) {
+                val index = context.state.tabs.indexOfFirst { it.id == tab.id }
+                recoverableTabs.add(tab.toRecoverableTab(index))
             }
         }
 

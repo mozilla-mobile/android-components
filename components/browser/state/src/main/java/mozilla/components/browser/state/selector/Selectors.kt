@@ -131,15 +131,3 @@ val BrowserState.normalTabs: List<TabSessionState>
  */
 val BrowserState.allTabs: List<SessionState>
     get() = tabs + customTabs
-
-/**
- * Finds and returns the index of the tab with the given id. Returns null if no matching tab could be
- * found.
- *
- * @param tabId The ID of the tab to search for.
- * @return The index [Int] with the provided [tabId] or null if it could not be found.
- */
-fun BrowserState.findTabIndex(tabId: String): Int? {
-    val index = tabs.indexOfFirst { it.id == tabId }
-    return if (index == -1) null else index
-}

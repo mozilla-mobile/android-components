@@ -594,7 +594,7 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = 0),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = 0),
                 ),
                 selectedTabId = null
             )
@@ -622,7 +622,7 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = 1),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = 1),
                 ),
                 selectedTabId = null
             )
@@ -650,7 +650,7 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = 2),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = 2),
                 ),
                 selectedTabId = null
             )
@@ -678,7 +678,7 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = 4),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = 4),
                 ),
                 selectedTabId = null
             )
@@ -706,8 +706,8 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = 3),
-                    RecoverableTab(id = "d", url = "https://www.example.org", removalIndex = 0),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = 3),
+                    RecoverableTab(id = "d", url = "https://www.example.org", index = 0),
                 ),
                 selectedTabId = null
             )
@@ -736,8 +736,8 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = 0),
-                    RecoverableTab(id = "d", url = "https://www.example.org", removalIndex = 0),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = 0),
+                    RecoverableTab(id = "d", url = "https://www.example.org", index = 0),
                 ),
                 selectedTabId = null
             )
@@ -751,7 +751,7 @@ class TabListActionTest {
     }
 
     @Test
-    fun `RestoreAction - Add tabs with a null removal index`() {
+    fun `RestoreAction - Add tabs with a -1 removal index`() {
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(
@@ -766,7 +766,7 @@ class TabListActionTest {
         store.dispatch(
             TabListAction.RestoreAction(
                 tabs = listOf(
-                    RecoverableTab(id = "c", url = "https://www.example.org", removalIndex = null),
+                    RecoverableTab(id = "c", url = "https://www.example.org", index = -1),
                     RecoverableTab(id = "d", url = "https://www.example.org"),
                 ),
                 selectedTabId = null

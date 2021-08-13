@@ -18,7 +18,6 @@ import mozilla.components.feature.autofill.response.dataset.LoginDatasetBuilder
 import mozilla.components.feature.autofill.response.fill.AuthFillResponseBuilder
 import mozilla.components.feature.autofill.response.fill.FillResponseBuilder
 import mozilla.components.feature.autofill.response.fill.LoginFillResponseBuilder
-import mozilla.components.feature.autofill.structure.ParsedStructure
 import mozilla.components.feature.autofill.structure.RawStructure
 import mozilla.components.feature.autofill.structure.getLookupDomain
 import mozilla.components.feature.autofill.structure.parseStructure
@@ -50,13 +49,6 @@ internal class FillRequestHandler(
         }
 
         val parsedStructure = parseStructure(context, structure) ?: return null
-        return handle(parsedStructure, forceUnlock)
-    }
-
-    suspend fun handle(
-        parsedStructure: ParsedStructure,
-        forceUnlock: Boolean = false
-    ): FillResponseBuilder {
         val lookupDomain = parsedStructure.getLookupDomain(configuration.publicSuffixList)
         val needsConfirmation = !configuration.verifier.hasCredentialRelationship(
             context,
@@ -68,10 +60,15 @@ internal class FillRequestHandler(
             .getByBaseDomain(lookupDomain)
             .take(MAX_LOGINS)
 
+        if (logins.isEmpty()) {
+            emitAutofillRequestFact(hasLogins = false)
+            return null
+        }
+
         return if (!configuration.lock.keepUnlocked() && !forceUnlock) {
             AuthFillResponseBuilder(parsedStructure)
         } else {
-            emitAutofillRequestFact(hasLogins = logins.isNotEmpty(), needsConfirmation)
+            emitAutofillRequestFact(hasLogins = true, needsConfirmation)
             LoginFillResponseBuilder(parsedStructure, logins, needsConfirmation)
         }
     }

@@ -15,7 +15,6 @@ import androidx.annotation.RequiresApi
 import mozilla.components.feature.autofill.AutofillConfiguration
 import mozilla.components.feature.autofill.R
 import mozilla.components.feature.autofill.structure.ParsedStructure
-import mozilla.components.feature.autofill.ui.AbstractAutofillUnlockActivity
 
 internal data class AuthFillResponseBuilder(
     private val parsedStructure: ParsedStructure
@@ -41,10 +40,6 @@ internal data class AuthFillResponseBuilder(
         }
 
         val authIntent = Intent(context, configuration.unlockActivity)
-        authIntent.putExtra(
-            AbstractAutofillUnlockActivity.EXTRA_PARSED_STRUCTURE,
-            parsedStructure
-        )
 
         val intentSender: IntentSender = PendingIntent.getActivity(
             context,

@@ -132,7 +132,7 @@ class UndoMiddleware(
             return@launch
         }
 
-        store.dispatch(TabListAction.RestoreAction(tabs))
+        store.dispatch(TabListAction.RestoreAction(tabs, restoreLocation = TabListAction.RestoreLocation.AT_INDEX))
 
         // Restore the previous selection if needed.
         undoHistory.selectedTabId?.let { tabId ->

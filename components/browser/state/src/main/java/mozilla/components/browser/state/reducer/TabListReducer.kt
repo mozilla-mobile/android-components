@@ -138,17 +138,23 @@ internal object TabListReducer {
                 val restoredTabs = action.tabs.toTabSessionStates()
                 restoredTabs.forEach { requireUniqueTab(state, it) }
 
-                // We are adding the restored tabs at their original indices. If the removal index
-                // for some reason is -1, the tab will be restored to the end of the tab list. The
-                // removal index will be reset to -1 when added to the combined list.
-                val combinedTabList = mutableListOf<TabSessionState>().apply {
-                    addAll(state.tabs)
-                    restoredTabs.forEachIndexed { index, restoredTab ->
-                        val removalIndex = action.tabs[index].index
-                        val restoreIndex =
-                            if (removalIndex > size || removalIndex < 0) size
-                            else removalIndex
-                        add(restoreIndex, restoredTab)
+                // Using the enum, action.restoreLocation, we are adding the restored tabs at
+                // either the beginning of the tab list, the end of the tab list, or at a
+                // specified index (RecoverableTab.index). If the index for some reason is -1,
+                // the tab will be restored to the end of the tab list. Upon restoration, the
+                // index will be reset to -1 when added to the combined list.
+                val combinedTabList: List<TabSessionState> = when(action.restoreLocation) {
+                    TabListAction.RestoreLocation.BEGINNING -> restoredTabs + state.tabs
+                    TabListAction.RestoreLocation.END -> state.tabs + restoredTabs
+                    TabListAction.RestoreLocation.AT_INDEX -> mutableListOf<TabSessionState>().apply {
+                        addAll(state.tabs)
+                        restoredTabs.forEachIndexed { index, restoredTab ->
+                            val removalIndex = action.tabs[index].index
+                            val restoreIndex =
+                                if (removalIndex > size || removalIndex < 0) size
+                                else removalIndex
+                            add(restoreIndex, restoredTab)
+                        }
                     }
                 }
 

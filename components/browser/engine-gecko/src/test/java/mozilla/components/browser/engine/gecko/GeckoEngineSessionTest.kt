@@ -65,7 +65,7 @@ import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.ContentBlockingController
@@ -2199,6 +2199,23 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun onShowDynamicToolbarTriggersTheRightEvent() {
+        val engineSession = GeckoEngineSession(
+            mock(),
+            geckoSessionProvider = geckoSessionProvider
+        )
+        val observer: EngineSession.Observer = mock()
+
+        // Verify the call to the observer.
+        engineSession.register(observer)
+        captureDelegates()
+
+        contentDelegate.value.onShowDynamicToolbar(geckoSession)
+
+        verify(observer).onShowDynamicToolbar()
+    }
+
+    @Test
     fun clearData() {
         val engineSession = GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider)
         val observer: EngineSession.Observer = mock()
@@ -2207,7 +2224,7 @@ class GeckoEngineSessionTest {
 
         engineSession.clearData()
 
-        verifyZeroInteractions(observer)
+        verifyNoInteractions(observer)
     }
 
     @Test

@@ -51,7 +51,7 @@ class BrowserStoreExceptionTest {
             val tab1 = createTab("https://www.mozilla.org")
             store.dispatch(TabListAction.AddTabAction(tab1)).joinBlocking()
 
-            store.dispatch(TabListAction.RestoreAction(listOf(tab1.toRecoverableTab()))).joinBlocking()
+            store.dispatch(TabListAction.RestoreAction(listOf(tab1.toRecoverableTab()), restoreLocation = TabListAction.RestoreLocation.BEGINNING)).joinBlocking()
         }
     }
 

@@ -472,7 +472,8 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", private = true),
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
-                selectedTabId = "d"
+                selectedTabId = "d",
+                restoreLocation = TabListAction.RestoreLocation.BEGINNING
             )
         ).joinBlocking()
 
@@ -485,7 +486,7 @@ class TabListActionTest {
     }
 
     @Test
-    fun `RestoreAction - Adds restored tabs to existing tabs without updating selection`() {
+    fun `RestoreAction - Adds restored tabs to the beginning of existing tabs without updating selection`() {
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(
@@ -504,7 +505,41 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", private = true),
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
-                selectedTabId = "d"
+                selectedTabId = "d",
+                restoreLocation = TabListAction.RestoreLocation.BEGINNING
+            )
+        ).joinBlocking()
+
+        assertEquals(4, store.state.tabs.size)
+        assertEquals("c", store.state.tabs[0].id)
+        assertEquals("d", store.state.tabs[1].id)
+        assertEquals("a", store.state.tabs[2].id)
+        assertEquals("b", store.state.tabs[3].id)
+        assertEquals("a", store.state.selectedTabId)
+    }
+
+    @Test
+    fun `RestoreAction - Adds restored tabs to the end of existing tabs without updating selection`() {
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab(id = "a", url = "https://www.mozilla.org", private = false),
+                    createTab(id = "b", url = "https://www.firefox.com", private = true)
+                ),
+                selectedTabId = "a"
+            )
+        )
+
+        assertEquals(2, store.state.tabs.size)
+
+        store.dispatch(
+            TabListAction.RestoreAction(
+                tabs = listOf(
+                    RecoverableTab(id = "c", url = "https://www.example.org", private = true),
+                    RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
+                ),
+                selectedTabId = "d",
+                restoreLocation = TabListAction.RestoreLocation.END
             )
         ).joinBlocking()
 
@@ -517,7 +552,7 @@ class TabListActionTest {
     }
 
     @Test
-    fun `RestoreAction - Adds restored tabs to existing tabs with updating selection`() {
+    fun `RestoreAction - Adds restored tabs to beginning of existing tabs with updating selection`() {
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(
@@ -535,7 +570,40 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", private = true),
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
-                selectedTabId = "d"
+                selectedTabId = "d",
+                restoreLocation = TabListAction.RestoreLocation.BEGINNING
+            )
+        ).joinBlocking()
+
+        assertEquals(4, store.state.tabs.size)
+        assertEquals("c", store.state.tabs[0].id)
+        assertEquals("d", store.state.tabs[1].id)
+        assertEquals("a", store.state.tabs[2].id)
+        assertEquals("b", store.state.tabs[3].id)
+        assertEquals("d", store.state.selectedTabId)
+    }
+
+    @Test
+    fun `RestoreAction - Adds restored tabs to end of existing tabs with updating selection`() {
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab(id = "a", url = "https://www.mozilla.org", private = false),
+                    createTab(id = "b", url = "https://www.firefox.com", private = true)
+                )
+            )
+        )
+
+        assertEquals(2, store.state.tabs.size)
+
+        store.dispatch(
+            TabListAction.RestoreAction(
+                tabs = listOf(
+                    RecoverableTab(id = "c", url = "https://www.example.org", private = true),
+                    RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
+                ),
+                selectedTabId = "d",
+                restoreLocation = TabListAction.RestoreLocation.END
             )
         ).joinBlocking()
 
@@ -566,15 +634,16 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", private = true),
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.BEGINNING
             )
         ).joinBlocking()
 
         assertEquals(4, store.state.tabs.size)
-        assertEquals("a", store.state.tabs[0].id)
-        assertEquals("b", store.state.tabs[1].id)
-        assertEquals("c", store.state.tabs[2].id)
-        assertEquals("d", store.state.tabs[3].id)
+        assertEquals("c", store.state.tabs[0].id)
+        assertEquals("d", store.state.tabs[1].id)
+        assertEquals("a", store.state.tabs[2].id)
+        assertEquals("b", store.state.tabs[3].id)
         assertNull(store.state.selectedTabId)
     }
 
@@ -596,7 +665,8 @@ class TabListActionTest {
                 tabs = listOf(
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 0),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -624,7 +694,8 @@ class TabListActionTest {
                 tabs = listOf(
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 1),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -652,7 +723,8 @@ class TabListActionTest {
                 tabs = listOf(
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 2),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -680,7 +752,8 @@ class TabListActionTest {
                 tabs = listOf(
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 4),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -709,7 +782,8 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 3),
                     RecoverableTab(id = "d", url = "https://www.example.org", index = 0),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -739,7 +813,8 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 0),
                     RecoverableTab(id = "d", url = "https://www.example.org", index = 0),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -769,7 +844,8 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = -1),
                     RecoverableTab(id = "d", url = "https://www.example.org"),
                 ),
-                selectedTabId = null
+                selectedTabId = null,
+                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 

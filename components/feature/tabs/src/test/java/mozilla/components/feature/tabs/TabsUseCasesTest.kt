@@ -409,7 +409,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
 
         assertEquals(2, store.state.tabs.size)
-        assertNotNull(store.state.findTabByUrl("https://firefox.com"))
+        assertNotNull(store.state.findTabByUrl("https://firefox.com", false))
         assertEquals(store.state.selectedTabId, tabID)
     }
 
@@ -432,7 +432,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
 
         assertEquals(2, store.state.tabs.size)
-        assertNotNull(store.state.findTabByUrl("https://firefox.com"))
+        assertNotNull(store.state.findTabByUrl("https://firefox.com", false))
         assertEquals(store.state.selectedTabId, tabID)
     }
 

@@ -416,7 +416,7 @@ class TabsUseCases(
             source: SessionState.Source = SessionState.Source.Internal.NewTab,
             flags: LoadUrlFlags = LoadUrlFlags.none()
         ): String {
-            val existingTab = store.state.findTabByUrl(url)
+            val existingTab = store.state.findTabByUrl(url, private)
 
             return if (existingTab != null) {
                 store.dispatch(TabListAction.SelectTabAction(existingTab.id))

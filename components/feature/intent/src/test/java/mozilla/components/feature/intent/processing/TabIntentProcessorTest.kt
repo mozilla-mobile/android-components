@@ -107,7 +107,7 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionView)
 
-        val tab = store.state.findTabByUrl("https://mozilla.org")
+        val tab = store.state.findTabByUrl("https://mozilla.org", private = false)
         assertNotNull(tab)
 
         val otherTab = createTab("https://firefox.com")
@@ -140,7 +140,7 @@ class TabIntentProcessorTest {
         assertEquals(1, store.state.tabs.size)
         assertTrue(store.state.tabs[0].source is SessionState.Source.External.ActionView)
 
-        val tab = store.state.findTabByUrl("https://mozilla.org")
+        val tab = store.state.findTabByUrl("https://mozilla.org", false)
         assertNotNull(tab)
 
         val otherTab = createTab("https://firefox.com")
@@ -167,7 +167,7 @@ class TabIntentProcessorTest {
         store.waitUntilIdle()
         assertEquals(1, store.state.tabs.size)
 
-        val tab = store.state.findTabByUrl("https://mozilla.org")
+        val tab = store.state.findTabByUrl("https://mozilla.org", false)
         assertNotNull(tab)
 
         val otherTab = createTab("https://firefox.com")

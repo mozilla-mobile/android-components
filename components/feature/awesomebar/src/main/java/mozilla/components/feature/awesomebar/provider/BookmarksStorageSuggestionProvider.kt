@@ -13,6 +13,7 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.awesomebar.facts.emitBookmarkSuggestionClickedFact
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.support.base.log.logger.Logger
 import java.util.UUID
 
 private const val BOOKMARKS_SUGGESTION_LIMIT = 20
@@ -39,20 +40,27 @@ class BookmarksStorageSuggestionProvider(
 ) : AwesomeBar.SuggestionProvider {
 
     override val id: String = UUID.randomUUID().toString()
+    private val logger = Logger("BookmarksStorageSuggestionProvider")
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isEmpty()) {
             return emptyList()
         }
 
         val suggestions = bookmarksStorage.searchBookmarks(text, BOOKMARKS_SUGGESTION_LIMIT)
+            .also { logger.debug("\tonInputChanged: ${it.size} suggestions available") }
             .filter { it.url != null }
             .distinctBy { it.url }
             .sortedBy { it.guid }
+            .also { logger.debug("\tonInputChanged: ${it.size} suggestions filtered") }
 
         suggestions.firstOrNull()?.url?.let { url -> engine?.speculativeConnect(url) }
 
-        return suggestions.into()
+        return suggestions.into().also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
+        }
     }
 
     /**
@@ -62,6 +70,8 @@ class BookmarksStorageSuggestionProvider(
         val iconRequests = this.map { icons?.loadIcon(IconRequest(it.url!!)) }
 
         return this.zip(iconRequests) { result, icon ->
+            val now = System.currentTimeMillis()
+
             AwesomeBar.Suggestion(
                 provider = this@BookmarksStorageSuggestionProvider,
                 id = result.guid,
@@ -75,7 +85,9 @@ class BookmarksStorageSuggestionProvider(
                     loadUrlUseCase.invoke(result.url!!)
                     emitBookmarkSuggestionClickedFact()
                 }
-            )
+            ).also {
+                logger.debug("\tinto() mapped this suggestion after ${System.currentTimeMillis() - now} millis")
+            }
         }
     }
 }

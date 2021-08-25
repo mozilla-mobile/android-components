@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.awesomebar.R
 import mozilla.components.feature.awesomebar.facts.emitClipboardSuggestionClickedFact
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.WebURLFinder
 import java.util.UUID
 
@@ -43,6 +44,7 @@ class ClipboardSuggestionProvider(
     internal val engine: Engine? = null
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
+    private val logger = Logger("ClipboardSuggestionProvider")
 
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
@@ -50,8 +52,19 @@ class ClipboardSuggestionProvider(
         return createClipboardSuggestion()
     }
 
-    override suspend fun onInputChanged(text: String) =
-        if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) createClipboardSuggestion() else emptyList()
+    override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
+        val suggestions = if ((requireEmptyText && text.isEmpty()) || !requireEmptyText) {
+            createClipboardSuggestion()
+        } else {
+            emptyList()
+        }
+
+        return suggestions.also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
+        }
+    }
 
     private fun createClipboardSuggestion(): List<AwesomeBar.Suggestion> {
         val url = getTextFromClipboard(clipboardManager)?.let {

@@ -22,6 +22,7 @@ import mozilla.components.browser.awesomebar.facts.emitProviderQueryTimingFact
 import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.transform.SuggestionTransformer
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.utils.NamedThreadFactory
 import java.util.concurrent.Executors
 
@@ -69,6 +70,8 @@ class BrowserAwesomeBar @JvmOverloads constructor(
      */
     var transformer: SuggestionTransformer? = null
 
+    private val logger = Logger("BrowserAwesomeBar")
+
     init {
         layoutManager = LinearLayoutManager(context, VERTICAL, false)
         adapter = suggestionsAdapter
@@ -102,6 +105,7 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     @Synchronized
     override fun addProviders(vararg providers: AwesomeBar.SuggestionProvider) {
+        logger.debug("addProviders(${providers.map { it::class.java.simpleName }})")
         providers.forEach { provider ->
             val existingProvider = this.providers.find { it.id == provider.id }
             existingProvider?.let {
@@ -146,18 +150,25 @@ class BrowserAwesomeBar @JvmOverloads constructor(
 
     @Synchronized
     override fun onInputStarted() {
+        logger.debug("onInputStarted()")
         queryProvidersForSuggestions { onInputStarted() }
     }
 
     @Synchronized
     override fun onInputChanged(text: String) {
+        logger.debug("onInputChanged(${text.length} characters)")
         queryProvidersForSuggestions { onInputChanged(text) }
     }
 
     private fun queryProvidersForSuggestions(
         block: suspend AwesomeBar.SuggestionProvider.() -> List<AwesomeBar.Suggestion>
     ) {
-        job?.cancel()
+        logger.debug("queryProvidersForSuggestions()")
+
+        job?.let {
+            logger.debug("\tqueryProvidersForSuggestions: cancelling previous job")
+            it.cancel()
+        }
 
         job = scope.launch {
             providers.forEach { provider ->
@@ -184,8 +195,14 @@ class BrowserAwesomeBar @JvmOverloads constructor(
                     val processedSuggestions = processProviderSuggestions(suggestions)
                     suggestionsAdapter.addSuggestions(
                         provider,
-                        transformer?.transform(provider, processedSuggestions) ?: processedSuggestions
-                    )
+                        transformer?.transform(provider, processedSuggestions)
+                            ?: processedSuggestions
+                    ).also {
+                        logger.debug(
+                            "\tqueryProvidersForSuggestions: showing " +
+                                "${suggestionsAdapter.itemCount} suggestions"
+                        )
+                    }
                 }
             }
         }
@@ -195,12 +212,16 @@ class BrowserAwesomeBar @JvmOverloads constructor(
         // We're generating unique suggestion IDs to guard against collisions
         // across providers, but we still require unique IDs for suggestions
         // from individual providers.
+        logger.debug("processProviderSuggestions(${suggestions.size} suggestions)")
         val idSet = mutableSetOf<String>()
         suggestions.forEach {
             check(idSet.add(it.id)) { "${it.provider::class.java.simpleName} returned duplicate suggestion IDs" }
         }
 
-        return suggestions.sortedByDescending { it.score }.take(PROVIDER_MAX_SUGGESTIONS)
+        return suggestions.sortedByDescending { it.score }
+            .also { logger.debug("\tprocessProviderSuggestions: ${it.size} available") }
+            .take(PROVIDER_MAX_SUGGESTIONS)
+            .also { logger.debug("\tprocessProviderSuggestions: ${it.size} returned") }
     }
 
     override fun onDetachedFromWindow() {

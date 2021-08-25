@@ -126,6 +126,8 @@ class SearchSuggestionProvider private constructor(
 
     @Suppress("ReturnCount")
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isEmpty()) {
             return emptyList()
         }
@@ -166,6 +168,7 @@ class SearchSuggestionProvider private constructor(
 
     @Suppress("ComplexMethod")
     private fun createMultipleSuggestions(text: String, result: List<String>?): List<AwesomeBar.Suggestion> {
+        logger.debug("\tcreateMultipleSuggestions(${text.length} characters, ${result?.size ?: 0} suggestions) called")
         val suggestions = mutableListOf<AwesomeBar.Suggestion>()
 
         val list = (result ?: listOf(text)).toMutableList()
@@ -210,6 +213,11 @@ class SearchSuggestionProvider private constructor(
 
     @Suppress("ComplexCondition")
     private fun createSingleSearchSuggestion(text: String, result: List<String>?): List<AwesomeBar.Suggestion> {
+        logger.debug(
+            "\tcreateSingleSearchSuggestion(${text.length} characters, " +
+                "${result?.size ?: 0} suggestions) called"
+        )
+
         val chips = mutableListOf<AwesomeBar.Suggestion.Chip>()
 
         if ((result == null || result.isEmpty() || !result.contains(text)) && !filterExactMatch) {
@@ -236,7 +244,9 @@ class SearchSuggestionProvider private constructor(
                     emitSearchSuggestionClickedFact()
                 }
             )
-        )
+        ).also {
+            logger.debug("\tcreateSingleSearchSuggestion: ${it.size} suggestions returned")
+        }
     }
 
     enum class Mode {
@@ -248,9 +258,12 @@ class SearchSuggestionProvider private constructor(
         private const val READ_TIMEOUT_IN_MS = 2000L
         private const val CONNECT_TIMEOUT_IN_MS = 1000L
         private const val ID_OF_ENTERED_TEXT = "<@@@entered_text_id@@@>"
+        private val logger = Logger("SearchSuggestionProvider")
 
         @Suppress("ReturnCount", "TooGenericExceptionCaught")
         private fun fetch(fetchClient: Client, url: String, private: Boolean): String? {
+            val now = System.currentTimeMillis()
+
             try {
                 val request = Request(
                     url = url.sanitizeURL(),
@@ -272,6 +285,8 @@ class SearchSuggestionProvider private constructor(
                 // somewhere inside AOSP/okhttp.
                 // See: https://github.com/mozilla-mobile/android-components/issues/964
                 return null
+            } finally {
+                logger.debug("fetch returning after ${System.currentTimeMillis() - now} millis")
             }
         }
     }

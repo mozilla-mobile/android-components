@@ -11,6 +11,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.feature.awesomebar.facts.emitSearchActionClickedFact
 import mozilla.components.feature.search.SearchUseCases
+import mozilla.components.support.base.log.logger.Logger
 
 private const val FIXED_ID = "@@@search.action.provider.fixed.id@@"
 
@@ -26,14 +27,19 @@ class SearchActionProvider(
     private val searchEngine: SearchEngine? = null
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = java.util.UUID.randomUUID().toString()
+    private val logger = Logger("SearchActionProvider")
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isBlank()) {
             return emptyList()
         }
 
-        val searchEngine = searchEngine ?: store.state.search.selectedOrDefaultSearchEngine
-            ?: return emptyList()
+        val searchEngine = searchEngine ?: store.state.search.selectedOrDefaultSearchEngine ?: run {
+            logger.debug("\tonInputChanged: returned no suggestions because the search engine is unknown")
+            return emptyList()
+        }
 
         return listOf(
             AwesomeBar.Suggestion(
@@ -49,6 +55,8 @@ class SearchActionProvider(
                     emitSearchActionClickedFact()
                 }
             )
-        )
+        ).also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
+        }
     }
 }

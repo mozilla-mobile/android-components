@@ -17,6 +17,7 @@ import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.feature.awesomebar.R
 import mozilla.components.feature.awesomebar.facts.emitOpenTabSuggestionClickedFact
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.support.base.log.logger.Logger
 import java.util.UUID
 
 /**
@@ -33,8 +34,11 @@ class SessionSuggestionProvider(
     private val excludeSelectedSession: Boolean = false
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
+    private val logger = Logger("SessionSuggestionProvider")
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isEmpty()) {
             return emptyList()
         }
@@ -46,6 +50,10 @@ class SessionSuggestionProvider(
         val iconRequests: List<Deferred<Icon>?> = tabs.map { icons?.loadIcon(IconRequest(it.content.url)) }
 
         tabs.zip(iconRequests) { result, icon ->
+            logger.debug("\tmapping ${tabs.size} tabs")
+
+            val now = System.currentTimeMillis()
+
             if (
                 result.contains(text) &&
                 !result.content.private &&
@@ -64,11 +72,15 @@ class SessionSuggestionProvider(
                             selectTabUseCase(result.id)
                             emitOpenTabSuggestionClickedFact()
                         }
-                    )
+                    ).also {
+                        logger.debug("\tmapped a suggestion after ${System.currentTimeMillis() - now} millis")
+                    }
                 )
             }
         }
-        return suggestions
+        return suggestions.also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
+        }
     }
 
     private fun TabSessionState.contains(text: String) =

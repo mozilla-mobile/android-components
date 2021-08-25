@@ -13,6 +13,7 @@ import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.SearchResult
 import mozilla.components.feature.awesomebar.facts.emitHistorySuggestionClickedFact
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.support.base.log.logger.Logger
 import java.util.UUID
 
 /**
@@ -44,8 +45,11 @@ class HistoryStorageSuggestionProvider(
 ) : AwesomeBar.SuggestionProvider {
 
     override val id: String = UUID.randomUUID().toString()
+    private val logger = Logger("HistoryStorageSuggestionProvider")
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isEmpty()) {
             return emptyList()
         }
@@ -53,12 +57,16 @@ class HistoryStorageSuggestionProvider(
         // In case of duplicates we want to pick the suggestion with the highest score.
         // See: https://github.com/mozilla/application-services/issues/970
         val suggestions = historyStorage.getSuggestions(text, maxNumberOfSuggestions)
+            .also { logger.debug("\tonInputChanged: ${it.size} suggestions available") }
             .sortedByDescending { it.score }
             .distinctBy { it.id }
+            .also { logger.debug("\tonInputChanged: ${it.size} suggestions filtered") }
 
         suggestions.firstOrNull()?.url?.let { url -> engine?.speculativeConnect(url) }
 
-        return suggestions.into(this, icons, loadUrlUseCase)
+        return suggestions.into(this, icons, loadUrlUseCase).also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
+        }
     }
 }
 
@@ -68,7 +76,10 @@ internal suspend fun Iterable<SearchResult>.into(
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase
 ): List<AwesomeBar.Suggestion> {
     val iconRequests = this.map { icons?.loadIcon(IconRequest(it.url)) }
+    val logger = Logger("BookmarksStorageSuggestionProvider")
     return this.zip(iconRequests) { result, icon ->
+        val now = System.currentTimeMillis()
+
         AwesomeBar.Suggestion(
             provider = provider,
             id = result.id,
@@ -81,6 +92,8 @@ internal suspend fun Iterable<SearchResult>.into(
                 loadUrlUseCase.invoke(result.url)
                 emitHistorySuggestionClickedFact()
             }
-        )
+        ).also {
+            logger.debug("\tinto() mapped this suggestion after ${System.currentTimeMillis() - now} millis")
+        }
     }
 }

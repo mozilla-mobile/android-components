@@ -10,6 +10,7 @@ import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.support.base.log.logger.Logger
 import java.lang.Integer.MAX_VALUE
 import java.util.UUID
 
@@ -40,19 +41,26 @@ class SearchEngineSuggestionProvider(
     internal val charactersThreshold: Int = DEFAULT_CHARACTERS_THRESHOLD
 ) : AwesomeBar.SuggestionProvider {
     override val id: String = UUID.randomUUID().toString()
+    private val logger = Logger("SearchEngineSuggestionProvider")
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isEmpty() || text.length < charactersThreshold) {
             return emptyList()
         }
 
         val suggestions = searchEnginesList
+            .also { logger.debug("\tonInputChanged: ${it.size} suggestions available") }
             .filter { it.name.contains(text, true) }.take(maxSuggestions)
+            .also { logger.debug("\tonInputChanged: ${it.size} suggestions filtered") }
 
         return if (suggestions.isNotEmpty()) {
             suggestions.into()
         } else {
             return emptyList()
+        }.also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
         }
     }
 
@@ -62,6 +70,8 @@ class SearchEngineSuggestionProvider(
     private fun List<SearchEngine>.into(): List<AwesomeBar.Suggestion> {
 
         return this.map {
+            val now = System.currentTimeMillis()
+
             AwesomeBar.Suggestion(
                 provider = this@SearchEngineSuggestionProvider,
                 id = it.id,
@@ -71,7 +81,9 @@ class SearchEngineSuggestionProvider(
                 description = description,
                 onSuggestionClicked = { selectShortcutEngine(it) },
                 score = MAX_VALUE
-            )
+            ).also {
+                logger.debug("\tinto() mapped this suggestion after ${System.currentTimeMillis() - now} millis")
+            }
         }
     }
 

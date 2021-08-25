@@ -13,6 +13,7 @@ import mozilla.components.concept.sync.DeviceType
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.syncedtabs.facts.emitSyncedTabSuggestionClickedFact
 import mozilla.components.feature.syncedtabs.storage.SyncedTabsStorage
+import mozilla.components.support.base.log.logger.Logger
 import java.util.UUID
 
 /**
@@ -27,8 +28,11 @@ class SyncedTabsStorageSuggestionProvider(
 ) : AwesomeBar.SuggestionProvider {
 
     override val id: String = UUID.randomUUID().toString()
+    private val logger = Logger("SyncedTabsStorageSuggestionProvider")
 
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        logger.debug("onInputChanged(${text.length} characters) called")
+
         if (text.isEmpty()) {
             return emptyList()
         }
@@ -52,7 +56,9 @@ class SyncedTabsStorageSuggestionProvider(
                 }
             }
         }
-        return results.sortedByDescending { it.lastUsed }.into()
+        return results.sortedByDescending { it.lastUsed }.into().also {
+            logger.debug("\tonInputChanged: ${it.size} suggestions returned")
+        }
     }
 
     /**
@@ -64,6 +70,8 @@ class SyncedTabsStorageSuggestionProvider(
         }
 
         return this.zip(iconRequests) { result, icon ->
+            val now = System.currentTimeMillis()
+
             AwesomeBar.Suggestion(
                 provider = this@SyncedTabsStorageSuggestionProvider,
                 icon = icon?.await()?.bitmap,
@@ -80,7 +88,9 @@ class SyncedTabsStorageSuggestionProvider(
                     loadUrlUseCase.invoke(result.tab.url)
                     emitSyncedTabSuggestionClickedFact()
                 }
-            )
+            ).also {
+                logger.debug("\tinto() mapped this suggestion after ${System.currentTimeMillis() - now} millis")
+            }
         }
     }
 }

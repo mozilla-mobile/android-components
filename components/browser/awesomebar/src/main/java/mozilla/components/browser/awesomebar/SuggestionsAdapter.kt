@@ -15,6 +15,7 @@ import mozilla.components.browser.awesomebar.layout.DefaultSuggestionLayout
 import mozilla.components.browser.awesomebar.layout.SuggestionLayout
 import mozilla.components.browser.awesomebar.layout.SuggestionViewHolder
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.support.base.log.logger.Logger
 
 /**
  * [RecyclerView.Adapter] for displaying [AwesomeBar.Suggestion] in [BrowserAwesomeBar].
@@ -23,6 +24,7 @@ internal class SuggestionsAdapter(
     private val awesomeBar: BrowserAwesomeBar
 ) : RecyclerView.Adapter<ViewHolderWrapper>() {
     internal var layout: SuggestionLayout = DefaultSuggestionLayout()
+    private val logger = Logger("SuggestionsAdapter")
 
     init {
         setHasStableIds(true)
@@ -79,6 +81,7 @@ internal class SuggestionsAdapter(
      * update the RecyclerView.
      */
     private fun updateTo(updatedSuggestions: List<AwesomeBar.Suggestion>) {
+        logger.debug("updateTo(${updatedSuggestions.size}) items")
         val result = DiffUtil.calculateDiff(SuggestionDiffCallback(suggestions, updatedSuggestions))
 
         this.suggestions = updatedSuggestions
@@ -95,7 +98,9 @@ internal class SuggestionsAdapter(
 
     override fun getItemId(position: Int): Long = synchronized(suggestions) {
         val suggestion = suggestions[position]
-        return awesomeBar.getUniqueSuggestionId(suggestion)
+        return awesomeBar.getUniqueSuggestionId(suggestion).also {
+            logger.debug("getItemId($position): returned $it")
+        }
     }
 
     override fun getItemViewType(position: Int): Int = synchronized(suggestions) {

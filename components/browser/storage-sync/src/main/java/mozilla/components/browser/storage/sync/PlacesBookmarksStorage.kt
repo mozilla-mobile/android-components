@@ -34,9 +34,7 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
      * @return The populated root starting from the guid.
      */
     override suspend fun getTree(guid: String, recursive: Boolean): BookmarkNode? {
-        return withContext(readScope.coroutineContext) {
-            reader.getBookmarksTree(guid, recursive)?.asBookmarkNode()
-        }
+        return reader.getBookmarksTree(guid, recursive)?.asBookmarkNode()
     }
 
     /**
@@ -46,9 +44,7 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
      * @return The bookmark node or null if it does not exist.
      */
     override suspend fun getBookmark(guid: String): BookmarkNode? {
-        return withContext(readScope.coroutineContext) {
-            reader.getBookmark(guid)?.asBookmarkNode()
-        }
+        return reader.getBookmark(guid)?.asBookmarkNode()
     }
 
     /**
@@ -58,9 +54,7 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
      * @return The list of bookmarks that match the URL
      */
     override suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode> {
-        return withContext(readScope.coroutineContext) {
-            reader.getBookmarksWithURL(url).map { it.asBookmarkNode() }
-        }
+        return reader.getBookmarksWithURL(url).map { it.asBookmarkNode() }
     }
 
     /**
@@ -71,9 +65,7 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
      * @return The list of matching bookmark nodes up to the limit number of items.
      */
     override suspend fun searchBookmarks(query: String, limit: Int): List<BookmarkNode> {
-        return withContext(readScope.coroutineContext) {
-            reader.searchBookmarks(query, limit).map { it.asBookmarkNode() }
-        }
+        return reader.searchBookmarks(query, limit).map { it.asBookmarkNode() }
     }
 
     /**
@@ -89,15 +81,13 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
         maxAge: Long?,
         @VisibleForTesting currentTime: Long
     ): List<BookmarkNode> {
-        return withContext(readScope.coroutineContext) {
-            val threshold = if (maxAge != null) {
-                currentTime - maxAge
-            } else {
-                0
-            }
-            reader.getRecentBookmarks(limit).filter { it.dateAdded >= threshold }
-                .map { it.asBookmarkNode() }
+        val threshold = if (maxAge != null) {
+            currentTime - maxAge
+        } else {
+            0
         }
+        return reader.getRecentBookmarks(limit).filter { it.dateAdded >= threshold }
+            .map { it.asBookmarkNode() }
     }
 
     /**

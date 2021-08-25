@@ -44,6 +44,78 @@ open class PlacesHistoryStorage(
 
     override val logger = Logger("PlacesHistoryStorage")
 
+    override suspend fun getVisited(uris: List<String>): List<Boolean> {
+        return places.reader().getVisited(uris)
+    }
+
+    override suspend fun getVisited(): List<String> {
+        return places.reader().getVisitedUrlsInRange(
+            start = 0,
+            end = System.currentTimeMillis(),
+            includeRemote = true
+        )
+    }
+
+    override suspend fun getDetailedVisits(start: Long, end: Long, excludeTypes: List<VisitType>): List<VisitInfo> {
+        return places.reader().getVisitInfos(start, end, excludeTypes.map { it.into() }).map { it.into() }
+    }
+
+    override suspend fun getVisitsPaginated(offset: Long, count: Long, excludeTypes: List<VisitType>): List<VisitInfo> {
+        return places.reader().getVisitPage(offset, count, excludeTypes.map { it.into() }).map { it.into() }
+    }
+
+    override suspend fun getTopFrecentSites(
+        numItems: Int,
+        frecencyThreshold: FrecencyThresholdOption
+    ): List<TopFrecentSiteInfo> {
+        if (numItems <= 0) {
+            return emptyList()
+        }
+
+        return places.reader().getTopFrecentSiteInfos(numItems, frecencyThreshold.into())
+            .map { it.into() }
+    }
+
+    override fun getSuggestions(query: String, limit: Int): List<SearchResult> {
+        require(limit >= 0) { "Limit must be a positive integer" }
+        return places.reader().queryAutocomplete(query, limit = limit).map {
+            SearchResult(it.url, it.url, it.frecency.toInt(), it.title)
+        }
+    }
+
+    override fun getAutocompleteSuggestion(query: String): HistoryAutocompleteResult? {
+        val url = places.reader().matchUrl(query) ?: return null
+
+        val resultText = segmentAwareDomainMatch(query, arrayListOf(url))
+        return resultText?.let {
+            HistoryAutocompleteResult(
+                input = query,
+                text = it.matchedSegment,
+                url = it.url,
+                source = AUTOCOMPLETE_SOURCE_NAME,
+                totalItems = 1
+            )
+        }
+    }
+
+    override suspend fun getLatestHistoryMetadataForUrl(url: String): HistoryMetadata? {
+        return places.reader().getLatestHistoryMetadataForUrl(url)?.into()
+    }
+
+    override suspend fun getHistoryMetadataSince(since: Long): List<HistoryMetadata> {
+        return places.reader().getHistoryMetadataSince(since).into()
+    }
+
+    override suspend fun getHistoryMetadataBetween(start: Long, end: Long): List<HistoryMetadata> {
+        return places.reader().getHistoryMetadataBetween(start, end).into()
+    }
+
+    override suspend fun queryHistoryMetadata(query: String, limit: Int): List<HistoryMetadata> {
+        return places.reader().queryHistoryMetadata(query, limit).into()
+    }
+
+    // Below are writers, they must all use writeScope (a single-threaded dispatcher) to perform their work.
+
     override suspend fun recordVisit(uri: String, visit: PageVisit) {
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("recordVisit") {
@@ -79,68 +151,6 @@ open class PlacesHistoryStorage(
                     )
                 )
             }
-        }
-    }
-
-    override suspend fun getVisited(uris: List<String>): List<Boolean> {
-        return withContext(readScope.coroutineContext) { places.reader().getVisited(uris) }
-    }
-
-    override suspend fun getVisited(): List<String> {
-        return withContext(readScope.coroutineContext) {
-            places.reader().getVisitedUrlsInRange(
-                start = 0,
-                end = System.currentTimeMillis(),
-                includeRemote = true
-            )
-        }
-    }
-
-    override suspend fun getDetailedVisits(start: Long, end: Long, excludeTypes: List<VisitType>): List<VisitInfo> {
-        return withContext(readScope.coroutineContext) {
-            places.reader().getVisitInfos(start, end, excludeTypes.map { it.into() }).map { it.into() }
-        }
-    }
-
-    override suspend fun getVisitsPaginated(offset: Long, count: Long, excludeTypes: List<VisitType>): List<VisitInfo> {
-        return withContext(readScope.coroutineContext) {
-            places.reader().getVisitPage(offset, count, excludeTypes.map { it.into() }).map { it.into() }
-        }
-    }
-
-    override suspend fun getTopFrecentSites(
-        numItems: Int,
-        frecencyThreshold: FrecencyThresholdOption
-    ): List<TopFrecentSiteInfo> {
-        if (numItems <= 0) {
-            return emptyList()
-        }
-
-        return withContext(readScope.coroutineContext) {
-            places.reader().getTopFrecentSiteInfos(numItems, frecencyThreshold.into())
-                .map { it.into() }
-        }
-    }
-
-    override fun getSuggestions(query: String, limit: Int): List<SearchResult> {
-        require(limit >= 0) { "Limit must be a positive integer" }
-        return places.reader().queryAutocomplete(query, limit = limit).map {
-            SearchResult(it.url, it.url, it.frecency.toInt(), it.title)
-        }
-    }
-
-    override fun getAutocompleteSuggestion(query: String): HistoryAutocompleteResult? {
-        val url = places.reader().matchUrl(query) ?: return null
-
-        val resultText = segmentAwareDomainMatch(query, arrayListOf(url))
-        return resultText?.let {
-            HistoryAutocompleteResult(
-                input = query,
-                text = it.matchedSegment,
-                url = it.url,
-                source = AUTOCOMPLETE_SOURCE_NAME,
-                totalItems = 1
-            )
         }
     }
 
@@ -204,6 +214,25 @@ open class PlacesHistoryStorage(
         }
     }
 
+    override suspend fun noteHistoryMetadataObservation(
+        key: HistoryMetadataKey,
+        observation: HistoryMetadataObservation
+    ) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("noteHistoryMetadataObservation") {
+                places.writer().noteHistoryMetadataObservation(key.into(), observation.into())
+            }
+        }
+    }
+
+    override suspend fun deleteHistoryMetadataOlderThan(olderThan: Long) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("deleteHistoryMetadataOlderThan") {
+                places.writer().deleteHistoryMetadataOlderThan(olderThan)
+            }
+        }
+    }
+
     /**
      * Runs syncHistory() method on the places Connection
      *
@@ -241,40 +270,5 @@ open class PlacesHistoryStorage(
     override fun registerWithSyncManager() {
         // See https://github.com/mozilla-mobile/android-components/issues/10128
         throw NotImplementedError("Use getHandle instead")
-    }
-
-    override suspend fun getLatestHistoryMetadataForUrl(url: String): HistoryMetadata? {
-        return places.reader().getLatestHistoryMetadataForUrl(url)?.into()
-    }
-
-    override suspend fun getHistoryMetadataSince(since: Long): List<HistoryMetadata> {
-        return places.reader().getHistoryMetadataSince(since).into()
-    }
-
-    override suspend fun getHistoryMetadataBetween(start: Long, end: Long): List<HistoryMetadata> {
-        return places.reader().getHistoryMetadataBetween(start, end).into()
-    }
-
-    override suspend fun queryHistoryMetadata(query: String, limit: Int): List<HistoryMetadata> {
-        return places.reader().queryHistoryMetadata(query, limit).into()
-    }
-
-    override suspend fun noteHistoryMetadataObservation(
-        key: HistoryMetadataKey,
-        observation: HistoryMetadataObservation
-    ) {
-        withContext(writeScope.coroutineContext) {
-            handlePlacesExceptions("noteHistoryMetadataObservation") {
-                places.writer().noteHistoryMetadataObservation(key.into(), observation.into())
-            }
-        }
-    }
-
-    override suspend fun deleteHistoryMetadataOlderThan(olderThan: Long) {
-        withContext(writeScope.coroutineContext) {
-            handlePlacesExceptions("deleteHistoryMetadataOlderThan") {
-                places.writer().deleteHistoryMetadataOlderThan(olderThan)
-            }
-        }
     }
 }

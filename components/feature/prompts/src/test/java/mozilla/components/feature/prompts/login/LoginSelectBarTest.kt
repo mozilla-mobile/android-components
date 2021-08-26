@@ -10,10 +10,11 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.support.test.ext.appCompatContext
+import mozilla.components.support.test.fakes.fakeLoginEntry
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertFalse
@@ -26,10 +27,8 @@ import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class LoginSelectBarTest {
-    val login =
-        Login(origin = "https://www.mozilla.org", username = "username", password = "password")
-    val login2 =
-        Login(origin = "https://www.mozilla.org", username = "username2", password = "password")
+    val login = fakeLoginEntry(username = "username")
+    val login2 = fakeLoginEntry(username = "username2")
 
     @Test
     fun `showPicker updates visibility`() {
@@ -52,7 +51,7 @@ class LoginSelectBarTest {
     @Test
     fun `listener is invoked when clicking manage logins option`() {
         val bar = LoginSelectBar(appCompatContext)
-        val listener: SelectablePromptView.Listener<Login> = mock()
+        val listener: SelectablePromptView.Listener<LoginEntry> = mock()
 
         assertNull(bar.listener)
 
@@ -67,7 +66,7 @@ class LoginSelectBarTest {
     @Test
     fun `listener is invoked when clicking a login option`() {
         val bar = LoginSelectBar(appCompatContext)
-        val listener: SelectablePromptView.Listener<Login> = mock()
+        val listener: SelectablePromptView.Listener<LoginEntry> = mock()
 
         assertNull(bar.listener)
 

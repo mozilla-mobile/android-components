@@ -20,8 +20,9 @@ import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.fakes.fakeLoginEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -215,30 +216,34 @@ class PromptRequestTest {
     @Test
     fun `SaveLoginPrompt`() {
         val onLoginDismiss: () -> Unit = {}
-        val onLoginConfirm: (Login) -> Unit = {}
-        val login = Login(null, "origin", username = "username", password = "password")
+        val entry = fakeLoginEntry()
+        val onLoginConfirm: (LoginEntry) -> Unit = {
+            assertEquals(it, entry)
+        }
 
-        val loginSaveRequest = SaveLoginPrompt(0, listOf(login), onLoginDismiss, onLoginConfirm)
+        val loginSaveRequest = SaveLoginPrompt(0, listOf(entry), onLoginDismiss, onLoginConfirm)
 
-        assertEquals(loginSaveRequest.logins, listOf(login))
+        assertEquals(loginSaveRequest.logins, listOf(entry))
         assertEquals(loginSaveRequest.hint, 0)
 
-        loginSaveRequest.onConfirm(login)
+        loginSaveRequest.onConfirm(entry)
         loginSaveRequest.onDismiss()
     }
 
     @Test
     fun `SelectLoginPrompt`() {
         val onLoginDismiss: () -> Unit = {}
-        val onLoginConfirm: (Login) -> Unit = {}
-        val login = Login(null, "origin", username = "username", password = "password")
+        val entry = fakeLoginEntry()
+        val onLoginConfirm: (LoginEntry) -> Unit = {
+            assertEquals(it, entry)
+        }
 
         val loginSelectRequest =
-            SelectLoginPrompt(listOf(login), onLoginDismiss, onLoginConfirm)
+            SelectLoginPrompt(listOf(entry), onLoginDismiss, onLoginConfirm)
 
-        assertEquals(loginSelectRequest.logins, listOf(login))
+        assertEquals(loginSelectRequest.logins, listOf(entry))
 
-        loginSelectRequest.onConfirm(login)
+        loginSelectRequest.onConfirm(entry)
         loginSelectRequest.onDismiss()
     }
 

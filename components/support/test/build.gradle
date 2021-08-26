@@ -50,6 +50,7 @@ dependencies {
     testImplementation Dependencies.androidx_core
     testImplementation Dependencies.androidx_test_junit
     testImplementation project(':support-ktx')
+    implementation project(':concept-storage')
 }
 
 apply from: '../../../publish.gradle'

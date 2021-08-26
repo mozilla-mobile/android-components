@@ -6,7 +6,7 @@ package mozilla.components.feature.prompts.login
 
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.support.base.log.logger.Logger
@@ -25,10 +25,10 @@ import mozilla.components.support.base.log.logger.Logger
  */
 internal class LoginPicker(
     private val store: BrowserStore,
-    private val loginSelectBar: SelectablePromptView<Login>,
+    private val loginSelectBar: SelectablePromptView<LoginEntry>,
     private val manageLoginsCallback: () -> Unit = {},
     private var sessionId: String? = null
-) : SelectablePromptView.Listener<Login> {
+) : SelectablePromptView.Listener<LoginEntry> {
 
     init {
         loginSelectBar.listener = this
@@ -38,7 +38,7 @@ internal class LoginPicker(
         loginSelectBar.showPrompt(request.logins)
     }
 
-    override fun onOptionSelect(option: Login) {
+    override fun onOptionSelect(option: LoginEntry) {
         store.consumePromptFrom<PromptRequest.SelectLoginPrompt>(sessionId) {
             it.onConfirm(option)
         }

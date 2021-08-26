@@ -64,9 +64,11 @@ internal class FillRequestHandler(
             parsedStructure.packageName
         )
 
-        val logins = configuration.storage
-            .getByBaseDomain(lookupDomain)
-            .take(MAX_LOGINS)
+        val logins = configuration.storage.decryptLogins(
+            configuration.storage
+                .getByBaseDomain(lookupDomain)
+                .take(MAX_LOGINS)
+        )
 
         return if (!configuration.lock.keepUnlocked() && !forceUnlock) {
             AuthFillResponseBuilder(parsedStructure)
@@ -90,7 +92,9 @@ internal class FillRequestHandler(
         val parsedStructure = parseStructure(context, structure) ?: return null
         val lookupDomain = parsedStructure.getLookupDomain(configuration.publicSuffixList)
 
-        val logins = configuration.storage.getByBaseDomain(lookupDomain)
+        val logins = configuration.storage.decryptLogins(
+            configuration.storage.getByBaseDomain(lookupDomain)
+        )
         if (logins.isEmpty()) {
             return null
         }

@@ -43,7 +43,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.ShareData
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment
@@ -57,6 +57,7 @@ import mozilla.components.feature.prompts.share.ShareDelegate
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.fakes.fakeLoginEntry
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -277,7 +278,7 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN loginPickerView is visible WHEN dismissSelectPrompts THEN dismissCurrentLoginSelect called and true returned`() {
         // given
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: SelectablePromptView<LoginEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -303,7 +304,7 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN loginPickerView is not visible WHEN dismissSelectPrompts THEN dismissCurrentLoginSelect called and false returned`() {
         // given
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: SelectablePromptView<LoginEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -328,7 +329,7 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN PromptFeature WHEN onBackPressed THEN dismissSelectPrompts is called`() {
         // given
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: SelectablePromptView<LoginEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -353,7 +354,7 @@ class PromptFeatureTest {
 
     @Test
     fun `Calling dismissSelectPrompts should dismiss the login picker if the login prompt is active`() {
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: SelectablePromptView<LoginEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -862,12 +863,10 @@ class PromptFeatureTest {
     @Test
     fun `Selecting a login confirms the request`() {
         var onDismissWasCalled = false
-        var confirmedLogin: Login? = null
+        var confirmedLogin: LoginEntry? = null
 
-        val login =
-            Login(origin = "https://www.mozilla.org", username = "username", password = "password")
-        val login2 =
-            Login(origin = "https://www.mozilla.org", username = "username2", password = "password")
+        val login = fakeLoginEntry(username = "username")
+        val login2 = fakeLoginEntry(username = "username2")
 
         val loginPickerRequest = PromptRequest.SelectLoginPrompt(
             listOf(login, login2),
@@ -1332,7 +1331,7 @@ class PromptFeatureTest {
 
     @Test
     fun `When page is refreshed login dialog is dismissed`() {
-        val loginPickerView: SelectablePromptView<Login> = mock()
+        val loginPickerView: SelectablePromptView<LoginEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(), store = store, fragmentManager = fragmentManager,
@@ -1340,9 +1339,9 @@ class PromptFeatureTest {
             ) { }
         feature.loginPicker = loginPicker
         val onLoginDismiss: () -> Unit = {}
-        val onLoginConfirm: (Login) -> Unit = {}
+        val onLoginConfirm: (LoginEntry) -> Unit = {}
 
-        val login = Login(null, "origin", username = "username", password = "password")
+        val login = fakeLoginEntry()
         val selectLoginRequest =
             PromptRequest.SelectLoginPrompt(listOf(login), onLoginDismiss, onLoginConfirm)
 
@@ -1666,14 +1665,10 @@ class PromptFeatureTest {
             fragmentManager = fragmentManager,
             shareDelegate = mock(),
             isSaveLoginEnabled = { true },
-            loginValidationDelegate = mock()
+            loginsStorage = mock()
         ) { }
-        val loginUsername = "username"
-        val loginPassword = "password"
-        val login: Login = mock()
-        `when`(login.username).thenReturn(loginUsername)
-        `when`(login.password).thenReturn(loginPassword)
-        val loginsPrompt = PromptRequest.SaveLoginPrompt(2, listOf(login), { }, { })
+        val entry = fakeLoginEntry()
+        val loginsPrompt = PromptRequest.SaveLoginPrompt(2, listOf(entry), { }, { })
         val websiteIcon: Bitmap = mock()
         val contentState: ContentState = mock()
         val session: TabSessionState = mock()
@@ -1689,8 +1684,8 @@ class PromptFeatureTest {
         // Only interested in the icon, but it doesn't hurt to be sure we show a properly configured dialog.
         assertTrue(feature.activePrompt!!.get() is SaveLoginDialogFragment)
         val dialogFragment = feature.activePrompt!!.get() as SaveLoginDialogFragment
-        assertEquals(loginUsername, dialogFragment.username)
-        assertEquals(loginPassword, dialogFragment.password)
+        assertEquals(entry.username, dialogFragment.username)
+        assertEquals(entry.password, dialogFragment.password)
         assertEquals(websiteIcon, dialogFragment.icon)
         assertEquals(sessionId, dialogFragment.sessionId)
     }
@@ -1721,11 +1716,7 @@ class PromptFeatureTest {
                 shareRequest.uid,
                 false,
                 0,
-                Login(
-                    origin = "https://www.mozilla.org",
-                    username = "username",
-                    password = "password"
-                )
+                fakeLoginEntry(),
             )
         )
         feature.activePrompt = WeakReference(fragment)
@@ -1777,7 +1768,7 @@ class PromptFeatureTest {
             fragmentManager = fragmentManager,
             shareDelegate = mock(),
             isSaveLoginEnabled = { true },
-            loginValidationDelegate = mock()
+            loginsStorage = mock()
         ) { }
         val repostPromptRequest: PromptRequest.Repost = mock()
         doReturn("uid").`when`(repostPromptRequest).uid

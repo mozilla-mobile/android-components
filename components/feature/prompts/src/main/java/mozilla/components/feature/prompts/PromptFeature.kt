@@ -41,8 +41,8 @@ import mozilla.components.concept.engine.prompt.PromptRequest.Share
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
-import mozilla.components.concept.storage.Login
-import mozilla.components.concept.storage.LoginValidationDelegate
+import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
 import mozilla.components.feature.prompts.dialog.AlertDialogFragment
@@ -104,8 +104,6 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * @property fragmentManager The [FragmentManager] to be used when displaying
  * a dialog (fragment).
  * @property shareDelegate Delegate used to display share sheet.
- * @property loginStorageDelegate Delegate used to access login storage. If null,
- * 'save login'prompts will not be shown.
  * @property isSaveLoginEnabled A callback invoked when a login prompt is triggered. If false,
  * 'save login'prompts will not be shown.
  * @property isCreditCardAutofillEnabled A callback invoked when credit card fields are detected in the webpage.
@@ -134,11 +132,11 @@ class PromptFeature private constructor(
     private var customTabId: String?,
     private val fragmentManager: FragmentManager,
     private val shareDelegate: ShareDelegate,
-    override val loginValidationDelegate: LoginValidationDelegate? = null,
+    override val loginsStorage: LoginsStorage? = null,
     private val isSaveLoginEnabled: () -> Boolean = { false },
     private val isCreditCardAutofillEnabled: () -> Boolean = { false },
     override val loginExceptionStorage: LoginExceptions? = null,
-    private val loginPickerView: SelectablePromptView<Login>? = null,
+    private val loginPickerView: SelectablePromptView<LoginEntry>? = null,
     private val onManageLogins: () -> Unit = {},
     private val creditCardPickerView: SelectablePromptView<CreditCard>? = null,
     private val onManageCreditCards: () -> Unit = {},
@@ -168,11 +166,11 @@ class PromptFeature private constructor(
         customTabId: String? = null,
         fragmentManager: FragmentManager,
         shareDelegate: ShareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate: LoginValidationDelegate? = null,
+        loginsStorage: LoginsStorage? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
         isCreditCardAutofillEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: SelectablePromptView<Login>? = null,
+        loginPickerView: SelectablePromptView<LoginEntry>? = null,
         onManageLogins: () -> Unit = {},
         creditCardPickerView: SelectablePromptView<CreditCard>? = null,
         onManageCreditCards: () -> Unit = {},
@@ -184,7 +182,7 @@ class PromptFeature private constructor(
         customTabId = customTabId,
         fragmentManager = fragmentManager,
         shareDelegate = shareDelegate,
-        loginValidationDelegate = loginValidationDelegate,
+        loginsStorage = loginsStorage,
         isSaveLoginEnabled = isSaveLoginEnabled,
         isCreditCardAutofillEnabled = isCreditCardAutofillEnabled,
         loginExceptionStorage = loginExceptionStorage,
@@ -202,11 +200,11 @@ class PromptFeature private constructor(
         customTabId: String? = null,
         fragmentManager: FragmentManager,
         shareDelegate: ShareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate: LoginValidationDelegate? = null,
+        loginsStorage: LoginsStorage? = null,
         isSaveLoginEnabled: () -> Boolean = { false },
         isCreditCardAutofillEnabled: () -> Boolean = { false },
         loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: SelectablePromptView<Login>? = null,
+        loginPickerView: SelectablePromptView<LoginEntry>? = null,
         onManageLogins: () -> Unit = {},
         creditCardPickerView: SelectablePromptView<CreditCard>? = null,
         onManageCreditCards: () -> Unit = {},
@@ -218,7 +216,7 @@ class PromptFeature private constructor(
         customTabId = customTabId,
         fragmentManager = fragmentManager,
         shareDelegate = shareDelegate,
-        loginValidationDelegate = loginValidationDelegate,
+        loginsStorage = loginsStorage,
         isSaveLoginEnabled = isSaveLoginEnabled,
         isCreditCardAutofillEnabled = isCreditCardAutofillEnabled,
         loginExceptionStorage = loginExceptionStorage,
@@ -237,7 +235,7 @@ class PromptFeature private constructor(
         store: BrowserStore,
         customTabId: String? = null,
         fragmentManager: FragmentManager,
-        loginPickerView: SelectablePromptView<Login>? = null,
+        loginPickerView: SelectablePromptView<LoginEntry>? = null,
         onManageLogins: () -> Unit = {},
         creditCardPickerView: SelectablePromptView<CreditCard>? = null,
         onManageCreditCards: () -> Unit = {},
@@ -254,7 +252,7 @@ class PromptFeature private constructor(
         customTabId = customTabId,
         fragmentManager = fragmentManager,
         shareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate = null,
+        loginsStorage = null,
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginPickerView = loginPickerView,
         onManageLogins = onManageLogins,
@@ -505,7 +503,7 @@ class PromptFeature private constructor(
 
                 is Share -> it.onSuccess()
 
-                is SaveLoginPrompt -> it.onConfirm(value as Login)
+                is SaveLoginPrompt -> it.onConfirm(value as LoginEntry)
 
                 is Confirm -> {
                     val (isCheckBoxChecked, buttonType) =
@@ -578,11 +576,11 @@ class PromptFeature private constructor(
             is SaveLoginPrompt -> {
                 if (!isSaveLoginEnabled.invoke()) return
 
-                if (loginValidationDelegate == null) {
+                if (loginsStorage == null) {
                     logger.debug(
                         "Ignoring received SaveLoginPrompt because PromptFeature." +
-                            "loginValidationDelegate is null. If you are trying to autofill logins, " +
-                            "try attaching a LoginValidationDelegate to PromptFeature"
+                            "loginsStorage is null. If you are trying to autofill logins, " +
+                            "try attaching a LoginsStorage to PromptFeature"
                     )
                     return
                 }
@@ -592,8 +590,8 @@ class PromptFeature private constructor(
                     promptRequestUID = promptRequest.uid,
                     shouldDismissOnLoad = false,
                     hint = promptRequest.hint,
-                    // For v1, we only handle a single login and drop all others on the floor
-                    login = promptRequest.logins[0],
+                    // For v1, we only handle a single login entry and drop all others on the floor
+                    entry = promptRequest.logins[0],
                     icon = session.content.icon
                 )
             }

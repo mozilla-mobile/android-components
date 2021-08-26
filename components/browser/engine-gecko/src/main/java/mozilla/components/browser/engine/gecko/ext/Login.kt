@@ -5,13 +5,13 @@
 package mozilla.components.browser.engine.gecko.ext
 
 import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import org.mozilla.geckoview.Autocomplete
 
 /**
- * Converts a GeckoView [Autocomplete.LoginEntry] to an Android Components [Login].
+ * Converts a GeckoView [Autocomplete.LoginEntry] to an Android Components [LoginEntry].
  */
-fun Autocomplete.LoginEntry.toLogin() = Login(
-    guid = guid,
+fun Autocomplete.LoginEntry.toLoginEntry() = LoginEntry(
     origin = origin,
     formActionOrigin = formActionOrigin,
     httpRealm = httpRealm,
@@ -20,10 +20,20 @@ fun Autocomplete.LoginEntry.toLogin() = Login(
 )
 
 /**
+ * Converts an Android Components [LoginEntry] to a GeckoView [Autocomplete.LoginEntry].
+ */
+fun LoginEntry.toAutocompleteLoginEntry() = Autocomplete.LoginEntry.Builder()
+    .origin(origin)
+    .formActionOrigin(formActionOrigin)
+    .httpRealm(httpRealm)
+    .username(username)
+    .password(password)
+    .build()
+
+/**
  * Converts an Android Components [Login] to a GeckoView [Autocomplete.LoginEntry].
  */
-fun Login.toLoginEntry() = Autocomplete.LoginEntry.Builder()
-    .guid(guid)
+fun Login.toAutocompleteLoginEntry() = Autocomplete.LoginEntry.Builder()
     .origin(origin)
     .formActionOrigin(formActionOrigin)
     .httpRealm(httpRealm)

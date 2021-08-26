@@ -127,7 +127,9 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
 
     private fun loadAsync(): Deferred<List<Login>> {
         return scope.async {
-            configuration.storage.list()
+            configuration.storage.decryptLogins(
+                configuration.storage.list()
+            )
         }
     }
 }

@@ -8,18 +8,19 @@ import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.browser.engine.gecko.ext.toAutocompleteCreditCard
-import mozilla.components.browser.engine.gecko.ext.toLoginEntry
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteLoginEntry
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.prompt.Choice
 import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.support.ktx.kotlin.toDate
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
+import mozilla.components.support.test.fakes.fakeLoginEntry
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
@@ -651,8 +652,8 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        val login = createLogin()
-        val saveOption = Autocomplete.LoginSaveOption(login.toLoginEntry())
+        val login = fakeLoginEntry()
+        val saveOption = Autocomplete.LoginSaveOption(login.toAutocompleteLoginEntry())
 
         var geckoResult =
             promptDelegate.onLoginSave(mock(), geckoLoginSavePrompt(arrayOf(saveOption)))
@@ -698,11 +699,11 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        val login = createLogin()
-        val loginSelectOption = Autocomplete.LoginSelectOption(login.toLoginEntry())
+        val login = fakeLoginEntry()
+        val loginSelectOption = Autocomplete.LoginSelectOption(login.toAutocompleteLoginEntry())
 
-        val secondLogin = createLogin(username = "username2")
-        val secondLoginSelectOption = Autocomplete.LoginSelectOption(secondLogin.toLoginEntry())
+        val secondEntry = fakeLoginEntry(username = "username2")
+        val secondLoginSelectOption = Autocomplete.LoginSelectOption(secondEntry.toAutocompleteLoginEntry())
 
         var geckoResult =
             promptDelegate.onLoginSelect(
@@ -736,26 +737,6 @@ class GeckoPromptDelegateTest {
 
         assertFalse(onLoginSelected)
     }
-
-    fun createLogin(
-        guid: String = "id",
-        password: String = "password",
-        username: String = "username",
-        origin: String = "https://www.origin.com",
-        httpRealm: String = "httpRealm",
-        formActionOrigin: String = "https://www.origin.com",
-        usernameField: String = "usernameField",
-        passwordField: String = "passwordField"
-    ) = Login(
-        guid = guid,
-        origin = origin,
-        password = password,
-        username = username,
-        httpRealm = httpRealm,
-        formActionOrigin = formActionOrigin,
-        usernameField = usernameField,
-        passwordField = passwordField
-    )
 
     @Test
     fun `Calling onCreditCardSelect must provide as CreditCardSelectOption PromptRequest`() {

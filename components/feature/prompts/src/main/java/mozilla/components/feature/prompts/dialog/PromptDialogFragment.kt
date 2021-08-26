@@ -6,7 +6,7 @@ package mozilla.components.feature.prompts.dialog
 
 import androidx.fragment.app.DialogFragment
 import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.storage.LoginValidationDelegate
+import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.feature.prompts.login.LoginExceptions
 
 internal const val KEY_SESSION_ID = "KEY_SESSION_ID"
@@ -47,7 +47,7 @@ internal interface Prompter {
      *
      * Logging in will not prompt a save dialog if this is left null.
      */
-    val loginValidationDelegate: LoginValidationDelegate?
+    val loginsStorage: LoginsStorage?
 
     /**
      * Stores whether a site should never be prompted for logins saving.

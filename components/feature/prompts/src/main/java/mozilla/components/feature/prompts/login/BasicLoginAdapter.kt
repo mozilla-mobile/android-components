@@ -12,23 +12,27 @@ import androidx.annotation.VisibleForTesting
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.R
 
-private object LoginItemDiffCallback : DiffUtil.ItemCallback<Login>() {
-    override fun areItemsTheSame(oldItem: Login, newItem: Login) =
-        oldItem.guid == newItem.guid
+private object LoginItemDiffCallback : DiffUtil.ItemCallback<LoginEntry>() {
+    override fun areItemsTheSame(oldItem: LoginEntry, newItem: LoginEntry) =
+        // This comparison is a bit awkward.  We should be able to use the data
+        // inside oldItem/newItem.  However, if's currently possible to have
+        // duplicate logins for the same site in the list, so we need to do a
+        // reference comparision.
+        oldItem === newItem
 
-    override fun areContentsTheSame(oldItem: Login, newItem: Login) =
+    override fun areContentsTheSame(oldItem: LoginEntry, newItem: LoginEntry) =
         oldItem == newItem
 }
 
 /**
- * RecyclerView adapter for displaying login items.
+ * RecyclerView adapter for displaying login entries.
  */
 internal class BasicLoginAdapter(
-    private val onLoginSelected: (Login) -> Unit
-) : ListAdapter<Login, LoginViewHolder>(LoginItemDiffCallback) {
+    private val onLoginSelected: (LoginEntry) -> Unit
+) : ListAdapter<LoginEntry, LoginViewHolder>(LoginItemDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LoginViewHolder {
         val view = LayoutInflater
             .from(parent.context)
@@ -42,20 +46,20 @@ internal class BasicLoginAdapter(
 }
 
 /**
- * View holder for a login item.
+ * View holder for a login entry.
  */
 internal class LoginViewHolder(
     itemView: View,
-    private val onLoginSelected: (Login) -> Unit
+    private val onLoginSelected: (LoginEntry) -> Unit
 ) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
     @VisibleForTesting
-    lateinit var login: Login
+    lateinit var login: LoginEntry
 
     init {
         itemView.setOnClickListener(this)
     }
 
-    fun bind(login: Login) {
+    fun bind(login: LoginEntry) {
         this.login = login
         itemView.findViewById<TextView>(R.id.username)?.text = login.username
         itemView.findViewById<TextView>(R.id.password)?.text = login.password

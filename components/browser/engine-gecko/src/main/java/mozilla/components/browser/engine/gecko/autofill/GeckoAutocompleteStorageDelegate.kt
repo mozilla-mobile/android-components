@@ -8,12 +8,12 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import mozilla.components.browser.engine.gecko.ext.toLogin
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteLoginEntry
 import mozilla.components.browser.engine.gecko.ext.toLoginEntry
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardsAddressesStorageDelegate
-import mozilla.components.concept.storage.Login
-import mozilla.components.concept.storage.LoginStorageDelegate
+import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.geckoview.Autocomplete
 import org.mozilla.geckoview.GeckoResult
 
@@ -24,12 +24,12 @@ import org.mozilla.geckoview.GeckoResult
  *
  * @param creditCardsAddressesStorageDelegate An instance of [CreditCardsAddressesStorageDelegate].
  * Provides methods for retrieving [CreditCard]s from the underlying storage.
- * @param loginStorageDelegate An instance of [LoginStorageDelegate].
- * Provides read/write methods for the [Login] storage.
+ * @param loginsStorage An instance of [LoginsStorage].
+ * Provides read/write methods for the login storage.
  */
 class GeckoAutocompleteStorageDelegate(
     private val creditCardsAddressesStorageDelegate: CreditCardsAddressesStorageDelegate,
-    private val loginStorageDelegate: LoginStorageDelegate
+    private val loginsStorage: LoginsStorage
 ) : Autocomplete.StorageDelegate {
 
     override fun onCreditCardFetch(): GeckoResult<Array<Autocomplete.CreditCard>>? {
@@ -62,7 +62,10 @@ class GeckoAutocompleteStorageDelegate(
     }
 
     override fun onLoginSave(login: Autocomplete.LoginEntry) {
-        loginStorageDelegate.onLoginSave(login.toLogin())
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch(IO) {
+            loginsStorage.addOrUpdate(login.toLoginEntry())
+        }
     }
 
     override fun onLoginFetch(domain: String): GeckoResult<Array<Autocomplete.LoginEntry>>? {
@@ -70,10 +73,16 @@ class GeckoAutocompleteStorageDelegate(
 
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(IO) {
-            val storedLogins = loginStorageDelegate.onLoginFetch(domain)
+            // TODO: It would be nice if we could delay calling decryptLogins()
+            // until the user actually asked to see the list.  That would allow
+            // us to delay requiring the encryption key which would delay when
+            // the user needed to unlock their device.
+            val storedLogins = loginsStorage.decryptLogins(
+                loginsStorage.getByBaseDomain(domain)
+            )
 
-            val logins = storedLogins.await()
-                .map { it.toLoginEntry() }
+            val logins = storedLogins
+                .map { it.toAutocompleteLoginEntry() }
                 .toTypedArray()
 
             result.complete(logins)

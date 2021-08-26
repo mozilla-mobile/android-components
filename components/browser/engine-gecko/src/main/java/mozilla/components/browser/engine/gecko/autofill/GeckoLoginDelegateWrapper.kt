@@ -8,23 +8,26 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import mozilla.components.browser.engine.gecko.ext.toLogin
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteLoginEntry
 import mozilla.components.browser.engine.gecko.ext.toLoginEntry
-import mozilla.components.concept.storage.Login
-import mozilla.components.concept.storage.LoginStorageDelegate
+import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.geckoview.Autocomplete
 import org.mozilla.geckoview.GeckoResult
 
 /**
  * This class exists only to convert incoming [LoginEntry] arguments into [Login]s, then forward
- * them to [storageDelegate]. This allows us to avoid duplicating [LoginStorageDelegate] code
+ * them to [loginsStorage]. This allows us to avoid duplicating [LoginsStorage] code
  * between different versions of GeckoView, by duplicating this wrapper instead.
  */
-class GeckoLoginDelegateWrapper(private val storageDelegate: LoginStorageDelegate) :
+class GeckoLoginDelegateWrapper(private val loginsStorage: LoginsStorage) :
     Autocomplete.StorageDelegate {
 
     override fun onLoginSave(login: Autocomplete.LoginEntry) {
-        storageDelegate.onLoginSave(login.toLogin())
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch(IO) {
+            loginsStorage.addOrUpdate(login.toLoginEntry())
+        }
     }
 
     override fun onLoginFetch(domain: String): GeckoResult<Array<Autocomplete.LoginEntry>>? {
@@ -32,10 +35,12 @@ class GeckoLoginDelegateWrapper(private val storageDelegate: LoginStorageDelegat
 
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(IO) {
-            val storedLogins = storageDelegate.onLoginFetch(domain)
+            val storedLogins = loginsStorage.decryptLogins(
+                loginsStorage.getByBaseDomain(domain)
+            )
 
-            val logins = storedLogins.await()
-                .map { it.toLoginEntry() }
+            val logins = storedLogins
+                .map { it.toAutocompleteLoginEntry() }
                 .toTypedArray()
 
             result.complete(logins)

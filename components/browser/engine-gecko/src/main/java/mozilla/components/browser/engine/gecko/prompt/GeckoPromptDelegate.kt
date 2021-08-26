@@ -10,7 +10,7 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.browser.engine.gecko.ext.toAutocompleteCreditCard
 import mozilla.components.browser.engine.gecko.ext.toCreditCard
-import mozilla.components.browser.engine.gecko.ext.toLogin
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteLoginEntry
 import mozilla.components.browser.engine.gecko.ext.toLoginEntry
 import mozilla.components.concept.engine.prompt.Choice
 import mozilla.components.concept.engine.prompt.CreditCard
@@ -19,7 +19,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.ShareData
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.net.getFileName
 import mozilla.components.support.ktx.kotlin.toDate
@@ -109,9 +109,9 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         prompt: AutocompleteRequest<Autocomplete.LoginSaveOption>
     ): GeckoResult<PromptResponse>? {
         val geckoResult = GeckoResult<PromptResponse>()
-        val onConfirmSave: (Login) -> Unit = { login ->
+        val onConfirmSave: (LoginEntry) -> Unit = { entry ->
             if (!prompt.isComplete) {
-                geckoResult.complete(prompt.confirm(Autocomplete.LoginSelectOption(login.toLoginEntry())))
+                geckoResult.complete(prompt.confirm(Autocomplete.LoginSelectOption(entry.toAutocompleteLoginEntry())))
             }
         }
         val onDismiss: () -> Unit = {
@@ -122,7 +122,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
             onPromptRequest(
                 PromptRequest.SaveLoginPrompt(
                     hint = prompt.options[0].hint,
-                    logins = prompt.options.map { it.value.toLogin() },
+                    logins = prompt.options.map { it.value.toLoginEntry() },
                     onConfirm = onConfirmSave,
                     onDismiss = onDismiss
                 )
@@ -136,9 +136,9 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         prompt: AutocompleteRequest<Autocomplete.LoginSelectOption>
     ): GeckoResult<PromptResponse>? {
         val geckoResult = GeckoResult<PromptResponse>()
-        val onConfirmSelect: (Login) -> Unit = { login ->
+        val onConfirmSelect: (LoginEntry) -> Unit = { entry ->
             if (!prompt.isComplete) {
-                geckoResult.complete(prompt.confirm(Autocomplete.LoginSelectOption(login.toLoginEntry())))
+                geckoResult.complete(prompt.confirm(Autocomplete.LoginSelectOption(entry.toAutocompleteLoginEntry())))
             }
         }
         val onDismiss: () -> Unit = {
@@ -149,7 +149,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         val loginList = prompt.options.filter { option ->
             option.value.formActionOrigin != null || option.value.httpRealm != null
         }.map { option ->
-            option.value.toLogin()
+            option.value.toLoginEntry()
         }
 
         geckoEngineSession.notifyObservers {

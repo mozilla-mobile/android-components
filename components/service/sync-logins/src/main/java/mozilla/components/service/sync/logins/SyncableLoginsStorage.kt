@@ -10,10 +10,8 @@ import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
-import mozilla.appservices.logins.DatabaseLoginsStorage
 import mozilla.appservices.sync15.SyncTelemetryPing
-import mozilla.components.concept.storage.Login
-import mozilla.components.concept.storage.LoginsStorage
+import mozilla.components.concept.storage.*
 import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.logElapsedTime
@@ -21,11 +19,6 @@ import org.json.JSONObject
 import java.io.Closeable
 
 const val DB_NAME = "logins.sqlite"
-
-/**
- * Raw password data that is stored by the storage implementation.
- */
-typealias ServerPassword = mozilla.appservices.logins.Login
 
 /**
  * The telemetry ping from a successful sync
@@ -58,19 +51,10 @@ typealias SyncAuthInvalidException = mozilla.appservices.logins.LoginsStorageExc
 typealias MismatchedLockException = mozilla.appservices.logins.LoginsStorageException.MismatchedLock
 
 /**
- * This is thrown if `update()` is performed with a record whose ID
+ * This is thrown if `update()` is performed with a record whose GUID
  * does not exist.
  */
 typealias NoSuchRecordException = mozilla.appservices.logins.LoginsStorageException.NoSuchRecord
-
-/**
- * This is thrown if `add()` is given a record whose `id` is not blank, and
- * collides with a record already known to the storage instance.
- *
- * You can avoid ever worrying about this error by always providing blank
- * `id` property when inserting new records.
- */
-typealias IdCollisionException = mozilla.appservices.logins.LoginsStorageException.IdCollision
 
 /**
  * This is thrown on attempts to insert or update a record so that it
@@ -84,7 +68,12 @@ typealias IdCollisionException = mozilla.appservices.logins.LoginsStorageExcepti
 typealias InvalidRecordException = mozilla.appservices.logins.LoginsStorageException.InvalidRecord
 
 /**
- * This error is emitted in two cases:
+ * Error encrypting/decrypting logins data
+ */
+typealias CryptoException = mozilla.appservices.logins.LoginsStorageException.CryptoException
+
+/**
+ * This error is emitted when migrating from an sqlcipher DB in two cases:
  *
  * 1. An incorrect key is used to to open the login database
  * 2. The file at the path specified is not a sqlite database.
@@ -99,27 +88,26 @@ typealias InvalidKeyException = mozilla.appservices.logins.LoginsStorageExceptio
 typealias RequestFailedException = mozilla.appservices.logins.LoginsStorageException.RequestFailed
 
 /**
- * An implementation of [LoginsStorage] backed by application-services' `logins` library.
+ * Implements [LoginsStorage] and [SyncableStore] using the application-services logins library.
+ *
  * Synchronization support is provided both directly (via [sync]) when only syncing this storage layer,
- * or via [getHandle] when syncing multiple stores. Use the latter in conjunction with [FxaAccountManager].
+ * or via the SyncManager when syncing multiple stores [registerWithSyncManager].
  */
 class SyncableLoginsStorage(
     private val context: Context,
     private val key: String
 ) : LoginsStorage, SyncableStore, AutoCloseable {
-    private val logger = Logger("SyncableLoginsStorage")
+    private val logger = Logger("LoginStorage")
     private val coroutineContext by lazy { Dispatchers.IO }
-
-    private val conn by lazy {
-        LoginStorageConnection.init(key = key, dbPath = context.getDatabasePath(DB_NAME).absolutePath)
-        LoginStorageConnection
+    private val store by lazy {
+        mozilla.appservices.logins.LoginStore(context.getDatabasePath(DB_NAME).absolutePath)
     }
 
     /**
      * "Warms up" this storage layer by establishing the database connection.
      */
     suspend fun warmUp() = withContext(coroutineContext) {
-        logElapsedTime(logger, "Warming up storage") { conn }
+        logElapsedTime(logger, "Warming up storage") { store }
         Unit
     }
 
@@ -129,7 +117,7 @@ class SyncableLoginsStorage(
      */
     @Throws(LoginsStorageException::class)
     override suspend fun wipe() = withContext(coroutineContext) {
-        conn.getStorage().wipe()
+        store.wipe()
     }
 
     /**
@@ -138,7 +126,7 @@ class SyncableLoginsStorage(
      */
     @Throws(LoginsStorageException::class)
     override suspend fun wipeLocal() = withContext(coroutineContext) {
-        conn.getStorage().wipeLocal()
+        store.wipeLocal()
     }
 
     /**
@@ -146,8 +134,8 @@ class SyncableLoginsStorage(
      *              errors (IO failure, rust panics, etc)
      */
     @Throws(LoginsStorageException::class)
-    override suspend fun delete(id: String): Boolean = withContext(coroutineContext) {
-        conn.getStorage().delete(id)
+    override suspend fun delete(guid: String): Boolean = withContext(coroutineContext) {
+        store.delete(guid)
     }
 
     /**
@@ -155,8 +143,8 @@ class SyncableLoginsStorage(
      *              errors (IO failure, rust panics, etc)
      */
     @Throws(LoginsStorageException::class)
-    override suspend fun get(guid: String): Login? = withContext(coroutineContext) {
-        conn.getStorage().get(guid)?.toLogin()
+    override suspend fun get(guid: String): EncryptedLogin? = withContext(coroutineContext) {
+        store.get(guid)?.toAC()
     }
 
     /**
@@ -166,7 +154,7 @@ class SyncableLoginsStorage(
      */
     @Throws(NoSuchRecordException::class, LoginsStorageException::class)
     override suspend fun touch(guid: String) = withContext(coroutineContext) {
-        conn.getStorage().touch(guid)
+        store.touch(guid)
     }
 
     /**
@@ -174,49 +162,46 @@ class SyncableLoginsStorage(
      *              errors (IO failure, rust panics, etc)
      */
     @Throws(LoginsStorageException::class)
-    override suspend fun list(): List<Login> = withContext(coroutineContext) {
-        conn.getStorage().list().map { it.toLogin() }
+    override suspend fun list(): List<EncryptedLogin> = withContext(coroutineContext) {
+        store.list().map { it.toAC() }
     }
 
     /**
-     * @throws [IdCollisionException] if a nonempty id is provided, and
      * @throws [InvalidRecordException] if the record is invalid.
+     * @throws [CryptoException] invalid encryption key
      * @throws [LoginsStorageException] if the storage is locked, and on unexpected
      *              errors (IO failure, rust panics, etc)
      */
-    @Throws(IdCollisionException::class, InvalidRecordException::class, LoginsStorageException::class)
-    override suspend fun add(login: Login): String = withContext(coroutineContext) {
-        check(login.guid == null) { "'guid' for a new login must be `null`" }
-        conn.getStorage().add(login.toDatabaseLogin())
-    }
-
-    /**
-     *
-     * Allows adding a new login with a specified GUID. Useful for testing.
-     *
-     * @throws [IdCollisionException] if a nonempty id is provided, and
-     * @throws [InvalidRecordException] if the record is invalid.
-     * @throws [LoginsStorageException] if the storage is locked, and on unexpected
-     *              errors (IO failure, rust panics, etc)
-     */
-    @VisibleForTesting
-    internal suspend fun addWithGuid(login: Login): String = withContext(coroutineContext) {
-        conn.getStorage().add(login.toDatabaseLogin())
+    @Throws(CryptoException::class, InvalidRecordException::class, LoginsStorageException::class)
+    override suspend fun add(entry: LoginEntry): EncryptedLogin = withContext(coroutineContext) {
+        store.add(entry.toAS(), key).toAC()
     }
 
     /**
      * @throws [NoSuchRecordException] if the login does not exist.
+     * @throws [CryptoException] invalid encryption key
      * @throws [InvalidRecordException] if the update would create an invalid record.
      * @throws [LoginsStorageException] if the storage is locked, and on unexpected
      *              errors (IO failure, rust panics, etc)
      */
-    @Throws(NoSuchRecordException::class, InvalidRecordException::class, LoginsStorageException::class)
-    override suspend fun update(login: Login) = withContext(coroutineContext) {
-        conn.getStorage().update(login.toDatabaseLogin())
+    @Throws(CryptoException::class, NoSuchRecordException::class, InvalidRecordException::class, LoginsStorageException::class)
+    override suspend fun update(guid: String, entry: LoginEntry): EncryptedLogin = withContext(coroutineContext) {
+        store.update(guid, entry.toAS(), key).toAC()
+    }
+
+    /**
+     * @throws [InvalidRecordException] if the update would create an invalid record.
+     * @throws [CryptoException] invalid encryption key
+     * @throws [LoginsStorageException] if the storage is locked, and on unexpected
+     *              errors (IO failure, rust panics, etc)
+     */
+    @Throws(CryptoException::class, InvalidRecordException::class, LoginsStorageException::class)
+    override suspend fun addOrUpdate(entry: LoginEntry): EncryptedLogin = withContext(coroutineContext) {
+        store.addOrUpdate(entry.toAS(), key).toAC()
     }
 
     override fun registerWithSyncManager() {
-        conn.getStorage().registerWithSyncManager()
+        store.registerWithSyncManager()
     }
 
     override fun getHandle(): Long {
@@ -224,71 +209,43 @@ class SyncableLoginsStorage(
     }
 
     /**
+     * @throws [CryptoException] invalid encryption key
      * @throws [LoginsStorageException] If DB isn't empty during an import; also, on unexpected errors
      * (IO failure, rust panics, etc).
      */
-    @Throws(LoginsStorageException::class)
+    @Throws(CryptoException::class, LoginsStorageException::class)
     override suspend fun importLoginsAsync(logins: List<Login>): JSONObject = withContext(coroutineContext) {
-        JSONObject(conn.getStorage().importLogins(logins.map { it.toDatabaseLogin() }))
-    }
-
-    /**
-     * @throws [InvalidRecordException] On both expected errors (malformed [login], [login]
-     * already exists in store, etc. See [InvalidRecordException.reason] for details) and
-     * unexpected errors (IO failure, rust panics, etc)
-     */
-    @Throws(InvalidRecordException::class)
-    override suspend fun ensureValid(login: Login) = withContext(coroutineContext) {
-        conn.getStorage().ensureValid(login.toDatabaseLogin())
+        JSONObject(store.importMultiple(logins.map { it.toAS() }, key))
     }
 
     /**
      * @throws [LoginsStorageException] On unexpected errors (IO failure, rust panics, etc)
      */
     @Throws(LoginsStorageException::class)
-    override suspend fun getByBaseDomain(origin: String): List<Login> = withContext(coroutineContext) {
-        conn.getStorage().getByBaseDomain(origin).map { it.toLogin() }
+    override suspend fun getByBaseDomain(origin: String): List<EncryptedLogin> = withContext(coroutineContext) {
+        store.getByBaseDomain(origin).map { it.toAC() }
     }
 
     /**
+     * @throws [CryptoException] invalid encryption key
      * @throws [LoginsStorageException] On unexpected errors (IO failure, rust panics, etc)
      */
     @Throws(LoginsStorageException::class)
-    override suspend fun getPotentialDupesIgnoringUsername(login: Login): List<Login> =
-        withContext(coroutineContext) {
-            conn.getStorage().potentialDupesIgnoringUsername(login.toDatabaseLogin())
-                .map { it.toLogin() }
+    override fun findLoginToUpdate(entry: LoginEntry, logins: List<Login>): Login? {
+        return mozilla.appservices.logins.findLoginToUpdate(entry.toAS(), logins.map { it.toAS() })?.toAC()
+    }
+
+    /**
+     * @throws [CryptoException] invalid encryption key
+     */
+    override suspend fun decryptLogins(logins: List<EncryptedLogin>): List<Login> = withContext(coroutineContext) {
+        logins.map {
+            mozilla.appservices.logins.decryptLogin(it.toAS(), key).toAC()
         }
+    }
 
     override fun close() {
         coroutineContext.cancel()
-        conn.close()
-    }
-}
-
-/**
- * A singleton wrapping a [DatabaseLoginsStorage] connection.
- */
-internal object LoginStorageConnection : Closeable {
-    @GuardedBy("this")
-    private var storage: DatabaseLoginsStorage? = null
-
-    internal fun init(key: String, dbPath: String = DB_NAME) = synchronized(this) {
-        if (storage == null) {
-            storage = DatabaseLoginsStorage(dbPath).also {
-                it.unlock(key)
-            }
-        }
-    }
-
-    internal fun getStorage(): DatabaseLoginsStorage = synchronized(this) {
-        check(storage != null) { "must call init first" }
-        return storage!!
-    }
-
-    override fun close() = synchronized(this) {
-        check(storage != null) { "must call init first" }
-        storage!!.close()
-        storage = null
+        store.close()
     }
 }

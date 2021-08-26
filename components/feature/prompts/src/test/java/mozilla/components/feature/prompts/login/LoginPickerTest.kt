@@ -11,7 +11,8 @@ import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.support.test.fakes.fakeLoginEntry
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -23,13 +24,11 @@ import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class LoginPickerTest {
-    val login =
-        Login(origin = "https://www.mozilla.org", username = "username", password = "password")
-    val login2 =
-        Login(origin = "https://www.mozilla.org", username = "username2", password = "password")
+    val login = fakeLoginEntry(username = "username")
+    val login2 = fakeLoginEntry(username = "username2")
 
     var onDismissWasCalled = false
-    var confirmedLogin: Login? = null
+    var confirmedLogin: LoginEntry? = null
     private val request = PromptRequest.SelectLoginPrompt(
         listOf(login, login2),
         onConfirm = { confirmedLogin = it },

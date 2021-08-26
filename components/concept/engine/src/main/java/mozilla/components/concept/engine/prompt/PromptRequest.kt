@@ -10,6 +10,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Lev
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Method
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
 import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import java.util.UUID
 
 /**
@@ -96,9 +97,9 @@ sealed class PromptRequest(
      */
     data class SaveLoginPrompt(
         val hint: Int,
-        val logins: List<Login>,
+        val logins: List<LoginEntry>,
         override val onDismiss: () -> Unit,
-        val onConfirm: (Login) -> Unit
+        val onConfirm: (LoginEntry) -> Unit
     ) : PromptRequest(shouldDismissOnLoad = false), Dismissible
 
     /**
@@ -108,9 +109,9 @@ sealed class PromptRequest(
      * @property onConfirm callback that is called when the user wants to save the login.
      */
     data class SelectLoginPrompt(
-        val logins: List<Login>,
+        val logins: List<LoginEntry>,
         override val onDismiss: () -> Unit,
-        val onConfirm: (Login) -> Unit
+        val onConfirm: (LoginEntry) -> Unit
     ) : PromptRequest(), Dismissible
 
     /**

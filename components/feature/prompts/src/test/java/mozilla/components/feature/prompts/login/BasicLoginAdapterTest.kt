@@ -8,8 +8,9 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.R
+import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.support.test.fakes.fakeLoginEntry
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert
 import org.junit.Test
@@ -18,15 +19,12 @@ import org.junit.runner.RunWith
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class BasicLoginAdapterTest {
-
-    val login =
-        Login(origin = "https://www.mozilla.org", username = "username", password = "password")
-    val login2 =
-        Login(origin = "https://www.mozilla.org", username = "username2", password = "password")
+    val login = fakeLoginEntry(username = "username")
+    val login2 = fakeLoginEntry(username = "username2")
 
     @Test
     fun `getItemCount should return the number of logins`() {
-        var onLoginSelected: (Login) -> Unit = { }
+        var onLoginSelected: (LoginEntry) -> Unit = { }
 
         val adapter = BasicLoginAdapter(onLoginSelected)
 
@@ -40,8 +38,8 @@ class BasicLoginAdapterTest {
 
     @Test
     fun `creates and binds login viewholder`() {
-        var confirmedLogin: Login? = null
-        var onLoginSelected: (Login) -> Unit = { confirmedLogin = it }
+        var confirmedLogin: LoginEntry? = null
+        var onLoginSelected: (LoginEntry) -> Unit = { confirmedLogin = it }
 
         val adapter = BasicLoginAdapter(onLoginSelected)
 
@@ -52,9 +50,9 @@ class BasicLoginAdapterTest {
 
         Assert.assertEquals(login, holder.login)
         val userName = holder.itemView.findViewById<TextView>(R.id.username)
-        Assert.assertEquals("username", userName.text)
+        Assert.assertEquals(login.username, userName.text)
         val password = holder.itemView.findViewById<TextView>(R.id.password)
-        Assert.assertEquals("password".length, password.text.length)
+        Assert.assertEquals(login.password.length, password.text.length)
         Assert.assertTrue(holder.itemView.isClickable)
 
         holder.itemView.performClick()

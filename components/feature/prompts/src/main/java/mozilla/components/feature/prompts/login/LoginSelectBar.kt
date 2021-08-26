@@ -18,7 +18,7 @@ import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -30,7 +30,7 @@ class LoginSelectBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : ConstraintLayout(context, attrs, defStyleAttr), SelectablePromptView<Login> {
+) : ConstraintLayout(context, attrs, defStyleAttr), SelectablePromptView<LoginEntry> {
 
     var headerTextStyle: Int? = null
 
@@ -49,9 +49,9 @@ class LoginSelectBar @JvmOverloads constructor(
         }
     }
 
-    override var listener: SelectablePromptView.Listener<Login>? = null
+    override var listener: SelectablePromptView.Listener<LoginEntry>? = null
 
-    override fun showPrompt(options: List<Login>) {
+    override fun showPrompt(options: List<LoginEntry>) {
         if (loginPickerView == null) {
             loginPickerView =
                 View.inflate(context, R.layout.mozac_feature_login_multiselect_view, this)

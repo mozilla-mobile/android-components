@@ -27,17 +27,19 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.components.concept.storage.Login
-import mozilla.components.concept.storage.LoginValidationDelegate.Result
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.ext.onDone
 import mozilla.components.support.base.log.logger.Logger
@@ -51,19 +53,18 @@ import com.google.android.material.R as MaterialR
 private const val KEY_LOGIN_HINT = "KEY_LOGIN_HINT"
 private const val KEY_LOGIN_USERNAME = "KEY_LOGIN_USERNAME"
 private const val KEY_LOGIN_PASSWORD = "KEY_LOGIN_PASSWORD"
-private const val KEY_LOGIN_GUID = "KEY_LOGIN_GUID"
 private const val KEY_LOGIN_ORIGIN = "KEY_LOGIN_ORIGIN"
 private const val KEY_LOGIN_FORM_ACTION_ORIGIN = "KEY_LOGIN_FORM_ACTION_ORIGIN"
 private const val KEY_LOGIN_HTTP_REALM = "KEY_LOGIN_HTTP_REALM"
-@VisibleForTesting internal const val KEY_LOGIN_ICON = "KEY_LOGIN_ICON"
+private const val KEY_LOGIN_ICON = "KEY_LOGIN_ICON"
 
 /**
  * [android.support.v4.app.DialogFragment] implementation to display a
  * dialog that allows users to save/update usernames and passwords for a given domain.
  */
 @Suppress("LargeClass")
-internal class SaveLoginDialogFragment : PromptDialogFragment() {
-
+@kotlinx.coroutines.ExperimentalCoroutinesApi
+internal class SaveLoginDialogFragment(dispatcher: CoroutineDispatcher = IO) : PromptDialogFragment() {
     private inner class SafeArgString(private val key: String) {
         operator fun getValue(frag: SaveLoginDialogFragment, prop: KProperty<*>): String =
             safeArguments.getString(key)!!
@@ -73,23 +74,61 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         }
     }
 
-    private val guid by lazy { safeArguments.getString(KEY_LOGIN_GUID) }
+    private val dispatcher = dispatcher
     private val origin by lazy { safeArguments.getString(KEY_LOGIN_ORIGIN)!! }
     private val formActionOrigin by lazy { safeArguments.getString(KEY_LOGIN_FORM_ACTION_ORIGIN) }
     private val httpRealm by lazy { safeArguments.getString(KEY_LOGIN_HTTP_REALM) }
     @VisibleForTesting
     internal val icon by lazy { safeArguments.getParcelable<Bitmap>(KEY_LOGIN_ICON) }
-
     @VisibleForTesting
     internal var username by SafeArgString(KEY_LOGIN_USERNAME)
     @VisibleForTesting
     internal var password by SafeArgString(KEY_LOGIN_PASSWORD)
-
     private var validateStateUpdate: Job? = null
+    // List of logins already stored for this site.  We use this to determine
+    // how to save the new [LoginEntry] (add a new record, or update an existing record)
+    private var loginsForOrigin: Deferred<List<Login>>? = null
 
-    // List of potential dupes ignoring username. We could potentially both read and write this list
-    // from different threads, so we are using a copy-on-write list.
-    private var potentialDupesList: CopyOnWriteArrayList<Login>? = null
+    // Start the process to fetch `loginsForOrigin` if we need to.
+    // This makes sure that:
+    //   - We don't start the process before `feature.loginsStorage` is set
+    //   - We only run the process once
+    private fun fetchLoginsForOriginIfNeeded() {
+        val loginsStorage = feature?.loginsStorage
+        if (loginsStorage != null && loginsForOrigin == null) {
+            val loginsForOrigin = CoroutineScope(dispatcher).async {
+                loginsStorage.decryptLogins(loginsStorage.getByBaseDomain(origin))
+            }
+            loginsForOrigin.invokeOnCompletion {
+                // Make sure to run update() now that the logins have been fetched
+                CoroutineScope(Main).launch {
+                    update()
+                }
+            }
+            this.loginsForOrigin = loginsForOrigin
+        }
+    }
+
+    private fun findLoginToUpdate(): Login? {
+        fetchLoginsForOriginIfNeeded()
+
+        val loginsStorage = feature?.loginsStorage ?: return null
+        val loginsForOrigin = loginsForOrigin
+
+        if (loginsForOrigin == null || !loginsForOrigin.isCompleted) {
+            // Still fetching logins
+            return null
+        } else {
+            val entry = LoginEntry(
+                origin = origin,
+                formActionOrigin = formActionOrigin,
+                httpRealm = httpRealm,
+                username = username,
+                password = password
+            )
+            return loginsStorage.findLoginToUpdate(entry, loginsForOrigin.getCompleted())
+        }
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return BottomSheetDialog(requireContext(), R.style.MozDialogStyle).apply {
@@ -102,7 +141,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                  anchor of this view incorrectly to somewhere in the center of the view. If we delay a small amount we
                  are given the correct amount of space and are properly anchored.
                  */
-                CoroutineScope(IO).launch {
+                CoroutineScope(dispatcher).launch {
                     delay(KEYBOARD_HIDING_DELAY)
                     launch(Main) {
                         val bottomSheet =
@@ -124,7 +163,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
          * If an implementation of [LoginExceptions] is hooked up to [PromptFeature], we will not
          * show this save login dialog for any origin saved as an exception.
          */
-        CoroutineScope(IO).launch {
+        CoroutineScope(dispatcher).launch {
             if (feature?.loginExceptionStorage?.isLoginExceptionByOrigin(origin) == true) {
                 feature?.onCancel(sessionId, promptRequestUID)
                 dismiss()
@@ -149,7 +188,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             setOnClickListener {
                 if (this.text == context?.getString(R.string.mozac_feature_prompt_never_save)) {
                     emitNeverSaveFact()
-                    CoroutineScope(IO).launch {
+                    CoroutineScope(dispatcher).launch {
                         feature?.loginExceptionStorage?.addLoginException(origin)
                     }
                 }
@@ -158,6 +197,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             }
         }
 
+        fetchLoginsForOriginIfNeeded()
         emitDisplayFact()
         update()
     }
@@ -168,17 +208,21 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         emitCancelFact()
     }
 
-    private fun onPositiveClickAction() {
+    @VisibleForTesting
+    internal fun onPositiveClickAction() {
+        // It would be nice if we could also pass on the result of
+        // findLoginToUpdate(), to avoid having to figure out if we should add
+        // or update down the road.  However, this isn't safe because it's
+        // theoretically possible that loginsForOrigin hasn't completed yet.
         feature?.onConfirm(
             sessionId, promptRequestUID,
-            Login(
-                guid = guid,
+            LoginEntry(
                 origin = origin,
                 formActionOrigin = formActionOrigin,
                 httpRealm = httpRealm,
                 username = username,
-                password = password
-            )
+                password = password,
+            ),
         )
         emitSaveFact()
         dismiss()
@@ -289,77 +333,38 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     /**
      * Check current state then update view state to match.
      */
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    fun update() = view?.toScope()?.launch(IO) {
-        val login = Login(
-            guid = guid,
-            origin = origin,
-            formActionOrigin = formActionOrigin,
-            httpRealm = httpRealm,
-            username = username,
-            password = password
-        )
+    private fun update() {
+        // Figure out if we're going to be adding a login or updating an existing one
+        val loginToUpdate = findLoginToUpdate()
 
-        try {
-            validateStateUpdate?.cancelAndJoin()
-        } catch (cancellationException: CancellationException) {
-            Logger.error("Failed to cancel job", cancellationException)
-        }
-
-        var validateDeferred: Deferred<Result>?
-        validateStateUpdate = launch validate@{
-            val validationDelegate =
-                feature?.loginValidationDelegate ?: return@validate
-            // We only want to fetch this list once. Since we are ignoring username the results will
-            // not change when user changes username or password fields
-            if (potentialDupesList == null) {
-                this@SaveLoginDialogFragment.potentialDupesList = CopyOnWriteArrayList(
-                    validationDelegate.getPotentialDupesIgnoringUsernameAsync(
-                        login
-                    ).await()
-                )
-            }
-            // Passing a copy of this potential dupes list, not a reference, so we know for certain
-            // that what shouldUpdateOrCreateAsync is using can't change.
-            validateDeferred = validationDelegate.shouldUpdateOrCreateAsync(
-                login,
-                potentialDupesList?.toList()
+        if (loginToUpdate == null) {
+            // Adding a login (or we don't know what's happening because we're
+            // waiting for `loginsStorage.getByBaseDomain()`)
+            setViewState(
+                headline = context?.getString(R.string.mozac_feature_prompt_login_save_headline),
+                negativeText = context?.getString(R.string.mozac_feature_prompt_never_save),
+                confirmText = context?.getString(R.string.mozac_feature_prompt_save_confirmation)
             )
-            val result = validateDeferred?.await()
-            withContext(Main) {
-                when (result) {
-                    Result.CanBeCreated -> {
-                        setViewState(
-                            headline = context?.getString(R.string.mozac_feature_prompt_login_save_headline),
-                            negativeText = context?.getString(R.string.mozac_feature_prompt_never_save),
-                            confirmText = context?.getString(R.string.mozac_feature_prompt_save_confirmation)
-                        )
-                    }
-                    is Result.CanBeUpdated -> {
-                        setViewState(
-                            headline = if (result.foundLogin.username.isEmpty()) {
-                                context?.getString(
-                                    R.string.mozac_feature_prompt_login_add_username_headline
-                                )
-                            } else {
-                                context?.getString(R.string.mozac_feature_prompt_login_update_headline)
-                            },
-                            negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
-                            confirmText =
-                            context?.getString(R.string.mozac_feature_prompt_update_confirmation)
-                        )
-                    }
-                }
-            }
-            validateStateUpdate?.invokeOnCompletion {
-                if (it is CancellationException) {
-                    validateDeferred?.cancel()
-                }
-            }
+        } else {
+            // Updating an existing login
+            setViewState(
+                headline = if (loginToUpdate.username == username) {
+                    // Normal case
+                    context?.getString(R.string.mozac_feature_prompt_login_update_headline)
+                } else {
+                    // Filling in an empty username
+                    context?.getString(
+                        R.string.mozac_feature_prompt_login_add_username_headline
+                    )
+                },
+                negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
+                confirmText = context?.getString(R.string.mozac_feature_prompt_update_confirmation)
+            )
         }
     }
 
-    private fun setViewState(
+    @VisibleForTesting
+    internal fun setViewState(
         headline: String? = null,
         negativeText: String? = null,
         confirmText: String? = null,
@@ -407,29 +412,26 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             promptRequestUID: String,
             shouldDismissOnLoad: Boolean,
             hint: Int,
-            login: Login,
-            icon: Bitmap? = null
+            entry: LoginEntry,
+            icon: Bitmap? = null,
+            dispatcher: CoroutineDispatcher = IO,
         ): SaveLoginDialogFragment {
-
-            val fragment = SaveLoginDialogFragment()
-            val arguments = fragment.arguments ?: Bundle()
-
-            with(arguments) {
-                putString(KEY_SESSION_ID, sessionId)
-                putString(KEY_PROMPT_UID, promptRequestUID)
-                putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
-                putInt(KEY_LOGIN_HINT, hint)
-                putString(KEY_LOGIN_USERNAME, login.username)
-                putString(KEY_LOGIN_PASSWORD, login.password)
-                putString(KEY_LOGIN_GUID, login.guid)
-                putString(KEY_LOGIN_ORIGIN, login.origin)
-                putString(KEY_LOGIN_FORM_ACTION_ORIGIN, login.formActionOrigin)
-                putString(KEY_LOGIN_HTTP_REALM, login.httpRealm)
-                putParcelable(KEY_LOGIN_ICON, icon)
+            return SaveLoginDialogFragment(dispatcher).apply {
+                val arguments = this.arguments ?: Bundle()
+                with(arguments) {
+                    putString(KEY_SESSION_ID, sessionId)
+                    putString(KEY_PROMPT_UID, promptRequestUID)
+                    putBoolean(KEY_SHOULD_DISMISS_ON_LOAD, shouldDismissOnLoad)
+                    putInt(KEY_LOGIN_HINT, hint)
+                    putString(KEY_LOGIN_USERNAME, entry.username)
+                    putString(KEY_LOGIN_PASSWORD, entry.password)
+                    putString(KEY_LOGIN_ORIGIN, entry.origin)
+                    putString(KEY_LOGIN_FORM_ACTION_ORIGIN, entry.formActionOrigin)
+                    putString(KEY_LOGIN_HTTP_REALM, entry.httpRealm)
+                    putParcelable(KEY_LOGIN_ICON, icon)
+                }
+                this.arguments = arguments
             }
-
-            fragment.arguments = arguments
-            return fragment
         }
     }
 }

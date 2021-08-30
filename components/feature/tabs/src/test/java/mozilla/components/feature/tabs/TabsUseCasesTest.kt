@@ -10,7 +10,7 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.selector.findTab
-import mozilla.components.browser.state.selector.findTabByUrl
+import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.state.recover.RecoverableTab
@@ -409,7 +409,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
 
         assertEquals(2, store.state.tabs.size)
-        assertNotNull(store.state.findTabByUrl("https://firefox.com", false))
+        assertNotNull(store.state.findNormalOrPrivateTabByUrl("https://firefox.com", false))
         assertEquals(store.state.selectedTabId, tabID)
     }
 
@@ -432,7 +432,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
 
         assertEquals(2, store.state.tabs.size)
-        assertNotNull(store.state.findTabByUrl("https://firefox.com", false))
+        assertNotNull(store.state.findNormalOrPrivateTabByUrl("https://firefox.com", false))
         assertEquals(store.state.selectedTabId, tabID)
     }
 

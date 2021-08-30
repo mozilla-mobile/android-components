@@ -9,8 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import mozilla.components.concept.awesomebar.AwesomeBar
 
+/**
+ * Displays a list of suggestions.
+ */
 @Composable
-internal fun Suggestions(
+fun Suggestions(
     suggestions: List<AwesomeBar.Suggestion>,
     onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit,
     onAutoComplete: (AwesomeBar.Suggestion) -> Unit

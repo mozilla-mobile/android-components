@@ -16,7 +16,7 @@ import java.util.concurrent.Executors
  * Class responsible for fetching search suggestions and exposing a [state] to observe the current
  * list of suggestions from a composable.
  */
-internal class SuggestionFetcher(
+class SuggestionFetcher(
     private val providers: List<AwesomeBar.SuggestionProvider>
 ) {
     private val dispatcher = Executors.newFixedThreadPool(

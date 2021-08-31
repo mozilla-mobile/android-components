@@ -236,76 +236,7 @@ class SelectorsKtTest {
     }
 
     @Test
-    fun `findNormalOrPrivateTabByUrl finds a normal tab with same url or returns null`() {
-        BrowserState(
-            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id"))
-        ).also { state ->
-            assertNotNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", false))
-            assertEquals(
-                "https://www.mozilla.org",
-                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", false)!!.content.url
-            )
-            assertEquals(
-                "test-id",
-                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", false)!!.id
-            )
-        }
-
-        BrowserState(
-            customTabs = listOf(createCustomTab("https://www.mozilla.org", id = "test-id"))
-        ).also { state ->
-            assertNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.com", false))
-        }
-    }
-
-    @Test
-    fun `findNormalOrPrivateTabByUrl finds no result looking for a normal tab when only a private tab matches`() {
-        BrowserState(
-            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id", private = true))
-        ).also { state ->
-            assertNotNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true))
-            assertEquals(
-                "https://www.mozilla.org",
-                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true)!!.content.url
-            )
-            assertEquals(
-                "test-id",
-                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true)!!.id
-            )
-        }
-
-        BrowserState(
-            customTabs = listOf(createCustomTab("https://www.mozilla.org", id = "test-id"))
-        ).also { state ->
-            assertNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.com", false))
-        }
-    }
-
-    @Test
-    fun `findNormalOrPrivateTabByUrl finds a private tab with same url or returns null`() {
-        BrowserState(
-            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id", private = true))
-        ).also { state ->
-            assertNotNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true))
-            assertEquals(
-                "https://www.mozilla.org",
-                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true)!!.content.url
-            )
-            assertEquals(
-                "test-id",
-                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true)!!.id
-            )
-        }
-
-        BrowserState(
-            customTabs = listOf(createCustomTab("https://www.mozilla.org", id = "test-id"))
-        ).also { state ->
-            assertNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.com", true))
-        }
-    }
-
-    @Test
-    fun `findNormalOrPrivateTabByUrl finds no result looking for a private tab when only a normal tab matches`() {
+    fun `findNormalOrPrivateTabByUrl finds a matching normal tab`() {
         BrowserState(
             tabs = listOf(createTab("https://www.mozilla.org", id = "test-id", private = false))
         ).also { state ->
@@ -319,11 +250,40 @@ class SelectorsKtTest {
                 state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", false)!!.id
             )
         }
+    }
 
+    @Test
+    fun `findNormalOrPrivateTabByUrl finds no matching normal tab`() {
         BrowserState(
-            customTabs = listOf(createCustomTab("https://www.mozilla.org", id = "test-id"))
+            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id", private = true))
         ).also { state ->
-            assertNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.com", true))
+            assertNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", false))
+        }
+    }
+
+    @Test
+    fun `findNormalOrPrivateTabByUrl finds a matching private tab`() {
+        BrowserState(
+            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id", private = true))
+        ).also { state ->
+            assertNotNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true))
+            assertEquals(
+                "https://www.mozilla.org",
+                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true)!!.content.url
+            )
+            assertEquals(
+                "test-id",
+                state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true)!!.id
+            )
+        }
+    }
+
+    @Test
+    fun `findNormalOrPrivateTabByUrl finds no matching private tab`() {
+        BrowserState(
+            tabs = listOf(createTab("https://www.mozilla.org", id = "test-id", private = false))
+        ).also { state ->
+            assertNull(state.findNormalOrPrivateTabByUrl("https://www.mozilla.org", true))
         }
     }
 }

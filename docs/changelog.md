@@ -8,6 +8,9 @@ permalink: /changelog/
   * 🌟️ Adds icons: mozac_ic_add_to_home_screen, mozac_ic_help, mozac_ic_shield, mozac_ic_shield_disabled
   * 🌟️ Update icons: mozac_ic_home, mozac_ic_settings, mozac_ic_clear
 
+* **feature-contextmenu**:
+  * 🌟️ Adds `additionalNote` which it will be attached to the bottom of context menu but for a specific `HitResult`
+
 # 93.0.0-SNAPSHOT (In Development)
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v92.0.0...main)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/140?closed=1)
@@ -113,7 +116,6 @@ permalink: /changelog/
 
 * **feature-prompts** **browser-storage-sync**
   * ⚠️ A new `isCreditCardAutofillEnabled` callback is available in `PromptFeature` and `GeckoCreditCardsAddressesStorageDelegate` to allow clients controlling whether credit cards should be autofilled or not. Default is false*
-  * ⚠️ Emit fact when a credit card is selected from the autofill prompt.
 
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Rebuilt from the ground up to better support offering to clients Pocket recommended articles.

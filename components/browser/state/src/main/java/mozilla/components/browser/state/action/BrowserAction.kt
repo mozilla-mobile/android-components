@@ -186,16 +186,17 @@ sealed class TabListAction : BrowserAction() {
         val tabs: List<RecoverableTab>,
         val selectedTabId: String? = null,
         val restoreLocation: RestoreLocation
-    ) : TabListAction()
+    ) : TabListAction() {
 
-    /**
-     * Indicates what location the tabs should be restored at
-     *
-     */
-    enum class RestoreLocation {
-        BEGINNING,
-        END,
-        AT_INDEX
+        /**
+         * Indicates what location the tabs should be restored at
+         *
+         */
+        enum class RestoreLocation {
+            BEGINNING,
+            END,
+            AT_INDEX
+        }
     }
 
     /**

@@ -473,7 +473,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
                 selectedTabId = "d",
-                restoreLocation = TabListAction.RestoreLocation.BEGINNING
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING
             )
         ).joinBlocking()
 
@@ -506,7 +506,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
                 selectedTabId = "d",
-                restoreLocation = TabListAction.RestoreLocation.BEGINNING
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING
             )
         ).joinBlocking()
 
@@ -539,7 +539,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
                 selectedTabId = "d",
-                restoreLocation = TabListAction.RestoreLocation.END
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.END
             )
         ).joinBlocking()
 
@@ -571,7 +571,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
                 selectedTabId = "d",
-                restoreLocation = TabListAction.RestoreLocation.BEGINNING
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING
             )
         ).joinBlocking()
 
@@ -603,7 +603,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
                 selectedTabId = "d",
-                restoreLocation = TabListAction.RestoreLocation.END
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.END
             )
         ).joinBlocking()
 
@@ -635,7 +635,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://getpocket.com", private = false)
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.BEGINNING
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING
             )
         ).joinBlocking()
 
@@ -666,7 +666,7 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 0),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -695,7 +695,7 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 1),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -724,7 +724,7 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 2),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -753,7 +753,7 @@ class TabListActionTest {
                     RecoverableTab(id = "c", url = "https://www.example.org", index = 4),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -783,7 +783,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://www.example.org", index = 0),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -814,7 +814,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://www.example.org", index = 0),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 
@@ -845,7 +845,7 @@ class TabListActionTest {
                     RecoverableTab(id = "d", url = "https://www.example.org"),
                 ),
                 selectedTabId = null,
-                restoreLocation = TabListAction.RestoreLocation.AT_INDEX
+                restoreLocation = TabListAction.RestoreAction.RestoreLocation.AT_INDEX
             )
         ).joinBlocking()
 

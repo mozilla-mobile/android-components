@@ -119,7 +119,7 @@ class TabCounterToolbarButtonTest {
         button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
 
         store.dispatch(
-            TabListAction.RestoreAction(listOf(RecoverableTab("a", "https://www.mozilla.org")), restoreLocation = TabListAction.RestoreLocation.BEGINNING)
+            TabListAction.RestoreAction(listOf(RecoverableTab("a", "https://www.mozilla.org")), restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING)
         ).joinBlocking()
 
         verify(button).updateCount(eq(1))

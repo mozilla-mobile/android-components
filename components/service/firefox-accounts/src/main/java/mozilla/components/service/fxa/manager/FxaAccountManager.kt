@@ -534,11 +534,15 @@ open class FxaAccountManager(
             is Event.Progress.CompletedAuthentication -> {
                 notifyObservers { onAuthenticated(account, via.authType) }
                 refreshProfile(ignoreCache = false)
+                // Unconditionally call `refreshDevices()` as it repairs push expiry.
+                account.deviceConstellation().refreshDevices()
                 Unit
             }
             Event.Progress.RecoveredFromAuthenticationProblem -> {
                 notifyObservers { onAuthenticated(account, AuthType.Recovered) }
                 refreshProfile(ignoreCache = true)
+                // Unconditionally call `refreshDevices()` as it repairs push expiry.
+                account.deviceConstellation().refreshDevices()
                 Unit
             }
             else -> Unit
@@ -609,7 +613,7 @@ open class FxaAccountManager(
                         // - network errors are encountered. 'CompletedAuthentication' event will be processed,
                         // moving the state machine into an 'Authenticated' state. Next time user requests
                         // a sync, methods that failed will be re-ran, giving them a chance to succeed.
-                        authenticationSideEffects(authType)
+                        authenticationSideEffects()
                         Event.Progress.CompletedAuthentication(authType)
                     }
                     ServiceResult.AuthError -> {
@@ -635,7 +639,7 @@ open class FxaAccountManager(
                     Event.Progress.FailedToCompleteAuth
                 } else {
                     via.authData.declinedEngines?.let { persistDeclinedEngines(it) }
-                    authenticationSideEffects(via.authData.authType)
+                    authenticationSideEffects()
                     Event.Progress.CompletedAuthentication(via.authData.authType)
                 }
             }
@@ -646,7 +650,7 @@ open class FxaAccountManager(
                 }
                 when (withRetries(logger, MAX_NETWORK_RETRIES) { finalizeDevice(authType) }) {
                     is Result.Success -> {
-                        authenticationSideEffects(authType)
+                        authenticationSideEffects()
                         Event.Progress.CompletedAuthentication(authType)
                     }
                     Result.Failure -> {
@@ -850,7 +854,7 @@ open class FxaAccountManager(
         authType, deviceConfig
     )
 
-    private suspend fun authenticationSideEffects(authType: AuthType) {
+    private suspend fun authenticationSideEffects() {
         // Make sure our SyncAuthInfo cache is hot, background sync worker needs it to function.
         maybeUpdateSyncAuthInfoCache()
 
@@ -862,12 +866,6 @@ open class FxaAccountManager(
                 type = deviceConfig.type.intoSyncType()
             )
         )
-
-        // If device supports SEND_TAB, and we're not recovering from an auth problem...
-        if (deviceConfig.capabilities.contains(DeviceCapability.SEND_TAB) && authType != AuthType.Recovered) {
-            // ... update constellation state (fetching info about other devices, our own device).
-            account.deviceConstellation().refreshDevices()
-        }
     }
 
     /**

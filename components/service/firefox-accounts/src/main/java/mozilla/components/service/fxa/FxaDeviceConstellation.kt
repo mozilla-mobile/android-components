@@ -125,6 +125,7 @@ class FxaDeviceConstellation(
         owner: LifecycleOwner,
         autoPause: Boolean
     ) {
+        logger.debug("registering device observer")
         deviceObserverRegistry.register(observer, owner, autoPause)
     }
 

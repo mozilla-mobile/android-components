@@ -895,8 +895,9 @@ class FxaAccountManagerTest {
         assertEquals(mockAccount, manager.authenticatedAccount())
         assertEquals(profile, manager.accountProfile())
 
-        // Assert that we don't refresh device state for non-SEND_TAB enabled devices.
-        verify(constellation, never()).refreshDevices()
+        // Assert that we do refresh device state for non-SEND_TAB enabled devices (because this
+        // refresh also checks the current device state)
+        verify(constellation, times(1)).refreshDevices()
 
         // Make sure 'logoutAsync' clears out state and fires correct observers.
         reset(accountObserver)

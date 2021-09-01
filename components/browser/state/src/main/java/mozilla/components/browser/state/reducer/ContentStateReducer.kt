@@ -60,6 +60,9 @@ internal object ContentStateReducer {
             is ContentAction.UpdateProgressAction -> updateContentState(state, action.sessionId) {
                 it.copy(progress = action.progress)
             }
+            is ContentAction.UpdatePrivateModeAction -> updateContentState(state, action.sessionId) {
+                it.copy(private = action.privateMode)
+            }
             is ContentAction.UpdateTitleAction -> updateContentState(state, action.sessionId) {
                 it.copy(title = action.title)
             }

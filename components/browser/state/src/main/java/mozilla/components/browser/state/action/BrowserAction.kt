@@ -334,6 +334,11 @@ sealed class ContentAction : BrowserAction() {
     data class UpdateProgressAction(val sessionId: String, val progress: Int) : ContentAction()
 
     /**
+     * Updates the private state of the [ContentState] with the given [sessionId].
+     */
+    data class UpdatePrivateModeAction(val sessionId: String, val privateMode: Boolean) : ContentAction()
+
+    /**
      * Updates permissions highlights of the [ContentState] with the given [sessionId].
      */
     sealed class UpdatePermissionHighlightsStateAction : ContentAction() {

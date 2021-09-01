@@ -12,13 +12,12 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.UndoAction
+import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
 import mozilla.components.browser.state.selector.findTab
-import mozilla.components.browser.state.selector.findTabByUrl
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.state.recover.RecoverableTab
-import mozilla.components.browser.state.state.recover.toTabSessionStates
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
@@ -323,7 +322,7 @@ class TabsUseCases(
          */
         operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
             store.dispatch(
-                TabListAction.RestoreAction(tabs.toTabSessionStates(), selectTabId)
+                TabListAction.RestoreAction(tabs, selectTabId, TabListAction.RestoreAction.RestoreLocation.BEGINNING)
             )
         }
 
@@ -416,7 +415,7 @@ class TabsUseCases(
             source: SessionState.Source = SessionState.Source.Internal.NewTab,
             flags: LoadUrlFlags = LoadUrlFlags.none()
         ): String {
-            val existingTab = store.state.findTabByUrl(url)
+            val existingTab = store.state.findNormalOrPrivateTabByUrl(url, private)
 
             return if (existingTab != null) {
                 store.dispatch(TabListAction.SelectTabAction(existingTab.id))

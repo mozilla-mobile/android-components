@@ -11,6 +11,9 @@ permalink: /changelog/
 * **feature-contextmenu**:
   * 🌟️ Adds `additionalNote` which it will be attached to the bottom of context menu but for a specific `HitResult`
 
+* **browser-state**:
+  * 🌟️ Adds support for updating `ContentState` when switching between private mode.
+
 # 93.0.0-SNAPSHOT (In Development)
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v92.0.0...main)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/140?closed=1)

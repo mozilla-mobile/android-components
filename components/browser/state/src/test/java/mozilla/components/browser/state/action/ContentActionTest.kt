@@ -217,6 +217,23 @@ class ContentActionTest {
     }
 
     @Test
+    fun `UpdatePrivateModeAction updates private mode`() {
+        assertFalse(tab.content.private)
+        assertFalse(otherTab.content.private)
+
+        store.dispatch(ContentAction.UpdatePrivateModeAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.private)
+        assertFalse(otherTab.content.private)
+
+        store.dispatch(ContentAction.UpdatePrivateModeAction(tab.id, false)).joinBlocking()
+        store.dispatch(ContentAction.UpdatePrivateModeAction(otherTab.id, true)).joinBlocking()
+
+        assertFalse(tab.content.private)
+        assertTrue(otherTab.content.private)
+    }
+
+    @Test
     fun `UpdateSearchTermsAction updates URL`() {
         val searchTerms = "Hello World"
 

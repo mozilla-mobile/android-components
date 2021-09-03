@@ -1366,7 +1366,6 @@ class FxaAccountManagerTest {
         // During recovery, only 'sign-in' finalize device call should have been made.
         verify(constellation, times(1)).finalizeDevice(eq(AuthType.Signin), any())
         verify(constellation, never()).finalizeDevice(eq(AuthType.Recovered), any())
-        verify(constellation, times(1)).refreshDevices()
 
         assertEquals(mockAccount, manager.authenticatedAccount())
 

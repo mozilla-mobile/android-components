@@ -65,4 +65,13 @@ class TabsFeature(
         val state = store.state
         presenter.updateTabs(state.toTabs(tabsFilter))
     }
+
+    /**
+     * Returns the current defaultTabsFilter
+     *
+     * Prevents public setters, only provides the getter. Necessary for the
+     */
+    fun getFilter() : (TabSessionState) -> Boolean {
+        return defaultTabsFilter
+    }
 }

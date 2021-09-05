@@ -79,10 +79,7 @@ internal object TabListReducer {
                     movedTabs +
                     unmovedTabs.subList(finalPos, unmovedTabs.size)
 
-                state.copy(
-                    tabs = updatedTabList,
-                    selectedTabId = state.selectedTabId
-                )
+                state.copy(tabs = updatedTabList)
             }
 
             is TabListAction.SelectTabAction -> {

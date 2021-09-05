@@ -470,6 +470,27 @@ class TabsUseCases(
         }
     }
 
+    /**
+     * Use case for moving a collection of tabs.
+     */
+    class MoveTabsUseCase(
+        private val store: BrowserStore
+    ) {
+        /**
+         * Moves the tabs of [tabIds] to [position], position potentially modified by [tabsFilter]
+         */
+        operator fun invoke(
+            tabIds: List<String>,
+            position: Int,
+            tabsFilter: (TabSessionState) -> Boolean = { true }
+        ) {
+            store.dispatch(
+                TabListAction.MoveTabsAction(
+                    tabIds,position,tabsFilter
+                )
+            )
+        }
+    }
     val selectTab: SelectTabUseCase by lazy { DefaultSelectTabUseCase(store) }
     val removeTab: RemoveTabUseCase by lazy { DefaultRemoveTabUseCase(store) }
     val addTab: AddNewTabUseCase by lazy { AddNewTabUseCase(store) }
@@ -484,4 +505,5 @@ class TabsUseCases(
     val restore: RestoreUseCase by lazy { RestoreUseCase(store, selectTab) }
     val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store) }
     val duplicateTab: DuplicateTabUseCase by lazy { DuplicateTabUseCase(store) }
+    val moveTabs: MoveTabsUseCase by lazy { MoveTabsUseCase(store) }
 }

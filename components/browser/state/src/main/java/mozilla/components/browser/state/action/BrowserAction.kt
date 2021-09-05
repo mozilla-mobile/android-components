@@ -160,8 +160,11 @@ sealed class TabListAction : BrowserAction() {
      * @property tabsFilter Apply a filter to the tabs to offset the [position].
      * Needed to deal with the inactive tabs not being in the main tab tray.
      */
-    data class MoveTabsAction(val tabIds: List<String>, val position: Int,
-                              val tabsFilter: (TabSessionState) -> Boolean = { true }) : TabListAction()
+    data class MoveTabsAction(
+        val tabIds: List<String>,
+        val position: Int,
+        val tabsFilter: (TabSessionState) -> Boolean = { true }
+    ) : TabListAction()
 
     /**
      * Marks the [TabSessionState] with the given [tabId] as selected tab.

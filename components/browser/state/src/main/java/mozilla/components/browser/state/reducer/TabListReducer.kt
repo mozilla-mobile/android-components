@@ -66,15 +66,20 @@ internal object TabListReducer {
             /*data class MoveTabsAction(val tabIds: List<String>, val position: Int,
                 val tabsFilter: (TabSessionState) -> Boolean = { true }) : TabListAction()*/
             is TabListAction.MoveTabsAction -> {
-                val filteredTabs = state.tabs.filter{action.tabsFilter(it)}
-                val truePosition = if (action.position >= filteredTabs.count())
-                    state.tabs.count() else state.tabs.indexOf(filteredTabs[action.position])
-                val positionOffset = filteredTabs.filterIndexed{index, tab ->
+                val filteredTabs = state.tabs.filter { action.tabsFilter(it) }
+                val truePosition = if (action.position >= filteredTabs.count()) {
+                    state.tabs.count()
+                } else {
+                    state.tabs.indexOf(filteredTabs[action.position])
+                }
+                val positionOffset = filteredTabs.filterIndexed { index, tab ->
                     (index < action.position && tab.id in action.tabIds)
                 }.count()
-                val finalPos = truePosition-positionOffset
+                val finalPos = truePosition - positionOffset
                 val (movedTabs, unmovedTabs) = state.tabs.partition { it.id in action.tabIds }
-                val updatedTabList = unmovedTabs.subList(0, finalPos) + movedTabs + unmovedTabs.subList(finalPos, unmovedTabs.size)
+                val updatedTabList = unmovedTabs.subList(0, finalPos) +
+                    movedTabs +
+                    unmovedTabs.subList(finalPos, unmovedTabs.size)
 
                 state.copy(
                     tabs = updatedTabList,

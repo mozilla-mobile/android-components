@@ -486,7 +486,7 @@ class TabsUseCases(
         ) {
             store.dispatch(
                 TabListAction.MoveTabsAction(
-                    tabIds,position,tabsFilter
+                    tabIds, position, tabsFilter
                 )
             )
         }

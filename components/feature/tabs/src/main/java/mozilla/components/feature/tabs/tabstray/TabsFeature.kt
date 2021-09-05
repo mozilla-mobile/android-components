@@ -71,7 +71,7 @@ class TabsFeature(
      *
      * Prevents public setters, only provides the getter. Necessary for the
      */
-    fun getFilter() : (TabSessionState) -> Boolean {
+    fun getFilter(): (TabSessionState) -> Boolean {
         return defaultTabsFilter
     }
 }

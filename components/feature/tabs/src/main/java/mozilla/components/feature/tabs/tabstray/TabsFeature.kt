@@ -69,7 +69,7 @@ class TabsFeature(
     /**
      * Returns the current defaultTabsFilter
      *
-     * Prevents public setters, only provides the getter. Necessary for the
+     * Prevents public setters, only provides the getter. Necessary for proper tab reordering.
      */
     fun getFilter(): (TabSessionState) -> Boolean {
         return defaultTabsFilter

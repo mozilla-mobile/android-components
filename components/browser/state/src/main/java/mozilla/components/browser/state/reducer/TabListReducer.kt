@@ -63,8 +63,6 @@ internal object TabListReducer {
                 )
             }
 
-            /*data class MoveTabsAction(val tabIds: List<String>, val position: Int,
-                val tabsFilter: (TabSessionState) -> Boolean = { true }) : TabListAction()*/
             is TabListAction.MoveTabsAction -> {
                 val filteredTabs = state.tabs.filter { action.tabsFilter(it) }
                 val truePosition = if (action.position >= filteredTabs.count()) {

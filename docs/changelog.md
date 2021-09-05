@@ -7,7 +7,7 @@ permalink: /changelog/
   * 🌟️ Adds MoveTabs (reordering) Action and UseCase
 
 * **TabsFeature**
-  * 🌟️ Adds getFilter to retrieve the defaultTabsFilter (necessary for MoveTabs on filtered tab lists)
+  * 🌟️ Remove private modifier on defaultTabsFilter (necessary for MoveTabs on filtered tab lists)
 
 * **ui-icons**:
   * 🌟️ Adds icons: mozac_ic_add_to_home_screen, mozac_ic_help, mozac_ic_shield, mozac_ic_shield_disabled

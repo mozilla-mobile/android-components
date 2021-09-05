@@ -24,7 +24,7 @@ class TabsFeature(
     private val store: BrowserStore,
     selectTabUseCase: TabsUseCases.SelectTabUseCase,
     removeTabUseCase: TabsUseCases.RemoveTabUseCase,
-    private val defaultTabsFilter: (TabSessionState) -> Boolean = { true },
+    val defaultTabsFilter: (TabSessionState) -> Boolean = { true },
     closeTabsTray: () -> Unit
 ) : LifecycleAwareFeature {
     @VisibleForTesting
@@ -64,14 +64,5 @@ class TabsFeature(
 
         val state = store.state
         presenter.updateTabs(state.toTabs(tabsFilter))
-    }
-
-    /**
-     * Returns the current defaultTabsFilter
-     *
-     * Prevents public setters, only provides the getter. Necessary for proper tab reordering.
-     */
-    fun getFilter(): (TabSessionState) -> Boolean {
-        return defaultTabsFilter
     }
 }

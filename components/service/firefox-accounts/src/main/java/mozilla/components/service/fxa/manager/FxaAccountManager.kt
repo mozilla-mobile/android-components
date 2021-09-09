@@ -533,15 +533,11 @@ open class FxaAccountManager(
             is Event.Progress.CompletedAuthentication -> {
                 notifyObservers { onAuthenticated(account, via.authType) }
                 refreshProfile(ignoreCache = false)
-                // Unconditionally call `refreshDevices()` as it repairs push expiry.
-                account.deviceConstellation().refreshDevices()
                 Unit
             }
             Event.Progress.RecoveredFromAuthenticationProblem -> {
                 notifyObservers { onAuthenticated(account, AuthType.Recovered) }
                 refreshProfile(ignoreCache = true)
-                // Unconditionally call `refreshDevices()` as it repairs push expiry.
-                account.deviceConstellation().refreshDevices()
                 Unit
             }
             else -> Unit

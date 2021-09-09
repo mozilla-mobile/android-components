@@ -794,7 +794,7 @@ class FxaAccountManagerTest {
     @Test
     fun `error reading persisted account`() = runBlocking {
         val accountStorage = mock<AccountStorage>()
-        val readException = FxaException("pretend we failed to parse the account")
+        val readException = FxaNetworkException("pretend we failed to fetch the account")
         `when`(accountStorage.read()).thenThrow(readException)
 
         val manager = TestableFxaAccountManager(

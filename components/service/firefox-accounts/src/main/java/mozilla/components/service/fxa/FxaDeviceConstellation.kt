@@ -5,28 +5,29 @@
 package mozilla.components.service.fxa
 
 import android.content.Context
+import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
-import mozilla.appservices.fxaclient.FirefoxAccount
 import mozilla.appservices.fxaclient.FxaException
-import mozilla.components.concept.sync.ConstellationState
-import mozilla.components.concept.sync.Device
-import mozilla.components.concept.sync.DeviceConstellation
-import mozilla.components.concept.sync.DeviceConstellationObserver
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.sync.AccountEvent
 import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.AuthType
+import mozilla.components.concept.sync.ConstellationState
+import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceCommandOutgoing
 import mozilla.components.concept.sync.DeviceConfig
+import mozilla.components.concept.sync.DeviceConstellation
+import mozilla.components.concept.sync.DeviceConstellationObserver
 import mozilla.components.concept.sync.DevicePushSubscription
-import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.sync.ServiceResult
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.sync.telemetry.SyncTelemetry
+import mozilla.appservices.fxaclient.PersistedFirefoxAccount as FirefoxAccount
 
 internal sealed class FxaDeviceConstellationException : Exception() {
     /**
@@ -38,7 +39,6 @@ internal sealed class FxaDeviceConstellationException : Exception() {
 /**
  * Provides an implementation of [DeviceConstellation] backed by a [FirefoxAccount].
  */
-@SuppressWarnings("TooManyFunctions")
 class FxaDeviceConstellation(
     private val account: FirefoxAccount,
     private val scope: CoroutineScope,
@@ -119,11 +119,13 @@ class FxaDeviceConstellation(
         }
     }
 
+    @MainThread
     override fun registerDeviceObserver(
         observer: DeviceConstellationObserver,
         owner: LifecycleOwner,
         autoPause: Boolean
     ) {
+        logger.debug("registering device observer")
         deviceObserverRegistry.register(observer, owner, autoPause)
     }
 
@@ -142,7 +144,7 @@ class FxaDeviceConstellation(
     ) = withContext(scope.coroutineContext) {
         handleFxaExceptions(logger, "updating device push subscription") {
             account.setDevicePushSubscription(
-                    subscription.endpoint, subscription.publicKey, subscription.authKey
+                subscription.endpoint, subscription.publicKey, subscription.authKey
             )
         }
     }
@@ -209,7 +211,9 @@ class FxaDeviceConstellation(
 
             // Find the current device.
             val currentDevice = allDevices.find { it.isCurrentDevice }?.also {
-                // Check if our current device's push subscription needs to be renewed.
+                // If our current device's push subscription needs to be renewed, then we
+                // possibly missed some push notifications, so check for that here.
+                // (This doesn't actually perform the renewal, FxaPushSupportFeature does that.)
                 if (it.subscription == null || it.subscriptionExpired) {
                     logger.info("Current device needs push endpoint registration, so checking for missed commands")
                     pollForCommands()

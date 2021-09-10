@@ -8,10 +8,10 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.MutableHeaders
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Response
-import mozilla.components.service.pocket.net.PocketResponse
+import mozilla.components.service.pocket.api.PocketResponse
 import mozilla.components.support.test.any
+import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -24,13 +24,17 @@ fun <T : Any> assertConstructorsVisibility(assertedClass: KClass<T>, visibility:
     }
 }
 
+fun <T : Any> assertClassVisibility(assertedClass: KClass<T>, visibility: KVisibility) {
+    assertEquals(visibility, assertedClass.visibility)
+}
+
 /**
  * @param client the underlying mock client for the raw endpoint making the request.
  * @param makeRequest makes the request using the raw endpoint.
  * @param assertParams makes assertions on the passed in request.
  */
 fun assertRequestParams(client: Client, makeRequest: () -> Unit, assertParams: (Request) -> Unit) {
-    `when`(client.fetch(any())).thenAnswer {
+    whenever(client.fetch(any())).thenAnswer {
         val request = it.arguments[0] as Request
         assertParams(request)
         Response("https://mozilla.org", 200, MutableHeaders(), Response.Body("".byteInputStream()))
@@ -49,12 +53,12 @@ fun assertRequestParams(client: Client, makeRequest: () -> Unit, assertParams: (
 fun assertSuccessfulRequestReturnsResponseBody(client: Client, makeRequest: () -> String?) {
     val expectedBody = "{\"jsonStr\": true}"
     val body = mock(Response.Body::class.java).also {
-        `when`(it.string()).thenReturn(expectedBody)
+        whenever(it.string()).thenReturn(expectedBody)
     }
     val response = MockResponses.getSuccess().also {
-        `when`(it.body).thenReturn(body)
+        whenever(it.body).thenReturn(body)
     }
-    `when`(client.fetch(any())).thenReturn(response)
+    whenever(client.fetch(any())).thenReturn(response)
 
     assertEquals(expectedBody, makeRequest())
 }
@@ -65,7 +69,7 @@ fun assertSuccessfulRequestReturnsResponseBody(client: Client, makeRequest: () -
  * @param makeRequest makes the request using the raw endpoint.
  */
 fun assertResponseIsClosed(client: Client, response: Response, makeRequest: () -> Unit) {
-    `when`(client.fetch(any())).thenReturn(response)
+    whenever(client.fetch(any())).thenReturn(response)
     makeRequest()
     verify(response, times(1)).close()
 }

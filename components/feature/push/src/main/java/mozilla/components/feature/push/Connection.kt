@@ -11,12 +11,12 @@ import mozilla.appservices.push.BridgeType
 import mozilla.appservices.push.GeneralError
 import mozilla.appservices.push.PushAPI
 import mozilla.appservices.push.PushManager
-import mozilla.appservices.push.PushSubscriptionChanged as SubscriptionChanged
 import mozilla.appservices.push.SubscriptionResponse
 import java.io.Closeable
 import java.io.File
 import java.util.Locale
 import java.util.UUID
+import mozilla.appservices.push.PushSubscriptionChanged as SubscriptionChanged
 
 typealias PushScope = String
 typealias AppServerKey = String
@@ -44,10 +44,8 @@ interface PushConnection : Closeable {
 
     /**
      * Un-subscribes all push subscriptions.
-     *
-     * @return the invocation result if it was successful.
      */
-    suspend fun unsubscribeAll(): Boolean
+    suspend fun unsubscribeAll()
 
     /**
      * Returns `true` if the specified [scope] has a subscription.
@@ -64,10 +62,7 @@ interface PushConnection : Closeable {
     /**
      * Checks validity of current push subscriptions.
      *
-     * Implementation notes: This API will change to return the specific subscriptions that have been updated.
-     * See: https://github.com/mozilla/application-services/issues/2049
-     *
-     * @return the list of push subscriptions that were updated for subscribers that should be notified about.
+     * @return the list of subscriptions that have expired which can be used to notify subscribers.
      */
     suspend fun verifyConnection(): List<AutoPushSubscriptionChanged>
 
@@ -156,11 +151,11 @@ internal class RustPushConnection(
     }
 
     @GuardedBy("this")
-    override suspend fun unsubscribeAll(): Boolean = synchronized(this) {
+    override suspend fun unsubscribeAll(): Unit = synchronized(this) {
         val pushApi = api
         check(pushApi != null) { "Rust API is not initiated; updateToken hasn't been called yet." }
 
-        return pushApi.unsubscribeAll()
+        pushApi.unsubscribeAll()
     }
 
     @GuardedBy("this")
@@ -272,7 +267,7 @@ internal fun ServiceType.toBridgeType() = when (this) {
  * Helper function to convert the [Protocol] into the required value the native implementation requires.
  */
 @VisibleForTesting
-internal fun Protocol.asString() = name.toLowerCase(Locale.ROOT)
+internal fun Protocol.asString() = name.lowercase(Locale.ROOT)
 
 /**
  * A channel ID from the provided scope.

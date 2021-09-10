@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.state.recover.toRecoverableTab
 import mozilla.components.lib.state.StoreException
 import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Assert.fail
@@ -50,24 +51,28 @@ class BrowserStoreExceptionTest {
             val tab1 = createTab("https://www.mozilla.org")
             store.dispatch(TabListAction.AddTabAction(tab1)).joinBlocking()
 
-            store.dispatch(TabListAction.RestoreAction(listOf(tab1))).joinBlocking()
+            store.dispatch(TabListAction.RestoreAction(listOf(tab1.toRecoverableTab()), restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING)).joinBlocking()
         }
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun `AddMultipleTabsAction - Exception is thrown in tab with id already exists`() {
         unwrapStoreExceptionAndRethrow {
-            val store = BrowserStore(BrowserState(
+            val store = BrowserStore(
+                BrowserState(
                     tabs = listOf(
-                            createTab(id = "a", url = "https://www.mozilla.org")
+                        createTab(id = "a", url = "https://www.mozilla.org")
                     )
-            ))
+                )
+            )
 
-            store.dispatch(TabListAction.AddMultipleTabsAction(
+            store.dispatch(
+                TabListAction.AddMultipleTabsAction(
                     tabs = listOf(
-                            createTab(id = "a", url = "https://www.example.org")
+                        createTab(id = "a", url = "https://www.example.org")
                     )
-            )).joinBlocking()
+                )
+            ).joinBlocking()
         }
     }
 
@@ -77,17 +82,21 @@ class BrowserStoreExceptionTest {
             val store = BrowserStore()
 
             val tab1 = createTab(
-                    id = "a",
-                    url = "https://www.mozilla.org")
+                id = "a",
+                url = "https://www.mozilla.org"
+            )
 
             val tab2 = createTab(
-                    id = "b",
-                    url = "https://www.firefox.com",
-                    private = true,
-                    parent = tab1)
+                id = "b",
+                url = "https://www.firefox.com",
+                private = true,
+                parent = tab1
+            )
 
-            store.dispatch(TabListAction.AddMultipleTabsAction(
-                    tabs = listOf(tab1, tab2))
+            store.dispatch(
+                TabListAction.AddMultipleTabsAction(
+                    tabs = listOf(tab1, tab2)
+                )
             ).joinBlocking()
         }
     }

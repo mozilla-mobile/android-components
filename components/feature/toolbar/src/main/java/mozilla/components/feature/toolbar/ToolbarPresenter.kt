@@ -24,7 +24,6 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  * Presenter implementation for a toolbar implementation in order to update the toolbar whenever
  * the state of the selected session.
  */
-@Suppress("TooManyFunctions")
 class ToolbarPresenter(
     private val toolbar: Toolbar,
     private val store: BrowserStore,
@@ -89,7 +88,9 @@ class ToolbarPresenter(
 
     private fun updateHighlight(tab: SessionState) {
         toolbar.highlight = when {
-            tab.content.permissionHighlights.isAutoPlayBlocking -> Highlight.AUTOPLAY_BLOCKED
+            tab.content.permissionHighlights.permissionsChanged ||
+                tab.trackingProtection.ignoredOnTrackingProtection
+            -> Highlight.PERMISSIONS_CHANGED
             else -> Highlight.NONE
         }
     }

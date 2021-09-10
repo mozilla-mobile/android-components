@@ -29,7 +29,6 @@ import mozilla.components.lib.jexl.value.JexlValue
  *
  * This mapping could be moved inside [Evaluator].
  */
-@SuppressWarnings("TooManyFunctions")
 internal object EvaluatorHandlers {
 
     internal fun evaluateWith(evaluator: Evaluator, node: AstNode): JexlValue = when (node) {
@@ -42,7 +41,8 @@ internal object EvaluatorHandlers {
         is Transformation -> evaluateTransformation(evaluator, node)
         is FilterExpression -> evaluateFilterExpression(evaluator, node)
         is UnaryExpression -> throw JexlException(
-            message = "Unary expression evaluation can't be validated")
+            message = "Unary expression evaluation can't be validated"
+        )
     }
 
     private fun evaluateLiteral(node: Literal): JexlValue = when (val value = node.value) {

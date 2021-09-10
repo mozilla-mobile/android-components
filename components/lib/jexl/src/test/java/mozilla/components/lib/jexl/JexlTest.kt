@@ -40,7 +40,7 @@ class JexlTest {
         }
 
         jexl.addTransform("lower") { value, _ ->
-            value.toString().toLowerCase().toJexl()
+            value.toString().lowercase().toJexl()
         }
 
         jexl.addTransform("last") { value, _ ->
@@ -49,11 +49,13 @@ class JexlTest {
 
         assertEquals(
             "poovey".toJexl(),
-            jexl.evaluate(""""Pam Poovey"|lower|split(' ')|last"""))
+            jexl.evaluate(""""Pam Poovey"|lower|split(' ')|last""")
+        )
 
         assertEquals(
             JexlArray("password".toJexl(), "guest".toJexl()),
-            jexl.evaluate(""""password==guest"|split('=' + '=')"""))
+            jexl.evaluate(""""password==guest"|split('=' + '=')""")
+        )
     }
 
     @Test
@@ -93,7 +95,8 @@ class JexlTest {
                     "age" to 33.toJexl()
                 )
             ),
-            jexl.evaluate("employees[.age >= 30 && .age < 40]", context))
+            jexl.evaluate("employees[.age >= 30 && .age < 40]", context)
+        )
 
         assertEquals(
             JexlArray(

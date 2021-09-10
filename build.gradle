@@ -10,6 +10,7 @@ buildscript {
             maven {
                 name "Google"
                 url project.property("googleRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             google()
@@ -19,6 +20,7 @@ buildscript {
             maven {
                 name "MavenCentral"
                 url project.property("centralRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             mavenCentral()
@@ -28,13 +30,12 @@ buildscript {
     dependencies {
         classpath Dependencies.tools_androidgradle
         classpath Dependencies.tools_kotlingradle
-        classpath Dependencies.tools_dokka
         classpath Dependencies.tools_androidmavenpublish
     }
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("1.9.1")  // Check version number in `Versions.detekt`
+    id("io.gitlab.arturbosch.detekt").version("1.17.1")  // Check version number in `Versions.detekt` (Dependencies.kt)
 }
 
 allprojects {
@@ -43,6 +44,7 @@ allprojects {
             maven {
                 name "Google"
                 url project.property("googleRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             google()
@@ -52,37 +54,10 @@ allprojects {
             maven {
                 name "MavenCentral"
                 url project.property("centralRepo")
+                allowInsecureProtocol true // Local Nexus in CI uses HTTP
             }
         } else {
             mavenCentral()
-        }
-
-        if (project.hasProperty("jcenterRepo")) {
-            maven {
-                name "BintrayJCenter"
-                url project.property("jcenterRepo")
-            }
-        } else {
-            jcenter() {
-                content {
-                    ////////////////////////////////////////////////////////////////////////////////
-                    // JCenter is going away. Please do not add any new dependencies here.
-                    // https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/
-                    ////////////////////////////////////////////////////////////////////////////////
-
-                    // Used by Android Gradle Plugin
-                    // Issue for publishing to maven central: https://youtrack.jetbrains.com/issue/IDEA-261387
-                    // Related plugin issue: https://issuetracker.google.com/issues/179291081
-                    // Other option: Update to Android Gradle Plugin 7+ (still in Alpha currently)
-                    includeVersion("org.jetbrains.trove4j", "trove4j", "20160824")
-
-                    // Used by detekt
-                    // Issue for publishing to maven central: https://github.com/Kotlin/kotlinx.html/issues/173
-                    // Related detekt issue: https://github.com/detekt/detekt/issues/3461
-                    includeVersion("org.jetbrains.kotlinx", "kotlinx-html-jvm", "0.7.1")
-                    includeVersion("org.jetbrains.kotlinx", "kotlinx-html-common", "0.7.1")
-                }
-            }
         }
 
         maven {
@@ -94,7 +69,6 @@ allprojects {
 
 subprojects {
     apply plugin: 'jacoco'
-    apply plugin: 'org.jetbrains.dokka-android'
 
     // Enable Kotlin warnings as errors for all modules
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
@@ -144,8 +118,24 @@ subprojects {
 
     afterEvaluate {
         if (it.hasProperty('android')) {
+
+            // Glean currently expects every module to have a BuildConfig with VERSION_CODE and
+            // VERSION_NAME fields. Since Android Gradle Plugin 4.1+ those fields do not get
+            // generated for Android libraries anymore. As a workaround we generate them here
+            // explicitly.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1713084
+            // https://issuetracker.google.com/issues/158695880
+            plugins.withId('com.android.library') {
+                android {
+                    defaultConfig {
+                        buildConfigField 'int', 'VERSION_CODE', "1"
+                        buildConfigField 'String', 'VERSION_NAME', "\"1.0\""
+                    }
+                }
+            }
+
             jacoco {
-                toolVersion = "0.8.6"
+                toolVersion = "0.8.7"
             }
 
             // Format test output
@@ -209,13 +199,23 @@ subprojects {
                     disable 'MissingTranslation',
                             'ExtraTranslation',
                             // We do not want to enforce this as a generic rule for all languages (see #6117, #6056, #6118)
-                            'TypographyEllipsis'
+                            'TypographyEllipsis',
+                            // https://github.com/mozilla-mobile/android-components/issues/10641
+                            'UnspecifiedImmutableFlag',
+                            // https://github.com/mozilla-mobile/android-components/issues/10643
+                            'UnusedResources'
                 }
 
                 packagingOptions {
                     exclude 'META-INF/atomicfu.kotlin_module'
                     exclude 'META-INF/AL2.0'
                     exclude 'META-INF/LGPL2.1'
+
+                    // Required dependencies using byte-buddy; remove after this is
+                    // fixed by: https://issuetracker.google.com/issues/170131605
+                    exclude "META-INF/licenses/ASM"
+                    pickFirst "win32-x86-64/attach_hotspot_windows.dll"
+                    pickFirst "win32-x86/attach_hotspot_windows.dll"
                 }
 
                 aaptOptions {
@@ -230,6 +230,8 @@ subprojects {
                 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
                     kotlinOptions {
                         jvmTarget = "1.8"
+                        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+                        useIR = true
                     }
                 }
             }
@@ -249,10 +251,6 @@ subprojects {
                 // correct runtime classpath when invoked with Android Studio's built-in JUnit test runner.
                 // Success!
                 jnaForTest
-                // Robolectric, through `com.google.android.apps.common.testing.accessibility.framework`
-                // depends on an old version of protobuf that conflict with the Application Services one.
-                // See: https://github.com/mozilla/application-services/issues/2952
-                all*.exclude group: 'com.google.protobuf', module: 'protobuf-java'
             }
 
             dependencies {
@@ -301,43 +299,6 @@ subprojects {
             }
         }
     }
-}
-
-evaluationDependsOnChildren()
-
-tasks.register("docs", org.jetbrains.dokka.gradle.DokkaAndroidTask) {
-    moduleName = "$rootProject.name"
-    outputDirectory = "$buildDir/javadoc"
-    outputFormat = "gfm"
-    jdkVersion = 7
-
-    subprojects.findAll {
-        it.hasProperty("android") && !it.name.startsWith("samples")
-    }.each {
-        classpath += files(it.android.getBootClasspath().join(File.pathSeparator))
-        it.android.libraryVariants.all { variant ->
-            classpath += files(variant.javaCompileProvider.get().classpath.files)
-        }
-    }
-
-    externalDocumentationLink {
-        url = new URL("https://mozilla.github.io/geckoview/javadoc/mozilla-central/package-list")
-    }
-
-    sourceDirs = files(subprojects.findAll {
-        !it.name.startsWith("samples")
-    }.collect { p ->
-        def path = new File(p.projectDir, "/src/main/java")
-
-        def relativePath = rootDir.toPath().relativize(path.toPath()).toString()
-        linkMapping {
-            dir = path
-            url = "https://github.com/mozilla-mobile/android-components/blob/master/$relativePath"
-            suffix = "#L"
-        }
-
-        return path
-    })
 }
 
 tasks.register("clean", Delete) {
@@ -401,7 +362,11 @@ configurations {
 }
 
 dependencies {
-    ktlint "com.github.shyiko:ktlint:0.31.0"
+    ktlint("com.pinterest:ktlint:0.41.0") {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
+        }
+    }
     detektPlugins project(":tooling-detekt")
 }
 
@@ -409,13 +374,19 @@ tasks.register("ktlint", JavaExec) {
     group = "verification"
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
-    main = "com.github.shyiko.ktlint.Main"
-    args "components/**/*.kt" , "samples/**/*.kt", "!**/build", "buildSrc/**/*.kt"
+    main = "com.pinterest.ktlint.Main"
+    args "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
 }
 
-apply plugin: GVVersionVerifierPlugin
 apply plugin: GitHubPlugin
 
+tasks.register("ktlintFormat", JavaExec) {
+    group = "formatting"
+    description = "Fix Kotlin code style deviations."
+    classpath = configurations.ktlint
+    main = "com.pinterest.ktlint.Main"
+    args "-F", "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
+}
 
 tasks.register("listRepositories") {
     doLast {

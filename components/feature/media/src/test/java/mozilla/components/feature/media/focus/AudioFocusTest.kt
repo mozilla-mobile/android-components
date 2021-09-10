@@ -6,7 +6,6 @@ package mozilla.components.feature.media.focus
 
 import android.media.AudioManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.MediaSessionState
 import mozilla.components.browser.state.state.createTab
@@ -29,11 +28,10 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 
 @RunWith(AndroidJUnit4::class)
 class AudioFocusTest {
-    private val dispatcher: TestCoroutineDispatcher = TestCoroutineDispatcher()
     private lateinit var audioManager: AudioManager
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(dispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Before
     fun setUp() {
@@ -46,8 +44,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -74,12 +74,14 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = mediaSessionState
-            )
+            "https://www.mozilla.org",
+            mediaSessionState = mediaSessionState
+        )
         val initialState = BrowserState(
             tabs = listOf(tabSession)
         )
@@ -102,8 +104,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -130,8 +134,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -168,8 +174,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PAUSED)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PAUSED
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -206,8 +214,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -238,8 +248,10 @@ class AudioFocusTest {
         doReturn(-1).`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -263,8 +275,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState
@@ -294,8 +308,10 @@ class AudioFocusTest {
             .`when`(audioManager).requestAudioFocus(any())
 
         val controller: MediaSession.Controller = mock()
-        val mediaSessionState = MediaSessionState(controller,
-            playbackState = MediaSession.PlaybackState.PLAYING)
+        val mediaSessionState = MediaSessionState(
+            controller,
+            playbackState = MediaSession.PlaybackState.PLAYING
+        )
         val tabSession = createTab(
             "https://www.mozilla.org",
             mediaSessionState = mediaSessionState

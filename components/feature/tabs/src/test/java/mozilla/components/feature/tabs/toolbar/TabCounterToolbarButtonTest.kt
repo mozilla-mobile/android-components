@@ -11,10 +11,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.menu.MenuController
 import mozilla.components.feature.tabs.R
@@ -31,11 +31,11 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.eq
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class TabCounterToolbarButtonTest {
@@ -45,10 +45,8 @@ class TabCounterToolbarButtonTest {
 
     private lateinit var lifecycleOwner: MockedLifecycleOwner
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
 
     internal class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
         val lifecycleRegistry = LifecycleRegistry(this).apply {
@@ -121,7 +119,7 @@ class TabCounterToolbarButtonTest {
         button.createView(LinearLayout(testContext) as ViewGroup) as TabCounter
 
         store.dispatch(
-            TabListAction.RestoreAction(listOf(createTab("https://www.mozilla.org")))
+            TabListAction.RestoreAction(listOf(RecoverableTab("a", "https://www.mozilla.org")), restoreLocation = TabListAction.RestoreAction.RestoreLocation.BEGINNING)
         ).joinBlocking()
 
         verify(button).updateCount(eq(1))

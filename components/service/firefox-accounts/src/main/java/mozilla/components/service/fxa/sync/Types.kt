@@ -32,6 +32,8 @@ internal fun String.toSyncEngine(): SyncEngine {
         "bookmarks" -> SyncEngine.Bookmarks
         "passwords" -> SyncEngine.Passwords
         "tabs" -> SyncEngine.Tabs
+        "creditcards" -> SyncEngine.CreditCards
+        "addresses" -> SyncEngine.Addresses
         // This handles a case of engines that we don't yet model in SyncEngine.
         else -> SyncEngine.Other(this)
     }

@@ -5,10 +5,12 @@
 package mozilla.components.browser.menu
 
 import android.content.Context
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.browser.menu.view.StickyItemsAdapter
 
 /**
  * Adapter implementation used by the browser menu to display menu items in a RecyclerView.
@@ -16,15 +18,15 @@ import androidx.recyclerview.widget.RecyclerView
 internal class BrowserMenuAdapter(
     context: Context,
     items: List<BrowserMenuItem>
-) : RecyclerView.Adapter<BrowserMenuItemViewHolder>() {
+) : RecyclerView.Adapter<BrowserMenuItemViewHolder>(), StickyItemsAdapter {
     var menu: BrowserMenu? = null
 
     internal val visibleItems = items.filter { it.visible() }
-    internal val interactiveCount = visibleItems.sumBy { it.interactiveCount() }
+    internal val interactiveCount = visibleItems.sumOf { it.interactiveCount() }
     private val inflater = LayoutInflater.from(context)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            BrowserMenuItemViewHolder(inflater.inflate(viewType, parent, false))
+        BrowserMenuItemViewHolder(inflater.inflate(viewType, parent, false))
 
     override fun getItemCount() = visibleItems.size
 
@@ -41,6 +43,25 @@ internal class BrowserMenuAdapter(
                 item.invalidate(itemView)
             }
         }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    override fun isStickyItem(position: Int): Boolean {
+        return try {
+            visibleItems[position].isSticky
+        } catch (e: IndexOutOfBoundsException) {
+            false
+        }
+    }
+
+    override fun setupStickyItem(stickyItem: View) {
+        menu?.let {
+            stickyItem.setBackgroundColor(it.backgroundColor)
+        }
+    }
+
+    override fun tearDownStickyItem(stickyItem: View) {
+        stickyItem.setBackgroundColor(Color.TRANSPARENT)
     }
 }
 

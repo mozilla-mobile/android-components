@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ queue = taskcluster.Queue({
 
 
 def check_all_dependencies_are_completed(dependencies_task_ids):
-    print('Fetching status of {} dependencies...'.format(len(dependencies_task_ids)))
+    print(f'Fetching status of {len(dependencies_task_ids)} dependencies...')
     # TODO Make this dict-comprehension async once we go Python 3
     state_per_task_ids = {
         task_id: queue.status(task_id)['status']['state']
@@ -24,12 +24,12 @@ def check_all_dependencies_are_completed(dependencies_task_ids):
     print('Statuses fetched.')
     non_completed_tasks = {
         task_id: state
-        for task_id, state in state_per_task_ids.iteritems()
+        for task_id, state in state_per_task_ids.items()
         if state != 'completed'
     }
 
     if non_completed_tasks:
-        raise ValueError('Some tasks are not completed: {}'.format(non_completed_tasks))
+        raise ValueError(f'Some tasks are not completed: {non_completed_tasks}')
 
 
 def main():

@@ -6,12 +6,11 @@ package mozilla.components.lib.crash.handler
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import kotlinx.coroutines.test.TestCoroutineScope
+import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.service.CrashReporterService
-import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -27,26 +26,28 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class ExceptionHandlerTest {
-    private val testDispatcher = TestCoroutineDispatcher()
-    private val scope = TestCoroutineScope(testDispatcher)
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
 
     @Test
     fun `ExceptionHandler forwards crashes to CrashReporter`() {
         val service: CrashReporterService = mock()
 
-        val crashReporter = spy(CrashReporter(
-            context = testContext,
-            shouldPrompt = CrashReporter.Prompt.NEVER,
-            services = listOf(service),
-            scope = scope
-        ))
+        val crashReporter = spy(
+            CrashReporter(
+                context = testContext,
+                shouldPrompt = CrashReporter.Prompt.NEVER,
+                services = listOf(service),
+                scope = scope
+            )
+        )
 
         val handler = ExceptionHandler(
             testContext,
-            crashReporter)
+            crashReporter
+        )
 
         val exception = RuntimeException("Hello World")
         handler.uncaughtException(Thread.currentThread(), exception)

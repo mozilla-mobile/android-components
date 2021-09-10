@@ -7,7 +7,6 @@
 package mozilla.components.support.migration
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.support.migration.state.MigrationAction
 import mozilla.components.support.migration.state.MigrationProgress
 import mozilla.components.support.migration.state.MigrationStore
@@ -21,15 +20,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 
 @RunWith(AndroidJUnit4::class)
 class MigrationObserverTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `listener is invoked on state observation`() {
@@ -37,7 +35,7 @@ class MigrationObserverTest {
         val listener: MigrationStateListener = mock()
         val observer = MigrationObserver(store, listener)
 
-        verifyZeroInteractions(listener)
+        verifyNoInteractions(listener)
 
         observer.start()
 
@@ -55,7 +53,7 @@ class MigrationObserverTest {
         val listener: MigrationStateListener = mock()
         val observer = MigrationObserver(store, listener)
 
-        verifyZeroInteractions(listener)
+        verifyNoInteractions(listener)
 
         observer.start()
         observer.stop()

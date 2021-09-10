@@ -4,8 +4,8 @@
 
 package mozilla.components.concept.engine
 
-import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineSession.SafeBrowsingPolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.request.RequestInterceptor
@@ -179,6 +179,11 @@ abstract class Settings {
      * Setting to control the clear color while drawing.
      */
     open var clearColor: Int? by UnsupportedSetting()
+
+    /**
+     * Setting to control whether enterprise root certs are enabled.
+     */
+    open var enterpriseRootsEnabled: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -214,18 +219,23 @@ data class DefaultSettings(
     override var fontSizeFactor: Float? = null,
     override var forceUserScalableContent: Boolean = false,
     override var loginAutofillEnabled: Boolean = false,
-    override var clearColor: Int? = null
+    override var clearColor: Int? = null,
+    override var enterpriseRootsEnabled: Boolean = false
 ) : Settings()
 
 class UnsupportedSetting<T> {
     operator fun getValue(thisRef: Any?, prop: KProperty<*>): T {
-        throw UnsupportedSettingException("The setting ${prop.name} is not supported by this engine or session. " +
-                "Check both the engine and engine session implementation.")
+        throw UnsupportedSettingException(
+            "The setting ${prop.name} is not supported by this engine or session. " +
+                "Check both the engine and engine session implementation."
+        )
     }
 
     operator fun setValue(thisRef: Any?, prop: KProperty<*>, value: T) {
-        throw UnsupportedSettingException("The setting ${prop.name} is not supported by this engine or session. " +
-                "Check both the engine and engine session implementation.")
+        throw UnsupportedSettingException(
+            "The setting ${prop.name} is not supported by this engine or session. " +
+                "Check both the engine and engine session implementation."
+        )
     }
 }
 

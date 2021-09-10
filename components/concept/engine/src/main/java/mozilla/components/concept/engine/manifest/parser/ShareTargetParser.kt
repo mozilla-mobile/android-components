@@ -54,15 +54,18 @@ internal object ShareTargetParser {
                 put("title", shareTarget.params.title)
                 put("text", shareTarget.params.text)
                 put("url", shareTarget.params.url)
-                put("files", shareTarget.params.files.asSequence()
-                    .map { file ->
-                        JSONObject().apply {
-                            put("name", file.name)
-                            putOpt("accept", file.accept.toJSONArray())
+                put(
+                    "files",
+                    shareTarget.params.files.asSequence()
+                        .map { file ->
+                            JSONObject().apply {
+                                put("name", file.name)
+                                putOpt("accept", file.accept.toJSONArray())
+                            }
                         }
-                    }
-                    .asIterable()
-                    .toJSONArray())
+                        .asIterable()
+                        .toJSONArray()
+                )
             }
             put("params", params)
         }
@@ -74,7 +77,7 @@ internal object ShareTargetParser {
     private fun parseMethod(method: String?): ShareTarget.RequestMethod? {
         method ?: return ShareTarget.RequestMethod.GET
         return try {
-            ShareTarget.RequestMethod.valueOf(method.toUpperCase(Locale.ROOT))
+            ShareTarget.RequestMethod.valueOf(method.uppercase(Locale.ROOT))
         } catch (e: IllegalArgumentException) {
             null
         }
@@ -84,7 +87,7 @@ internal object ShareTargetParser {
      * Convert string to [ShareTarget.EncodingType]. Returns null if the string is invalid.
      */
     private fun parseEncType(encType: String?): ShareTarget.EncodingType? {
-        val typeString = encType?.toLowerCase(Locale.ROOT) ?: return ShareTarget.EncodingType.URL_ENCODED
+        val typeString = encType?.lowercase(Locale.ROOT) ?: return ShareTarget.EncodingType.URL_ENCODED
         return ShareTarget.EncodingType.values().find { it.type == typeString }
     }
 

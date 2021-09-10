@@ -68,8 +68,8 @@ internal class MediaNotification(
         // see https://github.com/mozilla-mobile/android-components/issues/7468 and
         // https://issuetracker.google.com/issues/37078372
         val huaweiOnLollipop =
-            Build.MANUFACTURER.toLowerCase(Locale.getDefault()).contains("huawei") &&
-                    Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1
+            Build.MANUFACTURER.lowercase(Locale.getDefault()).contains("huawei") &&
+                Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1
         if (!huaweiOnLollipop) {
             builder.setStyle(style)
         }
@@ -106,7 +106,8 @@ private suspend fun SessionState.toNotificationData(
                     context,
                     0,
                     AbstractMediaSessionService.pauseIntent(context, cls),
-                    0)
+                    0
+                )
             ).build(),
             contentIntent = PendingIntent.getActivity(
                 context,
@@ -127,7 +128,8 @@ private suspend fun SessionState.toNotificationData(
                     context,
                     0,
                     AbstractMediaSessionService.playIntent(context, cls),
-                    0)
+                    0
+                )
             ).build(),
             contentIntent = PendingIntent.getActivity(
                 context,

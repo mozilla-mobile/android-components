@@ -17,6 +17,8 @@ import com.google.android.material.snackbar.Snackbar
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.concept.engine.INPUT_UNHANDLED
+import mozilla.components.concept.engine.InputResultDetail
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
@@ -104,6 +106,29 @@ class BrowserToolbarBehaviorTest {
     }
 
     @Test
+    fun `GIVEN a gesture that doesn't scroll the toolbar WHEN startNestedScroll THEN toolbar is expanded and nested scroll not accepted`() {
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val engineView: EngineView = mock()
+        val inputResultDetail: InputResultDetail = mock()
+        val yTranslator: BrowserToolbarYTranslator = mock()
+        behavior.yTranslator = yTranslator
+        doReturn(false).`when`(behavior).shouldScroll
+        doReturn(true).`when`(inputResultDetail).isTouchUnhandled()
+        behavior.engineView = engineView
+        doReturn(inputResultDetail).`when`(engineView).getInputResultDetail()
+
+        val acceptsNestedScroll = behavior.startNestedScroll(
+            axes = ViewCompat.SCROLL_AXIS_VERTICAL,
+            type = ViewCompat.TYPE_TOUCH,
+            toolbar = mock()
+        )
+
+        verify(yTranslator).cancelInProgressTranslation()
+        verify(yTranslator).expandWithAnimation(any())
+        assertFalse(acceptsNestedScroll)
+    }
+
+    @Test
     fun `Behavior should not accept nested scrolls on the horizontal axis`() {
         val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
         behavior.browserToolbar = mock()
@@ -115,7 +140,8 @@ class BrowserToolbarBehaviorTest {
             directTargetChild = mock(),
             target = mock(),
             axes = ViewCompat.SCROLL_AXIS_VERTICAL,
-            type = ViewCompat.TYPE_TOUCH)
+            type = ViewCompat.TYPE_TOUCH
+        )
         assertTrue(acceptsNestedScroll)
 
         acceptsNestedScroll = behavior.onStartNestedScroll(
@@ -124,7 +150,8 @@ class BrowserToolbarBehaviorTest {
             directTargetChild = mock(),
             target = mock(),
             axes = ViewCompat.SCROLL_AXIS_HORIZONTAL,
-            type = ViewCompat.TYPE_TOUCH)
+            type = ViewCompat.TYPE_TOUCH
+        )
         assertFalse(acceptsNestedScroll)
     }
 
@@ -205,7 +232,8 @@ class BrowserToolbarBehaviorTest {
             directTargetChild = mock(),
             target = mock(),
             axes = ViewCompat.SCROLL_AXIS_VERTICAL,
-            type = ViewCompat.TYPE_TOUCH)
+            type = ViewCompat.TYPE_TOUCH
+        )
 
         assertTrue(behavior.shouldSnapAfterScroll)
         verify(yTranslator).cancelInProgressTranslation()
@@ -235,7 +263,8 @@ class BrowserToolbarBehaviorTest {
             directTargetChild = mock(),
             target = mock(),
             axes = ViewCompat.SCROLL_AXIS_VERTICAL,
-            type = ViewCompat.TYPE_TOUCH)
+            type = ViewCompat.TYPE_TOUCH
+        )
 
         assertTrue(behavior.shouldSnapAfterScroll)
         verify(yTranslator).cancelInProgressTranslation()
@@ -303,67 +332,70 @@ class BrowserToolbarBehaviorTest {
     }
 
     @Test
-    fun `Behaviour shouldScroll if EngineView handled the MotionEvent and scrolling is enabled`() {
+    fun `GIVEN a null InputResultDetail from the EngineView WHEN shouldScroll is called THEN it returns false`() {
+        val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
+        behavior.engineView = null
+        assertFalse(behavior.shouldScroll)
+        behavior.engineView = mock()
+        `when`(behavior.engineView!!.getInputResultDetail()).thenReturn(null)
+
+        assertFalse(behavior.shouldScroll)
+    }
+
+    @Test
+    fun `GIVEN an InputResultDetail with the right values and scroll enabled WHEN shouldScroll is called THEN it returns true`() {
         val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
         val engineView: EngineView = mock()
-        `when`(engineView.getInputResult()).thenReturn(EngineView.InputResult.INPUT_RESULT_HANDLED)
         behavior.engineView = engineView
         behavior.isScrollEnabled = true
+        val validInputResultDetail: InputResultDetail = mock()
+        doReturn(validInputResultDetail).`when`(engineView).getInputResultDetail()
 
+        doReturn(true).`when`(validInputResultDetail).canScrollToBottom()
+        doReturn(false).`when`(validInputResultDetail).canScrollToTop()
+        assertTrue(behavior.shouldScroll)
+
+        doReturn(false).`when`(validInputResultDetail).canScrollToBottom()
+        doReturn(true).`when`(validInputResultDetail).canScrollToTop()
+        assertTrue(behavior.shouldScroll)
+
+        doReturn(true).`when`(validInputResultDetail).canScrollToBottom()
+        doReturn(true).`when`(validInputResultDetail).canScrollToTop()
         assertTrue(behavior.shouldScroll)
     }
 
     @Test
-    fun `Behaviour !shouldScroll if EngineView handled the MotionEvent and scrolling is !enabled`() {
+    fun `GIVEN an InputResultDetail with the right values but with scroll disabled WHEN shouldScroll is called THEN it returns false`() {
         val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
-        val engineView: EngineView = mock()
-        `when`(engineView.getInputResult()).thenReturn(EngineView.InputResult.INPUT_RESULT_HANDLED)
-        behavior.engineView = engineView
+        behavior.engineView = mock()
         behavior.isScrollEnabled = false
+        val validInputResultDetail: InputResultDetail = mock()
+        doReturn(true).`when`(validInputResultDetail).canScrollToBottom()
+        doReturn(true).`when`(validInputResultDetail).canScrollToTop()
 
         assertFalse(behavior.shouldScroll)
     }
 
     @Test
-    fun `Behaviour !shouldScroll if EngineView didn't handle the MotionEvent and scrolling is enabled`() {
+    fun `GIVEN scroll enabled but EngineView cannot scroll to bottom WHEN shouldScroll is called THEN it returns false`() {
         val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
-        val engineView: EngineView = mock()
-        `when`(engineView.getInputResult()).thenReturn(EngineView.InputResult.INPUT_RESULT_UNHANDLED)
-        behavior.engineView = engineView
+        behavior.engineView = mock()
         behavior.isScrollEnabled = true
+        val validInputResultDetail: InputResultDetail = mock()
+        doReturn(false).`when`(validInputResultDetail).canScrollToBottom()
+        doReturn(true).`when`(validInputResultDetail).canScrollToTop()
 
         assertFalse(behavior.shouldScroll)
     }
 
     @Test
-    fun `Behaviour !shouldScroll if EngineView didn't handle the MotionEvent and scrolling is !enabled`() {
+    fun `GIVEN scroll enabled but EngineView cannot scroll to top WHEN shouldScroll is called THEN it returns false`() {
         val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
-        val engineView: EngineView = mock()
-        `when`(engineView.getInputResult()).thenReturn(EngineView.InputResult.INPUT_RESULT_UNHANDLED)
-        behavior.engineView = engineView
-        behavior.isScrollEnabled = false
-
-        assertFalse(behavior.shouldScroll)
-    }
-
-    @Test
-    fun `Behaviour !shouldScroll if EngineView didn't handle the MotionEvent but the website and scrolling is enabled`() {
-        val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
-        val engineView: EngineView = mock()
-        `when`(engineView.getInputResult()).thenReturn(EngineView.InputResult.INPUT_RESULT_HANDLED_CONTENT)
-        behavior.engineView = engineView
+        behavior.engineView = mock()
         behavior.isScrollEnabled = true
-
-        assertFalse(behavior.shouldScroll)
-    }
-
-    @Test
-    fun `Behaviour !shouldScroll if EngineView didn't handle the MotionEvent but the website and scrolling is !enabled`() {
-        val behavior = BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM)
-        val engineView: EngineView = mock()
-        `when`(engineView.getInputResult()).thenReturn(EngineView.InputResult.INPUT_RESULT_HANDLED_CONTENT)
-        behavior.engineView = engineView
-        behavior.isScrollEnabled = false
+        val validInputResultDetail: InputResultDetail = mock()
+        doReturn(true).`when`(validInputResultDetail).canScrollToBottom()
+        doReturn(false).`when`(validInputResultDetail).canScrollToTop()
 
         assertFalse(behavior.shouldScroll)
     }
@@ -466,25 +498,17 @@ class BrowserToolbarBehaviorTest {
     }
 
     @Test
-    fun `Behavior will animateSnap UP when forceExpand is called`() {
-        // val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
-        // doReturn(true).`when`(behavior).shouldScroll
-        // val toolbar: BrowserToolbar = mock()
-        //
-        // behavior.forceExpand(toolbar)
-        //
-        // verify(behavior).animateSnap(toolbar, SnapDirection.UP)
-    }
-
-    @Test
-    fun `Behavior will forceExpand when scrolling up and !shouldScroll`() {
+    fun `Behavior will forceExpand when scrolling up and !shouldScroll if the touch was handled in the browser`() {
         val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
         val yTranslator: BrowserToolbarYTranslator = mock()
         behavior.yTranslator = yTranslator
         behavior.initGesturesDetector(behavior.createGestureDetector())
-        doReturn(false).`when`(behavior).shouldScroll
         val toolbar: BrowserToolbar = spy(BrowserToolbar(testContext, null, 0))
         behavior.browserToolbar = toolbar
+        val engineView: EngineView = mock()
+        behavior.engineView = engineView
+        val handledTouchInput = InputResultDetail.newInstance().copy(INPUT_UNHANDLED)
+        doReturn(handledTouchInput).`when`(engineView).getInputResultDetail()
 
         doReturn(100).`when`(toolbar).height
         doReturn(100f).`when`(toolbar).translationY
@@ -497,6 +521,32 @@ class BrowserToolbarBehaviorTest {
 
         verify(behavior).tryToScrollVertically(-30f)
         verify(yTranslator).forceExpandIfNotAlready(toolbar, -30f)
+    }
+
+    @Test
+    fun `Behavior will not forceExpand when scrolling up and !shouldScroll if the touch was not yet handled in the browser`() {
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val yTranslator: BrowserToolbarYTranslator = mock()
+        behavior.yTranslator = yTranslator
+        behavior.initGesturesDetector(behavior.createGestureDetector())
+        val toolbar: BrowserToolbar = spy(BrowserToolbar(testContext, null, 0))
+        behavior.browserToolbar = toolbar
+        val engineView: EngineView = mock()
+        behavior.engineView = engineView
+        val handledTouchInput = InputResultDetail.newInstance()
+        doReturn(handledTouchInput).`when`(engineView).getInputResultDetail()
+
+        doReturn(100).`when`(toolbar).height
+        doReturn(100f).`when`(toolbar).translationY
+
+        val downEvent = TestUtils.getMotionEvent(ACTION_DOWN, 0f, 0f)
+        val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 30f, downEvent)
+
+        behavior.onInterceptTouchEvent(mock(), mock(), downEvent)
+        behavior.onInterceptTouchEvent(mock(), mock(), moveEvent)
+
+        verify(behavior).tryToScrollVertically(-30f)
+        verify(yTranslator, never()).forceExpandIfNotAlready(toolbar, -30f)
     }
 
     @Test

@@ -35,6 +35,20 @@ interface BookmarksStorage : Storage {
     suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode>
 
     /**
+     * Produces a list of the most recently added bookmarks.
+     *
+     * @param limit The maximum number of entries to return.
+     * @param maxAge Optional parameter used to filter out entries older than this number of milliseconds.
+     * @param currentTime Optional parameter for current time. Defaults toSystem.currentTimeMillis()
+     * @return The list of bookmarks that have been recently added up to the limit number of items.
+     */
+    suspend fun getRecentBookmarks(
+        limit: Int,
+        maxAge: Long? = null,
+        currentTime: Long = System.currentTimeMillis()
+    ): List<BookmarkNode>
+
+    /**
      * Searches bookmarks with a query string.
      *
      * @param query The query string to search.
@@ -104,7 +118,16 @@ interface BookmarksStorage : Storage {
 }
 
 /**
- * Class for holding metadata about any bookmark node
+ * Represents a bookmark record.
+ *
+ * @property type The [BookmarkNodeType] of this record.
+ * @property guid The id.
+ * @property parentGuid The id of the parent node in the tree.
+ * @property position The position of this node in the tree.
+ * @property title A title of the page.
+ * @property url The url of the page.
+ * @property dateAdded Creation time, in milliseconds since the unix epoch.
+ * @property children The list of children of this bookmark node in the tree.
  */
 data class BookmarkNode(
     val type: BookmarkNodeType,
@@ -113,6 +136,7 @@ data class BookmarkNode(
     val position: Int?,
     val title: String?,
     val url: String?,
+    val dateAdded: Long,
     val children: List<BookmarkNode>?
 )
 

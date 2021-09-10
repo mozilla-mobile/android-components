@@ -30,7 +30,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.verification.VerificationMode
 import org.robolectric.annotation.Config
 
@@ -57,8 +57,8 @@ class PictureInPictureFeatureTest {
             spy(PictureInPictureFeature(store, activity, crashReporting))
 
         assertFalse(pictureInPictureFeature.onHomePressed())
-        verifyZeroInteractions(store)
-        verifyZeroInteractions(activity.packageManager)
+        verifyNoInteractions(store)
+        verifyNoInteractions(activity.packageManager)
         verify(pictureInPictureFeature, never()).enterPipModeCompat()
     }
 
@@ -73,7 +73,7 @@ class PictureInPictureFeatureTest {
             spy(PictureInPictureFeature(store, activity, crashReporting))
 
         assertFalse(pictureInPictureFeature.onHomePressed())
-        verifyZeroInteractions(store)
+        verifyNoInteractions(store)
         verify(activity.packageManager).hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
         verify(pictureInPictureFeature, never()).enterPipModeCompat()
     }
@@ -109,7 +109,8 @@ class PictureInPictureFeatureTest {
     @Test
     fun `on home pressed with a selected session in fullscreen without media playing and without pip mode`() {
         val controller = mock<MediaSession.Controller>()
-        val selectedSession = createTab(url = "https://mozilla.org",
+        val selectedSession = createTab(
+            url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
                 playbackState = MediaSession.PlaybackState.UNKNOWN,
                 controller = controller
@@ -134,7 +135,8 @@ class PictureInPictureFeatureTest {
     @Test
     fun `on home pressed with a selected session in fullscreen with media playing and without pip mode`() {
         val controller = mock<MediaSession.Controller>()
-        val selectedSession = createTab(url = "https://mozilla.org",
+        val selectedSession = createTab(
+            url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
                 playbackState = MediaSession.PlaybackState.PLAYING,
                 controller = controller
@@ -159,7 +161,8 @@ class PictureInPictureFeatureTest {
     @Test
     fun `on home pressed with a selected session in fullscreen without media playing and with pip mode`() {
         val controller = mock<MediaSession.Controller>()
-        val selectedSession = createTab(url = "https://mozilla.org",
+        val selectedSession = createTab(
+            url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
                 playbackState = MediaSession.PlaybackState.UNKNOWN,
                 controller = controller
@@ -184,7 +187,8 @@ class PictureInPictureFeatureTest {
     @Test
     fun `on home pressed with a selected session in fullscreen with media playing and with pip mode`() {
         val controller = mock<MediaSession.Controller>()
-        val selectedSession = createTab(url = "https://mozilla.org",
+        val selectedSession = createTab(
+            url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
                 playbackState = MediaSession.PlaybackState.PLAYING,
                 controller = controller
@@ -233,7 +237,8 @@ class PictureInPictureFeatureTest {
     @Config(sdk = [Build.VERSION_CODES.O])
     fun `enter pip mode compat with system feature on android o but entering throws exception`() {
         val controller = mock<MediaSession.Controller>()
-        val selectedSession = createTab(url = "https://mozilla.org",
+        val selectedSession = createTab(
+            url = "https://mozilla.org",
             mediaSessionState = MediaSessionState(
                 playbackState = MediaSession.PlaybackState.PLAYING,
                 controller = controller

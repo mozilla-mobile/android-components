@@ -9,20 +9,21 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import mozilla.components.support.base.log.Log
-import mozilla.components.support.base.log.sink.AndroidLogSink
+import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.lib.crash.service.GleanCrashReporterService
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.glean.Glean
-import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.service.glean.config.Configuration
 import mozilla.components.service.glean.net.ConceptFetchHttpUploader
+import mozilla.components.support.base.log.Log
+import mozilla.components.support.base.log.sink.AndroidLogSink
 import java.util.UUID
 
 class CrashApplication : Application() {
@@ -62,6 +63,7 @@ class CrashApplication : Application() {
     }
 }
 
+@OptIn(DelicateCoroutinesApi::class)
 private fun createDummyCrashService(context: Context): CrashReporterService {
     // For this sample we create a dummy service. In a real application this would be an instance of SentryCrashService
     // or SocorroCrashService.

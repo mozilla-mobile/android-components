@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import resolve_keyed_by
@@ -40,7 +39,7 @@ def filter_out_checksums(config, tasks):
     for task in tasks:
         task["attributes"]["artifacts"] = {
             extension: path
-            for extension, path in task["attributes"]["artifacts"].iteritems()
+            for extension, path in task["attributes"]["artifacts"].items()
             if not any(map(path.endswith, CHECKSUMS_EXTENSIONS))
         }
 
@@ -62,7 +61,7 @@ def set_detached_signature_artifacts(config, tasks):
     for task in tasks:
         task["attributes"]["artifacts"] = {
             extension + _DETACHED_SIGNATURE_EXTENSION: path + _DETACHED_SIGNATURE_EXTENSION
-            for extension, path in task["attributes"]["artifacts"].iteritems()
+            for extension, path in task["attributes"]["artifacts"].items()
         }
 
         yield task

@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
-import org.mockito.MockitoAnnotations.initMocks
+import org.mockito.MockitoAnnotations.openMocks
 
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
@@ -41,7 +41,7 @@ class OriginVerifierTest {
     @Suppress("Deprecation")
     @Before
     fun setup() {
-        initMocks(this)
+        openMocks(this)
 
         doReturn(body).`when`(response).body
         doReturn(200).`when`(response).status
@@ -67,12 +67,14 @@ class OriginVerifierTest {
     }
 
     private fun buildVerifier(relation: Int): OriginVerifier {
-        val verifier = spy(OriginVerifier(
-            "com.app.name",
-            relation,
-            packageManager,
-            checker
-        ))
+        val verifier = spy(
+            OriginVerifier(
+                "com.app.name",
+                relation,
+                packageManager,
+                checker
+            )
+        )
         doReturn(androidAsset).`when`(verifier).androidAsset
         return verifier
     }

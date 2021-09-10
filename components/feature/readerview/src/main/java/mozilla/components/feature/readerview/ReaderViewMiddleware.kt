@@ -13,9 +13,9 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_CONTENT_PORT
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_EXTENSION_ID
 import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_EXTENSION_URL
-import mozilla.components.feature.readerview.ReaderViewFeature.Companion.READER_VIEW_CONTENT_PORT
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.webextensions.WebExtensionController
@@ -62,7 +62,7 @@ class ReaderViewMiddleware : Middleware<BrowserState, BrowserAction> {
             // (e.g. via a tabs tray fragment). In order to disconnect the port as
             // early as possible it's best to do it here directly.
             is EngineAction.UnlinkEngineSessionAction -> {
-                context.state.findTab(action.sessionId)?.engineState?.engineSession?.let {
+                context.state.findTab(action.tabId)?.engineState?.engineSession?.let {
                     extensionController.disconnectPort(it, READER_VIEW_EXTENSION_ID)
                 }
                 true
@@ -109,7 +109,7 @@ class ReaderViewMiddleware : Middleware<BrowserState, BrowserAction> {
                 context.dispatch(ReaderAction.UpdateReaderableCheckRequiredAction(action.tabId, true))
             }
             is EngineAction.LinkEngineSessionAction -> {
-                context.dispatch(ReaderAction.UpdateReaderConnectRequiredAction(action.sessionId, true))
+                context.dispatch(ReaderAction.UpdateReaderConnectRequiredAction(action.tabId, true))
             }
             is ReaderAction.UpdateReaderActiveUrlAction -> {
                 // When a tab is restored, the reader page will connect, but we won't get a

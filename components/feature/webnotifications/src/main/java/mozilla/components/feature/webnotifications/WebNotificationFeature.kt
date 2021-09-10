@@ -17,12 +17,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.permission.SitePermissionsStorage
 import mozilla.components.concept.engine.webnotifications.WebNotification
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
-import mozilla.components.feature.sitepermissions.SitePermissionsStorage
 import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
+import mozilla.components.support.ktx.kotlin.getOrigin
 import java.lang.UnsupportedOperationException
 import kotlin.coroutines.CoroutineContext
 
@@ -76,7 +76,7 @@ class WebNotificationFeature(
             // web extensions are managed via the extension's manifest and approved by the user
             // upon installation.
             if (!webNotification.triggeredByWebExtension) {
-                val origin = webNotification.sourceUrl?.tryGetHostFromUrl() ?: return@launch
+                val origin = webNotification.sourceUrl?.getOrigin() ?: return@launch
                 val permissions = sitePermissionsStorage.findSitePermissionsBy(origin)
                     ?: return@launch
 
@@ -90,7 +90,8 @@ class WebNotificationFeature(
 
             val notification = nativeNotificationBridge.convertToAndroidNotification(
                 webNotification, context, NOTIFICATION_CHANNEL_ID, activityClass,
-                SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG))
+                SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG)
+            )
             notificationManager?.notify(webNotification.tag, NOTIFICATION_ID, notification)
         }
     }

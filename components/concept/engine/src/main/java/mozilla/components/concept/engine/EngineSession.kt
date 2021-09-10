@@ -92,6 +92,12 @@ abstract class EngineSession(
         fun onWindowRequest(windowRequest: WindowRequest) = Unit
 
         /**
+         * Based on the webpage current state the toolbar should be expanded to it's full height
+         * previously specified in [EngineView.setDynamicToolbarMaxHeight].
+         */
+        fun onShowDynamicToolbar() = Unit
+
+        /**
          * Notify that the given media session has become active.
          *
          * @param mediaSessionController The associated [MediaSession.Controller].
@@ -275,6 +281,7 @@ abstract class EngineSession(
         val useForPrivateSessions: Boolean = true,
         val useForRegularSessions: Boolean = true,
         val cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS,
+        val cookiePolicyPrivateMode: CookiePolicy = cookiePolicy,
         val strictSocialTrackingProtection: Boolean? = null,
         val cookiePurging: Boolean = false
     ) {
@@ -312,7 +319,14 @@ abstract class EngineSession(
              * to block cookies which are not associated with the domain of the visited
              * site set by known trackers.
              */
-            ACCEPT_NON_TRACKERS(4)
+            ACCEPT_NON_TRACKERS(4),
+
+            /**
+             * Enable dynamic first party isolation (dFPI); this will block third-party tracking
+             * cookies in accordance with the ETP level and isolate non-tracking third-party
+             * cookies.
+             */
+            ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS(5)
         }
 
         @Suppress("MagicNumber")
@@ -364,8 +378,10 @@ abstract class EngineSession(
              */
             SCRIPTS_AND_SUB_RESOURCES(1 shl 31),
 
-            RECOMMENDED(AD.id + ANALYTICS.id + SOCIAL.id + TEST.id + MOZILLA_SOCIAL.id +
-                CRYPTOMINING.id + FINGERPRINTING.id),
+            RECOMMENDED(
+                AD.id + ANALYTICS.id + SOCIAL.id + TEST.id + MOZILLA_SOCIAL.id +
+                    CRYPTOMINING.id + FINGERPRINTING.id
+            ),
 
             /**
              * Combining the [RECOMMENDED] categories plus [SCRIPTS_AND_SUB_RESOURCES].
@@ -404,26 +420,30 @@ abstract class EngineSession(
             )
 
             /**
-            *  Creates a custom [TrackingProtectionPolicyForSessionTypes] using the provide values .
-            *  @param trackingCategories a list of tracking categories to apply.
-            *  @param cookiePolicy indicate how cookies should behave for this policy.
-            *  @param strictSocialTrackingProtection indicate  if content should be blocked from the
-            *  social-tracking-protection-digest256 list, when given a null value,
-            *  it is only applied when the [EngineSession.TrackingProtectionPolicy.TrackingCategory.STRICT]
-            *  is set.
-            *  @param cookiePurging Whether or not to automatically purge tracking cookies. This will
-            *  purge cookies from tracking sites that do not have recent user interaction provided.
-            */
+             *  Creates a custom [TrackingProtectionPolicyForSessionTypes] using the provide values .
+             *  @param trackingCategories a list of tracking categories to apply.
+             *  @param cookiePolicy indicates how cookies should behave for this policy.
+             *  @param cookiePolicyPrivateMode indicates how cookies should behave in private mode for this policy,
+             *  default to [cookiePolicy] if not set.
+             *  @param strictSocialTrackingProtection indicate  if content should be blocked from the
+             *  social-tracking-protection-digest256 list, when given a null value,
+             *  it is only applied when the [EngineSession.TrackingProtectionPolicy.TrackingCategory.STRICT]
+             *  is set.
+             *  @param cookiePurging Whether or not to automatically purge tracking cookies. This will
+             *  purge cookies from tracking sites that do not have recent user interaction provided.
+             */
             @Suppress("LongParameterList")
             fun select(
                 trackingCategories: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
                 cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS,
+                cookiePolicyPrivateMode: CookiePolicy = cookiePolicy,
                 strictSocialTrackingProtection: Boolean? = null,
                 cookiePurging: Boolean = false
             ) = TrackingProtectionPolicyForSessionTypes(
-                trackingCategories,
-                cookiePolicy,
-                strictSocialTrackingProtection,
+                trackingCategory = trackingCategories,
+                cookiePolicy = cookiePolicy,
+                cookiePolicyPrivateMode = cookiePolicyPrivateMode,
+                strictSocialTrackingProtection = strictSocialTrackingProtection,
                 cookiePurging = cookiePurging
             )
         }
@@ -435,21 +455,24 @@ abstract class EngineSession(
             if (useForPrivateSessions != other.useForPrivateSessions) return false
             if (useForRegularSessions != other.useForRegularSessions) return false
             if (cookiePurging != other.cookiePurging) return false
+            if (cookiePolicyPrivateMode != other.cookiePolicyPrivateMode) return false
             if (strictSocialTrackingProtection != other.strictSocialTrackingProtection) return false
             return true
         }
 
-        override fun hashCode() = trackingCategories.sumBy { it.id } + cookiePolicy.id
+        override fun hashCode() = trackingCategories.sumOf { it.id } + cookiePolicy.id
 
         fun contains(category: TrackingCategory) =
-            (trackingCategories.sumBy { it.id } and category.id) != 0
+            (trackingCategories.sumOf { it.id } and category.id) != 0
     }
 
     /**
      * Subtype of [TrackingProtectionPolicy] to control the type of session this policy
      * should be applied to. By default, a policy will be applied to all sessions.
      *  @param trackingCategory a list of tracking categories to apply.
-     *  @param cookiePolicy indicate how cookies should behave for this policy.
+     *  @param cookiePolicy indicates how cookies should behave for this policy.
+     *  @param cookiePolicyPrivateMode indicates how cookies should behave in private mode for this policy,
+     *  default to [cookiePolicy] if not set.
      *  @param strictSocialTrackingProtection indicate  if content should be blocked from the
      *  social-tracking-protection-digest256 list, when given a null value,
      *  it is only applied when the [EngineSession.TrackingProtectionPolicy.TrackingCategory.STRICT]
@@ -460,11 +483,13 @@ abstract class EngineSession(
     class TrackingProtectionPolicyForSessionTypes internal constructor(
         trackingCategory: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
         cookiePolicy: CookiePolicy = ACCEPT_NON_TRACKERS,
+        cookiePolicyPrivateMode: CookiePolicy = cookiePolicy,
         strictSocialTrackingProtection: Boolean? = null,
         cookiePurging: Boolean = false
     ) : TrackingProtectionPolicy(
         trackingCategories = trackingCategory,
         cookiePolicy = cookiePolicy,
+        cookiePolicyPrivateMode = cookiePolicyPrivateMode,
         strictSocialTrackingProtection = strictSocialTrackingProtection,
         cookiePurging = cookiePurging
     ) {
@@ -476,6 +501,7 @@ abstract class EngineSession(
             useForPrivateSessions = true,
             useForRegularSessions = false,
             cookiePolicy = cookiePolicy,
+            cookiePolicyPrivateMode = cookiePolicyPrivateMode,
             strictSocialTrackingProtection = strictSocialTrackingProtection,
             cookiePurging = cookiePurging
         )
@@ -488,6 +514,7 @@ abstract class EngineSession(
             useForPrivateSessions = false,
             useForRegularSessions = true,
             cookiePolicy = cookiePolicy,
+            cookiePolicyPrivateMode = cookiePolicyPrivateMode,
             strictSocialTrackingProtection = strictSocialTrackingProtection,
             cookiePurging = cookiePurging
         )
@@ -660,4 +687,9 @@ abstract class EngineSession(
      */
     @CallSuper
     open fun close() = delegate.unregisterObservers()
+
+    /**
+     * Returns the list of URL schemes that are blocked from loading.
+     */
+    open fun getBlockedSchemes(): List<String> = emptyList()
 }

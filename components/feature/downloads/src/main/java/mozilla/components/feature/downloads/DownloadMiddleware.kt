@@ -14,8 +14,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.BrowserAction
+import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.DownloadState.Status.CANCELLED
@@ -33,7 +35,7 @@ import kotlin.coroutines.CoroutineContext
  * purpose is to react to global download state changes (e.g. of [BrowserState.downloads])
  * and notify the download service, as needed.
  */
-@Suppress("ComplexMethod", "TooManyFunctions")
+@Suppress("ComplexMethod")
 class DownloadMiddleware(
     private val applicationContext: Context,
     private val downloadServiceClass: Class<*>,
@@ -56,11 +58,14 @@ class DownloadMiddleware(
             is DownloadAction.RemoveAllDownloadsAction -> removeDownloads()
             is DownloadAction.UpdateDownloadAction -> updateDownload(action.download, context)
             is DownloadAction.RestoreDownloadsStateAction -> restoreDownloads(context.store)
+            is ContentAction.CancelDownloadAction -> closeDownloadResponse(context.store, action.sessionId)
             is DownloadAction.AddDownloadAction -> {
                 if (!action.download.private && !saveDownload(context.store, action.download)) {
                     // The download was already added before, so we are ignoring this request.
-                    logger.debug("Ignored add action for ${action.download.id} " +
-                            "download already in store.downloads")
+                    logger.debug(
+                        "Ignored add action for ${action.download.id} " +
+                            "download already in store.downloads"
+                    )
                     return
                 }
             }
@@ -125,6 +130,13 @@ class DownloadMiddleware(
             true
         } else {
             false
+        }
+    }
+
+    @VisibleForTesting
+    internal fun closeDownloadResponse(store: Store<BrowserState, BrowserAction>, tabId: String) {
+        store.state.findTabOrCustomTab(tabId)?.let {
+            it.content.download?.response?.close()
         }
     }
 

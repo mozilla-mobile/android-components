@@ -5,6 +5,7 @@
 package mozilla.components.browser.storage.sync
 
 import android.content.Context
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkUpdateInfo
 import mozilla.appservices.places.PlacesApi
@@ -21,7 +22,6 @@ import org.json.JSONObject
 /**
  * Implementation of the [BookmarksStorage] which is backed by a Rust Places lib via [PlacesApi].
  */
-@Suppress("TooManyFunctions")
 open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), BookmarksStorage, SyncableStore {
 
     override val logger = Logger("PlacesBookmarksStorage")
@@ -73,6 +73,30 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
     override suspend fun searchBookmarks(query: String, limit: Int): List<BookmarkNode> {
         return withContext(readScope.coroutineContext) {
             reader.searchBookmarks(query, limit).map { it.asBookmarkNode() }
+        }
+    }
+
+    /**
+     * Retrieves a list of recently added bookmarks.
+     *
+     * @param limit The maximum number of entries to return.
+     * @param maxAge Optional parameter used to filter out entries older than this number of milliseconds.
+     * @param currentTime Optional parameter for current time. Defaults toSystem.currentTimeMillis()
+     * @return The list of matching bookmark nodes up to the limit number of items.
+     */
+    override suspend fun getRecentBookmarks(
+        limit: Int,
+        maxAge: Long?,
+        @VisibleForTesting currentTime: Long
+    ): List<BookmarkNode> {
+        return withContext(readScope.coroutineContext) {
+            val threshold = if (maxAge != null) {
+                currentTime - maxAge
+            } else {
+                0
+            }
+            reader.getRecentBookmarks(limit).filter { it.dateAdded >= threshold }
+                .map { it.asBookmarkNode() }
         }
     }
 
@@ -192,5 +216,10 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
      */
     override fun getHandle(): Long {
         return places.getHandle()
+    }
+
+    override fun registerWithSyncManager() {
+        // See https://github.com/mozilla-mobile/android-components/issues/10128
+        throw NotImplementedError("Use getHandle instead")
     }
 }

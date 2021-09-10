@@ -5,7 +5,6 @@
 package mozilla.components.support.webextensions
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.WebExtensionState
@@ -23,10 +22,9 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class WebExtensionPopupFeatureTest {
-    private val testDispatcher = TestCoroutineDispatcher()
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Test
     fun `observes and forwards request to open popup`() {

@@ -7,7 +7,6 @@ package mozilla.components.feature.media.fullscreen
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.MediaSessionState
@@ -24,25 +23,27 @@ import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class MediaSessionFullscreenFeatureTest {
-    private val dispatcher: TestCoroutineDispatcher = TestCoroutineDispatcher()
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(dispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
 
     @Test
     fun `screen orientation is updated correctly`() {
         val mockActivity: Activity = mock()
         val elementMetadata = MediaSession.ElementMetadata()
         val initialState = BrowserState(
-            tabs = listOf(createTab(
-                "https://www.mozilla.org",
-                mediaSessionState = MediaSessionState(
-                    mock(),
-                    elementMetadata = elementMetadata,
-                    playbackState = MediaSession.PlaybackState.PLAYING,
-                    fullscreen = true
+            tabs = listOf(
+                createTab(
+                    "https://www.mozilla.org",
+                    mediaSessionState = MediaSessionState(
+                        mock(),
+                        elementMetadata = elementMetadata,
+                        playbackState = MediaSession.PlaybackState.PLAYING,
+                        fullscreen = true
+                    )
                 )
-            ))
+            )
         )
         val store = BrowserStore(initialState)
         val feature = MediaSessionFullscreenFeature(
@@ -53,11 +54,13 @@ class MediaSessionFullscreenFeatureTest {
         feature.start()
         verify(mockActivity).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE)
 
-        store.dispatch(MediaSessionAction.UpdateMediaFullscreenAction(
-            store.state.tabs[0].id,
-            true,
-            MediaSession.ElementMetadata(height = 1L)
-        ))
+        store.dispatch(
+            MediaSessionAction.UpdateMediaFullscreenAction(
+                store.state.tabs[0].id,
+                true,
+                MediaSession.ElementMetadata(height = 1L)
+            )
+        )
 
         store.waitUntilIdle()
         dispatcher.advanceUntilIdle()

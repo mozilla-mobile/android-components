@@ -12,6 +12,10 @@ import mozilla.appservices.places.VisitObservation
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.storage.HistoryAutocompleteResult
+import mozilla.components.concept.storage.HistoryMetadata
+import mozilla.components.concept.storage.HistoryMetadataKey
+import mozilla.components.concept.storage.HistoryMetadataObservation
+import mozilla.components.concept.storage.HistoryMetadataStorage
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.PageVisit
@@ -32,28 +36,31 @@ const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
 /**
  * Implementation of the [HistoryStorage] which is backed by a Rust Places lib via [PlacesApi].
  */
-@SuppressWarnings("TooManyFunctions")
+@Suppress("TooManyFunctions")
 open class PlacesHistoryStorage(
     context: Context,
     crashReporter: CrashReporting? = null
-) : PlacesStorage(context, crashReporter), HistoryStorage, SyncableStore {
+) : PlacesStorage(context, crashReporter), HistoryStorage, HistoryMetadataStorage, SyncableStore {
 
     override val logger = Logger("PlacesHistoryStorage")
 
     override suspend fun recordVisit(uri: String, visit: PageVisit) {
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("recordVisit") {
-                places.writer().noteObservation(VisitObservation(uri,
-                    visitType = visit.visitType.into(),
-                    isRedirectSource = when (visit.redirectSource) {
-                        RedirectSource.PERMANENT, RedirectSource.TEMPORARY -> true
-                        RedirectSource.NOT_A_SOURCE -> false
-                    },
-                    isPermanentRedirectSource = when (visit.redirectSource) {
-                        RedirectSource.PERMANENT -> true
-                        RedirectSource.TEMPORARY, RedirectSource.NOT_A_SOURCE -> false
-                    }
-                ))
+                places.writer().noteObservation(
+                    VisitObservation(
+                        uri,
+                        visitType = visit.visitType.into(),
+                        isRedirectSource = when (visit.redirectSource) {
+                            RedirectSource.PERMANENT, RedirectSource.TEMPORARY -> true
+                            RedirectSource.NOT_A_SOURCE -> false
+                        },
+                        isPermanentRedirectSource = when (visit.redirectSource) {
+                            RedirectSource.PERMANENT -> true
+                            RedirectSource.TEMPORARY, RedirectSource.NOT_A_SOURCE -> false
+                        }
+                    )
+                )
             }
         }
     }
@@ -65,11 +72,11 @@ open class PlacesHistoryStorage(
             // if the underlying storage layer refuses it.
             handlePlacesExceptions("recordObservation") {
                 places.writer().noteObservation(
-                        VisitObservation(
-                                url = uri,
-                                visitType = mozilla.appservices.places.VisitType.UPDATE_PLACE,
-                                title = observation.title
-                        )
+                    VisitObservation(
+                        url = uri,
+                        visitType = mozilla.appservices.places.VisitType.UPDATE_PLACE,
+                        title = observation.title
+                    )
                 )
             }
         }
@@ -82,9 +89,9 @@ open class PlacesHistoryStorage(
     override suspend fun getVisited(): List<String> {
         return withContext(readScope.coroutineContext) {
             places.reader().getVisitedUrlsInRange(
-                    start = 0,
-                    end = System.currentTimeMillis(),
-                    includeRemote = true
+                start = 0,
+                end = System.currentTimeMillis(),
+                includeRemote = true
             )
         }
     }
@@ -128,11 +135,11 @@ open class PlacesHistoryStorage(
         val resultText = segmentAwareDomainMatch(query, arrayListOf(url))
         return resultText?.let {
             HistoryAutocompleteResult(
-                    input = query,
-                    text = it.matchedSegment,
-                    url = it.url,
-                    source = AUTOCOMPLETE_SOURCE_NAME,
-                    totalItems = 1
+                input = query,
+                text = it.matchedSegment,
+                url = it.url,
+                source = AUTOCOMPLETE_SOURCE_NAME,
+                totalItems = 1
             )
         }
     }
@@ -229,5 +236,53 @@ open class PlacesHistoryStorage(
      */
     override fun getHandle(): Long {
         return places.getHandle()
+    }
+
+    override fun registerWithSyncManager() {
+        // See https://github.com/mozilla-mobile/android-components/issues/10128
+        throw NotImplementedError("Use getHandle instead")
+    }
+
+    override suspend fun getLatestHistoryMetadataForUrl(url: String): HistoryMetadata? {
+        return places.reader().getLatestHistoryMetadataForUrl(url)?.into()
+    }
+
+    override suspend fun getHistoryMetadataSince(since: Long): List<HistoryMetadata> {
+        return places.reader().getHistoryMetadataSince(since).into()
+    }
+
+    override suspend fun getHistoryMetadataBetween(start: Long, end: Long): List<HistoryMetadata> {
+        return places.reader().getHistoryMetadataBetween(start, end).into()
+    }
+
+    override suspend fun queryHistoryMetadata(query: String, limit: Int): List<HistoryMetadata> {
+        return places.reader().queryHistoryMetadata(query, limit).into()
+    }
+
+    override suspend fun noteHistoryMetadataObservation(
+        key: HistoryMetadataKey,
+        observation: HistoryMetadataObservation
+    ) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("noteHistoryMetadataObservation") {
+                places.writer().noteHistoryMetadataObservation(observation.into(key))
+            }
+        }
+    }
+
+    override suspend fun deleteHistoryMetadataOlderThan(olderThan: Long) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("deleteHistoryMetadataOlderThan") {
+                places.writer().deleteHistoryMetadataOlderThan(olderThan)
+            }
+        }
+    }
+
+    override suspend fun deleteHistoryMetadata(key: HistoryMetadataKey) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("deleteHistoryMetadata") {
+                places.writer().deleteHistoryMetadata(key.into())
+            }
+        }
     }
 }

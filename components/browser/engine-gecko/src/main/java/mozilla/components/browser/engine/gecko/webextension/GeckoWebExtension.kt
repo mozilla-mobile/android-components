@@ -31,13 +31,12 @@ import org.mozilla.geckoview.WebExtension.Action as GeckoNativeWebExtensionActio
  * Gecko-based implementation of [WebExtension], wrapping the native web
  * extension object provided by GeckoView.
  */
-@Suppress("TooManyFunctions")
 class GeckoWebExtension(
     val nativeExtension: GeckoNativeWebExtension,
     val runtime: GeckoRuntime
 ) : WebExtension(nativeExtension.id, nativeExtension.location, true) {
 
-    private val connectedPorts: MutableMap<PortId, Port> = mutableMapOf()
+    private val connectedPorts: MutableMap<PortId, GeckoPort> = mutableMapOf()
     private val logger = Logger("GeckoWebExtension")
 
     /**
@@ -58,10 +57,15 @@ class GeckoWebExtension(
             }
 
             override fun onDisconnect(port: GeckoNativeWebExtension.Port) {
-                connectedPorts.remove(PortId(name))
-                messageHandler.onPortDisconnected(GeckoPort(port))
+                val connectedPort = connectedPorts[PortId(name)]
+                if (connectedPort != null && connectedPort.nativePort == port) {
+                    connectedPorts.remove(PortId(name))
+                    messageHandler.onPortDisconnected(GeckoPort(port))
+                }
             }
         }
+
+        connectedPorts[PortId(name)]?.nativePort?.setDelegate(portDelegate)
 
         val messageDelegate = object : GeckoNativeWebExtension.MessageDelegate {
 
@@ -97,11 +101,15 @@ class GeckoWebExtension(
             }
 
             override fun onDisconnect(port: GeckoNativeWebExtension.Port) {
-                val geckoPort = GeckoPort(port, session)
-                connectedPorts.remove(PortId(name, session))
-                messageHandler.onPortDisconnected(geckoPort)
+                val connectedPort = connectedPorts[PortId(name, session)]
+                if (connectedPort != null && connectedPort.nativePort == port) {
+                    connectedPorts.remove(PortId(name, session))
+                    messageHandler.onPortDisconnected(connectedPort)
+                }
             }
         }
+
+        connectedPorts[PortId(name, session)]?.nativePort?.setDelegate(portDelegate)
 
         val messageDelegate = object : GeckoNativeWebExtension.MessageDelegate {
 
@@ -159,8 +167,10 @@ class GeckoWebExtension(
      */
     override fun registerActionHandler(actionHandler: ActionHandler) {
         if (!supportActions) {
-            logger.error("Attempt to register default action handler but browser and page " +
-                "action support is turned off for this extension: $id")
+            logger.error(
+                "Attempt to register default action handler but browser and page " +
+                    "action support is turned off for this extension: $id"
+            )
             return
         }
 
@@ -201,8 +211,10 @@ class GeckoWebExtension(
      */
     override fun registerActionHandler(session: EngineSession, actionHandler: ActionHandler) {
         if (!supportActions) {
-            logger.error("Attempt to register action handler on session but browser and page " +
-                "action support is turned off for this extension: $id")
+            logger.error(
+                "Attempt to register action handler on session but browser and page " +
+                    "action support is turned off for this extension: $id"
+            )
             return
         }
 
@@ -241,6 +253,7 @@ class GeckoWebExtension(
      * See [WebExtension.registerTabHandler].
      */
     override fun registerTabHandler(tabHandler: TabHandler, defaultSettings: Settings?) {
+
         val tabDelegate = object : GeckoNativeWebExtension.TabDelegate {
 
             override fun onNewTab(
@@ -252,6 +265,7 @@ class GeckoWebExtension(
                     defaultSettings = defaultSettings,
                     openGeckoSession = false
                 )
+
                 tabHandler.onNewTab(
                     this@GeckoWebExtension,
                     geckoEngineSession,
@@ -265,7 +279,10 @@ class GeckoWebExtension(
                 ext.metaData.optionsPageUrl?.let { optionsPageUrl ->
                     tabHandler.onNewTab(
                         this@GeckoWebExtension,
-                        GeckoEngineSession(runtime, defaultSettings = defaultSettings),
+                        GeckoEngineSession(
+                            runtime,
+                            defaultSettings = defaultSettings
+                        ),
                         false,
                         optionsPageUrl
                     )
@@ -290,14 +307,15 @@ class GeckoWebExtension(
             ): GeckoResult<AllowOrDeny> {
 
                 return if (tabHandler.onUpdateTab(
-                    this@GeckoWebExtension,
-                    session,
-                    tabDetails.active == true,
-                    tabDetails.url)
+                        this@GeckoWebExtension,
+                        session,
+                        tabDetails.active == true,
+                        tabDetails.url
+                    )
                 ) {
-                    GeckoResult.ALLOW
+                    GeckoResult.allow()
                 } else {
-                    GeckoResult.DENY
+                    GeckoResult.deny()
                 }
             }
 
@@ -308,12 +326,12 @@ class GeckoWebExtension(
 
                 return if (ext != null) {
                     if (tabHandler.onCloseTab(this@GeckoWebExtension, session)) {
-                        GeckoResult.ALLOW
+                        GeckoResult.allow()
                     } else {
-                        GeckoResult.DENY
+                        GeckoResult.deny()
                     }
                 } else {
-                    GeckoResult.DENY
+                    GeckoResult.deny()
                 }
             }
         }

@@ -69,17 +69,25 @@ class DisplayToolbarTest {
 
         val progressView = displayToolbar.views.progress
 
+        displayToolbar.updateProgress(0)
+        assertEquals(0, progressView.progress)
+        assertEquals(View.GONE, progressView.visibility)
+
         displayToolbar.updateProgress(10)
         assertEquals(10, progressView.progress)
+        assertEquals(View.VISIBLE, progressView.visibility)
 
         displayToolbar.updateProgress(50)
         assertEquals(50, progressView.progress)
+        assertEquals(View.VISIBLE, progressView.visibility)
 
         displayToolbar.updateProgress(75)
         assertEquals(75, progressView.progress)
+        assertEquals(View.VISIBLE, progressView.visibility)
 
         displayToolbar.updateProgress(100)
         assertEquals(100, progressView.progress)
+        assertEquals(View.GONE, progressView.visibility)
     }
 
     @Test
@@ -144,6 +152,9 @@ class DisplayToolbarTest {
     fun `setTrackingProtectionIcons will forward to TrackingProtectionIconView`() {
         val (_, displayToolbar) = createDisplayToolbar()
 
+        displayToolbar.indicators = listOf(DisplayToolbar.Indicators.TRACKING_PROTECTION)
+        displayToolbar.setTrackingProtectionState(SiteTrackingProtection.ON_NO_TRACKERS_BLOCKED)
+
         val oldTrackingProtectionIcon = displayToolbar.views.trackingProtectionIndicator.drawable
         assertNotNull(oldTrackingProtectionIcon)
 
@@ -154,7 +165,6 @@ class DisplayToolbarTest {
         val drawable3 =
             testContext.getDrawable(TrackingProtectionIconView.DEFAULT_ICON_OFF_FOR_A_SITE)!!
 
-        displayToolbar.indicators = listOf(DisplayToolbar.Indicators.TRACKING_PROTECTION)
         displayToolbar.icons = displayToolbar.icons.copy(
             trackingProtectionTrackersBlocked = drawable1,
             trackingProtectionNothingBlocked = drawable2,
@@ -200,7 +210,7 @@ class DisplayToolbarTest {
             displayToolbar.views.highlight.drawable
         )
 
-        displayToolbar.setHighlight(Toolbar.Highlight.AUTOPLAY_BLOCKED)
+        displayToolbar.setHighlight(Toolbar.Highlight.PERMISSIONS_CHANGED)
 
         assertNotEquals(
             oldPermissionIcon,
@@ -464,7 +474,8 @@ class DisplayToolbarTest {
         val invisibleAction = BrowserToolbar.Button(
             mock(),
             "Reader Mode",
-            visible = { false }) {}
+            visible = { false }
+        ) {}
 
         displayToolbar.addPageAction(visibleAction)
         displayToolbar.addPageAction(invisibleAction)
@@ -483,7 +494,8 @@ class DisplayToolbarTest {
         val invisibleAction = BrowserToolbar.Button(
             mock(),
             "Settings",
-            visible = { false }) {}
+            visible = { false }
+        ) {}
 
         displayToolbar.addBrowserAction(visibleAction)
         displayToolbar.addBrowserAction(invisibleAction)
@@ -502,7 +514,8 @@ class DisplayToolbarTest {
         val invisibleAction = BrowserToolbar.Button(
             mock(),
             "Back",
-            visible = { false }) {}
+            visible = { false }
+        ) {}
 
         displayToolbar.addNavigationAction(visibleAction)
         displayToolbar.addNavigationAction(invisibleAction)
@@ -640,7 +653,8 @@ class DisplayToolbarTest {
             val menuView = displayToolbar.views.menu
 
             val menuBuilder = BrowserMenuBuilder(
-                listOf(SimpleBrowserMenuItem("Mozilla")), mapOf(
+                listOf(SimpleBrowserMenuItem("Mozilla")),
+                mapOf(
                     "customTab" to true,
                     "test" to "23"
                 )
@@ -710,8 +724,10 @@ class DisplayToolbarTest {
         val siteSecurityIconView = displayToolbar.views.securityIndicator
 
         assertNotNull(siteSecurityIconView.contentDescription)
-        assertEquals(testContext.getString(R.string.mozac_browser_toolbar_content_description_site_info),
-            siteSecurityIconView.contentDescription)
+        assertEquals(
+            testContext.getString(R.string.mozac_browser_toolbar_content_description_site_info),
+            siteSecurityIconView.contentDescription
+        )
     }
 
     @Test

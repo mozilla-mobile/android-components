@@ -6,6 +6,17 @@ package mozilla.components.browser.state.action
 
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayAudibleBlockingAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayAudibleChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayInAudibleBlockingAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.AutoPlayInAudibleChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.CameraChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.LocationChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.MediaKeySystemAccesChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.MicrophoneChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.NotificationChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.PersistentStorageChangedAction
+import mozilla.components.browser.state.action.ContentAction.UpdatePermissionHighlightsStateAction.Reset
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.AppIntentState
 import mozilla.components.browser.state.state.BrowserState
@@ -51,14 +62,16 @@ class ContentActionTest {
 
     @Before
     fun setUp() {
-        val state = BrowserState(tabs = listOf(
-            createTab(url = "https://www.mozilla.org").also {
-                tabId = it.id
-            },
-            createTab(url = "https://www.firefox.com").also {
-                otherTabId = it.id
-            }
-        ))
+        val state = BrowserState(
+            tabs = listOf(
+                createTab(url = "https://www.mozilla.org").also {
+                    tabId = it.id
+                },
+                createTab(url = "https://www.firefox.com").also {
+                    otherTabId = it.id
+                }
+            )
+        )
 
         store = BrowserStore(state)
     }
@@ -245,7 +258,7 @@ class ContentActionTest {
         assertNotEquals(thumbnail, otherTab.content.thumbnail)
 
         store.dispatch(
-                ContentAction.UpdateThumbnailAction(tab.id, thumbnail)
+            ContentAction.UpdateThumbnailAction(tab.id, thumbnail)
         ).joinBlocking()
 
         assertEquals(thumbnail, tab.content.thumbnail)
@@ -259,13 +272,13 @@ class ContentActionTest {
         assertNotEquals(thumbnail, tab.content.thumbnail)
 
         store.dispatch(
-                ContentAction.UpdateThumbnailAction(tab.id, thumbnail)
+            ContentAction.UpdateThumbnailAction(tab.id, thumbnail)
         ).joinBlocking()
 
         assertEquals(thumbnail, tab.content.thumbnail)
 
         store.dispatch(
-                ContentAction.RemoveThumbnailAction(tab.id)
+            ContentAction.RemoveThumbnailAction(tab.id)
         ).joinBlocking()
 
         assertNull(tab.content.thumbnail)
@@ -313,7 +326,7 @@ class ContentActionTest {
         assertEquals(icon, tab.content.icon)
 
         store.dispatch(
-                ContentAction.RemoveIconAction(tab.id)
+            ContentAction.RemoveIconAction(tab.id)
         ).joinBlocking()
 
         assertNull(tab.content.icon)
@@ -392,6 +405,26 @@ class ContentActionTest {
     }
 
     @Test
+    fun `CancelDownloadAction removes download`() {
+        val download = DownloadState(
+            id = "1337",
+            url = "https://www.mozilla.org", sessionId = tab.id
+        )
+
+        store.dispatch(
+            ContentAction.UpdateDownloadAction(tab.id, download)
+        ).joinBlocking()
+
+        assertEquals(download, tab.content.download)
+
+        store.dispatch(
+            ContentAction.CancelDownloadAction(tab.id, downloadId = "1337")
+        ).joinBlocking()
+
+        assertNull(tab.content.download)
+    }
+
+    @Test
     fun `ConsumeDownloadAction does not remove download with different id`() {
         val download = DownloadState(
             id = "1337",
@@ -450,8 +483,8 @@ class ContentActionTest {
     }
 
     @Test
-    fun `UpdatePromptRequestAction updates request`() {
-        assertNull(tab.content.promptRequest)
+    fun `UpdatePromptRequestAction updates requests`() {
+        assertTrue(tab.content.promptRequests.isEmpty())
 
         val promptRequest1: PromptRequest = mock()
 
@@ -459,7 +492,8 @@ class ContentActionTest {
             ContentAction.UpdatePromptRequestAction(tab.id, promptRequest1)
         ).joinBlocking()
 
-        assertEquals(promptRequest1, tab.content.promptRequest)
+        assertEquals(1, tab.content.promptRequests.size)
+        assertEquals(promptRequest1, tab.content.promptRequests[0])
 
         val promptRequest2: PromptRequest = mock()
 
@@ -467,7 +501,9 @@ class ContentActionTest {
             ContentAction.UpdatePromptRequestAction(tab.id, promptRequest2)
         ).joinBlocking()
 
-        assertEquals(promptRequest2, tab.content.promptRequest)
+        assertEquals(2, tab.content.promptRequests.size)
+        assertEquals(promptRequest1, tab.content.promptRequests[0])
+        assertEquals(promptRequest2, tab.content.promptRequests[1])
     }
 
     @Test
@@ -478,13 +514,14 @@ class ContentActionTest {
             ContentAction.UpdatePromptRequestAction(tab.id, promptRequest)
         ).joinBlocking()
 
-        assertEquals(promptRequest, tab.content.promptRequest)
+        assertEquals(1, tab.content.promptRequests.size)
+        assertEquals(promptRequest, tab.content.promptRequests[0])
 
         store.dispatch(
-            ContentAction.ConsumePromptRequestAction(tab.id)
+            ContentAction.ConsumePromptRequestAction(tab.id, promptRequest)
         ).joinBlocking()
 
-        assertNull(tab.content.promptRequest)
+        assertTrue(tab.content.promptRequests.isEmpty())
     }
 
     @Test
@@ -689,20 +726,113 @@ class ContentActionTest {
     }
 
     @Test
-    fun `UpdatePermissionHighlightsStateAction updates permissionHighlights state`() {
+    fun `WHEN dispatching NotificationChangedAction THEN notificationChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.notificationChanged)
 
-        assertFalse(tab.content.permissionHighlights.isAutoPlayBlocking)
+        store.dispatch(NotificationChangedAction(tab.id, true)).joinBlocking()
 
-        store.dispatch(
-                ContentAction.UpdatePermissionHighlightsStateAction(tab.id, PermissionHighlightsState(true))
-        ).joinBlocking()
+        assertTrue(tab.content.permissionHighlights.notificationChanged)
+    }
 
-        assertTrue(tab.content.permissionHighlights.isAutoPlayBlocking)
+    @Test
+    fun `WHEN dispatching CameraChangedAction THEN cameraChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.cameraChanged)
+
+        store.dispatch(CameraChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.cameraChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching LocationChangedAction THEN locationChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.locationChanged)
+
+        store.dispatch(LocationChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.locationChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching MicrophoneChangedAction THEN locationChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.microphoneChanged)
+
+        store.dispatch(MicrophoneChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.microphoneChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching PersistentStorageChangedAction THEN persistentStorageChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.persistentStorageChanged)
+
+        store.dispatch(PersistentStorageChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.persistentStorageChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching MediaKeySystemAccesChangedAction THEN mediaKeySystemAccessChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.mediaKeySystemAccessChanged)
+
+        store.dispatch(MediaKeySystemAccesChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.mediaKeySystemAccessChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching AutoPlayAudibleChangedAction THEN autoPlayAudibleChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.autoPlayAudibleChanged)
+
+        store.dispatch(AutoPlayAudibleChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.autoPlayAudibleChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching AutoPlayInAudibleChangedAction THEN autoPlayAudibleChanged state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.autoPlayInaudibleChanged)
+
+        store.dispatch(AutoPlayInAudibleChangedAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.autoPlayInaudibleChanged)
+    }
+
+    @Test
+    fun `WHEN dispatching AutoPlayAudibleBlockingAction THEN autoPlayAudibleBlocking state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.autoPlayAudibleBlocking)
+
+        store.dispatch(AutoPlayAudibleBlockingAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.autoPlayAudibleBlocking)
+    }
+
+    @Test
+    fun `WHEN dispatching AutoPlayInAudibleBlockingAction THEN autoPlayInaudibleBlocking state will be updated`() {
+        assertFalse(tab.content.permissionHighlights.autoPlayInaudibleBlocking)
+
+        store.dispatch(AutoPlayInAudibleBlockingAction(tab.id, true)).joinBlocking()
+
+        assertTrue(tab.content.permissionHighlights.autoPlayInaudibleBlocking)
+    }
+
+    @Test
+    fun `WHEN dispatching Reset THEN permissionHighlights state will be update to its default value`() {
+
+        store.dispatch(AutoPlayInAudibleBlockingAction(tab.id, true)).joinBlocking()
+
+        assertEquals(
+            PermissionHighlightsState(autoPlayInaudibleBlocking = true),
+            tab.content.permissionHighlights
+        )
+
+        with(store) { dispatch(Reset(tab.id)).joinBlocking() }
+
+        assertEquals(PermissionHighlightsState(), tab.content.permissionHighlights)
     }
 
     @Test
     fun `UpdateAppIntentAction updates request`() {
-        assertNull(tab.content.promptRequest)
+        assertTrue(tab.content.promptRequests.isEmpty())
 
         val appIntent1: AppIntentState = mock()
 

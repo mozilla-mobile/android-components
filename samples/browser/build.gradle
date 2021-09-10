@@ -4,7 +4,6 @@
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion config.compileSdkVersion
@@ -31,14 +30,7 @@ android {
     flavorDimensions "engine"
 
     productFlavors {
-        // GeckoView release channels
-        geckoNightly {
-            dimension "engine"
-        }
-        geckoBeta {
-            dimension "engine"
-        }
-        geckoRelease {
+        gecko {
             dimension "engine"
         }
 
@@ -54,6 +46,10 @@ android {
             // release versions.
             setIgnore(true)
         }
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 }
 
@@ -84,8 +80,6 @@ dependencies {
     implementation project(':browser-engine-system')
     implementation project(':browser-domains')
     implementation project(':browser-icons')
-    implementation project(':browser-search')
-    implementation project(':browser-session')
     implementation project(':browser-session-storage')
     implementation project(':browser-state')
     implementation project(':browser-tabstray')
@@ -136,9 +130,7 @@ dependencies {
     implementation project(':support-webextensions')
     implementation project(':support-rustlog')
 
-    geckoNightlyImplementation project(':browser-engine-gecko-nightly')
-    geckoBetaImplementation project(':browser-engine-gecko-beta')
-    geckoReleaseImplementation project(':browser-engine-gecko')
+    geckoImplementation project(':browser-engine-gecko')
 
     implementation Dependencies.google_material
 

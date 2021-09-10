@@ -20,7 +20,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
-import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.DownloadState
@@ -30,9 +29,10 @@ import mozilla.components.feature.downloads.manager.AndroidDownloadManager
 import mozilla.components.feature.downloads.manager.DownloadManager
 import mozilla.components.feature.downloads.manager.noop
 import mozilla.components.feature.downloads.manager.onDownloadStopped
-import mozilla.components.feature.downloads.ui.DownloaderApp
 import mozilla.components.feature.downloads.ui.DownloadAppChooserDialog
+import mozilla.components.feature.downloads.ui.DownloaderApp
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.base.dialog.DeniedPermissionDialogFragment
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
@@ -62,7 +62,7 @@ import mozilla.components.support.utils.Browsers
  * @property shouldForwardToThirdParties Indicates if downloads should be forward to third party apps,
  * if there are multiple apps a chooser dialog will shown.
  */
-@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
+@Suppress("LongParameterList", "LargeClass")
 class DownloadsFeature(
     private val applicationContext: Context,
     private val store: BrowserStore,
@@ -102,24 +102,23 @@ class DownloadsFeature(
         // This prevents prompts from the previous page from covering content.
         dismissPromptScope = store.flowScoped { flow ->
             flow.mapNotNull { state -> state.findTabOrCustomTabOrSelectedTab(tabId) }
-                    .ifChanged { it.content.url }
-                    .collect {
-                        val currentHost = previousTab?.content?.url
-                        val newHost = it.content.url
+                .ifChanged { it.content.url }
+                .collect {
+                    val currentHost = previousTab?.content?.url
+                    val newHost = it.content.url
 
-                        // The user is navigating to another site
-                        if (currentHost?.isSameOriginAs(newHost) == false) {
-                            previousTab?.let { tab ->
-                                // We have an old download request.
-                                tab.content.download?.let { download ->
-                                    closeDownloadResponse(tab.id)
-                                    dismissAllDownloadDialogs()
-                                    useCases.consumeDownload(tab.id, download.id)
-                                    previousTab = null
-                                }
+                    // The user is navigating to another site
+                    if (currentHost?.isSameOriginAs(newHost) == false) {
+                        previousTab?.let { tab ->
+                            // We have an old download request.
+                            tab.content.download?.let { download ->
+                                useCases.cancelDownloadRequest.invoke(tab.id, download.id)
+                                dismissAllDownloadDialogs()
+                                previousTab = null
                             }
                         }
                     }
+                }
         }
 
         scope = store.flowScoped { flow ->
@@ -211,8 +210,8 @@ class DownloadsFeature(
                     processDownload(tab, download)
                 }
             } else {
-                closeDownloadResponse(tab.id)
-                useCases.consumeDownload(tab.id, download.id)
+                useCases.cancelDownloadRequest.invoke(tab.id, download.id)
+                showPermissionDeniedDialog()
             }
         }
     }
@@ -223,7 +222,8 @@ class DownloadsFeature(
             applicationContext,
             applicationContext.getString(
                 R.string.mozac_feature_downloads_file_not_supported2,
-                applicationContext.appName),
+                applicationContext.appName
+            ),
             Toast.LENGTH_LONG
         ).show()
     }
@@ -242,8 +242,7 @@ class DownloadsFeature(
         }
 
         dialog.onCancelDownload = {
-            closeDownloadResponse(tab.id)
-            useCases.consumeDownload.invoke(tab.id, download.id)
+            useCases.cancelDownloadRequest.invoke(tab.id, download.id)
         }
 
         if (!isAlreadyADownloadDialog() && fragmentManager != null && !fragmentManager.isDestroyed) {
@@ -253,7 +252,7 @@ class DownloadsFeature(
 
     private fun getDownloadDialog(): DownloadDialogFragment {
         return findPreviousDownloadDialogFragment() ?: SimpleDownloadDialogFragment.newInstance(
-                promptsStyling = promptsStyling
+            promptsStyling = promptsStyling
         )
     }
 
@@ -288,8 +287,7 @@ class DownloadsFeature(
         }
 
         appChooserDialog.onDismiss = {
-            closeDownloadResponse(tab.id)
-            useCases.consumeDownload.invoke(tab.id, download.id)
+            useCases.cancelDownloadRequest.invoke(tab.id, download.id)
         }
 
         if (!isAlreadyAppDownloaderDialog() && fragmentManager != null && !fragmentManager.isDestroyed) {
@@ -298,20 +296,14 @@ class DownloadsFeature(
     }
 
     private fun getAppDownloaderDialog() = findPreviousAppDownloaderDialogFragment()
-            ?: DownloadAppChooserDialog.newInstance(
-                    promptsStyling?.gravity,
-                    promptsStyling?.shouldWidthMatchParent
-            )
+        ?: DownloadAppChooserDialog.newInstance(
+            promptsStyling?.gravity,
+            promptsStyling?.shouldWidthMatchParent
+        )
 
     @VisibleForTesting
     internal fun isAlreadyAppDownloaderDialog(): Boolean {
         return findPreviousAppDownloaderDialogFragment() != null
-    }
-
-    internal fun closeDownloadResponse(tabId: String) {
-        store.state.findTabOrCustomTab(tabId)?.let {
-            it.content.download?.response?.close()
-        }
     }
 
     private fun findPreviousAppDownloaderDialogFragment(): DownloadAppChooserDialog? {
@@ -341,11 +333,11 @@ class DownloadsFeature(
         val packageManager = context.packageManager
 
         val browsers = Browsers.findResolvers(context, packageManager, includeThisApp = true)
-                .associateBy { it.activityInfo.identifier }
+            .associateBy { it.activityInfo.identifier }
 
         val thisApp = browsers.values
-                .firstOrNull { it.activityInfo.packageName == context.packageName }
-                ?.toDownloaderApp(context, download)
+            .firstOrNull { it.activityInfo.packageName == context.packageName }
+            ?.toDownloaderApp(context, download)
 
         // Check for data URL that can cause a TransactionTooLargeException when querying for apps
         // See https://github.com/mozilla-mobile/android-components/issues/9665
@@ -354,15 +346,15 @@ class DownloadsFeature(
         }
 
         val apps = Browsers.findResolvers(
-                context,
-                packageManager,
-                includeThisApp = false,
-                url = download.url,
-                contentType = download.contentType
+            context,
+            packageManager,
+            includeThisApp = false,
+            url = download.url,
+            contentType = download.contentType
         )
         // Remove browsers and returns only the apps that can perform a download plus this app.
         return apps.filter { !browsers.contains(it.activityInfo.identifier) }
-                .map { it.toDownloaderApp(context, download) } + listOfNotNull(thisApp)
+            .map { it.toDownloaderApp(context, download) } + listOfNotNull(thisApp)
     }
 
     @VisibleForTesting
@@ -394,6 +386,16 @@ class DownloadsFeature(
         val positiveButtonTextColor: Int? = null,
         val positiveButtonRadius: Float? = null
     )
+
+    @VisibleForTesting
+    internal fun showPermissionDeniedDialog() {
+        fragmentManager?.let {
+            val dialog = DeniedPermissionDialogFragment.newInstance(
+                R.string.mozac_feature_downloads_write_external_storage_permissions_needed_message
+            )
+            dialog.showNow(fragmentManager, DeniedPermissionDialogFragment.FRAGMENT_TAG)
+        }
+    }
 }
 
 @VisibleForTesting

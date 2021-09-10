@@ -10,7 +10,6 @@ import android.graphics.Color
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabActionButtonConfig
@@ -32,13 +31,13 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 
 @RunWith(AndroidJUnit4::class)
 class CustomTabWindowFeatureTest {
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(TestCoroutineDispatcher())
+    val coroutinesTestRule = MainCoroutineRule()
 
     private lateinit var store: BrowserStore
     private val sessionId = "session-uuid"
@@ -49,11 +48,15 @@ class CustomTabWindowFeatureTest {
     fun setup() {
         activity = mock()
 
-        store = spy(BrowserStore(BrowserState(
-            customTabs = listOf(
-                createCustomTab(id = sessionId, url = "https://www.mozilla.org")
+        store = spy(
+            BrowserStore(
+                BrowserState(
+                    customTabs = listOf(
+                        createCustomTab(id = sessionId, url = "https://www.mozilla.org")
+                    )
+                )
             )
-        )))
+        )
 
         whenever(activity.packageName).thenReturn("org.mozilla.firefox")
     }
@@ -148,7 +151,7 @@ class CustomTabWindowFeatureTest {
         whenever(windowRequest.url).thenReturn("https://www.firefox.com")
         store.dispatch(ContentAction.UpdateWindowRequestAction(sessionId, windowRequest)).joinBlocking()
         verify(activity, never()).startActivity(any(), any())
-        verifyZeroInteractions(launchUrlFallback)
+        verifyNoInteractions(launchUrlFallback)
         verify(store, never()).dispatch(ContentAction.ConsumeWindowRequestAction(sessionId))
     }
 }

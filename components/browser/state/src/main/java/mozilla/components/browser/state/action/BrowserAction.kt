@@ -27,7 +27,6 @@ import mozilla.components.browser.state.state.UndoHistoryState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
-import mozilla.components.browser.state.state.content.PermissionHighlightsState
 import mozilla.components.browser.state.state.content.ShareInternetResourceState
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
@@ -45,8 +44,11 @@ import mozilla.components.concept.engine.search.SearchRequest
 import mozilla.components.concept.engine.webextension.WebExtensionBrowserAction
 import mozilla.components.concept.engine.webextension.WebExtensionPageAction
 import mozilla.components.concept.engine.window.WindowRequest
+import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.lib.state.Action
+import mozilla.components.lib.state.DelicateAction
 import mozilla.components.support.base.android.Clock
+import java.util.Locale
 
 /**
  * [Action] implementation related to [BrowserState].
@@ -80,6 +82,23 @@ sealed class SystemAction : BrowserAction() {
     data class LowMemoryAction(
         val level: Int
     ) : SystemAction()
+}
+
+/**
+ * [BrowserAction] implementations related to updating the [Locale] inside [BrowserState].
+ */
+sealed class LocaleAction : BrowserAction() {
+    /**
+     * Updating the [BrowserState] to reflect app [Locale] changes.
+     *
+     * @property locale the updated [Locale]
+     */
+    data class UpdateLocaleAction(val locale: Locale?) : LocaleAction()
+
+    /**
+     * Restores the [BrowserState.locale] state from storage.
+     */
+    object RestoreLocaleStateAction : LocaleAction()
 }
 
 /**
@@ -163,13 +182,28 @@ sealed class TabListAction : BrowserAction() {
      * @property tabs the [TabSessionState]s to restore.
      * @property selectedTabId the ID of the tab to select.
      */
-    data class RestoreAction(val tabs: List<TabSessionState>, val selectedTabId: String? = null) :
-        TabListAction()
+    data class RestoreAction(
+        val tabs: List<RecoverableTab>,
+        val selectedTabId: String? = null,
+        val restoreLocation: RestoreLocation
+    ) : TabListAction() {
+
+        /**
+         * Indicates what location the tabs should be restored at
+         *
+         */
+        enum class RestoreLocation {
+            BEGINNING,
+            END,
+            AT_INDEX
+        }
+    }
 
     /**
      * Removes both private and normal [TabSessionState]s.
+     * @property recoverable Indicates whether removed tabs should be recoverable.
      */
-    object RemoveAllTabsAction : TabListAction()
+    data class RemoveAllTabsAction(val recoverable: Boolean = true) : TabListAction()
 
     /**
      * Removes all private [TabSessionState]s.
@@ -213,7 +247,7 @@ sealed class UndoAction : BrowserAction() {
  */
 sealed class LastAccessAction : BrowserAction() {
     /**
-     * Updates the timestamp of the [TabSessionState] with the given [tabId].
+     * Updates the [TabSessionState.lastAccess] timestamp of the tab with the given [tabId].
      *
      * @property tabId the ID of the tab to update.
      * @property lastAccess the value to signify when the tab was last accessed; defaults to [System.currentTimeMillis].
@@ -221,6 +255,27 @@ sealed class LastAccessAction : BrowserAction() {
     data class UpdateLastAccessAction(
         val tabId: String,
         val lastAccess: Long = System.currentTimeMillis()
+    ) : LastAccessAction()
+
+    /**
+     * Updates [TabSessionState.lastMediaAccessState] for when media started playing in the tab identified by [tabId].
+     *
+     * @property tabId the ID of the tab to update.
+     * @property lastMediaAccess the value to signify when the tab last started playing media.
+     * Defaults to [System.currentTimeMillis].
+     */
+    data class UpdateLastMediaAccessAction(
+        val tabId: String,
+        val lastMediaAccess: Long = System.currentTimeMillis()
+    ) : LastAccessAction()
+
+    /**
+     * Updates [TabSessionState.lastMediaAccessState] when the media session of this tab is deactivated.
+     *
+     * @property tabId the ID of the tab to update.
+     */
+    data class ResetLastMediaSessionAction(
+        val tabId: String
     ) : LastAccessAction()
 }
 
@@ -281,11 +336,75 @@ sealed class ContentAction : BrowserAction() {
     /**
      * Updates permissions highlights of the [ContentState] with the given [sessionId].
      */
-    data class UpdatePermissionHighlightsStateAction(
-        val sessionId: String,
-        val highlights: PermissionHighlightsState
-    ) : ContentAction()
+    sealed class UpdatePermissionHighlightsStateAction : ContentAction() {
+        /**
+         * Updates the notificationChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class NotificationChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
 
+        /**
+         * Updates the cameraChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class CameraChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the locationChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class LocationChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the microphoneChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class MicrophoneChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the persistentStorageChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class PersistentStorageChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the mediaKeySystemAccessChanged property of the [PermissionHighlightsState]
+         * with the given [tabId].
+         */
+        data class MediaKeySystemAccesChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayAudibleChanged property of the [PermissionHighlightsState]
+         * with the given [tabId].
+         */
+        data class AutoPlayAudibleChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayInaudibleChanged property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class AutoPlayInAudibleChangedAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayAudibleBlocking property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class AutoPlayAudibleBlockingAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates the autoPlayInaudibleBlocking property of the [PermissionHighlightsState] with the given [tabId].
+         */
+        data class AutoPlayInAudibleBlockingAction(val tabId: String, val value: Boolean) :
+            UpdatePermissionHighlightsStateAction()
+
+        /**
+         * Updates permissions highlights of the [ContentState] with the given [tabId]
+         * to its default value.
+         */
+        data class Reset(val tabId: String) : UpdatePermissionHighlightsStateAction()
+    }
     /**
      * Updates the title of the [ContentState] with the given [sessionId].
      */
@@ -301,7 +420,7 @@ sealed class ContentAction : BrowserAction() {
      * Updates the refreshCanceled state of the [ContentState] with the given [sessionId].
      */
     data class UpdateRefreshCanceledStateAction(val sessionId: String, val refreshCanceled: Boolean) :
-            ContentAction()
+        ContentAction()
 
     /**
      * Updates the search terms of the [ContentState] with the given [sessionId].
@@ -335,11 +454,15 @@ sealed class ContentAction : BrowserAction() {
         ContentAction()
 
     /**
+     * Closes the [DownloadState.response] of the [ContentState.download]
+     * and removes the [DownloadState] of the [ContentState] with the given [sessionId].
+     */
+    data class CancelDownloadAction(val sessionId: String, val downloadId: String) : ContentAction()
+
+    /**
      * Removes the [DownloadState] of the [ContentState] with the given [sessionId].
      */
-    data class ConsumeDownloadAction(val sessionId: String, val downloadId: String) :
-        ContentAction()
-
+    data class ConsumeDownloadAction(val sessionId: String, val downloadId: String) : ContentAction()
     /**
      * Updates the [HitResult] of the [ContentState] with the given [sessionId].
      */
@@ -360,7 +483,8 @@ sealed class ContentAction : BrowserAction() {
     /**
      * Removes the [PromptRequest] of the [ContentState] with the given [sessionId].
      */
-    data class ConsumePromptRequestAction(val sessionId: String) : ContentAction()
+    data class ConsumePromptRequestAction(val sessionId: String, val promptRequest: PromptRequest) :
+        ContentAction()
 
     /**
      * Adds a [FindResultState] to the [ContentState] with the given [sessionId].
@@ -534,6 +658,11 @@ sealed class ContentAction : BrowserAction() {
      * Removes the [AppIntentState] of the [ContentState] with the given [sessionId].
      */
     data class ConsumeAppIntentAction(val sessionId: String) : ContentAction()
+
+    /**
+     * Updates whether the toolbar should be forced to expand or have it follow the default behavior.
+     */
+    data class UpdateExpandedToolbarStateAction(val sessionId: String, val expanded: Boolean) : ContentAction()
 }
 
 /**
@@ -676,133 +805,144 @@ sealed class EngineAction : BrowserAction() {
      * Creates an [EngineSession] for the given [tabId] if none exists yet.
      */
     data class CreateEngineSessionAction(
-        val tabId: String,
-        val skipLoading: Boolean = false
-    ) : EngineAction()
+        override val tabId: String,
+        val skipLoading: Boolean = false,
+        val followupAction: BrowserAction? = null
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Loads the given [url] in the tab with the given [sessionId].
+     * Loads the given [url] in the tab with the given [tabId].
      */
     data class LoadUrlAction(
-        val sessionId: String,
+        override val tabId: String,
         val url: String,
         val flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
         val additionalHeaders: Map<String, String>? = null
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Loads [data] in the tab with the given [sessionId].
+     * Loads [data] in the tab with the given [tabId].
      */
     data class LoadDataAction(
-        val sessionId: String,
+        override val tabId: String,
         val data: String,
         val mimeType: String = "text/html",
         val encoding: String = "UTF-8"
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Reloads the tab with the given [sessionId].
+     * Reloads the tab with the given [tabId].
      */
     data class ReloadAction(
-        val sessionId: String,
+        override val tabId: String,
         val flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none()
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Navigates back in the tab with the given [sessionId].
+     * Navigates back in the tab with the given [tabId].
      */
     data class GoBackAction(
-        val sessionId: String
-    ) : EngineAction()
+        override val tabId: String
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Navigates forward in the tab with the given [sessionId].
+     * Navigates forward in the tab with the given [tabId].
      */
     data class GoForwardAction(
-        val sessionId: String
-    ) : EngineAction()
+        override val tabId: String
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Navigates to the specified index in the history of the tab with the given [sessionId].
+     * Navigates to the specified index in the history of the tab with the given [tabId].
      */
     data class GoToHistoryIndexAction(
-        val sessionId: String,
+        override val tabId: String,
         val index: Int
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Enables/disables desktop mode in the tabs with the given [sessionId].
+     * Enables/disables desktop mode in the tabs with the given [tabId].
      */
     data class ToggleDesktopModeAction(
-        val sessionId: String,
+        override val tabId: String,
         val enable: Boolean
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Exits fullscreen mode in the tabs with the given [sessionId].
+     * Exits fullscreen mode in the tabs with the given [tabId].
      */
     data class ExitFullScreenModeAction(
-        val sessionId: String
-    ) : EngineAction()
+        override val tabId: String
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Clears browsing data for the tab with the given [sessionId].
+     * Clears browsing data for the tab with the given [tabId].
      */
     data class ClearDataAction(
-        val sessionId: String,
+        override val tabId: String,
         val data: Engine.BrowsingData
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Attaches the provided [EngineSession] to the session with the provided [sessionId].
+     * Attaches the provided [EngineSession] to the session with the provided [tabId].
      *
-     * @property sessionId The ID of the tab the [EngineSession] should be linked to.
+     * @property tabId The ID of the tab the [EngineSession] should be linked to.
      * @property engineSession The [EngineSession] that should be linked to the tab.
      * @property timestamp Timestamp (milliseconds) of when the linking has happened (By default
      * set to [SystemClock.elapsedRealtime].
      */
     data class LinkEngineSessionAction(
-        val sessionId: String,
+        override val tabId: String,
         val engineSession: EngineSession,
         val timestamp: Long = Clock.elapsedRealtime(),
         val skipLoading: Boolean = false
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Suspends the [EngineSession] of the session with the provided [sessionId].
+     * Suspends the [EngineSession] of the session with the provided [tabId].
      */
     data class SuspendEngineSessionAction(
-        val sessionId: String
-    ) : EngineAction()
+        override val tabId: String
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Marks the [EngineSession] of the session with the provided [sessionId] as killed (The matching
+     * Marks the [EngineSession] of the session with the provided [tabId] as killed (The matching
      * content process was killed).
      */
     data class KillEngineSessionAction(
-        val sessionId: String
-    ) : EngineAction()
+        override val tabId: String
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Detaches the current [EngineSession] from the session with the provided [sessionId].
+     * Detaches the current [EngineSession] from the session with the provided [tabId].
      */
-    data class UnlinkEngineSessionAction(val sessionId: String) : EngineAction()
+    data class UnlinkEngineSessionAction(
+        override val tabId: String
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Updates the [EngineSessionState] of the session with the provided [sessionId].
+     * Updates the [EngineState.initializing] flag of the session with the provided [tabId].
+     */
+    data class UpdateEngineSessionInitializingAction(
+        override val tabId: String,
+        val initializing: Boolean
+    ) : EngineAction(), ActionWithTab
+
+    /**
+     * Updates the [EngineSessionState] of the session with the provided [tabId].
      */
     data class UpdateEngineSessionStateAction(
-        val sessionId: String,
+        override val tabId: String,
         val engineSessionState: EngineSessionState
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
-     * Updates the [EngineSession.Observer] of the session with the provided [sessionId].
+     * Updates the [EngineSession.Observer] of the session with the provided [tabId].
      */
     data class UpdateEngineSessionObserverAction(
-        val sessionId: String,
+        override val tabId: String,
         val engineSessionObserver: EngineSession.Observer
-    ) : EngineAction()
+    ) : EngineAction(), ActionWithTab
 
     /**
      * Purges the back/forward history of all tabs and custom tabs.
@@ -1021,6 +1161,20 @@ sealed class ContainerAction : BrowserAction() {
 }
 
 /**
+ * [BrowserAction] implementations related to updating [TabSessionState.historyMetadata].
+ */
+sealed class HistoryMetadataAction : BrowserAction() {
+
+    /**
+     * Associates a tab with a history metadata record described by the provided [historyMetadataKey].
+     */
+    data class SetHistoryMetadataKeyAction(
+        val tabId: String,
+        val historyMetadataKey: HistoryMetadataKey
+    ) : HistoryMetadataAction()
+}
+
+/**
  * [BrowserAction] implementations related to updating search engines in [SearchState].
  */
 sealed class SearchAction : BrowserAction() {
@@ -1086,4 +1240,23 @@ sealed class SearchAction : BrowserAction() {
      * back to [SearchState.additionalAvailableSearchEngines].
      */
     data class RemoveAdditionalSearchEngineAction(val searchEngineId: String) : SearchAction()
+}
+
+/**
+ * [BrowserAction] implementations for updating state needed for debugging. These actions should
+ * be carefully considered before being used.
+ *
+ * Every action **should** be annotated with [DelicateAction] to bring consumers to attention that
+ * this is a delicate action.
+ */
+sealed class DebugAction : BrowserAction() {
+
+    /**
+     * Updates the [TabSessionState.createdAt] timestamp of the tab with the given [tabId].
+     *
+     * @property tabId the ID of the tab to update.
+     * @property createdAt the value to signify when the tab was created.
+     */
+    @DelicateAction
+    data class UpdateCreatedAtAction(val tabId: String, val createdAt: Long) : DebugAction()
 }

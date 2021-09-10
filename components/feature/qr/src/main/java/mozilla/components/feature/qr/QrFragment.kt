@@ -20,6 +20,7 @@ import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.Point
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraAccessException
@@ -43,6 +44,8 @@ import android.view.Surface
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
@@ -64,11 +67,11 @@ import java.io.Serializable
 import java.util.ArrayList
 import java.util.Collections
 import java.util.Comparator
+import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
-import java.util.concurrent.ExecutorService
 import kotlin.math.max
 import kotlin.math.min
 
@@ -80,7 +83,7 @@ import kotlin.math.min
  * https://github.com/googlesamples/android-Camera2Basic
  * https://github.com/kismkof/camera2basic
  */
-@Suppress("TooManyFunctions", "LargeClass")
+@Suppress("LargeClass")
 class QrFragment : Fragment() {
     private val logger = Logger("mozac-qr")
     @VisibleForTesting
@@ -299,6 +302,8 @@ class QrFragment : Fragment() {
      */
     @Suppress("ComplexMethod")
     internal fun setUpCameraOutputs(width: Int, height: Int) {
+        val displayRotation = getScreenRotation()
+
         val manager = activity?.getSystemService(Context.CAMERA_SERVICE) as CameraManager? ?: return
 
         for (cameraId in manager.cameraIdList) {
@@ -309,15 +314,13 @@ class QrFragment : Fragment() {
                 continue
             }
 
-            val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: continue
+            val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                ?: continue
             val largest = Collections.max(map.getOutputSizes(ImageFormat.YUV_420_888).asList(), CompareSizesByArea())
             imageReader = ImageReader.newInstance(MAX_PREVIEW_WIDTH, MAX_PREVIEW_HEIGHT, ImageFormat.YUV_420_888, 2)
-                    .apply { setOnImageAvailableListener(imageAvailableListener, backgroundHandler) }
+                .apply { setOnImageAvailableListener(imageAvailableListener, backgroundHandler) }
 
             // Find out if we need to swap dimension to get the preview size relative to sensor coordinate.
-            @Suppress("DEPRECATION")
-            // Deprecation of getDefaultDisplay() and getSize() will be handled in https://github.com/mozilla-mobile/android-components/issues/8518
-            val displayRotation = activity?.windowManager?.defaultDisplay?.rotation
 
             sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) as Int
 
@@ -328,10 +331,8 @@ class QrFragment : Fragment() {
                 else -> false
             }
 
-            val displaySize = Point()
-            @Suppress("DEPRECATION")
-            // Deprecation of getDefaultDisplay() and getSize() will be handled in https://github.com/mozilla-mobile/android-components/issues/8518
-            activity?.windowManager?.defaultDisplay?.getSize(displaySize)
+            val displaySize = activity?.windowManager?.getDisplaySize() ?: Point()
+
             var rotatedPreviewWidth = width
             var rotatedPreviewHeight = height
             var maxPreviewWidth = displaySize.x
@@ -347,9 +348,11 @@ class QrFragment : Fragment() {
             maxPreviewWidth = min(maxPreviewWidth, MAX_PREVIEW_WIDTH)
             maxPreviewHeight = min(maxPreviewHeight, MAX_PREVIEW_HEIGHT)
 
-            val optimalSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture::class.java),
+            val optimalSize = chooseOptimalSize(
+                map.getOutputSizes(SurfaceTexture::class.java),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
-                maxPreviewHeight, largest)
+                maxPreviewHeight, largest
+            )
 
             adjustPreviewSize(optimalSize)
             this.cameraId = cameraId
@@ -445,12 +448,11 @@ class QrFragment : Fragment() {
      * @param viewWidth The width of `textureView`
      * @param viewHeight The height of `textureView`
      */
-    private fun configureTransform(viewWidth: Int, viewHeight: Int) {
-        val activity = activity ?: return
+    @VisibleForTesting
+    internal fun configureTransform(viewWidth: Int, viewHeight: Int) {
         val size = previewSize ?: return
-        @Suppress("DEPRECATION")
-        // Deprecation of getDefaultDisplay() and getSize() will be handled in https://github.com/mozilla-mobile/android-components/issues/8518
-        val rotation = activity.windowManager.defaultDisplay.rotation
+
+        val rotation = getScreenRotation()
         val matrix = Matrix()
         val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
         val bufferRect = RectF(0f, 0f, size.height.toFloat(), size.width.toFloat())
@@ -496,8 +498,10 @@ class QrFragment : Fragment() {
                     override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                         if (null == cameraDevice) return
 
-                        previewRequestBuilder?.set(CaptureRequest.CONTROL_AF_MODE,
-                                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+                        previewRequestBuilder?.set(
+                            CaptureRequest.CONTROL_AF_MODE,
+                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+                        )
 
                         previewRequest = previewRequestBuilder?.build()
                         captureSession = cameraCaptureSession
@@ -625,7 +629,8 @@ class QrFragment : Fragment() {
             val h = aspectRatio.height
             for (option in choices) {
                 if (option.width <= maxWidth && option.height <= maxHeight &&
-                        option.height == option.width * h / w) {
+                    option.height == option.width * h / w
+                ) {
                     if (option.width >= textureViewWidth && option.height >= textureViewHeight) {
                         bigEnough.add(option)
                     } else {
@@ -692,4 +697,47 @@ class QrFragment : Fragment() {
     @VisibleForTesting
     internal fun createBinaryBitmap(source: LuminanceSource) =
         BinaryBitmap(HybridBinarizer(source))
+
+    /**
+     * Returns the screen rotation
+     *
+     * @return the actual rotation of the device is one of these values:
+     *  [Surface.ROTATION_0], [Surface.ROTATION_90], [Surface.ROTATION_180], [Surface.ROTATION_270]
+     */
+    @VisibleForTesting
+    internal fun getScreenRotation(): Int? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            this.context?.display?.rotation
+        } else {
+            @Suppress("DEPRECATION")
+            activity?.windowManager?.defaultDisplay?.rotation
+        }
+    }
+}
+
+/**
+ * Returns the size of the display, in pixels.
+ */
+@VisibleForTesting
+internal fun WindowManager.getDisplaySize(): Point {
+    val size = Point()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        // Tests for this branch will be added after
+        // https://github.com/mozilla-mobile/android-components/issues/9684 is implemented.
+        val windowMetrics = this.currentWindowMetrics
+        val windowInsets: WindowInsets = windowMetrics.windowInsets
+
+        val insets = windowInsets.getInsetsIgnoringVisibility(
+            WindowInsets.Type.navigationBars() or WindowInsets.Type.displayCutout()
+        )
+        val insetsWidth = insets.right + insets.left
+        val insetsHeight = insets.top + insets.bottom
+
+        val bounds: Rect = windowMetrics.bounds
+        size.set(bounds.width() - insetsWidth, bounds.height() - insetsHeight)
+    } else {
+        @Suppress("DEPRECATION")
+        this.defaultDisplay.getSize(size)
+    }
+    return size
 }

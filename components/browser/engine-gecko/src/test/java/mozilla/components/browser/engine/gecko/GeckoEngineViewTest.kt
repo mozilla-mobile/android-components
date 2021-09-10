@@ -17,22 +17,21 @@ import mozilla.components.concept.engine.selection.SelectionActionDelegate
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
+import mozilla.components.test.ReflectionUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mozilla.gecko.util.GeckoBundle
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
-import org.mozilla.geckoview.MockSelection
 import org.robolectric.Robolectric.buildActivity
-import java.lang.IllegalStateException
 
 @RunWith(AndroidJUnit4::class)
 class GeckoEngineViewTest {
@@ -239,9 +238,11 @@ class GeckoEngineViewTest {
 
         whenever(geckoView.session).thenReturn(geckoSession)
 
-        engineView.render(mock<GeckoEngineSession>().apply {
-            whenever(this.geckoSession).thenReturn(mock())
-        })
+        engineView.render(
+            mock<GeckoEngineSession>().apply {
+                whenever(this.geckoSession).thenReturn(mock())
+            }
+        )
 
         verify(geckoSession).selectionActionDelegate = null
     }
@@ -271,10 +272,22 @@ class GeckoEngineViewTest {
         assertFalse(engineView.canClearSelection())
 
         // selection with empty text returns false
-        val bundle = GeckoBundle()
-        bundle.putString("selection", "")
-        val selectionWthEmptyText: GeckoSession.SelectionActionDelegate.Selection = MockSelection(bundle)
+        val selectionWthEmptyText: GeckoSession.SelectionActionDelegate.Selection = mockSelection("")
         whenever(engineView.currentSelection?.selection).thenReturn(selectionWthEmptyText)
         assertFalse(engineView.canClearSelection())
+    }
+
+    @Test
+    fun `GIVEN a GeckoView WHEN EngineView returns the InputResultDetail THEN the value from the GeckoView is used`() {
+        val engineView = GeckoEngineView(context)
+        val geckoview = engineView.geckoView
+
+        assertSame(geckoview.inputResultDetail, engineView.getInputResultDetail())
+    }
+
+    private fun mockSelection(text: String): GeckoSession.SelectionActionDelegate.Selection {
+        val selection: GeckoSession.SelectionActionDelegate.Selection = mock()
+        ReflectionUtils.setField(selection, "text", text)
+        return selection
     }
 }

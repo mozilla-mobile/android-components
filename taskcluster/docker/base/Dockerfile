@@ -33,19 +33,21 @@ RUN apt-get update -qq \
     # which we cannot navigate while building the Docker image.
     && apt-get install -y tzdata \
     && apt-get install -y openjdk-8-jdk \
+                          openjdk-11-jdk \
                           expect \
                           git \
                           curl \
                           python \
                           python-pip \
                           python3 \
+                          python3-pip \
                           locales \
                           unzip \
 			  mercurial \
     && apt-get clean
 
-RUN pip install --upgrade pip
-RUN pip install taskcluster
+RUN pip3 install --upgrade pip
+RUN pip3 install taskcluster
 
 RUN locale-gen "$LANG"
 

@@ -68,10 +68,13 @@ class TabCollectionStorageTest {
     @Test
     fun testCreatingCollections() {
         storage.createCollection("Empty")
-        storage.createCollection("Recipes", listOf(
-            createTab("https://www.mozilla.org", title = "Mozilla"),
-            createTab("https://www.firefox.com", title = "Firefox")
-        ))
+        storage.createCollection(
+            "Recipes",
+            listOf(
+                createTab("https://www.mozilla.org", title = "Mozilla"),
+                createTab("https://www.firefox.com", title = "Firefox")
+            )
+        )
 
         val collections = getAllCollections()
 
@@ -92,18 +95,23 @@ class TabCollectionStorageTest {
     @Test
     fun testAddingTabsToExistingCollection() {
         storage.createCollection("Articles")
+        var id: Long?
 
         getAllCollections().let { collections ->
             assertEquals(1, collections.size)
             assertEquals(0, collections[0].tabs.size)
 
-            storage.addTabsToCollection(collections[0], listOf(
-                createTab("https://www.mozilla.org", title = "Mozilla"),
-                createTab("https://www.firefox.com", title = "Firefox")
-            ))
+            id = storage.addTabsToCollection(
+                collections[0],
+                listOf(
+                    createTab("https://www.mozilla.org", title = "Mozilla"),
+                    createTab("https://www.firefox.com", title = "Firefox")
+                )
+            )
         }
 
         getAllCollections().let { collections ->
+            assertEquals(1L, id)
             assertEquals(1, collections.size)
             assertEquals(2, collections[0].tabs.size)
 
@@ -116,10 +124,13 @@ class TabCollectionStorageTest {
 
     @Test
     fun testRemovingTabsFromCollection() {
-        storage.createCollection("Articles", listOf(
-            createTab("https://www.mozilla.org", title = "Mozilla"),
-            createTab("https://www.firefox.com", title = "Firefox")
-        ))
+        storage.createCollection(
+            "Articles",
+            listOf(
+                createTab("https://www.mozilla.org", title = "Mozilla"),
+                createTab("https://www.firefox.com", title = "Firefox")
+            )
+        )
 
         getAllCollections().let { collections ->
             assertEquals(1, collections.size)
@@ -222,29 +233,34 @@ class TabCollectionStorageTest {
     @Suppress("ComplexMethod")
     fun testGettingCollections() = runBlocking {
         storage.createCollection(
-            "Articles", listOf(
+            "Articles",
+            listOf(
                 createTab("https://www.mozilla.org", title = "Mozilla")
             )
         )
         storage.createCollection(
-            "Recipes", listOf(
+            "Recipes",
+            listOf(
                 createTab("https://www.firefox.com", title = "Firefox")
             )
         )
         storage.createCollection(
-            "Books", listOf(
+            "Books",
+            listOf(
                 createTab("https://www.youtube.com", title = "YouTube"),
                 createTab("https://www.amazon.com", title = "Amazon")
             )
         )
         storage.createCollection(
-            "News", listOf(
+            "News",
+            listOf(
                 createTab("https://www.google.com", title = "Google"),
                 createTab("https://www.facebook.com", title = "Facebook")
             )
         )
         storage.createCollection(
-            "Blogs", listOf(
+            "Blogs",
+            listOf(
                 createTab("https://www.wikipedia.org", title = "Wikipedia")
             )
         )
@@ -285,6 +301,95 @@ class TabCollectionStorageTest {
             assertEquals("https://www.firefox.com", tabs[0].url)
             assertEquals("Firefox", tabs[0].title)
         }
+
+        with(collections[4]) {
+            assertEquals("Articles", title)
+            assertEquals(1, tabs.size)
+
+            assertEquals("https://www.mozilla.org", tabs[0].url)
+            assertEquals("Mozilla", tabs[0].title)
+        }
+    }
+
+    @Test
+    @Suppress("ComplexMethod")
+    fun testGettingCollectionsList() = runBlocking {
+        storage.createCollection(
+            "Articles",
+            listOf(
+                createTab("https://www.mozilla.org", title = "Mozilla")
+            )
+        )
+        storage.createCollection(
+            "Recipes",
+            listOf(
+                createTab("https://www.firefox.com", title = "Firefox")
+            )
+        )
+        storage.createCollection(
+            "Books",
+            listOf(
+                createTab("https://www.youtube.com", title = "YouTube"),
+                createTab("https://www.amazon.com", title = "Amazon")
+            )
+        )
+        storage.createCollection(
+            "News",
+            listOf(
+                createTab("https://www.google.com", title = "Google"),
+                createTab("https://www.facebook.com", title = "Facebook")
+            )
+        )
+        storage.createCollection(
+            "Blogs",
+            listOf(
+                createTab("https://www.wikipedia.org", title = "Wikipedia")
+            )
+        )
+
+        val collections = storage.getCollectionsList()
+        assertEquals(5, collections.size)
+
+        with(collections[0]) {
+            assertEquals("Blogs", title)
+            assertEquals(1, tabs.size)
+            assertEquals("https://www.wikipedia.org", tabs[0].url)
+            assertEquals("Wikipedia", tabs[0].title)
+        }
+
+        with(collections[1]) {
+            assertEquals("News", title)
+            assertEquals(2, tabs.size)
+            assertEquals("https://www.facebook.com", tabs[0].url)
+            assertEquals("Facebook", tabs[0].title)
+            assertEquals("https://www.google.com", tabs[1].url)
+            assertEquals("Google", tabs[1].title)
+        }
+
+        with(collections[2]) {
+            assertEquals("Books", title)
+            assertEquals(2, tabs.size)
+            assertEquals("https://www.amazon.com", tabs[0].url)
+            assertEquals("Amazon", tabs[0].title)
+            assertEquals("https://www.youtube.com", tabs[1].url)
+            assertEquals("YouTube", tabs[1].title)
+        }
+
+        with(collections[3]) {
+            assertEquals("Recipes", title)
+            assertEquals(1, tabs.size)
+
+            assertEquals("https://www.firefox.com", tabs[0].url)
+            assertEquals("Firefox", tabs[0].title)
+        }
+
+        with(collections[4]) {
+            assertEquals("Articles", title)
+            assertEquals(1, tabs.size)
+
+            assertEquals("https://www.mozilla.org", tabs[0].url)
+            assertEquals("Mozilla", tabs[0].title)
+        }
     }
 
     @Test
@@ -292,12 +397,14 @@ class TabCollectionStorageTest {
         assertEquals(0, storage.getTabCollectionsCount())
 
         storage.createCollection(
-            "Articles", listOf(
+            "Articles",
+            listOf(
                 createTab("https://www.mozilla.org", title = "Mozilla")
             )
         )
         storage.createCollection(
-            "Recipes", listOf(
+            "Recipes",
+            listOf(
                 createTab("https://www.firefox.com", title = "Firefox")
             )
         )
@@ -315,12 +422,14 @@ class TabCollectionStorageTest {
     @Test
     fun testRemovingAllCollections() {
         storage.createCollection(
-            "Articles", listOf(
+            "Articles",
+            listOf(
                 createTab("https://www.mozilla.org", title = "Mozilla")
             )
         )
         storage.createCollection(
-            "Recipes", listOf(
+            "Recipes",
+            listOf(
                 createTab("https://www.firefox.com", title = "Firefox")
             )
         )

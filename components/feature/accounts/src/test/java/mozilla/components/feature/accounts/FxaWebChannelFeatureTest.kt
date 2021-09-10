@@ -192,7 +192,8 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
@@ -207,7 +208,8 @@ class FxaWebChannelFeatureTest {
         val expectedEngines: Set<SyncEngine> = setOf(SyncEngine.History)
         val messageHandler = argumentCaptor<MessageHandler>()
         val responseToTheWebChannel = argumentCaptor<JSONObject>()
-        val webchannelFeature = prepareFeatureForTest(ext, port, engineSession, expectedEngines,
+        val webchannelFeature = prepareFeatureForTest(
+            ext, port, engineSession, expectedEngines,
             setOf(FxaCapability.CHOOSE_WHAT_TO_SYNC)
         )
         webchannelFeature.start()
@@ -225,7 +227,8 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
         verify(port).postMessage(responseToTheWebChannel.capture())
@@ -257,7 +260,8 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
@@ -295,16 +299,19 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
         verify(port).postMessage(responseToTheWebChannel.capture())
 
         val capabilitiesFromWebChannel = responseToTheWebChannel.value.getSupportedEngines()
-        assertTrue(expectedEngines.all {
-            capabilitiesFromWebChannel.contains(it.nativeName)
-        })
+        assertTrue(
+            expectedEngines.all {
+                capabilitiesFromWebChannel.contains(it.nativeName)
+            }
+        )
 
         assertNull(responseToTheWebChannel.value.getCWTSSupport())
         assertTrue(responseToTheWebChannel.value.isSignedInUserNull())
@@ -344,16 +351,19 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
         verify(port).postMessage(responseToTheWebChannel.capture())
 
         val capabilitiesFromWebChannel = responseToTheWebChannel.value.getSupportedEngines()
-        assertTrue(expectedEngines.all {
-            capabilitiesFromWebChannel.contains(it.nativeName)
-        })
+        assertTrue(
+            expectedEngines.all {
+                capabilitiesFromWebChannel.contains(it.nativeName)
+            }
+        )
 
         assertNull(responseToTheWebChannel.value.getCWTSSupport())
 
@@ -396,16 +406,19 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
         verify(port).postMessage(responseToTheWebChannel.capture())
 
         val capabilitiesFromWebChannel = responseToTheWebChannel.value.getSupportedEngines()
-        assertTrue(expectedEngines.all {
-            capabilitiesFromWebChannel.contains(it.nativeName)
-        })
+        assertTrue(
+            expectedEngines.all {
+                capabilitiesFromWebChannel.contains(it.nativeName)
+            }
+        )
 
         assertNull(responseToTheWebChannel.value.getCWTSSupport())
 
@@ -446,16 +459,19 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
         verify(port).postMessage(responseToTheWebChannel.capture())
 
         val capabilitiesFromWebChannel = responseToTheWebChannel.value.getSupportedEngines()
-        assertTrue(expectedEngines.all {
-            capabilitiesFromWebChannel.contains(it.nativeName)
-        })
+        assertTrue(
+            expectedEngines.all {
+                capabilitiesFromWebChannel.contains(it.nativeName)
+            }
+        )
 
         assertNull(responseToTheWebChannel.value.getCWTSSupport())
         assertTrue(responseToTheWebChannel.value.isSignedInUserNull())
@@ -490,16 +506,19 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
         verify(port).postMessage(responseToTheWebChannel.capture())
 
         val capabilitiesFromWebChannel = responseToTheWebChannel.value.getSupportedEngines()
-        assertTrue(expectedEngines.all {
-            capabilitiesFromWebChannel.contains(it.nativeName)
-        })
+        assertTrue(
+            expectedEngines.all {
+                capabilitiesFromWebChannel.contains(it.nativeName)
+            }
+        )
 
         assertNull(responseToTheWebChannel.value.getCWTSSupport())
         assertTrue(responseToTheWebChannel.value.isSignedInUserNull())
@@ -533,7 +552,8 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:fxa_status",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(requestFromTheWebChannel, port)
@@ -638,7 +658,8 @@ class FxaWebChannelFeatureTest {
                 "command": "fxaccounts:can_link_account",
                 "messageId":123
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
 
         messageHandler.value.onPortMessage(jsonToWebChannel, port)
@@ -753,7 +774,8 @@ class FxaWebChannelFeatureTest {
                     "declinedSyncEngines":${declined.map { "${it.nativeName}," }.filterNotNull()}
                 }
              }
-            }""".trimIndent()
+            }
+            """.trimIndent()
         )
     }
 
@@ -773,8 +795,10 @@ class FxaWebChannelFeatureTest {
             id = "test-tab",
             engineSession = engineSession
         )
-        val store = spy(BrowserStore(
-            initialState = BrowserState(tabs = listOf(tab), selectedTabId = tab.id))
+        val store = spy(
+            BrowserStore(
+                initialState = BrowserState(tabs = listOf(tab), selectedTabId = tab.id)
+            )
         )
 
         whenever(accountManager.supportedSyncEngines()).thenReturn(expectedEngines)

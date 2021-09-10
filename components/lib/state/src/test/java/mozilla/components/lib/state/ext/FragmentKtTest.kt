@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +29,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.verify
@@ -35,6 +37,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 
+@RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
 class FragmentKtTest {
 
@@ -108,8 +111,8 @@ class FragmentKtTest {
         val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
 
         val store = Store(
-                TestState(counter = 23),
-                ::reducer
+            TestState(counter = 23),
+            ::reducer
         )
 
         var receivedValue = 0

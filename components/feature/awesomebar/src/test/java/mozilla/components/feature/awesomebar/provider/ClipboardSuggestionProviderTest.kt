@@ -18,7 +18,6 @@ import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -64,11 +63,13 @@ class ClipboardSuggestionProviderTest {
     fun `provider should return suggestion if clipboard contains url`() {
         assertClipboardYieldsUrl(
             "https://www.mozilla.org",
-            "https://www.mozilla.org")
+            "https://www.mozilla.org"
+        )
 
         assertClipboardYieldsUrl(
             "https : //mozilla.org is a broken firefox.com URL",
-            "mozilla.org")
+            "mozilla.org"
+        )
 
         assertClipboardYieldsUrl(
             """
@@ -77,24 +78,27 @@ class ClipboardSuggestionProviderTest {
                 and it https://www.mozilla.org contains
                 URLs as well. https://www.firefox.com
             """,
-            "https://www.mozilla.org")
+            "https://www.mozilla.org"
+        )
 
         assertClipboardYieldsUrl(
-                """
+            """
                 This is a longer
                 text over multiple lines
                 and it www.mozilla.org contains
                 URLs as well. https://www.firefox.com
             """,
-                "https://www.firefox.com")
+            "https://www.firefox.com"
+        )
 
         assertClipboardYieldsUrl(
-        """
+            """
             mozilla.org
             firefox.com
             mozilla.org/en-US/firefox/developer/
             """,
-            "mozilla.org")
+            "mozilla.org"
+        )
 
         // Note that the new, less-lenient URL detection process (Issue #5594) allows the dot
         // at the end of the IP address to be part of the URL. Gecko handles this.
@@ -173,12 +177,6 @@ class ClipboardSuggestionProviderTest {
         suggestion.onSuggestionClicked!!.invoke()
 
         verify(useCase).invoke(eq("https://www.mozilla.org"), any(), any())
-    }
-
-    @Test
-    fun `Provider suggestion should not get cleared when text changes`() {
-        val provider = ClipboardSuggestionProvider(testContext, mock())
-        assertFalse(provider.shouldClearSuggestions)
     }
 
     @Test

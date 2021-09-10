@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.autofill.ui
 
-import android.app.assist.AssistStructure
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -20,7 +19,9 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.feature.autofill.AutofillConfiguration
 import mozilla.components.feature.autofill.authenticator.Authenticator
 import mozilla.components.feature.autofill.authenticator.createAuthenticator
+import mozilla.components.feature.autofill.facts.emitAutofillLock
 import mozilla.components.feature.autofill.handler.FillRequestHandler
+import mozilla.components.feature.autofill.structure.ParsedStructure
 
 /**
  * Activity responsible for unlocking the autofill service by asking the user to verify with a
@@ -37,10 +38,16 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val structure: AssistStructure? = intent.getParcelableExtra(AutofillManager.EXTRA_ASSIST_STRUCTURE)
+        val parsedStructure = intent.getParcelableExtra<ParsedStructure>(EXTRA_PARSED_STRUCTURE)
 
         // While the user is asked to authenticate, we already try to build the fill response asynchronously.
-        fillResponse = lifecycleScope.async(Dispatchers.IO) { fillHandler.handle(structure, forceUnlock = true) }
+        if (parsedStructure != null) {
+            fillResponse = lifecycleScope.async(Dispatchers.IO) {
+                val builder = fillHandler.handle(parsedStructure, forceUnlock = true)
+                val result = builder.build(this@AbstractAutofillUnlockActivity, configuration)
+                result
+            }
+        }
 
         if (authenticator == null) {
             // If no authenticator is available then we just bail here. Instead we should ask the user to
@@ -60,6 +67,10 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
 
     internal inner class PromptCallback : Authenticator.Callback {
         override fun onAuthenticationError() {
+            fillResponse?.cancel()
+
+            emitAutofillLock(unlocked = false)
+
             setResult(RESULT_CANCELED)
             finish()
         }
@@ -73,6 +84,8 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
                 runBlocking { putExtra(AutofillManager.EXTRA_AUTHENTICATION_RESULT, fillResponse?.await()) }
             }
 
+            emitAutofillLock(unlocked = true)
+
             setResult(RESULT_OK, replyIntent)
             finish()
         }
@@ -81,5 +94,9 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
             setResult(RESULT_CANCELED)
             finish()
         }
+    }
+
+    companion object {
+        const val EXTRA_PARSED_STRUCTURE = "parsed_structure"
     }
 }

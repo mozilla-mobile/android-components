@@ -17,8 +17,10 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -104,10 +106,12 @@ class EngineActionTest {
             engineState = EngineState(engineSession = mock(), engineSessionState = mock())
         )
 
-        val store = BrowserStore(BrowserState(
-            tabs = listOf(tab1, tab2),
-            customTabs = listOf(customTab1, customTab2)
-        ))
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(tab1, tab2),
+                customTabs = listOf(customTab1, customTab2)
+            )
+        )
 
         store.dispatch(EngineAction.PurgeHistoryAction).joinBlocking()
 
@@ -116,5 +120,13 @@ class EngineActionTest {
 
         assertNull(store.state.findCustomTab(customTab1.id)!!.engineState.engineSessionState)
         assertNotNull(store.state.findCustomTab(customTab2.id)!!.engineState.engineSessionState)
+    }
+
+    @Test
+    fun `UpdateEngineSessionInitializingAction - Updates initializing flag`() {
+        assertFalse(engineState().initializing)
+
+        store.dispatch(EngineAction.UpdateEngineSessionInitializingAction(tab.id, true)).joinBlocking()
+        assertTrue(engineState().initializing)
     }
 }

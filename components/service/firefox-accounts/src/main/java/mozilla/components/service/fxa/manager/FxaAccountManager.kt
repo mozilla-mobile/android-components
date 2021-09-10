@@ -13,27 +13,31 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import mozilla.appservices.syncmanager.DeviceSettings
-import mozilla.components.concept.sync.AuthFlowError
+import mozilla.components.concept.base.crash.CrashReporting
+import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.AccountObserver
-import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.AuthFlowError
 import mozilla.components.concept.sync.AuthFlowUrl
 import mozilla.components.concept.sync.AuthType
-import mozilla.components.concept.sync.AccountEventsObserver
 import mozilla.components.concept.sync.DeviceConfig
 import mozilla.components.concept.sync.InFlightMigrationState
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.ServiceResult
 import mozilla.components.service.fxa.AccountManagerException
+import mozilla.components.service.fxa.AccountOnDisk
 import mozilla.components.service.fxa.AccountStorage
-import mozilla.components.service.fxa.FxaDeviceSettingsCache
 import mozilla.components.service.fxa.FxaAuthData
+import mozilla.components.service.fxa.FxaDeviceSettingsCache
+import mozilla.components.service.fxa.Result
 import mozilla.components.service.fxa.SecureAbove22AccountStorage
 import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SharedPrefAccountStorage
+import mozilla.components.service.fxa.StorageWrapper
 import mozilla.components.service.fxa.SyncAuthInfoCache
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.asAuthFlowUrl
 import mozilla.components.service.fxa.asSyncAuthInfo
 import mozilla.components.service.fxa.intoSyncType
 import mozilla.components.service.fxa.sharing.AccountSharing
@@ -43,17 +47,12 @@ import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.service.fxa.sync.WorkManagerSyncManager
 import mozilla.components.service.fxa.sync.clearSyncState
-import mozilla.components.concept.base.crash.CrashReporting
-import mozilla.components.service.fxa.AccountOnDisk
-import mozilla.components.service.fxa.Result
-import mozilla.components.service.fxa.StorageWrapper
-import mozilla.components.service.fxa.asAuthFlowUrl
 import mozilla.components.service.fxa.withRetries
 import mozilla.components.service.fxa.withServiceRetries
-import mozilla.components.support.base.utils.NamedThreadFactory
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import mozilla.components.support.base.utils.NamedThreadFactory
 import org.json.JSONObject
 import java.io.Closeable
 import java.lang.Exception
@@ -298,7 +297,7 @@ open class FxaAccountManager(
                     maybeUpdateSyncAuthInfoCache()
 
                     // Access to syncManager is guarded by `this`.
-                    synchronized(this) {
+                    synchronized(this@FxaAccountManager) {
                         checkNotNull(syncManager == null) {
                             "Sync is not configured. Construct this class with a 'syncConfig' or use 'setSyncConfig'"
                         }
@@ -609,7 +608,7 @@ open class FxaAccountManager(
                         // - network errors are encountered. 'CompletedAuthentication' event will be processed,
                         // moving the state machine into an 'Authenticated' state. Next time user requests
                         // a sync, methods that failed will be re-ran, giving them a chance to succeed.
-                        authenticationSideEffects(authType)
+                        authenticationSideEffects()
                         Event.Progress.CompletedAuthentication(authType)
                     }
                     ServiceResult.AuthError -> {
@@ -635,7 +634,7 @@ open class FxaAccountManager(
                     Event.Progress.FailedToCompleteAuth
                 } else {
                     via.authData.declinedEngines?.let { persistDeclinedEngines(it) }
-                    authenticationSideEffects(via.authData.authType)
+                    authenticationSideEffects()
                     Event.Progress.CompletedAuthentication(via.authData.authType)
                 }
             }
@@ -646,7 +645,7 @@ open class FxaAccountManager(
                 }
                 when (withRetries(logger, MAX_NETWORK_RETRIES) { finalizeDevice(authType) }) {
                     is Result.Success -> {
-                        authenticationSideEffects(authType)
+                        authenticationSideEffects()
                         Event.Progress.CompletedAuthentication(authType)
                     }
                     Result.Failure -> {
@@ -850,22 +849,18 @@ open class FxaAccountManager(
         authType, deviceConfig
     )
 
-    private suspend fun authenticationSideEffects(authType: AuthType) {
+    private suspend fun authenticationSideEffects() {
         // Make sure our SyncAuthInfo cache is hot, background sync worker needs it to function.
         maybeUpdateSyncAuthInfoCache()
 
         // Sync workers also need to know about the current FxA device.
-        FxaDeviceSettingsCache(context).setToCache(DeviceSettings(
-            fxaDeviceId = account.getCurrentDeviceId()!!,
-            name = deviceConfig.name,
-            type = deviceConfig.type.intoSyncType()
-        ))
-
-        // If device supports SEND_TAB, and we're not recovering from an auth problem...
-        if (deviceConfig.capabilities.contains(DeviceCapability.SEND_TAB) && authType != AuthType.Recovered) {
-            // ... update constellation state (fetching info about other devices, our own device).
-            account.deviceConstellation().refreshDevices()
-        }
+        FxaDeviceSettingsCache(context).setToCache(
+            DeviceSettings(
+                fxaDeviceId = account.getCurrentDeviceId()!!,
+                name = deviceConfig.name,
+                type = deviceConfig.type.intoSyncType()
+            )
+        )
     }
 
     /**

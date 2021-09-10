@@ -9,7 +9,6 @@ import androidx.browser.customtabs.CustomTabsSessionToken
 import androidx.core.net.toUri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
@@ -41,11 +40,10 @@ import org.junit.runner.RunWith
 class WebAppHideToolbarFeatureTest {
 
     private val customTabId = "custom-id"
-    private val testDispatcher = TestCoroutineDispatcher()
     private var toolbarVisible = false
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Before
     fun setup() {
@@ -82,9 +80,11 @@ class WebAppHideToolbarFeatureTest {
             config = CustomTabConfig(sessionToken = token)
         )
         val store = BrowserStore(BrowserState(customTabs = listOf(tab)))
-        val customTabsStore = CustomTabsServiceStore(CustomTabsServiceState(
-            tabs = mapOf(token to mockCustomTabState("https://firefox.com", "https://mozilla.org"))
-        ))
+        val customTabsStore = CustomTabsServiceStore(
+            CustomTabsServiceState(
+                tabs = mapOf(token to mockCustomTabState("https://firefox.com", "https://mozilla.org"))
+            )
+        )
 
         val feature = WebAppHideToolbarFeature(
             store,
@@ -163,9 +163,11 @@ class WebAppHideToolbarFeatureTest {
             config = CustomTabConfig(sessionToken = token)
         )
         val store = BrowserStore(BrowserState(customTabs = listOf(tab)))
-        val customTabsStore = CustomTabsServiceStore(CustomTabsServiceState(
-            tabs = mapOf(token to mockCustomTabState("https://mozilla.org"))
-        ))
+        val customTabsStore = CustomTabsServiceStore(
+            CustomTabsServiceState(
+                tabs = mapOf(token to mockCustomTabState("https://mozilla.org"))
+            )
+        )
 
         val feature = WebAppHideToolbarFeature(
             store,
@@ -187,9 +189,11 @@ class WebAppHideToolbarFeatureTest {
             config = CustomTabConfig(sessionToken = token)
         )
         val store = BrowserStore(BrowserState(customTabs = listOf(tab)))
-        val customTabsStore = CustomTabsServiceStore(CustomTabsServiceState(
-            tabs = mapOf(token to mockCustomTabState("https://mozilla.com", "https://m.mozilla.com"))
-        ))
+        val customTabsStore = CustomTabsServiceStore(
+            CustomTabsServiceState(
+                tabs = mapOf(token to mockCustomTabState("https://mozilla.com", "https://m.mozilla.com"))
+            )
+        )
         val feature = WebAppHideToolbarFeature(
             store,
             customTabsStore,
@@ -289,9 +293,11 @@ class WebAppHideToolbarFeatureTest {
             config = CustomTabConfig(sessionToken = token)
         )
         val store = BrowserStore(BrowserState(customTabs = listOf(tab)))
-        val customTabsStore = CustomTabsServiceStore(CustomTabsServiceState(
-            tabs = mapOf(token to mockCustomTabState())
-        ))
+        val customTabsStore = CustomTabsServiceStore(
+            CustomTabsServiceState(
+                tabs = mapOf(token to mockCustomTabState())
+            )
+        )
         val feature = WebAppHideToolbarFeature(
             store,
             customTabsStore,
@@ -301,20 +307,24 @@ class WebAppHideToolbarFeatureTest {
         }
         feature.start()
 
-        customTabsStore.dispatch(ValidateRelationshipAction(
-            token,
-            RELATION_HANDLE_ALL_URLS,
-            "https://m.mozilla.com".toUri(),
-            VerificationStatus.PENDING
-        )).joinBlocking()
+        customTabsStore.dispatch(
+            ValidateRelationshipAction(
+                token,
+                RELATION_HANDLE_ALL_URLS,
+                "https://m.mozilla.com".toUri(),
+                VerificationStatus.PENDING
+            )
+        ).joinBlocking()
         assertTrue(toolbarVisible)
 
-        customTabsStore.dispatch(ValidateRelationshipAction(
-            token,
-            RELATION_HANDLE_ALL_URLS,
-            "https://mozilla.com".toUri(),
-            VerificationStatus.PENDING
-        )).joinBlocking()
+        customTabsStore.dispatch(
+            ValidateRelationshipAction(
+                token,
+                RELATION_HANDLE_ALL_URLS,
+                "https://mozilla.com".toUri(),
+                VerificationStatus.PENDING
+            )
+        ).joinBlocking()
         assertFalse(toolbarVisible)
     }
 

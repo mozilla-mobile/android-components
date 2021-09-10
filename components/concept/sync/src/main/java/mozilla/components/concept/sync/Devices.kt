@@ -1,10 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-@file:SuppressWarnings("TooManyFunctions")
+
 package mozilla.components.concept.sync
 
 import android.content.Context
+import androidx.annotation.MainThread
 import androidx.lifecycle.LifecycleOwner
 import mozilla.components.support.base.observer.Observable
 
@@ -50,6 +51,7 @@ interface DeviceConstellation : Observable<AccountEventsObserver> {
      * Allows monitoring state of the device constellation via [DeviceConstellationObserver].
      * Use this to be notified of changes to the current device or other devices.
      */
+    @MainThread
     fun registerDeviceObserver(observer: DeviceConstellationObserver, owner: LifecycleOwner, autoPause: Boolean)
 
     /**
@@ -100,10 +102,9 @@ interface DeviceConstellation : Observable<AccountEventsObserver> {
 
 /**
  * Describes current device and other devices in the constellation.
- *
- * TODO: currentDevice should not be nullable.
- * See https://github.com/mozilla-mobile/android-components/issues/8768
  */
+// N.B.: currentDevice should not be nullable.
+// See https://github.com/mozilla-mobile/android-components/issues/8768
 data class ConstellationState(val currentDevice: Device?, val otherDevices: List<Device>)
 
 /**

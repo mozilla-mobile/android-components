@@ -17,17 +17,19 @@ import mozilla.appservices.push.CommunicationError
 import mozilla.appservices.push.CommunicationServerError
 import mozilla.appservices.push.CryptoError
 import mozilla.appservices.push.GeneralError
+import mozilla.appservices.push.JSONDeserializeError
+import mozilla.appservices.push.RequestError
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.push.EncryptedPushMessage
 import mozilla.components.concept.push.PushError
 import mozilla.components.concept.push.PushProcessor
 import mozilla.components.concept.push.PushService
-import mozilla.components.concept.base.crash.CrashReporting
-import mozilla.components.feature.push.ext.launchAndTry
 import mozilla.components.feature.push.ext.ifInitialized
-import mozilla.components.support.base.utils.NamedThreadFactory
+import mozilla.components.feature.push.ext.launchAndTry
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+import mozilla.components.support.base.utils.NamedThreadFactory
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
 
@@ -70,7 +72,7 @@ import kotlin.coroutines.CoroutineContext
  * @param connection An implementation of [PushConnection] to communicate with any native layer.
  * @param crashReporter An optional instance of a [CrashReporting].
  */
-@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
+@Suppress("LargeClass", "LongParameterList")
 class AutoPushFeature(
     private val context: Context,
     private val service: PushService,
@@ -203,12 +205,15 @@ class AutoPushFeature(
         onSubscribe: ((AutoPushSubscription) -> Unit) = {}
     ) {
         connection.ifInitialized {
-            coroutineScope.launchAndTry(errorBlock = { exception ->
-                onSubscribeError(exception)
-            }, block = {
-                val sub = subscribe(scope, appServerKey)
-                onSubscribe(sub)
-            })
+            coroutineScope.launchAndTry(
+                errorBlock = { exception ->
+                    onSubscribeError(exception)
+                },
+                block = {
+                    val sub = subscribe(scope, appServerKey)
+                    onSubscribe(sub)
+                }
+            )
         }
     }
 
@@ -225,17 +230,20 @@ class AutoPushFeature(
         onUnsubscribe: (Boolean) -> Unit = {}
     ) {
         connection.ifInitialized {
-            coroutineScope.launchAndTry(errorBlock = { exception ->
-                onUnsubscribeError(exception)
-            }, block = {
-                val result = unsubscribe(scope)
+            coroutineScope.launchAndTry(
+                errorBlock = { exception ->
+                    onUnsubscribeError(exception)
+                },
+                block = {
+                    val result = unsubscribe(scope)
 
-                if (result) {
-                    onUnsubscribe(result)
-                } else {
-                    onUnsubscribeError(IllegalStateException("Un-subscribing with the native client failed."))
+                    if (result) {
+                        onUnsubscribe(result)
+                    } else {
+                        onUnsubscribeError(IllegalStateException("Un-subscribing with the native client failed."))
+                    }
                 }
-            })
+            )
         }
     }
 
@@ -365,6 +373,8 @@ internal inline fun exceptionHandler(crossinline onError: (PushError) -> Unit) =
         is GeneralError,
         is CryptoError,
         is CommunicationError,
+        is JSONDeserializeError,
+        is RequestError,
         is CommunicationServerError -> false
         else -> true
     }

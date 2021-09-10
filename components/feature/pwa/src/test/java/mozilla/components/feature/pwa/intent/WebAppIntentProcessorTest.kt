@@ -21,7 +21,7 @@ import mozilla.components.feature.pwa.ext.getWebAppManifest
 import mozilla.components.feature.pwa.ext.putUrlOverride
 import mozilla.components.feature.pwa.intent.WebAppIntentProcessor.Companion.ACTION_VIEW_PWA
 import mozilla.components.feature.session.SessionUseCases
-import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -70,20 +70,21 @@ class WebAppIntentProcessorTest {
         )
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)
 
-        val addTabUseCase: TabsUseCases.AddNewTabUseCase = mock()
-        whenever(addTabUseCase.invoke(
-            url = "https://mozilla.com",
-            selectTab = false,
-            source = SessionState.Source.HOME_SCREEN,
-            customTabConfig = CustomTabConfig(
-                externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP,
-                enableUrlbarHiding = true,
-                showCloseButton = false,
-                showShareMenuItem = true
+        val addTabUseCase: CustomTabsUseCases.AddWebAppTabUseCase = mock()
+        whenever(
+            addTabUseCase.invoke(
+                url = "https://mozilla.com",
+                source = SessionState.Source.Internal.HomeScreen,
+                customTabConfig = CustomTabConfig(
+                    externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP,
+                    enableUrlbarHiding = true,
+                    showCloseButton = false,
+                    showShareMenuItem = true
 
-            ),
-            webAppManifest = manifest
-        )).thenReturn("42")
+                ),
+                webAppManifest = manifest
+            )
+        ).thenReturn("42")
 
         val processor = WebAppIntentProcessor(store, addTabUseCase, mock(), storage)
 
@@ -108,15 +109,14 @@ class WebAppIntentProcessorTest {
         )
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)
 
-        val addTabUseCase: TabsUseCases.AddNewTabUseCase = mock()
+        val addTabUseCase: CustomTabsUseCases.AddWebAppTabUseCase = mock()
 
         val processor = WebAppIntentProcessor(store, addTabUseCase, mock(), storage)
         assertTrue(processor.process(intent))
 
         verify(addTabUseCase).invoke(
             url = "https://mozilla.com",
-            selectTab = false,
-            source = SessionState.Source.HOME_SCREEN,
+            source = SessionState.Source.Internal.HomeScreen,
             customTabConfig = CustomTabConfig(
                 externalAppType = ExternalAppType.PROGRESSIVE_WEB_APP,
                 enableUrlbarHiding = true,
@@ -138,8 +138,8 @@ class WebAppIntentProcessorTest {
         val urlOverride = "https://mozilla.com/deep/link/index.html"
 
         val manifest = WebAppManifest(
-                name = "Test Manifest",
-                startUrl = "https://mozilla.com"
+            name = "Test Manifest",
+            startUrl = "https://mozilla.com"
         )
 
         `when`(storage.loadManifest("https://mozilla.com")).thenReturn(manifest)

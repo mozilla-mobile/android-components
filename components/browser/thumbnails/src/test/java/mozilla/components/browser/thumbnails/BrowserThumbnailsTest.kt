@@ -27,8 +27,8 @@ import org.mockito.Mockito.`when`
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.mockito.Mockito.verifyZeroInteractions
 
 @RunWith(AndroidJUnit4::class)
 class BrowserThumbnailsTest {
@@ -43,12 +43,16 @@ class BrowserThumbnailsTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        store = spy(BrowserStore(BrowserState(
-            tabs = listOf(
-                createTab("https://www.mozilla.org", id = tabId)
-            ),
-            selectedTabId = tabId
-        )))
+        store = spy(
+            BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab("https://www.mozilla.org", id = tabId)
+                    ),
+                    selectedTabId = tabId
+                )
+            )
+        )
         engineView = mock()
         thumbnails = BrowserThumbnails(testContext, engineView, store)
     }
@@ -107,7 +111,7 @@ class BrowserThumbnailsTest {
 
         feature.requestScreenshot()
 
-        verifyZeroInteractions(store)
+        verifyNoInteractions(store)
     }
 
     @Suppress("UNCHECKED_CAST")

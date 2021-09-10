@@ -7,14 +7,19 @@ package mozilla.components.browser.engine.gecko.prompt
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteCreditCard
+import mozilla.components.browser.engine.gecko.ext.toLoginEntry
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.prompt.Choice
+import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.storage.Login
 import mozilla.components.support.ktx.kotlin.toDate
 import mozilla.components.support.test.any
+import mozilla.components.support.test.argumentCaptor
+import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.whenever
@@ -27,10 +32,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.never
-import org.mozilla.gecko.util.GeckoBundle
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
+import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.Autocomplete
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
@@ -75,7 +81,7 @@ class GeckoPromptDelegateTest {
         var confirmWasCalled = false
         val gecko = GeckoPromptDelegate(mockSession)
         val geckoChoice = object : GeckoChoice() {}
-        val geckoPrompt = GeckoChoicePrompt(
+        val geckoPrompt = geckoChoicePrompt(
             "title",
             "message",
             GECKO_PROMPT_CHOICE_TYPE.SINGLE,
@@ -99,10 +105,10 @@ class GeckoPromptDelegateTest {
 
         request.onConfirm(request.choices.first())
         assertTrue(confirmWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         confirmWasCalled = false
         request.onConfirm(request.choices.first())
-
         assertFalse(confirmWasCalled)
     }
 
@@ -113,7 +119,7 @@ class GeckoPromptDelegateTest {
         var confirmWasCalled = false
         val gecko = GeckoPromptDelegate(mockSession)
         val mockGeckoChoice = object : GeckoChoice() {}
-        val geckoPrompt = GeckoChoicePrompt(
+        val geckoPrompt = geckoChoicePrompt(
             "title",
             "message",
             GECKO_PROMPT_CHOICE_TYPE.MULTIPLE,
@@ -136,10 +142,10 @@ class GeckoPromptDelegateTest {
 
         (promptRequestSingleChoice as MultipleChoice).onConfirm(arrayOf())
         assertTrue(confirmWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         confirmWasCalled = false
         (promptRequestSingleChoice as MultipleChoice).onConfirm(arrayOf())
-
         assertFalse(confirmWasCalled)
     }
 
@@ -150,7 +156,7 @@ class GeckoPromptDelegateTest {
         var confirmWasCalled = false
         val gecko = GeckoPromptDelegate(mockSession)
         val geckoChoice = object : GeckoChoice() {}
-        val geckoPrompt = GeckoChoicePrompt(
+        val geckoPrompt = geckoChoicePrompt(
             "title",
             "message",
             GECKO_PROMPT_CHOICE_TYPE.MENU,
@@ -174,17 +180,17 @@ class GeckoPromptDelegateTest {
 
         request.onConfirm(request.choices.first())
         assertTrue(confirmWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         confirmWasCalled = false
         request.onConfirm(request.choices.first())
-
         assertFalse(confirmWasCalled)
     }
 
     @Test(expected = InvalidParameterException::class)
     fun `calling onChoicePrompt with not valid Gecko ChoiceType will throw an exception`() {
         val promptDelegate = GeckoPromptDelegate(mock())
-        val geckoPrompt = GeckoChoicePrompt(
+        val geckoPrompt = geckoChoicePrompt(
             "title",
             "message",
             -1,
@@ -207,7 +213,7 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        val geckoResult = promptDelegate.onAlertPrompt(mock(), GeckoAlertPrompt())
+        val geckoResult = promptDelegate.onAlertPrompt(mock(), geckoAlertPrompt())
         geckoResult.accept {
             dismissWasCalled = true
         }
@@ -233,9 +239,7 @@ class GeckoPromptDelegateTest {
     fun `onDateTimePrompt called with DATETIME_TYPE_DATE must provide a date PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
         var dateRequest: PromptRequest? = null
-        var confirmCalled = false
-        var onClearPicker = false
-        var geckoPrompt = GeckoDateTimePrompt("title", DATE, "", "", "")
+        var geckoPrompt = geckoDateTimePrompt("title", DATE, "", "", "")
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
@@ -244,39 +248,29 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            confirmCalled = true
-        }
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         assertTrue(dateRequest is PromptRequest.TimeSelection)
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
-        assertTrue(confirmCalled)
+        val date = Date()
+        (dateRequest as PromptRequest.TimeSelection).onConfirm(date)
+        verify(geckoPrompt, times(1)).confirm(eq(date.toString("yyyy-MM-dd")))
         assertEquals((dateRequest as PromptRequest.TimeSelection).title, "title")
 
-        confirmCalled = false
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
-
-        assertFalse(confirmCalled)
-
-        geckoPrompt = GeckoDateTimePrompt("title", DATE, "", "", "")
-        geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            onClearPicker = true
-        }
+        geckoPrompt = geckoDateTimePrompt("title", DATE, "", "", "")
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         (dateRequest as PromptRequest.TimeSelection).onClear()
-        assertTrue(onClearPicker)
+        verify(geckoPrompt, times(1)).confirm(eq(""))
     }
 
     @Test
     fun `onDateTimePrompt DATETIME_TYPE_DATE with date parameters must format dates correctly`() {
         val mockSession = GeckoEngineSession(runtime)
         var timeSelectionRequest: PromptRequest.TimeSelection? = null
-        var geckoDate: String? = null
+        val confirmCaptor = argumentCaptor<String>()
 
         val geckoPrompt =
-            GeckoDateTimePrompt(
+            geckoDateTimePrompt(
                 title = "title",
                 type = DATE,
                 defaultValue = "2019-11-29",
@@ -290,10 +284,7 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            geckoDate = geckoPrompt.getGeckoResult()["datetime"].toString()
-        }
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         assertNotNull(timeSelectionRequest)
         with(timeSelectionRequest!!) {
@@ -303,7 +294,8 @@ class GeckoPromptDelegateTest {
         }
         val selectedDate = "2019-11-28".toDate("yyyy-MM-dd")
         (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
-        assertNotNull(geckoDate?.toDate("yyyy-MM-dd")?.equals(selectedDate))
+        verify(geckoPrompt).confirm(confirmCaptor.capture())
+        assertEquals(confirmCaptor.value.toDate("yyyy-MM-dd"), selectedDate)
         assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
     }
 
@@ -319,7 +311,7 @@ class GeckoPromptDelegateTest {
                 dateRequest = promptRequest
             }
         })
-        val geckoPrompt = GeckoDateTimePrompt(type = MONTH)
+        val geckoPrompt = geckoDateTimePrompt(type = MONTH)
 
         val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
@@ -335,7 +327,7 @@ class GeckoPromptDelegateTest {
     fun `onDateTimePrompt DATETIME_TYPE_MONTH with date parameters must format dates correctly`() {
         val mockSession = GeckoEngineSession(runtime)
         var timeSelectionRequest: PromptRequest.TimeSelection? = null
-        var geckoDate: String? = null
+        val confirmCaptor = argumentCaptor<String>()
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
@@ -343,17 +335,14 @@ class GeckoPromptDelegateTest {
                 timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
             }
         })
-        val geckoPrompt = GeckoDateTimePrompt(
+        val geckoPrompt = geckoDateTimePrompt(
             title = "title",
             type = MONTH,
             defaultValue = "2019-11",
             minValue = "2019-11",
             maxValue = "2019-11"
         )
-        val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            geckoDate = geckoPrompt.getGeckoResult()["datetime"].toString()
-        }
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         assertNotNull(timeSelectionRequest)
         with(timeSelectionRequest!!) {
@@ -363,7 +352,8 @@ class GeckoPromptDelegateTest {
         }
         val selectedDate = "2019-11".toDate("yyyy-MM")
         (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
-        assertNotNull(geckoDate?.toDate("yyyy-MM")?.equals(selectedDate))
+        verify(geckoPrompt).confirm(confirmCaptor.capture())
+        assertEquals(confirmCaptor.value.toDate("yyyy-MM"), selectedDate)
         assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
     }
 
@@ -378,7 +368,7 @@ class GeckoPromptDelegateTest {
                 dateRequest = promptRequest
             }
         })
-        val geckoPrompt = GeckoDateTimePrompt(type = WEEK)
+        val geckoPrompt = geckoDateTimePrompt(type = WEEK)
 
         val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
@@ -395,7 +385,7 @@ class GeckoPromptDelegateTest {
     fun `onDateTimePrompt DATETIME_TYPE_WEEK with date parameters must format dates correctly`() {
         val mockSession = GeckoEngineSession(runtime)
         var timeSelectionRequest: PromptRequest.TimeSelection? = null
-        var geckoDate: String? = null
+        val confirmCaptor = argumentCaptor<String>()
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
             override fun onPromptRequest(promptRequest: PromptRequest) {
@@ -403,17 +393,14 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        val geckoPrompt = GeckoDateTimePrompt(
+        val geckoPrompt = geckoDateTimePrompt(
             title = "title",
             type = WEEK,
             defaultValue = "2018-W18",
             minValue = "2018-W18",
             maxValue = "2018-W26"
         )
-        val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            geckoDate = geckoPrompt.getGeckoResult()["datetime"].toString()
-        }
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         assertNotNull(timeSelectionRequest)
         with(timeSelectionRequest!!) {
@@ -423,7 +410,8 @@ class GeckoPromptDelegateTest {
         }
         val selectedDate = "2018-W26".toDate("yyyy-'W'ww")
         (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
-        assertNotNull(geckoDate?.toDate("yyyy-'W'ww")?.equals(selectedDate))
+        verify(geckoPrompt).confirm(confirmCaptor.capture())
+        assertEquals(confirmCaptor.value.toDate("yyyy-'W'ww"), selectedDate)
         assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
     }
 
@@ -439,7 +427,7 @@ class GeckoPromptDelegateTest {
                 dateRequest = promptRequest
             }
         })
-        val geckoPrompt = GeckoDateTimePrompt(type = TIME)
+        val geckoPrompt = geckoDateTimePrompt(type = TIME)
 
         val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
@@ -456,7 +444,7 @@ class GeckoPromptDelegateTest {
     fun `onDateTimePrompt DATETIME_TYPE_TIME with time parameters must format time correctly`() {
         val mockSession = GeckoEngineSession(runtime)
         var timeSelectionRequest: PromptRequest.TimeSelection? = null
-        var geckoDate: String? = null
+        val confirmCaptor = argumentCaptor<String>()
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
@@ -465,17 +453,14 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        val geckoPrompt = GeckoDateTimePrompt(
+        val geckoPrompt = geckoDateTimePrompt(
             title = "title",
             type = TIME,
             defaultValue = "17:00",
             minValue = "9:00",
             maxValue = "18:00"
         )
-        val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            geckoDate = geckoPrompt.getGeckoResult()["datetime"].toString()
-        }
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         assertNotNull(timeSelectionRequest)
         with(timeSelectionRequest!!) {
@@ -485,7 +470,8 @@ class GeckoPromptDelegateTest {
         }
         val selectedDate = "17:00".toDate("HH:mm")
         (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
-        assertNotNull(geckoDate?.toDate("HH:mm")?.equals(selectedDate))
+        verify(geckoPrompt).confirm(confirmCaptor.capture())
+        assertEquals(confirmCaptor.value.toDate("HH:mm"), selectedDate)
         assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
     }
 
@@ -502,7 +488,7 @@ class GeckoPromptDelegateTest {
             }
         })
         val geckoResult =
-            promptDelegate.onDateTimePrompt(mock(), GeckoDateTimePrompt(type = DATETIME_LOCAL))
+            promptDelegate.onDateTimePrompt(mock(), geckoDateTimePrompt(type = DATETIME_LOCAL))
         geckoResult!!.accept {
             confirmCalled = true
         }
@@ -517,24 +503,22 @@ class GeckoPromptDelegateTest {
     fun `onDateTimePrompt DATETIME_TYPE_DATETIME_LOCAL with date parameters must format time correctly`() {
         val mockSession = GeckoEngineSession(runtime)
         var timeSelectionRequest: PromptRequest.TimeSelection? = null
-        var geckoDate: String? = null
+        val confirmCaptor = argumentCaptor<String>()
+
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
             override fun onPromptRequest(promptRequest: PromptRequest) {
                 timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
             }
         })
-        val geckoPrompt = GeckoDateTimePrompt(
+        val geckoPrompt = geckoDateTimePrompt(
             title = "title",
             type = DATETIME_LOCAL,
             defaultValue = "2018-06-12T19:30",
             minValue = "2018-06-07T00:00",
             maxValue = "2018-06-14T00:00"
         )
-        val geckoResult = promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            geckoDate = geckoPrompt.getGeckoResult()["datetime"].toString()
-        }
+        promptDelegate.onDateTimePrompt(mock(), geckoPrompt)
 
         assertNotNull(timeSelectionRequest)
         with(timeSelectionRequest!!) {
@@ -544,7 +528,8 @@ class GeckoPromptDelegateTest {
         }
         val selectedDate = "2018-06-12T19:30".toDate("yyyy-MM-dd'T'HH:mm")
         (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
-        assertNotNull(geckoDate?.toDate("yyyy-MM-dd'T'HH:mm")?.equals(selectedDate))
+        verify(geckoPrompt).confirm(confirmCaptor.capture())
+        assertEquals(confirmCaptor.value.toDate("yyyy-MM-dd'T'HH:mm"), selectedDate)
         assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
     }
 
@@ -553,7 +538,7 @@ class GeckoPromptDelegateTest {
         val promptDelegate = GeckoPromptDelegate(mock())
         promptDelegate.onDateTimePrompt(
             mock(),
-            GeckoDateTimePrompt(
+            geckoDateTimePrompt(
                 type = 13223,
                 defaultValue = "17:00",
                 minValue = "9:00",
@@ -601,7 +586,7 @@ class GeckoPromptDelegateTest {
                 filePickerRequest = promptRequest as PromptRequest.File
             }
         })
-        var geckoPrompt = GeckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.SINGLE, capture = NONE)
+        var geckoPrompt = geckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.SINGLE, capture = NONE)
 
         var geckoResult = promptDelegate.onFilePrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
@@ -610,13 +595,13 @@ class GeckoPromptDelegateTest {
 
         filePickerRequest.onSingleFileSelected(context, mockUri)
         assertTrue(onSingleFileSelectedWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onSingleFileSelectedWasCalled = false
         filePickerRequest.onSingleFileSelected(context, mockUri)
-
         assertFalse(onSingleFileSelectedWasCalled)
 
-        geckoPrompt = GeckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.MULTIPLE, capture = ANY)
+        geckoPrompt = geckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.MULTIPLE, capture = ANY)
         geckoResult = promptDelegate.onFilePrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onMultipleFilesSelectedWasCalled = true
@@ -625,12 +610,7 @@ class GeckoPromptDelegateTest {
         filePickerRequest.onMultipleFilesSelected(context, arrayOf(mockUri))
         assertTrue(onMultipleFilesSelectedWasCalled)
 
-        onMultipleFilesSelectedWasCalled = false
-        filePickerRequest.onMultipleFilesSelected(context, arrayOf(mockUri))
-
-        assertFalse(onMultipleFilesSelectedWasCalled)
-
-        geckoPrompt = GeckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.SINGLE, capture = NONE)
+        geckoPrompt = geckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.SINGLE, capture = NONE)
         geckoResult = promptDelegate.onFilePrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onDismissWasCalled = true
@@ -645,7 +625,7 @@ class GeckoPromptDelegateTest {
 
         promptDelegate.onFilePrompt(
             mock(),
-            GeckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.MULTIPLE, capture = USER)
+            geckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.MULTIPLE, capture = USER)
         )
 
         assertTrue(filePickerRequest.isMultipleFilesSelection)
@@ -675,7 +655,7 @@ class GeckoPromptDelegateTest {
         val saveOption = Autocomplete.LoginSaveOption(login.toLoginEntry())
 
         var geckoResult =
-            promptDelegate.onLoginSave(mock(), GeckoLoginSavePrompt(arrayOf(saveOption)))
+            promptDelegate.onLoginSave(mock(), geckoLoginSavePrompt(arrayOf(saveOption)))
 
         geckoResult!!.accept {
             onDismissWasCalled = true
@@ -684,7 +664,8 @@ class GeckoPromptDelegateTest {
         loginSaveRequest.onDismiss()
         assertTrue(onDismissWasCalled)
 
-        geckoResult = promptDelegate.onLoginSave(mock(), GeckoLoginSavePrompt(arrayOf(saveOption)))
+        val geckoPrompt = geckoLoginSavePrompt(arrayOf(saveOption))
+        geckoResult = promptDelegate.onLoginSave(mock(), geckoPrompt)
 
         geckoResult!!.accept {
             onLoginSaved = true
@@ -692,6 +673,7 @@ class GeckoPromptDelegateTest {
 
         loginSaveRequest.onConfirm(login)
         assertTrue(onLoginSaved)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onLoginSaved = false
 
@@ -725,7 +707,7 @@ class GeckoPromptDelegateTest {
         var geckoResult =
             promptDelegate.onLoginSelect(
                 mock(),
-                GeckoLoginSelectPrompt(arrayOf(loginSelectOption, secondLoginSelectOption))
+                geckoLoginSelectPrompt(arrayOf(loginSelectOption, secondLoginSelectOption))
             )
 
         geckoResult!!.accept {
@@ -735,9 +717,10 @@ class GeckoPromptDelegateTest {
         loginSelectRequest.onDismiss()
         assertTrue(onDismissWasCalled)
 
+        val geckoPrompt = geckoLoginSelectPrompt(arrayOf(loginSelectOption, secondLoginSelectOption))
         geckoResult = promptDelegate.onLoginSelect(
             mock(),
-            GeckoLoginSelectPrompt(arrayOf(loginSelectOption, secondLoginSelectOption))
+            geckoPrompt
         )
 
         geckoResult!!.accept {
@@ -746,6 +729,7 @@ class GeckoPromptDelegateTest {
 
         loginSelectRequest.onConfirm(login)
         assertTrue(onLoginSelected)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onLoginSelected = false
         loginSelectRequest.onConfirm(login)
@@ -773,25 +757,79 @@ class GeckoPromptDelegateTest {
         passwordField = passwordField
     )
 
-    /**
-     * Converts an Android Components [Login] to a GeckoView [LoginStorage.LoginEntry]
-     */
-    private fun Login.toLoginEntry() = Autocomplete.LoginEntry.Builder()
-        .guid(guid)
-        .origin(origin)
-        .formActionOrigin(formActionOrigin)
-        .httpRealm(httpRealm)
-        .username(username)
-        .password(password)
-        .build()
+    @Test
+    fun `Calling onCreditCardSelect must provide as CreditCardSelectOption PromptRequest`() {
+        val mockSession = GeckoEngineSession(runtime)
+        var onConfirmWasCalled = false
+        var onDismissWasCalled = false
+
+        var selectCreditCardPrompt: PromptRequest.SelectCreditCard = mock()
+
+        val promptDelegate = spy(GeckoPromptDelegate(mockSession))
+
+        mockSession.register(object : EngineSession.Observer {
+            override fun onPromptRequest(promptRequest: PromptRequest) {
+                selectCreditCardPrompt = promptRequest as PromptRequest.SelectCreditCard
+            }
+        })
+
+        val creditCard1 = CreditCard(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = "amex"
+        )
+        val creditCardSelectOption1 =
+            Autocomplete.CreditCardSelectOption(creditCard1.toAutocompleteCreditCard())
+
+        val creditCard2 = CreditCard(
+            guid = "2",
+            name = "Orange Pineapple",
+            number = "4111111111115555",
+            expiryMonth = "1",
+            expiryYear = "2040",
+            cardType = "amex"
+        )
+        val creditCardSelectOption2 =
+            Autocomplete.CreditCardSelectOption(creditCard2.toAutocompleteCreditCard())
+
+        var geckoResult = promptDelegate.onCreditCardSelect(
+            mock(),
+            geckoSelectCreditCardPrompt(arrayOf(creditCardSelectOption1, creditCardSelectOption2))
+        )
+
+        geckoResult!!.accept {
+            onDismissWasCalled = true
+        }
+
+        selectCreditCardPrompt.onDismiss()
+        assertTrue(onDismissWasCalled)
+
+        val geckoPrompt =
+            geckoSelectCreditCardPrompt(arrayOf(creditCardSelectOption1, creditCardSelectOption2))
+        geckoResult = promptDelegate.onCreditCardSelect(mock(), geckoPrompt)
+
+        geckoResult!!.accept {
+            onConfirmWasCalled = true
+        }
+
+        selectCreditCardPrompt.onConfirm(creditCard1)
+
+        assertTrue(onConfirmWasCalled)
+
+        whenever(geckoPrompt.isComplete).thenReturn(true)
+        onConfirmWasCalled = false
+        selectCreditCardPrompt.onConfirm(creditCard1)
+
+        assertFalse(onConfirmWasCalled)
+    }
 
     @Test
     fun `Calling onAuthPrompt must provide an Authentication PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
         var authRequest: PromptRequest.Authentication = mock()
-        var onConfirmWasCalled = false
-        var onConfirmOnlyPasswordWasCalled = false
-        var onDismissWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
@@ -800,30 +838,18 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoResult =
-            promptDelegate.onAuthPrompt(mock(), GeckoAuthPrompt(authOptions = mock()))
-        geckoResult!!.accept {
-            onConfirmWasCalled = true
-        }
+        var geckoPrompt = geckoAuthPrompt(authOptions = mock())
+        promptDelegate.onAuthPrompt(mock(), geckoPrompt)
 
         authRequest.onConfirm("", "")
-        assertTrue(onConfirmWasCalled)
+        verify(geckoPrompt, times(1)).confirm(eq(""), eq(""))
 
-        onConfirmWasCalled = false
-        authRequest.onConfirm("", "")
-
-        assertFalse(onConfirmWasCalled)
-
-        geckoResult =
-            promptDelegate.onAuthPrompt(mock(), GeckoAuthPrompt(authOptions = mock()))
-        geckoResult!!.accept {
-            onDismissWasCalled = true
-        }
-
+        geckoPrompt = geckoAuthPrompt(authOptions = mock())
+        promptDelegate.onAuthPrompt(mock(), geckoPrompt)
         authRequest.onDismiss()
-        assertTrue(onDismissWasCalled)
+        verify(geckoPrompt, times(1)).dismiss()
 
-        val authOptions = GeckoAuthOptions()
+        val authOptions = geckoAuthOptions()
         ReflectionUtils.setField(authOptions, "level", GECKO_AUTH_LEVEL.SECURE)
 
         var flags = 0
@@ -833,13 +859,8 @@ class GeckoPromptDelegateTest {
         flags = flags.or(GECKO_AUTH_FLAGS.HOST)
         ReflectionUtils.setField(authOptions, "flags", flags)
 
-        val geckoPrompt = GeckoAuthPrompt(authOptions = authOptions)
-        geckoResult = promptDelegate.onAuthPrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            val hasPassword = geckoPrompt.getGeckoResult().containsKey("password")
-            val hasUser = geckoPrompt.getGeckoResult().containsKey("username")
-            onConfirmOnlyPasswordWasCalled = hasPassword && hasUser == false
-        }
+        geckoPrompt = geckoAuthPrompt(authOptions = authOptions)
+        promptDelegate.onAuthPrompt(mock(), geckoPrompt)
 
         authRequest.onConfirm("", "")
 
@@ -850,18 +871,20 @@ class GeckoPromptDelegateTest {
 
             assertEquals(method, AC_AUTH_METHOD.HOST)
             assertEquals(level, AC_AUTH_LEVEL.SECURED)
-            assertTrue(onConfirmOnlyPasswordWasCalled)
+
+            verify(geckoPrompt, never()).confirm(eq(""), eq(""))
+            verify(geckoPrompt, times(1)).confirm(eq(""))
         }
 
         ReflectionUtils.setField(authOptions, "level", GECKO_AUTH_LEVEL.PW_ENCRYPTED)
 
-        promptDelegate.onAuthPrompt(mock(), GeckoAuthPrompt(authOptions = authOptions))
+        promptDelegate.onAuthPrompt(mock(), geckoAuthPrompt(authOptions = authOptions))
 
         assertEquals(authRequest.level, AC_AUTH_LEVEL.PASSWORD_ENCRYPTED)
 
         ReflectionUtils.setField(authOptions, "level", -2423)
 
-        promptDelegate.onAuthPrompt(mock(), GeckoAuthPrompt(authOptions = authOptions))
+        promptDelegate.onAuthPrompt(mock(), geckoAuthPrompt(authOptions = authOptions))
 
         assertEquals(authRequest.level, AC_AUTH_LEVEL.NONE)
     }
@@ -880,26 +903,24 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoResult =
-            promptDelegate.onColorPrompt(mock(), GeckoColorPrompt(defaultValue = "#e66465"))
+        val geckoPrompt = geckoColorPrompt(defaultValue = "#e66465")
+        var geckoResult = promptDelegate.onColorPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onConfirmWasCalled = true
         }
 
         with(colorRequest) {
-
             assertEquals(defaultColor, "#e66465")
-
             onConfirm("#f6b73c")
             assertTrue(onConfirmWasCalled)
+            whenever(geckoPrompt.isComplete).thenReturn(true)
 
             onConfirmWasCalled = false
             onConfirm("#f6b73c")
-
             assertFalse(onConfirmWasCalled)
         }
 
-        geckoResult = promptDelegate.onColorPrompt(mock(), GeckoColorPrompt())
+        geckoResult = promptDelegate.onColorPrompt(mock(), geckoColorPrompt())
         geckoResult!!.accept {
             onDismissWasCalled = true
         }
@@ -927,7 +948,7 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoResult = promptDelegate.onTextPrompt(mock(), GeckoTextPrompt())
+        var geckoResult = promptDelegate.onTextPrompt(mock(), geckoTextPrompt())
         geckoResult!!.accept {
             dismissWasCalled = true
         }
@@ -941,17 +962,18 @@ class GeckoPromptDelegateTest {
             assertTrue(dismissWasCalled)
         }
 
-        geckoResult = promptDelegate.onTextPrompt(mock(), GeckoTextPrompt())
+        val geckoPrompt = geckoTextPrompt()
+        geckoResult = promptDelegate.onTextPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             confirmWasCalled = true
         }
 
         request.onConfirm(true, "newInput")
         assertTrue(confirmWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         confirmWasCalled = false
         request.onConfirm(true, "newInput")
-
         assertFalse(confirmWasCalled)
     }
 
@@ -959,8 +981,6 @@ class GeckoPromptDelegateTest {
     fun `onPopupRequest must provide a Popup PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
         var request: PromptRequest.Popup? = null
-        var onAllowWasCalled = false
-        var onDenyWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
@@ -970,46 +990,35 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoPrompt = GeckoPopupPrompt(targetUri = "www.popuptest.com/")
-        var geckoResult = promptDelegate.onPopupPrompt(mock(), geckoPrompt)
-        geckoResult.accept {
-            onAllowWasCalled = geckoPrompt.getGeckoResult()["response"] == true
-        }
+        var geckoPrompt = geckoPopupPrompt(targetUri = "www.popuptest.com/")
+        promptDelegate.onPopupPrompt(mock(), geckoPrompt)
 
         with(request!!) {
             assertEquals(targetUri, "www.popuptest.com/")
 
             onAllow()
-            assertTrue(onAllowWasCalled)
+            verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.ALLOW))
+            whenever(geckoPrompt.isComplete).thenReturn(true)
 
-            onAllowWasCalled = false
             onAllow()
-
-            assertFalse(onAllowWasCalled)
+            verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.ALLOW))
         }
 
-        geckoPrompt = GeckoPopupPrompt()
-        geckoResult = promptDelegate.onPopupPrompt(mock(), geckoPrompt)
-        geckoResult.accept {
-            onDenyWasCalled = geckoPrompt.getGeckoResult()["response"] == false
-        }
+        geckoPrompt = geckoPopupPrompt()
+        promptDelegate.onPopupPrompt(mock(), geckoPrompt)
 
         request!!.onDeny()
-        assertTrue(onDenyWasCalled)
+        verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.DENY))
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
-        onDenyWasCalled = false
         request!!.onDeny()
-
-        assertFalse(onDenyWasCalled)
+        verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.DENY))
     }
 
     @Test
     fun `onBeforeUnloadPrompt must provide a BeforeUnload PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
         var request: PromptRequest.BeforeUnload? = null
-        var onAllowWasCalled = false
-        var onDenyWasCalled = false
-
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
@@ -1018,38 +1027,26 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoPrompt = GeckoBeforeUnloadPrompt()
-        var geckoResult = promptDelegate.onBeforeUnloadPrompt(mock(), geckoPrompt)
+        var geckoPrompt = geckoBeforeUnloadPrompt()
+        promptDelegate.onBeforeUnloadPrompt(mock(), geckoPrompt)
+        assertEquals(request!!.title, "")
 
-        geckoResult!!.accept {
-            onAllowWasCalled = geckoPrompt.getGeckoResult()["allow"] == true
-        }
+        request!!.onLeave()
+        verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.ALLOW))
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
-        with(request!!) {
-            assertEquals(title, "")
+        request!!.onLeave()
+        verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.ALLOW))
 
-            onLeave()
-            assertTrue(onAllowWasCalled)
-
-            onAllowWasCalled = false
-            onLeave()
-
-            assertFalse(onAllowWasCalled)
-        }
-
-        geckoPrompt = GeckoBeforeUnloadPrompt()
-        geckoResult = promptDelegate.onBeforeUnloadPrompt(mock(), geckoPrompt)
-        geckoResult!!.accept {
-            onDenyWasCalled = geckoPrompt.getGeckoResult()["allow"] == false
-        }
+        geckoPrompt = geckoBeforeUnloadPrompt()
+        promptDelegate.onBeforeUnloadPrompt(mock(), geckoPrompt)
 
         request!!.onStay()
-        assertTrue(onDenyWasCalled)
+        verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.DENY))
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
-        onDenyWasCalled = false
         request!!.onStay()
-
-        assertFalse(onDenyWasCalled)
+        verify(geckoPrompt, times(1)).confirm(eq(AllowOrDeny.DENY))
     }
 
     @Test
@@ -1067,7 +1064,7 @@ class GeckoPromptDelegateTest {
                 onBeforeUnloadPromptCancelledCalled = true
             }
         })
-        val prompt = mock<GeckoBeforeUnloadPrompt>()
+        val prompt = geckoBeforeUnloadPrompt()
         doReturn(false).`when`(prompt).isComplete
 
         GeckoPromptDelegate(mockSession).onBeforeUnloadPrompt(mock(), prompt)
@@ -1092,7 +1089,7 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoPrompt = GeckoSharePrompt()
+        var geckoPrompt = geckoSharePrompt()
         var geckoResult = promptDelegate.onSharePrompt(mock(), geckoPrompt)
         geckoResult.accept {
             onSuccessWasCalled = true
@@ -1105,14 +1102,14 @@ class GeckoPromptDelegateTest {
 
             onSuccess()
             assertTrue(onSuccessWasCalled)
+            whenever(geckoPrompt.isComplete).thenReturn(true)
 
             onSuccessWasCalled = false
             onSuccess()
-
             assertFalse(onSuccessWasCalled)
         }
 
-        geckoPrompt = GeckoSharePrompt()
+        geckoPrompt = geckoSharePrompt()
         geckoResult = promptDelegate.onSharePrompt(mock(), geckoPrompt)
         geckoResult.accept {
             onFailureWasCalled = true
@@ -1120,13 +1117,14 @@ class GeckoPromptDelegateTest {
 
         request!!.onFailure()
         assertTrue(onFailureWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onFailureWasCalled = false
         request!!.onFailure()
 
         assertFalse(onFailureWasCalled)
 
-        geckoPrompt = GeckoSharePrompt()
+        geckoPrompt = geckoSharePrompt()
         geckoResult = promptDelegate.onSharePrompt(mock(), geckoPrompt)
         geckoResult.accept {
             onDismissWasCalled = true
@@ -1153,7 +1151,8 @@ class GeckoPromptDelegateTest {
             }
         })
 
-        var geckoResult = promptDelegate.onButtonPrompt(mock(), GeckoPromptPrompt())
+        var geckoPrompt = geckoButtonPrompt()
+        var geckoResult = promptDelegate.onButtonPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onPositiveButtonWasCalled = true
         }
@@ -1167,13 +1166,15 @@ class GeckoPromptDelegateTest {
             onConfirmPositiveButton(false)
             assertTrue(onPositiveButtonWasCalled)
 
+            whenever(geckoPrompt.isComplete).thenReturn(true)
             onPositiveButtonWasCalled = false
             onConfirmPositiveButton(false)
 
             assertFalse(onPositiveButtonWasCalled)
         }
 
-        geckoResult = promptDelegate.onButtonPrompt(mock(), GeckoPromptPrompt())
+        geckoPrompt = geckoButtonPrompt()
+        geckoResult = promptDelegate.onButtonPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onNeutralButtonWasCalled = true
         }
@@ -1181,20 +1182,22 @@ class GeckoPromptDelegateTest {
         request.onConfirmNeutralButton(false)
         assertTrue(onNeutralButtonWasCalled)
 
-        geckoResult = promptDelegate.onButtonPrompt(mock(), GeckoPromptPrompt())
+        geckoPrompt = geckoButtonPrompt()
+        geckoResult = promptDelegate.onButtonPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onNegativeButtonWasCalled = true
         }
 
         request.onConfirmNegativeButton(false)
         assertTrue(onNegativeButtonWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onNegativeButtonWasCalled = false
         request.onConfirmNegativeButton(false)
 
         assertFalse(onNegativeButtonWasCalled)
 
-        geckoResult = promptDelegate.onButtonPrompt(mock(), GeckoPromptPrompt())
+        geckoResult = promptDelegate.onButtonPrompt(mock(), geckoButtonPrompt())
         geckoResult!!.accept {
             dismissWasCalled = true
         }
@@ -1218,24 +1221,28 @@ class GeckoPromptDelegateTest {
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
-        var geckoResult = promptDelegate.onRepostConfirmPrompt(mock(), GeckoRepostPrompt())
+        var geckoPrompt = geckoRepostPrompt()
+        var geckoResult = promptDelegate.onRepostConfirmPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onPositiveButtonWasCalled = true
         }
         request.onConfirm()
         assertTrue(onPositiveButtonWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onPositiveButtonWasCalled = false
         request.onConfirm()
 
         assertFalse(onPositiveButtonWasCalled)
 
-        geckoResult = promptDelegate.onRepostConfirmPrompt(mock(), GeckoRepostPrompt())
+        geckoPrompt = geckoRepostPrompt()
+        geckoResult = promptDelegate.onRepostConfirmPrompt(mock(), geckoPrompt)
         geckoResult!!.accept {
             onNegativeButtonWasCalled = true
         }
         request.onDismiss()
         assertTrue(onNegativeButtonWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
 
         onNegativeButtonWasCalled = false
         request.onDismiss()
@@ -1256,7 +1263,7 @@ class GeckoPromptDelegateTest {
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
-        var prompt = mock<GeckoRepostPrompt>()
+        var prompt = geckoRepostPrompt()
         promptDelegate.onRepostConfirmPrompt(mock(), prompt)
         doReturn(false).`when`(prompt).isComplete
         request.onConfirm()
@@ -1296,7 +1303,7 @@ class GeckoPromptDelegateTest {
                 onRepostPromptCancelledCalled = true
             }
         })
-        val prompt = mock<GeckoRepostPrompt>()
+        val prompt = geckoRepostPrompt()
         doReturn(false).`when`(prompt).isComplete
 
         GeckoPromptDelegate(mockSession).onRepostConfirmPrompt(mock(), prompt)
@@ -1307,7 +1314,7 @@ class GeckoPromptDelegateTest {
 
     @Test
     fun `dismissSafely only dismiss if the prompt is NOT already dismissed`() {
-        val prompt = spy(GeckoAlertPrompt())
+        val prompt = geckoAlertPrompt()
         val geckoResult = mock<GeckoResult<GeckoSession.PromptDelegate.PromptResponse>>()
 
         doReturn(false).`when`(prompt).isComplete
@@ -1319,7 +1326,7 @@ class GeckoPromptDelegateTest {
 
     @Test
     fun `dismissSafely do nothing if the prompt is already dismissed`() {
-        val prompt = spy(GeckoAlertPrompt())
+        val prompt = geckoAlertPrompt()
         val geckoResult = mock<GeckoResult<GeckoSession.PromptDelegate.PromptResponse>>()
 
         doReturn(true).`when`(prompt).isComplete
@@ -1329,81 +1336,158 @@ class GeckoPromptDelegateTest {
         verify(geckoResult, never()).complete(any())
     }
 
-    class GeckoChoicePrompt(
+    private fun geckoChoicePrompt(
         title: String,
         message: String,
         type: Int,
         choices: Array<out GeckoChoice>
-    ) : GeckoSession.PromptDelegate.ChoicePrompt(title, message, type, choices)
+    ): GeckoSession.PromptDelegate.ChoicePrompt {
+        val prompt: GeckoSession.PromptDelegate.ChoicePrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "type", type)
+        ReflectionUtils.setField(prompt, "message", message)
+        ReflectionUtils.setField(prompt, "choices", choices)
+        return prompt
+    }
 
-    class GeckoAlertPrompt(title: String = "title", message: String = "message") :
-        GeckoSession.PromptDelegate.AlertPrompt(title, message)
+    private fun geckoAlertPrompt(
+        title: String = "title",
+        message: String = "message"
+    ): GeckoSession.PromptDelegate.AlertPrompt {
+        val prompt: GeckoSession.PromptDelegate.AlertPrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "message", message)
+        return prompt
+    }
 
-    class GeckoDateTimePrompt(
+    private fun geckoDateTimePrompt(
         title: String = "title",
         type: Int,
         defaultValue: String = "",
         minValue: String = "",
         maxValue: String = ""
-    ) : GeckoSession.PromptDelegate.DateTimePrompt(title, type, defaultValue, minValue, maxValue)
+    ): GeckoSession.PromptDelegate.DateTimePrompt {
+        val prompt: GeckoSession.PromptDelegate.DateTimePrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "type", type)
+        ReflectionUtils.setField(prompt, "defaultValue", defaultValue)
+        ReflectionUtils.setField(prompt, "minValue", minValue)
+        ReflectionUtils.setField(prompt, "maxValue", maxValue)
+        return prompt
+    }
 
-    class GeckoFilePrompt(
+    private fun geckoFilePrompt(
         title: String = "title",
         type: Int,
         capture: Int = 0,
         mimeTypes: Array<out String> = emptyArray()
-    ) : GeckoSession.PromptDelegate.FilePrompt(title, type, capture, mimeTypes)
+    ): GeckoSession.PromptDelegate.FilePrompt {
+        val prompt: GeckoSession.PromptDelegate.FilePrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "type", type)
+        ReflectionUtils.setField(prompt, "capture", capture)
+        ReflectionUtils.setField(prompt, "mimeTypes", mimeTypes)
+        return prompt
+    }
 
-    class GeckoAuthPrompt(
+    private fun geckoAuthPrompt(
         title: String = "title",
         message: String = "message",
-        authOptions: AuthOptions
-    ) : GeckoSession.PromptDelegate.AuthPrompt(title, message, authOptions)
+        authOptions: GeckoSession.PromptDelegate.AuthPrompt.AuthOptions
+    ): GeckoSession.PromptDelegate.AuthPrompt {
+        val prompt: GeckoSession.PromptDelegate.AuthPrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "message", message)
+        ReflectionUtils.setField(prompt, "authOptions", authOptions)
+        return prompt
+    }
 
-    class GeckoColorPrompt(
+    private fun geckoColorPrompt(
         title: String = "title",
         defaultValue: String = "defaultValue"
-    ) : GeckoSession.PromptDelegate.ColorPrompt(title, defaultValue)
+    ): GeckoSession.PromptDelegate.ColorPrompt {
+        val prompt: GeckoSession.PromptDelegate.ColorPrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "defaultValue", defaultValue)
+        return prompt
+    }
 
-    class GeckoTextPrompt(
+    private fun geckoTextPrompt(
         title: String = "title",
         message: String = "message",
         defaultValue: String = "defaultValue"
-    ) : GeckoSession.PromptDelegate.TextPrompt(title, message, defaultValue)
+    ): GeckoSession.PromptDelegate.TextPrompt {
+        val prompt: GeckoSession.PromptDelegate.TextPrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "message", message)
+        ReflectionUtils.setField(prompt, "defaultValue", defaultValue)
+        return prompt
+    }
 
-    class GeckoPopupPrompt(
+    private fun geckoPopupPrompt(
         targetUri: String = "targetUri"
-    ) : GeckoSession.PromptDelegate.PopupPrompt(targetUri)
+    ): GeckoSession.PromptDelegate.PopupPrompt {
+        val prompt: GeckoSession.PromptDelegate.PopupPrompt = mock()
+        ReflectionUtils.setField(prompt, "targetUri", targetUri)
+        return prompt
+    }
 
-    class GeckoBeforeUnloadPrompt : GeckoSession.PromptDelegate.BeforeUnloadPrompt()
+    private fun geckoBeforeUnloadPrompt(): GeckoSession.PromptDelegate.BeforeUnloadPrompt {
+        return mock()
+    }
 
-    class GeckoSharePrompt(
+    private fun geckoSharePrompt(
         title: String? = "title",
         text: String? = "text",
         url: String? = "https://example.com"
-    ) : GeckoSession.PromptDelegate.SharePrompt(title, text, url)
+    ): GeckoSession.PromptDelegate.SharePrompt {
+        val prompt: GeckoSession.PromptDelegate.SharePrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "text", text)
+        ReflectionUtils.setField(prompt, "uri", url)
+        return prompt
+    }
 
-    class GeckoPromptPrompt(
+    private fun geckoButtonPrompt(
         title: String = "title",
         message: String = "message"
-    ) : GeckoSession.PromptDelegate.ButtonPrompt(title, message)
+    ): GeckoSession.PromptDelegate.ButtonPrompt {
+        val prompt: GeckoSession.PromptDelegate.ButtonPrompt = mock()
+        ReflectionUtils.setField(prompt, "title", title)
+        ReflectionUtils.setField(prompt, "message", message)
+        return prompt
+    }
 
-    class GeckoLoginSelectPrompt(
+    private fun geckoLoginSelectPrompt(
         loginArray: Array<Autocomplete.LoginSelectOption>
-    ) : GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.LoginSelectOption>(loginArray)
+    ): GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.LoginSelectOption> {
+        val prompt: GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.LoginSelectOption> = mock()
+        ReflectionUtils.setField(prompt, "options", loginArray)
+        return prompt
+    }
 
-    class GeckoLoginSavePrompt(
+    private fun geckoLoginSavePrompt(
         login: Array<Autocomplete.LoginSaveOption>
-    ) : GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.LoginSaveOption>(login)
+    ): GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.LoginSaveOption> {
+        val prompt: GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.LoginSaveOption> = mock()
+        ReflectionUtils.setField(prompt, "options", login)
+        return prompt
+    }
 
-    class GeckoAuthOptions : GeckoSession.PromptDelegate.AuthPrompt.AuthOptions()
+    private fun geckoAuthOptions(): GeckoSession.PromptDelegate.AuthPrompt.AuthOptions {
+        return mock()
+    }
 
-    class GeckoRepostPrompt : GeckoSession.PromptDelegate.RepostConfirmPrompt()
+    private fun geckoRepostPrompt(): GeckoSession.PromptDelegate.RepostConfirmPrompt {
+        return mock()
+    }
 
-    private fun GeckoSession.PromptDelegate.BasePrompt.getGeckoResult(): GeckoBundle {
-        val javaClass = GeckoSession.PromptDelegate.BasePrompt::class.java
-        val method = javaClass.getDeclaredMethod("ensureResult")
-        method.isAccessible = true
-        return (method.invoke(this) as GeckoBundle)
+    private fun geckoSelectCreditCardPrompt(
+        creditCards: Array<Autocomplete.CreditCardSelectOption>
+    ): GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.CreditCardSelectOption> {
+        val prompt: GeckoSession.PromptDelegate.AutocompleteRequest<Autocomplete.CreditCardSelectOption> =
+            mock()
+        ReflectionUtils.setField(prompt, "options", creditCards)
+        return prompt
     }
 }

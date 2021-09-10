@@ -9,7 +9,6 @@ import android.view.View
 import androidx.annotation.RequiresApi
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Suppress("TooManyFunctions")
 internal class ParsedStructureBuilder<ViewNode, AutofillId>(
     private val navigator: AutofillNodeNavigator<ViewNode, AutofillId>
 ) {
@@ -173,14 +172,14 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
 
     private fun isAutoFillableEditText(node: ViewNode, keywords: Collection<String>): Boolean {
         return navigator.isEditText(node) &&
-                containsKeywords(node, keywords) &&
-                navigator.autofillId(node) != null
+            containsKeywords(node, keywords) &&
+            navigator.autofillId(node) != null
     }
 
     private fun isAutoFillableInputField(node: ViewNode, keywords: Collection<String>): Boolean {
         return navigator.isHtmlInputField(node) &&
-                containsKeywords(node, keywords) &&
-                navigator.autofillId(node) != null
+            containsKeywords(node, keywords) &&
+            navigator.autofillId(node) != null
     }
 
     private fun containsKeywords(node: ViewNode, keywords: Collection<String>): Boolean {

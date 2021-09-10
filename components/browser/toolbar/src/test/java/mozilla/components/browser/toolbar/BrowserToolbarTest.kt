@@ -178,9 +178,12 @@ class BrowserToolbarTest {
         toolbar.displayProgress(50)
         toolbar.displayProgress(100)
 
+        // make sure multiple calls to 100% does not trigger "loading" announcement
+        toolbar.displayProgress(100)
+
         val captor = ArgumentCaptor.forClass(AccessibilityEvent::class.java)
 
-        verify(root, times(4)).requestSendAccessibilityEvent(any(), captor.capture())
+        verify(root, times(5)).requestSendAccessibilityEvent(any(), captor.capture())
 
         assertEquals(AccessibilityEvent.TYPE_ANNOUNCEMENT, captor.allValues[0].eventType)
         assertEquals(testContext.getString(R.string.mozac_browser_toolbar_progress_loading), captor.allValues[0].text[0])
@@ -194,6 +197,10 @@ class BrowserToolbarTest {
         assertEquals(100, captor.allValues[2].maxScrollY)
 
         assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[3].eventType)
+        assertEquals(100, captor.allValues[3].scrollY)
+        assertEquals(100, captor.allValues[3].maxScrollY)
+
+        assertEquals(AccessibilityEvent.TYPE_VIEW_SCROLLED, captor.allValues[4].eventType)
         assertEquals(100, captor.allValues[3].scrollY)
         assertEquals(100, captor.allValues[3].maxScrollY)
     }
@@ -625,7 +632,8 @@ class BrowserToolbarTest {
             mock(),
             "imageDrawable",
             "imageSelectedDrawable",
-            visible = { false }) {}
+            visible = { false }
+        ) {}
 
         assertEquals(false, button.visible())
     }
@@ -638,13 +646,13 @@ class BrowserToolbarTest {
         var reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop") {}
         assertFalse(reloadPageAction.enabled)
         reloadPageAction.bind(view)
-        verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "stop"
+        verify(view).setImageDrawable(reloadImage)
+        verify(view).contentDescription = "reload"
 
         reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop", { false }) {}
         reloadPageAction.bind(view)
         verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "reload"
+        verify(view).contentDescription = "stop"
     }
 
     @Test
@@ -678,20 +686,29 @@ class BrowserToolbarTest {
         val edit = toolbar.edit
 
         // By default "private mode" is off.
-        assertEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertEquals(false, toolbar.private)
 
         // Turning on private mode sets flag
         toolbar.private = true
-        assertNotEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertNotEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertTrue(toolbar.private)
 
         // Turning private mode off again - should remove flag
         toolbar.private = false
-        assertEquals(0, edit.views.url.imeOptions and
-            EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING)
+        assertEquals(
+            0,
+            edit.views.url.imeOptions and
+                EditorInfoCompat.IME_FLAG_NO_PERSONALIZED_LEARNING
+        )
         assertEquals(false, toolbar.private)
     }
 
@@ -761,5 +778,35 @@ class BrowserToolbarTest {
         toolbar.disableScrolling()
 
         verify(behavior).disableScrolling()
+    }
+
+    @Test
+    fun `expand is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.expand()
+
+        verify(behavior).forceExpand(toolbar)
+    }
+
+    @Test
+    fun `collapse is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.collapse()
+
+        verify(behavior).forceCollapse(toolbar)
     }
 }

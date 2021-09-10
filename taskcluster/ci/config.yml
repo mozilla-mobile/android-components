@@ -9,15 +9,12 @@ treeherder:
         # This list is based on .buildconfig.yml except the exceptions down below
         browser-awesomebar: browser-awesomebar
         browser-domains: browser-domains
-        browser-engine-gecko-beta: browser-engine-gecko-beta
         browser-engine-gecko: browser-engine-gecko
         browser-engine-system: browser-engine-system
         browser-errorpages: browser-errorpages
         browser-icons: browser-icons
         browser-menu: browser-menu
         browser-menu2: browser-menu2
-        browser-search: browser-search
-        browser-session: browser-session
         browser-session-storage: browser-session-storage
         browser-state: browser-state
         browser-storage-memory: browser-storage-memory
@@ -25,6 +22,10 @@ treeherder:
         browser-tabstray: browser-tabstray
         browser-thumbnails: browser-thumbnails
         browser-toolbar: browser-toolbar
+        compose-awesomebar: compose-engine
+        compose-browser-toolbar: awesomebar-browser-toolbar
+        compose-engine: compose-engine
+        compose-tabstray: compose-tabstray
         concept-awesomebar: concept-awesomebar
         concept-base: concept-base
         concept-engine: concept-engine
@@ -76,11 +77,7 @@ treeherder:
         lib-push-amazon: lib-push-amazon
         lib-push-firebase: lib-push-firebase
         lib-state: lib-state
-        multiplatform-lib-dummy: multiplatform-lib-dummy
-        samples-browser-beta: samples-browser-beta
-        samples-browser-release: samples-browser-release
-        samples-browser-system: samples-browser-system
-        samples-browser: samples-browser
+        samples-compose-browser: samples-compose-browser
         samples-crash: samples-crash
         samples-dataprotect: samples-dataprotect
         samples-firefox-accounts: samples-firefox-accounts
@@ -97,6 +94,7 @@ treeherder:
         service-location: service-location
         service-nimbus: service-nimbus
         service-pocket: service-pocket
+        service-sync-autofill: service-sync-autofill
         service-sync-logins: service-sync-logins
         support-android-test: support-android-test
         support-base: support-base
@@ -124,14 +122,12 @@ treeherder:
         ui-widgets: ui-widgets
 
         # These ones are too long to fit in 25 chars
-        browser-engine-gecko-nigh: browser-engine-gecko-nightly
         lib-fetch-httpurlconnect: lib-fetch-httpurlconnection
         feature-webcompat-report: feature-webcompat-reporter
 
         # Groups aren't generated off buildconfig.yml:
         samples-browser: samples-browser
-        samples-browser-beta: samples-browser-beta
-        samples-browser-release: samples-browser-release
+        samples-browser-gecko: samples-browser-gecko
         samples-browser-system: samples-browser-system
 
 
@@ -139,6 +135,11 @@ task-priority:
     by-project:
         "android-components": highest
         "staging-android-components": low
+        # This handles cases where a fork may end up not being named
+        # as one of the explicit names above. Ideally anything forked
+        # from "android-components" would inherit its setting, but
+        # "low" is the safer default
+        default: low
 
 taskgraph:
     register: ac_taskgraph:register

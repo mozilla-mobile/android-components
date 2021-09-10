@@ -40,18 +40,18 @@ import mozilla.components.browser.icons.preparer.TippyTopIconPreparer
 import mozilla.components.browser.icons.processor.DiskIconProcessor
 import mozilla.components.browser.icons.processor.IconProcessor
 import mozilla.components.browser.icons.processor.MemoryIconProcessor
-import mozilla.components.support.images.CancelOnDetach
 import mozilla.components.browser.icons.utils.IconDiskCache
 import mozilla.components.browser.icons.utils.IconMemoryCache
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.base.memory.MemoryConsumer
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.fetch.Client
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.log.logger.Logger
-import mozilla.components.concept.base.memory.MemoryConsumer
 import mozilla.components.support.base.utils.NamedThreadFactory
+import mozilla.components.support.images.CancelOnDetach
 import mozilla.components.support.images.DesiredSize
 import mozilla.components.support.images.decoder.AndroidImageDecoder
 import mozilla.components.support.images.decoder.ImageDecoder
@@ -105,6 +105,7 @@ class BrowserIcons @Suppress("LongParameterList") constructor(
 ) : MemoryConsumer {
     private val logger = Logger("BrowserIcons")
     private val maximumSize = context.resources.getDimensionPixelSize(R.dimen.mozac_browser_icons_maximum_size)
+    private val minimumSize = context.resources.getDimensionPixelSize(R.dimen.mozac_browser_icons_minimum_size)
     private val scope = CoroutineScope(jobDispatcher)
 
     /**
@@ -120,6 +121,7 @@ class BrowserIcons @Suppress("LongParameterList") constructor(
     private fun loadIconInternal(initialRequest: IconRequest): Icon {
         val desiredSize = DesiredSize(
             targetSize = context.resources.getDimensionPixelSize(initialRequest.size.dimen),
+            minSize = minimumSize,
             maxSize = maximumSize,
             maxScaleFactor = MAXIMUM_SCALE_FACTOR
         )
@@ -150,7 +152,8 @@ class BrowserIcons @Suppress("LongParameterList") constructor(
             },
             onError = { _, throwable ->
                 Logger.error("Could not install browser-icons extension", throwable)
-            })
+            }
+        )
     }
 
     /**

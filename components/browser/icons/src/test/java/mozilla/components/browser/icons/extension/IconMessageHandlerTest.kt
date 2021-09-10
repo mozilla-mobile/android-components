@@ -6,6 +6,7 @@ package mozilla.components.browser.icons.extension
 
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -33,6 +34,7 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class IconMessageHandlerTest {
 
+    @OptIn(DelicateCoroutinesApi::class)
     @Test
     fun `Complex message (TheVerge) is transformed into IconRequest and loaded`() {
         runBlocking {
@@ -40,11 +42,13 @@ class IconMessageHandlerTest {
             val icon = Icon(bitmap, source = Icon.Source.DOWNLOAD)
             val deferredIcon = GlobalScope.async { icon }
 
-            val store: BrowserStore = BrowserStore(BrowserState(
-                tabs = listOf(
-                    createTab(url = "https://www.theverge.com/", id = "test-url")
+            val store: BrowserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(url = "https://www.theverge.com/", id = "test-url")
+                    )
                 )
-            ))
+            )
 
             store.state.findTab("test-url")!!.apply {
                 assertNotNull(this)
@@ -120,7 +124,7 @@ class IconMessageHandlerTest {
                 }
               ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
             handler.onMessage(JSONObject(message), source = null)
 

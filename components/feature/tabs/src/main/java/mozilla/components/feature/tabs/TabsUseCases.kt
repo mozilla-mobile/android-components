@@ -6,50 +6,48 @@ package mozilla.components.feature.tabs
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import mozilla.components.browser.session.Session
-import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.storage.RecoverableBrowserState
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
+import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.UndoAction
-import mozilla.components.browser.state.state.CustomTabConfig
-import mozilla.components.browser.state.state.SessionState.Source
+import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
-import mozilla.components.concept.engine.manifest.WebAppManifest
+import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.feature.session.SessionUseCases.LoadUrlUseCase
 
 /**
  * Contains use cases related to the tabs feature.
  */
 class TabsUseCases(
-    store: BrowserStore,
-    sessionManager: SessionManager
+    store: BrowserStore
 ) {
     /**
      * Contract for use cases that select a tab.
      */
     interface SelectTabUseCase {
         /**
-         * Select [Session] with the given [tabId].
+         * Select tab with the given [tabId].
          */
         operator fun invoke(tabId: String)
     }
 
     class DefaultSelectTabUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) : SelectTabUseCase {
         /**
          * Marks the tab with the provided [tabId] as selected.
          */
         override fun invoke(tabId: String) {
-            val session = sessionManager.findSessionById(tabId)
-            if (session != null) {
-                sessionManager.select(session)
-            }
+            store.dispatch(TabListAction.SelectTabAction(tabId))
         }
     }
 
@@ -61,15 +59,15 @@ class TabsUseCases(
          * Removes the session with the provided ID. This method
          * has no effect if the session doesn't exist.
          *
-         * @param sessionId The ID of the session to remove.
+         * @param tabId The ID of the session to remove.
          */
-        operator fun invoke(sessionId: String)
+        operator fun invoke(tabId: String)
 
         /**
          * Removes the session with the provided ID. This method
          * has no effect if the session doesn't exist.
          *
-         * @param sessionId The ID of the session to remove.
+         * @param tabId The ID of the session to remove.
          * @param selectParentIfExists Whether or not to select the parent tab
          * of the removed tab if a parent exists. Note that the default implementation
          * of this method will ignore [selectParentIfExists] and never select a parent.
@@ -77,49 +75,41 @@ class TabsUseCases(
          * subtypes other than [DefaultRemoveTabUseCase]. The default implementation
          * should be removed together with invoke(Session).
          */
-        operator fun invoke(sessionId: String, selectParentIfExists: Boolean) = invoke(sessionId)
+        operator fun invoke(tabId: String, selectParentIfExists: Boolean) = invoke(tabId)
     }
 
     /**
-     * Default implementation of [RemoveTabUseCase], interacting
-     * with [SessionManager].
+     * Default implementation of [RemoveTabUseCase].
      */
     class DefaultRemoveTabUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) : RemoveTabUseCase {
 
         /**
-         * Removes the session with the provided ID. This method
-         * has no effect if the session doesn't exist.
+         * Removes the tab with the provided ID. This method
+         * has no effect if the tab doesn't exist.
          *
-         * @param sessionId The ID of the session to remove.
+         * @param tabId The ID of the tab to remove.
          */
-        override operator fun invoke(sessionId: String) {
-            val session = sessionManager.findSessionById(sessionId)
-            if (session != null) {
-                sessionManager.remove(session)
-            }
+        override operator fun invoke(tabId: String) {
+            store.dispatch(TabListAction.RemoveTabAction(tabId))
         }
 
         /**
          * Removes the session with the provided ID. This method
          * has no effect if the session doesn't exist.
          *
-         * @param sessionId The ID of the session to remove.
+         * @param tabId The ID of the session to remove.
          * @param selectParentIfExists Whether or not to select the parent tab
          * of the removed tab if a parent exists.
          */
-        override operator fun invoke(sessionId: String, selectParentIfExists: Boolean) {
-            val session = sessionManager.findSessionById(sessionId)
-            if (session != null) {
-                sessionManager.remove(session, selectParentIfExists)
-            }
+        override operator fun invoke(tabId: String, selectParentIfExists: Boolean) {
+            store.dispatch(TabListAction.RemoveTabAction(tabId, selectParentIfExists))
         }
     }
 
     class AddNewTabUseCase internal constructor(
-        private val store: BrowserStore,
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) : LoadUrlUseCase {
 
         /**
@@ -153,35 +143,42 @@ class TabsUseCases(
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             contextId: String? = null,
             engineSession: EngineSession? = null,
-            source: Source = Source.NEW_TAB,
-            customTabConfig: CustomTabConfig? = null,
-            webAppManifest: WebAppManifest? = null
+            source: SessionState.Source = SessionState.Source.Internal.NewTab,
+            searchTerms: String = "",
+            private: Boolean = false
         ): String {
-            val session = Session(url, false, source, contextId = contextId).apply {
-                this.customTabConfig = customTabConfig
-                this.webAppManifest = webAppManifest
-            }
+            val tab = createTab(
+                url = url,
+                private = private,
+                source = source,
+                contextId = contextId,
+                parent = parentId?.let { store.state.findTab(it) },
+                engineSession = engineSession,
+                searchTerms = searchTerms,
+                initialLoadFlags = flags
+            )
 
-            val parent = parentId?.let { sessionManager.findSessionById(parentId) }
-            sessionManager.add(session, selected = selectTab, engineSession = engineSession, parent = parent)
+            store.dispatch(TabListAction.AddTabAction(tab, select = selectTab))
 
-            // If an engine session is specified then loading will have already started
-            // during sessionManager.add when linking the session to its engine session.
+            // If an engine session is specified then loading will have already started when linking
+            // the tab to its engine session. Otherwise we ask to load the URL here.
             if (startLoading && engineSession == null) {
-                store.dispatch(EngineAction.LoadUrlAction(
-                    session.id,
-                    url,
-                    flags
-                ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        tab.id,
+                        url,
+                        flags
+                    )
+                )
             }
 
-            return session.id
+            return tab.id
         }
     }
 
+    @Deprecated("Use AddNewTabUseCase and the private flag")
     class AddNewPrivateTabUseCase internal constructor(
-        private val store: BrowserStore,
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) : LoadUrlUseCase {
 
         /**
@@ -203,6 +200,7 @@ class TabsUseCases(
          * @param parentId the id of the parent tab to use for the newly created tab.
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          * @param engineSession (optional) engine session to use for this tab.
+         * @param searchTerms (optional) search terms that were used to create this tab.
          * @return The ID of the created tab.
          */
         @Suppress("LongParameterList")
@@ -213,24 +211,34 @@ class TabsUseCases(
             parentId: String? = null,
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             engineSession: EngineSession? = null,
-            source: Source = Source.NEW_TAB
+            source: SessionState.Source = SessionState.Source.Internal.NewTab,
+            searchTerms: String? = null
         ): String {
-            val session = Session(url, true, source)
+            val tab = createTab(
+                url = url,
+                private = true,
+                source = source,
+                parent = parentId?.let { store.state.findTab(it) },
+                engineSession = engineSession,
+                searchTerms = searchTerms ?: "",
+                initialLoadFlags = flags
+            )
 
-            val parent = parentId?.let { sessionManager.findSessionById(parentId) }
-            sessionManager.add(session, selected = selectTab, engineSession = engineSession, parent = parent)
+            store.dispatch(TabListAction.AddTabAction(tab, select = selectTab))
 
-            // If an engine session is specified then loading will have already started
-            // during sessionManager.add when linking the session to its engine session.
+            // If an engine session is specified then loading will have already started when linking
+            // the tab to its engine session. Otherwise we ask to load the URL here.
             if (startLoading && engineSession == null) {
-                store.dispatch(EngineAction.LoadUrlAction(
-                    session.id,
-                    url,
-                    flags
-                ))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        tab.id,
+                        url,
+                        flags
+                    )
+                )
             }
 
-            return session.id
+            return tab.id
         }
     }
 
@@ -238,21 +246,25 @@ class TabsUseCases(
      * Use case for removing a list of tabs.
      */
     class RemoveTabsUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) {
         /**
          * Removes a specified list of tabs.
          */
         operator fun invoke(ids: List<String>) {
-            sessionManager.removeListOfSessions(ids)
+            store.dispatch(TabListAction.RemoveTabsAction(ids))
         }
     }
 
     class RemoveAllTabsUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) {
-        operator fun invoke() {
-            sessionManager.removeSessions()
+        /**
+         * Removes all tabs.
+         * @param recoverable Indicates whether removed tabs should be recoverable.
+         */
+        operator fun invoke(recoverable: Boolean = true) {
+            store.dispatch(TabListAction.RemoveAllTabsAction(recoverable))
         }
     }
 
@@ -260,13 +272,13 @@ class TabsUseCases(
      * Use case for removing all normal (non-private) tabs.
      */
     class RemoveNormalTabsUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) {
         /**
          * Removes all normal (non-private) tabs.
          */
         operator fun invoke() {
-            sessionManager.removeNormalSessions()
+            store.dispatch(TabListAction.RemoveAllNormalTabsAction)
         }
     }
 
@@ -274,13 +286,13 @@ class TabsUseCases(
      * Use case for removing all private tabs.
      */
     class RemovePrivateTabsUseCase internal constructor(
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) {
         /**
          * Removes all private tabs.
          */
         operator fun invoke() {
-            sessionManager.removePrivateSessions()
+            store.dispatch(TabListAction.RemoveAllPrivateTabsAction)
         }
     }
 
@@ -303,14 +315,15 @@ class TabsUseCases(
      */
     class RestoreUseCase(
         private val store: BrowserStore,
-        private val sessionManager: SessionManager,
         private val selectTab: SelectTabUseCase
     ) {
         /**
          * Restores the given list of [RecoverableTab]s.
          */
         operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
-            sessionManager.restore(tabs, selectTabId)
+            store.dispatch(
+                TabListAction.RestoreAction(tabs, selectTabId, TabListAction.RestoreAction.RestoreLocation.BEGINNING)
+            )
         }
 
         /**
@@ -335,7 +348,8 @@ class TabsUseCases(
         ) = withContext(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             val state = storage.restore {
-                now - it.lastAccess <= tabTimeoutInMs
+                val lastActiveTime = maxOf(it.lastAccess, it.createdAt)
+                now - lastActiveTime <= tabTimeoutInMs
             }
             if (state != null) {
                 withContext(Dispatchers.Main) {
@@ -362,42 +376,112 @@ class TabsUseCases(
      * Use case for selecting an existing tab or creating a new tab with a specific URL.
      */
     class SelectOrAddUseCase(
-        private val store: BrowserStore,
-        private val sessionManager: SessionManager
+        private val store: BrowserStore
     ) {
         /**
+         * Selects an already existing tab with the matching [HistoryMetadataKey] or otherwise
+         * creates a new tab with the given [url].
+         *
+         * @param url The URL to be selected or loaded in the new tab.
+         * @param historyMetadata The [HistoryMetadataKey] to match for existing tabs.
+         * @return The ID of the selected or created tab.
+         */
+        operator fun invoke(
+            url: String,
+            historyMetadata: HistoryMetadataKey
+        ): String {
+            val tab = store.state.tabs.find { it.historyMetadata == historyMetadata }
+
+            return if (tab != null) {
+                store.dispatch(TabListAction.SelectTabAction(tab.id))
+                tab.id
+            } else {
+                this.invoke(url)
+            }
+        }
+
+        /**
          * Selects an already existing tab displaying [url] or otherwise creates a new tab.
+         *
+         * @param url The URL to be loaded in the new tab.
+         * @param private Whether or not this session should use private mode.
+         * @param source The origin of a session to describe how and why it was created.
+         * @param flags The [LoadUrlFlags] to use when loading the provided URL.
+         * @return The ID of the selected or created tab.
          */
         operator fun invoke(
             url: String,
             private: Boolean = false,
-            source: Source = Source.NEW_TAB,
+            source: SessionState.Source = SessionState.Source.Internal.NewTab,
             flags: LoadUrlFlags = LoadUrlFlags.none()
-        ) {
-            val existingSession = sessionManager.sessions.find { it.url == url }
-            if (existingSession != null) {
-                sessionManager.select(existingSession)
+        ): String {
+            val existingTab = store.state.findNormalOrPrivateTabByUrl(url, private)
+
+            return if (existingTab != null) {
+                store.dispatch(TabListAction.SelectTabAction(existingTab.id))
+                existingTab.id
             } else {
-                val session = Session(url, private, source)
-                sessionManager.add(session, selected = true)
-                store.dispatch(EngineAction.LoadUrlAction(
-                    session.id,
-                    url,
-                    flags
-                ))
+                val tab = createTab(
+                    url = url,
+                    private = private,
+                    source = source,
+                    initialLoadFlags = flags
+                )
+                store.dispatch(TabListAction.AddTabAction(tab, select = true))
+                store.dispatch(
+                    EngineAction.LoadUrlAction(
+                        tab.id,
+                        url,
+                        flags
+                    )
+                )
+                tab.id
             }
         }
     }
 
-    val selectTab: SelectTabUseCase by lazy { DefaultSelectTabUseCase(sessionManager) }
-    val removeTab: RemoveTabUseCase by lazy { DefaultRemoveTabUseCase(sessionManager) }
-    val addTab: AddNewTabUseCase by lazy { AddNewTabUseCase(store, sessionManager) }
-    val addPrivateTab: AddNewPrivateTabUseCase by lazy { AddNewPrivateTabUseCase(store, sessionManager) }
-    val removeAllTabs: RemoveAllTabsUseCase by lazy { RemoveAllTabsUseCase(sessionManager) }
-    val removeTabs: RemoveTabsUseCase by lazy { RemoveTabsUseCase(sessionManager) }
-    val removeNormalTabs: RemoveNormalTabsUseCase by lazy { RemoveNormalTabsUseCase(sessionManager) }
-    val removePrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(sessionManager) }
+    /**
+     * Use case for duplicating a tab.
+     */
+    class DuplicateTabUseCase(
+        private val store: BrowserStore
+    ) {
+        /**
+         * Creates a duplicate of [tab] (including history) and selects it if [selectNewTab] is true.
+         */
+        operator fun invoke(
+            tab: TabSessionState,
+            selectNewTab: Boolean = true
+        ) {
+            val duplicate = createTab(
+                url = tab.content.url,
+                private = tab.content.private,
+                contextId = tab.contextId,
+                parent = tab,
+                engineSessionState = tab.engineState.engineSessionState
+            )
+
+            store.dispatch(
+                TabListAction.AddTabAction(
+                    duplicate,
+                    select = selectNewTab
+                )
+            )
+        }
+    }
+
+    val selectTab: SelectTabUseCase by lazy { DefaultSelectTabUseCase(store) }
+    val removeTab: RemoveTabUseCase by lazy { DefaultRemoveTabUseCase(store) }
+    val addTab: AddNewTabUseCase by lazy { AddNewTabUseCase(store) }
+    @Deprecated("Use addTab and the private flag")
+    @Suppress("DEPRECATION")
+    val addPrivateTab: AddNewPrivateTabUseCase by lazy { AddNewPrivateTabUseCase(store) }
+    val removeAllTabs: RemoveAllTabsUseCase by lazy { RemoveAllTabsUseCase(store) }
+    val removeTabs: RemoveTabsUseCase by lazy { RemoveTabsUseCase(store) }
+    val removeNormalTabs: RemoveNormalTabsUseCase by lazy { RemoveNormalTabsUseCase(store) }
+    val removePrivateTabs: RemovePrivateTabsUseCase by lazy { RemovePrivateTabsUseCase(store) }
     val undo by lazy { UndoTabRemovalUseCase(store) }
-    val restore: RestoreUseCase by lazy { RestoreUseCase(store, sessionManager, selectTab) }
-    val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store, sessionManager) }
+    val restore: RestoreUseCase by lazy { RestoreUseCase(store, selectTab) }
+    val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store) }
+    val duplicateTab: DuplicateTabUseCase by lazy { DuplicateTabUseCase(store) }
 }

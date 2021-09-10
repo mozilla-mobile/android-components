@@ -20,6 +20,12 @@ val BrowserState.selectedTab: TabSessionState?
     get() = selectedTabId?.let { id -> findTab(id) }
 
 /**
+ * The currently selected tab if there's one that is not private.
+ */
+val BrowserState.selectedNormalTab: TabSessionState?
+    get() = selectedTabId?.let { id -> findNormalTab(id) }
+
+/**
  * Finds and returns the tab with the given id. Returns null if no matching tab could be
  * found.
  *
@@ -39,6 +45,17 @@ fun BrowserState.findTab(tabId: String): TabSessionState? {
  */
 fun BrowserState.findCustomTab(tabId: String): CustomTabSessionState? {
     return customTabs.firstOrNull { it.id == tabId }
+}
+
+/**
+ * Finds and returns the normal (non-private) tab with the given id. Returns null if no
+ * matching tab could be found.
+ *
+ * @param tabId The ID of the tab to search for.
+ * @return The [TabSessionState] with the provided [tabId] or null if it could not be found.
+ */
+fun BrowserState.findNormalTab(tabId: String): TabSessionState? {
+    return normalTabs.firstOrNull { it.id == tabId }
 }
 
 /**
@@ -82,10 +99,11 @@ fun BrowserState.findTabOrCustomTabOrSelectedTab(tabId: String? = null): Session
  * Finds and returns the tab with the given url. Returns null if no matching tab could be found.
  *
  * @param url A mandatory url of the searched tab.
+ * @param private Whether to look for a matching private or normal tab
  * @return The tab with the provided url
  */
-fun BrowserState.findTabByUrl(url: String): TabSessionState? {
-    return tabs.firstOrNull { tab -> tab.content.url == url }
+fun BrowserState.findNormalOrPrivateTabByUrl(url: String, private: Boolean): TabSessionState? {
+    return tabs.firstOrNull { tab -> tab.content.url == url && tab.content.private == private }
 }
 
 /**
@@ -109,5 +127,8 @@ val BrowserState.privateTabs: List<TabSessionState>
 val BrowserState.normalTabs: List<TabSessionState>
     get() = getNormalOrPrivateTabs(private = false)
 
+/**
+ * List of all tabs (normal, private and CustomTabs).
+ */
 val BrowserState.allTabs: List<SessionState>
     get() = tabs + customTabs

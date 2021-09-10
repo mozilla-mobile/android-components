@@ -29,8 +29,8 @@ import mozilla.components.feature.media.facts.emitNotificationPlayFact
 import mozilla.components.feature.media.facts.emitStatePauseFact
 import mozilla.components.feature.media.facts.emitStatePlayFact
 import mozilla.components.feature.media.facts.emitStateStopFact
-import mozilla.components.feature.media.notification.MediaNotification
 import mozilla.components.feature.media.focus.AudioFocus
+import mozilla.components.feature.media.notification.MediaNotification
 import mozilla.components.feature.media.session.MediaSessionCallback
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.ids.SharedIdsHelper
@@ -42,7 +42,6 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  *
  * The implementation was moved from [AbstractMediaSessionService] to this delegate for better testability.
  */
-@Suppress("TooManyFunctions")
 internal class MediaSessionServiceDelegate(
     private val context: Context,
     private val service: AbstractMediaSessionService,
@@ -120,7 +119,7 @@ internal class MediaSessionServiceDelegate(
             MediaSession.PlaybackState.PLAYING -> {
                 audioFocus.request(state.id)
                 emitStatePlayFact()
-                startForegroundNotification()
+                startForegroundNotificationIfNeeded()
             }
             MediaSession.PlaybackState.PAUSED -> {
                 emitStatePauseFact()
@@ -145,19 +144,26 @@ internal class MediaSessionServiceDelegate(
             MediaMetadataCompat.Builder()
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_TITLE,
-                    sessionState.getTitleOrUrl(context))
+                    sessionState.getTitleOrUrl(context)
+                )
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_ARTIST,
-                    sessionState.nonPrivateUrl)
+                    sessionState.nonPrivateUrl
+                )
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
-                .build())
+                .build()
+        )
     }
 
     private fun startForegroundNotification() {
+        val notification = notification.createDummy(mediaSession)
+        service.startForeground(notificationId, notification)
+        isForegroundService = true
+    }
+
+    private fun startForegroundNotificationIfNeeded() {
         if (!isForegroundService) {
-            val notification = notification.createDummy(mediaSession)
-            service.startForeground(notificationId, notification)
-            isForegroundService = true
+            startForegroundNotification()
         }
     }
 

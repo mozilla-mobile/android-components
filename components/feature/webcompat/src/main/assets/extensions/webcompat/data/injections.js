@@ -203,20 +203,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1610016",
-    platform: "android",
-    domain: "gaana.com",
-    bug: "1610016",
-    contentScripts: {
-      matches: ["https://gaana.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1610016-gaana.com-input-position-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1610358",
     platform: "android",
     domain: "pcloud.com",
@@ -244,17 +230,6 @@ const AVAILABLE_INJECTIONS = [
         },
       ],
     },
-  },
-  {
-    id: "bug1622062",
-    platform: "android",
-    domain: "$.detectSwipe fix",
-    bug: "1622062",
-    data: {
-      urls: ["https://eu.stemwijzer.nl/public/js/votematch.vendors.js"],
-      types: ["script"],
-    },
-    customFunc: "detectSwipeFix",
   },
   {
     id: "bug1644830",
@@ -315,20 +290,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1654865",
-    platform: "android",
-    domain: "sports.ndtv.com",
-    bug: "1654865",
-    contentScripts: {
-      matches: ["*://sports.ndtv.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1654865-sports.ndtv.com-float-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1654877",
     platform: "android",
     domain: "preev.com",
@@ -338,20 +299,6 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1654877-preev.com-moz-appearance-fix.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1655049",
-    platform: "android",
-    domain: "dev.to",
-    bug: "1655049",
-    contentScripts: {
-      matches: ["*://dev.to/*"],
-      css: [
-        {
-          file: "injections/css/bug1655049-dev.to-unclickable-button-fix.css",
         },
       ],
     },
@@ -401,44 +348,164 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1677442",
-    platform: "desktop",
-    domain: "store.hp.com",
-    bug: "1677442",
+    id: "bug1694470",
+    platform: "android",
+    domain: "m.myvidster.com",
+    bug: "1694470",
     contentScripts: {
-      matches: ["*://d3nkfb7815bs43.cloudfront.net/*forstore.hp.com*"],
-      js: [
+      matches: ["https://m.myvidster.com/*"],
+      css: [
         {
-          file: "injections/js/bug1677442-store.hp.com-disable-indexeddb.js",
+          file: "injections/css/bug1694470-myvidster.com-content-not-shown.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1704653",
+    platform: "all",
+    domain: "tsky.in",
+    bug: "1704653",
+    contentScripts: {
+      matches: ["*://tsky.in/*"],
+      css: [
+        {
+          file: "injections/css/bug1704653-tsky.in-clear-float.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1707795",
+    platform: "desktop",
+    domain: "Office Excel spreadsheets",
+    bug: "1707795",
+    contentScripts: {
+      matches: [
+        "*://*.live.com/*",
+        "*://*.office.com/*",
+        "*://*.sharepoint.com/*",
+      ],
+      css: [
+        {
+          file:
+            "injections/css/bug1707795-office365-sheets-overscroll-disable.css",
         },
       ],
       allFrames: true,
     },
   },
   {
-    id: "bug1690158",
-    platform: "desktop",
-    domain: "slack.com",
-    bug: "1690158",
+    id: "bug1711082",
+    platform: "all",
+    domain: "m.aliexpress.com",
+    bug: "1711082",
     contentScripts: {
-      matches: ["*://app.slack.com/*"],
-      css: [
+      matches: ["*://m.aliexpress.com/*"],
+      js: [
         {
-          file: "injections/css/bug1690158-slack.com-webkit-scrollbar.css",
+          file: "injections/js/bug1711082-m.aliexpress.com-undisable-search.js",
         },
       ],
     },
   },
   {
-    id: "bug1690091",
-    platform: "desktop",
-    domain: "binance.com",
-    bug: "1690091",
+    id: "bug1712833",
+    platform: "all",
+    domain: "buskocchi.desuca.co.jp",
+    bug: "1712833",
     contentScripts: {
-      matches: ["*://*.binance.com/*"],
+      matches: ["*://buskocchi.desuca.co.jp/*"],
       css: [
         {
-          file: "injections/css/bug1690091-binance.com-page-overflow.css",
+          file:
+            "injections/css/bug1712833-buskocchi.desuca.co.jp-fix-map-height.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1714612",
+    platform: "all",
+    domain: "www.rfi.it",
+    bug: "1714612",
+    contentScripts: {
+      matches: ["*://www.rfi.it/*"],
+      js: [
+        {
+          file: "injections/js/bug1714612-www.rfi.it-outertext.js",
+        },
+      ],
+      allFrames: true,
+    },
+  },
+  {
+    id: "bug1719870",
+    platform: "desktop",
+    domain: "lcbo.com",
+    bug: "1719870",
+    contentScripts: {
+      matches: ["*://*.lcbo.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1719870-lcbo.com-table-clearfix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1724764",
+    platform: "android",
+    domain: "amextravel.com",
+    bug: "1724764",
+    contentScripts: {
+      matches: ["*://*.amextravel.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1724764-amextravel.com-window-print.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1724868",
+    platform: "android",
+    domain: "news.yahoo.co.jp",
+    bug: "1724868",
+    contentScripts: {
+      matches: ["*://news.yahoo.co.jp/articles/*", "*://s.yimg.jp/*"],
+      js: [
+        {
+          file: "injections/js/bug1724868-news.yahoo.co.jp-ua-override.js",
+        },
+      ],
+      allFrames: true,
+    },
+  },
+  {
+    id: "bug1727080",
+    platform: "android",
+    domain: "nexity.fr",
+    bug: "1727080",
+    contentScripts: {
+      matches: ["*://*.nexity.fr/*"],
+      css: [
+        {
+          file: "injections/css/bug1727080-nexity.fr-svg-size-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1728140",
+    platform: "android",
+    domain: "air-quality.com",
+    bug: "1728140",
+    contentScripts: {
+      matches: ["*://air-quality.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1728140-map-size-fix.css",
         },
       ],
     },

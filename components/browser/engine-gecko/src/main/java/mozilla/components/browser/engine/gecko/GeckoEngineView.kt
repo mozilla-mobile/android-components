@@ -24,7 +24,6 @@ import org.mozilla.geckoview.GeckoSession
 /**
  * Gecko-based EngineView implementation.
  */
-@Suppress("TooManyFunctions")
 class GeckoEngineView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -45,8 +44,8 @@ class GeckoEngineView @JvmOverloads constructor(
                 val activityClassName = context.javaClass.simpleName
                 val activityClassHashCode = context.hashCode()
                 val msg = "ATTACH VIEW: Current activity: $activityClassName hashcode " +
-                        "$activityClassHashCode Other activity: $otherActivityClassName " +
-                        "hashcode $otherActivityClassHashcode"
+                    "$activityClassHashCode Other activity: $otherActivityClassName " +
+                    "hashcode $otherActivityClassHashcode"
                 throw IllegalStateException(msg, e)
             }
         }
@@ -125,8 +124,8 @@ class GeckoEngineView @JvmOverloads constructor(
                 val activityClassName = context.javaClass.simpleName
                 val activityClassHashCode = context.hashCode()
                 val msg = "SET SESSION: Current activity: $activityClassName hashcode " +
-                        "$activityClassHashCode Other activity: $otherActivityClassName " +
-                        "hashcode $otherActivityClassHashcode"
+                    "$activityClassHashCode Other activity: $otherActivityClassName " +
+                    "hashcode $otherActivityClassHashcode"
                 throw IllegalStateException(msg, e)
             }
         }
@@ -169,18 +168,7 @@ class GeckoEngineView @JvmOverloads constructor(
     override fun canScrollVerticallyDown() =
         true // waiting for this issue https://bugzilla.mozilla.org/show_bug.cgi?id=1507569
 
-    @Suppress("MagicNumber")
-    override fun getInputResult(): EngineView.InputResult {
-        // Direct mapping of GeckoView's returned values.
-        // If not fail fast to allow for a quick fix.
-        val input = geckoView.inputResult
-        return when (input) {
-            0 -> EngineView.InputResult.INPUT_RESULT_UNHANDLED
-            1, 3 -> EngineView.InputResult.INPUT_RESULT_HANDLED
-            2 -> EngineView.InputResult.INPUT_RESULT_HANDLED_CONTENT
-            else -> throw IllegalArgumentException("Unexpected geckoView.inputResult: \"${geckoView.inputResult}\"")
-        }
-    }
+    override fun getInputResultDetail() = geckoView.inputResultDetail
 
     override fun setVerticalClipping(clippingHeight: Int) {
         geckoView.setVerticalClipping(clippingHeight)
@@ -194,13 +182,16 @@ class GeckoEngineView @JvmOverloads constructor(
     override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) {
         try {
             val geckoResult = geckoView.capturePixels()
-            geckoResult.then({ bitmap ->
-                onFinish(bitmap)
-                GeckoResult<Void>()
-            }, {
-                onFinish(null)
-                GeckoResult<Void>()
-            })
+            geckoResult.then(
+                { bitmap ->
+                    onFinish(bitmap)
+                    GeckoResult<Void>()
+                },
+                {
+                    onFinish(null)
+                    GeckoResult<Void>()
+                }
+            )
         } catch (e: Exception) {
             // There's currently no reliable way for consumers of GeckoView to
             // know whether or not the compositor is ready. So we have to add

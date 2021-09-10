@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("MatchingDeclarationName", "TooManyFunctions")
+@file:Suppress("MatchingDeclarationName")
 
 package mozilla.components.browser.storage.sync
 
@@ -11,20 +11,19 @@ import mozilla.appservices.places.BookmarkItem
 import mozilla.appservices.places.BookmarkSeparator
 import mozilla.appservices.places.BookmarkTreeNode
 import mozilla.appservices.places.SyncAuthInfo
-import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
-import mozilla.components.concept.storage.CreditCard
+import mozilla.components.concept.storage.DocumentType
 import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryMetadata
+import mozilla.components.concept.storage.HistoryMetadataKey
+import mozilla.components.concept.storage.HistoryMetadataObservation
 import mozilla.components.concept.storage.TopFrecentSiteInfo
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
-import mozilla.appservices.autofill.UpdatableAddressFields
-import mozilla.appservices.autofill.UpdatableCreditCardFields
 
-// We have type definitions at the concept level, and "external" types defined within
-// Autofill and Places. In practice these two types are largely the same, and this file
-// is the conversion point.
+// We have type definitions at the concept level, and "external" types defined within Places.
+// In practice these two types are largely the same, and this file is the conversion point.
 
 /**
  * Conversion from our SyncAuthInfo into its "native" version used at the interface boundary.
@@ -95,90 +94,125 @@ internal fun mozilla.appservices.places.TopFrecentSiteInfo.into(): TopFrecentSit
 internal fun BookmarkTreeNode.asBookmarkNode(): BookmarkNode {
     return when (this) {
         is BookmarkItem -> {
-            BookmarkNode(BookmarkNodeType.ITEM, this.guid, this.parentGUID, this.position, this.title, this.url, null)
+            BookmarkNode(
+                BookmarkNodeType.ITEM,
+                this.guid,
+                this.parentGUID,
+                this.position,
+                this.title,
+                this.url,
+                this.dateAdded,
+                null
+            )
         }
         is BookmarkFolder -> {
-            BookmarkNode(BookmarkNodeType.FOLDER, this.guid, this.parentGUID, this.position, this.title, null,
-                this.children?.map(BookmarkTreeNode::asBookmarkNode))
+            BookmarkNode(
+                BookmarkNodeType.FOLDER,
+                this.guid,
+                this.parentGUID,
+                this.position,
+                this.title,
+                null,
+                this.dateAdded,
+                this.children?.map(BookmarkTreeNode::asBookmarkNode)
+            )
         }
         is BookmarkSeparator -> {
-            BookmarkNode(BookmarkNodeType.SEPARATOR, this.guid, this.parentGUID, this.position, null, null, null)
+            BookmarkNode(
+                BookmarkNodeType.SEPARATOR,
+                this.guid,
+                this.parentGUID,
+                this.position,
+                null,
+                null,
+                this.dateAdded,
+                null
+            )
         }
     }
 }
 
-/**
- * Conversion from a generic [UpdatableAddressFields] into its richer comrade within the 'autofill' lib.
- */
-internal fun mozilla.components.concept.storage.UpdatableAddressFields.into(): UpdatableAddressFields {
-    return UpdatableAddressFields(
-        givenName = this.givenName,
-        additionalName = this.additionalName,
-        familyName = this.familyName,
-        organization = this.organization,
-        streetAddress = this.streetAddress,
-        addressLevel3 = this.addressLevel3,
-        addressLevel2 = this.addressLevel2,
-        addressLevel1 = this.addressLevel1,
-        postalCode = this.postalCode,
-        country = this.country,
-        tel = this.tel,
-        email = this.email
+internal fun HistoryMetadataKey.into(): mozilla.appservices.places.HistoryMetadataKey {
+    return mozilla.appservices.places.HistoryMetadataKey(
+        url = this.url,
+        referrerUrl = this.referrerUrl,
+        searchTerm = this.searchTerm
     )
 }
 
-/**
- * Conversion from a generic [UpdatableCreditCardFields] into its richer comrade within the 'autofill' lib.
- */
-internal fun mozilla.components.concept.storage.UpdatableCreditCardFields.into(): UpdatableCreditCardFields {
-    return UpdatableCreditCardFields(
-        ccName = this.billingName,
-        ccNumber = this.cardNumber,
-        ccExpMonth = this.expiryMonth,
-        ccExpYear = this.expiryYear,
-        ccType = this.cardType
+internal fun mozilla.appservices.places.HistoryMetadataKey.into(): HistoryMetadataKey {
+    return HistoryMetadataKey(
+        url = this.url,
+        referrerUrl = if (this.referrerUrl.isNullOrEmpty()) { null } else { this.referrerUrl },
+        searchTerm = if (this.searchTerm.isNullOrEmpty()) { null } else { this.searchTerm }
     )
 }
 
-/**
- * Conversion from a "native" autofill [Address] into its generic comrade.
- */
-internal fun mozilla.appservices.autofill.Address.into(): Address {
-    return Address(
-        guid = this.guid,
-        givenName = this.givenName,
-        additionalName = this.additionalName,
-        familyName = this.familyName,
-        organization = this.organization,
-        streetAddress = this.streetAddress,
-        addressLevel3 = this.addressLevel3,
-        addressLevel2 = this.addressLevel2,
-        addressLevel1 = this.addressLevel1,
-        postalCode = this.postalCode,
-        country = this.country,
-        tel = this.tel,
-        email = this.email,
-        timeCreated = this.timeCreated,
-        timeLastUsed = this.timeLastUsed,
-        timeLastModified = this.timeLastModified,
-        timesUsed = this.timesUsed
+internal fun mozilla.appservices.places.uniffi.DocumentType.into(): DocumentType {
+    return when (this) {
+        mozilla.appservices.places.uniffi.DocumentType.REGULAR -> DocumentType.Regular
+        mozilla.appservices.places.uniffi.DocumentType.MEDIA -> DocumentType.Media
+    }
+}
+
+internal fun mozilla.appservices.places.uniffi.HistoryMetadata.into(): HistoryMetadata {
+    // Protobuf doesn't support passing around `null` value, so these get converted to some defaults
+    // as they go from Rust to Kotlin. E.g. an empty string in place of a `null`.
+    // That means places.HistoryMetadata will never have `null` values.
+    // But, we actually do want a real `null` value here - hence the explicit check.
+    return HistoryMetadata(
+        key = HistoryMetadataKey(url = this.url, searchTerm = this.searchTerm, referrerUrl = this.referrerUrl),
+        title = if (this.title.isNullOrEmpty()) null else this.title,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        totalViewTime = this.totalViewTime,
+        documentType = this.documentType.into()
     )
 }
 
-/**
- * Conversion from a "native" autofill [CreditCard] into its generic comrade.
- */
-internal fun mozilla.appservices.autofill.CreditCard.into(): CreditCard {
-    return CreditCard(
-        guid = this.guid,
-        billingName = this.ccName,
-        cardNumber = this.ccNumber,
-        expiryMonth = this.ccExpMonth,
-        expiryYear = this.ccExpYear,
-        cardType = this.ccType,
-        timeCreated = this.timeCreated,
-        timeLastUsed = this.timeLastUsed,
-        timeLastModified = this.timeLastModified,
-        timesUsed = this.timesUsed
+internal fun List<mozilla.appservices.places.uniffi.HistoryMetadata>.into(): List<HistoryMetadata> {
+    return map { it.into() }
+}
+
+internal fun DocumentType.into(): mozilla.appservices.places.uniffi.DocumentType {
+    return when (this) {
+        DocumentType.Regular -> mozilla.appservices.places.uniffi.DocumentType.REGULAR
+        DocumentType.Media -> mozilla.appservices.places.uniffi.DocumentType.MEDIA
+    }
+}
+
+internal fun HistoryMetadata.into(): mozilla.appservices.places.uniffi.HistoryMetadata {
+    return mozilla.appservices.places.uniffi.HistoryMetadata(
+        url = this.key.url,
+        searchTerm = this.key.searchTerm,
+        referrerUrl = this.key.referrerUrl,
+        title = this.title,
+        createdAt = this.createdAt,
+        updatedAt = this.updatedAt,
+        totalViewTime = this.totalViewTime,
+        documentType = this.documentType.into()
     )
+}
+
+internal fun HistoryMetadataObservation.into(
+    key: HistoryMetadataKey
+): mozilla.appservices.places.uniffi.HistoryMetadataObservation {
+    return when (this) {
+        is HistoryMetadataObservation.ViewTimeObservation -> {
+            mozilla.appservices.places.uniffi.HistoryMetadataObservation(
+                url = key.url,
+                searchTerm = key.searchTerm,
+                referrerUrl = key.referrerUrl,
+                viewTime = this.viewTime
+            )
+        }
+        is HistoryMetadataObservation.DocumentTypeObservation -> {
+            mozilla.appservices.places.uniffi.HistoryMetadataObservation(
+                url = key.url,
+                searchTerm = key.searchTerm,
+                referrerUrl = key.referrerUrl,
+                documentType = this.documentType.into()
+            )
+        }
+    }
 }

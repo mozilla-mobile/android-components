@@ -36,7 +36,7 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property download Last unhandled download request.
  * @property share Last unhandled request to share an internet resource that first needs to be downloaded.
  * @property hitResult the target of the latest long click operation.
- * @property promptRequest the last received [PromptRequest].
+ * @property promptRequests current[PromptRequest]s.
  * @property findResults the list of results of the latest "find in page" operation.
  * @property windowRequest the last received [WindowRequest].
  * @property searchRequest the last received [SearchRequest]
@@ -60,6 +60,7 @@ import mozilla.components.concept.engine.window.WindowRequest
  * by web content.
  * @property desktopMode true if desktop mode is enabled, otherwise false.
  * @property appIntent the last received [AppIntentState].
+ * @property showToolbarAsExpanded whether the dynamic toolbar should be forced as expanded.
  */
 data class ContentState(
     val url: String,
@@ -74,7 +75,7 @@ data class ContentState(
     val download: DownloadState? = null,
     val share: ShareInternetResourceState? = null,
     val hitResult: HitResult? = null,
-    val promptRequest: PromptRequest? = null,
+    val promptRequests: List<PromptRequest> = emptyList(),
     val findResults: List<FindResultState> = emptyList(),
     val windowRequest: WindowRequest? = null,
     val searchRequest: SearchRequest? = null,
@@ -93,5 +94,6 @@ data class ContentState(
     val refreshCanceled: Boolean = false,
     val recordingDevices: List<RecordingDevice> = emptyList(),
     val desktopMode: Boolean = false,
-    val appIntent: AppIntentState? = null
+    val appIntent: AppIntentState? = null,
+    val showToolbarAsExpanded: Boolean = false
 )

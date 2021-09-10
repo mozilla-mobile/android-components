@@ -5,7 +5,6 @@
 package mozilla.components.feature.tabs
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
@@ -28,16 +27,14 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class WindowFeatureTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
-
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
+    val coroutinesTestRule = MainCoroutineRule()
+    private val testDispatcher = coroutinesTestRule.testDispatcher
 
     private lateinit var store: BrowserStore
     private lateinit var engineSession: EngineSession
     private lateinit var tabsUseCases: TabsUseCases
     private lateinit var addTabUseCase: TabsUseCases.AddNewTabUseCase
-    private lateinit var addPrivateTabUseCase: TabsUseCases.AddNewPrivateTabUseCase
     private lateinit var removeTabUseCase: TabsUseCases.RemoveTabUseCase
     private val tabId = "test-tab"
     private val privateTabId = "test-tab-private"
@@ -45,19 +42,21 @@ class WindowFeatureTest {
     @Before
     fun setup() {
         engineSession = mock()
-        store = spy(BrowserStore(BrowserState(
-            tabs = listOf(
-                createTab(id = tabId, url = "https://www.mozilla.org", engineSession = engineSession),
-                createTab(id = privateTabId, url = "https://www.mozilla.org", private = true)
-            ),
-            selectedTabId = tabId
-        )))
-        addPrivateTabUseCase = mock()
+        store = spy(
+            BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(id = tabId, url = "https://www.mozilla.org", engineSession = engineSession),
+                        createTab(id = privateTabId, url = "https://www.mozilla.org", private = true)
+                    ),
+                    selectedTabId = tabId
+                )
+            )
+        )
         addTabUseCase = mock()
         removeTabUseCase = mock()
         tabsUseCases = mock()
         whenever(tabsUseCases.addTab).thenReturn(addTabUseCase)
-        whenever(tabsUseCases.addPrivateTab).thenReturn(addPrivateTabUseCase)
         whenever(tabsUseCases.removeTab).thenReturn(removeTabUseCase)
     }
 
@@ -88,7 +87,7 @@ class WindowFeatureTest {
         store.dispatch(TabListAction.SelectTabAction(privateTabId)).joinBlocking()
         store.dispatch(ContentAction.UpdateWindowRequestAction(privateTabId, windowRequest)).joinBlocking()
         testDispatcher.advanceUntilIdle()
-        verify(addPrivateTabUseCase).invoke(url = "about:blank", selectTab = true, parentId = privateTabId)
+        verify(addTabUseCase).invoke(url = "about:blank", selectTab = true, parentId = privateTabId, private = true)
         verify(store).dispatch(ContentAction.ConsumeWindowRequestAction(privateTabId))
     }
 

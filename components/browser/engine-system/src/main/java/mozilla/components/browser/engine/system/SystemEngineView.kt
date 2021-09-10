@@ -53,6 +53,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
+import mozilla.components.concept.engine.InputResultDetail
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
@@ -160,8 +161,10 @@ class SystemEngineView @JvmOverloads constructor(
             }
 
             runBlocking {
-                session?.settings?.historyTrackingDelegate?.onVisited(url,
-                    PageVisit(visitType, RedirectSource.NOT_A_SOURCE))
+                session?.settings?.historyTrackingDelegate?.onVisited(
+                    url,
+                    PageVisit(visitType, RedirectSource.NOT_A_SOURCE)
+                )
             }
         }
 
@@ -183,9 +186,10 @@ class SystemEngineView @JvmOverloads constructor(
                     onLocationChange(it)
                     onLoadingStateChange(false)
                     onSecurityChange(
-                            secure = cert != null,
-                            host = cert?.let { Uri.parse(url).host },
-                            issuer = cert?.issuedBy?.oName)
+                        secure = cert != null,
+                        host = cert?.let { Uri.parse(url).host },
+                        issuer = cert?.issuedBy?.oName
+                    )
                 }
             }
         }
@@ -358,6 +362,7 @@ class SystemEngineView @JvmOverloads constructor(
             session.notifyObservers {
                 onPromptRequest(
                     PromptRequest.Authentication(
+                        formattedUrl,
                         "",
                         message,
                         userName,
@@ -448,7 +453,8 @@ class SystemEngineView @JvmOverloads constructor(
                         onDismiss
                     ) { _ ->
                         result.confirm()
-                    })
+                    }
+                )
             }
             return true
         }
@@ -578,9 +584,11 @@ class SystemEngineView @JvmOverloads constructor(
         ): Boolean {
             session?.internalNotifyObservers {
                 val newEngineSession = SystemEngineSession(context, session?.settings)
-                onWindowRequest(SystemWindowRequest(
-                    view, newEngineSession, NestedWebView(context), isDialog, isUserGesture, resultMsg
-                ))
+                onWindowRequest(
+                    SystemWindowRequest(
+                        view, newEngineSession, NestedWebView(context), isDialog, isUserGesture, resultMsg
+                    )
+                )
             }
             return true
         }
@@ -649,7 +657,8 @@ class SystemEngineView @JvmOverloads constructor(
     internal fun addFullScreenView(view: View, callback: WebChromeClient.CustomViewCallback) {
         val webView = findViewWithTag<WebView>("mozac_system_engine_webview")
         val layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
+        )
         webView?.apply { this.visibility = View.INVISIBLE }
 
         session?.fullScreenCallback = callback
@@ -694,14 +703,9 @@ class SystemEngineView @JvmOverloads constructor(
 
     override fun canScrollVerticallyDown() = session?.webView?.canScrollVertically(1) ?: false
 
-    override fun getInputResult(): EngineView.InputResult {
-        (session?.webView as? NestedWebView)?.let { nestedWebView ->
-            // Direct mapping of WebView's returned values.
-            // There should be a 1-1 relation. If not fail fast to allow for a quick fix.
-            return EngineView.InputResult.values().first { it.value == nestedWebView.inputResult }
-        }
-        // Let's be preventive about not knowing if user's touch was handled and say no.
-        return EngineView.InputResult.INPUT_RESULT_UNHANDLED
+    override fun getInputResultDetail(): InputResultDetail {
+        return (session?.webView as? NestedWebView)?.inputResultDetail
+            ?: InputResultDetail.newInstance()
     }
 
     override fun captureThumbnail(onFinish: (Bitmap?) -> Unit) {
@@ -735,10 +739,14 @@ class SystemEngineView @JvmOverloads constructor(
         val viewRect = view.getRectWithViewLocation()
         val window = (context as Activity).window
 
-        PixelCopy.request(window, viewRect, out, { copyResult ->
-            val result = if (copyResult == PixelCopy.SUCCESS) out else null
-            onFinish(result)
-        }, handler)
+        PixelCopy.request(
+            window, viewRect, out,
+            { copyResult ->
+                val result = if (copyResult == PixelCopy.SUCCESS) out else null
+                onFinish(result)
+            },
+            handler
+        )
     }
 
     private fun applyDefaultJsDialogBehavior(result: JsResult?): Boolean {
@@ -784,12 +792,12 @@ class SystemEngineView @JvmOverloads constructor(
         internal var URL_MATCHER: UrlMatcher? = null
 
         private val urlMatcherCategoryMap = mapOf(
-                UrlMatcher.ADVERTISING to TrackingProtectionPolicy.TrackingCategory.AD,
-                UrlMatcher.ANALYTICS to TrackingProtectionPolicy.TrackingCategory.ANALYTICS,
-                UrlMatcher.CONTENT to TrackingProtectionPolicy.TrackingCategory.CONTENT,
-                UrlMatcher.SOCIAL to TrackingProtectionPolicy.TrackingCategory.SOCIAL,
-                UrlMatcher.CRYPTOMINING to TrackingProtectionPolicy.TrackingCategory.CRYPTOMINING,
-                UrlMatcher.FINGERPRINTING to TrackingProtectionPolicy.TrackingCategory.FINGERPRINTING
+            UrlMatcher.ADVERTISING to TrackingProtectionPolicy.TrackingCategory.AD,
+            UrlMatcher.ANALYTICS to TrackingProtectionPolicy.TrackingCategory.ANALYTICS,
+            UrlMatcher.CONTENT to TrackingProtectionPolicy.TrackingCategory.CONTENT,
+            UrlMatcher.SOCIAL to TrackingProtectionPolicy.TrackingCategory.SOCIAL,
+            UrlMatcher.CRYPTOMINING to TrackingProtectionPolicy.TrackingCategory.CRYPTOMINING,
+            UrlMatcher.FINGERPRINTING to TrackingProtectionPolicy.TrackingCategory.FINGERPRINTING
         )
 
         private fun String?.toTrackingProtectionCategories(): List<TrackingProtectionPolicy.TrackingCategory> {
@@ -807,11 +815,12 @@ class SystemEngineView @JvmOverloads constructor(
 
             URL_MATCHER?.setCategoriesEnabled(categories) ?: run {
                 URL_MATCHER = UrlMatcher.createMatcher(
-                        resources,
-                        R.raw.domain_blocklist,
-                        R.raw.domain_safelist,
-                        categories)
-                }
+                    resources,
+                    R.raw.domain_blocklist,
+                    R.raw.domain_safelist,
+                    categories
+                )
+            }
 
             return URL_MATCHER as UrlMatcher
         }

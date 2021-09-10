@@ -7,19 +7,19 @@ package mozilla.components.feature.pwa.intent
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT
 import kotlinx.coroutines.runBlocking
-import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.state.ExternalAppType
+import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.manifest.WebAppManifest
-import mozilla.components.feature.pwa.ext.getUrlOverride
 import mozilla.components.feature.intent.ext.putSessionId
 import mozilla.components.feature.intent.processing.IntentProcessor
 import mozilla.components.feature.pwa.ManifestStorage
+import mozilla.components.feature.pwa.ext.getUrlOverride
 import mozilla.components.feature.pwa.ext.putWebAppManifest
 import mozilla.components.feature.pwa.ext.toCustomTabConfig
 import mozilla.components.feature.session.SessionUseCases
-import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.support.utils.toSafeIntent
 
 /**
@@ -27,7 +27,7 @@ import mozilla.components.support.utils.toSafeIntent
  */
 class WebAppIntentProcessor(
     private val store: BrowserStore,
-    private val addTabUseCase: TabsUseCases.AddNewTabUseCase,
+    private val addTabUseCase: CustomTabsUseCases.AddWebAppTabUseCase,
     private val loadUrlUseCase: SessionUseCases.DefaultLoadUrlUseCase,
     private val storage: ManifestStorage
 ) : IntentProcessor {
@@ -83,8 +83,7 @@ class WebAppIntentProcessor(
     private fun createSession(webAppManifest: WebAppManifest, url: String): String {
         return addTabUseCase.invoke(
             url = url,
-            selectTab = false,
-            source = Source.HOME_SCREEN,
+            source = Source.Internal.HomeScreen,
             webAppManifest = webAppManifest,
             customTabConfig = webAppManifest.toCustomTabConfig()
         )

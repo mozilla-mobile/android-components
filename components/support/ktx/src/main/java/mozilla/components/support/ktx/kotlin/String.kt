@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("TooManyFunctions")
-
 package mozilla.components.support.ktx.kotlin
 
+import android.net.Uri
+import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.components.support.utils.URLStringUtils
 import java.io.File
 import java.net.MalformedURLException
@@ -75,9 +75,12 @@ fun String.toDate(format: String, locale: Locale = Locale.ROOT): Date {
 fun String.sha1(): String {
     val characters = "0123456789abcdef"
     val digest = MessageDigest.getInstance("SHA-1").digest(toByteArray())
-    return digest.joinToString(separator = "", transform = { byte ->
-        String(charArrayOf(characters[byte.toInt() shr 4 and 0x0f], characters[byte.toInt() and 0x0f]))
-    })
+    return digest.joinToString(
+        separator = "",
+        transform = { byte ->
+            String(charArrayOf(characters[byte.toInt() shr 4 and 0x0f], characters[byte.toInt() and 0x0f]))
+        }
+    )
 }
 
 /**
@@ -88,11 +91,11 @@ fun String.sha1(): String {
  */
 fun String.toDate(
     vararg possibleFormats: String = arrayOf(
-            "yyyy-MM-dd'T'HH:mm",
-            "yyyy-MM-dd",
-            "yyyy-'W'ww",
-            "yyyy-MM",
-            "HH:mm"
+        "yyyy-MM-dd'T'HH:mm",
+        "yyyy-MM-dd",
+        "yyyy-'W'ww",
+        "yyyy-MM",
+        "HH:mm"
     )
 ): Date? {
     possibleFormats.forEach {
@@ -131,6 +134,33 @@ fun String.isSameOriginAs(other: String): Boolean {
         canonicalizeOrigin(this) == canonicalizeOrigin(other)
     } catch (e: MalformedURLException) {
         false
+    }
+}
+
+/**
+ * Returns an origin (protocol, host and port) from an URL string.
+ */
+fun String.getOrigin(): String? {
+    return try {
+        val url = URL(this)
+        val port = if (url.port == -1) url.defaultPort else url.port
+        URL(url.protocol, url.host, port, "").toString()
+    } catch (e: MalformedURLException) {
+        null
+    }
+}
+
+/**
+ * Returns an origin without the default port.
+ * For example for an input of "https://mozilla.org:443" you will get "https://mozilla.org".
+ */
+fun String.stripDefaultPort(): String {
+    return try {
+        val url = URL(this)
+        val port = if (url.port == url.defaultPort) -1 else url.port
+        URL(url.protocol, url.host, port, "").toString()
+    } catch (e: MalformedURLException) {
+        this
     }
 }
 
@@ -190,4 +220,49 @@ fun String.takeOrReplace(maximumLength: Int, replacement: String): String {
 fun String.getDataUrlImageExtension(defaultExtension: String = "jpg"): String {
     return ("data:image\\/([a-zA-Z0-9-.+]+).*").toRegex()
         .find(this)?.groups?.get(1)?.value ?: defaultExtension
+}
+
+/**
+ * Returns this char sequence if it's not null or empty
+ * or the result of calling [defaultValue] function if the char sequence is null or empty.
+ */
+inline fun <C, R> C?.ifNullOrEmpty(defaultValue: () -> R): C where C : CharSequence, R : C =
+    if (isNullOrEmpty()) defaultValue() else this
+
+/**
+ * Get the representative part of the URL. Usually this is the eTLD part of the host.
+ *
+ * For example this method will return "facebook.com" for "https://www.facebook.com/foobar".
+ */
+fun String.getRepresentativeSnippet(): String {
+    val uri = Uri.parse(this)
+
+    val host = uri.hostWithoutCommonPrefixes
+    if (!host.isNullOrEmpty()) {
+        return host
+    }
+
+    val path = uri.path
+    if (!path.isNullOrEmpty()) {
+        return path
+    }
+
+    return this
+}
+
+/**
+ * Get a representative character for the given URL.
+ *
+ * For example this method will return "f" for "https://m.facebook.com/foobar".
+ */
+fun String.getRepresentativeCharacter(): String {
+    val snippet = this.getRepresentativeSnippet()
+
+    snippet.forEach { character ->
+        if (character.isLetterOrDigit()) {
+            return character.uppercase()
+        }
+    }
+
+    return "?"
 }

@@ -50,15 +50,16 @@ import mozilla.components.support.ktx.kotlin.sanitizeFileName
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import mozilla.components.support.utils.DownloadUtils
 import org.json.JSONObject
-import org.mozilla.geckoview.WebResponse
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.ContentPermission
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.WebRequestError
+import org.mozilla.geckoview.WebResponse
 import java.util.Locale
 import kotlin.coroutines.CoroutineContext
 
@@ -172,7 +173,7 @@ class GeckoEngineSession(
         }
 
         geckoSession.load(loader)
-        Fact(Component.BROWSER_ENGINE_GECKO_BETA, Action.IMPLEMENTATION_DETAIL, "GeckoSession.load").collect()
+        Fact(Component.BROWSER_ENGINE_GECKO, Action.IMPLEMENTATION_DETAIL, "GeckoSession.load").collect()
     }
 
     /**
@@ -266,7 +267,7 @@ class GeckoEngineSession(
          * [TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES].
          */
         val shouldBlockContent =
-                policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
+            policy.contains(TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES)
 
         val enabledInBrowsingMode = if (privateMode) {
             policy.useForPrivateSessions
@@ -359,7 +360,7 @@ class GeckoEngineSession(
         val mobilePrefix = "mobile."
 
         val uri = Uri.parse(url)
-        val authority = uri.authority?.toLowerCase(Locale.ROOT) ?: return null
+        val authority = uri.authority?.lowercase(Locale.ROOT) ?: return null
 
         val foundPrefix = when {
             authority.startsWith(mPrefix) -> mPrefix
@@ -441,12 +442,16 @@ class GeckoEngineSession(
         geckoSession.close()
     }
 
+    override fun getBlockedSchemes(): List<String> {
+        return BLOCKED_SCHEMES
+    }
+
     /**
      * NavigationDelegate implementation for forwarding callbacks to observers of the session.
      */
     @Suppress("ComplexMethod")
     private fun createNavigationDelegate() = object : GeckoSession.NavigationDelegate {
-        override fun onLocationChange(session: GeckoSession, url: String?) {
+        override fun onLocationChange(session: GeckoSession, url: String?, geckoPermissions: List<ContentPermission>) {
             if (url == null) {
                 return // ¯\_(ツ)_/¯
             }
@@ -534,9 +539,7 @@ class GeckoEngineSession(
         ): GeckoResult<GeckoSession> {
             val newEngineSession = GeckoEngineSession(runtime, privateMode, defaultSettings, openGeckoSession = false)
             notifyObservers {
-                MainScope().launch {
-                    onWindowRequest(GeckoWindowRequest(uri, newEngineSession))
-                }
+                onWindowRequest(GeckoWindowRequest(uri, newEngineSession))
             }
             return GeckoResult.fromValue(newEngineSession.geckoSession)
         }
@@ -675,7 +678,8 @@ class GeckoEngineSession(
             // - non-top level visits (i.e. iframes).
             if (privateMode ||
                 (flags and GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL) == 0 ||
-                (flags and GeckoSession.HistoryDelegate.VISIT_UNRECOVERABLE_ERROR) != 0) {
+                (flags and GeckoSession.HistoryDelegate.VISIT_UNRECOVERABLE_ERROR) != 0
+            ) {
                 return GeckoResult.fromValue(false)
             }
 
@@ -821,12 +825,12 @@ class GeckoEngineSession(
 
                 notifyObservers {
                     onExternalResource(
-                            url = url,
-                            contentLength = contentLength,
-                            contentType = DownloadUtils.sanitizeMimeType(contentType),
-                            fileName = fileName.sanitizeFileName(),
-                            response = response,
-                            isPrivate = privateMode
+                        url = url,
+                        contentLength = contentLength,
+                        contentType = DownloadUtils.sanitizeMimeType(contentType),
+                        fileName = fileName.sanitizeFileName(),
+                        response = response,
+                        isPrivate = privateMode
                     )
                 }
             }
@@ -834,7 +838,8 @@ class GeckoEngineSession(
 
         override fun onCloseRequest(session: GeckoSession) {
             notifyObservers {
-                onWindowRequest(GeckoWindowRequest(
+                onWindowRequest(
+                    GeckoWindowRequest(
                         engineSession = this@GeckoEngineSession,
                         type = WindowRequest.Type.CLOSE
                     )
@@ -878,6 +883,10 @@ class GeckoEngineSession(
 
                 notifyObservers { onMetaViewportFitChanged(layoutInDisplayCutoutMode) }
             }
+        }
+
+        override fun onShowDynamicToolbar(geckoSession: GeckoSession) {
+            notifyObservers { onShowDynamicToolbar() }
         }
     }
 
@@ -970,12 +979,14 @@ class GeckoEngineSession(
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
         override fun onContentPermissionRequest(
             session: GeckoSession,
-            uri: String?,
-            type: Int,
-            callback: GeckoSession.PermissionDelegate.Callback
-        ) {
-            val request = GeckoPermissionRequest.Content(uri ?: "", type, callback)
+            geckoContentPermission: ContentPermission
+        ): GeckoResult<Int> {
+            val geckoResult = GeckoResult<Int>()
+            val uri = geckoContentPermission.uri
+            val type = geckoContentPermission.permission
+            val request = GeckoPermissionRequest.Content(uri, type, geckoContentPermission, geckoResult)
             notifyObservers { onContentPermissionRequest(request) }
+            return geckoResult
         }
 
         override fun onMediaPermissionRequest(
@@ -986,10 +997,11 @@ class GeckoEngineSession(
             callback: GeckoSession.PermissionDelegate.MediaCallback
         ) {
             val request = GeckoPermissionRequest.Media(
-                    uri,
-                    video?.toList() ?: emptyList(),
-                    audio?.toList() ?: emptyList(),
-                    callback)
+                uri,
+                video?.toList() ?: emptyList(),
+                audio?.toList() ?: emptyList(),
+                callback
+            )
             notifyObservers { onContentPermissionRequest(request) }
         }
 
@@ -999,8 +1011,9 @@ class GeckoEngineSession(
             callback: GeckoSession.PermissionDelegate.Callback
         ) {
             val request = GeckoPermissionRequest.App(
-                    permissions?.toList() ?: emptyList(),
-                    callback)
+                permissions?.toList() ?: emptyList(),
+                callback
+            )
             notifyObservers { onAppPermissionRequest(request) }
         }
     }

@@ -22,13 +22,13 @@ typealias FxaPanicException = mozilla.appservices.fxaclient.FxaException.Panic
 /**
  * Thrown when the operation requires additional authorization.
  */
-typealias FxaUnauthorizedException = mozilla.appservices.fxaclient.FxaException.Unauthorized
+typealias FxaUnauthorizedException = mozilla.appservices.fxaclient.FxaException.Authentication
 
 /**
  * Thrown when the Rust library hits an unexpected error that isn't a panic.
  * This may indicate library misuse, network errors, etc.
  */
-typealias FxaUnspecifiedException = mozilla.appservices.fxaclient.FxaException.Unspecified
+typealias FxaUnspecifiedException = mozilla.appservices.fxaclient.FxaException.Other
 
 /**
  * @return 'true' if this exception should be re-thrown and eventually crash the app.

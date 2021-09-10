@@ -11,6 +11,7 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -24,8 +25,8 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.flow
-import mozilla.components.support.base.utils.NamedThreadFactory
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.base.utils.NamedThreadFactory
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -120,6 +121,7 @@ class AutoSave(
         val delayMs = lastSaveTimestamp + minimumIntervalMs - now
         lastSaveTimestamp = now
 
+        @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(Dispatchers.IO) {
             if (delaySave && delayMs > 0) {
                 logger.debug("Delaying save (${delayMs}ms)")

@@ -192,7 +192,7 @@ class TabsTrayPresenterTest {
 
         assertEquals(2, tabsTray.updateTabs!!.list.size)
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
         testDispatcher.advanceUntilIdle()
 
         assertEquals(0, tabsTray.updateTabs!!.list.size)
@@ -263,14 +263,15 @@ class TabsTrayPresenterTest {
             tabsTray,
             store,
             tabsFilter = { true },
-            closeTabsTray = { closed = true })
+            closeTabsTray = { closed = true }
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
 
         assertFalse(closed)
 
-        store.dispatch(TabListAction.RemoveAllTabsAction).joinBlocking()
+        store.dispatch(TabListAction.RemoveAllTabsAction()).joinBlocking()
         testDispatcher.advanceUntilIdle()
 
         assertTrue(closed)
@@ -297,7 +298,8 @@ class TabsTrayPresenterTest {
             tabsTray,
             store,
             tabsFilter = { true },
-            closeTabsTray = { closed = true })
+            closeTabsTray = { closed = true }
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()
@@ -393,7 +395,8 @@ class TabsTrayPresenterTest {
             tabsTray,
             store,
             tabsFilter = { it.content.private },
-            closeTabsTray = { invoked = true })
+            closeTabsTray = { invoked = true }
+        )
 
         presenter.start()
         testDispatcher.advanceUntilIdle()

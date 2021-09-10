@@ -6,16 +6,24 @@ package mozilla.components.concept.engine.prompt
 
 import android.content.Context
 import android.net.Uri
-import mozilla.components.concept.storage.Login
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Level
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Method
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
+import mozilla.components.concept.storage.Login
+import java.util.UUID
 
 /**
  * Value type that represents a request for showing a native dialog for prompt web content.
  *
+ * @param shouldDismissOnLoad Whether or not the dialog should automatically be dismissed when a new page is loaded.
+ * Defaults to `true`.
+ * @param uid [PromptRequest] unique identifier. Defaults to a random UUID.
+ * (This two parameters, though present in all subclasses are not evaluated in subclasses equals() calls)
  */
-sealed class PromptRequest {
+sealed class PromptRequest(
+    val shouldDismissOnLoad: Boolean = true,
+    val uid: String = UUID.randomUUID().toString()
+) {
     /**
      * Value type that represents a request for a single choice prompt.
      * @property choices All the possible options.
@@ -68,6 +76,18 @@ sealed class PromptRequest {
     ) : PromptRequest()
 
     /**
+     * Value type that represents a request for a select credit card prompt.
+     * @property creditCards a list of [CreditCard]s to select from.
+     * @property onDismiss callback to let the page know the user dismissed the dialog.
+     * @property onConfirm callback that is called when the user confirms the credit card selection.
+     */
+    data class SelectCreditCard(
+        val creditCards: List<CreditCard>,
+        override val onDismiss: () -> Unit,
+        val onConfirm: (CreditCard) -> Unit
+    ) : PromptRequest(), Dismissible
+
+    /**
      * Value type that represents a request for a save login prompt.
      * @property hint a value that helps to determine the appropriate prompting behavior.
      * @property logins a list of logins that are associated with the current domain.
@@ -79,7 +99,7 @@ sealed class PromptRequest {
         val logins: List<Login>,
         override val onDismiss: () -> Unit,
         val onConfirm: (Login) -> Unit
-    ) : PromptRequest(), Dismissible
+    ) : PromptRequest(shouldDismissOnLoad = false), Dismissible
 
     /**
      * Value type that represents a request for a select login prompt.
@@ -181,6 +201,7 @@ sealed class PromptRequest {
      * Value type that represents a request for an authentication prompt.
      * For more related info take a look at
      * <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication>MDN docs</a>
+     * @property uri The URI for the auth request or null if unknown.
      * @property title of the dialog.
      * @property message the body of the dialog.
      * @property userName default value provide for this session.
@@ -195,6 +216,7 @@ sealed class PromptRequest {
      * @property onDismiss callback to indicate the user dismissed this request.
      */
     data class Authentication(
+        val uri: String?,
         val title: String,
         val message: String,
         val userName: String,
@@ -241,8 +263,9 @@ sealed class PromptRequest {
     data class Popup(
         val targetUri: String,
         val onAllow: () -> Unit,
-        val onDeny: () -> Unit
-    ) : PromptRequest()
+        val onDeny: () -> Unit,
+        override val onDismiss: () -> Unit = { onDeny() }
+    ) : PromptRequest(), Dismissible
 
     /**
      * Value type that represents a request for showing a

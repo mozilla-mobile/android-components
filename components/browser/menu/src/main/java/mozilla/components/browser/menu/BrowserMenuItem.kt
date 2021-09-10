@@ -6,6 +6,8 @@ package mozilla.components.browser.menu
 
 import android.content.Context
 import android.view.View
+import mozilla.components.browser.menu.view.ExpandableLayout
+import mozilla.components.browser.menu.view.StickyItemsLinearLayoutManager
 import mozilla.components.concept.menu.candidate.MenuCandidate
 
 /**
@@ -24,6 +26,20 @@ interface BrowserMenuItem {
      * item, like a tool bar, will have several.
      */
     val interactiveCount: () -> Int get() = { 1 }
+
+    /**
+     * Whether this menu item can serve as the limit of a collapsing menu.
+     *
+     * @see [ExpandableLayout]
+     */
+    val isCollapsingMenuLimit: Boolean get() = false
+
+    /**
+     * Whether this menu item should not be scrollable off-screen.
+     *
+     * @see [StickyItemsLinearLayoutManager]
+     */
+    val isSticky: Boolean get() = false
 
     /**
      * Returns the layout resource ID of the layout to be inflated for showing a menu item of this

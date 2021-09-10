@@ -20,13 +20,12 @@ import java.util.Locale
  * Original implementation imported from Lockwise:
  * https://github.com/mozilla-lockwise/lockwise-android/blob/f303f8aee7cc96dcdf4e7863fef6c19ae874032e/app/src/main/java/mozilla/lockbox/autofill/ViewNodeNavigator.kt#L13
  */
-@Suppress("TooManyFunctions")
 internal interface AutofillNodeNavigator<Node, Id> {
     companion object {
         val editTextMask = InputType.TYPE_CLASS_TEXT
         val passwordMask =
             InputType.TYPE_TEXT_VARIATION_PASSWORD or
-                    InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
     }
 
     val rootNodes: List<Node>
@@ -87,7 +86,6 @@ internal interface AutofillNodeNavigator<Node, Id> {
  * https://github.com/mozilla-lockwise/lockwise-android/blob/f303f8aee7cc96dcdf4e7863fef6c19ae874032e/app/src/main/java/mozilla/lockbox/autofill/ViewNodeNavigator.kt#L72
  */
 @RequiresApi(Build.VERSION_CODES.O)
-@Suppress("TooManyFunctions")
 internal class ViewNodeNavigator(
     private val structure: AssistStructure,
     override val activityPackageName: String
@@ -151,7 +149,7 @@ internal class ViewNodeNavigator(
 
     private fun htmlTagName(node: ViewNode) =
         // Use English locale, as the HTML tags are all in English.
-        node.htmlInfo?.tag?.toLowerCase(Locale.ENGLISH)
+        node.htmlInfo?.tag?.lowercase(Locale.ENGLISH)
 
     override fun isHtmlForm(node: ViewNode) =
         htmlTagName(node) == "form"

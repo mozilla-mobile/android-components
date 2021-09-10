@@ -5,6 +5,10 @@
 package mozilla.components.browser.state.search
 
 import android.graphics.Bitmap
+import android.net.Uri
+
+// OpenSearch parameter for search terms.
+const val OS_SEARCH_ENGINE_TERMS_PARAM = "{" + "searchTerms" + "}"
 
 /**
  * A data class representing a search engine.
@@ -42,5 +46,20 @@ data class SearchEngine(
          * A custom search engine added by the user.
          */
         CUSTOM,
+    }
+
+    // Cache these parameters to avoid repeated parsing.
+    // Assume we always have at least one entry in `resultUrls`.
+    val resultsUrl: Uri by lazy { Uri.parse(this.resultUrls[0]) }
+    // This assumes that search parameters are always "on their own" within the param value,
+    // e.g. always in a form of ?q={searchTerms}, never ?q=somePrefix-{searchTerms}
+    val searchParameterName by lazy {
+        resultsUrl.queryParameterNames.find {
+            try {
+                resultsUrl.getQueryParameter(it) == OS_SEARCH_ENGINE_TERMS_PARAM
+            } catch (e: UnsupportedOperationException) {
+                false
+            }
+        }
     }
 }

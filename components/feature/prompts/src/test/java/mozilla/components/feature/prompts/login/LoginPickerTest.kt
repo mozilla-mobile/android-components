@@ -55,13 +55,13 @@ class LoginPickerTest {
     @Test
     fun `LoginPicker shows the login select bar on a custom tab`() {
         val customTabContent: ContentState = mock()
-        whenever(customTabContent.promptRequest).thenReturn(request)
+        whenever(customTabContent.promptRequests).thenReturn(listOf(request))
         val customTab = CustomTabSessionState("custom-tab", customTabContent, mock(), mock())
 
         whenever(state.customTabs).thenReturn(listOf(customTab))
         loginPicker = LoginPicker(store, loginSelectBar, onManageLogins, customTab.id)
         loginPicker.handleSelectLoginRequest(request)
-        verify(loginSelectBar).showPicker(request.logins)
+        verify(loginSelectBar).showPrompt(request.logins)
     }
 
     @Test
@@ -69,7 +69,7 @@ class LoginPickerTest {
         prepareSelectedSession(request)
         loginPicker = LoginPicker(store, loginSelectBar, onManageLogins)
         loginPicker.handleSelectLoginRequest(request)
-        verify(loginSelectBar).showPicker(request.logins)
+        verify(loginSelectBar).showPrompt(request.logins)
     }
 
     @Test
@@ -79,10 +79,10 @@ class LoginPickerTest {
 
         loginPicker.handleSelectLoginRequest(request)
 
-        loginPicker.onLoginSelected(login)
+        loginPicker.onOptionSelect(login)
 
         assertEquals(confirmedLogin, login)
-        verify(loginSelectBar).hidePicker()
+        verify(loginSelectBar).hidePrompt()
     }
 
     @Test
@@ -95,17 +95,17 @@ class LoginPickerTest {
 
         loginPicker.handleSelectLoginRequest(request)
 
-        loginPicker.onManageLogins()
+        loginPicker.onManageOptions()
 
         assertTrue(manageLoginsCalled)
         assertTrue(onDismissWasCalled)
-        verify(loginSelectBar).hidePicker()
+        verify(loginSelectBar).hidePrompt()
     }
 
     private fun prepareSelectedSession(request: PromptRequest? = null): TabSessionState {
         val promptRequest: PromptRequest = request ?: mock()
         val content: ContentState = mock()
-        whenever(content.promptRequest).thenReturn(promptRequest)
+        whenever(content.promptRequests).thenReturn(listOf(promptRequest))
 
         val selected = TabSessionState("browser-tab", content, mock(), mock())
         whenever(state.selectedTabId).thenReturn(selected.id)

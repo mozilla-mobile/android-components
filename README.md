@@ -1,7 +1,6 @@
 # Android components
 
-[![Task Status](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/master/badge.svg)](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/master/latest)
-[![codecov](https://codecov.io/gh/mozilla-mobile/android-components/branch/master/graph/badge.svg)](https://codecov.io/gh/mozilla-mobile/android-components)
+[![Task Status](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/main/badge.svg)](https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/mozilla-mobile/android-components/main/latest)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/mozilla-mobile/android-components&style=flat)](https://mergify.io)
 [![chat.mozilla.org](https://img.shields.io/badge/chat-on%20matrix-51bb9c)](https://chat.mozilla.org/#/room/#android-components:mozilla.org)
 
@@ -9,7 +8,7 @@ _A collection of Android libraries to build browsers or browser-like application
 
 ℹ️ For more information **[see the website](https://mozilla-mobile.github.io/android-components/)**.
 
-A full featured reference browser implementation based on the components can be found in the [reference-browser repository](https://github.com/mozilla-mobile/reference-browser).
+A fully-featured reference browser implementation based on the components can be found in the [reference-browser repository](https://github.com/mozilla-mobile/reference-browser).
 
 # Getting Involved
 
@@ -28,7 +27,7 @@ Before you attempt to make a contribution please read the [Community Participati
 # Maven repository
 
 All components are getting published on [maven.mozilla.org](https://maven.mozilla.org/).
-To use them, you need to add the following to your project's top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/master/build.gradle)):
+To use them, you need to add the following to your project's top-level build file, in the `allprojects` block (see e.g. the [reference-browser](https://github.com/mozilla-mobile/reference-browser/blob/main/build.gradle)):
 
 ```groovy
 repositories {
@@ -48,11 +47,7 @@ dependencies {
 
 ## Nightly builds
 
-Nightly builds are created every day from the `master` branch and published on [nightly.maven.mozilla.org](https://nightly.maven.mozilla.org).
-
-# API Reference
-
-The API reference docs are available at [mozac.org/api/](https://mozac.org/api/).
+Nightly builds are created every day from the `main` branch and published on [nightly.maven.mozilla.org](https://nightly.maven.mozilla.org).
 
 # Components
 
@@ -68,11 +63,7 @@ High-level components for building browser(-like) apps.
 
 * 🔵 [**Domains**](components/browser/domains/README.md) Localized and customizable domain lists for auto-completion in browsers.
 
-* 🔵 [**Engine-Gecko**](components/browser/engine-gecko/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Release channel).
-
-* 🔵 [**Engine-Gecko-Beta**](components/browser/engine-gecko-beta/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Beta channel).
-
-* 🔵 [**Engine-Gecko-Nightly**](components/browser/engine-gecko-nightly/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView) (Nightly channel).
+* 🔵 [**Engine-Gecko**](components/browser/engine-gecko/README.md) - *Engine* implementation based on [GeckoView](https://wiki.mozilla.org/Mobile/GeckoView).
 
 * 🔵 [**Engine-System**](components/browser/engine-system/README.md) - *Engine* implementation based on the system's WebView.
 
@@ -84,11 +75,9 @@ High-level components for building browser(-like) apps.
 
 * ⚪ [**Menu 2**](components/browser/menu2/README.md) - A generic menu with customizable items primarily for browser toolbars.
 
-* 🔵 [**Search**](components/browser/search/README.md) - Search plugins and companion code to load, parse and use them.
-
-* 🔵 [**Session**](components/browser/session/README.md) - A generic representation of a browser session.
-
 * 🔵 [**Session-Storage**](components/browser/session-storage/README.md) - Component for saving and restoring the browser state.
+
+* 🔵 [**State**](components/browser/state/README.md) - Component for maintaining the centralized state of the browser and its components.
 
 * 🔵 [**Storage-Memory**](components/browser/storage-memory/README.md) - An in-memory implementation of browser storage.
 
@@ -204,6 +193,8 @@ _Components and libraries to interact with backend services._
 
 * 🔵 [**Firefox Sync - Logins**](components/service/sync-logins/README.md) - A library for integrating with Firefox Sync - Logins.
 
+* 🔴 [**Firefox Sync - Autofill**](components/service/sync-autofill/README.md) - A library for integrating with Firefox Sync - Autofill.
+
 * 🔵 [**Glean**](components/service/glean/README.md) - A client-side telemetry SDK for collecting metrics and sending them to Mozilla's telemetry service (eventually replacing [service-telemetry](components/service/telemetry/README.md)).
 
 * 🔵 [**Location**](components/service/location/README.md) - A library for accessing Mozilla's and other location services.
@@ -315,28 +306,23 @@ To check your style, run:
 ```
 
 ## Documentation ##
-We use `README.md` files and [Dokka](https://github.com/Kotlin/dokka), which you can generate with:
+We use `README.md` files for each component.
 
-```
-./gradlew dokka                          # Generate dokka for the entire repo
-./gradlew :browser-icons:dokka           # Generate dokka for a specified module
-```
-
-If you fix a bug or change an API, you should update [docs/changelog.md](https://github.com/mozilla-mobile/android-components/blob/master/docs/changelog.md).
+If you fix a bug or change an API, you should update [docs/changelog.md](https://github.com/mozilla-mobile/android-components/blob/main/docs/changelog.md).
 
 ## Testing ##
 You are expected to both add tests for code that you write and make sure that your changes do not
 cause existing tests to fail. You may find these command lines helpful:
 
 ```
-./gradlew test                            # Run all tests
-./gradlew :support-ktx:testdebugunittest  # Run unit tests for a specified module
+./gradlew test                             # Run all tests
+./gradlew :support-ktx:testdebugunittest   # Run unit tests for a specified module
 ```
 
 See also [how to measure code coverage](https://mozac.org/contributing/code-coverage).
 
 ## Accessibility ##
-If your code has user-facing changes, follow [Android accessibility best practices](https://github.com/mozilla-mobile/shared-docs/blob/master/android/accessibility_guide.md).
+If your code has user-facing changes, follow [Android accessibility best practices](https://github.com/mozilla-mobile/shared-docs/blob/main/android/accessibility_guide.md).
 
 # License
 

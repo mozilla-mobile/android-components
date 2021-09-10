@@ -9,12 +9,16 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.NO_ID
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
+import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.content.ContextCompat
 import androidx.core.view.forEach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +44,11 @@ import kotlin.coroutines.CoroutineContext
 // https://github.com/mozilla-mobile/android-components/issues/5249
 const val MAX_URI_LENGTH = 25000
 
+internal fun ImageView.setTintResource(@ColorRes tintColorResource: Int) {
+    if (tintColorResource != NO_ID) {
+        imageTintList = ContextCompat.getColorStateList(context, tintColorResource)
+    }
+}
 /**
  * A customizable toolbar for browsers.
  *
@@ -59,7 +68,6 @@ const val MAX_URI_LENGTH = 25000
  *  +----------------+ +----------------+
  * ```
  */
-@Suppress("TooManyFunctions")
 class BrowserToolbar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -81,7 +89,7 @@ class BrowserToolbar @JvmOverloads constructor(
             false
         )
     )
-    @VisibleForTesting(otherwise = PRIVATE) internal set
+        @VisibleForTesting(otherwise = PRIVATE) internal set
 
     /**
      * Toolbar in "edit mode".
@@ -95,7 +103,7 @@ class BrowserToolbar @JvmOverloads constructor(
             false
         )
     )
-    @VisibleForTesting(otherwise = PRIVATE) internal set
+        @VisibleForTesting(otherwise = PRIVATE) internal set
 
     override var title: String
         get() = display.title
@@ -125,11 +133,11 @@ class BrowserToolbar @JvmOverloads constructor(
     override var siteTrackingProtection: Toolbar.SiteTrackingProtection =
         Toolbar.SiteTrackingProtection.OFF_GLOBALLY
         set(value) {
-            if (field != value) {
-                display.setTrackingProtectionState(value)
-                field = value
+                if (field != value) {
+                    display.setTrackingProtectionState(value)
+                    field = value
+                }
             }
-        }
 
     override var private: Boolean
         get() = edit.private
@@ -169,7 +177,8 @@ class BrowserToolbar @JvmOverloads constructor(
                 0 + paddingLeft,
                 0 + paddingTop,
                 paddingLeft + child.measuredWidth,
-                paddingTop + child.measuredHeight)
+                paddingTop + child.measuredHeight
+            )
         }
     }
 
@@ -335,6 +344,18 @@ class BrowserToolbar @JvmOverloads constructor(
         }
     }
 
+    override fun expand() {
+        (layoutParams as? CoordinatorLayout.LayoutParams)?.apply {
+            (behavior as? BrowserToolbarBehavior)?.forceExpand(this@BrowserToolbar)
+        }
+    }
+
+    override fun collapse() {
+        (layoutParams as? CoordinatorLayout.LayoutParams)?.apply {
+            (behavior as? BrowserToolbarBehavior)?.forceCollapse(this@BrowserToolbar)
+        }
+    }
+
     internal fun onUrlEntered(url: String) {
         if (urlCommitListener?.invoke(url) != false) {
             // Return to display mode if there's no urlCommitListener or if it returned true. This lets
@@ -374,16 +395,30 @@ class BrowserToolbar @JvmOverloads constructor(
      * @param visible Lambda that returns true or false to indicate whether this button should be shown.
      * @param background A custom (stateful) background drawable resource to be used.
      * @param padding a custom [Padding] for this Button.
+     * @param iconTintColorResource Optional ID of color resource to tint the icon.
+     * @param longClickListener Callback that will be invoked whenever the button is long-pressed.
      * @param listener Callback that will be invoked whenever the button is pressed
      */
+    @Suppress("LongParameterList")
     open class Button(
         imageDrawable: Drawable,
         contentDescription: String,
         visible: () -> Boolean = { true },
         @DrawableRes background: Int = 0,
         val padding: Padding = DEFAULT_PADDING,
+        @ColorRes iconTintColorResource: Int = NO_ID,
+        longClickListener: (() -> Unit)? = null,
         listener: () -> Unit
-    ) : Toolbar.ActionButton(imageDrawable, contentDescription, visible, background, padding, listener)
+    ) : Toolbar.ActionButton(
+        imageDrawable,
+        contentDescription,
+        visible,
+        background,
+        padding,
+        iconTintColorResource,
+        longClickListener,
+        listener
+    )
 
     /**
      * An action button with two states, selected and unselected. When the button is pressed, the
@@ -423,44 +458,58 @@ class BrowserToolbar @JvmOverloads constructor(
 
     /**
      * An action that either shows an active button or an inactive button based on the provided
-     * <code>isEnabled</code> lambda.
+     * <code>isInPrimaryState</code> lambda. All secondary characteristics default to their
+     * corresponding primary.
      *
-     * @param enabledImage The drawable to be show if the button is in the enabled stated.
-     * @param enabledContentDescription The content description to use if the button is in the enabled state.
-     * @param disabledImage The drawable to be show if the button is in the disabled stated.
-     * @param disabledContentDescription The content description to use if the button is in the enabled state.
-     * @param isEnabled Lambda that returns true of false to indicate whether this button should be enabled/disabled.
+     * @param primaryImage: The drawable to be shown if the button is in the primary/enabled state
+     * @param primaryContentDescription: The content description to use if the button is in the primary state.
+     * @param secondaryImage: The drawable to be shown if the button is in the secondary/disabled state.
+     * @param secondaryContentDescription: The content description to use if the button is in the secondary state.
+     * @param isInPrimaryState: Lambda that returns whether this button should be in the primary or secondary state.
+     * @param primaryImageTintResource: Optional ID of color resource to tint the icon in the primary state.
+     * @param secondaryImageTintResource: ID of color resource to tint the icon in the secondary state.
+     * @param disableInSecondaryState: Disable the button entirely when in the secondary state?
      * @param background A custom (stateful) background drawable resource to be used.
-     * @param listener Callback that will be invoked whenever the checked state changes.
+     * @param longClickListener Callback that will be invoked whenever the button is long-pressed.
+     * @param listener Callback that will be invoked whenever the button is pressed.
      */
+    @Suppress("LongParameterList")
     open class TwoStateButton(
-        private val enabledImage: Drawable,
-        private val enabledContentDescription: String,
-        private val disabledImage: Drawable,
-        private val disabledContentDescription: String,
-        private val isEnabled: () -> Boolean = { true },
+        val primaryImage: Drawable,
+        val primaryContentDescription: String,
+        val secondaryImage: Drawable = primaryImage,
+        val secondaryContentDescription: String = primaryContentDescription,
+        val isInPrimaryState: () -> Boolean = { true },
+        @ColorRes val primaryImageTintResource: Int = NO_ID,
+        @ColorRes val secondaryImageTintResource: Int = primaryImageTintResource,
+        val disableInSecondaryState: Boolean = true,
         background: Int = 0,
+        longClickListener: (() -> Unit)? = null,
         listener: () -> Unit
     ) : BrowserToolbar.Button(
-        enabledImage,
-        enabledContentDescription,
+        primaryImage,
+        primaryContentDescription,
+        background = background,
+        longClickListener = longClickListener,
         listener = listener,
-        background = background
     ) {
         var enabled: Boolean = false
             private set
 
         override fun bind(view: View) {
-            enabled = isEnabled.invoke()
+            enabled = isInPrimaryState.invoke()
 
             val button = view as ImageButton
-
             if (enabled) {
-                button.setImageDrawable(disabledImage)
-                button.contentDescription = disabledContentDescription
+                button.setImageDrawable(primaryImage)
+                button.contentDescription = primaryContentDescription
+                button.setTintResource(primaryImageTintResource)
+                button.isEnabled = true
             } else {
-                button.setImageDrawable(enabledImage)
-                button.contentDescription = enabledContentDescription
+                button.setImageDrawable(secondaryImage)
+                button.contentDescription = secondaryContentDescription
+                button.setTintResource(secondaryImageTintResource)
+                button.isEnabled = !disableInSecondaryState
             }
         }
     }

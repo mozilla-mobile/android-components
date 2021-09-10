@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import resolve_keyed_by
@@ -13,7 +12,7 @@ transforms = TransformSequence()
 @transforms.add
 def build_name_and_attributes(config, tasks):
     for task in tasks:
-        all_dependent_tasks = task.pop("dependent-tasks").values()
+        all_dependent_tasks = list(task.pop("dependent-tasks").values())
         task["dependencies"] = {
             dep.label: dep.label
             for dep in all_dependent_tasks

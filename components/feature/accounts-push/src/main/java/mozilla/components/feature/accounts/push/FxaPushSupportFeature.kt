@@ -11,7 +11,9 @@ import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.concept.base.crash.CrashReporting
@@ -27,13 +29,13 @@ import mozilla.components.feature.accounts.push.ext.redactPartialUri
 import mozilla.components.feature.push.AutoPushFeature
 import mozilla.components.feature.push.AutoPushSubscription
 import mozilla.components.feature.push.PushScope
-import mozilla.components.concept.sync.AccountObserver as SyncAccountObserver
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.manager.ext.withConstellation
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.utils.SharedPreferencesCache
 import org.json.JSONObject
 import java.util.UUID
+import mozilla.components.concept.sync.AccountObserver as SyncAccountObserver
 
 internal const val PREFERENCE_NAME = "mozac_feature_accounts_push"
 internal const val PREF_LAST_VERIFIED = "last_verified_push_subscription"
@@ -123,6 +125,7 @@ internal class AccountObserver(
     private val logger = Logger(AccountObserver::class.java.simpleName)
     private val verificationDelegate = VerificationDelegate(context, push.config.disableRateLimit)
 
+    @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
     override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
 
         val constellationObserver = ConstellationObserver(
@@ -150,14 +153,18 @@ internal class AccountObserver(
                     CoroutineScope(Dispatchers.Main).launch {
                         account.deviceConstellation().setDevicePushSubscription(subscription.into())
                     }
-                })
+                }
+            )
         }
 
         // NB: can we just expose registerDeviceObserver on account manager?
         // registration could happen after onDevicesUpdate has been called, without having to tie this
         // into the account "auth lifecycle".
         // See https://github.com/mozilla-mobile/android-components/issues/8766
-        account.deviceConstellation().registerDeviceObserver(constellationObserver, lifecycleOwner, autoPause)
+        GlobalScope.launch(Dispatchers.Main) {
+            account.deviceConstellation().registerDeviceObserver(constellationObserver, lifecycleOwner, autoPause)
+            account.deviceConstellation().refreshDevices()
+        }
     }
 
     override fun onLoggedOut() {

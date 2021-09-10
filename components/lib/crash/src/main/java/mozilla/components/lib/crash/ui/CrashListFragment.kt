@@ -43,13 +43,16 @@ internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) 
         listView.addItemDecoration(dividerItemDecoration)
 
         try {
-            database.crashDao().getCrashesWithReports().observe(viewLifecycleOwner, Observer { list ->
-                if (list.isEmpty()) {
-                    emptyView.visibility = View.VISIBLE
-                } else {
-                    adapter.updateList(list)
+            database.crashDao().getCrashesWithReports().observe(
+                viewLifecycleOwner,
+                Observer { list ->
+                    if (list.isEmpty()) {
+                        emptyView.visibility = View.VISIBLE
+                    } else {
+                        adapter.updateList(list)
+                    }
                 }
-            })
+            )
         } catch (e: SQLiteBlobTooBigException) {
             /* recover by deleting all entries */
             database.crashDao().deleteAll()
@@ -57,6 +60,6 @@ internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) 
     }
 
     private fun onSelection(url: String) {
-        (activity!! as AbstractCrashListActivity).onCrashServiceSelected(url)
+        (requireActivity() as AbstractCrashListActivity).onCrashServiceSelected(url)
     }
 }

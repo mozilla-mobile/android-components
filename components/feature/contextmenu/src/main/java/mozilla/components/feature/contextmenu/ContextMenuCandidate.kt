@@ -8,7 +8,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.view.View
+import androidx.annotation.VisibleForTesting
 import com.google.android.material.snackbar.Snackbar
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.DownloadState
@@ -31,7 +33,6 @@ import mozilla.components.support.ktx.kotlin.takeOrReplace
  * will be displayed in the context menu.
  * @property action The action to be invoked once the user selects this item.
  */
-@Suppress("TooManyFunctions")
 data class ContextMenuCandidate(
     val id: String,
     val label: String,
@@ -96,7 +97,11 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.open_in_new_tab",
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_new_tab),
-            showFor = { tab, hitResult -> hitResult.isHttpLink() && !tab.content.private },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isHttpLink() &&
+                    !tab.content.private
+            },
             action = { parent, hitResult ->
                 val tab = tabsUseCases.addTab(
                     hitResult.getLink(),
@@ -128,13 +133,17 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.open_in_private_tab",
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_private_tab),
-            showFor = { _, hitResult -> hitResult.isHttpLink() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isHttpLink()
+            },
             action = { parent, hitResult ->
-                val tab = tabsUseCases.addPrivateTab(
+                val tab = tabsUseCases.addTab(
                     hitResult.getLink(),
                     selectTab = false,
                     startLoading = true,
-                    parentId = parent.id
+                    parentId = parent.id,
+                    private = true
                 )
 
                 snackbarDelegate.show(
@@ -157,7 +166,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.open_in_external_app",
             label = context.getString(R.string.mozac_feature_contextmenu_open_link_in_external_app),
-            showFor = { _, hitResult -> hitResult.canOpenInExternalApp(appLinksUseCases) },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.canOpenInExternalApp(appLinksUseCases)
+            },
             action = { _, hitResult ->
                 val link = hitResult.getLink()
                 val redirect = appLinksUseCases.appLinkRedirectIncludeInstall(link)
@@ -179,7 +191,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.add_to_contact",
             label = context.getString(R.string.mozac_feature_contextmenu_add_to_contact),
-            showFor = { _, hitResult -> hitResult.isMailto() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isMailto()
+            },
             action = { _, hitResult -> context.addContact(hitResult.getLink().stripMailToProtocol()) }
         )
 
@@ -191,7 +206,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.share_email",
             label = context.getString(R.string.mozac_feature_contextmenu_share_email_address),
-            showFor = { _, hitResult -> hitResult.isMailto() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isMailto()
+            },
             action = { _, hitResult -> context.share(hitResult.getLink().stripMailToProtocol()) }
         )
 
@@ -205,12 +223,17 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.copy_email_address",
             label = context.getString(R.string.mozac_feature_contextmenu_copy_email_address),
-            showFor = { _, hitResult -> hitResult.isMailto() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isMailto()
+            },
             action = { _, hitResult ->
                 val email = hitResult.getLink().stripMailToProtocol()
-                clipPlaintText(context, email, email,
+                clipPlaintText(
+                    context, email, email,
                     R.string.mozac_feature_contextmenu_snackbar_email_address_copied, snackBarParentView,
-                    snackbarDelegate)
+                    snackbarDelegate
+                )
             }
         )
 
@@ -225,21 +248,19 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.open_image_in_new_tab",
             label = context.getString(R.string.mozac_feature_contextmenu_open_image_in_new_tab),
-            showFor = { _, hitResult -> hitResult.isImage() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isImage()
+            },
             action = { parent, hitResult ->
-                val tab = if (parent.content.private) {
-                    tabsUseCases.addPrivateTab(
-                        hitResult.src, selectTab = false, startLoading = true, parentId = parent.id
-                    )
-                } else {
-                    tabsUseCases.addTab(
-                        hitResult.src,
-                        selectTab = false,
-                        startLoading = true,
-                        parentId = parent.id,
-                        contextId = parent.contextId
-                    )
-                }
+                val tab = tabsUseCases.addTab(
+                    hitResult.src,
+                    selectTab = false,
+                    startLoading = true,
+                    parentId = parent.id,
+                    contextId = parent.contextId,
+                    private = parent.content.private
+                )
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
@@ -261,7 +282,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.save_image",
             label = context.getString(R.string.mozac_feature_contextmenu_save_image),
-            showFor = { _, hitResult -> hitResult.isImage() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isImage()
+            },
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
@@ -279,7 +303,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.save_video",
             label = context.getString(R.string.mozac_feature_contextmenu_save_file_to_device),
-            showFor = { _, hitResult -> hitResult.isVideoAudio() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isVideoAudio()
+            },
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
@@ -297,7 +324,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.download_link",
             label = context.getString(R.string.mozac_feature_contextmenu_download_link),
-            showFor = { _, hitResult -> hitResult.isLinkForOtherThanWebpage() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isLinkForOtherThanWebpage()
+            },
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
@@ -314,7 +344,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.share_link",
             label = context.getString(R.string.mozac_feature_contextmenu_share_link),
-            showFor = { _, hitResult -> hitResult.isUri() || hitResult.isImage() || hitResult.isVideoAudio() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    (hitResult.isUri() || hitResult.isImage() || hitResult.isVideoAudio())
+            },
             action = { _, hitResult ->
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -340,7 +373,10 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.share_image",
             label = context.getString(R.string.mozac_feature_contextmenu_share_image),
-            showFor = { _, hitResult -> hitResult.isImage() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isImage()
+            },
             action = { tab, hitResult ->
                 contextMenuUseCases.injectShareFromInternet(
                     tab.id,
@@ -362,11 +398,16 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.copy_link",
             label = context.getString(R.string.mozac_feature_contextmenu_copy_link),
-            showFor = { _, hitResult -> hitResult.isUri() || hitResult.isImage() || hitResult.isVideoAudio() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    (hitResult.isUri() || hitResult.isImage() || hitResult.isVideoAudio())
+            },
             action = { _, hitResult ->
-                clipPlaintText(context, hitResult.getLink(), hitResult.getLink(),
+                clipPlaintText(
+                    context, hitResult.getLink(), hitResult.getLink(),
                     R.string.mozac_feature_contextmenu_snackbar_link_copied, snackBarParentView,
-                    snackbarDelegate)
+                    snackbarDelegate
+                )
             }
         )
 
@@ -380,11 +421,16 @@ data class ContextMenuCandidate(
         ) = ContextMenuCandidate(
             id = "mozac.feature.contextmenu.copy_image_location",
             label = context.getString(R.string.mozac_feature_contextmenu_copy_image_location),
-            showFor = { _, hitResult -> hitResult.isImage() },
+            showFor = { tab, hitResult ->
+                tab.isUrlSchemeAllowed(hitResult.getLink()) &&
+                    hitResult.isImage()
+            },
             action = { _, hitResult ->
-                clipPlaintText(context, hitResult.getLink(), hitResult.src,
+                clipPlaintText(
+                    context, hitResult.getLink(), hitResult.src,
                     R.string.mozac_feature_contextmenu_snackbar_link_copied, snackBarParentView,
-                    snackbarDelegate)
+                    snackbarDelegate
+                )
             }
         )
 
@@ -455,8 +501,10 @@ private fun HitResult.isLinkForOtherThanWebpage(): Boolean {
 }
 
 private fun HitResult.isIntent(): Boolean =
-    (this is HitResult.UNKNOWN && src.isNotEmpty() &&
-        getLink().startsWith("intent:"))
+    (
+        this is HitResult.UNKNOWN && src.isNotEmpty() &&
+            getLink().startsWith("intent:")
+        )
 
 private fun HitResult.isMailto(): Boolean =
     (this is HitResult.UNKNOWN && src.isNotEmpty()) &&
@@ -482,6 +530,17 @@ internal fun HitResult.getLink(): String = when (this) {
     is HitResult.AUDIO ->
         if (title.isNullOrBlank()) src else title.toString()
     else -> "about:blank"
+}
+
+@VisibleForTesting
+internal fun SessionState.isUrlSchemeAllowed(url: String): Boolean {
+    return when (val engineSession = engineState.engineSession) {
+        null -> true
+        else -> {
+            val urlScheme = Uri.parse(url).normalizeScheme().scheme
+            !engineSession.getBlockedSchemes().contains(urlScheme)
+        }
+    }
 }
 
 /**

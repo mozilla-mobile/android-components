@@ -11,6 +11,7 @@ import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.EXTRA_DOWNLOAD_ID
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
@@ -19,19 +20,21 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD_STATUS
 import mozilla.components.support.test.any
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.grantPermission
 import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.verify
-import mozilla.components.support.test.libstate.ext.waitUntilIdle
-import org.junit.Assert.assertTrue
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertEquals
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class FetchDownloadManagerTest {
@@ -99,6 +102,30 @@ class FetchDownloadManagerTest {
         verify(context).startService(any())
         notifyDownloadCompleted(id)
         assertTrue(downloadStopped)
+    }
+
+    @Test
+    fun `GIVEN a device that supports scoped storage THEN permissions must not included file access`() {
+        downloadManager =
+            spy(FetchDownloadManager(mock(), store, MockDownloadService::class, broadcastManager))
+
+        doReturn(Build.VERSION_CODES.Q).`when`(downloadManager).getSDKVersion()
+
+        assertTrue(WRITE_EXTERNAL_STORAGE !in downloadManager.permissions)
+    }
+
+    @Test
+    fun `GIVEN a device does not supports scoped storage THEN permissions must be included file access`() {
+        downloadManager =
+            spy(FetchDownloadManager(mock(), store, MockDownloadService::class, broadcastManager))
+
+        doReturn(Build.VERSION_CODES.P).`when`(downloadManager).getSDKVersion()
+
+        assertTrue(WRITE_EXTERNAL_STORAGE in downloadManager.permissions)
+
+        doReturn(Build.VERSION_CODES.O_MR1).`when`(downloadManager).getSDKVersion()
+
+        assertTrue(WRITE_EXTERNAL_STORAGE in downloadManager.permissions)
     }
 
     @Test

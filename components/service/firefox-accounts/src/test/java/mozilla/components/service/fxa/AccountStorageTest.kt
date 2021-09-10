@@ -5,8 +5,8 @@
 package mozilla.components.service.fxa
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 import mozilla.components.concept.base.crash.CrashReporting
+import mozilla.components.lib.dataprotect.SecureAbove22Preferences
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -17,7 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.annotation.Config
 import kotlin.reflect.KClass
 
@@ -79,7 +79,7 @@ class SharedPrefAccountStorageTest {
 
         reset(crashReporter)
         assertNull(secureStorage.read())
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 }
 
@@ -98,7 +98,7 @@ class SecureAbove22AccountStorageTest {
         assertNotNull(storage.read())
         storage.clear()
         assertNull(storage.read())
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Config(sdk = [21])
@@ -119,7 +119,7 @@ class SecureAbove22AccountStorageTest {
         assertNotNull(secureStorage.read())
         // And plainStorage must have been cleared during this migration.
         assertNull(plainStorage.read())
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Config(sdk = [21])
@@ -139,7 +139,7 @@ class SecureAbove22AccountStorageTest {
         // Make sure exception is only reported once per "incident".
         reset(crashReporter)
         assertNull(storage.read())
-        verifyZeroInteractions(crashReporter)
+        verifyNoInteractions(crashReporter)
     }
 
     @Config(sdk = [21])

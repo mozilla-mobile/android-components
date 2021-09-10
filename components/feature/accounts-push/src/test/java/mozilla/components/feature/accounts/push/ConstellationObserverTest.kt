@@ -8,9 +8,6 @@ package mozilla.components.feature.accounts.push
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.setMain
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.push.exceptions.SubscriptionException
 import mozilla.components.concept.sync.ConstellationState
@@ -24,14 +21,13 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
-import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 
 @RunWith(AndroidJUnit4::class)
 class ConstellationObserverTest {
@@ -43,15 +39,9 @@ class ConstellationObserverTest {
     private val context: Context = mock()
     private val account: OAuthAccount = mock()
     private val crashReporter: CrashReporting = mock()
-    private val testDispatcher = TestCoroutineDispatcher()
 
     @get:Rule
-    val coroutinesTestRule = MainCoroutineRule(testDispatcher)
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-    }
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Test
     fun `do nothing if subscription has not expired`() {
@@ -59,14 +49,14 @@ class ConstellationObserverTest {
 
         observer.onDevicesUpdate(state)
 
-        verifyZeroInteractions(push)
+        verifyNoInteractions(push)
 
         `when`(state.currentDevice).thenReturn(device)
         `when`(device.subscriptionExpired).thenReturn(false)
 
         observer.onDevicesUpdate(state)
 
-        verifyZeroInteractions(push)
+        verifyNoInteractions(push)
     }
 
     @Test
@@ -75,19 +65,19 @@ class ConstellationObserverTest {
 
         observer.onDevicesUpdate(state)
 
-        verifyZeroInteractions(push)
+        verifyNoInteractions(push)
 
         `when`(state.currentDevice).thenReturn(device)
         `when`(device.subscriptionExpired).thenReturn(true)
         `when`(verifier.allowedToRenew()).thenReturn(false)
 
-        verifyZeroInteractions(push)
+        verifyNoInteractions(push)
 
         `when`(device.subscriptionExpired).thenReturn(true)
 
         observer.onDevicesUpdate(state)
 
-        verifyZeroInteractions(push)
+        verifyNoInteractions(push)
     }
 
     @Test

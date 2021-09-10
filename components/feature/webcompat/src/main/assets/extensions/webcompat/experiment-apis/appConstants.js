@@ -4,11 +4,7 @@
 
 "use strict";
 
-/* global ExtensionAPI, XPCOMUtils */
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AppConstants: "resource://gre/modules/AppConstants.jsm",
-});
+/* global AppConstants, ExtensionAPI, XPCOMUtils */
 
 this.appConstants = class extends ExtensionAPI {
   getAPI(context) {
@@ -21,8 +17,8 @@ this.appConstants = class extends ExtensionAPI {
             return "dev_edition";
           } else if (AppConstants.EARLY_BETA_OR_EARLIER) {
             return "early_beta_or_earlier";
-          } else if (AppConstants.BETA_OR_RELEASE) {
-            return "beta_or_release";
+          } else if (AppConstants.RELEASE_OR_BETA) {
+            return "release_or_beta";
           }
           return "unknown";
         },

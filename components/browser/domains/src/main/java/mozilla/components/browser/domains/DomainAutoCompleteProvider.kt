@@ -7,8 +7,8 @@ package mozilla.components.browser.domains
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 /**
@@ -17,10 +17,14 @@ import java.util.Locale
  * [CustomDomains].
  */
 // FIXME delete this https://github.com/mozilla-mobile/android-components/issues/1358
-@Deprecated("Use `ShippedDomainsProvider` or `CustomDomainsProvider`",
-    ReplaceWith("ShippedDomainsProvider()/CustomDomainsProvider()",
+@Deprecated(
+    "Use `ShippedDomainsProvider` or `CustomDomainsProvider`",
+    ReplaceWith(
+        "ShippedDomainsProvider()/CustomDomainsProvider()",
         "mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider",
-        "mozilla.components.browser.domains.autocomplete.CustomDomainsProvider"))
+        "mozilla.components.browser.domains.autocomplete.CustomDomainsProvider"
+    )
+)
 class DomainAutoCompleteProvider {
 
     object AutocompleteSource {
@@ -118,7 +122,7 @@ class DomainAutoCompleteProvider {
     @Suppress("ReturnCount")
     private fun tryToAutocomplete(rawText: String, domains: List<Domain>, source: String): Result? {
         // Search terms are all lowercase already, we just need to lowercase the search text
-        val searchText = rawText.toLowerCase(Locale.US)
+        val searchText = rawText.lowercase(Locale.US)
 
         domains.forEach {
             val wwwDomain = "www.${it.host}"
@@ -142,5 +146,5 @@ class DomainAutoCompleteProvider {
      * that exactly matches the search text - which is what this method is for:
      */
     private fun getResultText(rawSearchText: String, autocomplete: String) =
-            rawSearchText + autocomplete.substring(rawSearchText.length)
+        rawSearchText + autocomplete.substring(rawSearchText.length)
 }

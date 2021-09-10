@@ -45,7 +45,8 @@ internal class Safelist {
         return if (TextUtils.isEmpty(hostUri.host) || TextUtils.isEmpty(resource.host) || hostUri.scheme == "data") {
             false
         } else if (resource.scheme?.isPermittedResourceProtocol() == true &&
-                hostUri.scheme?.isSupportedProtocol() == true) {
+            hostUri.scheme?.isSupportedProtocol() == true
+        ) {
             contains(hostUri.host!!.reverse(), resource.host!!.reverse(), rootNode)
         } else {
             false
@@ -53,7 +54,7 @@ internal class Safelist {
     }
 
     private fun contains(site: ReversibleString, resource: ReversibleString, revHostTrie: Trie): Boolean {
-        val next = revHostTrie.children.get(site.charAt(0).toInt()) as? SafelistTrie ?: return false
+        val next = revHostTrie.children.get(site.charAt(0).code) as? SafelistTrie ?: return false
 
         if (next.safelist?.findNode(resource) != null) {
             return true
@@ -67,11 +68,11 @@ internal class Safelist {
      */
     private fun String.isPermittedResourceProtocol(): Boolean {
         return this.startsWith("http") ||
-                this.startsWith("https") ||
-                this.startsWith("file") ||
-                this.startsWith("data") ||
-                this.startsWith("javascript") ||
-                this.startsWith("about")
+            this.startsWith("https") ||
+            this.startsWith("file") ||
+            this.startsWith("data") ||
+            this.startsWith("javascript") ||
+            this.startsWith("about")
     }
 
     /**

@@ -10,6 +10,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
+import mozilla.appservices.fxaclient.FxaException
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.sync.AccountEvent
 import mozilla.components.concept.sync.AccountEventsObserver
@@ -26,7 +27,6 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
 import mozilla.components.support.sync.telemetry.SyncTelemetry
-import mozilla.appservices.fxaclient.FxaErrorException as FxaException
 import mozilla.appservices.fxaclient.PersistedFirefoxAccount as FirefoxAccount
 
 internal sealed class FxaDeviceConstellationException : Exception() {
@@ -125,6 +125,7 @@ class FxaDeviceConstellation(
         owner: LifecycleOwner,
         autoPause: Boolean
     ) {
+        logger.debug("registering device observer")
         deviceObserverRegistry.register(observer, owner, autoPause)
     }
 
@@ -210,7 +211,9 @@ class FxaDeviceConstellation(
 
             // Find the current device.
             val currentDevice = allDevices.find { it.isCurrentDevice }?.also {
-                // Check if our current device's push subscription needs to be renewed.
+                // If our current device's push subscription needs to be renewed, then we
+                // possibly missed some push notifications, so check for that here.
+                // (This doesn't actually perform the renewal, FxaPushSupportFeature does that.)
                 if (it.subscription == null || it.subscriptionExpired) {
                     logger.info("Current device needs push endpoint registration, so checking for missed commands")
                     pollForCommands()

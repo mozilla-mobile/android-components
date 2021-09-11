@@ -37,7 +37,7 @@ class DefaultCreditCardValidationDelegate(
                     it.guid == creditCard.guid &&
                         decrypt(it.encryptedCardNumber) == decrypt(creditCard.encryptedCardNumber)
                 }
-                // Found a matching guid and blank credit card number -> update
+                    // Found a matching guid and blank credit card number -> update
                     ?: creditCards.find { it.guid == creditCard.guid && it.encryptedCardNumber.number.isEmpty() }
                     // Found a matching credit card number -> update
                     ?: creditCards.find { decrypt(it.encryptedCardNumber) == decrypt(creditCard.encryptedCardNumber) }
@@ -46,9 +46,11 @@ class DefaultCreditCardValidationDelegate(
                 // Else create a new credit card
             }
 
-            if (foundCreditCard == null) Result.CanBeCreated else Result.CanBeUpdated(
-                foundCreditCard
-            )
+            if (foundCreditCard == null) {
+                Result.CanBeCreated
+            } else {
+                Result.CanBeUpdated(foundCreditCard)
+            }
         }
 
     /**
@@ -65,17 +67,23 @@ class DefaultCreditCardValidationDelegate(
     }
 
     companion object {
+        /**
+         * Merges this [CreditCard] with the provided [creditCard], preferring billing name and
+         * card number of the provided card.
+         *
+         * @param creditCard A [CreditCard] to merge.
+         * @return A merged [CreditCard].
+         */
         fun CreditCard.mergeWithCreditCard(creditCard: CreditCard): CreditCard {
-            infix fun String?.orUseExisting(other: String?) =
-                if (this?.isNotEmpty() == true) this else other
-
             infix fun String?.orUseExisting(other: String) =
                 if (this?.isNotEmpty() == true) this else other
 
             val billingName = creditCard.billingName orUseExisting billingName
-            val encryptedCardNumber = if (creditCard.encryptedCardNumber.number.isNotEmpty())
-                creditCard.encryptedCardNumber else encryptedCardNumber
-
+            val encryptedCardNumber = if (creditCard.encryptedCardNumber.number.isNotEmpty()) {
+                creditCard.encryptedCardNumber
+            } else {
+                encryptedCardNumber
+            }
 
             return copy(
                 billingName = billingName,

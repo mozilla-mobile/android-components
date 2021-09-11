@@ -6,7 +6,6 @@ package mozilla.components.concept.storage
 
 import android.annotation.SuppressLint
 import android.os.Parcelable
-import kotlinx.coroutines.Deferred
 import kotlinx.parcelize.Parcelize
 
 /**

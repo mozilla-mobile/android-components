@@ -265,7 +265,7 @@ open class PlacesHistoryStorage(
     ) {
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("noteHistoryMetadataObservation") {
-                places.writer().noteHistoryMetadataObservation(key.into(), observation.into())
+                places.writer().noteHistoryMetadataObservation(observation.into(key))
             }
         }
     }
@@ -274,6 +274,14 @@ open class PlacesHistoryStorage(
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("deleteHistoryMetadataOlderThan") {
                 places.writer().deleteHistoryMetadataOlderThan(olderThan)
+            }
+        }
+    }
+
+    override suspend fun deleteHistoryMetadata(key: HistoryMetadataKey) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("deleteHistoryMetadata") {
+                places.writer().deleteHistoryMetadata(key.into())
             }
         }
     }

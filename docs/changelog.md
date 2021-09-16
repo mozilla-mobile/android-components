@@ -9,22 +9,39 @@ permalink: /changelog/
 * **TabsFeature**
   * 🌟️ Remove private modifier on defaultTabsFilter (necessary for MoveTabs on filtered tab lists)
 
+# 94.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v93.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/141?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **concept-storage**, **browser-storage-sync**
+  * 🌟️ New API: `HistoryMetadataStorage.deleteHistoryMetadata`, allows removing specific metadata entries.
+
+* **browser-engine-gecko**:
+  * Switch to the `geckoview-omni` releases. `-omni` packages also ship the Glean Core native code.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 40.1.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v40.1.0))
+    * The Glean Core native code is now shipped through GeckoView
+
+# 93.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v92.0.0...v93.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/140?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v93.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v93.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v93.0.0/.config.yml)
+
+* **concept-toolbar**, **concept-engine**, **browser-engine-gecko**, **browser-state**, **feature-toolbar**, **browser-toolbar**,
+  * 🌟️ The toolbar now supports two new methods: `expand` and `collapse` to immediately execute this actions if the toolbar is dynamic. `expand` is used as of now as a callback for when GeckoView needs the toolbar to be shown depending on tab content changes.
+
 * **ui-icons**:
   * 🌟️ Adds icons: mozac_ic_add_to_home_screen, mozac_ic_help, mozac_ic_shield, mozac_ic_shield_disabled
   * 🌟️ Update icons: mozac_ic_home, mozac_ic_settings, mozac_ic_clear
 
 * **feature-contextmenu**:
   * 🌟️ Adds `additionalNote` which it will be attached to the bottom of context menu but for a specific `HitResult`
-
-# 93.0.0-SNAPSHOT (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v92.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/140?closed=1)
-* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
-* [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
-* [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
-
-* **concept-toolbar**, **concept-engine**, **browser-engine-gecko**, **browser-state**, **feature-toolbar**, **browser-toolbar**,
-  * 🌟️ The toolbar now supports two new methods: `expand` and `collapse` to immediately execute this actions if the toolbar is dynamic. `expand` is used as of now as a callback for when GeckoView needs the toolbar to be shown depending on tab content changes.
 
 # 92.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v91.0.0...v92.0.0)

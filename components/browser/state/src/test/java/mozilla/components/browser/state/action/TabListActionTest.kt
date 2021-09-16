@@ -1084,15 +1084,15 @@ class TabListActionTest {
         val bMap = b.map { "<" + it.id + "," + it.content.url + ">\n" }
         assertEquals(str, aMap.toString(), bMap.toString())
     }
-    private fun dispatchJoinMoveAction(store: BrowserStore, tabIds: List<String>, position: Int, tabsFilter: (TabSessionState) -> Boolean = { true }) {
+    private fun dispatchJoinMoveAction(store: BrowserStore, tabIds: List<String>, targetTabId: String, placeAfter: Boolean) {
         store.dispatch(
             TabListAction.MoveTabsAction(
-                tabIds, position, tabsFilter
+                tabIds, targetTabId, placeAfter
             )
         ).joinBlocking()
     }
     @Test
-    fun `MoveTabsAction - Tabs move as expected (without filter)`() {
+    fun `MoveTabsAction - Tabs move as expected`() {
         val tabList = listOf(
             createTab(id = "a", url = "https://www.mozilla.org"),
             createTab(id = "b", url = "https://www.firefox.com"),
@@ -1106,90 +1106,45 @@ class TabListActionTest {
             )
         )
 
-        dispatchJoinMoveAction(store, listOf("a"), 0)
-        assertSameTabs(store, tabList, "a to 0")
-        dispatchJoinMoveAction(store, listOf("a"), 1)
-        assertSameTabs(store, tabList, "a to 1")
+        dispatchJoinMoveAction(store, listOf("a"), "a", false)
+        assertSameTabs(store, tabList, "a to a-")
+        dispatchJoinMoveAction(store, listOf("a"), "a", true)
+        assertSameTabs(store, tabList, "a to a+")
+        dispatchJoinMoveAction(store, listOf("a"), "b", false)
+        assertSameTabs(store, tabList, "a to b-")
 
-        dispatchJoinMoveAction(store, listOf("a", "b"), 0)
-        assertSameTabs(store, tabList, "a,b to 0")
-        dispatchJoinMoveAction(store, listOf("a", "b"), 1)
-        assertSameTabs(store, tabList, "a,b to 1")
-        dispatchJoinMoveAction(store, listOf("a", "b"), 2)
-        assertSameTabs(store, tabList, "a,b to 2")
+        dispatchJoinMoveAction(store, listOf("a", "b"), "a", false)
+        assertSameTabs(store, tabList, "a,b to a-")
+        dispatchJoinMoveAction(store, listOf("a", "b"), "a", true)
+        assertSameTabs(store, tabList, "a,b to a+")
+        dispatchJoinMoveAction(store, listOf("a", "b"), "b", false)
+        assertSameTabs(store, tabList, "a,b to b-")
+        dispatchJoinMoveAction(store, listOf("a", "b"), "b", true)
+        assertSameTabs(store, tabList, "a,b to b+")
+        dispatchJoinMoveAction(store, listOf("a", "b"), "c", false)
+        assertSameTabs(store, tabList, "a,b to c-")
 
-        dispatchJoinMoveAction(store, listOf("c", "d"), 2)
-        assertSameTabs(store, tabList, "c,d to 2")
-        dispatchJoinMoveAction(store, listOf("c", "d"), 4)
-        assertSameTabs(store, tabList, "c,d to 4")
+        dispatchJoinMoveAction(store, listOf("c", "d"), "c", false)
+        assertSameTabs(store, tabList, "c,d to c-")
+        dispatchJoinMoveAction(store, listOf("c", "d"), "d", true)
+        assertSameTabs(store, tabList, "c,d to d+")
 
-        dispatchJoinMoveAction(store, listOf("a"), 3)
         val movedTabList = listOf(
             createTab(id = "b", url = "https://www.firefox.com"),
             createTab(id = "c", url = "https://getpocket.com"),
             createTab(id = "a", url = "https://www.mozilla.org"),
             createTab(id = "d", url = "https://www.example.org"),
         )
-        assertSameTabs(store, movedTabList, "a to 3")
+        dispatchJoinMoveAction(store, listOf("a"), "d", false)
+        assertSameTabs(store, movedTabList, "a to d-")
+        dispatchJoinMoveAction(store, listOf("b", "c"), "a", true)
+        assertSameTabs(store, tabList, "b,c to a+")
 
-        dispatchJoinMoveAction(store, listOf("b", "c"), 3)
-        assertSameTabs(store, tabList, "b,c to 3")
-        assertEquals("a", store.state.selectedTabId)
-    }
+        dispatchJoinMoveAction(store, listOf("a", "d"), "c", true)
+        assertSameTabs(store, movedTabList, "a,d to c+")
 
-    @Test
-    fun `MoveTabsAction - Tabs move as expected (with filter)`() {
-        val tabList = listOf(
-            createTab(id = "a", url = "https://www.mozilla.org"),
-            createTab(id = "b", url = "https://www.firefox.com"),
-            createTab(id = "c", url = "https://getpocket.com"),
-            createTab(id = "d", url = "https://www.example.org"),
-            createTab(id = "e", url = "https://www.firefox.com/hello"),
-        )
-        val store = BrowserStore(
-            BrowserState(
-                tabs = tabList,
-                selectedTabId = "a"
-            )
-        )
-        val tabsFilter = { x: TabSessionState -> x.id != "c" }
-        // Filtered list is a-b-d-e
-        dispatchJoinMoveAction(store, listOf("a"), 0, tabsFilter)
-        assertSameTabs(store, tabList, "a to 0")
-        dispatchJoinMoveAction(store, listOf("a"), 1, tabsFilter)
-        assertSameTabs(store, tabList, "a to 1")
-        dispatchJoinMoveAction(store, listOf("b"), 1, tabsFilter)
-        assertSameTabs(store, tabList, "b to 1")
-        dispatchJoinMoveAction(store, listOf("d"), 3, tabsFilter)
-        assertSameTabs(store, tabList, "d to 3")
-        dispatchJoinMoveAction(store, listOf("e"), 3, tabsFilter)
-        assertSameTabs(store, tabList, "e to 3")
-        dispatchJoinMoveAction(store, listOf("e"), 4, tabsFilter)
-        assertSameTabs(store, tabList, "e to 4")
-
-        dispatchJoinMoveAction(store, listOf("a"), 3, tabsFilter)
-        val movedTabList = listOf(
-            createTab(id = "b", url = "https://www.firefox.com"),
-            createTab(id = "c", url = "https://getpocket.com"),
-            createTab(id = "d", url = "https://www.example.org"),
-            createTab(id = "a", url = "https://www.mozilla.org"),
-            createTab(id = "e", url = "https://www.firefox.com/hello"),
-        )
-        assertSameTabs(store, movedTabList, "a to 3 (filtered)")
-
-        dispatchJoinMoveAction(store, listOf("d", "a"), 0, tabsFilter)
-        val movedTabList2 = listOf(
-            createTab(id = "d", url = "https://www.example.org"),
-            createTab(id = "a", url = "https://www.mozilla.org"),
-            createTab(id = "b", url = "https://www.firefox.com"),
-            createTab(id = "c", url = "https://getpocket.com"),
-            createTab(id = "e", url = "https://www.firefox.com/hello"),
-        )
-        assertSameTabs(store, movedTabList2, "d,a to 0 (filtered)")
-
-        dispatchJoinMoveAction(store, listOf("d", "e"), 4, tabsFilter)
-        assertSameTabs(store, tabList, "d,e to 4 (filtered)")
-
+        dispatchJoinMoveAction(store, listOf("b", "c"), "d", false)
+        assertSameTabs(store, tabList, "b,c to d-")
         assertEquals("a", store.state.selectedTabId)
     }
 }

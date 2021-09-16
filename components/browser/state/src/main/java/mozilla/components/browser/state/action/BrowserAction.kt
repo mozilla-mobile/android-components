@@ -156,14 +156,14 @@ sealed class TabListAction : BrowserAction() {
      * Moves a set of tabIDs into a new position (maintaining internal ordering)
      *
      * @property tabIds The IDs of the tabs to move.
-     * @property position The position in the list to move them to.
-     * @property tabsFilter Apply a filter to the tabs to offset the [position].
-     * Needed to deal with the inactive tabs not being in the main tab tray.
+     * @property targetTabId A tab that the moved tabs will be moved next to
+     * @property placeAfter True if the moved tabs should be placed after the target,
+     * False for placing before the target. Irrelevant if the target is one of the tabs being moved.
      */
     data class MoveTabsAction(
         val tabIds: List<String>,
-        val position: Int,
-        val tabsFilter: (TabSessionState) -> Boolean = { true }
+        val targetTabId: String,
+        val placeAfter: Boolean,
     ) : TabListAction()
 
     /**

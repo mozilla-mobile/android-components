@@ -502,7 +502,8 @@ class TabsUseCasesTest {
         assertEquals("https://firefox.com", store.state.tabs[1].content.url)
 
         val tab1Id = store.state.tabs[0].id
-        tabsUseCases.moveTabs(listOf(tab1Id), 2)
+        val tab2Id = store.state.tabs[1].id
+        tabsUseCases.moveTabs(listOf(tab1Id), tab2Id, true)
         store.waitUntilIdle()
         assertEquals("https://firefox.com", store.state.tabs[0].content.url)
         assertEquals("https://mozilla.org", store.state.tabs[1].content.url)

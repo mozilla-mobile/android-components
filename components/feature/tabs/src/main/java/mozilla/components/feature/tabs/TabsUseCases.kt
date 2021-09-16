@@ -477,16 +477,16 @@ class TabsUseCases(
         private val store: BrowserStore
     ) {
         /**
-         * Moves the tabs of [tabIds] to [position], position potentially modified by [tabsFilter]
+         * Moves the tabs of [tabIds] next to [targetTabId], before/after based on [placeAfter]
          */
         operator fun invoke(
             tabIds: List<String>,
-            position: Int,
-            tabsFilter: (TabSessionState) -> Boolean = { true }
+            targetTabId: String,
+            placeAfter: Boolean
         ) {
             store.dispatch(
                 TabListAction.MoveTabsAction(
-                    tabIds, position, tabsFilter
+                    tabIds, targetTabId, placeAfter
                 )
             )
         }

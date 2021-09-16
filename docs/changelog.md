@@ -3,18 +3,18 @@ layout: page
 title: Changelog
 permalink: /changelog/
 ---
-* **BrowserAction**, **TabListReducer**, **TabsUseCases**:
-  * 🌟️ Adds MoveTabs (reordering) Action and UseCase
-
-* **TabsFeature**
-  * 🌟️ Remove private modifier on defaultTabsFilter (necessary for MoveTabs on filtered tab lists)
-
 # 94.0.0 (In Development)
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v93.0.0...main)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/141?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **BrowserAction**, **TabListReducer**, **TabsUseCases**:
+  * 🌟️ Adds MoveTabs (reordering) Action and UseCase
+
+* **TabsFeature**
+  * 🌟️ Remove private modifier on defaultTabsFilter (necessary for MoveTabs on filtered tab lists)
 
 * **concept-storage**, **browser-storage-sync**
   * 🌟️ New API: `HistoryMetadataStorage.deleteHistoryMetadata`, allows removing specific metadata entries.

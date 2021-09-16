@@ -1183,7 +1183,7 @@ class TabListActionTest {
         assertEquals(0, store.state.privateTabs.size)
         assertEquals("b", store.state.selectedTabId)
     }
-	
+
     private fun assertSameTabs(a: BrowserStore, b: List<TabSessionState>, str: String? = null) {
         val aMap = a.state.tabs.map { "<" + it.id + "," + it.content.url + ">\n" }
         val bMap = b.map { "<" + it.id + "," + it.content.url + ">\n" }
@@ -1251,5 +1251,38 @@ class TabListActionTest {
         dispatchJoinMoveAction(store, listOf("b", "c"), "d", false)
         assertSameTabs(store, tabList, "b,c to d-")
         assertEquals("a", store.state.selectedTabId)
-	}
+    }
+    @Test
+    fun `MoveTabsAction - Complex moves work`() {
+        val tabList = listOf(
+            createTab(id = "a", url = "https://www.mozilla.org"),
+            createTab(id = "b", url = "https://www.firefox.com"),
+            createTab(id = "c", url = "https://getpocket.com"),
+            createTab(id = "d", url = "https://www.example.org"),
+            createTab(id = "e", url = "https://www.mozilla.org/en-US/firefox/features/"),
+            createTab(id = "f", url = "https://www.mozilla.org/en-US/firefox/products/"),
+        )
+        val store = BrowserStore(
+            BrowserState(
+                tabs = tabList,
+                selectedTabId = "a"
+            )
+        )
+        dispatchJoinMoveAction(store, listOf("a", "b", "c", "d", "e", "f",), "a", false)
+        assertSameTabs(store, tabList, "all to a-")
+
+        val movedTabList = listOf(
+            createTab(id = "a", url = "https://www.mozilla.org"),
+            createTab(id = "c", url = "https://getpocket.com"),
+            createTab(id = "b", url = "https://www.firefox.com"),
+            createTab(id = "e", url = "https://www.mozilla.org/en-US/firefox/features/"),
+            createTab(id = "d", url = "https://www.example.org"),
+            createTab(id = "f", url = "https://www.mozilla.org/en-US/firefox/products/"),
+        )
+        dispatchJoinMoveAction(store, listOf("b", "e"), "d", false)
+        assertSameTabs(store, movedTabList, "b,e to d-")
+
+        dispatchJoinMoveAction(store, listOf("c", "d"), "b", true)
+        assertSameTabs(store, tabList, "c,d to b+")
+    }
 }

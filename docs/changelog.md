@@ -13,6 +13,9 @@ permalink: /changelog/
 * **BrowserAction**, **TabListReducer**, **TabsUseCases**:
   * 🌟️ Adds MoveTabs (reordering) Action and UseCase
 
+* **feature-contextmenu**:
+  * 🚒 Bug fixed [issue #10982](https://github.com/mozilla-mobile/android-components/issues/10982) - Add ScrollView as a main container in mozac_feature_context_dialog in order to see the entire image context menu on small screens
+
 * **concept-storage**, **browser-storage-sync**
   * 🌟️ New API: `HistoryMetadataStorage.deleteHistoryMetadata`, allows removing specific metadata entries.
 

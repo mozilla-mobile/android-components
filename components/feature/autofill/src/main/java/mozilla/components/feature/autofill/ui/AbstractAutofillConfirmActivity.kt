@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.service.autofill.Dataset
 import android.view.autofill.AutofillManager
+import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
@@ -48,13 +49,20 @@ abstract class AbstractAutofillConfirmActivity : FragmentActivity() {
             cancel()
             return
         }
-
+        var imeSpec: InlinePresentationSpec? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            imeSpec = intent.getParcelableExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC)
+        }
         // While the user is asked to confirm, we already try to build the fill response asynchronously.
         val rawStructure = structure?.toRawStructure()
         if (rawStructure != null) {
             dataset = lifecycleScope.async(Dispatchers.IO) {
                 val builder = fillHandler.handleConfirmation(rawStructure, loginId)
-                builder?.build(this@AbstractAutofillConfirmActivity, configuration)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    builder?.build(this@AbstractAutofillConfirmActivity, configuration, imeSpec)
+                } else {
+                    builder?.build(this@AbstractAutofillConfirmActivity, configuration)
+                }
             }
         }
 

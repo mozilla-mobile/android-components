@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.autofill.AutofillManager
 import android.widget.EditText
+import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.FragmentActivity
@@ -29,6 +30,7 @@ import mozilla.components.feature.autofill.R
 import mozilla.components.feature.autofill.facts.emitAutofillSearchDisplayedFact
 import mozilla.components.feature.autofill.facts.emitAutofillSearchSelectedFact
 import mozilla.components.feature.autofill.response.dataset.LoginDatasetBuilder
+import mozilla.components.feature.autofill.response.dataset.SearchDatasetBuilder
 import mozilla.components.feature.autofill.structure.ParsedStructure
 import mozilla.components.feature.autofill.structure.parseStructure
 import mozilla.components.feature.autofill.structure.toRawStructure
@@ -47,6 +49,7 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
     private lateinit var loginsDeferred: Deferred<List<Login>>
     private val scope = CoroutineScope(Dispatchers.IO)
     private val adapter = LoginsAdapter(::onLoginSelected)
+    private var imeSpec: InlinePresentationSpec? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +63,9 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
         if (structure == null) {
             finish()
             return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            imeSpec = intent.getParcelableExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC)
         }
 
         val parsedStructure = parseStructure(this, structure.toRawStructure())
@@ -92,7 +98,11 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
 
     private fun onLoginSelected(login: Login) {
         val builder = LoginDatasetBuilder(parsedStructure, login, needsConfirmation = false)
-        val dataset = builder.build(this, configuration)
+        val dataset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            builder.build(this, configuration, imeSpec)
+        } else {
+            builder.build(this, configuration)
+        }
 
         val replyIntent = Intent()
         replyIntent.putExtra(AutofillManager.EXTRA_AUTHENTICATION_RESULT, dataset)

@@ -11,6 +11,7 @@ import android.service.autofill.FillCallback
 import android.service.autofill.FillRequest
 import android.service.autofill.SaveCallback
 import android.service.autofill.SaveRequest
+import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -43,9 +44,22 @@ abstract class AbstractAutofillService : AutofillService() {
             // Neither AssistStructure nor FillResponse can be created by us and they do not let us
             // inspect their data. So we create these intermediate objects that we can create and
             // inspect in unit tests.
+
             val structure = request.fillContexts.last().structure.toRawStructure()
-            val responseBuilder = fillHandler.handle(structure)
-            val response = responseBuilder?.build(this@AbstractAutofillService, configuration)
+            val response = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                var maxSuggestionCount = 0
+                var imeSpec: InlinePresentationSpec? = null
+                request.inlineSuggestionsRequest?.also {
+                    imeSpec = it.inlinePresentationSpecs.last()
+                    maxSuggestionCount = it.maxSuggestionCount - 1 // search chip reserve
+                }
+                val responseBuilder =
+                    fillHandler.handle(structure, maxSuggestionCount = maxSuggestionCount)
+                    responseBuilder?.build(this@AbstractAutofillService, configuration, imeSpec)
+            } else {
+                val responseBuilder = fillHandler.handle(structure)
+                responseBuilder?.build(this@AbstractAutofillService, configuration)
+            }
             callback.onSuccess(response)
         }
     }

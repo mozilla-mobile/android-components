@@ -158,7 +158,9 @@ sealed class TabListAction : BrowserAction() {
      * @property tabIds The IDs of the tabs to move.
      * @property targetTabId A tab that the moved tabs will be moved next to
      * @property placeAfter True if the moved tabs should be placed after the target,
-     * False for placing before the target. Irrelevant if the target is one of the tabs being moved.
+     * False for placing before the target. Irrelevant if the target is one of the tabs being moved,
+     * since then the whole list is moved to where the target was. Ordering of the moved tabs
+     * relative to each other is preserved.
      */
     data class MoveTabsAction(
         val tabIds: List<String>,

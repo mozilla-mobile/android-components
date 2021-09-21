@@ -13,9 +13,6 @@ permalink: /changelog/
 * **BrowserAction**, **TabListReducer**, **TabsUseCases**:
   * 🌟️ Adds MoveTabs (reordering) Action and UseCase
 
-* **TabsFeature**
-  * 🌟️ Remove private modifier on defaultTabsFilter (necessary for MoveTabs on filtered tab lists)
-
 * **concept-storage**, **browser-storage-sync**
   * 🌟️ New API: `HistoryMetadataStorage.deleteHistoryMetadata`, allows removing specific metadata entries.
 

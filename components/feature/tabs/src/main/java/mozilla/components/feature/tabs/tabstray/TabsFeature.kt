@@ -24,7 +24,7 @@ class TabsFeature(
     private val store: BrowserStore,
     selectTabUseCase: TabsUseCases.SelectTabUseCase,
     removeTabUseCase: TabsUseCases.RemoveTabUseCase,
-    val defaultTabsFilter: (TabSessionState) -> Boolean = { true },
+    private val defaultTabsFilter: (TabSessionState) -> Boolean = { true },
     closeTabsTray: () -> Unit
 ) : LifecycleAwareFeature {
     @VisibleForTesting

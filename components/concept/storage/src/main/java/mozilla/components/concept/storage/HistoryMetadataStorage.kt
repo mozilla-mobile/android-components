@@ -137,4 +137,9 @@ interface HistoryMetadataStorage {
      * Deletes metadata records that match [HistoryMetadataKey].
      */
     suspend fun deleteHistoryMetadata(key: HistoryMetadataKey)
+
+    /**
+     * Deletes metadata records that match [searchTerm] (case insensitive).
+     */
+    suspend fun deleteHistoryMetadata(searchTerm: String)
 }

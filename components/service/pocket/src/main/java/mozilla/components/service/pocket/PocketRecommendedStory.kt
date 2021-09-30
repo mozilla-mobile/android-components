@@ -7,19 +7,20 @@ package mozilla.components.service.pocket
 /**
  * A Pocket recommended story.
  *
- * @property id a unique identifier for this recommendation.
  * @property title the title of the story.
- * @property publisher the name domain of the publisher, e.g. "The New Yorker" / "nationalgeographic.co.uk"".
  * @property url a "pocket.co" shortlink for the original story's page.
  * @property imageUrl a url to a still image representing the story.
- * @property timeToRead inferred time needed to read the entire story.
+ * @property publisher optional publisher name/domain, e.g. "The New Yorker" / "nationalgeographic.co.uk"".
+ * **May be empty**.
  * @property category topic of interest under which similar stories are grouped.
+ * @property timeToRead inferred time needed to read the entire story. **May be -1**.
  */
 data class PocketRecommendedStory(
     val title: String,
-    val publisher: String,
     val url: String,
     val imageUrl: String,
+    val publisher: String,
+    val category: String,
     val timeToRead: Int,
-    val category: String
+    val timesShown: Long
 )

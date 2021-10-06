@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -37,13 +39,14 @@ internal fun Suggestion(
     suggestion: AwesomeBar.Suggestion,
     colors: AwesomeBarColors,
     orientation: AwesomeBarOrientation,
-    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit,
-    onAutoComplete: (AwesomeBar.Suggestion) -> Unit
+    onSuggestionClicked: () -> Unit,
+    onAutoComplete: () -> Unit
 ) {
     Row(
         modifier = Modifier
-            .clickable { onSuggestionClicked(suggestion) }
-            .height(56.dp)
+            .clickable { onSuggestionClicked() }
+            .defaultMinSize(minHeight = 56.dp)
+            .testTag("mozac.awesomebar.suggestion")
             .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
     ) {
         val icon = suggestion.icon
@@ -63,7 +66,7 @@ internal fun Suggestion(
         )
         if (suggestion.editSuggestion != null) {
             AutocompleteButton(
-                onAutoComplete = { onAutoComplete(suggestion) },
+                onAutoComplete = onAutoComplete,
                 orientation = orientation,
                 colors = colors,
                 modifier = Modifier.align(Alignment.CenterVertically)

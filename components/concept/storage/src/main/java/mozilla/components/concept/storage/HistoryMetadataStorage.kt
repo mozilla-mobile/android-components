@@ -4,6 +4,9 @@
 
 package mozilla.components.concept.storage
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 /**
  * The possible document types to record history metadata for.
  */
@@ -43,11 +46,12 @@ sealed class HistoryMetadataObservation {
  * this record was created in response to a user opening
  * a page in a new tab.
  */
+@Parcelize
 data class HistoryMetadataKey(
     val url: String,
     val searchTerm: String? = null,
     val referrerUrl: String? = null
-)
+) : Parcelable
 
 /**
  * Represents a history metadata record, which describes metadata for a history visit, such as metadata
@@ -59,6 +63,7 @@ data class HistoryMetadataKey(
  * @property updatedAt The last time this record was updated.
  * @property totalViewTime Total time the user viewed the page associated with this record.
  * @property documentType The [DocumentType] of the page.
+ * @property previewImageUrl A preview image of the page (a.k.a. the hero image), if available.
  */
 data class HistoryMetadata(
     val key: HistoryMetadataKey,
@@ -66,7 +71,40 @@ data class HistoryMetadata(
     val createdAt: Long,
     val updatedAt: Long,
     val totalViewTime: Int,
-    val documentType: DocumentType
+    val documentType: DocumentType,
+    val previewImageUrl: String?
+)
+
+/**
+ * Represents a history highlight, a URL of interest.
+ * The highlights are produced via [HistoryMetadataStorage.getHistoryHighlights].
+ *
+ * @param score A relative score of this highlight. Useful to compare against other highlights.
+ * @param placeId An ID of the history entry ("page") represented by this highlight.
+ * @param url A url of the page.
+ * @param title A title of the page, if available.
+ * @param previewImageUrl A preview image of the page (a.k.a. the hero image), if available.
+ */
+data class HistoryHighlight(
+    val score: Double,
+    val placeId: Int,
+    val url: String,
+    val title: String?,
+    val previewImageUrl: String?
+)
+
+/**
+ * Weights of factors that contribute to ranking [HistoryHighlight].
+ * An input to [HistoryMetadataStorage.getHistoryHighlights].
+ * For example, (1.0, 1.0) for equal weights. Equal weights represent equal importance of these
+ * factors during ranking.
+ *
+ * @param viewTime A weight specifying importance of cumulative view time of a page.
+ * @param frequency A weight specifying importance of frequency of visits to a page.
+ */
+data class HistoryHighlightWeights(
+    val viewTime: Double,
+    val frequency: Double
 )
 
 /**
@@ -112,6 +150,16 @@ interface HistoryMetadataStorage {
     suspend fun queryHistoryMetadata(query: String, limit: Int): List<HistoryMetadata>
 
     /**
+     * Returns a list of [HistoryHighlight] objects, ranked relative to each other according to [weights].
+     *
+     * @param weights A set of weights used by the ranking algorithm.
+     * @param limit A maximum number of records to return.
+     * @return A `List` of [HistoryHighlight], ordered by [HistoryHighlight.score] DESC.
+     * Empty if nothing is found.
+     */
+    suspend fun getHistoryHighlights(weights: HistoryHighlightWeights, limit: Int): List<HistoryHighlight>
+
+    /**
      * Records the provided [HistoryMetadataObservation] and updates the record identified by the
      * provided [HistoryMetadataKey].
      *
@@ -126,4 +174,14 @@ interface HistoryMetadataStorage {
      * @param olderThan A timestamp to delete records by. Exclusive.
      */
     suspend fun deleteHistoryMetadataOlderThan(olderThan: Long)
+
+    /**
+     * Deletes metadata records that match [HistoryMetadataKey].
+     */
+    suspend fun deleteHistoryMetadata(key: HistoryMetadataKey)
+
+    /**
+     * Deletes metadata records that match [searchTerm] (case insensitive).
+     */
+    suspend fun deleteHistoryMetadata(searchTerm: String)
 }

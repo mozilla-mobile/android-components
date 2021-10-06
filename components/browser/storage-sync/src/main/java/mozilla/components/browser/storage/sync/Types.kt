@@ -15,6 +15,8 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.DocumentType
 import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryHighlight
+import mozilla.components.concept.storage.HistoryHighlightWeights
 import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.concept.storage.HistoryMetadataObservation
@@ -148,59 +150,92 @@ internal fun mozilla.appservices.places.HistoryMetadataKey.into(): HistoryMetada
     )
 }
 
-internal fun mozilla.appservices.places.DocumentType.into(): DocumentType {
+internal fun mozilla.appservices.places.uniffi.DocumentType.into(): DocumentType {
     return when (this) {
-        mozilla.appservices.places.DocumentType.Regular -> DocumentType.Regular
-        mozilla.appservices.places.DocumentType.Media -> DocumentType.Media
+        mozilla.appservices.places.uniffi.DocumentType.REGULAR -> DocumentType.Regular
+        mozilla.appservices.places.uniffi.DocumentType.MEDIA -> DocumentType.Media
     }
 }
 
-internal fun mozilla.appservices.places.HistoryMetadata.into(): HistoryMetadata {
+internal fun mozilla.appservices.places.uniffi.HistoryMetadata.into(): HistoryMetadata {
     // Protobuf doesn't support passing around `null` value, so these get converted to some defaults
     // as they go from Rust to Kotlin. E.g. an empty string in place of a `null`.
     // That means places.HistoryMetadata will never have `null` values.
     // But, we actually do want a real `null` value here - hence the explicit check.
     return HistoryMetadata(
-        key = this.key.into(),
+        key = HistoryMetadataKey(url = this.url, searchTerm = this.searchTerm, referrerUrl = this.referrerUrl),
         title = if (this.title.isNullOrEmpty()) null else this.title,
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         totalViewTime = this.totalViewTime,
-        documentType = this.documentType.into()
+        documentType = this.documentType.into(),
+        previewImageUrl = this.previewImageUrl
     )
 }
 
-internal fun List<mozilla.appservices.places.HistoryMetadata>.into(): List<HistoryMetadata> {
+internal fun List<mozilla.appservices.places.uniffi.HistoryMetadata>.into(): List<HistoryMetadata> {
     return map { it.into() }
 }
 
-internal fun DocumentType.into(): mozilla.appservices.places.DocumentType {
+internal fun mozilla.appservices.places.uniffi.HistoryHighlight.into(): HistoryHighlight {
+    return HistoryHighlight(
+        score = this.score,
+        placeId = this.placeId,
+        url = this.url,
+        title = this.title,
+        previewImageUrl = this.previewImageUrl
+    )
+}
+
+internal fun List<mozilla.appservices.places.uniffi.HistoryHighlight>.intoHighlights(): List<HistoryHighlight> {
+    return map { it.into() }
+}
+
+internal fun HistoryHighlightWeights.into(): mozilla.appservices.places.uniffi.HistoryHighlightWeights {
+    return mozilla.appservices.places.uniffi.HistoryHighlightWeights(
+        viewTime = this.viewTime,
+        frequency = this.frequency
+    )
+}
+
+internal fun DocumentType.into(): mozilla.appservices.places.uniffi.DocumentType {
     return when (this) {
-        DocumentType.Regular -> mozilla.appservices.places.DocumentType.Regular
-        DocumentType.Media -> mozilla.appservices.places.DocumentType.Media
+        DocumentType.Regular -> mozilla.appservices.places.uniffi.DocumentType.REGULAR
+        DocumentType.Media -> mozilla.appservices.places.uniffi.DocumentType.MEDIA
     }
 }
 
-internal fun HistoryMetadata.into(): mozilla.appservices.places.HistoryMetadata {
-    return mozilla.appservices.places.HistoryMetadata(
-        key = this.key.into(),
+internal fun HistoryMetadata.into(): mozilla.appservices.places.uniffi.HistoryMetadata {
+    return mozilla.appservices.places.uniffi.HistoryMetadata(
+        url = this.key.url,
+        searchTerm = this.key.searchTerm,
+        referrerUrl = this.key.referrerUrl,
         title = this.title,
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         totalViewTime = this.totalViewTime,
-        documentType = this.documentType.into()
+        documentType = this.documentType.into(),
+        previewImageUrl = this.previewImageUrl
     )
 }
 
-internal fun HistoryMetadataObservation.into(): mozilla.appservices.places.HistoryMetadataObservation {
+internal fun HistoryMetadataObservation.into(
+    key: HistoryMetadataKey
+): mozilla.appservices.places.uniffi.HistoryMetadataObservation {
     return when (this) {
         is HistoryMetadataObservation.ViewTimeObservation -> {
-            mozilla.appservices.places.HistoryMetadataObservation.ViewTimeObservation(
+            mozilla.appservices.places.uniffi.HistoryMetadataObservation(
+                url = key.url,
+                searchTerm = key.searchTerm,
+                referrerUrl = key.referrerUrl,
                 viewTime = this.viewTime
             )
         }
         is HistoryMetadataObservation.DocumentTypeObservation -> {
-            mozilla.appservices.places.HistoryMetadataObservation.DocumentTypeObservation(
+            mozilla.appservices.places.uniffi.HistoryMetadataObservation(
+                url = key.url,
+                searchTerm = key.searchTerm,
+                referrerUrl = key.referrerUrl,
                 documentType = this.documentType.into()
             )
         }

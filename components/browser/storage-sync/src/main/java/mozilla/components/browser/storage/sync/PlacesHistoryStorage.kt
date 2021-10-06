@@ -12,6 +12,8 @@ import mozilla.appservices.places.VisitObservation
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.storage.HistoryAutocompleteResult
+import mozilla.components.concept.storage.HistoryHighlight
+import mozilla.components.concept.storage.HistoryHighlightWeights
 import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.concept.storage.HistoryMetadataObservation
@@ -36,7 +38,7 @@ const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
 /**
  * Implementation of the [HistoryStorage] which is backed by a Rust Places lib via [PlacesApi].
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 open class PlacesHistoryStorage(
     context: Context,
     crashReporter: CrashReporting? = null
@@ -244,19 +246,34 @@ open class PlacesHistoryStorage(
     }
 
     override suspend fun getLatestHistoryMetadataForUrl(url: String): HistoryMetadata? {
-        return places.reader().getLatestHistoryMetadataForUrl(url)?.into()
+        return handlePlacesExceptions("getLatestHistoryMetadataForUrl", default = null) {
+            places.reader().getLatestHistoryMetadataForUrl(url)?.into()
+        }
     }
 
     override suspend fun getHistoryMetadataSince(since: Long): List<HistoryMetadata> {
-        return places.reader().getHistoryMetadataSince(since).into()
+        return handlePlacesExceptions("getHistoryMetadataSince", default = emptyList()) {
+            places.reader().getHistoryMetadataSince(since).into()
+        }
     }
 
     override suspend fun getHistoryMetadataBetween(start: Long, end: Long): List<HistoryMetadata> {
-        return places.reader().getHistoryMetadataBetween(start, end).into()
+        return handlePlacesExceptions("getHistoryMetadataBetween", default = emptyList()) {
+            places.reader().getHistoryMetadataBetween(start, end).into()
+        }
     }
 
     override suspend fun queryHistoryMetadata(query: String, limit: Int): List<HistoryMetadata> {
-        return places.reader().queryHistoryMetadata(query, limit).into()
+        return handlePlacesExceptions("queryHistoryMetadata", default = emptyList()) {
+            places.reader().queryHistoryMetadata(query, limit).into()
+        }
+    }
+
+    override suspend fun getHistoryHighlights(
+        weights: HistoryHighlightWeights,
+        limit: Int
+    ): List<HistoryHighlight> {
+        return places.reader().getHighlights(weights.into(), limit).intoHighlights()
     }
 
     override suspend fun noteHistoryMetadataObservation(
@@ -265,7 +282,7 @@ open class PlacesHistoryStorage(
     ) {
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("noteHistoryMetadataObservation") {
-                places.writer().noteHistoryMetadataObservation(key.into(), observation.into())
+                places.writer().noteHistoryMetadataObservation(observation.into(key))
             }
         }
     }
@@ -274,6 +291,36 @@ open class PlacesHistoryStorage(
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("deleteHistoryMetadataOlderThan") {
                 places.writer().deleteHistoryMetadataOlderThan(olderThan)
+            }
+        }
+    }
+
+    override suspend fun deleteHistoryMetadata(key: HistoryMetadataKey) {
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("deleteHistoryMetadata") {
+                places.writer().deleteHistoryMetadata(key.into())
+            }
+        }
+    }
+
+    override suspend fun deleteHistoryMetadata(searchTerm: String) {
+        // Ideally, we want this to live in A-S as a simple DELETE statement.
+        // As-is, this isn't an atomic operation. For how we're using these data, both lack of
+        // atomicity and a performance penalty is acceptable for now.
+        withContext(writeScope.coroutineContext) {
+            handlePlacesExceptions("deleteHistoryMetadataSearchGroup") {
+                places.reader().getHistoryMetadataSince(Long.MIN_VALUE)
+                    // NB: searchTerms are always lower-case in the database.
+                    .filter { it.searchTerm == searchTerm.lowercase() }
+                    .forEach {
+                        places.writer().deleteHistoryMetadata(
+                            HistoryMetadataKey(
+                                url = it.url,
+                                searchTerm = it.searchTerm,
+                                referrerUrl = it.referrerUrl
+                            ).into()
+                        )
+                    }
             }
         }
     }

@@ -8,8 +8,7 @@ import android.content.Context
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import mozilla.appservices.push.BridgeType
-import mozilla.appservices.push.GeneralError
-import mozilla.appservices.push.PushAPI
+import mozilla.appservices.push.PushException.GeneralException
 import mozilla.appservices.push.PushManager
 import mozilla.appservices.push.SubscriptionResponse
 import java.io.Closeable
@@ -22,7 +21,7 @@ typealias PushScope = String
 typealias AppServerKey = String
 
 /**
- * An interface that wraps the [PushAPI].
+ * An interface that wraps the [PushManager].
  *
  * This aides in testing and abstracting out the hurdles of initialization checks required before performing actions
  * on the API.
@@ -44,10 +43,8 @@ interface PushConnection : Closeable {
 
     /**
      * Un-subscribes all push subscriptions.
-     *
-     * @return the invocation result if it was successful.
      */
-    suspend fun unsubscribeAll(): Boolean
+    suspend fun unsubscribeAll()
 
     /**
      * Returns `true` if the specified [scope] has a subscription.
@@ -124,7 +121,7 @@ internal class RustPushConnection(
     private val databasePath by lazy { File(context.filesDir, DB_NAME).canonicalPath }
 
     @VisibleForTesting
-    internal var api: PushAPI? = null
+    internal var api: PushManager? = null
 
     @GuardedBy("this")
     override suspend fun subscribe(
@@ -153,11 +150,11 @@ internal class RustPushConnection(
     }
 
     @GuardedBy("this")
-    override suspend fun unsubscribeAll(): Boolean = synchronized(this) {
+    override suspend fun unsubscribeAll(): Unit = synchronized(this) {
         val pushApi = api
         check(pushApi != null) { "Rust API is not initiated; updateToken hasn't been called yet." }
 
-        return pushApi.unsubscribeAll()
+        pushApi.unsubscribeAll()
     }
 
     @GuardedBy("this")
@@ -185,7 +182,7 @@ internal class RustPushConnection(
         // This call will fail if we haven't 'subscribed' yet.
         return try {
             pushApi.update(token)
-        } catch (e: GeneralError) {
+        } catch (e: GeneralException) {
             val fakeChannelId = "fake".toChannelId()
             // It's possible that we have a race (on a first run) between 'subscribing' and setting a token.
             // 'update' expects that we've called 'subscribe' (which would obtain a 'uaid' from an autopush
@@ -227,14 +224,14 @@ internal class RustPushConnection(
             }
 
             val data = pushApi.decrypt(
-                channelID = channelId,
+                channelId = channelId,
                 body = body,
                 encoding = encoding,
                 salt = salt,
                 dh = cryptoKey
             )
 
-            return DecryptedMessage(scope, data)
+            return DecryptedMessage(scope, data.toByteArray())
         } else {
             return null
         }
@@ -298,7 +295,7 @@ internal fun SubscriptionResponse.toPushSubscription(
  */
 internal fun SubscriptionChanged.toPushSubscriptionChanged() = AutoPushSubscriptionChanged(
     scope = scope,
-    channelId = channelID
+    channelId = channelId
 )
 
 /**

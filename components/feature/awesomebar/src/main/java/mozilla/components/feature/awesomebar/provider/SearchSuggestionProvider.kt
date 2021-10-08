@@ -194,7 +194,9 @@ class SearchSuggestionProvider private constructor(
                     // Don't show an autocomplete arrow for the entered text
                     editSuggestion = if (item == text) null else item,
                     icon = icon ?: client.searchEngine?.icon,
-                    score = Int.MAX_VALUE - (index + 1),
+                    // Reducing MAX_VALUE by 2: To allow SearchActionProvider to go above and
+                    // still have one additional spot above available.
+                    score = Int.MAX_VALUE - (index + 2),
                     onSuggestionClicked = {
                         searchUseCase.invoke(item)
                         emitSearchSuggestionClickedFact()
@@ -236,10 +238,6 @@ class SearchSuggestionProvider private constructor(
             )
         )
     }
-
-    override val shouldClearSuggestions: Boolean
-        // We do not want the suggestion of this provider to disappear and re-appear when text changes.
-        get() = false
 
     enum class Mode {
         SINGLE_SUGGESTION,

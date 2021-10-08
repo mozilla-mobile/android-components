@@ -9,8 +9,8 @@ import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.engine.EngineMiddleware
+import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
 import mozilla.components.browser.state.selector.findTab
-import mozilla.components.browser.state.selector.findTabByUrl
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.state.recover.RecoverableTab
@@ -226,6 +226,28 @@ class TabsUseCasesTest {
     }
 
     @Test
+    fun `AddNewTabUseCase uses provided history metadata`() {
+        val historyMetadata = HistoryMetadataKey(
+            "https://www.mozilla.org",
+            searchTerm = "test",
+            referrerUrl = "http://firefox.com"
+        )
+
+        tabsUseCases.addTab.invoke(
+            "https://www.mozilla.org",
+            flags = LoadUrlFlags.external(),
+            startLoading = true,
+            historyMetadata = historyMetadata
+        )
+
+        store.waitUntilIdle()
+
+        assertEquals(1, store.state.tabs.size)
+        assertEquals("https://www.mozilla.org", store.state.tabs[0].content.url)
+        assertEquals(historyMetadata, store.state.tabs[0].historyMetadata)
+    }
+
+    @Test
     @Suppress("DEPRECATION")
     fun `AddNewPrivateTabUseCase will not load URL if flag is set to false`() {
         tabsUseCases.addPrivateTab("https://www.mozilla.org", startLoading = false)
@@ -327,10 +349,13 @@ class TabsUseCasesTest {
         val useCases = TabsUseCases(BrowserStore())
 
         val now = System.currentTimeMillis()
+        val twoDays = now - 2 * DAY_IN_MS
+        val threeDays = now - 3 * DAY_IN_MS
         val tabs = listOf(
+            createTab("https://mozilla.org", lastAccess = 0).toRecoverableTab(),
             createTab("https://mozilla.org", lastAccess = now).toRecoverableTab(),
-            createTab("https://firefox.com", lastAccess = now - 2 * DAY_IN_MS).toRecoverableTab(),
-            createTab("https://getpocket.com", lastAccess = now - 3 * DAY_IN_MS).toRecoverableTab()
+            createTab("https://firefox.com", lastAccess = twoDays, createdAt = threeDays).toRecoverableTab(),
+            createTab("https://getpocket.com", lastAccess = threeDays, createdAt = threeDays).toRecoverableTab()
         )
 
         val sessionStorage: SessionStorage = mock()
@@ -339,9 +364,9 @@ class TabsUseCasesTest {
         val predicateCaptor = argumentCaptor<(RecoverableTab) -> Boolean>()
         verify(sessionStorage).restore(predicateCaptor.capture())
 
-        // Only the first tab should be restored, all others "timed out."
+        // Only the first two tab should be restored, all others "timed out."
         val restoredTabs = tabs.filter(predicateCaptor.value)
-        assertEquals(1, restoredTabs.size)
+        assertEquals(2, restoredTabs.size)
         assertEquals(tabs.first(), restoredTabs.first())
     }
 
@@ -406,7 +431,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
 
         assertEquals(2, store.state.tabs.size)
-        assertNotNull(store.state.findTabByUrl("https://firefox.com"))
+        assertNotNull(store.state.findNormalOrPrivateTabByUrl("https://firefox.com", false))
         assertEquals(store.state.selectedTabId, tabID)
     }
 
@@ -429,7 +454,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
 
         assertEquals(2, store.state.tabs.size)
-        assertNotNull(store.state.findTabByUrl("https://firefox.com"))
+        assertNotNull(store.state.findNormalOrPrivateTabByUrl("https://firefox.com", false))
         assertEquals(store.state.selectedTabId, tabID)
     }
 
@@ -486,5 +511,23 @@ class TabsUseCasesTest {
         assertEquals(2, store.state.tabs.size)
         assertEquals("work", store.state.tabs[0].contextId)
         assertEquals("work", store.state.tabs[1].contextId)
+    }
+
+    @Test
+    fun `MoveTabsUseCase will move a tab`() {
+        val tab = createTab("https://mozilla.org")
+        store.dispatch(TabListAction.AddTabAction(tab)).joinBlocking()
+        val tab2 = createTab("https://firefox.com", private = true)
+        store.dispatch(TabListAction.AddTabAction(tab2)).joinBlocking()
+        assertEquals(2, store.state.tabs.size)
+        assertEquals("https://mozilla.org", store.state.tabs[0].content.url)
+        assertEquals("https://firefox.com", store.state.tabs[1].content.url)
+
+        val tab1Id = store.state.tabs[0].id
+        val tab2Id = store.state.tabs[1].id
+        tabsUseCases.moveTabs(listOf(tab1Id), tab2Id, true)
+        store.waitUntilIdle()
+        assertEquals("https://firefox.com", store.state.tabs[0].content.url)
+        assertEquals("https://mozilla.org", store.state.tabs[1].content.url)
     }
 }

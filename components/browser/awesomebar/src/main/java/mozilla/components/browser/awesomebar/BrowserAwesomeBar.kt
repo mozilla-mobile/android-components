@@ -34,6 +34,7 @@ internal const val INITIAL_NUMBER_OF_PROVIDERS = 5
  * A customizable [AwesomeBar] implementation.
  */
 @Suppress("LargeClass")
+@Deprecated("Use the AwesomeBar composable from the compose-awesomebar component instead")
 class BrowserAwesomeBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -160,8 +161,6 @@ class BrowserAwesomeBar @JvmOverloads constructor(
         job?.cancel()
 
         job = scope.launch {
-            suggestionsAdapter.optionallyClearSuggestions()
-
             providers.forEach { provider ->
                 launch {
                     // At this point, we have a timing value for a provider.

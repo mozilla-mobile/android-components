@@ -13,12 +13,14 @@ import android.content.Intent.ACTION_VIEW
 import android.content.Intent.ACTION_WEB_SEARCH
 import android.content.Intent.EXTRA_TEXT
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
-import mozilla.components.browser.state.state.SessionState.Source
+import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.externalPackage
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.ktx.kotlin.isUrl
+import mozilla.components.support.ktx.kotlin.toNormalizedUrl
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.WebURLFinder
 
@@ -47,10 +49,11 @@ class TabIntentProcessor(
         return if (url.isNullOrEmpty()) {
             false
         } else {
+            val caller = intent.externalPackage()
             tabsUseCases.selectOrAddTab(
-                url,
+                url.toNormalizedUrl(),
                 private = isPrivate,
-                source = Source.ACTION_VIEW,
+                source = SessionState.Source.External.ActionView(caller),
                 flags = LoadUrlFlags.external()
             )
             true
@@ -59,7 +62,7 @@ class TabIntentProcessor(
 
     /**
      * Processes a send intent and tries to load [EXTRA_TEXT] as a URL.
-     * If its not a URL, a search is run instead.
+     * If it's not a URL, a search is run instead.
      */
     private fun processSendIntent(intent: SafeIntent): Boolean {
         val extraText = intent.getStringExtra(EXTRA_TEXT)
@@ -68,10 +71,11 @@ class TabIntentProcessor(
             false
         } else {
             val url = WebURLFinder(extraText).bestWebURL()
+            val source = SessionState.Source.External.ActionSend(intent.externalPackage())
             if (url != null) {
-                addNewTab(url, Source.ACTION_SEND)
+                addNewTab(url, source)
             } else {
-                newTabSearchUseCase(extraText, Source.ACTION_SEND)
+                newTabSearchUseCase(extraText, source)
             }
             true
         }
@@ -83,17 +87,21 @@ class TabIntentProcessor(
         return if (searchQuery.isNullOrBlank()) {
             false
         } else {
+            val source = SessionState.Source.External.ActionSearch(intent.externalPackage())
             if (searchQuery.isUrl()) {
-                addNewTab(searchQuery, Source.ACTION_SEARCH)
+                addNewTab(searchQuery, source)
             } else {
-                newTabSearchUseCase(searchQuery, Source.ACTION_SEARCH)
+                newTabSearchUseCase(searchQuery, source)
             }
             true
         }
     }
 
-    private fun addNewTab(url: String, source: Source) {
-        tabsUseCases.addTab(url, source = source, flags = LoadUrlFlags.external(), private = isPrivate)
+    private fun addNewTab(url: String, source: SessionState.Source) {
+        tabsUseCases.addTab(
+            url.toNormalizedUrl(),
+            source = source, flags = LoadUrlFlags.external(), private = isPrivate
+        )
     }
 
     /**

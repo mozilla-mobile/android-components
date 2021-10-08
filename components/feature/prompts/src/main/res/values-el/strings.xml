@@ -9,7 +9,7 @@
     <!-- Text for a positive button, when an user selects a date in date/time picker. -->
     <string name="mozac_feature_prompts_set_date">Ορισμός</string>
     <!-- Text for a button that clears the selected input in the date/time picker. -->
-    <string name="mozac_feature_prompts_clear">Εκκαθάριση</string>
+    <string name="mozac_feature_prompts_clear">Απαλοιφή</string>
     <!-- Text for the title of an authentication dialog. -->
     <string name="mozac_feature_prompt_sign_in">Σύνδεση</string>
     <!-- Text for username field in an authentication dialog. -->
@@ -48,7 +48,7 @@
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Είστε σίγουροι;</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-    <string name="mozac_feature_prompt_before_unload_dialog_body">Θέλετε να αποχωρήσετε από αυτή την ιστοσελίδα; Τα καταχωρημένα δεδομένα ενδέχεται να μην αποθηκευτούν</string>
+    <string name="mozac_feature_prompt_before_unload_dialog_body">Θέλετε να αποχωρήσετε από τον ιστότοπο; Τα καταχωρημένα δεδομένα ενδέχεται να μην αποθηκευτούν</string>
     <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
     <string name="mozac_feature_prompts_before_unload_stay">Παραμονή</string>
     <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
@@ -89,7 +89,7 @@
     <string name="mozac_feature_prompts_saved_logins">Προτεινόμενες συνδέσεις</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-    <string name="mozac_feature_prompt_repost_title">Επαναποστολή δεδομένων στην ιστοσελίδα;</string>
+    <string name="mozac_feature_prompt_repost_title">Επαναποστολή δεδομένων στον ιστότοπο;</string>
     <string name="mozac_feature_prompt_repost_message">Η ανανέωση αυτής της σελίδας ίσως επαναλάβει τις πρόσφατες ενέργειες, όπως αποστολή πληρωμής ή δημοσίευση σχολίου δύο φορές.</string>
     <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
     <string name="mozac_feature_prompt_repost_positive_button_text">Επαναποστολή δεδομένων</string>

@@ -61,9 +61,8 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
-import org.mockito.Mockito.verifyZeroInteractions
-import java.lang.Exception
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
 
@@ -482,9 +481,6 @@ class FxaAccountManagerTest {
         // Assert that ensureCapabilities fired, but not the device initialization (since we're restoring).
         verify(constellation).finalizeDevice(eq(AuthType.Existing), any())
 
-        // Assert that we refresh device state.
-        verify(constellation).refreshDevices()
-
         // Assert that persistence callback is interacting with the storage layer.
         account.persistenceCallback!!.persist("test")
         verify(accountStorage).write("test")
@@ -795,7 +791,7 @@ class FxaAccountManagerTest {
     @Test
     fun `error reading persisted account`() = runBlocking {
         val accountStorage = mock<AccountStorage>()
-        val readException = FxaException("pretend we failed to parse the account")
+        val readException = FxaNetworkException("pretend we failed to fetch the account")
         `when`(accountStorage.read()).thenThrow(readException)
 
         val manager = TestableFxaAccountManager(
@@ -895,9 +891,6 @@ class FxaAccountManagerTest {
 
         assertEquals(mockAccount, manager.authenticatedAccount())
         assertEquals(profile, manager.accountProfile())
-
-        // Assert that we don't refresh device state for non-SEND_TAB enabled devices.
-        verify(constellation, never()).refreshDevices()
 
         // Make sure 'logoutAsync' clears out state and fires correct observers.
         reset(accountObserver)
@@ -1366,7 +1359,6 @@ class FxaAccountManagerTest {
         // During recovery, only 'sign-in' finalize device call should have been made.
         verify(constellation, times(1)).finalizeDevice(eq(AuthType.Signin), any())
         verify(constellation, never()).finalizeDevice(eq(AuthType.Recovered), any())
-        verify(constellation, times(1)).refreshDevices()
 
         assertEquals(mockAccount, manager.authenticatedAccount())
 
@@ -1374,7 +1366,7 @@ class FxaAccountManagerTest {
             // Since we've recovered, outside observers should not have witnessed the momentary problem state.
             verify(accountObserver, never()).onAuthenticationProblems()
             assertFalse(manager.accountNeedsReauth())
-            verifyZeroInteractions(crashReporter)
+            verifyNoInteractions(crashReporter)
         } else {
             // We were unable to recover, outside observers should have been told.
             verify(accountObserver, times(1)).onAuthenticationProblems()

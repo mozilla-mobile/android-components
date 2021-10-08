@@ -19,7 +19,9 @@ class PocketStoriesService(
     private val pocketStoriesConfig: PocketStoriesConfig
 ) {
     internal var scheduler = PocketStoriesRefreshScheduler(pocketStoriesConfig)
-    internal var getStoriesUsecase = PocketStoriesUseCases().GetPocketStories(context)
+    private val useCases = PocketStoriesUseCases()
+    internal var getStoriesUsecase = useCases.GetPocketStories(context)
+    internal var updateStoriesTimesShownUsecase = useCases.UpdateStoriesTimesShown(context)
 
     /**
      * Entry point to start fetching Pocket stories in the background.
@@ -31,7 +33,7 @@ class PocketStoriesService(
      * making them available for the [getStories] method.
      */
     fun startPeriodicStoriesRefresh() {
-        PocketStoriesUseCases.initialize(pocketStoriesConfig.pocketApiKey, pocketStoriesConfig.client)
+        PocketStoriesUseCases.initialize(pocketStoriesConfig.client)
         scheduler.schedulePeriodicRefreshes(context)
     }
 
@@ -57,5 +59,15 @@ class PocketStoriesService(
      */
     suspend fun getStories(): List<PocketRecommendedStory> {
         return getStoriesUsecase.invoke()
+    }
+
+    /**
+     * Update how many times certain stories were shown to the user.
+     *
+     * Safe to call from any background thread.
+     * Automatically synchronized with the other [PocketStoriesService] methods.
+     */
+    suspend fun updateStoriesTimesShown(updatedStories: List<PocketRecommendedStory>) {
+        updateStoriesTimesShownUsecase.invoke(updatedStories)
     }
 }

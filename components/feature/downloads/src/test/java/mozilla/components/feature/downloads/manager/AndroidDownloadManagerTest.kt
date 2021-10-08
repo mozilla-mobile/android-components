@@ -9,6 +9,7 @@ import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE
 import android.app.DownloadManager.Request
 import android.content.Intent
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
@@ -24,8 +25,10 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 
 @RunWith(AndroidJUnit4::class)
 class AndroidDownloadManagerTest {
@@ -95,6 +98,28 @@ class AndroidDownloadManagerTest {
     }
 
     @Test
+    fun `GIVEN a device that supports scoped storage THEN permissions must not included file access`() {
+        val downloadManager = spy(AndroidDownloadManager(testContext, store))
+
+        doReturn(Build.VERSION_CODES.Q).`when`(downloadManager).getSDKVersion()
+        println(downloadManager.permissions.joinToString { it })
+        assertTrue(WRITE_EXTERNAL_STORAGE !in downloadManager.permissions)
+    }
+
+    @Test
+    fun `GIVEN a device does not supports scoped storage THEN permissions must be included file access`() {
+        val downloadManager = spy(AndroidDownloadManager(testContext, store))
+
+        doReturn(Build.VERSION_CODES.P).`when`(downloadManager).getSDKVersion()
+
+        assertTrue(WRITE_EXTERNAL_STORAGE in downloadManager.permissions)
+
+        doReturn(Build.VERSION_CODES.O_MR1).`when`(downloadManager).getSDKVersion()
+
+        assertTrue(WRITE_EXTERNAL_STORAGE in downloadManager.permissions)
+    }
+
+    @Test
     fun `sendBroadcast with valid downloadID must call onDownloadStopped after download`() {
         var downloadCompleted = false
         var downloadStatus: DownloadState.Status? = null
@@ -147,11 +172,11 @@ class AndroidDownloadManagerTest {
 
         mockRequest.addRequestHeaderSafely("User-Agent", "")
 
-        verifyZeroInteractions(mockRequest)
+        verifyNoInteractions(mockRequest)
 
         mockRequest.addRequestHeaderSafely("User-Agent", null)
 
-        verifyZeroInteractions(mockRequest)
+        verifyNoInteractions(mockRequest)
 
         val fireFox = "Mozilla/5.0 (Windows NT 5.1; rv:7.0.1) Gecko/20100101 Firefox/7.0.1"
 

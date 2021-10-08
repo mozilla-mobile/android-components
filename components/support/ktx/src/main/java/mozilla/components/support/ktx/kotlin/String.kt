@@ -4,6 +4,8 @@
 
 package mozilla.components.support.ktx.kotlin
 
+import android.net.Uri
+import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.components.support.utils.URLStringUtils
 import java.io.File
 import java.net.MalformedURLException
@@ -42,7 +44,21 @@ fun String.isExtensionUrl() = this.startsWith("moz-extension://")
  */
 fun String.isResourceUrl() = this.startsWith("resource://")
 
-fun String.toNormalizedUrl() = URLStringUtils.toNormalizedURL(this)
+/**
+ * Appends `http` scheme if no scheme is present in this String.
+ */
+fun String.toNormalizedUrl(): String {
+    val s = this.trim()
+    // Most commonly we'll encounter http or https schemes.
+    // For these, avoid running through toNormalizedURL as an optimization.
+    return if (!s.startsWith("http://", ignoreCase = true) &&
+        !s.startsWith("https://", ignoreCase = true)
+    ) {
+        URLStringUtils.toNormalizedURL(s)
+    } else {
+        s
+    }
+}
 
 fun String.isPhone() = re.phoneish.matches(this)
 
@@ -226,3 +242,41 @@ fun String.getDataUrlImageExtension(defaultExtension: String = "jpg"): String {
  */
 inline fun <C, R> C?.ifNullOrEmpty(defaultValue: () -> R): C where C : CharSequence, R : C =
     if (isNullOrEmpty()) defaultValue() else this
+
+/**
+ * Get the representative part of the URL. Usually this is the eTLD part of the host.
+ *
+ * For example this method will return "facebook.com" for "https://www.facebook.com/foobar".
+ */
+fun String.getRepresentativeSnippet(): String {
+    val uri = Uri.parse(this)
+
+    val host = uri.hostWithoutCommonPrefixes
+    if (!host.isNullOrEmpty()) {
+        return host
+    }
+
+    val path = uri.path
+    if (!path.isNullOrEmpty()) {
+        return path
+    }
+
+    return this
+}
+
+/**
+ * Get a representative character for the given URL.
+ *
+ * For example this method will return "f" for "https://m.facebook.com/foobar".
+ */
+fun String.getRepresentativeCharacter(): String {
+    val snippet = this.getRepresentativeSnippet()
+
+    snippet.forEach { character ->
+        if (character.isLetterOrDigit()) {
+            return character.uppercase()
+        }
+    }
+
+    return "?"
+}

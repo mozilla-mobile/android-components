@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:Suppress("DEPRECATION")
+
 package mozilla.components.browser.awesomebar
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.awesomebar.facts.BrowserAwesomeBarFacts
@@ -30,14 +29,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
-import org.mockito.Mockito.inOrder
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import org.robolectric.Shadows.shadowOf
 import java.util.UUID
-import java.util.concurrent.Executor
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -49,11 +46,12 @@ class BrowserAwesomeBarTest {
     @Test
     fun `BrowserAwesomeBar forwards input to providers`() {
         runBlocking {
-            val provider1 = mockProvider()
             val awesomeBar = BrowserAwesomeBar(testContext)
 
+            val provider1 = mockProvider()
             val provider2 = mockProvider()
             val provider3 = mockProvider()
+
             awesomeBar.addProviders(provider1)
 
             val facts = mutableListOf<Fact>()
@@ -67,8 +65,8 @@ class BrowserAwesomeBarTest {
             awesomeBar.awaitForAllJobsToFinish()
 
             verify(provider1).onInputChanged("Hello World!")
-            verifyZeroInteractions(provider2)
-            verifyZeroInteractions(provider3)
+            verifyNoInteractions(provider2)
+            verifyNoInteractions(provider3)
 
             assertEquals(1, facts.size)
             assertBrowserAwesomebarFact(facts[0], provider1)
@@ -466,41 +464,6 @@ class BrowserAwesomeBarTest {
 
         awesomeBar.addProviders(provider1)
         awesomeBar.addProviders(provider2, provider3)
-    }
-
-    @Test
-    fun `clears suggestions before new ones are produced`() {
-        val provider = mockProvider()
-
-        var mainRunnable: Runnable? = null
-        val fakeMainDispatcher = Executor {
-            if (mainRunnable == null) {
-                mainRunnable = it
-            } else {
-                it.run()
-            }
-        }.asCoroutineDispatcher()
-
-        val fakeJobDispatcher = Executor {
-            it.run()
-        }.asCoroutineDispatcher() as ExecutorCoroutineDispatcher
-
-        val adapter: SuggestionsAdapter = mock()
-        val awesomeBar = BrowserAwesomeBar(testContext)
-        awesomeBar.scope = CoroutineScope(fakeMainDispatcher)
-        awesomeBar.jobDispatcher = fakeJobDispatcher
-        awesomeBar.suggestionsAdapter = adapter
-        awesomeBar.addProviders(provider)
-
-        runBlocking {
-            val inOrder = inOrder(adapter, provider)
-            awesomeBar.onInputChanged("Hello!")
-            verify(adapter, never()).optionallyClearSuggestions()
-            mainRunnable?.run()
-
-            inOrder.verify(adapter).optionallyClearSuggestions()
-            inOrder.verify(provider).onInputChanged("Hello!")
-        }
     }
 
     private fun mockProvider(): AwesomeBar.SuggestionProvider = spy(object : AwesomeBar.SuggestionProvider {

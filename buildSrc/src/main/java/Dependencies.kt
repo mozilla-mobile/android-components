@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2021-07-05
+// FORCE REBUILD 2021-10-06
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
@@ -12,7 +12,7 @@ object Versions {
 
     const val junit = "4.12"
     const val robolectric = "4.1"
-    const val mockito = "2.24.5"
+    const val mockito = "3.11.2"
     const val maven_ant_tasks = "2.1.3"
 
     const val mockwebserver = "3.10.0"
@@ -29,9 +29,9 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "81.0.1"
+    const val mozilla_appservices = "85.4.1"
 
-    const val mozilla_glean = "39.0.3"
+    const val mozilla_glean = "41.1.1"
 
     const val material = "1.2.1"
 
@@ -97,6 +97,7 @@ object Dependencies {
     const val androidx_browser = "androidx.browser:browser:${Versions.AndroidX.browser}"
     const val androidx_cardview = "androidx.cardview:cardview:${Versions.AndroidX.cardview}"
     const val androidx_compose_ui = "androidx.compose.ui:ui:${Versions.AndroidX.compose}"
+    const val androidx_compose_ui_graphics = "androidx.compose.ui:ui-graphics:${Versions.AndroidX.compose}"
     const val androidx_compose_ui_test = "androidx.compose.ui:ui-test-junit4:${Versions.AndroidX.compose}"
     const val androidx_compose_ui_test_manifest = "androidx.compose.ui:ui-test-manifest:${Versions.AndroidX.compose}"
     const val androidx_compose_ui_tooling = "androidx.compose.ui:ui-tooling:${Versions.AndroidX.compose}"
@@ -150,7 +151,7 @@ object Dependencies {
     val mozilla_geckoview = "org.mozilla.geckoview:${Gecko.channel.artifactName}:${Gecko.version}"
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
     const val mozilla_nimbus = "org.mozilla.appservices:nimbus:${Versions.mozilla_appservices}"
-    const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-forUnitTests:${Versions.mozilla_glean}"
+    const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-native-forUnitTests:${Versions.mozilla_glean}"
     const val mozilla_sync_autofill = "org.mozilla.appservices:autofill:${Versions.mozilla_appservices}"
     const val mozilla_sync_logins = "org.mozilla.appservices:logins:${Versions.mozilla_appservices}"
     const val mozilla_places = "org.mozilla.appservices:places:${Versions.mozilla_appservices}"

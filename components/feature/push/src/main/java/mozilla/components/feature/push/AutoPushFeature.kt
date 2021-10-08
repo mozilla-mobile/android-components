@@ -13,10 +13,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
-import mozilla.appservices.push.CommunicationError
-import mozilla.appservices.push.CommunicationServerError
-import mozilla.appservices.push.CryptoError
-import mozilla.appservices.push.GeneralError
+import mozilla.appservices.push.PushException.CommunicationException
+import mozilla.appservices.push.PushException.CommunicationServerException
+import mozilla.appservices.push.PushException.CryptoException
+import mozilla.appservices.push.PushException.GeneralException
+import mozilla.appservices.push.PushException.JSONDeserializeException
+import mozilla.appservices.push.PushException.RequestException
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.push.EncryptedPushMessage
 import mozilla.components.concept.push.PushError
@@ -64,10 +66,10 @@ import kotlin.coroutines.CoroutineContext
  * ```
  *
  * @param context the application [Context].
- * @param service A [PushService] bridge that receives the encrypted push messages.
+ * @param service A [PushService] bridge that receives the encrypted push messages - eg, Firebase.
  * @param config An instance of [PushConfig] to configure the feature.
  * @param coroutineContext An instance of [CoroutineContext] used for executing async push tasks.
- * @param connection An implementation of [PushConnection] to communicate with any native layer.
+ * @param connection An implementation of [PushConnection] to communicate with autopush - eg, app-services component.
  * @param crashReporter An optional instance of a [CrashReporting].
  */
 @Suppress("LargeClass", "LongParameterList")
@@ -99,27 +101,21 @@ class AutoPushFeature(
 
     private val coroutineScope = CoroutineScope(coroutineContext) + SupervisorJob() + exceptionHandler { onError(it) }
 
-    init {
-        // If we have a token, initialize the rust component first.
-        coroutineScope.launch {
-            prefToken?.let { token ->
-                logger.debug("Initializing native component with the cached token.")
-
-                connection.updateToken(token)
-            }
-        }
-    }
-
     /**
      * Starts the push feature and initialization work needed. Also starts the [PushService] to ensure new messages
      * come through.
      */
     override fun initialize() {
-        // Starts the push feature so that we receive messages if the service is not already started (safe call).
+        // If we have a token, initialize the rust component on a different thread.
+        coroutineScope.launch {
+            prefToken?.let { token ->
+                logger.debug("Initializing rust component with the cached token.")
+                connection.updateToken(token)
+                tryVerifySubscriptions()
+            }
+        }
+        // Starts the (FCM) push feature so that we receive messages if the service is not already started (safe call).
         service.start(context)
-
-        // Starts verification of push subscription endpoints.
-        tryVerifySubscriptions()
     }
 
     /**
@@ -149,15 +145,11 @@ class AutoPushFeature(
         coroutineScope.launchAndTry {
             logger.info("Received a new registration token from push service.")
 
-            // Implementation notes: We create a fake subscription, since receiving another token before
-            // a subscription will cause a fatal crash. See https://github.com/mozilla/application-services/issues/2490
-            if (prefToken.isNullOrEmpty()) {
-                subscribe("fake")
-            }
-
-            connection.updateToken(newToken)
-
             saveToken(context, newToken)
+
+            // Tell the autopush service about it and update subscriptions.
+            connection.updateToken(newToken)
+            tryVerifySubscriptions()
         }
     }
 
@@ -272,11 +264,14 @@ class AutoPushFeature(
     }
 
     /**
-     * Deletes the registration token locally so that it forces the service to get a new one the
+     * Deletes the FCM registration token locally so that it forces the service to get a new one the
      * next time hits it's messaging server.
+     * XXX - this is suspect - the only caller of this is FxA, and it calls it when the device
+     * record indicates the end-point is expired. If that's truly necessary, then it will mean
+     * push never recovers for non-FxA users. If that's not truly necessary, we should remove it!
      */
     override fun renewRegistration() {
-        logger.warn("Forcing registration renewal by deleting our (cached) token.")
+        logger.warn("Forcing FCM registration renewal by deleting our (cached) token.")
 
         // Remove the cached token we have.
         deleteToken(context)
@@ -368,10 +363,12 @@ class AutoPushFeature(
 internal inline fun exceptionHandler(crossinline onError: (PushError) -> Unit) = CoroutineExceptionHandler { _, e ->
     val isFatal = when (e) {
         is PushError.MalformedMessage,
-        is GeneralError,
-        is CryptoError,
-        is CommunicationError,
-        is CommunicationServerError -> false
+        is GeneralException,
+        is CryptoException,
+        is CommunicationException,
+        is JSONDeserializeException,
+        is RequestException,
+        is CommunicationServerException -> false
         else -> true
     }
 

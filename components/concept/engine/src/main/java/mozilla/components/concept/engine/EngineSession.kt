@@ -75,6 +75,11 @@ abstract class EngineSession(
         fun onPromptRequest(promptRequest: PromptRequest) = Unit
 
         /**
+         * The engine has requested a prompt be dismissed.
+         */
+        fun onPromptDismissed(promptRequest: PromptRequest) = Unit
+
+        /**
          * User cancelled a repost prompt. Page will not be reloaded.
          */
         fun onRepostPromptCancelled() = Unit
@@ -90,6 +95,12 @@ abstract class EngineSession(
          * @param windowRequest the request to describing the required window action.
          */
         fun onWindowRequest(windowRequest: WindowRequest) = Unit
+
+        /**
+         * Based on the webpage current state the toolbar should be expanded to it's full height
+         * previously specified in [EngineView.setDynamicToolbarMaxHeight].
+         */
+        fun onShowDynamicToolbar() = Unit
 
         /**
          * Notify that the given media session has become active.

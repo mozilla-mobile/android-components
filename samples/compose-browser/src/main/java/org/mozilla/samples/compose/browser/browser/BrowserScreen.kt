@@ -17,9 +17,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
@@ -99,6 +101,9 @@ fun BrowserScreen(navController: NavController) {
                         onSuggestionClicked = { suggestion ->
                             store.dispatch(BrowserScreenAction.ToggleEditMode(false))
                             suggestion.onSuggestionClicked?.invoke()
+                        },
+                        onAutoComplete = { suggestion ->
+                            store.dispatch(BrowserScreenAction.UpdateEditText(suggestion.editSuggestion!!))
                         }
                     )
                 }
@@ -163,10 +168,12 @@ fun TabsTray(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun Suggestions(
     url: String,
-    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit
+    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit,
+    onAutoComplete: (AwesomeBar.Suggestion) -> Unit
 ) {
     val context = LocalContext.current
     val components = components()
@@ -202,6 +209,8 @@ private fun Suggestions(
         )
     }
 
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     AwesomeBar(
         url,
         providers = listOf(
@@ -210,6 +219,8 @@ private fun Suggestions(
             searchSuggestionProvider,
             clipboardSuggestionProvider
         ),
-        onSuggestionClicked = { suggestion -> onSuggestionClicked(suggestion) }
+        onSuggestionClicked = { suggestion -> onSuggestionClicked(suggestion) },
+        onAutoComplete = { suggestion -> onAutoComplete(suggestion) },
+        onScroll = { keyboardController?.hide() }
     )
 }

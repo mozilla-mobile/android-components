@@ -12,13 +12,12 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.UndoAction
+import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
 import mozilla.components.browser.state.selector.findTab
-import mozilla.components.browser.state.selector.findTabByUrl
-import mozilla.components.browser.state.state.SessionState.Source
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.state.recover.RecoverableTab
-import mozilla.components.browser.state.state.recover.toTabSessionStates
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
@@ -133,6 +132,12 @@ class TabsUseCases(
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          * @param contextId the session context id to use for this tab.
          * @param engineSession (optional) engine session to use for this tab.
+         * @param source The [SessionState.Source] of the new tab.
+         * @param searchTerms The search terms of this new tab if it represents an active
+         * search (result) page.
+         * @param private Whether or not the new tab should be private.
+         * @param historyMetadata the [HistoryMetadataKey] of the new tab in case this tab
+         * was opened from history.
          * @return The ID of the created tab.
          */
         @Suppress("LongParameterList")
@@ -144,9 +149,10 @@ class TabsUseCases(
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             contextId: String? = null,
             engineSession: EngineSession? = null,
-            source: Source = Source.NEW_TAB,
+            source: SessionState.Source = SessionState.Source.Internal.NewTab,
             searchTerms: String = "",
-            private: Boolean = false
+            private: Boolean = false,
+            historyMetadata: HistoryMetadataKey? = null
         ): String {
             val tab = createTab(
                 url = url,
@@ -156,7 +162,8 @@ class TabsUseCases(
                 parent = parentId?.let { store.state.findTab(it) },
                 engineSession = engineSession,
                 searchTerms = searchTerms,
-                initialLoadFlags = flags
+                initialLoadFlags = flags,
+                historyMetadata = historyMetadata
             )
 
             store.dispatch(TabListAction.AddTabAction(tab, select = selectTab))
@@ -212,7 +219,7 @@ class TabsUseCases(
             parentId: String? = null,
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             engineSession: EngineSession? = null,
-            source: Source = Source.NEW_TAB,
+            source: SessionState.Source = SessionState.Source.Internal.NewTab,
             searchTerms: String? = null
         ): String {
             val tab = createTab(
@@ -315,7 +322,7 @@ class TabsUseCases(
      * Use case for restoring tabs.
      */
     class RestoreUseCase(
-        private val store: BrowserStore,
+        val store: BrowserStore,
         private val selectTab: SelectTabUseCase
     ) {
         /**
@@ -323,7 +330,7 @@ class TabsUseCases(
          */
         operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
             store.dispatch(
-                TabListAction.RestoreAction(tabs.toTabSessionStates(), selectTabId)
+                TabListAction.RestoreAction(tabs, selectTabId, TabListAction.RestoreAction.RestoreLocation.BEGINNING)
             )
         }
 
@@ -349,7 +356,8 @@ class TabsUseCases(
         ) = withContext(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             val state = storage.restore {
-                now - it.lastAccess <= tabTimeoutInMs
+                val lastActiveTime = maxOf(it.lastAccess, it.createdAt)
+                now - lastActiveTime <= tabTimeoutInMs
             }
             if (state != null) {
                 withContext(Dispatchers.Main) {
@@ -412,10 +420,10 @@ class TabsUseCases(
         operator fun invoke(
             url: String,
             private: Boolean = false,
-            source: Source = Source.NEW_TAB,
+            source: SessionState.Source = SessionState.Source.Internal.NewTab,
             flags: LoadUrlFlags = LoadUrlFlags.none()
         ): String {
-            val existingTab = store.state.findTabByUrl(url)
+            val existingTab = store.state.findNormalOrPrivateTabByUrl(url, private)
 
             return if (existingTab != null) {
                 store.dispatch(TabListAction.SelectTabAction(existingTab.id))
@@ -470,6 +478,35 @@ class TabsUseCases(
         }
     }
 
+    /**
+     * Use case for moving a collection of tabs.
+     */
+    class MoveTabsUseCase(
+        private val store: BrowserStore
+    ) {
+        /**
+         * Moves the tabs of [tabIds] next to [targetTabId], before/after based on [placeAfter]
+         *
+         * @property tabIds The IDs of the tabs to move.
+         * @property targetTabId A tab that the moved tabs will be moved next to
+         * @property placeAfter True if the moved tabs should be placed after the target,
+         * False for placing before the target. Irrelevant if the target is one of the tabs being moved,
+         * since then the whole list is moved to where the target was. Ordering of the moved tabs
+         * relative to each other is preserved.
+         */
+        operator fun invoke(
+            tabIds: List<String>,
+            targetTabId: String,
+            placeAfter: Boolean
+        ) {
+            store.dispatch(
+                TabListAction.MoveTabsAction(
+                    tabIds, targetTabId, placeAfter
+                )
+            )
+        }
+    }
+
     val selectTab: SelectTabUseCase by lazy { DefaultSelectTabUseCase(store) }
     val removeTab: RemoveTabUseCase by lazy { DefaultRemoveTabUseCase(store) }
     val addTab: AddNewTabUseCase by lazy { AddNewTabUseCase(store) }
@@ -484,4 +521,5 @@ class TabsUseCases(
     val restore: RestoreUseCase by lazy { RestoreUseCase(store, selectTab) }
     val selectOrAddTab: SelectOrAddUseCase by lazy { SelectOrAddUseCase(store) }
     val duplicateTab: DuplicateTabUseCase by lazy { DuplicateTabUseCase(store) }
+    val moveTabs: MoveTabsUseCase by lazy { MoveTabsUseCase(store) }
 }

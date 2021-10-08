@@ -13,7 +13,6 @@ import mozilla.components.concept.storage.HistoryMetadataStorage
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyInt
@@ -30,7 +29,8 @@ class HistoryMetadataSuggestionProviderTest {
         createdAt = System.currentTimeMillis(),
         updatedAt = System.currentTimeMillis(),
         totalViewTime = 10,
-        documentType = DocumentType.Regular
+        documentType = DocumentType.Regular,
+        previewImageUrl = null
     )
 
     @Test
@@ -106,12 +106,6 @@ class HistoryMetadataSuggestionProviderTest {
 
         val suggestions = provider.onInputChanged("moz")
         assertEquals(1, suggestions.size)
-    }
-
-    @Test
-    fun `provider suggestion should not get cleared when text changes`() {
-        val provider = HistoryMetadataSuggestionProvider(mock(), mock())
-        assertFalse(provider.shouldClearSuggestions)
     }
 
     @Test

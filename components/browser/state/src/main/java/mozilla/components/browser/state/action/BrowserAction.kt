@@ -46,6 +46,7 @@ import mozilla.components.concept.engine.webextension.WebExtensionPageAction
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.lib.state.Action
+import mozilla.components.lib.state.DelicateAction
 import mozilla.components.support.base.android.Clock
 import java.util.Locale
 
@@ -152,6 +153,22 @@ sealed class TabListAction : BrowserAction() {
     data class AddMultipleTabsAction(val tabs: List<TabSessionState>) : TabListAction()
 
     /**
+     * Moves a set of tabIDs into a new position (maintaining internal ordering)
+     *
+     * @property tabIds The IDs of the tabs to move.
+     * @property targetTabId A tab that the moved tabs will be moved next to
+     * @property placeAfter True if the moved tabs should be placed after the target,
+     * False for placing before the target. Irrelevant if the target is one of the tabs being moved,
+     * since then the whole list is moved to where the target was. Ordering of the moved tabs
+     * relative to each other is preserved.
+     */
+    data class MoveTabsAction(
+        val tabIds: List<String>,
+        val targetTabId: String,
+        val placeAfter: Boolean,
+    ) : TabListAction()
+
+    /**
      * Marks the [TabSessionState] with the given [tabId] as selected tab.
      *
      * @property tabId the ID of the tab to select.
@@ -181,8 +198,22 @@ sealed class TabListAction : BrowserAction() {
      * @property tabs the [TabSessionState]s to restore.
      * @property selectedTabId the ID of the tab to select.
      */
-    data class RestoreAction(val tabs: List<TabSessionState>, val selectedTabId: String? = null) :
-        TabListAction()
+    data class RestoreAction(
+        val tabs: List<RecoverableTab>,
+        val selectedTabId: String? = null,
+        val restoreLocation: RestoreLocation
+    ) : TabListAction() {
+
+        /**
+         * Indicates what location the tabs should be restored at
+         *
+         */
+        enum class RestoreLocation {
+            BEGINNING,
+            END,
+            AT_INDEX
+        }
+    }
 
     /**
      * Removes both private and normal [TabSessionState]s.
@@ -643,6 +674,11 @@ sealed class ContentAction : BrowserAction() {
      * Removes the [AppIntentState] of the [ContentState] with the given [sessionId].
      */
     data class ConsumeAppIntentAction(val sessionId: String) : ContentAction()
+
+    /**
+     * Updates whether the toolbar should be forced to expand or have it follow the default behavior.
+     */
+    data class UpdateExpandedToolbarStateAction(val sessionId: String, val expanded: Boolean) : ContentAction()
 }
 
 /**
@@ -1220,4 +1256,23 @@ sealed class SearchAction : BrowserAction() {
      * back to [SearchState.additionalAvailableSearchEngines].
      */
     data class RemoveAdditionalSearchEngineAction(val searchEngineId: String) : SearchAction()
+}
+
+/**
+ * [BrowserAction] implementations for updating state needed for debugging. These actions should
+ * be carefully considered before being used.
+ *
+ * Every action **should** be annotated with [DelicateAction] to bring consumers to attention that
+ * this is a delicate action.
+ */
+sealed class DebugAction : BrowserAction() {
+
+    /**
+     * Updates the [TabSessionState.createdAt] timestamp of the tab with the given [tabId].
+     *
+     * @property tabId the ID of the tab to update.
+     * @property createdAt the value to signify when the tab was created.
+     */
+    @DelicateAction
+    data class UpdateCreatedAtAction(val tabId: String, val createdAt: Long) : DebugAction()
 }

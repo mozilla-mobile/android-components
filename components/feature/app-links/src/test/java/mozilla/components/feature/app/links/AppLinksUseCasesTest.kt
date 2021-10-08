@@ -300,6 +300,18 @@ class AppLinksUseCasesTest {
     }
 
     @Test
+    fun `A bad intent scheme uri should not cause a crash`() {
+        val uri = "intent://blank#Intent;package=com.twitter.android%23Intent%3B;end"
+        val context = createContext(Triple(uri, appPackage, ""))
+        val subject = AppLinksUseCases(context, { true })
+
+        val redirect = subject.appLinkRedirectIncludeInstall.invoke(uri)
+
+        assertTrue(redirect.hasExternalApp())
+        assertFalse(redirect.isInstallable())
+    }
+
+    @Test
     fun `A market scheme uri with no installed app is an install link`() {
         val uri = "intent://details/#Intent;scheme=market;package=com.google.play;end"
         val context = createContext(Triple(uri, appPackage, ""))
@@ -567,5 +579,41 @@ class AppLinksUseCasesTest {
         assertNull(redirect.marketplaceIntent)
         assertNull(redirect.fallbackUrl)
         assertTrue(redirect.appIntent?.flags?.and(Intent.FLAG_ACTIVITY_CLEAR_TASK) == 0)
+    }
+
+    @Test
+    fun `Failed to parse uri should not cause a crash`() {
+        val context = createContext()
+        val subject = AppLinksUseCases(context, { true })
+        var uri = "intent://blank#Intent;package=test"
+        var result = subject.safeParseUri(uri, 0)
+
+        assertNull(result)
+
+        uri = "intent://blank#Intent;package=test;i.android.support.customtabs.extra.TOOLBAR_COLOR=2239095040;end"
+        result = subject.safeParseUri(uri, 0)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `Intent targeting same package should return null`() {
+        val context = createContext()
+        val subject = AppLinksUseCases(context, { true })
+        val uri = "intent://blank#Intent;package=$testBrowserPackage;end"
+        val result = subject.safeParseUri(uri, 0)
+
+        assertNull(result)
+    }
+
+    @Test
+    fun `Intent targeting external package should not return null`() {
+        val context = createContext()
+        val subject = AppLinksUseCases(context, { true })
+        val uri = "intent://blank#Intent;package=org.mozilla.test;end"
+        val result = subject.safeParseUri(uri, 0)
+
+        assertNotNull(result)
+        assertEquals(result?.`package`, "org.mozilla.test")
     }
 }

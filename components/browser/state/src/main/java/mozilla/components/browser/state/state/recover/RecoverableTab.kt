@@ -6,6 +6,7 @@ package mozilla.components.browser.state.state.recover
 
 import mozilla.components.browser.state.state.LastMediaAccessState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.SessionState.Source
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.EngineSessionState
@@ -23,42 +24,56 @@ import mozilla.components.concept.storage.HistoryMetadataKey
  * @property parentId The unique ID of the parent tab if this tab was opened from another tab (e.g. via
  * the context menu).
  * @property title The last title of this tab (or an empty String).
+ * @property searchTerms The last used search terms, or an empty string if no
+ * search was executed for this session.
  * @property contextId The context ID ("container") this tab used (or null).
  * @property state The [EngineSessionState] needed for restoring the previous state of this tab.
  * @property readerState The last [ReaderState] of the tab.
  * @property lastAccess The last time this tab was selected.
+ * @property createdAt Timestamp of the tab's creation.
  * @property lastMediaAccessState Details about the last time was playing in this tab.
  * @property private If tab was private.
+ * @property historyMetadata The last [HistoryMetadataKey] of the tab.
+ * @property source The last [Source] of the tab.
+ * @property index The index the tab should be restored at.
  */
 data class RecoverableTab(
     val id: String,
     val url: String,
     val parentId: String? = null,
     val title: String = "",
+    val searchTerm: String = "",
     val contextId: String? = null,
     val state: EngineSessionState? = null,
     val readerState: ReaderState = ReaderState(),
     val lastAccess: Long = 0,
+    val createdAt: Long = 0,
     val lastMediaAccessState: LastMediaAccessState = LastMediaAccessState(),
     val private: Boolean = false,
-    val historyMetadata: HistoryMetadataKey? = null
+    val historyMetadata: HistoryMetadataKey? = null,
+    val source: Source = Source.Internal.None,
+    val index: Int = -1
 )
 
 /**
  * Creates a [RecoverableTab] from this [TabSessionState].
  */
-fun TabSessionState.toRecoverableTab() = RecoverableTab(
+fun TabSessionState.toRecoverableTab(index: Int = -1) = RecoverableTab(
     id = id,
     parentId = parentId,
     url = content.url,
     title = content.title,
+    searchTerm = content.searchTerms,
     contextId = contextId,
     state = engineState.engineSessionState,
     readerState = readerState,
     lastAccess = lastAccess,
+    createdAt = createdAt,
     lastMediaAccessState = lastMediaAccessState,
     private = content.private,
-    historyMetadata = historyMetadata
+    historyMetadata = historyMetadata,
+    source = source,
+    index = index
 )
 
 /**
@@ -69,20 +84,20 @@ fun RecoverableTab.toTabSessionState() = createTab(
     url = url,
     parentId = parentId,
     title = title,
+    searchTerms = searchTerm,
     contextId = contextId,
     engineSessionState = state,
     readerState = readerState,
     lastAccess = lastAccess,
+    createdAt = createdAt,
     lastMediaAccessState = lastMediaAccessState,
-    private = private
+    private = private,
+    historyMetadata = historyMetadata,
+    source = source,
+    restored = true
 )
 
 /**
- * Creates a list of [RecoverableTab]s from a List of [TabSessionState]s.
- */
-fun List<TabSessionState>.toRecoverableTabs() = map { it.toRecoverableTab() }
-
-/**
- * Creates a list of [TabSessionState]s from a List of [TabSessionState]s.
+ * Creates a list of [TabSessionState]s from a List of [RecoverableTab]s.
  */
 fun List<RecoverableTab>.toTabSessionStates() = map { it.toTabSessionState() }

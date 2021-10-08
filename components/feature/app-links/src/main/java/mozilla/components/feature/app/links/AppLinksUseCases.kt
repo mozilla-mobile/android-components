@@ -20,6 +20,7 @@ import mozilla.components.support.ktx.android.content.pm.isPackageInstalled
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
 import java.lang.Exception
 import java.lang.NullPointerException
+import java.lang.NumberFormatException
 import java.net.URISyntaxException
 
 private const val EXTRA_BROWSER_FALLBACK_URL = "browser_fallback_url"
@@ -59,14 +60,6 @@ class AppLinksUseCases(
 
     private fun findDefaultActivity(intent: Intent): ResolveInfo? {
         return context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-    }
-
-    private fun safeParseUri(uri: String, flags: Int): Intent? {
-        return try {
-            Intent.parseUri(uri, flags)
-        } catch (e: URISyntaxException) {
-            null
-        }
     }
 
     /**
@@ -133,14 +126,14 @@ class AppLinksUseCases(
         private fun createBrowsableIntents(url: String): RedirectData {
             val intent = safeParseUri(url, Intent.URI_INTENT_SCHEME)
             val fallbackIntent = intent?.getStringExtra(EXTRA_BROWSER_FALLBACK_URL)?.let {
-                Intent.parseUri(it, 0)
+                safeParseUri(it, 0)
             }
 
             val marketplaceIntent = intent?.`package`?.let {
                 if (includeInstallAppFallback &&
                     !context.packageManager.isPackageInstalled(it)
                 ) {
-                    Intent.parseUri(MARKET_INTENT_URI_PACKAGE_PREFIX + it, 0)
+                    safeParseUri(MARKET_INTENT_URI_PACKAGE_PREFIX + it, 0)
                 } else {
                     null
                 }
@@ -227,6 +220,25 @@ class AppLinksUseCases(
                     }
                 }
             }
+        }
+    }
+
+    @VisibleForTesting
+    internal fun safeParseUri(uri: String, flags: Int): Intent? {
+        return try {
+            val intent = Intent.parseUri(uri, flags)
+            if (context.packageName != null && context.packageName == intent?.`package`) {
+                // Ignore intents that would open in the browser itself
+                null
+            } else {
+                intent
+            }
+        } catch (e: URISyntaxException) {
+            Logger.error("failed to parse URI", e)
+            null
+        } catch (e: NumberFormatException) {
+            Logger.error("failed to parse URI", e)
+            null
         }
     }
 

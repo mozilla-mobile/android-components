@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+// The deprecation will be addressed on
+// https://github.com/mozilla-mobile/android-components/issues/11101
+@file:Suppress("DEPRECATION")
 package mozilla.components.browser.engine.gecko
 
 import android.app.Activity
@@ -200,7 +202,7 @@ class TrackingProtectionExceptionFileStorageTest {
         val geckoResult = GeckoResult<List<ContentPermission>>()
 
         whenever(runtime.storageController).thenReturn(storageController)
-        whenever(runtime.storageController.getPermissions(anyString())).thenReturn(geckoResult)
+        whenever(runtime.storageController.allPermissions).thenReturn(geckoResult)
 
         storage.remove("https://example.com/")
 
@@ -272,7 +274,7 @@ class TrackingProtectionExceptionFileStorageTest {
         val geckoResult = GeckoResult<List<ContentPermission>>()
 
         whenever(runtime.storageController).thenReturn(storageController)
-        whenever(runtime.storageController.getPermissions(anyString())).thenReturn(geckoResult)
+        whenever(runtime.storageController.allPermissions).thenReturn(geckoResult)
 
         whenever(session.currentUrl).thenReturn("https://example.com/")
         whenever(session.geckoSession).thenReturn(mockGeckoSession)

@@ -20,6 +20,7 @@ import mozilla.components.concept.awesomebar.AwesomeBar
  * [RecyclerView.Adapter] for displaying [AwesomeBar.Suggestion] in [BrowserAwesomeBar].
  */
 internal class SuggestionsAdapter(
+    @Suppress("DEPRECATION")
     private val awesomeBar: BrowserAwesomeBar
 ) : RecyclerView.Adapter<ViewHolderWrapper>() {
     internal var layout: SuggestionLayout = DefaultSuggestionLayout()
@@ -71,21 +72,6 @@ internal class SuggestionsAdapter(
         val updatedSuggestions = suggestions.toMutableList()
 
         suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
-        updateTo(updatedSuggestions)
-    }
-
-    /**
-     * Removes all suggestions except the ones from providers that have set shouldClearSuggestions to false.
-     */
-    fun optionallyClearSuggestions() = synchronized(suggestions) {
-        val updatedSuggestions = suggestions.toMutableList()
-
-        suggestionMap.keys.forEach { provider ->
-            if (provider.shouldClearSuggestions) {
-                suggestionMap[provider]?.let { updatedSuggestions.removeAll(it) }
-            }
-        }
-
         updateTo(updatedSuggestions)
     }
 

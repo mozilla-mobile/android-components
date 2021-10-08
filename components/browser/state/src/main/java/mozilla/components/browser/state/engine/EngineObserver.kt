@@ -256,6 +256,12 @@ internal class EngineObserver(
         )
     }
 
+    override fun onPromptDismissed(promptRequest: PromptRequest) {
+        store.dispatch(
+            ContentAction.ConsumePromptRequestAction(tabId, promptRequest)
+        )
+    }
+
     override fun onRepostPromptCancelled() {
         store.dispatch(ContentAction.UpdateRefreshCanceledStateAction(tabId, true))
     }
@@ -270,6 +276,12 @@ internal class EngineObserver(
                 tabId,
                 windowRequest
             )
+        )
+    }
+
+    override fun onShowDynamicToolbar() {
+        store.dispatch(
+            ContentAction.UpdateExpandedToolbarStateAction(tabId, true)
         )
     }
 

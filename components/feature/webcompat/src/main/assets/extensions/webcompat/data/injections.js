@@ -203,20 +203,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1610016",
-    platform: "android",
-    domain: "gaana.com",
-    bug: "1610016",
-    contentScripts: {
-      matches: ["https://gaana.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1610016-gaana.com-input-position-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1610358",
     platform: "android",
     domain: "pcloud.com",
@@ -256,20 +242,6 @@ const AVAILABLE_INJECTIONS = [
         {
           file:
             "injections/css/bug1644830-missingmail.usps.com-checkboxes-not-visible.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1645064",
-    platform: "desktop",
-    domain: "s-kanava.fi",
-    bug: "1645064",
-    contentScripts: {
-      matches: ["https://www.s-kanava.fi/*"],
-      css: [
-        {
-          file: "injections/css/bug1645064-s-kanava.fi-invisible-charts.css",
         },
       ],
     },
@@ -390,6 +362,26 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
+    id: "bug1731825",
+    platform: "desktop",
+    domain: "Office 365 email handling prompt",
+    bug: "1731825",
+    contentScripts: {
+      matches: [
+        "*://*.live.com/*",
+        "*://*.office.com/*",
+        "*://*.sharepoint.com/*",
+      ],
+      js: [
+        {
+          file:
+            "injections/js/bug1731825-office365-email-handling-prompt-autohide.js",
+        },
+      ],
+      allFrames: true,
+    },
+  },
+  {
     id: "bug1707795",
     platform: "desktop",
     domain: "Office Excel spreadsheets",
@@ -439,21 +431,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1712843",
-    platform: "all",
-    domain: "snaptik.app",
-    bug: "1712843",
-    contentScripts: {
-      matches: ["*://snaptik.app/*"],
-      css: [
-        {
-          file:
-            "injections/css/bug1712843-snaptik.app-fix-text-input-alignment.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1714612",
     platform: "all",
     domain: "www.rfi.it",
@@ -478,6 +455,81 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1719870-lcbo.com-table-clearfix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1722955",
+    platform: "android",
+    domain: "frontgate.com",
+    bug: "1722955",
+    contentScripts: {
+      matches: ["*://*.frontgate.com/*"],
+      js: [
+        {
+          file: "lib/ua_helpers.js",
+        },
+        {
+          file: "injections/js/bug1722955-frontgate.com-ua-override.js",
+        },
+      ],
+      allFrames: true,
+    },
+  },
+  {
+    id: "bug1724764",
+    platform: "android",
+    domain: "amextravel.com",
+    bug: "1724764",
+    contentScripts: {
+      matches: ["*://*.amextravel.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1724764-amextravel.com-window-print.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1724868",
+    platform: "android",
+    domain: "news.yahoo.co.jp",
+    bug: "1724868",
+    contentScripts: {
+      matches: ["*://news.yahoo.co.jp/articles/*", "*://s.yimg.jp/*"],
+      js: [
+        {
+          file: "injections/js/bug1724868-news.yahoo.co.jp-ua-override.js",
+        },
+      ],
+      allFrames: true,
+    },
+  },
+  {
+    id: "bug1727080",
+    platform: "android",
+    domain: "nexity.fr",
+    bug: "1727080",
+    contentScripts: {
+      matches: ["*://*.nexity.fr/*"],
+      css: [
+        {
+          file: "injections/css/bug1727080-nexity.fr-svg-size-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1728140",
+    platform: "android",
+    domain: "air-quality.com",
+    bug: "1728140",
+    contentScripts: {
+      matches: ["*://air-quality.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1728140-map-size-fix.css",
         },
       ],
     },

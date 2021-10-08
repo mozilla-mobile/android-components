@@ -646,13 +646,13 @@ class BrowserToolbarTest {
         var reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop") {}
         assertFalse(reloadPageAction.enabled)
         reloadPageAction.bind(view)
-        verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "stop"
+        verify(view).setImageDrawable(reloadImage)
+        verify(view).contentDescription = "reload"
 
         reloadPageAction = BrowserToolbar.TwoStateButton(reloadImage, "reload", stopImage, "stop", { false }) {}
         reloadPageAction.bind(view)
         verify(view).setImageDrawable(stopImage)
-        verify(view).contentDescription = "reload"
+        verify(view).contentDescription = "stop"
     }
 
     @Test
@@ -778,5 +778,35 @@ class BrowserToolbarTest {
         toolbar.disableScrolling()
 
         verify(behavior).disableScrolling()
+    }
+
+    @Test
+    fun `expand is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.expand()
+
+        verify(behavior).forceExpand(toolbar)
+    }
+
+    @Test
+    fun `collapse is forwarded to the toolbar behavior`() {
+        // Seems like real instances are needed for things to be set properly
+        val toolbar = BrowserToolbar(testContext)
+        val behavior = spy(BrowserToolbarBehavior(testContext, null, ToolbarPosition.BOTTOM))
+        val params = CoordinatorLayout.LayoutParams(10, 10).apply {
+            this.behavior = behavior
+        }
+        toolbar.layoutParams = params
+
+        toolbar.collapse()
+
+        verify(behavior).forceCollapse(toolbar)
     }
 }

@@ -37,7 +37,7 @@
     <!-- Description for clipboard_read permission. -->
     <string name="mozac_feature_addons_permissions_clipboard_read_description">Obter dados da área de transferência</string>
     <!-- Description for clipboard_write permission. -->
-    <string name="mozac_feature_addons_permissions_clipboard_write_description">Enviar dados para a área de transferência</string>
+    <string name="mozac_feature_addons_permissions_clipboard_write_description">Enviar dados para área de transferência</string>
     <!-- Description for downloads permission. -->
     <string name="mozac_feature_addons_permissions_downloads_description">Baixar arquivos, ler e modificar o histórico de downloads do navegador</string>
     <!-- Description for downloads_open permission. -->
@@ -55,7 +55,7 @@
     <!-- Description for notifications permission. -->
     <string name="mozac_feature_addons_permissions_notifications_description">Exibir notificações para você</string>
     <!-- Description for pkcs11 permission. -->
-    <string name="mozac_feature_addons_permissions_pkcs11_description">Fornecer serviços de autenticação criptográfica</string>
+    <string name="mozac_feature_addons_permissions_pkcs11_description">Fornecer serviços de autenticação com criptografia</string>
     <!-- Description for proxy permission. -->
     <string name="mozac_feature_addons_permissions_proxy_description">Controlar configurações de proxy do navegador</string>
     <!-- Description for sessions permission. -->

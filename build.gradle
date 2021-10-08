@@ -83,6 +83,14 @@ subprojects {
                 details.useVersion Versions.support_libraries
             }
         }
+
+        resolutionStrategy.capabilitiesResolution.withCapability("org.mozilla.telemetry:glean-native") {
+            def toBeSelected = candidates.find { it.id instanceof ModuleComponentIdentifier && it.id.module.contains('geckoview') }
+            if (toBeSelected != null) {
+                select(toBeSelected)
+            }
+            because 'use GeckoView Glean instead of standalone Glean'
+        }
     }
 
     // Allow local appservices substitution in each subproject.
@@ -210,6 +218,12 @@ subprojects {
                     exclude 'META-INF/atomicfu.kotlin_module'
                     exclude 'META-INF/AL2.0'
                     exclude 'META-INF/LGPL2.1'
+
+                    // Required dependencies using byte-buddy; remove after this is
+                    // fixed by: https://issuetracker.google.com/issues/170131605
+                    exclude "META-INF/licenses/ASM"
+                    pickFirst "win32-x86-64/attach_hotspot_windows.dll"
+                    pickFirst "win32-x86/attach_hotspot_windows.dll"
                 }
 
                 aaptOptions {
@@ -374,7 +388,8 @@ tasks.register("ktlint", JavaExec) {
 
 apply plugin: GitHubPlugin
 
-task ktlintFormat(type: JavaExec, group: "formatting") {
+tasks.register("ktlintFormat", JavaExec) {
+    group = "formatting"
     description = "Fix Kotlin code style deviations."
     classpath = configurations.ktlint
     main = "com.pinterest.ktlint.Main"

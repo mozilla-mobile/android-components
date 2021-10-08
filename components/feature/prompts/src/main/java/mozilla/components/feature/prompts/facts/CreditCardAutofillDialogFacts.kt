@@ -17,7 +17,11 @@ class CreditCardAutofillDialogFacts {
      * Specific types of telemetry items.
      */
     object Items {
+        const val AUTOFILL_CREDIT_CARD_FORM_DETECTED = "autofill_credit_card_form_detected"
         const val AUTOFILL_CREDIT_CARD_SUCCESS = "autofill_credit_card_success"
+        const val AUTOFILL_CREDIT_CARD_PROMPT_SHOWN = "autofill_credit_card_prompt_shown"
+        const val AUTOFILL_CREDIT_CARD_PROMPT_EXPANDED = "autofill_credit_card_prompt_expanded"
+        const val AUTOFILL_CREDIT_CARD_PROMPT_DISMISSED = "autofill_credit_card_prompt_dismissed"
     }
 }
 
@@ -36,9 +40,37 @@ private fun emitCreditCardAutofillDialogFact(
     ).collect()
 }
 
-internal fun emitSuccessfulCreditCardAutofillFact() {
+internal fun emitSuccessfulCreditCardAutofillFormDetectedFact() {
+    emitCreditCardAutofillDialogFact(
+        Action.INTERACTION,
+        CreditCardAutofillDialogFacts.Items.AUTOFILL_CREDIT_CARD_FORM_DETECTED
+    )
+}
+
+internal fun emitSuccessfulCreditCardAutofillSuccessFact() {
     emitCreditCardAutofillDialogFact(
         Action.INTERACTION,
         CreditCardAutofillDialogFacts.Items.AUTOFILL_CREDIT_CARD_SUCCESS
+    )
+}
+
+internal fun emitCreditCardAutofillShownFact() {
+    emitCreditCardAutofillDialogFact(
+        Action.INTERACTION,
+        CreditCardAutofillDialogFacts.Items.AUTOFILL_CREDIT_CARD_PROMPT_SHOWN
+    )
+}
+
+internal fun emitCreditCardAutofillExpandedFact() {
+    emitCreditCardAutofillDialogFact(
+        Action.INTERACTION,
+        CreditCardAutofillDialogFacts.Items.AUTOFILL_CREDIT_CARD_PROMPT_EXPANDED
+    )
+}
+
+internal fun emitCreditCardAutofillDismissedFact() {
+    emitCreditCardAutofillDialogFact(
+        Action.INTERACTION,
+        CreditCardAutofillDialogFacts.Items.AUTOFILL_CREDIT_CARD_PROMPT_DISMISSED
     )
 }

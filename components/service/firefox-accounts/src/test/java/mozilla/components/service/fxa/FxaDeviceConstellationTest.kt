@@ -12,6 +12,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
+import mozilla.appservices.fxaclient.FxaException
 import mozilla.appservices.fxaclient.IncomingDeviceCommand
 import mozilla.appservices.fxaclient.SendTabPayload
 import mozilla.appservices.fxaclient.TabHistoryEntry
@@ -49,12 +50,11 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyZeroInteractions
+import org.mockito.Mockito.verifyNoInteractions
 import mozilla.appservices.fxaclient.AccountEvent as ASAccountEvent
 import mozilla.appservices.fxaclient.Device as NativeDevice
 import mozilla.appservices.fxaclient.DevicePushSubscription as NativeDevicePushSubscription
 import mozilla.appservices.fxaclient.DeviceType as NativeDeviceType
-import mozilla.appservices.fxaclient.FxaErrorException as FxaException
 import mozilla.appservices.fxaclient.PersistedFirefoxAccount as NativeFirefoxAccount
 import mozilla.appservices.syncmanager.DeviceType as RustDeviceType
 
@@ -108,7 +108,7 @@ class FxaDeviceConstellationTest {
                     verify(account).ensureCapabilities(setOf(mozilla.appservices.fxaclient.DeviceCapability.SEND_TAB))
                 }
                 FxaDeviceConstellation.DeviceFinalizeAction.None -> {
-                    verifyZeroInteractions(account)
+                    verifyNoInteractions(account)
                 }
             }
             reset(account)

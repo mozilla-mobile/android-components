@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2021-09-01
+// FORCE REBUILD 2021-10-06
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
@@ -29,7 +29,7 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "85.3.0"
+    const val mozilla_appservices = "85.4.0"
 
     const val mozilla_glean = "41.1.1"
 

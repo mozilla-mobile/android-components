@@ -302,28 +302,21 @@ object DownloadUtils {
      * Compare the filename extension with the mime type and change it if necessary.
      */
     private fun changeExtension(filename: String, mimeType: String?): String {
-        var extension: String? = null
-        val dotIndex = filename.lastIndexOf('.')
+        val lastDotIndex = filename.lastIndexOf('.')
 
         if (mimeType != null) {
             val mimeTypeMap = MimeTypeMap.getSingleton()
             // Compare the last segment of the extension against the mime type.
-            // If there's a mismatch, discard the entire extension.
+            // If there's a mismatch, only discard the last part.
             val typeFromExt = mimeTypeMap.getMimeTypeFromExtension(filename.substringAfterLast('.'))
-            if (typeFromExt?.equals(mimeType, ignoreCase = true) != false) {
-                extension = mimeTypeMap.getExtensionFromMimeType(mimeType)?.let { ".$it" }
-                // Check if the extension needs to be changed
-                if (extension != null && filename.endsWith(extension, ignoreCase = true)) {
-                    return filename
+            if (typeFromExt != null && !typeFromExt.equals(mimeType, ignoreCase = true)) {
+                var extension = mimeTypeMap.getExtensionFromMimeType(mimeType)?.let { ".$it" }
+                if (extension != null) {
+                    return filename.substring(0, lastDotIndex) + extension
                 }
             }
         }
-
-        return if (extension != null) {
-            filename.substring(0, dotIndex) + extension
-        } else {
-            filename
-        }
+        return filename
     }
 
     /**

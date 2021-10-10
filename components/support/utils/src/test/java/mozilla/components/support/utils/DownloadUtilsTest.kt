@@ -110,6 +110,7 @@ class DownloadUtilsTest {
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("jpg", "image/jpeg")
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("zip", "application/zip")
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("tar.gz", "application/gzip")
+        Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("bin", "application/octet-stream")
 
         assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.jpg", "image/jpeg"))
         assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.bin", "image/jpeg"))
@@ -121,6 +122,7 @@ class DownloadUtilsTest {
             "compressed.TAR.GZ",
             DownloadUtils.guessFileName(null, null, "http://example.com/compressed.TAR.GZ", "application/gzip")
         )
+        assertEquals("file.tar.bz2", DownloadUtils.guessFileName(null, null, "http://example.com/file.tar.bz2", "application/x-tar"))
         assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file?abc", "text/html"))
         assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file", "text/html"))
         assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file", "text/html; charset=utf-8"))

@@ -330,12 +330,7 @@ object DownloadUtils {
         }
         if (extension == null) {
             extension = if (mimeType?.startsWith("text/", ignoreCase = true) == true) {
-                // checking startsWith to ignoring encoding value such as "text/html; charset=utf-8"
-                if (mimeType.startsWith("text/html", ignoreCase = true)) {
-                    ".html"
-                } else {
-                    ".txt"
-                }
+                ".txt"
             } else {
                 // If there's no mime type assume binary data
                 ".bin"

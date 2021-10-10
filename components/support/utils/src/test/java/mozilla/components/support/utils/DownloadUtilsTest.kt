@@ -111,6 +111,7 @@ class DownloadUtilsTest {
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("zip", "application/zip")
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("tar.gz", "application/gzip")
         Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("bin", "application/octet-stream")
+        Shadows.shadowOf(MimeTypeMap.getSingleton()).addExtensionMimeTypMapping("html", "text/html")
 
         assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.jpg", "image/jpeg"))
         assertEquals("file.jpg", DownloadUtils.guessFileName(null, null, "http://example.com/file.bin", "image/jpeg"))
@@ -126,7 +127,6 @@ class DownloadUtilsTest {
         assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file?abc", "text/html"))
         assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file", "text/html"))
         assertEquals("file.html", DownloadUtils.guessFileName(null, null, "http://example.com/file", "text/html; charset=utf-8"))
-        assertEquals("file.txt", DownloadUtils.guessFileName(null, null, "http://example.com/file.txt", "text/html"))
         assertEquals("file.data", DownloadUtils.guessFileName(null, null, "http://example.com/file.data", "application/octet-stream"))
         assertEquals("file.data", DownloadUtils.guessFileName(null, null, "http://example.com/file.data", "binary/octet-stream"))
         assertEquals("file.data", DownloadUtils.guessFileName(null, null, "http://example.com/file.data", "application/unknown"))

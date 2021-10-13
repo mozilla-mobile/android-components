@@ -38,6 +38,7 @@ dependencies {
     implementation project(":support-utils")
 
     implementation Dependencies.androidx_annotation
+    implementation Dependencies.androidx_autofill
     implementation Dependencies.androidx_biometric
     implementation Dependencies.androidx_fragment
     implementation Dependencies.androidx_lifecycle_runtime
@@ -47,7 +48,6 @@ dependencies {
 
     implementation Dependencies.kotlin_stdlib
     implementation Dependencies.kotlin_coroutines
-    implementation 'androidx.autofill:autofill:1.1.0'
 
     testImplementation project(':support-test')
     testImplementation project(':lib-fetch-okhttp')

@@ -34,16 +34,6 @@ internal data class SearchDatasetBuilder(
     ): Dataset {
         val dataset = Dataset.Builder()
 
-        val title = context.getString(
-            R.string.mozac_feature_autofill_search_suggestions,
-            configuration.applicationName
-        )
-
-        val usernamePresentation = RemoteViews(context.packageName, android.R.layout.simple_list_item_1)
-        usernamePresentation.setTextViewText(android.R.id.text1, title)
-        val passwordPresentation = RemoteViews(context.packageName, android.R.layout.simple_list_item_1)
-        passwordPresentation.setTextViewText(android.R.id.text1, title)
-
         val searchIntent = Intent(context, configuration.searchActivity)
         val searchPendingIntent = PendingIntent.getActivity(
             context,
@@ -53,19 +43,16 @@ internal data class SearchDatasetBuilder(
         )
         val intentSender: IntentSender = searchPendingIntent.intentSender
 
-        var usernameInlinePresentation: InlinePresentation? = null
-        var passwordInlinePresentation: InlinePresentation? = null
+        val title = context.getString(
+            R.string.mozac_feature_autofill_search_suggestions,
+            configuration.applicationName
+        )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-            && imeSpec != null
-            && canUseInlineSuggestions(imeSpec)
-        ) {
-            //val icon: Icon = Icon.createWithResource(context, R.drawable.fingerprint_dialog_fp_icon)
-            val usernameSlice = createSlice(title, /*startIcon = icon,*/ attribution = searchPendingIntent)
-            val passwordSlice = createSlice(title, /*startIcon = icon,*/ attribution = searchPendingIntent)
-            usernameInlinePresentation = InlinePresentation(usernameSlice, imeSpec, false)
-            passwordInlinePresentation = InlinePresentation(passwordSlice, imeSpec, false)
-        }
+        val usernamePresentation = createViewPresentation(context, title)
+        val passwordPresentation = createViewPresentation(context, title)
+
+        val usernameInlinePresentation = createInlinePresentation(searchPendingIntent, imeSpec, title)
+        val passwordInlinePresentation = createInlinePresentation(searchPendingIntent, imeSpec, title)
 
         parsedStructure.usernameId?.let { id ->
             dataset.setValue(

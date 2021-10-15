@@ -25,7 +25,6 @@ import androidx.autofill.inline.UiVersions
 import androidx.autofill.inline.v1.InlineSuggestionUi
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.autofill.AutofillConfiguration
-//import mozilla.components.feature.autofill.R
 import mozilla.components.feature.autofill.handler.EXTRA_LOGIN_ID
 import mozilla.components.feature.autofill.structure.ParsedStructure
 
@@ -45,38 +44,21 @@ internal data class LoginDatasetBuilder(
     ): Dataset {
         val dataset = Dataset.Builder()
 
-        val usernamePresentation = RemoteViews(context.packageName, android.R.layout.simple_list_item_1)
-        usernamePresentation.setTextViewText(android.R.id.text1, login.usernamePresentationOrFallback(context))
-        val passwordPresentation = RemoteViews(context.packageName, android.R.layout.simple_list_item_1)
-        passwordPresentation.setTextViewText(android.R.id.text1, login.passwordPresentation(context))
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(),
+            PendingIntent.FLAG_CANCEL_CURRENT
+        )
 
-        var usernameInlinePresentation: InlinePresentation? = null
-        var passwordInlinePresentation: InlinePresentation? = null
+        val usernameText = login.usernamePresentationOrFallback(context)
+        val passwordText = login.passwordPresentation(context)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-            && imeSpec != null
-            && canUseInlineSuggestions(imeSpec)
-        ) {
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                Intent(),
-                PendingIntent.FLAG_CANCEL_CURRENT
-            )
-            //val icon: Icon = Icon.createWithResource(context, R.drawable.ic_cc_logo_mastercard)
-            val usernameSlice = createSlice(
-                login.usernamePresentationOrFallback(context),
-                //startIcon = icon,
-                attribution = pendingIntent
-            )
-            val passwordSlice = createSlice(
-                login.passwordPresentation(context),
-                //startIcon = icon,
-                attribution = pendingIntent
-            )
-            usernameInlinePresentation = InlinePresentation(usernameSlice, imeSpec, false)
-            passwordInlinePresentation = InlinePresentation(passwordSlice, imeSpec, false)
-        }
+        val usernamePresentation = createViewPresentation(context, usernameText)
+        val passwordPresentation = createViewPresentation(context, passwordText)
+
+        val usernameInlinePresentation = createInlinePresentation(pendingIntent, imeSpec, usernameText)
+        val passwordInlinePresentation = createInlinePresentation(pendingIntent, imeSpec, passwordText)
 
         parsedStructure.usernameId?.let { id ->
             dataset.setValue(
@@ -129,9 +111,34 @@ private fun Login.passwordPresentation(context: Context): String {
     )
 }
 
+internal fun createViewPresentation(context: Context, title: String): RemoteViews {
+    val viewPresentation = RemoteViews(context.packageName, android.R.layout.simple_list_item_1)
+    viewPresentation.setTextViewText(android.R.id.text1, title)
+
+    return viewPresentation
+}
+
+internal fun createInlinePresentation(
+    pendingIntent: PendingIntent,
+    imeSpec: InlinePresentationSpec?,
+    title: String
+): InlinePresentation? {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        && imeSpec != null
+        && canUseInlineSuggestions(imeSpec)
+    ) {
+        return InlinePresentation(
+            createSlice(title, attribution = pendingIntent),
+            imeSpec,
+            false
+        )
+    }
+    return null
+}
+
 @SuppressLint("RestrictedApi")
 @RequiresApi(Build.VERSION_CODES.R)
-fun createSlice(
+internal fun createSlice(
     title: CharSequence,
     subtitle: CharSequence = "",
     startIcon: Icon? = null,
@@ -141,30 +148,30 @@ fun createSlice(
 ): Slice {
     // Build the content for the v1 UI.
     val builder = InlineSuggestionUi.newContentBuilder(attribution)
-        .setContentDescription(contentDescription);
+        .setContentDescription(contentDescription)
     if (!TextUtils.isEmpty(title)) {
-        builder.setTitle(title);
+        builder.setTitle(title)
     }
     if (!TextUtils.isEmpty(subtitle)) {
-        builder.setSubtitle(subtitle);
+        builder.setSubtitle(subtitle)
     }
     if (startIcon != null) {
         startIcon.setTintBlendMode(BlendMode.DST)
-        builder.setStartIcon(startIcon);
+        builder.setStartIcon(startIcon)
     }
     if (endIcon != null) {
-        builder.setEndIcon(endIcon);
+        builder.setEndIcon(endIcon)
     }
-    return builder.build().slice;
+    return builder.build().slice
 }
 
 @RequiresApi(Build.VERSION_CODES.R)
-fun canUseInlineSuggestions(imeSpec: InlinePresentationSpec): Boolean {
+internal fun canUseInlineSuggestions(imeSpec: InlinePresentationSpec): Boolean {
     return UiVersions.getVersions(imeSpec.style).contains(UiVersions.INLINE_UI_VERSION_1)
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-fun Dataset.Builder.setValue(
+internal fun Dataset.Builder.setValue(
     id: AutofillId,
     value: AutofillValue?,
     presentation: RemoteViews,

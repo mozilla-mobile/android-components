@@ -121,14 +121,14 @@ internal fun createViewPresentation(context: Context, title: String): RemoteView
 internal fun createInlinePresentation(
     pendingIntent: PendingIntent,
     imeSpec: InlinePresentationSpec?,
-    title: String
+    title: String,
+    icon: Icon? = null
 ): InlinePresentation? {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-        && imeSpec != null
-        && canUseInlineSuggestions(imeSpec)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && imeSpec != null &&
+        canUseInlineSuggestions(imeSpec)
     ) {
         return InlinePresentation(
-            createSlice(title, attribution = pendingIntent),
+            createSlice(title, attribution = pendingIntent, startIcon = icon),
             imeSpec,
             false
         )
@@ -176,7 +176,7 @@ internal fun Dataset.Builder.setValue(
     value: AutofillValue?,
     presentation: RemoteViews,
     inlinePresentation: InlinePresentation? = null
-) : Dataset.Builder {
+): Dataset.Builder {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && inlinePresentation != null) {
         this.setValue(id, value, presentation, inlinePresentation)
     } else {

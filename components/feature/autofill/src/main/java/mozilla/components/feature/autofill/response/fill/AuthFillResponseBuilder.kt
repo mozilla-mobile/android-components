@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.autofill.response.fill
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -12,13 +13,13 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.autofill.FillResponse
 import android.service.autofill.InlinePresentation
+import android.view.autofill.AutofillId
 import android.widget.RemoteViews
 import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import mozilla.components.feature.autofill.AutofillConfiguration
 import mozilla.components.feature.autofill.R
-import mozilla.components.feature.autofill.response.dataset.canUseInlineSuggestions
-import mozilla.components.feature.autofill.response.dataset.createSlice
+import mozilla.components.feature.autofill.response.dataset.createInlinePresentation
 import mozilla.components.feature.autofill.structure.ParsedStructure
 import mozilla.components.feature.autofill.ui.AbstractAutofillUnlockActivity
 
@@ -27,6 +28,7 @@ internal data class AuthFillResponseBuilder(
     private val maxSuggestionCount: Int
 ) : FillResponseBuilder {
 
+    @SuppressLint("NewApi")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun build(
         context: Context,
@@ -54,10 +56,11 @@ internal data class AuthFillResponseBuilder(
             AbstractAutofillUnlockActivity.EXTRA_PARSED_STRUCTURE,
             parsedStructure
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            authIntent.putExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC, imeSpec)
-            authIntent.putExtra(AbstractAutofillUnlockActivity.EXTRA_MAX_SUGGESTION_COUNT, maxSuggestionCount)
-        }
+        authIntent.putExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC, imeSpec)
+        authIntent.putExtra(
+            AbstractAutofillUnlockActivity.EXTRA_MAX_SUGGESTION_COUNT,
+            maxSuggestionCount
+        )
         val authPendingIntent = PendingIntent.getActivity(
             context,
             configuration.activityRequestCode,
@@ -66,19 +69,29 @@ internal data class AuthFillResponseBuilder(
         )
         val intentSender: IntentSender = authPendingIntent.intentSender
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-            && imeSpec != null
-            && canUseInlineSuggestions(imeSpec)
-        ) {
-            val icon: Icon = Icon.createWithResource(context, R.drawable.fingerprint_dialog_fp_icon)
-            val authSlice = createSlice(title, startIcon = icon, attribution = authPendingIntent)
-            val authInlinePresentation = InlinePresentation(authSlice, imeSpec, false)
-
-            builder.setAuthentication(autofillIds.toTypedArray(), intentSender, authPresentation, authInlinePresentation)
-        } else {
-            builder.setAuthentication(autofillIds.toTypedArray(), intentSender, authPresentation)
-        }
+        val icon: Icon = Icon.createWithResource(context, R.drawable.fingerprint_dialog_fp_icon)
+        val authInlinePresentation = createInlinePresentation(authPendingIntent, imeSpec, title, icon)
+        builder.setAuthentication(
+            autofillIds.toTypedArray(),
+            intentSender,
+            authInlinePresentation,
+            authPresentation
+        )
 
         return builder.build()
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+internal fun FillResponse.Builder.setAuthentication(
+    ids: Array<AutofillId>,
+    authentication: IntentSender,
+    inlinePresentation: InlinePresentation? = null,
+    presentation: RemoteViews
+): FillResponse.Builder {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && inlinePresentation != null) {
+        this.setAuthentication(ids, authentication, presentation, inlinePresentation)
+    } else {
+        this.setAuthentication(ids, authentication, presentation)
     }
 }

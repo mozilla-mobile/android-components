@@ -9,11 +9,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
-import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.autofill.Dataset
-import android.service.autofill.InlinePresentation
-import android.widget.RemoteViews
 import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import mozilla.components.feature.autofill.AutofillConfiguration

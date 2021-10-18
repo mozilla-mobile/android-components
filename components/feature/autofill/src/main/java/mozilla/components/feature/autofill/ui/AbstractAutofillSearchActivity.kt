@@ -30,7 +30,6 @@ import mozilla.components.feature.autofill.R
 import mozilla.components.feature.autofill.facts.emitAutofillSearchDisplayedFact
 import mozilla.components.feature.autofill.facts.emitAutofillSearchSelectedFact
 import mozilla.components.feature.autofill.response.dataset.LoginDatasetBuilder
-import mozilla.components.feature.autofill.response.dataset.SearchDatasetBuilder
 import mozilla.components.feature.autofill.structure.ParsedStructure
 import mozilla.components.feature.autofill.structure.parseStructure
 import mozilla.components.feature.autofill.structure.toRawStructure
@@ -64,9 +63,7 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
             finish()
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            imeSpec = intent.getParcelableExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC)
-        }
+        imeSpec = intent.getImeSpec()
 
         val parsedStructure = parseStructure(this, structure.toRawStructure())
         if (parsedStructure == null) {
@@ -98,11 +95,7 @@ abstract class AbstractAutofillSearchActivity : FragmentActivity() {
 
     private fun onLoginSelected(login: Login) {
         val builder = LoginDatasetBuilder(parsedStructure, login, needsConfirmation = false)
-        val dataset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            builder.build(this, configuration, imeSpec)
-        } else {
-            builder.build(this, configuration)
-        }
+        val dataset = builder.build(this, configuration, imeSpec)
 
         val replyIntent = Intent()
         replyIntent.putExtra(AutofillManager.EXTRA_AUTHENTICATION_RESULT, dataset)

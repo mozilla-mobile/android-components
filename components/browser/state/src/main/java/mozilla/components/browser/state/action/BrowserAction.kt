@@ -153,6 +153,22 @@ sealed class TabListAction : BrowserAction() {
     data class AddMultipleTabsAction(val tabs: List<TabSessionState>) : TabListAction()
 
     /**
+     * Moves a set of tabIDs into a new position (maintaining internal ordering)
+     *
+     * @property tabIds The IDs of the tabs to move.
+     * @property targetTabId A tab that the moved tabs will be moved next to
+     * @property placeAfter True if the moved tabs should be placed after the target,
+     * False for placing before the target. Irrelevant if the target is one of the tabs being moved,
+     * since then the whole list is moved to where the target was. Ordering of the moved tabs
+     * relative to each other is preserved.
+     */
+    data class MoveTabsAction(
+        val tabIds: List<String>,
+        val targetTabId: String,
+        val placeAfter: Boolean,
+    ) : TabListAction()
+
+    /**
      * Marks the [TabSessionState] with the given [tabId] as selected tab.
      *
      * @property tabId the ID of the tab to select.
@@ -821,6 +837,17 @@ sealed class EngineAction : BrowserAction() {
     ) : EngineAction(), ActionWithTab
 
     /**
+     * Indicates to observers that a [LoadUrlAction] was shortcutted and a direct
+     * load on the engine occurred instead.
+     */
+    data class OptimizedLoadUrlTriggeredAction(
+        override val tabId: String,
+        val url: String,
+        val flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
+        val additionalHeaders: Map<String, String>? = null
+    ) : EngineAction(), ActionWithTab
+
+    /**
      * Loads [data] in the tab with the given [tabId].
      */
     data class LoadDataAction(
@@ -1171,6 +1198,13 @@ sealed class HistoryMetadataAction : BrowserAction() {
     data class SetHistoryMetadataKeyAction(
         val tabId: String,
         val historyMetadataKey: HistoryMetadataKey
+    ) : HistoryMetadataAction()
+
+    /**
+     * Removes [searchTerm] (and referrer) from any history metadata associated with tabs.
+     */
+    data class DisbandSearchGroupAction(
+        val searchTerm: String
     ) : HistoryMetadataAction()
 }
 

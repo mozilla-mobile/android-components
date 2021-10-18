@@ -780,7 +780,7 @@ class PlacesHistoryStorageTest {
             fail("Expected v0 database to be unsupported")
         } catch (e: PlacesException) {
             // This is a little brittle, but the places library doesn't have a proper error type for this.
-            assertEquals("Database version 0 is not supported", e.message)
+            assertEquals("Can not import from database version 0", e.message)
         }
     }
 
@@ -793,7 +793,7 @@ class PlacesHistoryStorageTest {
             fail("Expected v23 database to be unsupported")
         } catch (e: PlacesException) {
             // This is a little brittle, but the places library doesn't have a proper error type for this.
-            assertEquals("Database version 23 is not supported", e.message)
+            assertEquals("Can not import from database version 23", e.message)
         }
     }
 
@@ -1156,6 +1156,128 @@ class PlacesHistoryStorageTest {
             assertEquals(1, this.size)
             assertHistoryMetadataRecord(metaKey3, 200, DocumentType.Media, this[0])
         }
+    }
+
+    @Test
+    fun `delete history metadata by search term`() = runBlocking {
+        // Able to operate against an empty db
+        history.deleteHistoryMetadata("test")
+        history.deleteHistoryMetadata("")
+
+        // Observe some items.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.youtube.com/watch?v=lNeRQuiKBd4",
+                referrerUrl = "http://www.twitter.com/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(20000)
+            )
+        }
+
+        // For the ifixit case, let's create a scenario with metadata entries that will dedupe by url,
+        // and will have at least some 0 view time records. In a search term group, these 4 metadata
+        // records will show up as 2, so a naive delete (iterate through group, delete) will leave records
+        // behind.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = "http://www.google.com/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(2000)
+            )
+        }
+        // Same search term as above, different url/referrer.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.youtube.com/watch?v=rfdshufsSfsd",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = null
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(25000)
+            )
+        }
+        // Same search term as above, same url, different referrer.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = "http://www.yandex.ru/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(1000)
+            )
+        }
+        // Again, but without view time.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = null
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular)
+            )
+        }
+
+        // No view time for this one.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.youtube.com/watch?v=Cs1b5qvCZ54",
+                searchTerm = "путин валдай",
+                referrerUrl = "http://www.yandex.ru/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media)
+            )
+        }
+
+        assertEquals(6, history.getHistoryMetadataSince(0).count())
+
+        history.deleteHistoryMetadata("repairable wireless headset")
+        assertEquals(2, history.getHistoryMetadataSince(0).count())
+
+        history.deleteHistoryMetadata("Путин Валдай")
+        assertEquals(1, history.getHistoryMetadataSince(0).count())
+    }
+
+    @Test
+    fun `safe read from places`() = runBlocking {
+        val result = history.handlePlacesExceptions("test", default = emptyList<HistoryMetadata>()) {
+            throw PlacesException("test")
+        }
+        assertEquals(emptyList<HistoryMetadata>(), result)
     }
 
     private fun assertHistoryMetadataRecord(

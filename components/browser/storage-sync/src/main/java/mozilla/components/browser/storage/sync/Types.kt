@@ -15,6 +15,8 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.DocumentType
 import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryHighlight
+import mozilla.components.concept.storage.HistoryHighlightWeights
 import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.concept.storage.HistoryMetadataObservation
@@ -166,12 +168,34 @@ internal fun mozilla.appservices.places.uniffi.HistoryMetadata.into(): HistoryMe
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         totalViewTime = this.totalViewTime,
-        documentType = this.documentType.into()
+        documentType = this.documentType.into(),
+        previewImageUrl = this.previewImageUrl
     )
 }
 
 internal fun List<mozilla.appservices.places.uniffi.HistoryMetadata>.into(): List<HistoryMetadata> {
     return map { it.into() }
+}
+
+internal fun mozilla.appservices.places.uniffi.HistoryHighlight.into(): HistoryHighlight {
+    return HistoryHighlight(
+        score = this.score,
+        placeId = this.placeId,
+        url = this.url,
+        title = this.title,
+        previewImageUrl = this.previewImageUrl
+    )
+}
+
+internal fun List<mozilla.appservices.places.uniffi.HistoryHighlight>.intoHighlights(): List<HistoryHighlight> {
+    return map { it.into() }
+}
+
+internal fun HistoryHighlightWeights.into(): mozilla.appservices.places.uniffi.HistoryHighlightWeights {
+    return mozilla.appservices.places.uniffi.HistoryHighlightWeights(
+        viewTime = this.viewTime,
+        frequency = this.frequency
+    )
 }
 
 internal fun DocumentType.into(): mozilla.appservices.places.uniffi.DocumentType {
@@ -190,7 +214,8 @@ internal fun HistoryMetadata.into(): mozilla.appservices.places.uniffi.HistoryMe
         createdAt = this.createdAt,
         updatedAt = this.updatedAt,
         totalViewTime = this.totalViewTime,
-        documentType = this.documentType.into()
+        documentType = this.documentType.into(),
+        previewImageUrl = this.previewImageUrl
     )
 }
 

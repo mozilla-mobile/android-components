@@ -42,6 +42,7 @@ import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
 import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
@@ -298,12 +299,14 @@ class PromptFeature private constructor(
                     arrayOf(it?.content?.promptRequests, it?.content?.loading)
                 }
                 .collect { state ->
-                    state?.content?.let {
-                        if (it.promptRequests.lastOrNull() != activePromptRequest) {
+                    state?.content?.let { content ->
+                        if (content.promptRequests.lastOrNull() != activePromptRequest) {
                             // Dismiss any active select login or credit card prompt if it does
                             // not match the current prompt request for the session.
                             if (activePromptRequest is SelectLoginPrompt) {
                                 loginPicker?.dismissCurrentLoginSelect(activePromptRequest as SelectLoginPrompt)
+                            } else if (activePromptRequest is SaveLoginPrompt) {
+                                (activePrompt?.get() as? SaveLoginDialogFragment)?.dismissAllowingStateLoss()
                             } else if (activePromptRequest is SelectCreditCard) {
                                 creditCardPicker?.dismissSelectCreditCardRequest(
                                     activePromptRequest as SelectCreditCard
@@ -311,13 +314,13 @@ class PromptFeature private constructor(
                             }
 
                             onPromptRequested(state)
-                        } else if (!it.loading) {
+                        } else if (!content.loading) {
                             promptAbuserDetector.resetJSAlertAbuseState()
-                        } else if (it.loading) {
+                        } else if (content.loading) {
                             dismissSelectPrompts()
                         }
 
-                        activePromptRequest = it.promptRequests.lastOrNull()
+                        activePromptRequest = content.promptRequests.lastOrNull()
                     }
                 }
         }
@@ -505,7 +508,7 @@ class PromptFeature private constructor(
 
                 is Share -> it.onSuccess()
 
-                is SaveLoginPrompt -> it.onConfirm(value as Login)
+                is SaveLoginPrompt -> it.onConfirm(value as LoginEntry)
 
                 is Confirm -> {
                     val (isCheckBoxChecked, buttonType) =
@@ -593,7 +596,7 @@ class PromptFeature private constructor(
                     shouldDismissOnLoad = false,
                     hint = promptRequest.hint,
                     // For v1, we only handle a single login and drop all others on the floor
-                    login = promptRequest.logins[0],
+                    entry = promptRequest.logins[0],
                     icon = session.content.icon
                 )
             }

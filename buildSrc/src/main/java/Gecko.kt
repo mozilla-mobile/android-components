@@ -9,7 +9,7 @@ object Gecko {
     /**
      * GeckoView Version.
      */
-    const val version = "94.0.20210912090527"
+    const val version = "95.0.20211017092521"
 
     /**
      * GeckoView channel
@@ -23,7 +23,7 @@ object Gecko {
 enum class GeckoChannel(
     val artifactName: String
 ) {
-    NIGHTLY("geckoview-nightly"),
-    BETA("geckoview-beta"),
-    RELEASE("geckoview")
+    NIGHTLY("geckoview-nightly-omni"),
+    BETA("geckoview-beta-omni"),
+    RELEASE("geckoview-omni")
 }

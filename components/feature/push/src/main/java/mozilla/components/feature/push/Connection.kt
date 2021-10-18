@@ -8,8 +8,7 @@ import android.content.Context
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import mozilla.appservices.push.BridgeType
-import mozilla.appservices.push.GeneralError
-import mozilla.appservices.push.PushAPI
+import mozilla.appservices.push.PushException.GeneralException
 import mozilla.appservices.push.PushManager
 import mozilla.appservices.push.SubscriptionResponse
 import java.io.Closeable
@@ -22,7 +21,7 @@ typealias PushScope = String
 typealias AppServerKey = String
 
 /**
- * An interface that wraps the [PushAPI].
+ * An interface that wraps the [PushManager].
  *
  * This aides in testing and abstracting out the hurdles of initialization checks required before performing actions
  * on the API.
@@ -122,7 +121,7 @@ internal class RustPushConnection(
     private val databasePath by lazy { File(context.filesDir, DB_NAME).canonicalPath }
 
     @VisibleForTesting
-    internal var api: PushAPI? = null
+    internal var api: PushManager? = null
 
     @GuardedBy("this")
     override suspend fun subscribe(
@@ -168,7 +167,7 @@ internal class RustPushConnection(
 
     @GuardedBy("this")
     override suspend fun updateToken(token: String): Boolean = synchronized(this) {
-        val pushApi = api
+        var pushApi = api
         if (pushApi == null) {
             api = PushManager(
                 senderId = senderId,
@@ -178,16 +177,23 @@ internal class RustPushConnection(
                 registrationId = token,
                 databasePath = databasePath
             )
-            return true
+            pushApi = api!!
+            // This may be a new token, so we must tell the server about it even if this is the
+            // push being initialized for the first time in this process.
         }
         // This call will fail if we haven't 'subscribed' yet.
         return try {
             pushApi.update(token)
-        } catch (e: GeneralError) {
+        } catch (e: GeneralException) {
             val fakeChannelId = "fake".toChannelId()
             // It's possible that we have a race (on a first run) between 'subscribing' and setting a token.
+            // (Or even more likely is that we have no subscriptions, but are still trying to
+            // initialize this service with a new FCM token)
             // 'update' expects that we've called 'subscribe' (which would obtain a 'uaid' from an autopush
             // server), which we need to have in order to call 'update' on the library.
+            // Note also: this work-around means we are making 2 connections to the push server
+            // even when there are zero subscriptions actually desired, so it's wildly inefficient
+            // for the majority of users.
             // In https://github.com/mozilla/application-services/issues/2490 this will be fixed, and we
             // can clean up this work-around.
             pushApi.subscribe(fakeChannelId)
@@ -225,14 +231,14 @@ internal class RustPushConnection(
             }
 
             val data = pushApi.decrypt(
-                channelID = channelId,
+                channelId = channelId,
                 body = body,
                 encoding = encoding,
                 salt = salt,
                 dh = cryptoKey
             )
 
-            return DecryptedMessage(scope, data)
+            return DecryptedMessage(scope, data.toByteArray())
         } else {
             return null
         }
@@ -296,7 +302,7 @@ internal fun SubscriptionResponse.toPushSubscription(
  */
 internal fun SubscriptionChanged.toPushSubscriptionChanged() = AutoPushSubscriptionChanged(
     scope = scope,
-    channelId = channelID
+    channelId = channelId
 )
 
 /**

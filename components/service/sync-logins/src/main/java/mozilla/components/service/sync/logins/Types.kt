@@ -4,44 +4,84 @@
 
 package mozilla.components.service.sync.logins
 
+import mozilla.components.concept.storage.EncryptedLogin
 import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
+
+// Convert between application-services data classes and the ones in concept.storage.
 
 /**
- * Conversion from a generic [Login] into its richer comrade within the 'logins' lib.
+ * Convert A-S EncryptedLogin into A-C [EncryptedLogin].
  */
-fun Login.toDatabaseLogin(): mozilla.appservices.logins.Login {
-    return mozilla.appservices.logins.Login(
-        id = this.guid ?: "",
-        username = this.username,
-        password = this.password,
-        hostname = this.origin,
-        formSubmitUrl = this.formActionOrigin,
-        httpRealm = this.httpRealm,
-        timesUsed = this.timesUsed,
-        timeCreated = this.timeCreated,
-        timeLastUsed = this.timeLastUsed,
-        timePasswordChanged = this.timePasswordChanged,
-        usernameField = this.usernameField ?: "",
-        passwordField = this.passwordField ?: ""
-    )
-}
+fun mozilla.appservices.logins.EncryptedLogin.toEncryptedLogin() = EncryptedLogin(
+    guid = record.id,
+    origin = fields.origin,
+    formActionOrigin = fields.formActionOrigin,
+    httpRealm = fields.httpRealm,
+    usernameField = fields.usernameField,
+    passwordField = fields.passwordField,
+    timesUsed = record.timesUsed,
+    timeCreated = record.timeCreated,
+    timeLastUsed = record.timeLastUsed,
+    timePasswordChanged = record.timePasswordChanged,
+    secFields = secFields,
+)
 
 /**
- * Conversion from a "native" login [Login] into its generic comrade.
+ * Convert A-S Login into A-C [Login].
  */
-fun mozilla.appservices.logins.Login.toLogin(): Login {
-    return Login(
-        guid = this.id,
-        origin = this.hostname,
-        formActionOrigin = this.formSubmitUrl,
-        httpRealm = this.httpRealm,
-        username = this.username,
-        password = this.password,
-        timesUsed = this.timesUsed,
-        timeCreated = this.timeCreated,
-        timeLastUsed = this.timeLastUsed,
-        timePasswordChanged = this.timePasswordChanged,
-        usernameField = this.usernameField,
-        passwordField = this.passwordField
-    )
-}
+fun mozilla.appservices.logins.Login.toLogin() = Login(
+    guid = record.id,
+    origin = fields.origin,
+    username = secFields.username,
+    password = secFields.password,
+    formActionOrigin = fields.formActionOrigin,
+    httpRealm = fields.httpRealm,
+    usernameField = fields.usernameField,
+    passwordField = fields.passwordField,
+    timesUsed = record.timesUsed,
+    timeCreated = record.timeCreated,
+    timeLastUsed = record.timeLastUsed,
+    timePasswordChanged = record.timePasswordChanged,
+)
+
+/**
+ * Convert A-C [LoginEntry] into A-S LoginEntry.
+ */
+fun LoginEntry.toLoginEntry() = mozilla.appservices.logins.LoginEntry(
+    fields = mozilla.appservices.logins.LoginFields(
+        origin = origin,
+        formActionOrigin = formActionOrigin,
+        httpRealm = httpRealm,
+        usernameField = usernameField,
+        passwordField = passwordField,
+    ),
+    secFields = mozilla.appservices.logins.SecureLoginFields(
+        username = username,
+        password = password,
+    ),
+)
+
+/**
+ * Convert A-C [Login] into A-S Login.
+ */
+fun Login.toLogin() = mozilla.appservices.logins.Login(
+    record = mozilla.appservices.logins.RecordFields(
+        id = guid,
+        timesUsed = timesUsed,
+        timeCreated = timeCreated,
+        timeLastUsed = timeLastUsed,
+        timePasswordChanged = timePasswordChanged,
+    ),
+    fields = mozilla.appservices.logins.LoginFields(
+        origin = origin,
+        formActionOrigin = formActionOrigin,
+        httpRealm = httpRealm,
+        usernameField = usernameField,
+        passwordField = passwordField,
+    ),
+    secFields = mozilla.appservices.logins.SecureLoginFields(
+        username = username,
+        password = password,
+    ),
+)

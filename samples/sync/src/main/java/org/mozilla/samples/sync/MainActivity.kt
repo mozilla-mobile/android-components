@@ -34,7 +34,6 @@ import mozilla.components.concept.sync.DeviceType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.lib.dataprotect.SecureAbove22Preferences
-import mozilla.components.lib.dataprotect.generateEncryptionKey
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.fxa.FxaAuthData
 import mozilla.components.service.fxa.PeriodicSyncConfig
@@ -75,20 +74,16 @@ class MainActivity :
 
     private val securePreferences by lazy { SecureAbove22Preferences(this, "key_store") }
 
-    private val passwordsEncryptionKey by lazy {
-        securePreferences.getString(SyncEngine.Passwords.nativeName)
-            ?: generateEncryptionKey(PASSWORDS_ENCRYPTION_KEY_STRENGTH).also {
-                securePreferences.putString(SyncEngine.Passwords.nativeName, it)
-            }
+    private val passwordsStorage = lazy {
+        SyncableLoginsStorage(this, lazy { securePreferences })
     }
-
-    private val passwordsStorage = lazy { SyncableLoginsStorage(this, passwordsEncryptionKey) }
 
     private val creditCardsAddressesStorage = lazy {
         AutofillCreditCardsAddressesStorage(this, lazy { securePreferences })
     }
 
     private val creditCardKeyProvider by lazy { creditCardsAddressesStorage.value.crypto }
+    private val passwordsKeyProvider by lazy { passwordsStorage.value.crypto }
 
     private val accountManager by lazy {
         FxaAccountManager(
@@ -182,7 +177,10 @@ class MainActivity :
 
         GlobalSyncableStoreProvider.configureStore(SyncEngine.History to historyStorage)
         GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to bookmarksStorage)
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.Passwords to passwordsStorage)
+        GlobalSyncableStoreProvider.configureStore(
+            storePair = SyncEngine.Passwords to passwordsStorage,
+            keyProvider = lazy { passwordsKeyProvider }
+        )
         GlobalSyncableStoreProvider.configureStore(
             storePair = SyncEngine.CreditCards to creditCardsAddressesStorage,
             keyProvider = lazy { creditCardKeyProvider }

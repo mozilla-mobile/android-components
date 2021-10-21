@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2021-09-01
+// FORCE REBUILD 2021-10-06
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
@@ -29,9 +29,9 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.4"
 
-    const val mozilla_appservices = "85.3.0"
+    const val mozilla_appservices = "86.0.0"
 
-    const val mozilla_glean = "41.1.1"
+    const val mozilla_glean = "42.0.1"
 
     const val material = "1.2.1"
 
@@ -41,6 +41,7 @@ object Versions {
         const val activityCompose = "1.3.0"
         const val annotation = "1.1.0"
         const val appcompat = "1.3.0"
+        const val autofill = "1.1.0"
         const val browser = "1.3.0"
         const val biometric = "1.1.0"
         const val cardview = "1.0.0"
@@ -91,6 +92,7 @@ object Dependencies {
     const val androidx_activity_compose = "androidx.activity:activity-compose:${Versions.AndroidX.activityCompose}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.AndroidX.annotation}"
     const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.AndroidX.appcompat}"
+    const val androidx_autofill = "androidx.autofill:autofill:${Versions.AndroidX.autofill}"
     const val androidx_arch_core_common = "androidx.arch.core:core-common:${Versions.AndroidX.arch}"
     const val androidx_arch_core_testing = "androidx.arch.core:core-testing:${Versions.AndroidX.arch}"
     const val androidx_biometric = "androidx.biometric:biometric:${Versions.AndroidX.biometric}"

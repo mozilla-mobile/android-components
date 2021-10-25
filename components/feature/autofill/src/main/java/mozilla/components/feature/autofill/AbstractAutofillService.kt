@@ -17,8 +17,12 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import mozilla.components.concept.storage.Login
 import mozilla.components.feature.autofill.handler.FillRequestHandler
 import mozilla.components.feature.autofill.handler.MAX_LOGINS
+import mozilla.components.feature.autofill.structure.ParsedStructure
+import mozilla.components.feature.autofill.structure.getLookupDomain
+import mozilla.components.feature.autofill.structure.parseStructure
 import mozilla.components.feature.autofill.structure.toRawStructure
 
 /**
@@ -60,10 +64,33 @@ abstract class AbstractAutofillService : AutofillService() {
     }
 
     override fun onSaveRequest(request: SaveRequest, callback: SaveCallback) {
-        // This callback should not get invoked since we do not indicate that we are interested in
-        // saving any data (yet). If for whatever reason it does get invoked then we pretent that
-        // we handled the request successfully. Calling onFailure() requires to pass in a message
-        // and on Android systems before Q this message may be shown in a toast.
+        var username: String? = null
+        var password: String? = null
+        var parsedStructure: ParsedStructure? = null
+        for (fillContext in request.fillContexts) {
+            parsedStructure = parseStructure(this, fillContext.structure.toRawStructure())
+            parsedStructure?.also { ps ->
+                ps.username?.let { username = it }
+                ps.password?.let { password = it }
+            }
+        }
+        parsedStructure ?: return
+        username ?: return
+        password ?: return
+
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch(Dispatchers.IO) {
+            val lookupDomain = parsedStructure.getLookupDomain(configuration.publicSuffixList)
+            val loginEntry = Login(
+                guid = "",
+                origin = "https://$lookupDomain",
+                username = username!!,
+                password = password!!,
+                httpRealm = "https://$lookupDomain"
+            ).toEntry()
+            configuration.storage.addOrUpdate(loginEntry)
+        }
+
         callback.onSuccess()
     }
 }

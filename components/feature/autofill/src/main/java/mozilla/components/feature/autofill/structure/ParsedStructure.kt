@@ -25,7 +25,9 @@ internal data class ParsedStructure(
     val usernameId: AutofillId? = null,
     val passwordId: AutofillId? = null,
     val webDomain: String? = null,
-    val packageName: String
+    val packageName: String,
+    val username: String?,
+    val password: String?
 ) : Parcelable
 
 /**

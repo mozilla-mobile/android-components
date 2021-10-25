@@ -7,6 +7,7 @@ package mozilla.components.feature.autofill.response.fill
 import android.content.Context
 import android.os.Build
 import android.service.autofill.FillResponse
+import android.service.autofill.SaveInfo
 import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import mozilla.components.concept.storage.Login
@@ -55,6 +56,26 @@ internal data class LoginFillResponseBuilder(
             searchDatasetBuilder.build(context, configuration, imeSpec)
         )
 
+        builder.handleSaveInfo(parsedStructure)
+
         return builder.build()
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+internal fun FillResponse.Builder.handleSaveInfo(ps: ParsedStructure) {
+    val ids = arrayOf(ps.usernameId, ps.passwordId).filterNotNull()
+    if (ids.isNotEmpty()) {
+        setSaveInfo(
+            SaveInfo.Builder(
+                SaveInfo.SAVE_DATA_TYPE_USERNAME or SaveInfo.SAVE_DATA_TYPE_PASSWORD,
+                ids.toTypedArray()
+            ).also {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ps.passwordId == null) {
+                    // Continue workflow until password field is reached
+                    it.setFlags(SaveInfo.FLAG_DELAY_SAVE)
+                }
+            }.build()
+        )
     }
 }

@@ -48,7 +48,9 @@ internal interface AutofillNodeNavigator<Node, Id> {
         usernameId: Id?,
         passwordId: Id?,
         webDomain: String?,
-        packageName: String
+        packageName: String,
+        username: String?,
+        password: String?
     ): ParsedStructure
 
     private fun <T> findFirstRoots(transform: (Node) -> T?): T? {
@@ -174,13 +176,17 @@ internal class ViewNodeNavigator(
         usernameId: AutofillId?,
         passwordId: AutofillId?,
         webDomain: String?,
-        packageName: String
+        packageName: String,
+        username: String?,
+        password: String?
     ): ParsedStructure {
         return ParsedStructure(
             usernameId,
             passwordId,
             webDomain,
-            packageName
+            packageName,
+            username,
+            password
         )
     }
 }

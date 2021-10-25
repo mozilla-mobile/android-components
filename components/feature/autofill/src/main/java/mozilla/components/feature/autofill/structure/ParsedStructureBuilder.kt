@@ -14,14 +14,18 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
 ) {
     fun build(): ParsedStructure {
         val formNode = findFocusedForm()
-        val (usernameId, passwordId) = findAutofillIds(formNode)
+        val (pair1, pair2) = findAutofillIds(formNode)
+        val (usernameId, username) = pair1 ?: (null to null)
+        val (passwordId, password) = pair2 ?: (null to null)
         val hostnameClue = usernameId ?: passwordId
 
         return navigator.build(
             usernameId,
             passwordId,
             getWebDomain(hostnameClue),
-            getPackageName(hostnameClue) ?: navigator.activityPackageName
+            getPackageName(hostnameClue) ?: navigator.activityPackageName,
+            username,
+            password
         )
     }
 
@@ -35,10 +39,10 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         }
     }
 
-    private fun findAutofillIds(rootNode: ViewNode?): Pair<AutofillId?, AutofillId?> =
+    private fun findAutofillIds(rootNode: ViewNode?): Pair<Pair<AutofillId?, String?>?, Pair<AutofillId?, String?>?> =
         checkForAdjacentFields(rootNode) ?: getUsernameId(rootNode) to getPasswordId(rootNode)
 
-    private fun getUsernameId(rootNode: ViewNode?): AutofillId? {
+    private fun getUsernameId(rootNode: ViewNode?): Pair<AutofillId?, String?>? {
         // how do we localize the "email" and "username"?
         return getAutofillIdForKeywords(
             rootNode,
@@ -54,28 +58,28 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         )
     }
 
-    private fun getPasswordId(rootNode: ViewNode?): AutofillId? {
+    private fun getPasswordId(rootNode: ViewNode?): Pair<AutofillId?, String?>? {
         // similar l10n question for password
         return getAutofillIdForKeywords(rootNode, listOf(View.AUTOFILL_HINT_PASSWORD, "password"))
     }
 
-    private fun getAutofillIdForKeywords(rootNode: ViewNode?, keywords: Collection<String>): AutofillId? {
+    private fun getAutofillIdForKeywords(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
         return checkForNamedTextField(rootNode, keywords)
             ?: checkForConsecutiveLabelAndField(rootNode, keywords)
             ?: checkForNestedLayoutAndField(rootNode, keywords)
     }
 
-    private fun checkForNamedTextField(rootNode: ViewNode?, keywords: Collection<String>): AutofillId? {
+    private fun checkForNamedTextField(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
             if (isAutoFillableEditText(node, keywords) || isAutoFillableInputField(node, keywords)) {
-                navigator.autofillId(node)
+                navigator.autofillId(node) to navigator.currentText(node)
             } else {
                 null
             }
         }
     }
 
-    private fun checkForConsecutiveLabelAndField(rootNode: ViewNode?, keywords: Collection<String>): AutofillId? {
+    private fun checkForConsecutiveLabelAndField(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
             val childNodes = navigator.childNodes(node)
             // check for consecutive views with keywords followed by possible fill locations
@@ -83,18 +87,19 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
                 val prevNode = childNodes[i - 1]
                 val currentNode = childNodes[i]
                 val id = navigator.autofillId(currentNode) ?: continue
+                val value = navigator.currentText(currentNode)
                 if (
                     (navigator.isEditText(currentNode) || navigator.isHtmlInputField(currentNode)) &&
                     containsKeywords(prevNode, keywords)
                 ) {
-                    return@findFirst id
+                    return@findFirst id to value
                 }
             }
             null
         }
     }
 
-    private fun checkForNestedLayoutAndField(rootNode: ViewNode?, keywords: Collection<String>): AutofillId? {
+    private fun checkForNestedLayoutAndField(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
             val childNodes = navigator.childNodes(node)
 
@@ -104,17 +109,18 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
 
             val child = childNodes[0]
             val id = navigator.autofillId(child) ?: return@findFirst null
+            val value = navigator.currentText(child)
             if (
                 (navigator.isEditText(child) || navigator.isHtmlInputField(child)) &&
                 containsKeywords(node, keywords)
             ) {
-                return@findFirst id
+                return@findFirst id to value
             }
             null
         }
     }
 
-    private fun checkForAdjacentFields(rootNode: ViewNode?): Pair<AutofillId?, AutofillId?>? {
+    private fun checkForAdjacentFields(rootNode: ViewNode?): Pair<Pair<AutofillId?, String?>?, Pair<AutofillId?, String?>?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
 
             val childNodes = navigator.childNodes(node)
@@ -142,7 +148,8 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
                 val prevNode = inputFields[i - 1]
                 val currentNode = inputFields[i]
                 if (navigator.isPasswordField(currentNode) && navigator.isPasswordField(prevNode).not()) {
-                    return@findFirst navigator.autofillId(prevNode) to navigator.autofillId(currentNode)
+                    return@findFirst (navigator.autofillId(prevNode) to navigator.currentText(prevNode)) to
+                        (navigator.autofillId(currentNode) to navigator.currentText(currentNode))
                 }
             }
 
@@ -186,7 +193,8 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         val hints = navigator.clues(node)
         keywords.forEach { keyword ->
             hints.forEach { hint ->
-                if (hint.contains(keyword, true)) {
+                if (hint.map { it.uppercase() } == keyword.map { it.uppercase() }) {
+//                if (hint.contains(keyword, true)) {
                     return true
                 }
             }

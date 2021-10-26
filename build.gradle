@@ -211,7 +211,10 @@ subprojects {
                             // https://github.com/mozilla-mobile/android-components/issues/10641
                             'UnspecifiedImmutableFlag',
                             // https://github.com/mozilla-mobile/android-components/issues/10643
-                            'UnusedResources'
+                            'UnusedResources',
+                            // "We do not impose rules on locales"
+                            // https://github.com/mozilla-mobile/android-components/pull/11069
+                            'TypographyDashes'
                 }
 
                 packagingOptions {
@@ -238,7 +241,9 @@ subprojects {
                 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
                     kotlinOptions {
                         jvmTarget = "1.8"
-                        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+                        freeCompilerArgs += [
+                            "-Xopt-in=kotlin.RequiresOptIn"
+                        ]
                         useIR = true
                     }
                 }

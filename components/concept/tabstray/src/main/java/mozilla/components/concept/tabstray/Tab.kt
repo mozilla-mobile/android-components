@@ -23,6 +23,10 @@ import mozilla.components.concept.engine.mediasession.MediaSession
  * @property searchTerm the last used search term for this tab or from the originating tab, or an
  * empty string if no search was executed.
  */
+@Deprecated(
+    "This will be removed in a future release",
+    ReplaceWith("TabSessionState", "mozilla.components.browser.state.state")
+)
 data class Tab(
     val id: String,
     val url: String,

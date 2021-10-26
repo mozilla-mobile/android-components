@@ -24,8 +24,8 @@ android {
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions.freeCompilerArgs += [
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview"
+            "-Xopt-in=kotlinx.coroutines.FlowPreview",
+            "-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
     ]
 }
 
@@ -33,6 +33,7 @@ dependencies {
     implementation project(':browser-state')
     implementation project(':browser-session-storage')
     implementation project(':browser-thumbnails')
+    implementation project(':browser-tabstray')
     api project(':feature-session')
     implementation project(':concept-engine')
     implementation project(':concept-tabstray')

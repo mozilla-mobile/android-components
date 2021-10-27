@@ -13,8 +13,10 @@ import kotlinx.coroutines.launch
 import mozilla.components.compose.browser.awesomebar.AwesomeBarFacts
 import mozilla.components.compose.browser.awesomebar.AwesomeBarFacts.emitAwesomeBarFact
 import mozilla.components.concept.awesomebar.AwesomeBar
+import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.support.base.facts.Action
 import mozilla.components.support.base.utils.NamedThreadFactory
+import mozilla.components.support.utils.ThreadUtils
 import java.util.concurrent.Executors
 
 /**
@@ -22,7 +24,8 @@ import java.util.concurrent.Executors
  * list of suggestions from a composable.
  */
 internal class SuggestionFetcher(
-    private val groups: List<AwesomeBar.SuggestionProviderGroup>
+    private val groups: List<AwesomeBar.SuggestionProviderGroup>,
+    private val profiler: Profiler?
 ) : RememberObserver {
     private val dispatcher = Executors.newFixedThreadPool(
         groups.fold(0, { acc, group -> acc + group.providers.size }),
@@ -40,10 +43,13 @@ internal class SuggestionFetcher(
      * The [state] property will be updated whenever new suggestions are available.
      */
     suspend fun fetch(text: String) {
+        profiler?.addMarker("SuggestionFetcher.fetch") // DO NOT ADD ANYTHING ABOVE THIS addMarker CALL.
+
         coroutineScope {
             groups.forEach { group ->
                 group.providers.forEach { provider ->
-                    launch(dispatcher) { fetchFrom(group, provider, text) }
+                    val profilerStartTime = profiler?.getProfilerTime() // DO NOT ADD ANYTHING ABOVE getProfilerTime.
+                    launch(dispatcher) { fetchFrom(group, provider, text, profilerStartTime) }
                 }
             }
         }
@@ -55,7 +61,8 @@ internal class SuggestionFetcher(
     private suspend fun fetchFrom(
         group: AwesomeBar.SuggestionProviderGroup,
         provider: AwesomeBar.SuggestionProvider,
-        text: String
+        text: String,
+        profilerStartTime: Double?,
     ) {
         // At this point, we have a timing value for a provider.
         // We have a choice here - we can try grouping different timings together for a
@@ -76,7 +83,7 @@ internal class SuggestionFetcher(
         val end = SystemClock.elapsedRealtimeNanos()
         emitProviderQueryTimingFact(provider, timingNs = end - start)
 
-        processResultFrom(group, provider, suggestions)
+        processResultFrom(group, provider, suggestions, profilerStartTime)
     }
 
     /**
@@ -86,7 +93,8 @@ internal class SuggestionFetcher(
     private fun processResultFrom(
         group: AwesomeBar.SuggestionProviderGroup,
         provider: AwesomeBar.SuggestionProvider,
-        suggestions: List<AwesomeBar.Suggestion>
+        suggestions: List<AwesomeBar.Suggestion>,
+        profilerStartTime: Double?,
     ) {
         val suggestionMap = state.value
 
@@ -100,6 +108,12 @@ internal class SuggestionFetcher(
         val updatedSuggestionMap = suggestionMap.toMutableMap()
         updatedSuggestionMap[group] = updatedSuggestions
         state.value = updatedSuggestionMap
+        val profilerEndTime = profiler?.getProfilerTime() // THIS MUST OCCUR RIGHT AFTER STATE UPDATE.
+
+        // Markers can only be added on the main thread right now.
+        ThreadUtils.postToMainThread {
+            profiler?.addMarker("Suggestion update", profilerStartTime, profilerEndTime, provider::class.simpleName)
+        }
     }
 
     override fun onAbandoned() {

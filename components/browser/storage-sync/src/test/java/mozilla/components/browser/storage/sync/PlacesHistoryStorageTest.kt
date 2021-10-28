@@ -146,9 +146,17 @@ class PlacesHistoryStorageTest {
         history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         history.recordObservation("http://www.mozilla.org", PageObservation(title = "Mozilla"))
 
-        val recordedVisits = history.getDetailedVisits(0)
+        var recordedVisits = history.getDetailedVisits(0)
         assertEquals(1, recordedVisits.size)
         assertEquals("Mozilla", recordedVisits[0].title)
+        assertNull(recordedVisits[0].previewImageUrl)
+
+        history.recordObservation("http://www.mozilla.org", PageObservation(previewImageUrl = "https://test.com/og-image-url"))
+
+        recordedVisits = history.getDetailedVisits(0)
+        assertEquals(1, recordedVisits.size)
+        assertEquals("Mozilla", recordedVisits[0].title)
+        assertEquals("https://test.com/og-image-url", recordedVisits[0].previewImageUrl)
     }
 
     @Test
@@ -219,7 +227,10 @@ class PlacesHistoryStorageTest {
     fun `store can be used to query detailed visit information`() = runBlocking {
         history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
         history.recordVisit("http://www.mozilla.org", PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE))
-        history.recordObservation("http://www.mozilla.org", PageObservation("Mozilla"))
+        history.recordObservation(
+            "http://www.mozilla.org",
+            PageObservation("Mozilla", "https://test.com/og-image-url")
+        )
         history.recordVisit("http://www.firefox.com", PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE))
 
         history.recordVisit("http://www.firefox.com", PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE))
@@ -228,6 +239,7 @@ class PlacesHistoryStorageTest {
         assertEquals(3, visits.size)
         assertEquals("http://www.mozilla.org/", visits[0].url)
         assertEquals("Mozilla", visits[0].title)
+        assertEquals("https://test.com/og-image-url", visits[0].previewImageUrl)
         assertEquals(VisitType.LINK, visits[0].visitType)
 
         assertEquals("http://www.mozilla.org/", visits[1].url)
@@ -293,18 +305,23 @@ class PlacesHistoryStorageTest {
     }
 
     @Test
-    fun `store can be used to track page meta information - title changes`() = runBlocking {
-        // Title changes are recorded.
+    fun `store can be used to track page meta information - title and previewImageUrl changes`() = runBlocking {
+        // Title and previewImageUrl changes are recorded.
         history.recordVisit("https://www.wikipedia.org", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
-        history.recordObservation("https://www.wikipedia.org", PageObservation("Wikipedia"))
+        history.recordObservation(
+            "https://www.wikipedia.org",
+            PageObservation("Wikipedia", "https://test.com/og-image-url")
+        )
         var recorded = history.getDetailedVisits(0)
         assertEquals(1, recorded.size)
         assertEquals("Wikipedia", recorded[0].title)
+        assertEquals("https://test.com/og-image-url", recorded[0].previewImageUrl)
 
         history.recordObservation("https://www.wikipedia.org", PageObservation("Википедия"))
         recorded = history.getDetailedVisits(0)
         assertEquals(1, recorded.size)
         assertEquals("Википедия", recorded[0].title)
+        assertEquals("https://test.com/og-image-url", recorded[0].previewImageUrl)
 
         // Titles for different pages are recorded.
         history.recordVisit("https://www.firefox.com", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
@@ -314,8 +331,11 @@ class PlacesHistoryStorageTest {
         recorded = history.getDetailedVisits(0)
         assertEquals(3, recorded.size)
         assertEquals("Википедия", recorded[0].title)
+        assertEquals("https://test.com/og-image-url", recorded[0].previewImageUrl)
         assertEquals("Firefox", recorded[1].title)
+        assertNull(recorded[1].previewImageUrl)
         assertEquals("Мозилла", recorded[2].title)
+        assertNull(recorded[2].previewImageUrl)
     }
 
     @Test
@@ -1156,6 +1176,120 @@ class PlacesHistoryStorageTest {
             assertEquals(1, this.size)
             assertHistoryMetadataRecord(metaKey3, 200, DocumentType.Media, this[0])
         }
+    }
+
+    @Test
+    fun `delete history metadata by search term`() = runBlocking {
+        // Able to operate against an empty db
+        history.deleteHistoryMetadata("test")
+        history.deleteHistoryMetadata("")
+
+        // Observe some items.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.youtube.com/watch?v=lNeRQuiKBd4",
+                referrerUrl = "http://www.twitter.com/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(20000)
+            )
+        }
+
+        // For the ifixit case, let's create a scenario with metadata entries that will dedupe by url,
+        // and will have at least some 0 view time records. In a search term group, these 4 metadata
+        // records will show up as 2, so a naive delete (iterate through group, delete) will leave records
+        // behind.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = "http://www.google.com/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(2000)
+            )
+        }
+        // Same search term as above, different url/referrer.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.youtube.com/watch?v=rfdshufsSfsd",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = null
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(25000)
+            )
+        }
+        // Same search term as above, same url, different referrer.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = "http://www.yandex.ru/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular)
+            )
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.ViewTimeObservation(1000)
+            )
+        }
+        // Again, but without view time.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.ifixit.com/News/35377/which-wireless-earbuds-are-the-least-evil",
+                searchTerm = "repairable wireless headset",
+                referrerUrl = null
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Regular)
+            )
+        }
+
+        // No view time for this one.
+        with(
+            HistoryMetadataKey(
+                url = "https://www.youtube.com/watch?v=Cs1b5qvCZ54",
+                searchTerm = "путин валдай",
+                referrerUrl = "http://www.yandex.ru/"
+            )
+        ) {
+            history.noteHistoryMetadataObservation(
+                this,
+                HistoryMetadataObservation.DocumentTypeObservation(DocumentType.Media)
+            )
+        }
+
+        assertEquals(6, history.getHistoryMetadataSince(0).count())
+
+        history.deleteHistoryMetadata("repairable wireless headset")
+        assertEquals(2, history.getHistoryMetadataSince(0).count())
+
+        history.deleteHistoryMetadata("Путин Валдай")
+        assertEquals(1, history.getHistoryMetadataSince(0).count())
     }
 
     @Test

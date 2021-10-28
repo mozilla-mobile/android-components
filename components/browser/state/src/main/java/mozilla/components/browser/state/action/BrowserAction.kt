@@ -427,6 +427,12 @@ sealed class ContentAction : BrowserAction() {
     data class UpdateTitleAction(val sessionId: String, val title: String) : ContentAction()
 
     /**
+     * Updates the preview image URL of the [ContentState] with the given [sessionId].
+     */
+    data class UpdatePreviewImageAction(val sessionId: String, val previewImageUrl: String) :
+        ContentAction()
+
+    /**
      * Updates the loading state of the [ContentState] with the given [sessionId].
      */
     data class UpdateLoadingStateAction(val sessionId: String, val loading: Boolean) :
@@ -837,6 +843,17 @@ sealed class EngineAction : BrowserAction() {
     ) : EngineAction(), ActionWithTab
 
     /**
+     * Indicates to observers that a [LoadUrlAction] was shortcutted and a direct
+     * load on the engine occurred instead.
+     */
+    data class OptimizedLoadUrlTriggeredAction(
+        override val tabId: String,
+        val url: String,
+        val flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
+        val additionalHeaders: Map<String, String>? = null
+    ) : EngineAction(), ActionWithTab
+
+    /**
      * Loads [data] in the tab with the given [tabId].
      */
     data class LoadDataAction(
@@ -1187,6 +1204,13 @@ sealed class HistoryMetadataAction : BrowserAction() {
     data class SetHistoryMetadataKeyAction(
         val tabId: String,
         val historyMetadataKey: HistoryMetadataKey
+    ) : HistoryMetadataAction()
+
+    /**
+     * Removes [searchTerm] (and referrer) from any history metadata associated with tabs.
+     */
+    data class DisbandSearchGroupAction(
+        val searchTerm: String
     ) : HistoryMetadataAction()
 }
 

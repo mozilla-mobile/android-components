@@ -5,7 +5,7 @@
 package mozilla.components.feature.tabs.ext
 
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.concept.tabstray.Tab
+import mozilla.components.feature.tabs.tabstray.Tab
 
 internal fun TabSessionState.toTab() = Tab(
     id,
@@ -17,6 +17,7 @@ internal fun TabSessionState.toTab() = Tab(
     mediaSessionState?.playbackState,
     mediaSessionState?.controller,
     lastAccess,
+    createdAt,
     if (content.searchTerms.isNotEmpty()) content.searchTerms else historyMetadata?.searchTerm ?: ""
 )
 

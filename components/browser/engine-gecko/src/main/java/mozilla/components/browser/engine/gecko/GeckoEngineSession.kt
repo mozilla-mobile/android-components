@@ -304,6 +304,9 @@ class GeckoEngineSession(
      * @param onResult A callback to inform if this [EngineSession] is in
      * the exception list, true if it is in, otherwise false.
      */
+    @Suppress("DEPRECATION")
+    // The deprecation will be addressed on
+    // https://github.com/mozilla-mobile/android-components/issues/11101
     internal fun isIgnoredForTrackingProtection(onResult: (Boolean) -> Unit) {
         runtime.contentBlockingController.checkException(geckoSession).accept {
             if (it != null) {
@@ -862,6 +865,19 @@ class GeckoEngineSession(
                 }
             }
             notifyObservers { onTitleChange(title ?: "") }
+        }
+
+        override fun onPreviewImage(session: GeckoSession, previewImageUrl: String) {
+            if (!privateMode) {
+                currentUrl?.let { url ->
+                    settings.historyTrackingDelegate?.let { delegate ->
+                        launch(coroutineContext) {
+                            delegate.onPreviewImageChange(url, previewImageUrl)
+                        }
+                    }
+                }
+            }
+            notifyObservers { onPreviewImageChange(previewImageUrl) }
         }
 
         override fun onFocusRequest(session: GeckoSession) = Unit

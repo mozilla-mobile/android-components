@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -22,8 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
@@ -32,18 +35,23 @@ import mozilla.components.compose.browser.awesomebar.AwesomeBarOrientation
 import mozilla.components.compose.browser.awesomebar.R
 import mozilla.components.concept.awesomebar.AwesomeBar
 
+// We only show one row of text, covering at max screen width.
+// Limit bigger texts that could cause slowdowns or even crashes.
+private const val SUGGESTION_TEXT_MAX_LENGTH = 100
+
 @Composable
 internal fun Suggestion(
     suggestion: AwesomeBar.Suggestion,
     colors: AwesomeBarColors,
     orientation: AwesomeBarOrientation,
-    onSuggestionClicked: (AwesomeBar.Suggestion) -> Unit,
-    onAutoComplete: (AwesomeBar.Suggestion) -> Unit
+    onSuggestionClicked: () -> Unit,
+    onAutoComplete: () -> Unit
 ) {
     Row(
         modifier = Modifier
-            .clickable { onSuggestionClicked(suggestion) }
-            .height(56.dp)
+            .clickable { onSuggestionClicked() }
+            .defaultMinSize(minHeight = 56.dp)
+            .testTag("mozac.awesomebar.suggestion")
             .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
     ) {
         val icon = suggestion.icon
@@ -54,8 +62,8 @@ internal fun Suggestion(
             )
         }
         SuggestionTitleAndDescription(
-            title = suggestion.title,
-            description = suggestion.description,
+            title = suggestion.title?.take(SUGGESTION_TEXT_MAX_LENGTH),
+            description = suggestion.description?.take(SUGGESTION_TEXT_MAX_LENGTH),
             colors = colors,
             modifier = Modifier
                 .weight(1f)
@@ -63,7 +71,7 @@ internal fun Suggestion(
         )
         if (suggestion.editSuggestion != null) {
             AutocompleteButton(
-                onAutoComplete = { onAutoComplete(suggestion) },
+                onAutoComplete = onAutoComplete,
                 orientation = orientation,
                 colors = colors,
                 modifier = Modifier.align(Alignment.CenterVertically)
@@ -91,6 +99,7 @@ private fun SuggestionTitleAndDescription(
             color = colors.title,
             fontSize = 15.sp,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .width(IntrinsicSize.Max)
                 .padding(start = 2.dp, end = 8.dp)
@@ -101,6 +110,7 @@ private fun SuggestionTitleAndDescription(
                 color = colors.description,
                 fontSize = 12.sp,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .width(IntrinsicSize.Max)
                     .padding(start = 2.dp, end = 8.dp)

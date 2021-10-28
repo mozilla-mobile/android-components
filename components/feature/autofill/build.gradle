@@ -22,12 +22,6 @@ android {
     }
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-    kotlinOptions.freeCompilerArgs += [
-        "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi"
-    ]
-}
-
 dependencies {
     implementation project(':concept-fetch')
     implementation project(':concept-storage')
@@ -38,6 +32,7 @@ dependencies {
     implementation project(":support-utils")
 
     implementation Dependencies.androidx_annotation
+    implementation Dependencies.androidx_autofill
     implementation Dependencies.androidx_biometric
     implementation Dependencies.androidx_fragment
     implementation Dependencies.androidx_lifecycle_runtime

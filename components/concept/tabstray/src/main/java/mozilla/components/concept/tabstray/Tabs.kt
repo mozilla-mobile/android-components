@@ -8,9 +8,14 @@ package mozilla.components.concept.tabstray
  * Aggregate data type keeping a reference to the list of tabs and the index of the selected tab.
  *
  * @property list The list of tabs.
- * @property selectedIndex Index of the selected tab in the list of tabs (or -1).
+ * @property selectedTabId Id of the selected tab in the list of tabs (or null).
  */
+@Deprecated(
+    "This will be removed in future versions",
+    ReplaceWith("TabList", "mozilla.components.feature.tabs.tabstray")
+)
+@Suppress("Deprecation")
 data class Tabs(
     val list: List<Tab>,
-    val selectedIndex: Int
+    val selectedTabId: String?
 )

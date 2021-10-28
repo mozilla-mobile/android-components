@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.feature.awesomebar.AwesomeBarFeature
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
@@ -23,13 +22,13 @@ import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.android.view.enterToImmersiveMode
 import mozilla.components.support.ktx.android.view.exitImmersiveModeIfNeeded
+import mozilla.components.support.ktx.android.view.onWindowFocusChangeListener
 import org.mozilla.samples.browser.ext.components
 import org.mozilla.samples.browser.integration.ReaderViewIntegration
 
 /**
  * Fragment used for browsing the web within the main app.
  */
-@ExperimentalCoroutinesApi
 class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private val thumbnailsFeature = ViewBoundFeatureWrapper<BrowserThumbnails>()
     private val readerViewFeature = ViewBoundFeatureWrapper<ReaderViewIntegration>()
@@ -104,6 +103,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             view = binding.root
         )
 
+        val onWindowFocusChangeListener = activity?.onWindowFocusChangeListener
+
         fullScreenFeature.set(
             feature = FullScreenFeature(
                 components.store,
@@ -111,9 +112,9 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 sessionId
             ) { inFullScreen ->
                 if (inFullScreen) {
-                    activity?.enterToImmersiveMode()
+                    activity?.enterToImmersiveMode(onWindowFocusChangeListener)
                 } else {
-                    activity?.exitImmersiveModeIfNeeded()
+                    activity?.exitImmersiveModeIfNeeded(onWindowFocusChangeListener)
                 }
             },
             owner = this,

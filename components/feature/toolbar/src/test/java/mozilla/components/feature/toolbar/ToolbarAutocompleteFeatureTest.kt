@@ -10,7 +10,16 @@ import mozilla.components.browser.domains.Domain
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
 import mozilla.components.browser.domains.autocomplete.DomainList
 import mozilla.components.concept.engine.Engine
-import mozilla.components.concept.storage.*
+import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryAutocompleteResult
+import mozilla.components.concept.storage.HistoryStorage
+import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
+import mozilla.components.concept.storage.SearchResult
+import mozilla.components.concept.storage.TopFrecentSiteInfo
+import mozilla.components.concept.storage.VisitInfo
+import mozilla.components.concept.storage.VisitType
 import mozilla.components.concept.toolbar.AutocompleteDelegate
 import mozilla.components.concept.toolbar.AutocompleteResult
 import mozilla.components.concept.toolbar.Toolbar

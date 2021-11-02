@@ -6,7 +6,20 @@ package mozilla.components.feature.awesomebar.provider
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
-import mozilla.components.concept.storage.*
+import mozilla.components.concept.storage.DocumentType
+import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryAutocompleteResult
+import mozilla.components.concept.storage.HistoryMetadata
+import mozilla.components.concept.storage.HistoryMetadataKey
+import mozilla.components.concept.storage.HistoryMetadataStorage
+import mozilla.components.concept.storage.HistoryStorage
+import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
+import mozilla.components.concept.storage.SearchResult
+import mozilla.components.concept.storage.TopFrecentSiteInfo
+import mozilla.components.concept.storage.VisitInfo
+import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
@@ -185,19 +198,15 @@ class CombinedHistorySuggestionProviderTest {
             }
         }
 
-        override suspend fun prune() {
-            // Not applicable.
-        }
+        // Not applicable.
+        override suspend fun prune() {}
 
-        override suspend fun runMaintenance() {
-            // Not applicable.
-        }
+        // Not applicable.
+        override suspend fun runMaintenance() {}
 
-        override fun cleanup() {
-            // GC will take care of our internal data structures, so there's nothing to do here.
-        }
+        // GC will take care of our internal data structures, so there's nothing to do here.
+        override fun cleanup() {}
     }
-
 
     private val historyEntry = HistoryMetadata(
         key = HistoryMetadataKey("http://www.mozilla.com", null, null),

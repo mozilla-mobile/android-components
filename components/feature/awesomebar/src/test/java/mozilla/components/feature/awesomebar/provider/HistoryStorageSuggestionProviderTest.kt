@@ -6,7 +6,16 @@ package mozilla.components.feature.awesomebar.provider
 
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.engine.Engine
-import mozilla.components.concept.storage.*
+import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryAutocompleteResult
+import mozilla.components.concept.storage.HistoryStorage
+import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.PageVisit
+import mozilla.components.concept.storage.RedirectSource
+import mozilla.components.concept.storage.SearchResult
+import mozilla.components.concept.storage.TopFrecentSiteInfo
+import mozilla.components.concept.storage.VisitInfo
+import mozilla.components.concept.storage.VisitType
 import mozilla.components.feature.awesomebar.facts.AwesomeBarFacts
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Action
@@ -22,7 +31,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito.*
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.never
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 
 class HistoryStorageSuggestionProviderTest {
 

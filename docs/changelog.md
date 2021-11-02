@@ -12,7 +12,7 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
 * **browser-state**
-  *  🚒 Bug fixed [issue #11209](https://github.com/mozilla-mobile/android-components/issues/11209) - Keep the selected tab selected when others are removed.
+  *  🚒 Bug fixed [issue #11209](https://github.com/mozilla-mobile/android-components/issues/11209) - Keep the selected tab selected when others are removed and stay in the same mode (private / normal) when removing the currently selected tab.
 
 * **browser-engine-gecko**:
   * Removes deprecated `GeckoLoginDelegateWrapper`. Please use `GeckoAutocompleteStorageDelegate`. [#11311](https://github.com/mozilla-mobile/android-components/issues/11311)

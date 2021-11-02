@@ -101,8 +101,11 @@ internal object TabListReducer {
                     val updatedSelection: String? = if (tabToRemove.id != state.selectedTabId) {
                         // The selected tab is not affected and can stay the same
                         state.selectedTabId
-                    } else if (action.selectParentIfExists && tabToRemove.parentId != null) {
-                        // The parent tab should be selected if one exists
+                    } else if ((action.selectParentIfExists && tabToRemove.parentId != null) &&
+                        (state.findTab(tabToRemove.parentId)?.content?.private == tabToRemove.content.private)
+                    ) {
+                        // The parent tab should be selected if one exists.
+                        // Only if the parent is of the same type as the just removed tab (private or normal).
                         tabToRemove.parentId
                     } else {
                         // The selected tab was removed and we need to find a new one

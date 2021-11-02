@@ -7,12 +7,14 @@ package mozilla.components.browser.state.reducer
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 private val tab1 = TabSessionState(id = "tab1", content = mock())
@@ -115,5 +117,35 @@ class TabListReducerTest {
         val result = TabListReducer.reduce(state, TabListAction.RemoveTabAction(noParentTab.id, false))
 
         assertNotNull(result.selectedTabId)
+    }
+
+    @Test
+    fun `GIVEN a list of tabs WHEN RemoveTabAction is called for the currently selected one with selectParentIfExists THEN select the parent if of the same type`() {
+        val initialTabs = listOf(tab1, tab2, tab3, tab4)
+        val state = BrowserState(initialTabs, selectedTabId = tab3.id)
+
+        val result = TabListReducer.reduce(state, TabListAction.RemoveTabAction(tab3.id, true))
+
+        assertEquals(tab2.id, result.selectedTabId)
+    }
+
+    @Test
+    fun `GIVEN a list of tabs WHEN RemoveTabAction is called for the currently selected one with selectParentIfExists THEN select another if parent has different type`() {
+        val privateTab1 = TabSessionState(
+            id = "privateTab1", content = ContentState("url", private = true), parentId = tab2.id
+        )
+        val privateTab2 = TabSessionState(
+            id = "privateTab2", content = ContentState("url", private = true), parentId = privateTab1.id
+        )
+        val privateTab3 = TabSessionState(
+            id = "privateTab3", content = ContentState("url", private = true), parentId = privateTab2.id
+        )
+        val initialTabs = listOf(tab1, tab2, privateTab1, privateTab2, tab3, privateTab3, tab4)
+        val state = BrowserState(initialTabs, selectedTabId = privateTab1.id)
+
+        val result = TabListReducer.reduce(state, TabListAction.RemoveTabAction(privateTab1.id, true))
+
+        assertNotEquals(tab2.id, result.selectedTabId)
+        assertTrue(result.findTab(result.selectedTabId!!)!!.content.private)
     }
 }

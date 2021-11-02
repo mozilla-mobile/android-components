@@ -105,13 +105,17 @@ internal class DOMNavigator(
         usernameId: AutofillId?,
         passwordId: AutofillId?,
         webDomain: String?,
-        packageName: String
+        packageName: String,
+        username: String?,
+        password: String?
     ): ParsedStructure {
         return ParsedStructure(
             usernameId,
             passwordId,
             webDomain,
-            packageName
+            packageName,
+            username,
+            password
         )
     }
 }

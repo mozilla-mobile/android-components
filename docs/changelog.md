@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **browser-state**
+  *  🚒 Bug fixed [issue #11209](https://github.com/mozilla-mobile/android-components/issues/11209) - Keep the selected tab selected when others are removed.
+
 * **browser-engine-gecko**:
   * Removes deprecated `GeckoLoginDelegateWrapper`. Please use `GeckoAutocompleteStorageDelegate`. [#11311](https://github.com/mozilla-mobile/android-components/issues/11311)
   * Added setting for HTTPS-Only mode [#5935](https://github.com/mozilla-mobile/focus-android/issues/5935)

@@ -235,15 +235,6 @@ open class PlacesHistoryStorage(
         return places.importVisitsFromFennec(dbPath)
     }
 
-    /**
-     * This should be removed. See: https://github.com/mozilla/application-services/issues/1877
-     *
-     * @return raw internal handle that could be used for referencing underlying [PlacesApi]. Use it with SyncManager.
-     */
-    override fun getHandle(): Long {
-        throw NotImplementedError("Use registerWithSyncManager instead")
-    }
-
     override fun registerWithSyncManager() {
         return places.registerWithSyncManager()
     }

@@ -625,11 +625,6 @@ class PlacesHistoryStorageTest {
                 fail()
             }
 
-            override fun getHandle(): Long {
-                fail()
-                return 0L
-            }
-
             override fun importVisitsFromFennec(dbPath: String): JSONObject {
                 fail()
                 return JSONObject()
@@ -677,11 +672,6 @@ class PlacesHistoryStorageTest {
 
             override fun syncBookmarks(syncInfo: SyncAuthInfo) {}
 
-            override fun getHandle(): Long {
-                fail()
-                return 0L
-            }
-
             override fun importVisitsFromFennec(dbPath: String): JSONObject {
                 fail()
                 return JSONObject()
@@ -727,11 +717,6 @@ class PlacesHistoryStorageTest {
 
             override fun syncBookmarks(syncInfo: SyncAuthInfo) {
                 fail()
-            }
-
-            override fun getHandle(): Long {
-                fail()
-                return 0L
             }
 
             override fun importVisitsFromFennec(dbPath: String): JSONObject {
@@ -783,11 +768,6 @@ class PlacesHistoryStorageTest {
 
             override fun syncBookmarks(syncInfo: SyncAuthInfo) {
                 fail()
-            }
-
-            override fun getHandle(): Long {
-                fail()
-                return 0L
             }
 
             override fun importVisitsFromFennec(dbPath: String): JSONObject {

@@ -329,9 +329,8 @@ internal class WorkManagerSyncWorker(
             // We're assuming all syncable stores live in Rust.
             // Currently `RustSyncManager` doesn't support non-Rust sync engines.
             when (it.key) {
-                // NB: History and Bookmarks will have the same handle.
-                SyncEngine.History -> RustSyncManager.setPlaces(it.value.lazyStore.value.getHandle())
-                SyncEngine.Bookmarks -> RustSyncManager.setPlaces(it.value.lazyStore.value.getHandle())
+                SyncEngine.History -> it.value.lazyStore.value.registerWithSyncManager()
+                SyncEngine.Bookmarks -> it.value.lazyStore.value.registerWithSyncManager()
 
                 // These stores don't expose `getHandle` (yay!), and instead are able to handle
                 // sync manager registration on their own.

@@ -331,9 +331,6 @@ internal class WorkManagerSyncWorker(
             when (it.key) {
                 SyncEngine.History -> it.value.lazyStore.value.registerWithSyncManager()
                 SyncEngine.Bookmarks -> it.value.lazyStore.value.registerWithSyncManager()
-
-                // These stores don't expose `getHandle` (yay!), and instead are able to handle
-                // sync manager registration on their own.
                 SyncEngine.CreditCards -> {
                     it.value.lazyStore.value.registerWithSyncManager()
 

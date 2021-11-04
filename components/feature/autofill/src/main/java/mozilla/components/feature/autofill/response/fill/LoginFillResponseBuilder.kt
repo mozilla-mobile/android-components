@@ -63,15 +63,15 @@ internal data class LoginFillResponseBuilder(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-internal fun FillResponse.Builder.handleSaveInfo(ps: ParsedStructure) {
-    val ids = arrayOf(ps.usernameId, ps.passwordId).filterNotNull()
+internal fun FillResponse.Builder.handleSaveInfo(structure: ParsedStructure) {
+    val ids = arrayOf(structure.usernameId, structure.passwordId).filterNotNull()
     if (ids.isNotEmpty()) {
         setSaveInfo(
             SaveInfo.Builder(
                 SaveInfo.SAVE_DATA_TYPE_USERNAME or SaveInfo.SAVE_DATA_TYPE_PASSWORD,
                 ids.toTypedArray()
             ).also {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ps.passwordId == null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && structure.passwordId == null) {
                     // Continue workflow until password field is reached
                     it.setFlags(SaveInfo.FLAG_DELAY_SAVE)
                 }

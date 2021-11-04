@@ -15,9 +15,7 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
 ) {
     fun build(): ParsedStructure {
         val formNode = findFocusedForm()
-        val (pair1, pair2) = findAutofillIds(formNode)
-        val (usernameId, username) = pair1 ?: (null to null)
-        val (passwordId, password) = pair2 ?: (null to null)
+        val (usernameId, username, passwordId, password) = findAutofillIds(formNode)
         val hostnameClue = usernameId ?: passwordId
 
         return navigator.build(
@@ -40,8 +38,17 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         }
     }
 
-    private fun findAutofillIds(rootNode: ViewNode?): Pair<Pair<AutofillId?, String?>?, Pair<AutofillId?, String?>?> =
-        checkForAdjacentFields(rootNode) ?: getUsernameId(rootNode) to getPasswordId(rootNode)
+    private fun findAutofillIds(rootNode: ViewNode?): CredentialValues<AutofillId> =
+        checkForAdjacentFields(rootNode) ?: run {
+            val usernamePair = getUsernameId(rootNode)
+            val passwordPair = getPasswordId(rootNode)
+            CredentialValues(
+                usernameId = usernamePair?.first,
+                username = usernamePair?.second,
+                passwordId = passwordPair?.first,
+                password = passwordPair?.second
+            )
+        }
 
     private fun getUsernameId(rootNode: ViewNode?): Pair<AutofillId?, String?>? {
         // how do we localize the "email" and "username"?
@@ -135,8 +142,7 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         }
     }
 
-    private fun checkForAdjacentFields(rootNode: ViewNode?):
-        Pair<Pair<AutofillId?, String?>?, Pair<AutofillId?, String?>?>? {
+    private fun checkForAdjacentFields(rootNode: ViewNode?): CredentialValues<AutofillId>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
 
             val childNodes = navigator.childNodes(node)
@@ -166,9 +172,12 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
                 val prevNode = inputFields[i - 1]
                 val currentNode = inputFields[i]
                 if (navigator.isPasswordField(currentNode) && navigator.isPasswordField(prevNode).not()) {
-                    return@findFirst (
-                        navigator.autofillId(prevNode) to navigator.currentText(prevNode)
-                        ) to (navigator.autofillId(currentNode) to navigator.currentText(currentNode))
+                    return@findFirst CredentialValues(
+                        usernameId = navigator.autofillId(prevNode),
+                        username = navigator.currentText(prevNode),
+                        passwordId = navigator.autofillId(currentNode),
+                        password = navigator.currentText(currentNode)
+                    )
                 }
             }
 
@@ -254,3 +263,11 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         return null
     }
 }
+
+@RequiresApi(Build.VERSION_CODES.O)
+internal data class CredentialValues<AutofillId>(
+    val usernameId: AutofillId?,
+    val username: String?,
+    val passwordId: AutofillId?,
+    val password: String?
+)

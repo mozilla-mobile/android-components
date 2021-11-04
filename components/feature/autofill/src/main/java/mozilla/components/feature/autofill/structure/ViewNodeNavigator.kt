@@ -44,6 +44,7 @@ internal interface AutofillNodeNavigator<Node, Id> {
     fun isButton(node: Node): Boolean
     fun isFocused(node: Node): Boolean
     fun isVisible(node: Node): Boolean
+    @Suppress("LongParameterList")
     fun build(
         usernameId: Id?,
         passwordId: Id?,

@@ -9,6 +9,7 @@ import android.view.View
 import androidx.annotation.RequiresApi
 
 @RequiresApi(Build.VERSION_CODES.O)
+@Suppress("LargeClass")
 internal class ParsedStructureBuilder<ViewNode, AutofillId>(
     private val navigator: AutofillNodeNavigator<ViewNode, AutofillId>
 ) {
@@ -63,15 +64,25 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         return getAutofillIdForKeywords(rootNode, listOf(View.AUTOFILL_HINT_PASSWORD, "password"))
     }
 
-    private fun getAutofillIdForKeywords(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
+    private fun getAutofillIdForKeywords(
+        rootNode: ViewNode?,
+        keywords: Collection<String>
+    ): Pair<AutofillId?, String?>? {
         return checkForNamedTextField(rootNode, keywords)
             ?: checkForConsecutiveLabelAndField(rootNode, keywords)
             ?: checkForNestedLayoutAndField(rootNode, keywords)
     }
 
-    private fun checkForNamedTextField(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
+    private fun checkForNamedTextField(
+        rootNode: ViewNode?,
+        keywords: Collection<String>
+    ): Pair<AutofillId?, String?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
-            if (isAutoFillableEditText(node, keywords) || isAutoFillableInputField(node, keywords)) {
+            if (isAutoFillableEditText(node, keywords) || isAutoFillableInputField(
+                    node,
+                    keywords
+                )
+            ) {
                 navigator.autofillId(node) to navigator.currentText(node)
             } else {
                 null
@@ -79,7 +90,10 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         }
     }
 
-    private fun checkForConsecutiveLabelAndField(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
+    private fun checkForConsecutiveLabelAndField(
+        rootNode: ViewNode?,
+        keywords: Collection<String>
+    ): Pair<AutofillId?, String?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
             val childNodes = navigator.childNodes(node)
             // check for consecutive views with keywords followed by possible fill locations
@@ -99,7 +113,8 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         }
     }
 
-    private fun checkForNestedLayoutAndField(rootNode: ViewNode?, keywords: Collection<String>): Pair<AutofillId?, String?>? {
+    private fun checkForNestedLayoutAndField(rootNode: ViewNode?, keywords: Collection<String>):
+        Pair<AutofillId?, String?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
             val childNodes = navigator.childNodes(node)
 
@@ -120,7 +135,8 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         }
     }
 
-    private fun checkForAdjacentFields(rootNode: ViewNode?): Pair<Pair<AutofillId?, String?>?, Pair<AutofillId?, String?>?>? {
+    private fun checkForAdjacentFields(rootNode: ViewNode?):
+        Pair<Pair<AutofillId?, String?>?, Pair<AutofillId?, String?>?>? {
         return navigator.findFirst(rootNode) { node: ViewNode ->
 
             val childNodes = navigator.childNodes(node)
@@ -136,7 +152,9 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
             }
 
             val inputFields = firstFewNodes.filter {
-                navigator.isEditText(it) && navigator.autofillId(it) != null && navigator.isVisible(it)
+                navigator.isEditText(it) && navigator.autofillId(it) != null && navigator.isVisible(
+                    it
+                )
             }
 
             // we must have a minimum of two EditText boxes in order to have a pair.
@@ -148,8 +166,9 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
                 val prevNode = inputFields[i - 1]
                 val currentNode = inputFields[i]
                 if (navigator.isPasswordField(currentNode) && navigator.isPasswordField(prevNode).not()) {
-                    return@findFirst (navigator.autofillId(prevNode) to navigator.currentText(prevNode)) to
-                        (navigator.autofillId(currentNode) to navigator.currentText(currentNode))
+                    return@findFirst (
+                        navigator.autofillId(prevNode) to navigator.currentText(prevNode)
+                        ) to (navigator.autofillId(currentNode) to navigator.currentText(currentNode))
                 }
             }
 
@@ -193,8 +212,8 @@ internal class ParsedStructureBuilder<ViewNode, AutofillId>(
         val hints = navigator.clues(node)
         keywords.forEach { keyword ->
             hints.forEach { hint ->
-                if (hint.map { it.uppercase() } == keyword.map { it.uppercase() }) {
-//                if (hint.contains(keyword, true)) {
+//                if (hint.map { it.uppercase() } == keyword.map { it.uppercase() }) {
+                if (hint.contains(keyword, true)) {
                     return true
                 }
             }

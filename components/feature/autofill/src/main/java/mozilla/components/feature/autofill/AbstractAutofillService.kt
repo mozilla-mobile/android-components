@@ -17,7 +17,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.autofill.handler.FillRequestHandler
 import mozilla.components.feature.autofill.handler.MAX_LOGINS
 import mozilla.components.feature.autofill.structure.ParsedStructure
@@ -81,13 +81,12 @@ abstract class AbstractAutofillService : AutofillService() {
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(Dispatchers.IO) {
             val lookupDomain = parsedStructure.getLookupDomain(configuration.publicSuffixList)
-            val loginEntry = Login(
-                guid = "",
+            val loginEntry = LoginEntry(
                 origin = "https://$lookupDomain",
                 username = username!!,
                 password = password!!,
                 httpRealm = "https://$lookupDomain"
-            ).toEntry()
+            )
             configuration.storage.addOrUpdate(loginEntry)
         }
 

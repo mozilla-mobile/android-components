@@ -49,8 +49,6 @@ dependencies {
     testImplementation Dependencies.testing_robolectric
     testImplementation Dependencies.testing_mockito
     testImplementation Dependencies.testing_mockwebserver
-
-    testImplementation Dependencies.mozilla_glean_forUnitTests
 }
 
 apply from: '../../../publish.gradle'

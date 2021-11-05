@@ -4,7 +4,7 @@ The `concept-storage` component contains interfaces and abstract classes that de
 
 This abstraction makes it possible to build components that work independently of the storage layer being used.
 
-Currently a single store implementations is available:
+Currently a single store implementation is available:
 - [syncable, Rust Places storage](../../browser/storage-sync) - compatible with the Firefox Sync ecosystem
 
 ## Usage

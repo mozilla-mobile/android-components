@@ -10,7 +10,10 @@ permalink: /changelog/
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
-
+  
+* **BrowserAction**, **TabListReducer**, **TabsUseCases**:
+  * ⚠ Change API of MoveTabs (reordering) Action and UseCase
+  
 # 95.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v94.0.0...v95.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/142?closed=1)

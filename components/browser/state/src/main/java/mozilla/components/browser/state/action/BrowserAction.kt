@@ -153,19 +153,16 @@ sealed class TabListAction : BrowserAction() {
     data class AddMultipleTabsAction(val tabs: List<TabSessionState>) : TabListAction()
 
     /**
-     * Moves a set of tabIDs into a new position (maintaining internal ordering)
+     * Moves a tab into a new position
      *
-     * @property tabIds The IDs of the tabs to move.
-     * @property targetTabId A tab that the moved tabs will be moved next to
-     * @property placeAfter True if the moved tabs should be placed after the target,
-     * False for placing before the target. Irrelevant if the target is one of the tabs being moved,
-     * since then the whole list is moved to where the target was. Ordering of the moved tabs
-     * relative to each other is preserved.
+     * @property tabId The IDs of the tab to move.
+     * @property targetTabId The moved tab will replace the position of the target.
+     * Before/After determined by the original position of the moved tab,
+     * pushing the target towards the original tab's position.
      */
     data class MoveTabsAction(
-        val tabIds: List<String>,
+        val tabId: String,
         val targetTabId: String,
-        val placeAfter: Boolean,
     ) : TabListAction()
 
     /**

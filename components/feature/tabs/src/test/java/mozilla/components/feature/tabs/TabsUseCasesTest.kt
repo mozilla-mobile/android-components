@@ -523,11 +523,18 @@ class TabsUseCasesTest {
         assertEquals("https://mozilla.org", store.state.tabs[0].content.url)
         assertEquals("https://firefox.com", store.state.tabs[1].content.url)
 
+        // Check a swap
         val tab1Id = store.state.tabs[0].id
         val tab2Id = store.state.tabs[1].id
-        tabsUseCases.moveTabs(listOf(tab1Id), tab2Id, true)
+        tabsUseCases.moveTabs(tab1Id, tab2Id)
         store.waitUntilIdle()
         assertEquals("https://firefox.com", store.state.tabs[0].content.url)
         assertEquals("https://mozilla.org", store.state.tabs[1].content.url)
+
+        // Check a swap back
+        tabsUseCases.moveTabs(tab1Id, tab2Id)
+        store.waitUntilIdle()
+        assertEquals("https://mozilla.org", store.state.tabs[0].content.url)
+        assertEquals("https://firefox.com", store.state.tabs[1].content.url)
     }
 }

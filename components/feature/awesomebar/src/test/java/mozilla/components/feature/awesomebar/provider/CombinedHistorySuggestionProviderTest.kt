@@ -6,19 +6,14 @@ package mozilla.components.feature.awesomebar.provider
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
-import mozilla.components.browser.storage.sync.PlacesHistoryStorage
-import mozilla.components.concept.storage.DocumentType
+import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.concept.storage.HistoryMetadataStorage
-import mozilla.components.concept.storage.PageVisit
-import mozilla.components.concept.storage.RedirectSource
+import mozilla.components.concept.storage.DocumentType
 import mozilla.components.concept.storage.SearchResult
-import mozilla.components.concept.storage.VisitType
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,11 +36,11 @@ class CombinedHistorySuggestionProviderTest {
 
     @Test
     fun `GIVEN history items exists WHEN onInputChanged is called with empty text THEN return empty suggestions list`() = runBlocking {
-        val storage: HistoryMetadataStorage = mock()
-        whenever(storage.queryHistoryMetadata("moz", DEFAULT_METADATA_SUGGESTION_LIMIT)).thenReturn(listOf(historyEntry))
-        val history = PlacesHistoryStorage(testContext)
-        history.recordVisit("http://www.mozilla.com", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
-        val provider = CombinedHistorySuggestionProvider(history, storage, mock())
+        val metadata: HistoryMetadataStorage = mock()
+        doReturn(listOf(historyEntry)).`when`(metadata).queryHistoryMetadata(eq("moz"), anyInt())
+        val history: HistoryStorage = mock()
+        doReturn(listOf(SearchResult("id", "http://www.mozilla.com", 10))).`when`(history).getSuggestions(eq("moz"), anyInt())
+        val provider = CombinedHistorySuggestionProvider(history, metadata, mock())
 
         assertTrue(provider.onInputChanged("").isEmpty())
         assertTrue(provider.onInputChanged("  ").isEmpty())
@@ -55,23 +50,23 @@ class CombinedHistorySuggestionProviderTest {
     fun `GIVEN more suggestions asked than metadata items exist WHEN user changes input THEN return a combined list of suggestions`() = runBlocking {
         val storage: HistoryMetadataStorage = mock()
         doReturn(listOf(historyEntry)).`when`(storage).queryHistoryMetadata(eq("moz"), anyInt())
-        val history = PlacesHistoryStorage(testContext)
-        history.recordVisit("http://www.mozilla.com/firefox", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        val history: HistoryStorage = mock()
+        doReturn(listOf(SearchResult("id", "http://www.mozilla.com/firefox/", 10))).`when`(history).getSuggestions(eq("moz"), anyInt())
         val provider = CombinedHistorySuggestionProvider(history, storage, mock())
 
         val result = provider.onInputChanged("moz")
 
         assertEquals(2, result.size)
         assertEquals("http://www.mozilla.com", result[0].description)
-        assertEquals("http://www.mozilla.com/firefox", result[1].description)
+        assertEquals("http://www.mozilla.com/firefox/", result[1].description)
     }
 
     @Test
     fun `GIVEN fewer suggestions asked than metadata items exist WHEN user changes input THEN return suggestions only based on metadata items`() = runBlocking {
         val storage: HistoryMetadataStorage = mock()
         doReturn(listOf(historyEntry)).`when`(storage).queryHistoryMetadata(eq("moz"), anyInt())
-        val history = PlacesHistoryStorage(testContext)
-        history.recordVisit("http://www.mozilla.com/firefox", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
+        val history: HistoryStorage = mock()
+        doReturn(listOf(SearchResult("id", "http://www.mozilla.com/firefox/", 10))).`when`(history).getSuggestions(eq("moz"), anyInt())
         val provider = CombinedHistorySuggestionProvider(history, storage, mock(), maxNumberOfSuggestions = 1)
 
         val result = provider.onInputChanged("moz")
@@ -82,27 +77,24 @@ class CombinedHistorySuggestionProviderTest {
 
     @Test
     fun `GIVEN only storage history items exist WHEN user changes input THEN return suggestions only based on storage items`() = runBlocking {
-        val storage: HistoryMetadataStorage = mock()
-        doReturn(emptyList<HistoryMetadata>()).`when`(storage).queryHistoryMetadata(eq("moz"), anyInt())
-        val history = PlacesHistoryStorage(testContext)
-        history.recordVisit("http://www.mozilla.com/firefox", PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE))
-        val provider = CombinedHistorySuggestionProvider(history, storage, mock(), maxNumberOfSuggestions = 1)
+        val metadata: HistoryMetadataStorage = mock()
+        doReturn(emptyList<HistoryMetadata>()).`when`(metadata).queryHistoryMetadata(eq("moz"), anyInt())
+        val history: HistoryStorage = mock()
+        doReturn(listOf(SearchResult("id", "http://www.mozilla.com/firefox/", 10))).`when`(history).getSuggestions(eq("moz"), anyInt())
+        val provider = CombinedHistorySuggestionProvider(history, metadata, mock(), maxNumberOfSuggestions = 1)
 
         val result = provider.onInputChanged("moz")
 
         assertEquals(1, result.size)
-        assertEquals("http://www.mozilla.com/firefox", result[0].description)
+        assertEquals("http://www.mozilla.com/firefox/", result[0].description)
     }
 
     @Test
     fun `GIVEN duplicated metadata and storage entries WHEN user changes input THEN return distinct suggestions`() = runBlocking {
         val storage: HistoryMetadataStorage = mock()
         doReturn(listOf(historyEntry)).`when`(storage).queryHistoryMetadata(eq("moz"), anyInt())
-        val history = PlacesHistoryStorage(testContext)
-        history.recordVisit(
-            "http://www.mozilla.com",
-            PageVisit(VisitType.TYPED, RedirectSource.NOT_A_SOURCE)
-        )
+        val history: HistoryStorage = mock()
+        doReturn(listOf(SearchResult("id", "http://www.mozilla.com", 10))).`when`(history).getSuggestions(eq("moz"), anyInt())
         val provider = CombinedHistorySuggestionProvider(history, storage, mock())
 
         val result = provider.onInputChanged("moz")
@@ -148,7 +140,7 @@ class CombinedHistorySuggestionProviderTest {
         )
 
         val metadataStorage: HistoryMetadataStorage = mock()
-        val historyStorage: PlacesHistoryStorage = mock()
+        val historyStorage: HistoryStorage = mock()
         doReturn(listOf(metadataEntry2, metadataEntry1)).`when`(metadataStorage).queryHistoryMetadata(eq("moz"), anyInt())
         doReturn(listOf(searchResult1, searchResult2)).`when`(historyStorage).getSuggestions(eq("moz"), anyInt())
 

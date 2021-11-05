@@ -9,7 +9,6 @@ import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.domains.Domain
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
 import mozilla.components.browser.domains.autocomplete.DomainList
-import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageVisit
@@ -22,7 +21,6 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.fail
 import org.junit.Test
@@ -154,7 +152,7 @@ class ToolbarAutocompleteFeatureTest {
         var feature = ToolbarAutocompleteFeature(toolbar)
         val autocompleteDelegate: AutocompleteDelegate = mock()
 
-        var history: HistoryStorage = PlacesHistoryStorage(testContext)
+        var history: HistoryStorage = mock()
         val domains = object : BaseDomainAutocompleteProvider(DomainList.CUSTOM, { emptyList() }) {
             fun testDomains(list: List<Domain>) {
                 domains = list
@@ -207,7 +205,7 @@ class ToolbarAutocompleteFeatureTest {
         )
 
         // Can autocomplete with empty history and domain providers.
-        history = PlacesHistoryStorage(testContext)
+        history = mock()
         domains.testDomains(listOf())
         feature.addHistoryStorageProvider(history)
 

@@ -59,9 +59,11 @@ class HistoryStorageSuggestionProviderTest {
     @Test
     fun `Provider limits number of returned suggestions to a max of 20 by default`() = runBlocking {
         val history: HistoryStorage = mock()
-        Mockito.doReturn((1..100).map {
-            SearchResult("id$it", "http://www.mozilla.com/$it/", 10)
-        }).`when`(history).getSuggestions(eq("moz"), Mockito.anyInt())
+        Mockito.doReturn(
+            (1..100).map {
+                SearchResult("id$it", "http://www.mozilla.com/$it/", 10)
+            }
+        ).`when`(history).getSuggestions(eq("moz"), Mockito.anyInt())
 
         val provider = HistoryStorageSuggestionProvider(history, mock())
         val suggestions = provider.onInputChanged("moz")
@@ -71,9 +73,11 @@ class HistoryStorageSuggestionProviderTest {
     @Test
     fun `Provider allows lowering the number of returned suggestions beneath the default`() = runBlocking {
         val history: HistoryStorage = mock()
-        Mockito.doReturn((1..50).map {
-            SearchResult("id$it", "http://www.mozilla.com/$it/", 10)
-        }).`when`(history).getSuggestions(eq("moz"), Mockito.anyInt())
+        Mockito.doReturn(
+            (1..50).map {
+                SearchResult("id$it", "http://www.mozilla.com/$it/", 10)
+            }
+        ).`when`(history).getSuggestions(eq("moz"), Mockito.anyInt())
 
         val provider = HistoryStorageSuggestionProvider(
             historyStorage = history, loadUrlUseCase = mock(), maxNumberOfSuggestions = 2
@@ -86,9 +90,11 @@ class HistoryStorageSuggestionProviderTest {
     @Test
     fun `Provider allows increasing the number of returned suggestions above the default`() = runBlocking {
         val history: HistoryStorage = mock()
-        Mockito.doReturn((1..50).map {
-            SearchResult("id$it", "http://www.mozilla.com/$it/", 10)
-        }).`when`(history).getSuggestions(eq("moz"), Mockito.anyInt())
+        Mockito.doReturn(
+            (1..50).map {
+                SearchResult("id$it", "http://www.mozilla.com/$it/", 10)
+            }
+        ).`when`(history).getSuggestions(eq("moz"), Mockito.anyInt())
 
         val provider = HistoryStorageSuggestionProvider(
             historyStorage = history, loadUrlUseCase = mock(), maxNumberOfSuggestions = 22

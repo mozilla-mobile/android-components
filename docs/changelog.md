@@ -4,12 +4,19 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 95.0.0 (In Development)
+# 96.0.0 (In Development)
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v94.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/142?closed=1)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/143?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+# 95.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v94.0.0...v95.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/142?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v95.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v95.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v95.0.0/.config.yml)
 
 * **support-utils**
   * 🌟️️ **Add Firefox Focus packages to known browsers list
@@ -17,6 +24,8 @@ permalink: /changelog/
 * **concept-tabstray**
   * ⚠️ **This is a breaking change**: This component will be removed in future release.
      * Instead use the `TabsTray` interface from `browser-tabstray`.
+* **feature-session**
+  * * 🌟️ Adds a new `TrackingProtectionUseCases.addException`: Now allows to persist the exception in private mode using the parameter`persistInPrivateMode`.
 
 * **browser-state**:
   * 🌟️ Adds a new `previewImageUrl` in `ContentState` which provides a preview image of the page (e.g. the hero image), if available.
@@ -24,7 +33,7 @@ permalink: /changelog/
 * **compose-awesomebar**
   * `AwesomeBar` takes an optional `Profiler`. If passed in, two new profiler markers will be added: `SuggestionFetcher.fetch` and `Suggestion update`.
 
-# 94.0.0 (In Development)
+# 94.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v93.0.0...v94.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/141?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v94.0.0/buildSrc/src/main/java/Dependencies.kt)

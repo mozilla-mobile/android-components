@@ -890,28 +890,6 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `does not notify configured history delegate for redirects`() = runBlockingTest {
-        val engineSession = GeckoEngineSession(
-            mock(),
-            geckoSessionProvider = geckoSessionProvider,
-            context = coroutineContext
-        )
-        val historyTrackingDelegate: HistoryTrackingDelegate = mock()
-
-        captureDelegates()
-
-        // Nothing breaks if history delegate isn't configured.
-        historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com", null, GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
-        engineSession.job.children.forEach { it.join() }
-
-        engineSession.settings.historyTrackingDelegate = historyTrackingDelegate
-
-        historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com", null, GeckoSession.HistoryDelegate.VISIT_REDIRECT_TEMPORARY)
-        engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate, never()).onVisited(anyString(), any())
-    }
-
-    @Test
     fun `does not notify configured history delegate for top-level visits to error pages`() = runBlockingTest {
         val engineSession = GeckoEngineSession(
             mock(),
@@ -923,8 +901,13 @@ class GeckoEngineSessionTest {
         captureDelegates()
 
         engineSession.settings.historyTrackingDelegate = historyTrackingDelegate
+        whenever(historyTrackingDelegate.shouldStoreUri(any())).thenReturn(true)
 
-        historyDelegate.value.onVisited(geckoSession, "about:neterror", null, GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL or GeckoSession.HistoryDelegate.VISIT_UNRECOVERABLE_ERROR)
+        historyDelegate.value.onVisited(
+            geckoSession, "about:neterror", null,
+            GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL
+                or GeckoSession.HistoryDelegate.VISIT_UNRECOVERABLE_ERROR
+        )
         engineSession.job.children.forEach { it.join() }
         verify(historyTrackingDelegate, never()).onVisited(anyString(), any())
     }
@@ -945,7 +928,7 @@ class GeckoEngineSessionTest {
 
         historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com", null, GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
         engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.LINK)))
     }
 
     @Test
@@ -964,7 +947,7 @@ class GeckoEngineSessionTest {
 
         historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com", "https://www.mozilla.com", GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
         engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.RELOAD, RedirectSource.NOT_A_SOURCE)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com"), eq(PageVisit(VisitType.RELOAD)))
     }
 
     @Test
@@ -986,7 +969,7 @@ class GeckoEngineSessionTest {
 
         engineSession.job.children.forEach { it.join() }
         verify(historyTrackingDelegate).shouldStoreUri("https://www.mozilla.com/allowed")
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/allowed"), eq(PageVisit(VisitType.LINK, RedirectSource.NOT_A_SOURCE)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/allowed"), eq(PageVisit(VisitType.LINK)))
 
         historyDelegate.value.onVisited(geckoSession, "https://www.mozilla.com/not-allowed", null, GeckoSession.HistoryDelegate.VISIT_TOP_LEVEL)
 
@@ -1019,7 +1002,7 @@ class GeckoEngineSessionTest {
         )
 
         engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/tempredirect"), eq(PageVisit(VisitType.LINK, RedirectSource.TEMPORARY)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/tempredirect"), eq(PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.TEMPORARY)))
 
         historyDelegate.value.onVisited(
             geckoSession,
@@ -1030,7 +1013,7 @@ class GeckoEngineSessionTest {
         )
 
         engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/permredirect"), eq(PageVisit(VisitType.LINK, RedirectSource.PERMANENT)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/permredirect"), eq(PageVisit(VisitType.REDIRECT_PERMANENT, RedirectSource.PERMANENT)))
 
         // Visits below are targets of redirects, not redirects themselves.
         // Check that they're mapped to "link".
@@ -1043,7 +1026,7 @@ class GeckoEngineSessionTest {
         )
 
         engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targettemp"), eq(PageVisit(VisitType.REDIRECT_TEMPORARY, RedirectSource.NOT_A_SOURCE)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targettemp"), eq(PageVisit(VisitType.LINK)))
 
         historyDelegate.value.onVisited(
             geckoSession,
@@ -1054,7 +1037,7 @@ class GeckoEngineSessionTest {
         )
 
         engineSession.job.children.forEach { it.join() }
-        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targetperm"), eq(PageVisit(VisitType.REDIRECT_PERMANENT, RedirectSource.NOT_A_SOURCE)))
+        verify(historyTrackingDelegate).onVisited(eq("https://www.mozilla.com/targetperm"), eq(PageVisit(VisitType.LINK)))
     }
 
     @Test

@@ -812,14 +812,17 @@ open class FxaAccountManager(
             null
         }
 
-        if (accessToken != null && tokenServerUrl != null) {
+        if (accessToken != null && tokenServerUrl != null && accessToken.key != null) {
             SyncAuthInfoCache(context).setToCache(accessToken.asSyncAuthInfo(tokenServerUrl))
         } else {
             // At this point, SyncAuthInfoCache may be entirely empty. In this case, we won't be
             // able to sync via the background worker. We will attempt to populate SyncAuthInfoCache
             // again in `syncNow` (in response to a direct user action) and after application restarts.
             logger.warn("Couldn't populate SyncAuthInfoCache. Sync may not work.")
-            logger.warn("Is null? - accessToken: ${accessToken == null}, tokenServerUrl: ${tokenServerUrl == null}")
+            logger.warn(
+                "Is null? - accessToken: ${accessToken == null}, tokenServerUrl: ${tokenServerUrl == null}," +
+                    "accessToken.key: ${accessToken?.key == null}"
+            )
         }
     }
 

@@ -55,6 +55,7 @@ class HistoryStorageSuggestionProvider(
         val suggestions = historyStorage.getSuggestions(text, maxNumberOfSuggestions)
             .sortedByDescending { it.score }
             .distinctBy { it.id }
+            .take(maxNumberOfSuggestions)
 
         suggestions.firstOrNull()?.url?.let { url -> engine?.speculativeConnect(url) }
 
@@ -67,7 +68,7 @@ internal suspend fun Iterable<SearchResult>.into(
     icons: BrowserIcons?,
     loadUrlUseCase: SessionUseCases.LoadUrlUseCase
 ): List<AwesomeBar.Suggestion> {
-    val iconRequests = this.map { icons?.loadIcon(IconRequest(it.url)) }
+    val iconRequests = this.map { icons?.loadIcon(IconRequest(url = it.url, waitOnNetworkLoad = false)) }
     return this.zip(iconRequests) { result, icon ->
         AwesomeBar.Suggestion(
             provider = provider,

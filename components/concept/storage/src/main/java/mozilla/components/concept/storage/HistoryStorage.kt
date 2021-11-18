@@ -23,6 +23,11 @@ interface HistoryStorage : Storage {
     suspend fun recordObservation(uri: String, observation: PageObservation)
 
     /**
+     * @return True if provided [uri] can be added to the storage layer.
+     */
+    fun canAddUri(uri: String): Boolean
+
+    /**
      * Maps a list of page URIs to a list of booleans indicating if each URI was visited.
      * @param uris a list of page URIs about which "visited" information is being requested.
      * @return A list of booleans indicating visited status of each
@@ -136,21 +141,18 @@ interface HistoryStorage : Storage {
  * Information to record about a visit.
  *
  * @property visitType The transition type for this visit. See [VisitType].
- * @property redirectSource If this visit is redirecting to another page,
+ * @property redirectSource Optional; if this visit is redirecting to another page,
  *  what kind of redirect is it? See [RedirectSource] for the options.
  */
 data class PageVisit(
     val visitType: VisitType,
-    val redirectSource: RedirectSource
+    val redirectSource: RedirectSource? = null
 )
 
 /**
  * A redirect source describes how a page redirected to another page.
  */
 enum class RedirectSource {
-    // The page didn't redirect to another page.
-    NOT_A_SOURCE,
-
     // The page temporarily redirected to another page.
     TEMPORARY,
 

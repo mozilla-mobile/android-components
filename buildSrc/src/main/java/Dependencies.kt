@@ -27,7 +27,7 @@ object Versions {
     const val zxing = "3.3.0"
     const val jna = "5.5.0"
     const val disklrucache = "2.0.2"
-    const val leakcanary = "2.4"
+    const val leakcanary = "2.7"
 
     const val mozilla_appservices = "86.2.0"
 
@@ -61,7 +61,7 @@ object Versions {
         const val lifecycle = "2.2.0"
         const val media = "1.2.0"
         const val navigation = "2.4.0-alpha04"
-        const val work = "2.4.0"
+        const val work = "2.7.0"
         const val arch = "2.1.0"
         const val uiautomator = "2.2.0"
         const val localbroadcastmanager = "1.0.0"

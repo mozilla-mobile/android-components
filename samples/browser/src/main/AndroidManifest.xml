@@ -50,37 +50,44 @@
             android:label="@string/app_name" />
 
         <activity
+                android:exported="false"
                 android:theme="@style/Theme.AppCompat.Light"
                 android:name=".addons.AddonsActivity"
                 android:label="@string/mozac_feature_addons_addons"
                 android:parentActivityName=".BrowserActivity" />
 
         <activity
+                android:exported="false"
                 android:theme="@style/Theme.AppCompat.Light"
                 android:name=".addons.AddonDetailsActivity"
                 android:label="@string/mozac_feature_addons_addons" />
 
         <activity android:name=".addons.InstalledAddonDetailsActivity"
+                android:exported="false"
                 android:label="@string/mozac_feature_addons_addons"
                 android:parentActivityName=".addons.AddonsActivity"
                 android:theme="@style/Theme.AppCompat.Light" />
 
         <activity
+                android:exported="false"
                 android:name=".addons.PermissionsDetailsActivity"
                 android:label="@string/mozac_feature_addons_addons"
                 android:theme="@style/Theme.AppCompat.Light" />
 
         <activity
+            android:exported="false"
             android:name=".addons.AddonSettingsActivity"
             android:label="@string/mozac_feature_addons_addons"
             android:theme="@style/Theme.AppCompat.Light" />
 
         <activity
+            android:exported="false"
             android:name=".addons.NotYetSupportedAddonActivity"
             android:label="@string/mozac_feature_addons_addons"
             android:theme="@style/Theme.AppCompat.Light" />
 
         <activity
+            android:exported="false"
             android:name=".addons.WebExtensionActionPopupActivity"
             android:label="@string/mozac_feature_addons_addons"
             android:theme="@style/Theme.AppCompat.Light" />
@@ -157,7 +164,7 @@
             </intent-filter>
         </service>
 
-        <service android:name=".downloads.DownloadService" />
+        <service android:exported="false" android:name=".downloads.DownloadService" />
 
         <service android:name=".media.MediaSessionService"
             android:exported="false" />

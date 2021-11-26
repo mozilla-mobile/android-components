@@ -11,12 +11,21 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **concept-engine**
+  * Adds a new `SaveCreditCard` in `PromptRequest` to display a prompt for saving a credit card on autofill. [#11249](https://github.com/mozilla-mobile/android-components/issues/11249)
+
 # 95.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v94.0.0...v95.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/142?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v95.0.0/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/v95.0.0/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/v95.0.0/.config.yml)
+
+* **feature-session**
+  * 🌟️️ **Add callback as a parameter to RemoveAllExceptionsUseCase which will be called after exceptions removing
+
+* **concept-toolbar**
+  * 🌟️️ **Add removeNavigationAction method which removes a previously added navigation action
 
 * **support-utils**
   * 🌟️️ **Add Firefox Focus packages to known browsers list

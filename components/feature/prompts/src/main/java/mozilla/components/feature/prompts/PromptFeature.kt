@@ -801,8 +801,8 @@ class PromptFeature private constructor(
             is SaveLoginPrompt,
             is SelectLoginPrompt,
             is SelectCreditCard,
-            is SaveCreditCard,
             is Share -> true
+            is SaveCreditCard -> false
             is Alert, is TextPrompt, is Confirm, is Repost, is Popup -> promptAbuserDetector.shouldShowMoreDialogs
         }
     }

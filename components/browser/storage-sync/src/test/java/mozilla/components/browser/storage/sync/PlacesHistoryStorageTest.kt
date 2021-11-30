@@ -643,6 +643,10 @@ class PlacesHistoryStorageTest {
             override fun close() {
                 fail()
             }
+
+            override fun registerWithSyncManager() {
+                fail()
+            }
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
@@ -690,6 +694,10 @@ class PlacesHistoryStorageTest {
             override fun close() {
                 fail()
             }
+
+            override fun registerWithSyncManager() {
+                fail()
+            }
         }
         val storage = MockingPlacesHistoryStorage(conn)
 
@@ -735,6 +743,10 @@ class PlacesHistoryStorageTest {
             }
 
             override fun close() {
+                fail()
+            }
+
+            override fun registerWithSyncManager() {
                 fail()
             }
         }
@@ -786,6 +798,10 @@ class PlacesHistoryStorageTest {
             }
 
             override fun close() {
+                fail()
+            }
+
+            override fun registerWithSyncManager() {
                 fail()
             }
         }

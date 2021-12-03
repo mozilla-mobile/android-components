@@ -7,7 +7,7 @@ package mozilla.components.browser.storage.sync
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
-import mozilla.appservices.places.PlacesException
+import mozilla.appservices.places.uniffi.PlacesException
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType

@@ -8,8 +8,8 @@ import android.content.Context
 import android.net.Uri
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.PlacesApi
-import mozilla.appservices.places.PlacesException
-import mozilla.appservices.places.VisitObservation
+import mozilla.appservices.places.uniffi.PlacesException
+import mozilla.appservices.places.uniffi.VisitObservation
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.storage.HistoryAutocompleteResult
@@ -57,7 +57,7 @@ open class PlacesHistoryStorage(
                 places.writer().noteObservation(
                     VisitObservation(
                         uri,
-                        visitType = visit.visitType.into(),
+                        visitType = visit.visitType.intoTransitionType(),
                         isRedirectSource = visit.redirectSource != null,
                         isPermanentRedirectSource = visit.redirectSource == RedirectSource.PERMANENT
                     )
@@ -79,7 +79,7 @@ open class PlacesHistoryStorage(
                 places.writer().noteObservation(
                     VisitObservation(
                         url = uri,
-                        visitType = mozilla.appservices.places.VisitType.UPDATE_PLACE,
+                        visitType = null,
                         title = observation.title,
                         previewImageUrl = observation.previewImageUrl
                     )

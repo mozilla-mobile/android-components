@@ -77,12 +77,39 @@ internal fun mozilla.appservices.places.VisitType.into() = when (this) {
     mozilla.appservices.places.VisitType.FRAMED_LINK -> VisitType.FRAMED_LINK
 }
 
-internal fun mozilla.appservices.places.VisitInfo.into(): VisitInfo {
+internal fun VisitType.intoTransitionType() = when (this) {
+    VisitType.NOT_A_VISIT -> null
+    VisitType.LINK -> mozilla.appservices.places.uniffi.VisitTransition.LINK
+    VisitType.RELOAD -> mozilla.appservices.places.uniffi.VisitTransition.RELOAD
+    VisitType.TYPED -> mozilla.appservices.places.uniffi.VisitTransition.TYPED
+    VisitType.BOOKMARK -> mozilla.appservices.places.uniffi.VisitTransition.BOOKMARK
+    VisitType.EMBED -> mozilla.appservices.places.uniffi.VisitTransition.EMBED
+    VisitType.REDIRECT_PERMANENT -> mozilla.appservices.places.uniffi.VisitTransition.REDIRECT_PERMANENT
+    VisitType.REDIRECT_TEMPORARY -> mozilla.appservices.places.uniffi.VisitTransition.REDIRECT_TEMPORARY
+    VisitType.DOWNLOAD -> mozilla.appservices.places.uniffi.VisitTransition.DOWNLOAD
+    VisitType.FRAMED_LINK -> mozilla.appservices.places.uniffi.VisitTransition.FRAMED_LINK
+}
+
+internal fun mozilla.appservices.places.uniffi.VisitTransition.into() = when (this) {
+    mozilla.appservices.places.uniffi.VisitTransition.LINK -> VisitType.LINK
+    mozilla.appservices.places.uniffi.VisitTransition.RELOAD -> VisitType.RELOAD
+    mozilla.appservices.places.uniffi.VisitTransition.TYPED -> VisitType.TYPED
+    mozilla.appservices.places.uniffi.VisitTransition.BOOKMARK -> VisitType.BOOKMARK
+    mozilla.appservices.places.uniffi.VisitTransition.EMBED -> VisitType.EMBED
+    mozilla.appservices.places.uniffi.VisitTransition.REDIRECT_PERMANENT -> VisitType.REDIRECT_PERMANENT
+    mozilla.appservices.places.uniffi.VisitTransition.REDIRECT_TEMPORARY -> VisitType.REDIRECT_TEMPORARY
+    mozilla.appservices.places.uniffi.VisitTransition.DOWNLOAD -> VisitType.DOWNLOAD
+    mozilla.appservices.places.uniffi.VisitTransition.FRAMED_LINK -> VisitType.FRAMED_LINK
+}
+
+private val intToVisitType: Map<Int, VisitType> = VisitType.values().associateBy(VisitType::type)
+
+internal fun mozilla.appservices.places.uniffi.HistoryVisitInfo.into(): VisitInfo {
     return VisitInfo(
         url = this.url,
         title = this.title,
-        visitTime = this.visitTime,
-        visitType = this.visitType.into(),
+        visitTime = this.timestamp,
+        visitType = intToVisitType[this.visitType]!!,
         previewImageUrl = this.previewImageUrl
     )
 }

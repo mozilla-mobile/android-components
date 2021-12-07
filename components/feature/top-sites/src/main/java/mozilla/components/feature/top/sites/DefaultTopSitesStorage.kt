@@ -9,7 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.storage.FrecencyThresholdOption
-import mozilla.components.feature.top.sites.TopSite.Type.FRECENT
 import mozilla.components.feature.top.sites.ext.hasUrl
 import mozilla.components.feature.top.sites.ext.toTopSite
 import mozilla.components.feature.top.sites.facts.emitTopSitesCountFact
@@ -23,12 +22,14 @@ import kotlin.coroutines.CoroutineContext
  * @param pinnedSitesStorage An instance of [PinnedSiteStorage], used for storing pinned sites.
  * @param historyStorage An instance of [PlacesHistoryStorage], used for retrieving top frecent
  * sites from history.
+ * @param topSitesProvider TODO
  * @param defaultTopSites A list containing a title to url pair of default top sites to be added
  * to the [PinnedSiteStorage].
  */
 class DefaultTopSitesStorage(
     private val pinnedSitesStorage: PinnedSiteStorage,
     private val historyStorage: PlacesHistoryStorage,
+    private val topSitesProvider: TopSitesProvider? = null,
     private val defaultTopSites: List<Pair<String, String>> = listOf(),
     coroutineContext: CoroutineContext = Dispatchers.IO
 ) : TopSitesStorage, Observable<TopSitesStorage.Observer> by ObserverRegistry() {
@@ -55,13 +56,15 @@ class DefaultTopSitesStorage(
 
     override fun removeTopSite(topSite: TopSite) {
         scope.launch {
-            if (topSite.type != FRECENT) {
+            if (topSite is TopSite.Default || topSite is TopSite.Pinned) {
                 pinnedSitesStorage.removePinnedSite(topSite)
             }
 
-            // Remove the top site from both history and pinned sites storage to avoid having it
-            // show up as a frecent site if it is a pinned site.
-            historyStorage.deleteVisitsFor(topSite.url)
+            if (topSite !is TopSite.Contile) {
+                // Remove the top site from both history and pinned sites storage to avoid having it
+                // show up as a frecent site if it is a pinned site.
+                historyStorage.deleteVisitsFor(topSite.url)
+            }
 
             notifyObservers { onStorageUpdated() }
         }
@@ -69,7 +72,7 @@ class DefaultTopSitesStorage(
 
     override fun updateTopSite(topSite: TopSite, title: String, url: String) {
         scope.launch {
-            if (topSite.type != FRECENT) {
+            if (topSite is TopSite.Default || topSite is TopSite.Pinned) {
                 pinnedSitesStorage.updatePinnedSite(topSite, title, url)
             }
 
@@ -84,7 +87,12 @@ class DefaultTopSitesStorage(
         val topSites = ArrayList<TopSite>()
         val pinnedSites = pinnedSitesStorage.getPinnedSites().take(totalSites)
         val numSitesRequired = totalSites - pinnedSites.size
+
         topSites.addAll(pinnedSites)
+
+        topSitesProvider?.let { provider ->
+            topSites.addAll(provider.getTopSites().take(numSitesRequired))
+        }
 
         if (frecencyConfig != null && numSitesRequired > 0) {
             // Get 'totalSites' sites for duplicate entries with

@@ -28,7 +28,7 @@ import java.util.concurrent.Executors
 private const val MIGRATION_TEST_DB = "migration-test"
 
 @Suppress("LargeClass")
-class OnDevicePinnedSitesStorageTest {
+class PinnedSitesStorageTest {
     private lateinit var context: Context
     private lateinit var storage: PinnedSiteStorage
     private lateinit var executor: ExecutorService

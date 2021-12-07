@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.top.sites
 
+import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.support.base.observer.Observable
 

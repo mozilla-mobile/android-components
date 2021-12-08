@@ -43,9 +43,9 @@ internal fun mozilla.components.concept.sync.SyncAuthInfo.into(): SyncAuthInfo {
  * Conversion from a generic [FrecencyThresholdOption] into its richer comrade within the 'places' lib.
  */
 internal fun FrecencyThresholdOption.into() = when (this) {
-    FrecencyThresholdOption.NONE -> mozilla.appservices.places.FrecencyThresholdOption.NONE
+    FrecencyThresholdOption.NONE -> mozilla.appservices.places.uniffi.FrecencyThresholdOption.NONE
     FrecencyThresholdOption.SKIP_ONE_TIME_PAGES ->
-        mozilla.appservices.places.FrecencyThresholdOption.SKIP_ONE_TIME_PAGES
+        mozilla.appservices.places.uniffi.FrecencyThresholdOption.SKIP_ONE_TIME_PAGES
 }
 
 /**
@@ -114,7 +114,7 @@ internal fun mozilla.appservices.places.uniffi.HistoryVisitInfo.into(): VisitInf
     )
 }
 
-internal fun mozilla.appservices.places.TopFrecentSiteInfo.into(): TopFrecentSiteInfo {
+internal fun mozilla.appservices.places.uniffi.TopFrecentSiteInfo.into(): TopFrecentSiteInfo {
     return TopFrecentSiteInfo(
         url = this.url,
         title = this.title

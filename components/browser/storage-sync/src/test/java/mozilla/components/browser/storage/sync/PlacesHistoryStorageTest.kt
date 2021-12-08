@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.uniffi.PlacesException
 import mozilla.appservices.places.PlacesReaderConnection
 import mozilla.appservices.places.PlacesWriterConnection
+import mozilla.appservices.places.uniffi.InternalException
 import mozilla.appservices.places.uniffi.VisitObservation
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.DocumentType
@@ -759,9 +760,9 @@ class PlacesHistoryStorageTest {
         assertEquals("test error", error.exception.message)
     }
 
-    @Test(expected = PlacesException.InternalPanic::class)
+    @Test(expected = InternalException::class)
     fun `storage re-throws sync panics`() = runBlocking {
-        val exception = PlacesException.InternalPanic("test panic")
+        val exception = InternalException("test panic")
         val conn = object : Connection {
             override fun reader(): PlacesReaderConnection {
                 fail()

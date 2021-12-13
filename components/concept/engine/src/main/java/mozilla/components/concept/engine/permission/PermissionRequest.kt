@@ -67,6 +67,7 @@ sealed class Permission {
     abstract val id: String?
     abstract val desc: String?
 
+    data class CrossOriginStorage(override val id: String? = "", override val desc: String? = "") : Permission()
     data class ContentAudioCapture(override val id: String? = "", override val desc: String? = "") : Permission()
     data class ContentAudioMicrophone(override val id: String? = "", override val desc: String? = "") : Permission()
     data class ContentAudioOther(override val id: String? = "", override val desc: String? = "") : Permission()

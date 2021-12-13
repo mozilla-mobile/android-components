@@ -26,6 +26,7 @@ data class SitePermissions(
     val autoplayAudible: AutoplayStatus = AutoplayStatus.BLOCKED,
     val autoplayInaudible: AutoplayStatus = AutoplayStatus.ALLOWED,
     val mediaKeySystemAccess: Status = NO_DECISION,
+    val crossOriginStorage: Status = NO_DECISION,
     val savedAt: Long
 ) : Parcelable {
     enum class Status(

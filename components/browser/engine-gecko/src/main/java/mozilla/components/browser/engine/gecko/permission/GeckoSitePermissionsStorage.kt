@@ -30,6 +30,7 @@ import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_DESKTOP_
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_PERSISTENT_STORAGE
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_STORAGE_ACCESS
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_TRACKING
 import org.mozilla.geckoview.StorageController
 import org.mozilla.geckoview.StorageController.ClearFlags
@@ -156,6 +157,8 @@ class GeckoSitePermissionsStorage(
             val geckoLocalStorage = geckoPermissionsByType[PERMISSION_PERSISTENT_STORAGE]?.firstOrNull()
             val geckoAudible = geckoPermissionsByType[PERMISSION_AUTOPLAY_AUDIBLE]?.firstOrNull()
             val geckoInAudible = geckoPermissionsByType[PERMISSION_AUTOPLAY_INAUDIBLE]?.firstOrNull()
+            val geckoStorageAccess =
+                geckoPermissionsByType[PERMISSION_STORAGE_ACCESS]?.firstOrNull()
 
             /*
             * To avoid GeckoView caching previous request, we need to clear, previous data
@@ -217,6 +220,15 @@ class GeckoSitePermissionsStorage(
                 updatedPermission =
                     updatedPermission.copy(autoplayInaudible = AutoplayStatus.BLOCKED)
             }
+            if (geckoStorageAccess != null) {
+                removeTemporaryPermissionIfAny(geckoStorageAccess)
+                geckoStorage.setPermission(
+                    geckoStorageAccess,
+                    userSitePermissions.crossOriginStorage.toGeckoStatus()
+                )
+                updatedPermission =
+                    updatedPermission.copy(crossOriginStorage = NO_DECISION)
+            }
         }
         return updatedPermission
     }
@@ -243,6 +255,7 @@ class GeckoSitePermissionsStorage(
             val geckoStorage = geckoPermissionByType[PERMISSION_PERSISTENT_STORAGE]?.firstOrNull()
             val geckoAudible = geckoPermissionByType[PERMISSION_AUTOPLAY_AUDIBLE]?.firstOrNull()
             val geckoInAudible = geckoPermissionByType[PERMISSION_AUTOPLAY_INAUDIBLE]?.firstOrNull()
+            val geckoStorageAccess = geckoPermissionByType[PERMISSION_STORAGE_ACCESS]?.firstOrNull()
 
             /**
              * We only consider permissions from geckoView, when the values default value
@@ -285,6 +298,12 @@ class GeckoSitePermissionsStorage(
             if (geckoInAudible != null && geckoInAudible.value != VALUE_PROMPT) {
                 combinedPermissions = combinedPermissions?.copy(
                     autoplayInaudible = geckoInAudible.value.toAutoPlayStatus()
+                )
+            }
+
+            if (geckoStorageAccess != null && geckoStorageAccess.value != VALUE_PROMPT) {
+                combinedPermissions = combinedPermissions?.copy(
+                    crossOriginStorage = geckoStorageAccess.value.toStatus()
                 )
             }
         }

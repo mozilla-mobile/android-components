@@ -27,6 +27,7 @@ import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_DESKTOP_
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_GEOLOCATION
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_MEDIA_KEY_SYSTEM_ACCESS
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_PERSISTENT_STORAGE
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate.PERMISSION_STORAGE_ACCESS
 import java.util.UUID
 
 /**
@@ -61,6 +62,7 @@ sealed class GeckoPermissionRequest constructor(
     ) {
         companion object {
             val permissionsMap = mapOf(
+                PERMISSION_STORAGE_ACCESS to Permission.CrossOriginStorage(),
                 PERMISSION_DESKTOP_NOTIFICATION to Permission.ContentNotification(),
                 PERMISSION_GEOLOCATION to Permission.ContentGeoLocation(),
                 PERMISSION_AUTOPLAY_AUDIBLE to Permission.ContentAutoPlayAudible(),

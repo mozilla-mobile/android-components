@@ -50,6 +50,7 @@ import mozilla.components.concept.engine.permission.Permission.ContentNotificati
 import mozilla.components.concept.engine.permission.Permission.ContentPersistentStorage
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCamera
 import mozilla.components.concept.engine.permission.Permission.ContentVideoCapture
+import mozilla.components.concept.engine.permission.Permission.CrossOriginStorage
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.permission.SitePermissions.Status.ALLOWED
@@ -761,6 +762,17 @@ class SitePermissionsFeature(
                     shouldSelectRememberChoice = true
                 )
             }
+            is CrossOriginStorage -> {
+                createCrossOriginaDialog(
+                    context,
+                    host,
+                    permissionRequest,
+                    R.string.mozac_feature_sitepermissions_cross_origin_storage_title,
+                    R.drawable.mozac_ic_link,
+                    showDoNotAskAgainCheckBox = false,
+                    shouldSelectRememberChoice = true
+                )
+            }
             else ->
                 throw InvalidParameterException("$permission is not a valid permission.")
         }
@@ -795,6 +807,34 @@ class SitePermissionsFeature(
         )
     }
 
+    @Suppress("LongParameterList")
+    @VisibleForTesting
+    internal fun createCrossOriginaDialog(
+        context: Context,
+        host: String,
+        permissionRequest: PermissionRequest,
+        @StringRes titleId: Int,
+        @DrawableRes iconId: Int,
+        showDoNotAskAgainCheckBox: Boolean,
+        shouldSelectRememberChoice: Boolean,
+        isNotificationRequest: Boolean = false
+    ): SitePermissionsDialogFragment {
+        val title = context.getString(titleId, host, host)
+
+        val currentSessionId: String = store.state.findTabOrCustomTabOrSelectedTab(sessionId)?.id
+            ?: throw IllegalStateException("Unable to find session for $sessionId or selected session")
+
+        return SitePermissionsDialogFragment.newInstance(
+            currentSessionId,
+            title,
+            iconId,
+            permissionRequest.id,
+            this,
+            showDoNotAskAgainCheckBox,
+            isNotificationRequest = isNotificationRequest,
+            shouldSelectDoNotAskAgainCheckBox = shouldSelectRememberChoice
+        )
+    }
     private val PermissionRequest.isMedia: Boolean
         get() {
             return when (permissions.first()) {

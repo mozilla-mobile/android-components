@@ -113,6 +113,11 @@ interface CreditCardsAddressesStorage {
      * @return [CreditCardCrypto] instance.
      */
     fun getCreditCardCrypto(): CreditCardCrypto
+
+    /**
+     * Removes any encrypted data from this storage. Useful after encountering key loss.
+     */
+    suspend fun scrubEncryptedData()
 }
 
 /**
@@ -340,7 +345,7 @@ interface CreditCardsAddressesStorageDelegate {
      * @param encryptedCardNumber An encrypted credit card number to be decrypted.
      * @return A plaintext, non-encrypted credit card number.
      */
-    fun decrypt(encryptedCardNumber: CreditCardNumber.Encrypted): CreditCardNumber.Plaintext?
+    suspend fun decrypt(encryptedCardNumber: CreditCardNumber.Encrypted): CreditCardNumber.Plaintext?
 
     /**
      * Returns all stored addresses. This is called when the engine believes an address field

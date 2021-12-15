@@ -102,14 +102,12 @@ internal fun mozilla.appservices.places.uniffi.VisitTransition.into() = when (th
     mozilla.appservices.places.uniffi.VisitTransition.FRAMED_LINK -> VisitType.FRAMED_LINK
 }
 
-private val intToVisitType: Map<Int, VisitType> = VisitType.values().associateBy(VisitType::type)
-
 internal fun mozilla.appservices.places.uniffi.HistoryVisitInfo.into(): VisitInfo {
     return VisitInfo(
         url = this.url,
         title = this.title,
         visitTime = this.timestamp,
-        visitType = intToVisitType[this.visitType]!!,
+        visitType = this.visitType.into(),
         previewImageUrl = this.previewImageUrl
     )
 }

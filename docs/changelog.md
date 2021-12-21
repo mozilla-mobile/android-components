@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* * **browser-engine**, **concept-engine*** **feature-sitepermissions**
+  * 🌟️️ **Add support for a new `storage_access` API prompt.
+
 * **concept-storage**:
   * ⚠️ **This is a breaking change**: `KeyProvider#key` has been renamed to `KeyProvider#getOrGenerateKey` and is now `suspend`.
   * ⚠️ **This is a breaking change**: `KeyRecoveryHandler` has been removed.
@@ -23,6 +26,9 @@ permalink: /changelog/
 * **service-sync-autofill**:
   * `AutofillCrypto` is now using `concept-storage`@`KeyManager` as its basis.
   * `AutofillCrypto` is now able to recover from key loss (by scrubbing encrypted credit card data).
+
+* **browser-errorpages**
+  * `ErrorPages.createUrlEncodedErrorPage()` allows overriding the title or description for specific error types now.
 
 # 96.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v95.0.0...v96.0.0)

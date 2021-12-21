@@ -186,7 +186,6 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
      * Note that for [positiveButtonRadius] to be applied,
      * specifying [positiveButtonBackgroundColor] is necessary.
      */
-
     @Parcelize
     data class PromptStyling(
         val gravity: Int = Gravity.BOTTOM,
@@ -201,7 +200,6 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
     /**
      * The class gives an option to override string resources used by [DownloadCancelDialogFragment].
      */
-
     @Parcelize
     data class PromptText(
         @StringRes

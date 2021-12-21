@@ -6,10 +6,10 @@
 
 package mozilla.components.browser.storage.sync
 
-import mozilla.appservices.places.BookmarkFolder
-import mozilla.appservices.places.BookmarkItem
-import mozilla.appservices.places.BookmarkSeparator
-import mozilla.appservices.places.BookmarkTreeNode
+import mozilla.appservices.places.uniffi.BookmarkItem
+import mozilla.appservices.places.uniffi.BookmarkFolder
+import mozilla.appservices.places.uniffi.BookmarkData
+import mozilla.appservices.places.uniffi.BookmarkSeparator
 import mozilla.appservices.places.SyncAuthInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
@@ -121,41 +121,41 @@ internal fun mozilla.appservices.places.uniffi.TopFrecentSiteInfo.into(): TopFre
     )
 }
 
-internal fun BookmarkTreeNode.asBookmarkNode(): BookmarkNode {
+internal fun BookmarkItem.asBookmarkNode(): BookmarkNode {
     return when (this) {
-        is BookmarkItem -> {
+        is BookmarkItem.Bookmark -> {
             BookmarkNode(
                 BookmarkNodeType.ITEM,
-                this.guid,
-                this.parentGUID,
-                this.position,
-                this.title,
-                this.url,
-                this.dateAdded,
+                this.b.guid,
+                this.b.parentGuid,
+                this.b.position,
+                this.b.title,
+                this.b.url,
+                this.b.dateAdded,
                 null
             )
         }
-        is BookmarkFolder -> {
+        is BookmarkItem.Folder -> {
             BookmarkNode(
                 BookmarkNodeType.FOLDER,
-                this.guid,
-                this.parentGUID,
-                this.position,
-                this.title,
+                this.f.guid,
+                this.f.parentGuid,
+                this.f.position,
+                this.f.title,
                 null,
-                this.dateAdded,
-                this.children?.map(BookmarkTreeNode::asBookmarkNode)
+                this.f.dateAdded,
+                this.f.childNodes?.map(BookmarkItem::asBookmarkNode)
             )
         }
-        is BookmarkSeparator -> {
+        is BookmarkItem.Separator -> {
             BookmarkNode(
                 BookmarkNodeType.SEPARATOR,
-                this.guid,
-                this.parentGUID,
-                this.position,
+                this.s.guid,
+                this.s.parentGuid,
+                this.s.position,
                 null,
                 null,
-                this.dateAdded,
+                this.s.dateAdded,
                 null
             )
         }

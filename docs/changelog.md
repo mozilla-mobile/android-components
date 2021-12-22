@@ -30,6 +30,9 @@ permalink: /changelog/
 * **browser-errorpages**
   * `ErrorPages.createUrlEncodedErrorPage()` allows overriding the title or description for specific error types now.
 
+* **feature-download**
+  * Add support for ``PATCH`` requests
+
 # 96.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v95.0.0...v96.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/143?closed=1)

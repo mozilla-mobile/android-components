@@ -115,6 +115,7 @@ data class Request(
      * and what is expected by the client as a successful result.
      *
      * https://tools.ietf.org/html/rfc7231#section-4
+     * https://tools.ietf.org/html/rfc5789
      */
     enum class Method {
         GET,
@@ -124,7 +125,8 @@ data class Request(
         DELETE,
         CONNECT,
         OPTIONS,
-        TRACE
+        TRACE,
+        PATCH
     }
 
     enum class Redirect {

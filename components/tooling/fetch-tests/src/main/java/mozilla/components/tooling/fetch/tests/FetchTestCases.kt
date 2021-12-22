@@ -150,6 +150,27 @@ abstract class FetchTestCases {
     }
 
     @Test
+    open fun patch200WithBody() {
+        withServerResponding(
+            MockResponse()
+        ) { client ->
+            val response = client.fetch(
+                Request(
+                    url = rootUrl(),
+                    method = Request.Method.PATCH,
+                    body = Request.Body.fromString("Hola Mundo")
+                )
+            )
+            assertEquals(200, response.status)
+
+            val request = takeRequest()
+
+            assertEquals("PATCH", request.method)
+            assertEquals("Hola Mundo", request.body.readUtf8())
+        }
+    }
+
+    @Test
     open fun get200WithGzippedBody() {
         withServerResponding(
             MockResponse()

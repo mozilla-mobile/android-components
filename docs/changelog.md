@@ -12,7 +12,7 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
 * **feature-prompts**:
-  *Removes deprecated `constructor`
+  * Removes deprecated constructor in `PromptFeature`. 
 
 
 * * **browser-engine**, **concept-engine*** **feature-sitepermissions**

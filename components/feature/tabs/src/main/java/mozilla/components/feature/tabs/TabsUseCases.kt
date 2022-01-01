@@ -11,6 +11,7 @@ import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.action.TabListAction.RestoreAction.RestoreLocation
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.selector.findNormalOrPrivateTabByUrl
 import mozilla.components.browser.state.selector.findTab
@@ -328,9 +329,13 @@ class TabsUseCases(
         /**
          * Restores the given list of [RecoverableTab]s.
          */
-        operator fun invoke(tabs: List<RecoverableTab>, selectTabId: String? = null) {
+        operator fun invoke(
+            tabs: List<RecoverableTab>,
+            selectTabId: String? = null,
+            restoreLocation: RestoreLocation = RestoreLocation.END
+        ) {
             store.dispatch(
-                TabListAction.RestoreAction(tabs, selectTabId, TabListAction.RestoreAction.RestoreLocation.BEGINNING)
+                TabListAction.RestoreAction(tabs, selectTabId, restoreLocation)
             )
         }
 
@@ -371,8 +376,12 @@ class TabsUseCases(
          * Restores the given [RecoverableTab] and updates the selected tab if [updateSelection] is
          * `true`.
          */
-        operator fun invoke(tab: RecoverableTab, updateSelection: Boolean = true) {
-            invoke(listOf(tab))
+        operator fun invoke(
+            tab: RecoverableTab,
+            updateSelection: Boolean = true,
+            restoreLocation: RestoreLocation = RestoreLocation.END
+        ) {
+            invoke(listOf(tab), null, restoreLocation)
 
             if (updateSelection) {
                 selectTab(tab.id)

@@ -39,6 +39,9 @@ permalink: /changelog/
 * **feature-session**
   * Added support in `SessionUseCases.GoBackUseCase` and `SessionUseCases.GoForwardUseCase` to support optional `userInteraction` parameter in the Gecko engine.
 
+* **feature-tabs**
+  * Added options in `TabsUseCases.RestoreUseCase` to allow to choose the restore position of a tab (default value : `RestoreLocation.END`)
+
 # 96.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v95.0.0...v96.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/143?closed=1)

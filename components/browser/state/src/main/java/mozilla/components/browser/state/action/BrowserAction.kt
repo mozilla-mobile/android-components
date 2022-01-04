@@ -23,6 +23,7 @@ import mozilla.components.browser.state.state.SecurityInfoState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabGroup
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.TopSite
 import mozilla.components.browser.state.state.TrackingProtectionState
 import mozilla.components.browser.state.state.UndoHistoryState
 import mozilla.components.browser.state.state.WebExtensionState
@@ -1278,6 +1279,37 @@ sealed class ContainerAction : BrowserAction() {
      * Removes all state of the removed container from [BrowserState.containers].
      */
     data class RemoveContainerAction(val contextId: String) : ContainerAction()
+}
+
+/**
+ * [BrowserAction] implementations related to updating [BrowserState.topSites]
+ */
+sealed class TopSiteAction : BrowserAction() {
+    /**
+     * Updates [BrowserState.topSites] to register the given added [topSite].
+     */
+    data class AddTopSiteAction(val topSite: TopSite) : TopSiteAction()
+
+    /**
+     * Updates [BrowserState.topSites] to register the given list of [topSites].
+     */
+    data class AddTopSitesAction(val topSites: List<TopSite>) : TopSiteAction()
+
+    /**
+     * Removes the given [TopSite].
+     *
+     * @param topSite The top site.
+     */
+    data class RemoveTopSiteAction(val topSite: TopSite) : TopSiteAction()
+
+    /**
+     * Updates the given [TopSite].
+     *
+     * @param topSite The top site.
+     * @param title The new title for the top site.
+     * @param url The new url for the top site.
+     */
+    data class UpdateTopSiteAction(val topSite: TopSite, val title: String, val url: String) : TopSiteAction()
 }
 
 /**

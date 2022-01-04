@@ -4,9 +4,9 @@
 
 package mozilla.components.feature.top.sites.ext
 
+import mozilla.components.browser.state.state.TopSite
+import mozilla.components.browser.state.state.TopSite.Type.FRECENT
 import mozilla.components.concept.storage.TopFrecentSiteInfo
-import mozilla.components.feature.top.sites.TopSite
-import mozilla.components.feature.top.sites.TopSite.Type.FRECENT
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 
 /**

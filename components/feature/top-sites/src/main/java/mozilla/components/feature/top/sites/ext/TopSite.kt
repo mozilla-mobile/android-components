@@ -4,7 +4,7 @@
 
 package mozilla.components.feature.top.sites.ext
 
-import mozilla.components.feature.top.sites.TopSite
+import mozilla.components.browser.state.state.TopSite
 import mozilla.components.support.utils.URLStringUtils
 
 /**

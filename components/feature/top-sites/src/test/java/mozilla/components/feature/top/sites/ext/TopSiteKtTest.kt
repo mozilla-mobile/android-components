@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.top.sites.ext
 
-import mozilla.components.feature.top.sites.TopSite
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -7,9 +7,9 @@ package mozilla.components.feature.top.sites.db
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import mozilla.components.feature.top.sites.TopSite
-import mozilla.components.feature.top.sites.TopSite.Type.DEFAULT
-import mozilla.components.feature.top.sites.TopSite.Type.PINNED
+import mozilla.components.browser.state.state.TopSite
+import mozilla.components.browser.state.state.TopSite.Type.DEFAULT
+import mozilla.components.browser.state.state.TopSite.Type.PINNED
 
 /**
  * Internal entity representing a pinned site.

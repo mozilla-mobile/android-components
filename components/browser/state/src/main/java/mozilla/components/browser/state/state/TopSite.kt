@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.feature.top.sites
+package mozilla.components.browser.state.state
 
 /**
  * A top site.
@@ -14,10 +14,10 @@ package mozilla.components.feature.top.sites
  * @property type The type of a top site.
  */
 data class TopSite(
-    val id: Long?,
-    val title: String?,
+    val id: Long? = null,
+    val title: String = "",
     val url: String,
-    val createdAt: Long?,
+    val createdAt: Long? = 0L,
     val type: Type
 ) {
     /**

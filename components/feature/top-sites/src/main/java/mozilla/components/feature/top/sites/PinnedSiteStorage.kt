@@ -8,6 +8,7 @@ import android.content.Context
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
+import mozilla.components.browser.state.state.TopSite
 import mozilla.components.feature.top.sites.db.PinnedSiteEntity
 import mozilla.components.feature.top.sites.db.TopSiteDatabase
 import mozilla.components.feature.top.sites.db.toPinnedSite

@@ -7,18 +7,17 @@ package mozilla.components.feature.top.sites
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.state.TopSite
+import mozilla.components.browser.state.state.TopSite.Type.FRECENT
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.storage.FrecencyThresholdOption
-import mozilla.components.feature.top.sites.TopSite.Type.FRECENT
 import mozilla.components.feature.top.sites.ext.hasUrl
 import mozilla.components.feature.top.sites.ext.toTopSite
 import mozilla.components.feature.top.sites.facts.emitTopSitesCountFact
-import mozilla.components.support.base.observer.Observable
-import mozilla.components.support.base.observer.ObserverRegistry
 import kotlin.coroutines.CoroutineContext
 
 /**
- * Default implementation of [TopSitesStorage].
+ * Default implementation of [TopSitesMiddleware.Storage].
  *
  * @param pinnedSitesStorage An instance of [PinnedSiteStorage], used for storing pinned sites.
  * @param historyStorage An instance of [PlacesHistoryStorage], used for retrieving top frecent
@@ -31,12 +30,9 @@ class DefaultTopSitesStorage(
     private val historyStorage: PlacesHistoryStorage,
     private val defaultTopSites: List<Pair<String, String>> = listOf(),
     coroutineContext: CoroutineContext = Dispatchers.IO
-) : TopSitesStorage, Observable<TopSitesStorage.Observer> by ObserverRegistry() {
+) : TopSitesMiddleware.Storage {
 
     private var scope = CoroutineScope(coroutineContext)
-
-    // Cache of the last retrieved top sites
-    var cachedTopSites = listOf<TopSite>()
 
     init {
         if (defaultTopSites.isNotEmpty()) {
@@ -49,7 +45,6 @@ class DefaultTopSitesStorage(
     override fun addTopSite(title: String, url: String, isDefault: Boolean) {
         scope.launch {
             pinnedSitesStorage.addPinnedSite(title, url, isDefault)
-            notifyObservers { onStorageUpdated() }
         }
     }
 
@@ -62,8 +57,6 @@ class DefaultTopSitesStorage(
             // Remove the top site from both history and pinned sites storage to avoid having it
             // show up as a frecent site if it is a pinned site.
             historyStorage.deleteVisitsFor(topSite.url)
-
-            notifyObservers { onStorageUpdated() }
         }
     }
 
@@ -72,8 +65,6 @@ class DefaultTopSitesStorage(
             if (topSite.type != FRECENT) {
                 pinnedSitesStorage.updatePinnedSite(topSite, title, url)
             }
-
-            notifyObservers { onStorageUpdated() }
         }
     }
 
@@ -84,6 +75,7 @@ class DefaultTopSitesStorage(
         val topSites = ArrayList<TopSite>()
         val pinnedSites = pinnedSitesStorage.getPinnedSites().take(totalSites)
         val numSitesRequired = totalSites - pinnedSites.size
+
         topSites.addAll(pinnedSites)
 
         if (frecencyConfig != null && numSitesRequired > 0) {
@@ -99,7 +91,6 @@ class DefaultTopSitesStorage(
         }
 
         emitTopSitesCountFact(pinnedSites.size)
-        cachedTopSites = topSites
 
         return topSites
     }

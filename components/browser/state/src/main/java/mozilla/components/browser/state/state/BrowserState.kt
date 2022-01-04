@@ -31,6 +31,7 @@ import java.util.Locale
  * @property restoreComplete Whether or not restoring [BrowserState] has completed. This can be used
  * on application startup e.g. as an indicator that tabs have been restored.
  * @property locale The current locale of the app. Will be null when following the system default.
+ * @property topSites TODO
  */
 data class BrowserState(
     val tabs: List<TabSessionState> = emptyList(),
@@ -45,5 +46,6 @@ data class BrowserState(
     val search: SearchState = SearchState(),
     val undoHistory: UndoHistoryState = UndoHistoryState(),
     val restoreComplete: Boolean = false,
-    val locale: Locale? = null
+    val locale: Locale? = null,
+    val topSites: List<TopSite> = emptyList()
 ) : State

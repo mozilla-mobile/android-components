@@ -25,6 +25,7 @@ import mozilla.components.browser.state.action.ShareInternetResourceAction
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabGroupAction
 import mozilla.components.browser.state.action.TabListAction
+import mozilla.components.browser.state.action.TopSiteAction
 import mozilla.components.browser.state.action.TrackingProtectionAction
 import mozilla.components.browser.state.action.UndoAction
 import mozilla.components.browser.state.action.WebExtensionAction
@@ -67,6 +68,7 @@ internal object BrowserStateReducer {
             is LocaleAction -> LocaleStateReducer.reduce(state, action)
             is HistoryMetadataAction -> HistoryMetadataReducer.reduce(state, action)
             is DebugAction -> DebugReducer.reduce(state, action)
+            is TopSiteAction -> TopSiteReducer.reduce(state, action)
         }
     }
 }

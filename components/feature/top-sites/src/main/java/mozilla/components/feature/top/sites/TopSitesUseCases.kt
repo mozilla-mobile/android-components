@@ -4,14 +4,20 @@
 
 package mozilla.components.feature.top.sites
 
+import mozilla.components.browser.state.action.TopSiteAction
+import mozilla.components.browser.state.state.TopSite
+import mozilla.components.browser.state.state.TopSite.Type.DEFAULT
+import mozilla.components.browser.state.state.TopSite.Type.PINNED
+import mozilla.components.browser.state.store.BrowserStore
+
 /**
  * Contains use cases related to the top sites feature.
  */
-class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
+class TopSitesUseCases(store: BrowserStore) {
     /**
      * Add a pinned site use case.
      */
-    class AddPinnedSiteUseCase internal constructor(private val storage: TopSitesStorage) {
+    class AddPinnedSiteUseCase internal constructor(private val store: BrowserStore) {
         /**
          * Adds a new [PinnedSite].
          *
@@ -19,28 +25,37 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
          * @param url The URL string.
          */
         operator fun invoke(title: String, url: String, isDefault: Boolean = false) {
-            storage.addTopSite(title, url, isDefault)
+            val type = if (isDefault) DEFAULT else PINNED
+            store.dispatch(
+                TopSiteAction.AddTopSiteAction(
+                    TopSite(
+                        title = title,
+                        url = url,
+                        type = type
+                    )
+                )
+            )
         }
     }
 
     /**
      * Remove a top site use case.
      */
-    class RemoveTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
+    class RemoveTopSiteUseCase internal constructor(private val store: BrowserStore) {
         /**
          * Removes the given [TopSite].
          *
          * @param topSite The top site.
          */
         operator fun invoke(topSite: TopSite) {
-            storage.removeTopSite(topSite)
+            store.dispatch(TopSiteAction.RemoveTopSiteAction(topSite))
         }
     }
 
     /**
      * Update a top site use case.
      */
-    class UpdateTopSiteUseCase internal constructor(private val storage: TopSitesStorage) {
+    class UpdateTopSiteUseCase internal constructor(private val store: BrowserStore) {
         /**
          * Updates the given [TopSite].
          *
@@ -49,19 +64,25 @@ class TopSitesUseCases(topSitesStorage: TopSitesStorage) {
          * @param url The new url for the top site.
          */
         operator fun invoke(topSite: TopSite, title: String, url: String) {
-            storage.updateTopSite(topSite, title, url)
+            store.dispatch(
+                TopSiteAction.UpdateTopSiteAction(
+                    topSite = topSite,
+                    title = title,
+                    url = url
+                )
+            )
         }
     }
 
     val addPinnedSites: AddPinnedSiteUseCase by lazy {
-        AddPinnedSiteUseCase(topSitesStorage)
+        AddPinnedSiteUseCase(store)
     }
 
     val removeTopSites: RemoveTopSiteUseCase by lazy {
-        RemoveTopSiteUseCase(topSitesStorage)
+        RemoveTopSiteUseCase(store)
     }
 
     val updateTopSites: UpdateTopSiteUseCase by lazy {
-        UpdateTopSiteUseCase(topSitesStorage)
+        UpdateTopSiteUseCase(store)
     }
 }

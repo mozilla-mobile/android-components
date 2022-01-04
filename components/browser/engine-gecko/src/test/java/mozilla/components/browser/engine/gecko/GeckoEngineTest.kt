@@ -470,7 +470,7 @@ class GeckoEngineTest {
         engine.settings.trackingProtectionPolicy = policy
 
         verify(mockRuntime.settings.contentBlocking).setCookieBehaviorPrivateMode(
-            policy.cookiePolicy.id
+            policy.cookiePolicyPrivateMode.id
         )
 
         reset(settings)
@@ -478,7 +478,7 @@ class GeckoEngineTest {
         engine.settings.trackingProtectionPolicy = policy
 
         verify(mockRuntime.settings.contentBlocking, never()).setCookieBehaviorPrivateMode(
-            policy.cookiePolicy.id
+            policy.cookiePolicyPrivateMode.id
         )
     }
 
@@ -628,7 +628,7 @@ class GeckoEngineTest {
 
         assertEquals(SafeBrowsingPolicy.RECOMMENDED.id, contentBlockingSettings.safeBrowsingCategories)
 
-        assertEquals(CookiePolicy.ACCEPT_NON_TRACKERS.id, contentBlockingSettings.cookieBehavior)
+        assertEquals(CookiePolicy.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS.id, contentBlockingSettings.cookieBehavior)
         assertEquals(CookiePolicy.ACCEPT_NON_TRACKERS.id, contentBlockingSettings.cookieBehaviorPrivateMode)
         assertTrue(engine.settings.testingModeEnabled)
         assertEquals("test-ua", engine.settings.userAgentString)

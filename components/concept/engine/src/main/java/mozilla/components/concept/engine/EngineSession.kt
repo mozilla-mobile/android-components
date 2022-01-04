@@ -8,6 +8,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import androidx.annotation.CallSuper
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_NON_TRACKERS
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryItem
@@ -411,11 +412,13 @@ abstract class EngineSession(
             /**
              * Strict policy.
              * Combining the [TrackingCategory.STRICT] plus a cookiePolicy of [ACCEPT_NON_TRACKERS]
+             * and cookiePolicyPrivateMode [ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS]
              * This is the strictest setting and may cause issues on some web sites.
              */
             fun strict() = TrackingProtectionPolicyForSessionTypes(
                 trackingCategory = arrayOf(TrackingCategory.STRICT),
-                cookiePolicy = ACCEPT_NON_TRACKERS,
+                cookiePolicy = ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS,
+                cookiePolicyPrivateMode = ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS,
                 strictSocialTrackingProtection = true,
                 cookiePurging = true
             )
@@ -428,6 +431,7 @@ abstract class EngineSession(
             fun recommended() = TrackingProtectionPolicyForSessionTypes(
                 trackingCategory = arrayOf(TrackingCategory.RECOMMENDED),
                 cookiePolicy = ACCEPT_NON_TRACKERS,
+                cookiePolicyPrivateMode = ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS,
                 strictSocialTrackingProtection = false,
                 cookiePurging = true
             )

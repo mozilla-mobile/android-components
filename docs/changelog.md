@@ -16,6 +16,8 @@ permalink: /changelog/
 
 * * **browser-engine**, **concept-engine*** **feature-sitepermissions**
   * 🌟️️ **Add support for a new `storage_access` API prompt.
+  * 🌟️ Updated `TrackingProtectionPolicy.cookiePolicyPrivateMode` and `TrackingProtectionPolicy.cookiePolicy` to be `ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS` on `TrackingProtectionPolicy.strict()` .
+  * 🌟️ Updated `TrackingProtectionPolicy.cookiePolicyPrivateMode` to be `ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS` on `TrackingProtectionPolicy.recommended()` .
 
 * **concept-storage**:
   * ⚠️ **This is a breaking change**: `KeyProvider#key` has been renamed to `KeyProvider#getOrGenerateKey` and is now `suspend`.

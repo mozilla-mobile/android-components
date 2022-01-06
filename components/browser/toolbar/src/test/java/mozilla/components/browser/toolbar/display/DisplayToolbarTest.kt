@@ -736,6 +736,39 @@ class DisplayToolbarTest {
     }
 
     @Test
+    fun `clicking and holding the site security indicator invokes listener`() {
+        var listenerInvoked = false
+
+        val (_, displayToolbar) = createDisplayToolbar()
+
+        assertNull(displayToolbar.views.securityIndicator.background)
+
+        displayToolbar.setOnSiteSecurityLongClickListener {
+            listenerInvoked = true
+        }
+
+        assertNotNull(displayToolbar.views.securityIndicator.background)
+
+        displayToolbar.views.securityIndicator.performLongClick()
+
+        assertTrue(listenerInvoked)
+
+        listenerInvoked = false
+
+        displayToolbar.setOnSiteSecurityLongClickListener { }
+
+        assertNotNull(displayToolbar.views.securityIndicator.background)
+
+        displayToolbar.views.securityIndicator.performLongClick()
+
+        assertFalse(listenerInvoked)
+
+        displayToolbar.setOnSiteSecurityLongClickListener(null)
+
+        assertNull(displayToolbar.views.securityIndicator.background)
+    }
+
+    @Test
     fun `Security icon has proper content description`() {
         val (_, displayToolbar) = createDisplayToolbar()
         val siteSecurityIconView = displayToolbar.views.securityIndicator

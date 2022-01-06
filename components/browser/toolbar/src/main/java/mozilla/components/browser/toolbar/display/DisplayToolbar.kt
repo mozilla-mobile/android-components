@@ -268,6 +268,30 @@ class DisplayToolbar internal constructor(
     }
 
     /**
+     * Sets a listener to be invoked when the site security indicator icon is clicked and held.
+     */
+    fun setOnSiteSecurityLongClickListener(listener: (() -> Unit)?) {
+        if (listener == null) {
+            views.securityIndicator.setOnLongClickListener(null)
+            views.securityIndicator.background = null
+        } else {
+            views.securityIndicator.setOnLongClickListener {
+                listener.invoke()
+                true
+            }
+
+            val outValue = TypedValue()
+            context.theme.resolveAttribute(
+                android.R.attr.selectableItemBackgroundBorderless,
+                outValue,
+                true
+            )
+
+            views.securityIndicator.setBackgroundResource(outValue.resourceId)
+        }
+    }
+
+    /**
      * Sets a listener to be invoked when the site tracking protection indicator icon is clicked.
      */
     fun setOnTrackingProtectionClickedListener(listener: (() -> Unit)?) {

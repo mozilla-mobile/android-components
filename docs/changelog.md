@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
 * **browser-toolbar**
+  * 🚒 Bug fixed [issue #11499](https://github.com/mozilla-mobile/android-components/issues/11499) - Update tracking protection icon state even when is not displayed
+
+* **browser-toolbar**
   * 🚒 Bug fixed [issue #11545](https://github.com/mozilla-mobile/android-components/issues/11545) - `clearColorFilter` doesn't work on Api 21, 22, so the default white filter remains set.Use `clearColorFilter` only when the version of API is bigger than 22
 
 * **support-ktx**

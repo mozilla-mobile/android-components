@@ -11,6 +11,16 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **support-ktx**
+  * 🚒 Bug fixed [issue #11374](https://github.com/mozilla-mobile/android-components/issues/11374) - Restore immersive mode after interacting with other Windows.
+  * ⚠️ **This is a breaking change**: `OnWindowFocusChangeListener` parameter is removed from `Activity.enterToImmersiveMode()`. There was no way to guarantee that the argument knew to handle immersive mode. Now everything is handled internally.
+
+* **feature-prompts**:
+  * Removes deprecated constructor in `PromptFeature`.
+
+* * **browser-engine**, **concept-engine*** **feature-sitepermissions**
+  * 🌟️️ **Add support for a new `storage_access` API prompt.
+
 * **concept-storage**:
   * ⚠️ **This is a breaking change**: `KeyProvider#key` has been renamed to `KeyProvider#getOrGenerateKey` and is now `suspend`.
   * ⚠️ **This is a breaking change**: `KeyRecoveryHandler` has been removed.
@@ -26,6 +36,16 @@ permalink: /changelog/
 
 * **browser-errorpages**
   * `ErrorPages.createUrlEncodedErrorPage()` allows overriding the title or description for specific error types now.
+
+* **browser-engine-gecko**
+  * Added `EngineSession.goBack(boolean)` and `EngineSession.goForward(boolean)` for user interaction based navigation.
+
+* **feature-session**
+  * Added support in `SessionUseCases.GoBackUseCase` and `SessionUseCases.GoForwardUseCase` to support optional `userInteraction` parameter in the Gecko engine.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 42.3.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v42.3.0))
+    * Includes automatic detection of tags.yaml files
 
 # 96.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v95.0.0...v96.0.0)

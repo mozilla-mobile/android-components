@@ -587,6 +587,9 @@ class GeckoEngineSession(
                                 onLaunchIntentRequest(url = url, appIntent = appIntent)
                             }
                         }
+                        is InterceptionResponse.Deny -> {
+                            // Request was denied without further action necessary.
+                        }
                     }
                 }
             } else {

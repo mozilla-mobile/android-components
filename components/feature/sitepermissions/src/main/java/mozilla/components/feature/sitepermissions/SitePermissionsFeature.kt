@@ -888,18 +888,18 @@ class SitePermissionsFeature(
 
     private val PermissionRequest.areAllMediaPermissionsGranted: Boolean
         get() {
-            val systemPermissions = mutableListOf<String>()
-            permissions.forEach { permission ->
+            return permissions.mapNotNull { permission ->
                 when (permission) {
                     is ContentVideoCamera, is ContentVideoCapture -> {
-                        systemPermissions.add(CAMERA)
+                        CAMERA
                     }
                     is ContentAudioCapture, is ContentAudioMicrophone -> {
-                        systemPermissions.add(RECORD_AUDIO)
+                        RECORD_AUDIO
                     }
+                    // XXX what about ContentVideoOther and ContentAudioOther?
+                    else -> null
                 }
-            }
-            return systemPermissions.all { context.isPermissionGranted((it)) }
+            }.all { context.isPermissionGranted(it) }
         }
 
     data class PromptsStyling(

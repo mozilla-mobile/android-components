@@ -36,21 +36,23 @@ class WindowFeature(
                     it.content.windowRequest
                 }
                 .collect { state ->
-                    val windowRequest = state.content.windowRequest
-                    when (windowRequest?.type) {
-                        WindowRequest.Type.CLOSE -> consumeWindowRequest(state.id) {
-                            store.state.tabs.find { it.engineState.engineSession === windowRequest.prepare() }?.let {
-                                tabsUseCases.removeTab(it.id)
+                    state.content.windowRequest?.let { request ->
+                        when (request.type) {
+                            WindowRequest.Type.CLOSE -> consumeWindowRequest(state.id) {
+                                store.state.tabs.find { it.engineState.engineSession === request.prepare() }
+                                    ?.let {
+                                        tabsUseCases.removeTab(it.id)
+                                    }
                             }
-                        }
-                        WindowRequest.Type.OPEN -> consumeWindowRequest(state.id) {
-                            tabsUseCases.addTab(
-                                selectTab = true,
-                                parentId = state.id,
-                                engineSession = windowRequest.prepare(),
-                                private = state.content.private
-                            )
-                            windowRequest.start()
+                            WindowRequest.Type.OPEN -> consumeWindowRequest(state.id) {
+                                tabsUseCases.addTab(
+                                    selectTab = true,
+                                    parentId = state.id,
+                                    engineSession = request.prepare(),
+                                    private = state.content.private
+                                )
+                                request.start()
+                            }
                         }
                     }
                 }

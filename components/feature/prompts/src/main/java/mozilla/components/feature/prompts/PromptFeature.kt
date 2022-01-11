@@ -438,6 +438,7 @@ class PromptFeature private constructor(
                     it.onDeny()
                 }
                 is Dismissible -> it.onDismiss()
+                else -> {}
             }
         }
     }
@@ -502,6 +503,8 @@ class PromptFeature private constructor(
                 }
 
                 is Repost -> it.onConfirm()
+
+                else -> {}
             }
         }
     }
@@ -517,6 +520,7 @@ class PromptFeature private constructor(
         store.consumePromptFrom(sessionId, promptRequestUID, activePrompt) {
             when (it) {
                 is TimeSelection -> it.onClear()
+                else -> {}
             }
         }
     }

@@ -308,7 +308,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             val validationDelegate =
                 feature?.loginValidationDelegate ?: return@validate
             validateDeferred = validationDelegate.shouldUpdateOrCreateAsync(entry)
-            val result = validateDeferred?.await()
+            val result = validateDeferred?.await()!!
             withContext(Main) {
                 when (result) {
                     Result.CanBeCreated -> {

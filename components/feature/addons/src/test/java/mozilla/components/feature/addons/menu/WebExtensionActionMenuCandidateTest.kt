@@ -7,7 +7,9 @@ package mozilla.components.feature.addons.menu
 import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.menu.candidate.AsyncDrawableMenuIcon
 import mozilla.components.concept.menu.candidate.TextMenuIcon
@@ -97,7 +99,7 @@ class WebExtensionActionMenuCandidateTest {
     }
 
     @Test
-    fun `create menu candidate with icon`() = runBlockingTest {
+    fun `create menu candidate with icon`() = runTest(UnconfinedTestDispatcher()) {
         var calledWith: Int = -1
         val candidate = baseAction
             .copy(

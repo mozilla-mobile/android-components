@@ -6,19 +6,16 @@ package mozilla.components.feature.addons.ui
 
 import android.widget.ImageButton
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
 import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.spy
@@ -26,13 +23,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
-@ExperimentalCoroutinesApi
 class UnsupportedAddonsAdapterTest {
-
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-    private val testDispatcher = coroutinesTestRule.testDispatcher
-
     @Test
     fun `removing successfully notifies the adapter item changed`() {
         val addonManager: AddonManager = mock()
@@ -50,19 +41,16 @@ class UnsupportedAddonsAdapterTest {
         )
 
         adapter.removeUninstalledAddon(addonOne)
-        testDispatcher.advanceUntilIdle()
         verify(unsupportedAddonsAdapterDelegate, times(1)).onUninstallSuccess()
         verify(adapter, times(1)).notifyDataSetChanged()
         assertEquals(1, adapter.itemCount)
 
         adapter.removeUninstalledAddon(addonTwo)
-        testDispatcher.advanceUntilIdle()
         verify(unsupportedAddonsAdapterDelegate, times(2)).onUninstallSuccess()
         verify(adapter, times(2)).notifyDataSetChanged()
         assertEquals(0, adapter.itemCount)
 
         adapter.removeUninstalledAddon(addonTwo)
-        testDispatcher.advanceUntilIdle()
         verify(unsupportedAddonsAdapterDelegate, times(2)).onUninstallSuccess()
         verify(adapter, times(2)).notifyDataSetChanged()
     }
@@ -116,7 +104,6 @@ class UnsupportedAddonsAdapterTest {
         assertFalse(removeButtonOne.isEnabled)
         assertFalse(removeButtonTwo.isEnabled)
 
-        testDispatcher.advanceUntilIdle()
         verify(addonManager).uninstallAddon(any(), onSuccessCaptor.capture(), any())
         onSuccessCaptor.value.invoke()
         assertFalse(adapter.pendingUninstall)

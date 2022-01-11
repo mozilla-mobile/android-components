@@ -7,7 +7,7 @@ package mozilla.components.browser.thumbnails
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.ContentAction
@@ -32,9 +32,6 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 
 @RunWith(AndroidJUnit4::class)
 class BrowserThumbnailsTest {
-
-    private val testDispatcher = TestCoroutineDispatcher()
-
     private lateinit var store: BrowserStore
     private lateinit var engineView: EngineView
     private lateinit var thumbnails: BrowserThumbnails
@@ -42,7 +39,7 @@ class BrowserThumbnailsTest {
 
     @Before
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         store = spy(
             BrowserStore(
                 BrowserState(
@@ -60,7 +57,6 @@ class BrowserThumbnailsTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
     }
 
     @Test

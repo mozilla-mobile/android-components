@@ -10,7 +10,6 @@ import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
@@ -21,26 +20,19 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import mozilla.components.support.webextensions.WebExtensionSupport
 import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class AddonUpdaterWorkerTest {
-
-    @ExperimentalCoroutinesApi
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
 
     @Before
     fun setUp() {
@@ -50,7 +42,7 @@ class AddonUpdaterWorkerTest {
     }
 
     private fun initWebExtensionSupport() {
-        val store = Mockito.spy(BrowserStore())
+        val store = spy(BrowserStore())
         val engine: Engine = mock()
         val extension: WebExtension = mock()
         whenever(extension.id).thenReturn("addonId")

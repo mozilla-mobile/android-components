@@ -8,7 +8,7 @@ import android.content.ComponentName
 import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineScope
+import kotlinx.coroutines.test.TestScope
 import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.support.test.any
@@ -34,7 +34,7 @@ class SendCrashTelemetryServiceTest {
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
-    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
+    private val scope = TestScope(coroutinesTestRule.testDispatcher)
 
     @Before
     fun setUp() {

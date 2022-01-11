@@ -13,10 +13,14 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.resetMain
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
@@ -26,14 +30,14 @@ import mozilla.components.feature.addons.ui.AddonsManagerAdapter.Section
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
@@ -48,9 +52,18 @@ import java.util.Locale
 @RunWith(AndroidJUnit4::class)
 class AddonsManagerAdapterTest {
 
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
+    private val testDispatcher = UnconfinedTestDispatcher()
+    private val scope = TestScope(testDispatcher)
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `createListWithSections`() {

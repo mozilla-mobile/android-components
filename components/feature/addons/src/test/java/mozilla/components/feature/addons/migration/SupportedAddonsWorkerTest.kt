@@ -10,7 +10,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ListenableWorker
 import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.engine.webextension.EnableSource
 import mozilla.components.feature.addons.Addon
@@ -27,7 +26,6 @@ import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,7 +33,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.verify
@@ -44,11 +41,6 @@ import java.lang.Exception
 
 @RunWith(AndroidJUnit4::class)
 class SupportedAddonsWorkerTest {
-
-    @ExperimentalCoroutinesApi
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-
     @Before
     fun setUp() {
         GlobalAddonDependencyProvider.addonManager = null

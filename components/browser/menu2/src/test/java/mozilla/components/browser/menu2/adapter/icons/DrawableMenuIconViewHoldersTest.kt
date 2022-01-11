@@ -11,8 +11,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import mozilla.components.browser.menu2.R
 import mozilla.components.concept.menu.Side
 import mozilla.components.concept.menu.candidate.AsyncDrawableMenuIcon
@@ -22,11 +26,10 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.clearInvocations
@@ -37,11 +40,6 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class DrawableMenuIconViewHoldersTest {
-
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-    private val testDispatcher = coroutinesTestRule.testDispatcher
-
     private lateinit var parent: ConstraintLayout
     private lateinit var layoutInflater: LayoutInflater
     private lateinit var imageView: ImageView
@@ -49,6 +47,8 @@ class DrawableMenuIconViewHoldersTest {
 
     @Before
     fun setup() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+
         parent = mock()
         layoutInflater = mock()
         imageView = mock()
@@ -61,6 +61,11 @@ class DrawableMenuIconViewHoldersTest {
         doReturn(imageButton).`when`(layoutInflater).inflate(DrawableButtonMenuIconViewHolder.layoutResource, parent, false)
         doReturn(imageView).`when`(imageView).findViewById<TextView>(R.id.icon)
         doReturn(imageButton).`when`(imageButton).findViewById<TextView>(R.id.icon)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -85,7 +90,7 @@ class DrawableMenuIconViewHoldersTest {
     }
 
     @Test
-    fun `async view holder sets icon on view`() = testDispatcher.runBlockingTest {
+    fun `async view holder sets icon on view`() = runTest(UnconfinedTestDispatcher()) {
         val holder = AsyncDrawableMenuIconViewHolder(parent, layoutInflater, Side.END)
 
         val drawable = mock<Drawable>()
@@ -95,7 +100,7 @@ class DrawableMenuIconViewHoldersTest {
     }
 
     @Test
-    fun `async view holder uses loading icon and fallback icon`() = testDispatcher.runBlockingTest {
+    fun `async view holder uses loading icon and fallback icon`() = runTest(UnconfinedTestDispatcher()) {
         val logger = mock<Logger>()
         val holder = AsyncDrawableMenuIconViewHolder(parent, layoutInflater, Side.END, logger)
 

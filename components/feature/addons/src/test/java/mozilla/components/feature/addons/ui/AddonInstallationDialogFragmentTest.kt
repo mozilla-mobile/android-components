@@ -14,23 +14,27 @@ import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.resetMain
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.amo.AddonCollectionProvider
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito
@@ -43,10 +47,18 @@ import java.io.IOException
 
 @RunWith(AndroidJUnit4::class)
 class AddonInstallationDialogFragmentTest {
+    private val testDispatcher = UnconfinedTestDispatcher()
+    private val scope = TestScope(testDispatcher)
 
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-    private val scope = TestCoroutineScope(coroutinesTestRule.testDispatcher)
+    @Before
+    fun setup() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `build dialog`() {

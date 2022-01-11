@@ -7,8 +7,8 @@ package mozilla.components.browser.thumbnails.storage
 import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
@@ -26,7 +26,7 @@ import org.mockito.Mockito.spy
 @RunWith(AndroidJUnit4::class)
 class ThumbnailStorageTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     @After
@@ -35,7 +35,7 @@ class ThumbnailStorageTest {
     }
 
     @Test
-    fun `clearThumbnails`() = runBlocking {
+    fun `clearThumbnails`() = runTest(testDispatcher) {
         val bitmap: Bitmap = mock()
         val thumbnailStorage = spy(ThumbnailStorage(testContext, testDispatcher))
 
@@ -54,7 +54,7 @@ class ThumbnailStorageTest {
     }
 
     @Test
-    fun `deleteThumbnail`() = runBlocking {
+    fun `deleteThumbnail`() = runTest(testDispatcher) {
         val request = "test-tab1"
         val bitmap: Bitmap = mock()
         val thumbnailStorage = spy(ThumbnailStorage(testContext, testDispatcher))
@@ -69,7 +69,7 @@ class ThumbnailStorageTest {
     }
 
     @Test
-    fun `saveThumbnail`() = runBlocking {
+    fun `saveThumbnail`() = runTest(testDispatcher) {
         val request = ImageLoadRequest("test-tab1", 100)
         val bitmap: Bitmap = mock()
         val thumbnailStorage = spy(ThumbnailStorage(testContext))
@@ -83,7 +83,7 @@ class ThumbnailStorageTest {
     }
 
     @Test
-    fun `loadThumbnail`() = runBlocking {
+    fun `loadThumbnail`() = runTest(testDispatcher) {
         val request = ImageLoadRequest("test-tab1", 100)
         val bitmap: Bitmap = mock()
         val thumbnailStorage = spy(ThumbnailStorage(testContext, testDispatcher))

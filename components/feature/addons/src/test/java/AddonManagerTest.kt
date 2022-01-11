@@ -29,7 +29,6 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import mozilla.components.support.webextensions.WebExtensionSupport
 import org.junit.After
@@ -40,7 +39,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
@@ -53,10 +51,6 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class AddonManagerTest {
-
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-
     @Before
     fun setup() {
         WebExtensionSupport.installedExtensions.clear()

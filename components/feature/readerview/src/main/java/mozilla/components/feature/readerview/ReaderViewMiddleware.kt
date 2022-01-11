@@ -121,6 +121,7 @@ class ReaderViewMiddleware : Middleware<BrowserState, BrowserAction> {
                     context.dispatch(ContentAction.UpdateUrlAction(tab.id, url))
                 }
             }
+            else -> {}
         }
     }
 

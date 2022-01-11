@@ -32,6 +32,7 @@ class PromptMiddleware : Middleware<BrowserState, BrowserAction> {
                     return
                 }
             }
+            else -> {}
         }
 
         next(action)

@@ -67,6 +67,7 @@ class LastAccessMiddleware : Middleware<BrowserState, BrowserAction> {
                     context.dispatchUpdateActionForId(action.sessionId)
                 }
             }
+            else -> {}
         }
     }
 

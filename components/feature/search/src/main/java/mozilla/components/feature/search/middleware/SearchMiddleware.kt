@@ -56,6 +56,7 @@ class SearchMiddleware(
             is SearchAction.UpdateCustomSearchEngineAction -> saveCustomSearchEngine(action)
             is SearchAction.RemoveCustomSearchEngineAction -> removeCustomSearchEngine(action)
             is SearchAction.SelectSearchEngineAction -> updateSearchEngineSelection(action)
+            else -> {}
         }
 
         next(action)
@@ -65,6 +66,7 @@ class SearchMiddleware(
                 updateHiddenSearchEngines(context.state.search.hiddenSearchEngines)
             is SearchAction.AddAdditionalSearchEngineAction, is SearchAction.RemoveAdditionalSearchEngineAction ->
                 updateAdditionalSearchEngines(context.state.search.additionalSearchEngines)
+            else -> {}
         }
     }
 

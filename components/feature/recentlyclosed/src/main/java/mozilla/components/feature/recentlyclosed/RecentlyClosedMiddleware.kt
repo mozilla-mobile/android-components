@@ -73,6 +73,7 @@ class RecentlyClosedMiddleware(
             is InitAction -> {
                 initializeRecentlyClosed(context.store)
             }
+            else -> {}
         }
 
         next(action)

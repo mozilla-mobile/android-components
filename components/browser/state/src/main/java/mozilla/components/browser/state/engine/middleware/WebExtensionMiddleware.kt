@@ -34,6 +34,7 @@ internal class WebExtensionMiddleware : Middleware<BrowserState, BrowserAction> 
                     activeTab?.engineState?.engineSession?.markActiveForWebExtensions(false)
                 }
             }
+            else -> {}
         }
 
         next(action)
@@ -43,6 +44,7 @@ internal class WebExtensionMiddleware : Middleware<BrowserState, BrowserAction> 
             is EngineAction.LinkEngineSessionAction -> {
                 switchActiveStateIfNeeded(context)
             }
+            else -> {}
         }
     }
 

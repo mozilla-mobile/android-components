@@ -308,7 +308,7 @@ class BrowserMenuTest {
         menu.show(anchor)
 
         val expected = MenuPositioningData(
-            BrowserMenuPlacement.AnchoredToTop.Dropdown(anchor), DOWN, false, true, 0, 100, 28
+            DOWN, fitsUp = false, fitsDown = true, 0, 100, 28
         )
         assertEquals(expected, menu.menuPositioningData)
     }
@@ -323,9 +323,9 @@ class BrowserMenuTest {
         val menu = BrowserMenu(adapter)
         val view = FrameLayout(testContext)
         val anchor = Button(testContext)
-        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToBottom.Dropdown(anchor))
+        menu.menuPositioningData = MenuPositioningData()
 
-        val result = menu.configureExpandableMenu(view, true)
+        val result = menu.configureExpandableMenu(view, true, BrowserMenuPlacement.AnchoredToBottom.Dropdown(anchor))
 
         assertTrue(result is ExpandableLayout)
         assertTrue(result.getChildAt(0) == view)
@@ -341,9 +341,9 @@ class BrowserMenuTest {
         val menu = BrowserMenu(adapter)
         val view = FrameLayout(testContext)
         val anchor = Button(testContext)
-        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor))
+        menu.menuPositioningData = MenuPositioningData()
 
-        val result = menu.configureExpandableMenu(view, true)
+        val result = menu.configureExpandableMenu(view, true, BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor))
 
         assertTrue(result is ExpandableLayout)
         assertTrue(result.getChildAt(0) == view)
@@ -359,9 +359,9 @@ class BrowserMenuTest {
         val menu = BrowserMenu(adapter)
         val view = FrameLayout(testContext)
         val anchor = Button(testContext)
-        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor))
+        menu.menuPositioningData = MenuPositioningData()
 
-        val result = menu.configureExpandableMenu(view, true)
+        val result = menu.configureExpandableMenu(view, true, BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor))
 
         assertFalse(result is ExpandableLayout)
         assertTrue(result == view)
@@ -373,9 +373,9 @@ class BrowserMenuTest {
         // Call show to have a default layout manager set
         menu.show(View(testContext))
         val initialLayoutManager = menu.menuList!!.layoutManager
-        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
+        menu.menuPositioningData = MenuPositioningData()
 
-        menu.configureExpandableMenu(menu.menuList!!, false)
+        menu.configureExpandableMenu(menu.menuList!!, false, BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
 
         assertNotSame(initialLayoutManager, menu.menuList!!.layoutManager)
         assertTrue(menu.menuList!!.layoutManager is StickyHeaderLinearLayoutManager<*>)
@@ -386,9 +386,9 @@ class BrowserMenuTest {
         val menu = spy(BrowserMenu(mock()))
         // Call show to have a default layout manager set
         menu.show(View(testContext))
-        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
+        menu.menuPositioningData = MenuPositioningData()
 
-        menu.configureExpandableMenu(menu.menuList!!, false)
+        menu.configureExpandableMenu(menu.menuList!!, false, BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
 
         assertFalse((menu.menuList!!.layoutManager as LinearLayoutManager).stackFromEnd)
     }
@@ -398,9 +398,9 @@ class BrowserMenuTest {
         val menu = spy(BrowserMenu(mock()))
         // Call show to have a default layout manager set
         menu.show(View(testContext))
-        menu.menuPositioningData = MenuPositioningData(BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
+        menu.menuPositioningData = MenuPositioningData()
 
-        menu.configureExpandableMenu(menu.menuList!!, true)
+        menu.configureExpandableMenu(menu.menuList!!, true, BrowserMenuPlacement.AnchoredToTop.Dropdown(mock()))
 
         assertTrue((menu.menuList!!.layoutManager as LinearLayoutManager).stackFromEnd)
     }

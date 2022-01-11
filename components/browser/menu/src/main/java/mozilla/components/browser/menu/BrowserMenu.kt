@@ -90,13 +90,15 @@ open class BrowserMenu internal constructor(
 
         // Data needed to infer whether to show a collapsed menu
         // And then to properly place it.
-        menuPositioningData = inferMenuPositioningData(
+        val (positioning, placement) = inferMenuPositioningData(
             view as ViewGroup,
             anchor,
-            MenuPositioningData(askedOrientation = orientation)
+            orientation
         )
 
-        view = configureExpandableMenu(view, endOfMenuAlwaysVisible)
+        menuPositioningData = positioning
+
+        view = configureExpandableMenu(view, endOfMenuAlwaysVisible, placement)
         return getNewPopupWindow(view).apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             isFocusable = true
@@ -109,7 +111,7 @@ open class BrowserMenu internal constructor(
                 onDismiss()
             }
 
-            displayPopup(menuPositioningData).also {
+            displayPopup(menuPositioningData, placement).also {
                 anchor.addOnAttachStateChangeListener(this@BrowserMenu)
                 currAnchor = anchor
             }
@@ -122,11 +124,12 @@ open class BrowserMenu internal constructor(
     @VisibleForTesting
     internal fun configureExpandableMenu(
         view: ViewGroup,
-        endOfMenuAlwaysVisible: Boolean
+        endOfMenuAlwaysVisible: Boolean,
+        placement: BrowserMenuPlacement
     ): ViewGroup {
         // If the menu is placed at the bottom it should start as collapsed.
-        if (menuPositioningData.inferredMenuPlacement is BrowserMenuPlacement.AnchoredToBottom.Dropdown ||
-            menuPositioningData.inferredMenuPlacement is BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring
+        if (placement is BrowserMenuPlacement.AnchoredToBottom.Dropdown ||
+            placement is BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring
         ) {
 
             val collapsingMenuIndexLimit = adapter.visibleItems.indexOfFirst { it.isCollapsingMenuLimit }
@@ -253,22 +256,22 @@ open class BrowserMenu internal constructor(
 }
 
 @VisibleForTesting
-internal fun PopupWindow.displayPopup(currentData: MenuPositioningData) {
+internal fun PopupWindow.displayPopup(positioning: MenuPositioningData, placement: BrowserMenuPlacement) {
     // Try to use the preferred orientation, if doesn't fit fallback to the best fit.
-    when (currentData.inferredMenuPlacement) {
-        is BrowserMenuPlacement.AnchoredToTop.Dropdown -> showPopupWithDownOrientation(currentData)
-        is BrowserMenuPlacement.AnchoredToBottom.Dropdown -> showPopupWithUpOrientation(currentData)
+    when (placement) {
+        is BrowserMenuPlacement.AnchoredToTop.Dropdown -> showPopupWithDownOrientation(placement)
+        is BrowserMenuPlacement.AnchoredToBottom.Dropdown -> showPopupWithUpOrientation(positioning, placement)
 
         is BrowserMenuPlacement.AnchoredToTop.ManualAnchoring,
-        is BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring -> showAtAnchorLocation(currentData)
+        is BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring -> showAtAnchorLocation(placement)
     }
 }
 
 @VisibleForTesting
-internal fun PopupWindow.showPopupWithUpOrientation(menuPositioningData: MenuPositioningData) {
-    val anchor = menuPositioningData.inferredMenuPlacement!!.anchor
+internal fun PopupWindow.showPopupWithUpOrientation(menuPositioningData: MenuPositioningData, placement: BrowserMenuPlacement) {
+    val anchor = placement.anchor
     val xOffset = if (anchor.isRTL) -anchor.width else 0
-    animationStyle = menuPositioningData.inferredMenuPlacement.animation
+    animationStyle = placement.animation
 
     // Positioning the menu above and overlapping the anchor.
     val yOffset = if (menuPositioningData.availableHeightToBottom < 0) {
@@ -280,18 +283,18 @@ internal fun PopupWindow.showPopupWithUpOrientation(menuPositioningData: MenuPos
     showAsDropDown(anchor, xOffset, yOffset)
 }
 
-private fun PopupWindow.showPopupWithDownOrientation(menuPositioningData: MenuPositioningData) {
-    val anchor = menuPositioningData.inferredMenuPlacement!!.anchor
+private fun PopupWindow.showPopupWithDownOrientation(placement: BrowserMenuPlacement) {
+    val anchor = placement.anchor
     val xOffset = if (anchor.isRTL) -anchor.width else 0
-    animationStyle = menuPositioningData.inferredMenuPlacement.animation
+    animationStyle = placement.animation
     // Menu should overlay the anchor.
     showAsDropDown(anchor, xOffset, -anchor.height)
 }
 
-private fun PopupWindow.showAtAnchorLocation(menuPositioningData: MenuPositioningData) {
-    val anchor = menuPositioningData.inferredMenuPlacement!!.anchor
+private fun PopupWindow.showAtAnchorLocation(placement: BrowserMenuPlacement) {
+    val anchor = placement.anchor
     val anchorPosition = IntArray(2)
-    animationStyle = menuPositioningData.inferredMenuPlacement.animation
+    animationStyle = placement.animation
 
     anchor.getLocationOnScreen(anchorPosition)
     val (x, y) = anchorPosition

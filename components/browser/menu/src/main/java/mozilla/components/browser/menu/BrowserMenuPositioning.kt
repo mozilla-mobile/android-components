@@ -16,11 +16,6 @@ import androidx.annotation.Px
  */
 internal data class MenuPositioningData(
     /**
-     * Where and how should the menu be placed in relation to the [BrowserMenuPlacement.anchor].
-     */
-    val inferredMenuPlacement: BrowserMenuPlacement? = null,
-
-    /**
      * The orientation asked by users of this class when initializing it.
      */
     val askedOrientation: BrowserMenu.Orientation = BrowserMenu.Orientation.DOWN,
@@ -65,8 +60,8 @@ internal data class MenuPositioningData(
 internal fun inferMenuPositioningData(
     containerView: ViewGroup,
     anchor: View,
-    currentData: MenuPositioningData
-): MenuPositioningData {
+    askedOrientation: BrowserMenu.Orientation
+): Pair<MenuPositioningData, BrowserMenuPlacement> {
     // Measure the menu allowing it to expand entirely.
     val spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
     containerView.measure(spec, spec)
@@ -77,52 +72,52 @@ internal fun inferMenuPositioningData(
     val fitsUp = availableHeightToTop >= containerHeight
     val fitsDown = availableHeightToBottom >= containerHeight
 
-    return inferMenuPosition(
+    val positioningData = MenuPositioningData(
+        askedOrientation = askedOrientation,
+        fitsUp = fitsUp,
+        fitsDown = fitsDown,
+        availableHeightToTop = availableHeightToTop,
+        availableHeightToBottom = availableHeightToBottom,
+        containerViewHeight = containerHeight
+    )
+
+    return positioningData to inferMenuPlacement(
         anchor,
-        currentData.copy(
-            fitsUp = fitsUp,
-            fitsDown = fitsDown,
-            availableHeightToTop = availableHeightToTop,
-            availableHeightToBottom = availableHeightToBottom,
-            containerViewHeight = containerHeight
-        )
+        positioningData
     )
 }
 
 /**
- * Infer where and how the PopupWindow should be shown based on the data available in [currentData].
+ * Infer where and how the PopupWindow should be shown based on the data available in [positioningData].
  * Should be called only once per menu to be shown.
  *
  * @param anchor view the PopupWindow will be aligned to.
- * @param currentData current known data for how the menu should be positioned.
+ * @param positioningData known data for how the menu should be positioned.
  *
- * @return new MenuPositioningData updated to contain the inferred [BrowserMenuPlacement]
+ * @return inferred [BrowserMenuPlacement].
  */
-internal fun inferMenuPosition(anchor: View, currentData: MenuPositioningData): MenuPositioningData {
+internal fun inferMenuPlacement(anchor: View, positioningData: MenuPositioningData): BrowserMenuPlacement {
     // Try to use the preferred orientation, if doesn't fit fallback to the best fit.
 
-    val menuPlacement: BrowserMenuPlacement =
-        if (currentData.askedOrientation == BrowserMenu.Orientation.DOWN && currentData.fitsDown) {
+    return if (positioningData.askedOrientation == BrowserMenu.Orientation.DOWN && positioningData.fitsDown) {
             BrowserMenuPlacement.AnchoredToTop.Dropdown(anchor)
-        } else if (currentData.askedOrientation == BrowserMenu.Orientation.UP && currentData.fitsUp) {
+        } else if (positioningData.askedOrientation == BrowserMenu.Orientation.UP && positioningData.fitsUp) {
             BrowserMenuPlacement.AnchoredToBottom.Dropdown(anchor)
         } else {
-            if (!currentData.fitsUp && !currentData.fitsDown) {
-                if (currentData.availableHeightToTop < currentData.availableHeightToBottom) {
+            if (!positioningData.fitsUp && !positioningData.fitsDown) {
+                if (positioningData.availableHeightToTop < positioningData.availableHeightToBottom) {
                     BrowserMenuPlacement.AnchoredToTop.ManualAnchoring(anchor)
                 } else {
                     BrowserMenuPlacement.AnchoredToBottom.ManualAnchoring(anchor)
                 }
             } else {
-                if (currentData.fitsDown) {
+                if (positioningData.fitsDown) {
                     BrowserMenuPlacement.AnchoredToTop.Dropdown(anchor)
                 } else {
                     BrowserMenuPlacement.AnchoredToBottom.Dropdown(anchor)
                 }
             }
         }
-
-    return currentData.copy(inferredMenuPlacement = menuPlacement)
 }
 
 private fun getMaxAvailableHeightToTopAndBottom(anchor: View): Pair<Int, Int> {

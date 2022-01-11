@@ -28,14 +28,12 @@ import mozilla.components.concept.engine.webextension.WebExtensionPageAction
 import mozilla.components.support.base.facts.processor.CollectionProcessor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import mozilla.components.support.base.facts.Action as FactsAction
@@ -43,11 +41,6 @@ import mozilla.components.support.base.facts.Action as FactsAction
 @RunWith(AndroidJUnit4::class)
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 class WebExtensionBrowserMenuTest {
-
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
-    private val testDispatcher = coroutinesTestRule.testDispatcher
-
     @Before
     fun setup() {
         webExtensionBrowserActions.clear()
@@ -83,8 +76,6 @@ class WebExtensionBrowserMenuTest {
 
         val adapter = BrowserMenuAdapter(testContext, items)
         val menu = WebExtensionBrowserMenu(adapter, store)
-
-        testDispatcher.advanceUntilIdle()
 
         val anchor = Button(testContext)
         val popup = menu.show(anchor)
@@ -434,7 +425,6 @@ class WebExtensionBrowserMenuTest {
         val menu: WebExtensionBrowserMenu = mock()
 
         menuItem.bind(menu, view)
-        testDispatcher.advanceUntilIdle()
 
         CollectionProcessor.withFactCollection { facts ->
             container.performClick()

@@ -177,7 +177,7 @@ class DisplayToolbar internal constructor(
      */
     var colors: Colors = Colors(
         securityIconSecure = ContextCompat.getColor(context, R.color.photonWhite),
-        securityIconInsecure = ContextCompat.getColor(context, R.color.photonWhite),
+        securityIconInsecure = Color.TRANSPARENT,
         emptyIcon = ContextCompat.getColor(context, R.color.photonWhite),
         menu = ContextCompat.getColor(context, R.color.photonWhite),
         hint = views.origin.hintColor,

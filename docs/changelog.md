@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **browser-toolbar**
+  * 🚒 Bug fixed [issue #11537](https://github.com/mozilla-mobile/android-components/issues/11537) - Initialise "securityIconInsecure" with Color.TRANSPARENT to clear the color filters
+
 * **lib/publicsuffixlist**
   * ⚠️ **This is a breaking change**: Removed `String.urlToTrimmedHost` extension method.
 

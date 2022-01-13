@@ -148,6 +148,7 @@
     <ID>UndocumentedPublicClass:URLStringUtils.kt$URLStringUtils</ID>
     <ID>UndocumentedPublicClass:WebAppManifest.kt$WebAppManifest.Icon$Purpose</ID>
     <ID>UndocumentedPublicFunction:AppLinksUseCases.kt$AppLinksUseCases.GetAppLinkRedirect$operator fun invoke(url: String): AppLinkRedirect</ID>
+    <ID>UndocumentedPublicFunction:Base64.kt$Base64$fun encodeToUriString(data: String)</ID>
     <ID>UndocumentedPublicFunction:BrowserFragment.kt$BrowserFragment.Companion$fun create(sessionId: String? = null)</ID>
     <ID>UndocumentedPublicFunction:BrowserMenu.kt$BrowserMenu$fun dismiss()</ID>
     <ID>UndocumentedPublicFunction:BrowserMenu.kt$BrowserMenu$fun invalidate()</ID>
@@ -156,6 +157,7 @@
     <ID>UndocumentedPublicFunction:ByteArray.kt$fun ByteArray.toBitmap(opts: BitmapFactory.Options? = null): Bitmap?</ID>
     <ID>UndocumentedPublicFunction:ByteArray.kt$fun ByteArray.toHexString(): String</ID>
     <ID>UndocumentedPublicFunction:ByteArray.kt$fun ByteArray.toSha256Digest(): ByteArray</ID>
+    <ID>UndocumentedPublicFunction:Clock.kt$Clock$@VisibleForTesting fun reset()</ID>
     <ID>UndocumentedPublicFunction:Context.kt$fun Context.isPermissionGranted(vararg permission: String): Boolean</ID>
     <ID>UndocumentedPublicFunction:Crash.kt$Crash.Companion$fun fromIntent(intent: Intent): Crash</ID>
     <ID>UndocumentedPublicFunction:Crash.kt$Crash.Companion$fun isCrashIntent(intent: Intent)</ID>
@@ -167,6 +169,7 @@
     <ID>UndocumentedPublicFunction:DomainMatcher.kt$// FIXME implement Fennec-style segment matching logic // See https://github.com/mozilla-mobile/android-components/issues/1279 fun segmentAwareDomainMatch(query: String, urls: Iterable&lt;String&gt;): DomainMatch?</ID>
     <ID>UndocumentedPublicFunction:DownloadManager.kt$DownloadManager$fun unregisterListeners()</ID>
     <ID>UndocumentedPublicFunction:DownloadManager.kt$fun DownloadManager.validatePermissionGranted(context: Context)</ID>
+    <ID>UndocumentedPublicFunction:DownloadUtils.kt$DownloadUtils$// Some site add extra information after the mimetype, for example 'application/pdf; qs=0.001' // we just want to extract the mimeType and ignore the rest. fun sanitizeMimeType(mimeType: String?): String?</ID>
     <ID>UndocumentedPublicFunction:Engine.kt$Engine.BrowsingData$fun contains(type: Int)</ID>
     <ID>UndocumentedPublicFunction:Engine.kt$Engine.BrowsingData.Companion$fun all()</ID>
     <ID>UndocumentedPublicFunction:Engine.kt$Engine.BrowsingData.Companion$fun allCaches()</ID>
@@ -214,6 +217,7 @@
     <ID>UndocumentedPublicFunction:Extensions.kt$fun String.toLocale(): Locale</ID>
     <ID>UndocumentedPublicFunction:Extentions.kt$fun Project.property(names: String, defaultValue: String): String</ID>
     <ID>UndocumentedPublicFunction:ExternalAppBrowserFragment.kt$ExternalAppBrowserFragment.Companion$fun create( sessionId: String, manifest: WebAppManifest? )</ID>
+    <ID>UndocumentedPublicFunction:Facts.kt$Facts$@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE) fun clearProcessors()</ID>
     <ID>UndocumentedPublicFunction:FindInPageView.kt$FindInPageView.Listener$fun onClearMatches()</ID>
     <ID>UndocumentedPublicFunction:FindInPageView.kt$FindInPageView.Listener$fun onClose()</ID>
     <ID>UndocumentedPublicFunction:FindInPageView.kt$FindInPageView.Listener$fun onFindAll(query: String)</ID>
@@ -259,6 +263,7 @@
     <ID>UndocumentedPublicFunction:JexlValue.kt$JexlValue$abstract operator fun times(other: JexlValue): JexlValue</ID>
     <ID>UndocumentedPublicFunction:LifecycleAwareFeature.kt$LifecycleAwareFeature$@OnLifecycleEvent(Lifecycle.Event.ON_START) fun start()</ID>
     <ID>UndocumentedPublicFunction:LifecycleAwareFeature.kt$LifecycleAwareFeature$@OnLifecycleEvent(Lifecycle.Event.ON_STOP) fun stop()</ID>
+    <ID>UndocumentedPublicFunction:Log.kt$Log$// Only for testing @VisibleForTesting fun reset()</ID>
     <ID>UndocumentedPublicFunction:LogSink.kt$LogSink$fun log( priority: Log.Priority = Log.Priority.DEBUG, tag: String? = null, throwable: Throwable? = null, message: String? = null )</ID>
     <ID>UndocumentedPublicFunction:LoginFragment.kt$LoginFragment.Companion$fun create(authUrl: String, redirectUrl: String): LoginFragment</ID>
     <ID>UndocumentedPublicFunction:LoginFragment.kt$LoginFragment.OnLoginCompleteListener$fun onLoginComplete(code: String, state: String, action: String, fragment: LoginFragment)</ID>
@@ -266,7 +271,6 @@
     <ID>UndocumentedPublicFunction:MemoryIconLoader.kt$MemoryIconLoader.LoaderMemoryCache$fun getBitmap(request: IconRequest, resource: IconRequest.Resource): Bitmap?</ID>
     <ID>UndocumentedPublicFunction:MemoryIconPreparer.kt$MemoryIconPreparer.PreparerMemoryCache$fun getResources(request: IconRequest): List&lt;IconRequest.Resource&gt;</ID>
     <ID>UndocumentedPublicFunction:MemoryIconProcessor.kt$MemoryIconProcessor.ProcessorMemoryCache$fun put(request: IconRequest, resource: IconRequest.Resource, icon: Icon)</ID>
-    <ID>UndocumentedPublicFunction:MonthAndYearPicker.kt$MonthAndYearPicker.OnDateSetListener$fun onDateSet(picker: MonthAndYearPicker, month: Int, year: Int)</ID>
     <ID>UndocumentedPublicFunction:OkHttpClient.kt$OkHttpClient.Companion$fun getOrCreateCookieManager(): CookieManager</ID>
     <ID>UndocumentedPublicFunction:OriginVerifierFeature.kt$OriginVerifierFeature$suspend fun verify( state: CustomTabState, token: CustomTabsSessionToken, @Relation relation: Int, origin: Uri ): Boolean</ID>
     <ID>UndocumentedPublicFunction:PermissionRequest.kt$PermissionRequest$fun containsVideoAndAudioSources()</ID>
@@ -303,11 +307,13 @@
     <ID>UndocumentedPublicFunction:SitePermissions.kt$SitePermissions.Status$fun isAllowed()</ID>
     <ID>UndocumentedPublicFunction:SitePermissions.kt$SitePermissions.Status$fun toggle(): Status</ID>
     <ID>UndocumentedPublicFunction:SitePermissionsRules.kt$SitePermissionsRules.Action$fun toStatus(): SitePermissions.Status</ID>
+    <ID>UndocumentedPublicFunction:StorageUtils.kt$StorageUtils$// Borrowed from https://gist.github.com/ademar111190/34d3de41308389a0d0d8 fun levenshteinDistance(a: String, b: String): Int</ID>
     <ID>UndocumentedPublicFunction:Store.kt$Store.Subscription.Binding$fun unbind()</ID>
     <ID>UndocumentedPublicFunction:String.kt$fun String.isEmail()</ID>
     <ID>UndocumentedPublicFunction:String.kt$fun String.isGeoLocation()</ID>
     <ID>UndocumentedPublicFunction:String.kt$fun String.isPhone()</ID>
     <ID>UndocumentedPublicFunction:SyncAuthInfoCache.kt$SyncAuthInfoCache$fun expired(): Boolean</ID>
+    <ID>UndocumentedPublicFunction:SyncTelemetry.kt$SyncTelemetry$fun processFxaTelemetry(jsonStr: String, crashReporter: CrashReporting? = null)</ID>
     <ID>UndocumentedPublicFunction:SystemEngineSession.kt$SystemEngineSession.WebSetting$operator fun getValue(thisRef: Any?, property: KProperty&lt;*&gt;): T</ID>
     <ID>UndocumentedPublicFunction:SystemEngineSession.kt$SystemEngineSession.WebSetting$operator fun setValue(thisRef: Any?, property: KProperty&lt;*&gt;, value: T)</ID>
     <ID>UndocumentedPublicFunction:SystemEngineSessionState.kt$SystemEngineSessionState.Companion$fun fromJSON(json: JSONObject): SystemEngineSessionState</ID>
@@ -315,6 +321,12 @@
     <ID>UndocumentedPublicFunction:TabCounter.kt$TabCounter$fun setCountWithAnimation(count: Int)</ID>
     <ID>UndocumentedPublicFunction:TabsTrayPresenter.kt$TabsTrayPresenter$fun start()</ID>
     <ID>UndocumentedPublicFunction:TabsTrayPresenter.kt$TabsTrayPresenter$fun stop()</ID>
+    <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun assertOnUiThread()</ID>
+    <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun postToBackgroundThread(runnable: () -&gt; Unit)</ID>
+    <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun postToBackgroundThread(runnable: Runnable)</ID>
+    <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun postToMainThread(runnable: Runnable)</ID>
+    <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun postToMainThreadDelayed(runnable: Runnable, delayMillis: Long)</ID>
+    <ID>UndocumentedPublicFunction:ThreadUtils.kt$ThreadUtils$fun setHandlerForTest(handler: Handler)</ID>
     <ID>UndocumentedPublicFunction:Toolbar.kt$Toolbar.Action$fun bind(view: View)</ID>
     <ID>UndocumentedPublicFunction:Toolbar.kt$Toolbar.Action$fun createView(parent: ViewGroup): View</ID>
     <ID>UndocumentedPublicFunction:ToolbarAutocompleteFeature.kt$ToolbarAutocompleteFeature$fun addDomainProvider(provider: DomainAutocompleteProvider)</ID>

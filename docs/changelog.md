@@ -4,12 +4,26 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 97.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v96.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/144?closed=1)
+# 98.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v97.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/145?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **lib/publicsuffixlist**
+  * ⚠️ **This is a breaking change**: Removed `String.urlToTrimmedHost` extension method.
+
+# 97.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v96.0.0...v97.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/144?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v97.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v97.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v97.0.0/.config.yml)
+
+* **support-ktx**
+  * 🚒 Bug fixed [issue #11374](https://github.com/mozilla-mobile/android-components/issues/11374) - Restore immersive mode after interacting with other Windows.
+  * ⚠️ **This is a breaking change**: `OnWindowFocusChangeListener` parameter is removed from `Activity.enterToImmersiveMode()`. There was no way to guarantee that the argument knew to handle immersive mode. Now everything is handled internally.
 
 * **feature-prompts**:
   * Removes deprecated constructor in `PromptFeature`.
@@ -38,6 +52,10 @@ permalink: /changelog/
 
 * **feature-session**
   * Added support in `SessionUseCases.GoBackUseCase` and `SessionUseCases.GoForwardUseCase` to support optional `userInteraction` parameter in the Gecko engine.
+
+* **service-glean**
+  * 🆙 Updated Glean to version 42.3.0 ([changelog](https://github.com/mozilla/glean/releases/tag/v42.3.0))
+    * Includes automatic detection of tags.yaml files
 
 # 96.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v95.0.0...v96.0.0)

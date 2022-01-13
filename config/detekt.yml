@@ -32,7 +32,7 @@ comments:
     active: false
   EndOfSentenceFormat:
     active: false
-    endOfSentenceFormat: ([.?!][ \t\n\r\f<])|([.?!]$)
+    endOfSentenceFormat: '([.?!][ \t\n\r\f<])|([.?!]$)'
   UndocumentedPublicClass:
     active: true
     searchInNestedClass: true

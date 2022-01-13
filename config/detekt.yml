@@ -102,7 +102,7 @@ empty-blocks:
   active: true
   EmptyCatchBlock:
     active: true
-    allowedExceptionNameRegex: "^(ignore|expected).*"
+    allowedExceptionNameRegex: '^(ignore|expected).*'
   EmptyClassBlock:
     active: true
   EmptyDefaultConstructor:
@@ -251,8 +251,8 @@ potential-bugs:
     active: false
   LateinitUsage:
     active: false
-    excludeAnnotatedProperties: ""
-    ignoreOnClassesPattern: ""
+    excludeAnnotatedProperties: ''
+    ignoreOnClassesPattern: ''
   UnconditionalJumpStatementInLoop:
     active: false
   UnreachableCode:
@@ -330,7 +330,7 @@ style:
   ReturnCount:
     active: true
     max: 3
-    excludedFunctions: "equals"
+    excludedFunctions: 'equals'
   SafeCast:
     active: true
   SerialVersionUIDInSerializableClass:
@@ -356,7 +356,7 @@ style:
     active: false
   UseDataClass:
     active: false
-    excludeAnnotatedClasses: ""
+    excludeAnnotatedClasses: ''
   UtilityClassWithPublicConstructor:
     active: false
   WildcardImport:

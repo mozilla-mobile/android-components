@@ -134,7 +134,7 @@ exceptions:
   active: true
   ExceptionRaisedInUnexpectedLocation:
     active: false
-    methodNames: 'toString,hashCode,equals,finalize'
+    methodNames: [toString, hashCode, equals, finalize]
   InstanceOfCheckForException:
     active: false
   NotImplementedDeclaration:
@@ -153,7 +153,10 @@ exceptions:
     active: false
   ThrowingExceptionsWithoutMessageOrCause:
     active: false
-    exceptions: 'IllegalArgumentException,IllegalStateException,IOException'
+    exceptions:
+     - IllegalArgumentException
+     - IllegalStateException
+     - IOException
   ThrowingNewInstanceOfSameException:
     active: false
   TooGenericExceptionCaught:
@@ -185,7 +188,7 @@ naming:
     enumEntryPattern: '^[A-Z][_a-zA-Z0-9]*'
   ForbiddenClassName:
     active: false
-    forbiddenName: ''
+    forbiddenName: []
   FunctionMaxLength:
     active: false
     maximumFunctionNameLength: 30
@@ -251,7 +254,7 @@ potential-bugs:
     active: false
   LateinitUsage:
     active: false
-    excludeAnnotatedProperties: ''
+    excludeAnnotatedProperties: []
     ignoreOnClassesPattern: ''
   UnconditionalJumpStatementInLoop:
     active: false
@@ -279,10 +282,10 @@ style:
     active: false
   ForbiddenComment:
     active: true
-    values: 'TODO:,FIXME:,STOPSHIP:'
+    values: ['TODO:', 'FIXME:', 'STOPSHIP:']
   ForbiddenImport:
     active: false
-    imports: ''
+    imports: []
   FunctionOnlyReturningConstant:
     active: false
     ignoreOverridableFunction: true
@@ -292,7 +295,7 @@ style:
     maxJumpCount: 1
   MagicNumber:
     active: true
-    ignoreNumbers: '-1,0,1,2'
+    ignoreNumbers: ['-1', '0', '1', '2']
     ignoreHashCodeFunction: false
     ignorePropertyDeclaration: false
     ignoreConstantDeclaration: true
@@ -356,12 +359,12 @@ style:
     active: false
   UseDataClass:
     active: false
-    excludeAnnotatedClasses: ''
+    excludeAnnotatedClasses: []
   UtilityClassWithPublicConstructor:
     active: false
   WildcardImport:
     active: true
-    excludeImports: 'java.util.*,kotlinx.android.synthetic.*'
+    excludeImports: ['java.util.*', 'kotlinx.android.synthetic.*']
 
 mozilla-rules:
   AbsentOrWrongFileLicense:

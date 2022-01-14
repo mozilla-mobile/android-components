@@ -5,10 +5,7 @@
 package mozilla.components.support.ktx.android.view
 
 import android.app.Activity
-import android.os.Build
 import android.view.View
-import android.view.ViewTreeObserver
-import android.view.WindowInsets.Type.statusBars
 import android.view.WindowManager
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.WindowInsetsCompat
@@ -17,11 +14,7 @@ import mozilla.components.support.base.log.logger.Logger
 
 /**
  * Attempts to enter immersive mode - fullscreen with the status bar and navigation buttons hidden.
- * This will automatically register and use an
- * - an inset listener: [View.OnApplyWindowInsetsListener] on API 30+ or
- * [View.OnSystemUiVisibilityChangeListener] for below APIs
- * - a focus listener: [ViewTreeObserver.OnWindowFocusChangeListener]
- *
+ * This will automatically register and use a [View.OnSystemUiVisibilityChangeListener]
  * to restore immersive mode if interactions with various other widgets like the keyboard or dialogs
  * got the activity out of immersive mode without [exitImmersiveModeIfNeeded] being called.
  */
@@ -47,21 +40,12 @@ internal fun Activity.setAsImmersive() {
  */
 @VisibleForTesting
 internal fun Activity.enableImmersiveModeRestore() {
-    window.decorView.viewTreeObserver?.addOnWindowFocusChangeListener(onWindowFocusChangeListener)
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        window.decorView.setOnApplyWindowInsetsListener { _, insets ->
-            if (insets.isVisible(statusBars())) {
-                setAsImmersive()
-            }
-            insets
-        }
-    } else {
-        @Suppress("DEPRECATION") // insets.isVisible(int) is available only starting with API 30
-        window.decorView.setOnSystemUiVisibilityChangeListener { newFlags ->
-            if (newFlags and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
-                setAsImmersive()
-            }
+    // Still using the now deprecated approach until a resolution of https://issuetracker.google.com/issues/214012501
+    // Previous approach based on which the bug was discovered is available in history.
+    @Suppress("DEPRECATION")
+    window.decorView.setOnSystemUiVisibilityChangeListener { newFlags ->
+        if (newFlags and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
+            setAsImmersive()
         }
     }
 }
@@ -75,31 +59,16 @@ fun Activity.exitImmersiveModeIfNeeded() {
         return
     }
 
-    window.decorView.viewTreeObserver?.removeOnWindowFocusChangeListener(onWindowFocusChangeListener)
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        window.decorView.setOnApplyWindowInsetsListener(null)
-    } else {
-        @Suppress("DEPRECATION")
-        window.decorView.setOnSystemUiVisibilityChangeListener(null)
-    }
+    // Still using the now deprecated approach until a resolution of https://issuetracker.google.com/issues/214012501
+    // Previous approach based on which the bug was discovered is available in history.
+    @Suppress("DEPRECATION")
+    window.decorView.setOnSystemUiVisibilityChangeListener(null)
 
     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     window.getWindowInsetsController().apply {
         show(WindowInsetsCompat.Type.systemBars())
     }
 }
-
-/**
- * OnWindowFocusChangeListener used to ensure immersive mode is not broken by other views interactions.
- */
-@VisibleForTesting
-internal val Activity.onWindowFocusChangeListener: ViewTreeObserver.OnWindowFocusChangeListener
-    get() = ViewTreeObserver.OnWindowFocusChangeListener { hasFocus ->
-        if (hasFocus) {
-            setAsImmersive()
-        }
-    }
 
 /**
  * Calls [Activity.reportFullyDrawn] while also preventing crashes under some circumstances.

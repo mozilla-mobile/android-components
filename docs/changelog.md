@@ -11,8 +11,18 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **support-ktx**
+  * 🚒 Bug fixed [issue #11527](https://github.com/mozilla-mobile/android-components/issues/11527) - Fix some situations in which the immersive mode wasn't properly applied.
+
 * **lib/publicsuffixlist**
   * ⚠️ **This is a breaking change**: Removed `String.urlToTrimmedHost` extension method.
+
+* **feature-top-sites**
+  * ⚠️ **This is a breaking change**: The existing data class `TopSite` has been converted into a sealed class. [#11483](https://github.com/mozilla-mobile/android-components/issues/11483)
+  * Extend `DefaultTopSitesStorage` to accept a `TopSitesProvider` for fetching top sites. [#11483](https://github.com/mozilla-mobile/android-components/issues/11483)
+  
+* **service-contile**
+  * Adds a `ContileTopSitesProvider` that implements `TopSitesProvider` for returning top sites from the Contile services API. [#11483](https://github.com/mozilla-mobile/android-components/issues/11483) 
 
 # 97.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v96.0.0...v97.0.0)

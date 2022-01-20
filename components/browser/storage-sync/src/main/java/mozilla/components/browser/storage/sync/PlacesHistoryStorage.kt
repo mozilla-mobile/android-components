@@ -71,7 +71,7 @@ open class PlacesHistoryStorage(
             logger.debug("Not recording observation (canAddUri=false) for: $uri")
             return
         }
-        // NB: visitType 'UPDATE_PLACE' means "record meta information about this URL".
+        // NB: visitType being null means "record meta information about this URL".
         withContext(writeScope.coroutineContext) {
             // Ignore exceptions related to uris. This means we may drop some of the data on the floor
             // if the underlying storage layer refuses it.

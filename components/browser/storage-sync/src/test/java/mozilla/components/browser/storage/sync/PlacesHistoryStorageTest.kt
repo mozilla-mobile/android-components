@@ -707,7 +707,8 @@ class PlacesHistoryStorageTest {
 
     @Test
     fun `storage passes through sync exceptions`() = runBlocking {
-        val exception = PlacesException.UnexpectedPlacesException("test error")
+        // Can be any PlacesException
+        val exception = PlacesException.UrlParseFailed("test error")
         val conn = object : Connection {
             override fun reader(): PlacesReaderConnection {
                 fail()
@@ -760,9 +761,9 @@ class PlacesHistoryStorageTest {
         assertEquals("test error", error.exception.message)
     }
 
-    @Test(expected = InternalException::class)
+    @Test(expected = PlacesException::class)
     fun `storage re-throws sync panics`() = runBlocking {
-        val exception = InternalException("test panic")
+        val exception = PlacesException.UnexpectedPlacesException("test panic")
         val conn = object : Connection {
             override fun reader(): PlacesReaderConnection {
                 fail()
@@ -1314,7 +1315,8 @@ class PlacesHistoryStorageTest {
     @Test
     fun `safe read from places`() = runBlocking {
         val result = history.handlePlacesExceptions("test", default = emptyList<HistoryMetadata>()) {
-            throw PlacesException.UnexpectedPlacesException("test")
+            // Can be any PlacesException error
+            throw PlacesException.PlacesConnectionBusy("test")
         }
         assertEquals(emptyList<HistoryMetadata>(), result)
     }

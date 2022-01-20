@@ -85,6 +85,8 @@ abstract class PlacesStorage(
     protected inline fun handlePlacesExceptions(operation: String, block: () -> Unit) {
         try {
             block()
+        } catch (e: PlacesException.UnexpectedPlacesException) {
+            throw e
         } catch (e: PlacesException) {
             crashReporter?.submitCaughtException(e)
             logger.warn("Ignoring PlacesException while running $operation", e)
@@ -107,6 +109,8 @@ abstract class PlacesStorage(
     ): T {
         return try {
             block()
+        } catch (e: PlacesException.UnexpectedPlacesException) {
+            throw e
         } catch (e: PlacesException) {
             crashReporter?.submitCaughtException(e)
             logger.warn("Ignoring PlacesException while running $operation", e)
@@ -125,6 +129,10 @@ abstract class PlacesStorage(
             logger.debug("Successfully synced.")
             SyncStatus.Ok
 
+            // Order of these catches matters: UnexpectedPlacesException extends PlacesException
+        } catch (e: PlacesException.UnexpectedPlacesException) {
+            logger.error("Places panic while syncing", e)
+            throw e
         } catch (e: PlacesException) {
             logger.error("Places exception while syncing", e)
             SyncStatus.Error(e)

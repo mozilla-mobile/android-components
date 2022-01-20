@@ -267,12 +267,14 @@ class NimbusPlugin implements Plugin<Project> {
         String archPart
         if (arch.contains("x86_64")) {
             archPart = "x86_64"
+        } else if (arch.contains("amd64")) {
+            archPart = "x86_64"
         } else if (arch.contains("aarch")) {
             archPart = "aarch64"
         } else {
             archPart = "unknown"
         }
-
+        println("OS and architecture detected as $os on $arch")
         return "${archPart}-${osPart}"
     }
 

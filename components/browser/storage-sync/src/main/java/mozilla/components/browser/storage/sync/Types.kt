@@ -6,11 +6,8 @@
 
 package mozilla.components.browser.storage.sync
 
-import mozilla.appservices.places.uniffi.BookmarkItem
-import mozilla.appservices.places.uniffi.BookmarkFolder
-import mozilla.appservices.places.uniffi.BookmarkData
-import mozilla.appservices.places.uniffi.BookmarkSeparator
 import mozilla.appservices.places.SyncAuthInfo
+import mozilla.appservices.places.uniffi.BookmarkItem
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.DocumentType

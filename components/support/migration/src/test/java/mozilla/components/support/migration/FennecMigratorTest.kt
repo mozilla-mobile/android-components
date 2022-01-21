@@ -365,7 +365,7 @@ class FennecMigratorTest {
         val historyStorage: PlacesHistoryStorage = mock()
 
         // Fail during history migration.
-        `when`(historyStorage.importFromFennec(any())).thenThrow(PlacesException("test exception"))
+        `when`(historyStorage.importFromFennec(any())).thenThrow(PlacesException.InvalidParent("test exception"))
 
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateHistory(lazy { historyStorage })
@@ -401,7 +401,7 @@ class FennecMigratorTest {
         val historyStorage: PlacesHistoryStorage = mock()
 
         // Fail during history migration.
-        `when`(historyStorage.importFromFennec(any())).thenThrow(PlacesException("test exception"))
+        `when`(historyStorage.importFromFennec(any())).thenThrow(PlacesException.InvalidParent("test exception"))
 
         `when`(bookmarkStorage.importFromFennec(any())).thenReturn(
             JSONObject().also {
@@ -449,8 +449,8 @@ class FennecMigratorTest {
         val historyStorage: PlacesHistoryStorage = mock()
 
         // Both migrations failed.
-        `when`(historyStorage.importFromFennec(any())).thenThrow(PlacesException("test exception"))
-        `when`(bookmarkStorage.importFromFennec(any())).thenThrow(PlacesException("test exception"))
+        `when`(historyStorage.importFromFennec(any())).thenThrow(PlacesException.InvalidParent("test exception"))
+        `when`(bookmarkStorage.importFromFennec(any())).thenThrow(PlacesException.BookmarksCorruption("test exception"))
 
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateHistory(lazy { historyStorage })

@@ -188,6 +188,15 @@ class PlacesBookmarksStorageTest {
         with(bookmarks.searchBookmarks("mozilla")) {
             assertTrue(this.isEmpty())
         }
+
+        val badUrl = "https://123.456.78.90"
+        try {
+            bookmarks.addItem(BookmarkRoot.Mobile.id, badUrl, "I'm bad", 5u)
+            bookmarks.getBookmarksWithUrl(badUrl)
+            fail("Expected to fail with badUrl")
+        } catch (e: PlacesException.UrlParseFailed) {
+            assertEquals("UrlParseFailed: invalid IPv4 address", e.message)
+        }
     }
 
     @Test

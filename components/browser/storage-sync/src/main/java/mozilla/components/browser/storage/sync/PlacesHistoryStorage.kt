@@ -166,7 +166,9 @@ open class PlacesHistoryStorage(
      */
     override suspend fun deleteVisitsSince(since: Long) {
         withContext(writeScope.coroutineContext) {
-            places.writer().deleteVisitsSince(since)
+            handlePlacesExceptions("deleteVisitsSince") {
+                places.writer().deleteVisitsSince(since)
+            }
         }
     }
 
@@ -176,7 +178,9 @@ open class PlacesHistoryStorage(
      */
     override suspend fun deleteVisitsBetween(startTime: Long, endTime: Long) {
         withContext(writeScope.coroutineContext) {
-            places.writer().deleteVisitsBetween(startTime, endTime)
+            handlePlacesExceptions("deleteVisitsBetween") {
+                places.writer().deleteVisitsBetween(startTime, endTime)
+            }
         }
     }
 
@@ -185,7 +189,9 @@ open class PlacesHistoryStorage(
      */
     override suspend fun deleteVisitsFor(url: String) {
         withContext(writeScope.coroutineContext) {
-            places.writer().deleteVisitsFor(url)
+            handlePlacesExceptions("deleteVisitsFor") {
+                places.writer().deleteVisitsFor(url)
+            }
         }
     }
 
@@ -195,7 +201,9 @@ open class PlacesHistoryStorage(
      */
     override suspend fun deleteVisit(url: String, timestamp: Long) {
         withContext(writeScope.coroutineContext) {
-            places.writer().deleteVisit(url, timestamp)
+            handlePlacesExceptions("deleteVisit") {
+                places.writer().deleteVisit(url, timestamp)
+            }
         }
     }
 

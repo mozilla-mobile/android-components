@@ -58,7 +58,9 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
      */
     override suspend fun getBookmarksWithUrl(url: String): List<BookmarkNode> {
         return withContext(readScope.coroutineContext) {
-            reader.getBookmarksWithURL(url).map { it.asBookmarkNode() }
+            handlePlacesExceptions("getBookmarksWithUrl", default = emptyList()) {
+                reader.getBookmarksWithURL(url).map { it.asBookmarkNode() }
+            }
         }
     }
 

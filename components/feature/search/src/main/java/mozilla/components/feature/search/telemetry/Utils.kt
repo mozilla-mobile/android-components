@@ -20,8 +20,9 @@ private val validCodeSet = setOf(
     "firefox-b-lg", "firefox-b-huawei-h1611", "firefox-b-is-oem1", "firefox-b-oem1",
     "firefox-b-oem2", "firefox-b-tinno", "firefox-b-pn-wt", "firefox-b-pn-wt-us", "ubuntu",
     "ffab", "ffcm", "ffhp", "ffip", "ffit", "ffnt", "ffocus", "ffos", "ffsb", "fpas", "fpsa",
-    "ftas", "ftsa", "newext", "1000969a"
+    "ftas", "ftsa", "newext", "1000969a", null
 )
+private val validChannelSet = setOf("ts")
 
 /**
  * Get a String in a specific format allowing to identify how an ads/search provider was used.
@@ -48,7 +49,7 @@ internal fun getTrackKey(
 
         // For Bug 1751920
         if (!validCodeSet.contains(code)) {
-            code = null
+            code = "other"
         }
 
         // Glean doesn't allow code starting with a figure
@@ -70,7 +71,13 @@ internal fun getTrackKey(
 
         // For Bing if it didn't have a valid cookie and for all the other search engines
         if (hasValidCode(uri.getQueryParameter(provider.codeParam), provider)) {
-            val channel = uri.getQueryParameter(CHANNEL_KEY)
+            var channel = uri.getQueryParameter(CHANNEL_KEY)
+
+            // For Bug 1751955
+            if (!validChannelSet.contains(channel)) {
+                channel = null
+            }
+
             val type = getSapType(provider.followOnParams, paramSet)
             return TrackKeyInfo(provider.name, type, code, channel).createTrackKey()
         }

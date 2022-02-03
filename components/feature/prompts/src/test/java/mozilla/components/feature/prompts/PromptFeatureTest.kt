@@ -134,7 +134,7 @@ class PromptFeatureTest {
         )
         feature.start()
 
-        val promptRequest = SingleChoice(arrayOf()) {}
+        val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
         testDispatcher.advanceUntilIdle()
         verify(feature).onPromptRequested(store.state.tabs.first())
@@ -152,7 +152,7 @@ class PromptFeatureTest {
         )
         feature.start()
 
-        val promptRequest = SingleChoice(arrayOf()) {}
+        val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", promptRequest))
             .joinBlocking()
         testDispatcher.advanceUntilIdle()
@@ -170,7 +170,7 @@ class PromptFeatureTest {
             ) { }
         )
 
-        val promptRequest = SingleChoice(arrayOf()) {}
+        val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
         testDispatcher.advanceUntilIdle()
         feature.start()
@@ -183,7 +183,7 @@ class PromptFeatureTest {
             PromptFeature(fragment = mock(), store = store, fragmentManager = fragmentManager) { }
         feature.start()
 
-        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest))
             .joinBlocking()
         verify(fragmentManager).beginTransaction()
@@ -196,7 +196,7 @@ class PromptFeatureTest {
         feature.start()
         feature.stop()
 
-        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest))
             .joinBlocking()
         verify(fragmentManager, never()).beginTransaction()
@@ -208,7 +208,7 @@ class PromptFeatureTest {
         doReturn(tabId).`when`(fragment).sessionId
         doReturn(fragment).`when`(fragmentManager).findFragmentByTag(FRAGMENT_TAG)
 
-        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest))
             .joinBlocking()
 
@@ -243,7 +243,7 @@ class PromptFeatureTest {
         doReturn("invalid-tab").`when`(fragment).sessionId
         doReturn(fragment).`when`(fragmentManager).findFragmentByTag(FRAGMENT_TAG)
 
-        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction("invalid-tab", singleChoiceRequest))
             .joinBlocking()
 
@@ -512,7 +512,7 @@ class PromptFeatureTest {
         val feature =
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
 
-        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest))
             .joinBlocking()
 
@@ -530,7 +530,7 @@ class PromptFeatureTest {
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         feature.start()
 
-        val singleChoiceRequest = SingleChoice(arrayOf()) {}
+        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest))
             .joinBlocking()
 
@@ -548,7 +548,7 @@ class PromptFeatureTest {
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         feature.start()
 
-        val menuChoiceRequest = MenuChoice(arrayOf()) {}
+        val menuChoiceRequest = MenuChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, menuChoiceRequest))
             .joinBlocking()
 
@@ -566,7 +566,7 @@ class PromptFeatureTest {
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         feature.start()
 
-        val multipleChoiceRequest = MultipleChoice(arrayOf()) {}
+        val multipleChoiceRequest = MultipleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, multipleChoiceRequest))
             .joinBlocking()
 
@@ -586,9 +586,13 @@ class PromptFeatureTest {
         var onShowNoMoreAlertsWasCalled = false
         var onDismissWasCalled = false
 
-        val promptRequest = Alert("title", "message", false, { onDismissWasCalled = true }) {
-            onShowNoMoreAlertsWasCalled = true
-        }
+        val promptRequest = Alert(
+            "title",
+            "message",
+            false,
+            { onShowNoMoreAlertsWasCalled = true },
+            { onDismissWasCalled = true }
+        )
 
         feature.start()
 
@@ -609,7 +613,7 @@ class PromptFeatureTest {
         val feature =
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onDismissWasCalled = false
-        val promptRequest = Alert("title", "message", false, { onDismissWasCalled = true }) {}
+        val promptRequest = Alert("title", "message", false, {}, { onDismissWasCalled = true })
 
         feature.start()
 
@@ -632,10 +636,9 @@ class PromptFeatureTest {
             "message",
             "input",
             false,
+            { _, _ -> onConfirmWasCalled = true },
             { onDismissWasCalled = true }
-        ) { _, _ ->
-            onConfirmWasCalled = true
-        }
+        )
 
         feature.start()
 
@@ -663,8 +666,9 @@ class PromptFeatureTest {
             "message",
             "value",
             false,
+            { _, _ -> },
             { onDismissWasCalled = true }
-        ) { _, _ -> }
+        )
 
         feature.start()
 
@@ -694,14 +698,15 @@ class PromptFeatureTest {
             var onClearWasCalled = false
             var selectedDate: Date? = null
             val promptRequest = PromptRequest.TimeSelection(
-                "title", Date(0),
+                "title",
+                Date(0),
                 null,
                 null,
                 type,
-                { date -> selectedDate = date }
-            ) {
-                onClearWasCalled = true
-            }
+                { date -> selectedDate = date },
+                { onClearWasCalled = true },
+                { }
+            )
 
             feature.start()
             store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest))
@@ -1284,8 +1289,8 @@ class PromptFeatureTest {
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onDismissWasCalled: Boolean
         val onDismiss = { onDismissWasCalled = true }
-        val alertRequest = Alert("", "", false, onDismiss, {})
-        val textRequest = TextPrompt("", "", "", false, onDismiss) { _, _ -> }
+        val alertRequest = Alert("", "", false, {}, onDismiss)
+        val textRequest = TextPrompt("", "", "", false, { _, _ -> }, onDismiss)
         val confirmRequest =
             PromptRequest.Confirm("", "", false, "+", "-", "", {}, {}, {}, onDismiss)
 
@@ -1308,7 +1313,7 @@ class PromptFeatureTest {
             PromptFeature(activity = mock(), store = store, fragmentManager = fragmentManager) { }
         var onDismissWasCalled = false
         val onDismiss = { onDismissWasCalled = true }
-        val alertRequest = Alert("", "", false, onDismiss, {})
+        val alertRequest = Alert("", "", false, {}, onDismiss)
 
         feature.start()
         feature.promptAbuserDetector.userWantsMoreDialogs(false)
@@ -1369,7 +1374,7 @@ class PromptFeatureTest {
 
         val login = Login(guid = "A", origin = "origin", username = "username", password = "password")
         val selectLoginRequest =
-            PromptRequest.SelectLoginPrompt(listOf(login), onLoginDismiss, onLoginConfirm)
+            PromptRequest.SelectLoginPrompt(listOf(login), onLoginConfirm, onLoginDismiss)
 
         whenever(loginPickerView.asView()).thenReturn(mock())
         whenever(loginPickerView.asView().visibility).thenReturn(View.VISIBLE)
@@ -1409,7 +1414,7 @@ class PromptFeatureTest {
             cardType = ""
         )
         val selectCreditCardRequest =
-            PromptRequest.SelectCreditCard(listOf(creditCard), onDismiss, onConfirm)
+            PromptRequest.SelectCreditCard(listOf(creditCard), onConfirm, onDismiss)
 
         whenever(creditCardPickerView.asView()).thenReturn(mock())
         whenever(creditCardPickerView.asView().visibility).thenReturn(View.VISIBLE)

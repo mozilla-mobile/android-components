@@ -201,7 +201,7 @@ enum class FrecencyThresholdOption {
  * @property visitTime The time the page was visited in integer milliseconds since the unix epoch.
  * @property visitType What the transition type of the visit is, expressed as [VisitType].
  * @property previewImageUrl The preview image of the page (e.g. the hero image), if available.
- * @property isRemote Distinguishes visits made on the device and those that come from syncing.
+ * @property isRemote Distinguishes visits made on the device and those that come from Sync.
  */
 data class VisitInfo(
     val url: String,

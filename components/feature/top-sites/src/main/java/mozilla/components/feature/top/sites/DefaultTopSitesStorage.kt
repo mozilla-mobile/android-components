@@ -39,9 +39,6 @@ class DefaultTopSitesStorage(
     private var scope = CoroutineScope(coroutineContext)
     private val logger = Logger("DefaultTopSitesStorage")
 
-    // Cache of the last retrieved top sites
-    var cachedTopSites = listOf<TopSite>()
-
     init {
         if (defaultTopSites.isNotEmpty()) {
             scope.launch {
@@ -124,7 +121,6 @@ class DefaultTopSitesStorage(
         }
 
         emitTopSitesCountFact(pinnedSites.size)
-        cachedTopSites = topSites
 
         return topSites
     }

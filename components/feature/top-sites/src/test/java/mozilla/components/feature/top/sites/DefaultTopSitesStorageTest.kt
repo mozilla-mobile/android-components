@@ -186,27 +186,23 @@ class DefaultTopSitesStorageTest {
         var topSites = defaultTopSitesStorage.getTopSites(totalSites = 0)
 
         assertTrue(topSites.isEmpty())
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(totalSites = 1)
 
         assertEquals(1, topSites.size)
         assertEquals(defaultSite, topSites[0])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(totalSites = 2)
 
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(totalSites = 5)
 
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
     }
 
     @Test
@@ -252,7 +248,6 @@ class DefaultTopSitesStorageTest {
         var topSites = defaultTopSitesStorage.getTopSites(totalSites = 0)
 
         assertTrue(topSites.isEmpty())
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 1,
@@ -263,7 +258,6 @@ class DefaultTopSitesStorageTest {
 
         assertEquals(1, topSites.size)
         assertEquals(defaultSite, topSites[0])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 2,
@@ -275,7 +269,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 5,
@@ -288,7 +281,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(providedSite, topSites[0])
         assertEquals(defaultSite, topSites[1])
         assertEquals(pinnedSite, topSites[2])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 5,
@@ -300,7 +292,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 5,
@@ -314,7 +305,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(providedSite, topSites[0])
         assertEquals(defaultSite, topSites[1])
         assertEquals(pinnedSite, topSites[2])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 5,
@@ -328,7 +318,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
     }
 
     @Test
@@ -394,7 +383,6 @@ class DefaultTopSitesStorageTest {
 
         assertEquals(1, topSites.size)
         assertEquals(defaultSite, topSites[0])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 2,
@@ -407,7 +395,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 3,
@@ -421,7 +408,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(providedSite, topSites[0])
         assertEquals(defaultSite, topSites[1])
         assertEquals(pinnedSite, topSites[2])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 5,
@@ -436,7 +422,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(defaultSite, topSites[1])
         assertEquals(pinnedSite, topSites[2])
         assertEquals(frecentSite1.toTopSite(), topSites[3])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
     }
 
     @Test
@@ -486,7 +471,6 @@ class DefaultTopSitesStorageTest {
 
         assertEquals(1, topSites.size)
         assertEquals(defaultSite, topSites[0])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 2,
@@ -496,7 +480,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(2, topSites.size)
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         topSites = defaultTopSitesStorage.getTopSites(
             totalSites = 5,
@@ -507,7 +490,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(defaultSite, topSites[0])
         assertEquals(pinnedSite, topSites[1])
         assertEquals(frecentSite1.toTopSite(), topSites[2])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         val frecentSite2 = TopFrecentSiteInfo("https://example.com", "Example")
         val frecentSite3 = TopFrecentSiteInfo("https://getpocket.com", "Pocket")
@@ -530,7 +512,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(frecentSite1.toTopSite(), topSites[2])
         assertEquals(frecentSite2.toTopSite(), topSites[3])
         assertEquals(frecentSite3.toTopSite(), topSites[4])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
 
         val frecentSite4 = TopFrecentSiteInfo("https://example2.com", "Example2")
         whenever(historyStorage.getTopFrecentSites(anyInt(), any())).thenReturn(
@@ -553,7 +534,6 @@ class DefaultTopSitesStorageTest {
         assertEquals(frecentSite1.toTopSite(), topSites[2])
         assertEquals(frecentSite2.toTopSite(), topSites[3])
         assertEquals(frecentSite3.toTopSite(), topSites[4])
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
     }
 
     @Test
@@ -621,6 +601,5 @@ class DefaultTopSitesStorageTest {
         assertEquals(frecentSiteWithNoTitle.toTopSite(), topSites[3])
         assertEquals(frecentSite1.toTopSite(), topSites[4])
         assertEquals("mozilla.com", frecentSiteWithNoTitle.toTopSite().title)
-        assertEquals(defaultTopSitesStorage.cachedTopSites, topSites)
     }
 }

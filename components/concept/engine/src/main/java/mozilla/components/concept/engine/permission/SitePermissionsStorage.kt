@@ -4,6 +4,7 @@
 
 package mozilla.components.concept.engine.permission
 
+import androidx.annotation.WorkerThread
 import androidx.paging.DataSource
 
 /**
@@ -15,6 +16,7 @@ interface SitePermissionsStorage {
      * @param sitePermissions the [sitePermissions] to be stored.
      * @param request the [PermissionRequest] to be stored, default to null.
      */
+    @WorkerThread
     suspend fun save(sitePermissions: SitePermissions, request: PermissionRequest? = null)
 
     /**
@@ -32,28 +34,33 @@ interface SitePermissionsStorage {
      * Replaces an existing SitePermissions with the values of [sitePermissions] provided as a parameter.
      * @param sitePermissions the sitePermissions to be updated.
      */
+    @WorkerThread
     suspend fun update(sitePermissions: SitePermissions)
 
     /**
      * Finds all SitePermissions that match the [origin].
      * @param origin the site to be used as filter in the search.
      */
+    @WorkerThread
     suspend fun findSitePermissionsBy(origin: String, includeTemporary: Boolean = false): SitePermissions?
 
     /**
      * Deletes all sitePermissions that match the sitePermissions provided as a parameter.
      * @param sitePermissions the sitePermissions to be deleted from the storage.
      */
+    @WorkerThread
     suspend fun remove(sitePermissions: SitePermissions)
 
     /**
      * Deletes all sitePermissions sitePermissions.
      */
+    @WorkerThread
     suspend fun removeAll()
 
     /**
      * Returns all sitePermissions in the store.
      */
+    @WorkerThread
     suspend fun all(): List<SitePermissions>
 
     /**
@@ -65,6 +72,7 @@ interface SitePermissionsStorage {
      * - https://developer.android.com/topic/libraries/architecture/paging/data
      * - https://developer.android.com/topic/libraries/architecture/paging/ui
      */
+    @WorkerThread
     suspend fun getSitePermissionsPaged(): DataSource.Factory<Int, SitePermissions>
 
     enum class Permission {

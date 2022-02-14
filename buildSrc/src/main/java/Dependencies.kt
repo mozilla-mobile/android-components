@@ -22,7 +22,7 @@ object Versions {
     const val lint = "27.0.1"
     const val detekt = "1.17.1"
 
-    const val sentry = "1.7.21"
+    const val sentry = "5.6.1"
     const val okhttp = "3.13.1"
     const val zxing = "3.3.0"
     const val jna = "5.5.0"

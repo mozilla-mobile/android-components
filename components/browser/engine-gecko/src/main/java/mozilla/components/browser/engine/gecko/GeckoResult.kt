@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.engine.gecko
 
+import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -21,13 +22,19 @@ import kotlin.coroutines.suspendCoroutine
  * Wait for a GeckoResult to be complete in a co-routine.
  */
 suspend fun <T> GeckoResult<T>.await() = suspendCoroutine<T?> { continuation ->
+    Log.w("gri", "2.1")
+    Log.w("gri", "looper: $looper")
     then(
         {
+            Log.w("gri", "2.2")
             continuation.resume(it)
+            Log.w("gri", "2.3")
             GeckoResult<Void>()
         },
         {
+            Log.w("gri", "2.4")
             continuation.resumeWithException(it)
+            Log.w("gri", "2.5")
             GeckoResult<Void>()
         }
     )
@@ -65,11 +72,17 @@ fun <T> CoroutineScope.launchGeckoResult(
     start: CoroutineStart = CoroutineStart.DEFAULT,
     block: suspend CoroutineScope.() -> T
 ) = GeckoResult<T>().apply {
+    Log.w("gri", "1.1")
     launch(context, start) {
+        Log.w("gri", "1.2")
         try {
+            Log.w("gri", "1.3")
             val value = block()
+            Log.w("gri", "1.4")
             complete(value)
+            Log.w("gri", "1.5")
         } catch (exception: Throwable) {
+            Log.w("gri", "1.6")
             completeExceptionally(exception)
         }
     }

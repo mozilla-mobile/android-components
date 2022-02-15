@@ -11,7 +11,8 @@ import android.os.Message
 import android.view.WindowManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.engine.gecko.ext.geckoTrackingProtectionPermission
 import mozilla.components.browser.engine.gecko.ext.isExcludedForTrackingProtection
 import mozilla.components.browser.engine.gecko.permission.geckoContentPermission
@@ -772,7 +773,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `notifies configured history delegate of title changes`() = runBlockingTest {
+    fun `notifies configured history delegate of title changes`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             runtime, geckoSessionProvider = geckoSessionProvider,
             context = coroutineContext
@@ -799,7 +800,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `does not notify configured history delegate of title changes for private sessions`() = runBlockingTest {
+    fun `does not notify configured history delegate of title changes for private sessions`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -831,7 +832,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `notifies configured history delegate of preview image URL changes`() = runBlockingTest {
+    fun `notifies configured history delegate of preview image URL changes`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             runtime, geckoSessionProvider = geckoSessionProvider,
             context = coroutineContext
@@ -862,7 +863,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `does not notify configured history delegate of preview image URL changes for private sessions`() = runBlockingTest {
+    fun `does not notify configured history delegate of preview image URL changes for private sessions`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -894,7 +895,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `does not notify configured history delegate for top-level visits to error pages`() = runBlockingTest {
+    fun `does not notify configured history delegate for top-level visits to error pages`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -917,7 +918,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `notifies configured history delegate of visits`() = runBlockingTest {
+    fun `notifies configured history delegate of visits`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -936,7 +937,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `notifies configured history delegate of reloads`() = runBlockingTest {
+    fun `notifies configured history delegate of reloads`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -955,7 +956,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `checks with the delegate before trying to record a visit`() = runBlockingTest {
+    fun `checks with the delegate before trying to record a visit`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -983,7 +984,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `correctly processes redirect visit flags`() = runBlockingTest {
+    fun `correctly processes redirect visit flags`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -1045,7 +1046,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `does not notify configured history delegate of visits for private sessions`() = runBlockingTest {
+    fun `does not notify configured history delegate of visits for private sessions`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -1064,7 +1065,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `requests visited URLs from configured history delegate`() = runBlockingTest {
+    fun `requests visited URLs from configured history delegate`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -1086,7 +1087,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `does not request visited URLs from configured history delegate in private sessions`() = runBlockingTest {
+    fun `does not request visited URLs from configured history delegate in private sessions`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,
@@ -1105,7 +1106,7 @@ class GeckoEngineSessionTest {
     }
 
     @Test
-    fun `notifies configured history delegate of state changes`() = runBlockingTest {
+    fun `notifies configured history delegate of state changes`() = runTest(UnconfinedTestDispatcher()) {
         val engineSession = GeckoEngineSession(
             mock(),
             geckoSessionProvider = geckoSessionProvider,

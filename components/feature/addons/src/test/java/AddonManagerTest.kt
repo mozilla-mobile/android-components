@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.WebExtensionState
@@ -51,6 +53,8 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class AddonManagerTest {
+    private val testDispatcher = StandardTestDispatcher()
+
     @Before
     fun setup() {
         WebExtensionSupport.installedExtensions.clear()
@@ -150,7 +154,7 @@ class AddonManagerTest {
     }
 
     @Test
-    fun `getAddons - returns temporary add-ons as supported`() = runBlocking {
+    fun `getAddons - returns temporary add-ons as supported`() = runTest(testDispatcher) {
         val addonsProvider: AddonsProvider = mock()
         whenever(addonsProvider.getAvailableAddons(anyBoolean(), eq(null), language = anyString())).thenReturn(listOf())
 
@@ -177,7 +181,7 @@ class AddonManagerTest {
         WebExtensionSupport.installedExtensions["temp_ext"] = temporaryExtension
 
         val addonManager = spy(AddonManager(store, mock(), addonsProvider, mock()))
-        whenever(addonManager.getIconDispatcher()).thenReturn(Dispatchers.Main)
+        whenever(addonManager.getIconDispatcher()).thenReturn(testDispatcher)
 
         val addons = addonManager.getAddons()
         assertEquals(1, addons.size)

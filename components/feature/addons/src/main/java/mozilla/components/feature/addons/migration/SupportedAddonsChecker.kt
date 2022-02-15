@@ -148,7 +148,7 @@ internal class SupportedAddonsWorker(
     private val logger = Logger("SupportedAddonsWorker")
 
     @Suppress("TooGenericExceptionCaught", "MaxLineLength")
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+    override suspend fun doWork(): Result {
         try {
             logger.info("Trying to check for new supported add-ons")
 
@@ -180,7 +180,7 @@ internal class SupportedAddonsWorker(
                 GlobalAddonDependencyProvider.onCrash?.invoke(exception)
             }
         }
-        Result.success()
+        return Result.success()
     }
 
     @VisibleForTesting

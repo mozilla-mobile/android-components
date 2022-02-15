@@ -10,7 +10,10 @@ import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.webextension.WebExtension
@@ -31,6 +34,7 @@ import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class AddonUpdaterWorkerTest {
 
@@ -77,10 +81,10 @@ class AddonUpdaterWorkerTest {
             onFinishCaptor.value.invoke(AddonUpdater.Status.SuccessfullyUpdated)
         }
 
-        runBlocking {
+        runTest {
             doReturn(this).`when`(worker).attemptScope
 
-            val result = worker.startWork().await()
+            val result = worker.doWork()
 
             assertEquals(ListenableWorker.Result.success(), result)
             verify(worker).saveUpdateAttempt(addonId, AddonUpdater.Status.SuccessfullyUpdated)
@@ -102,8 +106,8 @@ class AddonUpdaterWorkerTest {
             onFinishCaptor.value.invoke(AddonUpdater.Status.NoUpdateAvailable)
         }
 
-        runBlocking {
-            val result = worker.startWork().await()
+        runTest {
+            val result = worker.doWork()
 
             assertEquals(ListenableWorker.Result.success(), result)
         }
@@ -124,8 +128,8 @@ class AddonUpdaterWorkerTest {
             onFinishCaptor.value.invoke(AddonUpdater.Status.NotInstalled)
         }
 
-        runBlocking {
-            val result = worker.startWork().await()
+        runTest {
+            val result = worker.doWork()
 
             assertEquals(ListenableWorker.Result.failure(), result)
         }
@@ -149,8 +153,8 @@ class AddonUpdaterWorkerTest {
             onFinishCaptor.value.invoke(AddonUpdater.Status.Error("error", recoverableException))
         }
 
-        runBlocking {
-            val result = worker.startWork().await()
+        runTest {
+            val result = worker.doWork()
 
             assertEquals(ListenableWorker.Result.retry(), result)
             updateAttemptStorage.saveOrUpdate(any())
@@ -175,8 +179,8 @@ class AddonUpdaterWorkerTest {
             onFinishCaptor.value.invoke(AddonUpdater.Status.Error("error", unrecoverableException))
         }
 
-        runBlocking {
-            val result = worker.startWork().await()
+        runTest {
+            val result = worker.doWork()
 
             assertEquals(ListenableWorker.Result.success(), result)
             updateAttemptStorage.saveOrUpdate(any())
@@ -203,8 +207,8 @@ class AddonUpdaterWorkerTest {
             onFinishCaptor.value.invoke(AddonUpdater.Status.Error("error", Exception()))
         }
 
-        runBlocking {
-            val result = worker.startWork().await()
+        runTest {
+            val result = worker.doWork()
 
             assertEquals(ListenableWorker.Result.success(), result)
             assertTrue(crashWasReported)

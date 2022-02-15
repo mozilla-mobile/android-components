@@ -29,6 +29,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.engine.webextension.WebExtensionException
@@ -65,7 +66,7 @@ interface AddonUpdater {
      * Unregisters the given [addonId] for periodically checking for new updates.
      * @param addonId The unique id of the addon.
      */
-    fun unregisterForFutureUpdates(addonId: String)
+    fun unregisterForFutureUpdates(addonId: String): Job
 
     /**
      * Try to perform an update on the given [addonId].
@@ -181,11 +182,11 @@ class DefaultAddonUpdater(
     /**
      * See [AddonUpdater.unregisterForFutureUpdates]
      */
-    override fun unregisterForFutureUpdates(addonId: String) {
+    override fun unregisterForFutureUpdates(addonId: String): Job {
         WorkManager.getInstance(applicationContext)
             .cancelUniqueWork(getUniquePeriodicWorkName(addonId))
         logger.info("unregisterForFutureUpdates $addonId")
-        scope.launch {
+        return scope.launch {
             updateAttempStorage.remove(addonId)
         }
     }

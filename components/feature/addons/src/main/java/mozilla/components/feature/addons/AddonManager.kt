@@ -86,7 +86,6 @@ class AddonManager(
                 }
 
             val supportedAddonIds = supportedAddons.map { it.id }
-
             // Get all installed addons that are not yet supported.
             val unsupportedAddons = installedExtensions
                 .filterKeys { !supportedAddonIds.contains(it) }

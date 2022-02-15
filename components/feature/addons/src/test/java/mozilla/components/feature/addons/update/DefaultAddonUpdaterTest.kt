@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.*
 import mozilla.components.concept.engine.webextension.DisabledFlags
 import mozilla.components.concept.engine.webextension.Metadata
 import mozilla.components.concept.engine.webextension.WebExtension
@@ -31,10 +32,9 @@ import mozilla.components.feature.addons.update.DefaultAddonUpdater.Companion.WO
 import mozilla.components.feature.addons.update.DefaultAddonUpdater.NotificationHandlerService
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
+import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
@@ -43,12 +43,9 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import java.util.concurrent.TimeUnit
 
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class DefaultAddonUpdaterTest {
-
-    @ExperimentalCoroutinesApi
-    @get:Rule
-    val coroutinesTestRule = MainCoroutineRule()
 
     @Before
     fun setUp() {
@@ -267,7 +264,8 @@ class DefaultAddonUpdaterTest {
     fun `unregisterForFutureUpdates - will remove scheduled work for future update`() {
         val frequency = Frequency(1, TimeUnit.DAYS)
         val updater = DefaultAddonUpdater(testContext, frequency)
-        updater.scope = CoroutineScope(Dispatchers.Main)
+        val testDispatcher = StandardTestDispatcher()
+        updater.scope = TestScope(testDispatcher)
 
         val addonId = "addonId"
 
@@ -275,7 +273,7 @@ class DefaultAddonUpdaterTest {
 
         val workId = updater.getUniquePeriodicWorkName(addonId)
 
-        runBlocking {
+        runTest(testDispatcher) {
             val workManger = WorkManager.getInstance(testContext)
             var workData = workManger.getWorkInfosForUniqueWork(workId).await()
 
@@ -288,7 +286,7 @@ class DefaultAddonUpdaterTest {
 
             assertExtensionIsRegisteredFoUpdates(updater, addonId)
 
-            updater.unregisterForFutureUpdates(addonId)
+            updater.unregisterForFutureUpdates(addonId).join()
 
             workData = workManger.getWorkInfosForUniqueWork(workId).await()
             assertEquals(WorkInfo.State.CANCELLED, workData.first().state)

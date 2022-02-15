@@ -6,7 +6,10 @@ package mozilla.components.browser.domains
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.domains.autocomplete.BaseDomainAutocompleteProvider
 import mozilla.components.browser.domains.autocomplete.DomainAutocompleteProvider
 import mozilla.components.browser.domains.autocomplete.DomainList
@@ -18,8 +21,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class BaseDomainAutocompleteProviderTest {
+    private val dispatcher = StandardTestDispatcher()
+    private val scope = TestScope(dispatcher)
 
     @Test
     fun `empty provider with DEFAULT list returns nothing`() {
@@ -98,6 +104,12 @@ class BaseDomainAutocompleteProviderTest {
         assertNoCompletion(provider, "wwww")
         assertNoCompletion(provider, "yahoo")
     }
+
+    private fun createAndInitProvider(context: Context, list: DomainList, loader: DomainsLoader): DomainAutocompleteProvider {
+        return BaseDomainAutocompleteProvider(list, loader, scope).apply {
+            runTest(dispatcher) { initialize(context) }
+        }
+    }
 }
 
 private fun assertCompletion(
@@ -125,8 +137,3 @@ private fun assertNoCompletion(provider: DomainAutocompleteProvider, input: Stri
 
     assertNull("Result should be null", result)
 }
-
-private fun createAndInitProvider(context: Context, list: DomainList, loader: DomainsLoader): DomainAutocompleteProvider =
-    object : BaseDomainAutocompleteProvider(list, loader) {
-        override val coroutineContext = super.coroutineContext + Dispatchers.Main
-    }.apply { initialize(context) }

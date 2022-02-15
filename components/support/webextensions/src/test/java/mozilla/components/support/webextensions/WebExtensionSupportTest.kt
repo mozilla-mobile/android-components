@@ -6,7 +6,8 @@ package mozilla.components.support.webextensions
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.ContentAction
@@ -57,10 +58,11 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import mozilla.components.support.base.facts.Action as FactsAction
 
+@ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class WebExtensionSupportTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
@@ -70,7 +72,6 @@ class WebExtensionSupportTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
         WebExtensionSupport.installedExtensions.clear()
     }
 
@@ -556,6 +557,7 @@ class WebExtensionSupportTest {
 
         val engineSession1: EngineSession = mock()
         store.dispatch(EngineAction.LinkEngineSessionAction(tab.id, engineSession1)).joinBlocking()
+        testDispatcher.scheduler.advanceUntilIdle()
         verify(ext).registerActionHandler(eq(engineSession1), actionHandlerCaptor.capture())
         verify(ext).registerTabHandler(eq(engineSession1), tabHandlerCaptor.capture())
 

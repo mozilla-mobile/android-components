@@ -31,6 +31,7 @@ import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.engine.webextension.WebExtensionDelegate
 import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.isExtensionUrl
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.filterChanged
@@ -300,6 +301,7 @@ object WebExtensionSupport {
                 closeUnsupportedTabs(store, extensions)
                 initializationResult.complete(Unit)
                 onExtensionsLoaded?.invoke(extensions.filter { !it.isBuiltIn() })
+                Log.log(Log.Priority.DEBUG, "gri", null, "5")
             },
             onError = {
                 throwable ->

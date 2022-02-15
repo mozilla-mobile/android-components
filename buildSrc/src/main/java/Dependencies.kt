@@ -35,7 +35,7 @@ object Versions {
 
     const val material = "1.2.1"
 
-    const val compose_version = "1.1.0-rc03"
+    const val compose_version = "1.1.0"
 
     object AndroidX {
         const val activityCompose = "1.4.0"

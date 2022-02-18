@@ -16,6 +16,23 @@ permalink: /changelog/
 * **support-utils**
   * 🌟️️ **Added new Browsers constant for Fennec `Browsers.FIREFOX_FENNEC_NIGHTLY`.
   * ⚠️ **This is a breaking change**: `Browsers.FIREFOX_NIGHTLY` now points to `org.mozilla.fenix`, for fennec nightly use `Browsers.FIREFOX_FENNEC_NIGHTLY` [#11682](https://github.com/mozilla-mobile/android-components/pull/11682).
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #8567](https://github.com/mozilla-mobile/android-components/issues/8567) - Prevent crashes when trying to add to the system databases.
+
+* **concept-engine**
+  * 🌟️️ Add `EngineSessionStateStorage`, describing a storage of `EngineSessionState` instances. 
+
+* **browser-session-storage**
+  * 🌟️️ Add `FileEngineSessionStateStorage`, an implementation of `EngineSessionStateStorage` for persisting engine state outside of the regular RecoverableBrowserState flow.
+
+* **browser-state**
+  * ⚠️ **This is a breaking change**: Shape of `RecoverableTab` changed. There's now a tab-state wrapper called `TabState`; use it when `engineSessionState` isn't necessary right away.
+
+* **feature-recentlyclosed**
+  * 🌟️️ Add `RecentlyClosedTabsStorage`, which knows how to write/read recently closed tabs.
+
+* **feature-tabs**
+  * ⚠️ **This is a breaking change**: `RestoreUseCase` implementation responsible for restoring `RecoverableTab` instances now takes a `TabState` and a `EngineSessionStateStorage` instead (and will read/rehydrate an EngineSessionState prior to restoring).
 
 # 98.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v97.0.0...v98.0.0)
@@ -25,7 +42,7 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/v98.0.0/main/.config.yml)
 
 * **support-utils**
-  * 🌟️️ **Add a `PendingUtils.defaultFlags` property to ease setting PendingIntent mutability as required for Android 31+.
+  * 🌟️️ **Add a `PendingUtils.defaultFlags`** property to ease setting PendingIntent mutability as required for Android 31+.
 
 * **feature-prompts**:
   * More prompts are dismissable.

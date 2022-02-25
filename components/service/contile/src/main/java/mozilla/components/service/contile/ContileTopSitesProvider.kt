@@ -27,24 +27,29 @@ internal const val CACHE_FILE_NAME = "mozilla_components_service_contile.json"
 internal const val MINUTE_IN_MS = 60 * 1000
 
 /**
- * Provide access to the Contile services API.
+ * Provides access to the Contile services API.
  *
- * @property context A reference to the application context.
+ * @param context A reference to the application context.
  * @property client [Client] used for interacting with the Contile HTTP API.
  * @property endPointURL The url of the endpoint to fetch from. Defaults to [CONTILE_ENDPOINT_URL].
  * @property maxCacheAgeInMinutes Maximum time (in minutes) the cache should remain valid
  * before a refresh is attempted. Defaults to -1, meaning no cache is being used by default.
  */
 class ContileTopSitesProvider(
-    private val context: Context,
+    context: Context,
     private val client: Client,
     private val endPointURL: String = CONTILE_ENDPOINT_URL,
     private val maxCacheAgeInMinutes: Long = -1
 ) : TopSitesProvider {
 
+    private val applicationContext = context.applicationContext
     private val logger = Logger("ContileTopSitesProvider")
-
     private val diskCacheLock = Any()
+
+    // The last modified time of the disk cache.
+    @VisibleForTesting
+    @Volatile
+    internal var diskCacheLastModified: Long? = null
 
     /**
      * Fetches from the top sites [endPointURL] to provide a list of provided top sites.
@@ -74,6 +79,16 @@ class ContileTopSitesProvider(
             logger.error("Failed to fetch contile top sites", e)
             throw e
         }
+    }
+
+    /**
+     * Refreshes the cache with the latest top sites response from [endPointURL]
+     * if the cache is active (@see [maxCacheAgeInMinutes]) and expired.
+     */
+    suspend fun refreshTopSitesIfCacheExpired() {
+        if (maxCacheAgeInMinutes < 0 || !isCacheExpired()) return
+
+        getTopSites(allowCache = false)
     }
 
     private fun fetchTopSites(): List<TopSite.Provided> {
@@ -113,7 +128,10 @@ class ContileTopSitesProvider(
     @VisibleForTesting
     internal fun writeToDiskCache(responseBody: String) {
         synchronized(diskCacheLock) {
-            getCacheFile().writeString { responseBody }
+            getCacheFile().let {
+                it.writeString { responseBody }
+                diskCacheLastModified = System.currentTimeMillis()
+            }
         }
     }
 
@@ -123,14 +141,23 @@ class ContileTopSitesProvider(
 
     @VisibleForTesting
     internal fun getCacheLastModified(): Long {
+        diskCacheLastModified?.let { return it }
+
         val file = getBaseCacheFile()
-        return if (file.exists()) file.lastModified() else -1
+
+        return if (file.exists()) {
+            file.lastModified().also {
+                diskCacheLastModified = it
+            }
+        } else {
+            -1
+        }
     }
 
     private fun getCacheFile(): AtomicFile = AtomicFile(getBaseCacheFile())
 
     @VisibleForTesting
-    internal fun getBaseCacheFile(): File = File(context.filesDir, CACHE_FILE_NAME)
+    internal fun getBaseCacheFile(): File = File(applicationContext.filesDir, CACHE_FILE_NAME)
 }
 
 internal fun JSONObject.getTopSites(): List<TopSite.Provided> =

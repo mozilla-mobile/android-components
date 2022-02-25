@@ -13,9 +13,15 @@ permalink: /changelog/
 
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: This changes `fetchProvidedTopSites` in `TopSitesConfig` into a data class `TopSitesProviderConfig` that specifies whether or not to display the top sites from the provider. [#11654](https://github.com/mozilla-mobile/android-components/issues/11654)
+
+* **support-base**
+  * ⚠️ **This is a breaking change**: Refactor `Frequency` out of **feature-addons** and **service-pocket** [#11732](https://github.com/mozilla-mobile/android-components/pull/11732).
+
 * **support-utils**
   * 🌟️️ **Added new Browsers constant for Fennec `Browsers.FIREFOX_FENNEC_NIGHTLY`.
   * ⚠️ **This is a breaking change**: `Browsers.FIREFOX_NIGHTLY` now points to `org.mozilla.fenix`, for fennec nightly use `Browsers.FIREFOX_FENNEC_NIGHTLY` [#11682](https://github.com/mozilla-mobile/android-components/pull/11682).
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #8567](https://github.com/mozilla-mobile/android-components/issues/8567) - Prevent crashes when trying to add to the system databases.
 
 * **concept-engine**
   * 🌟️️ Add `EngineSessionStateStorage`, describing a storage of `EngineSessionState` instances. 

@@ -53,7 +53,13 @@ permalink: /changelog/
   
 * **site-permission-feature**
   * 🆕 New Add to SitePermissionsFeature a property to set visibility for NotAskAgainCheckBox
-  
+
+* **browser-storage-sync**
+  * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+
+* **feature-syncedtabs**
+  * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+
 # 99.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)

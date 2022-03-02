@@ -34,13 +34,10 @@ class DefaultTopSitesStorage(
     private val topSitesProvider: TopSitesProvider? = null,
     private val defaultTopSites: List<Pair<String, String>> = listOf(),
     coroutineContext: CoroutineContext = Dispatchers.IO
-) : TopSitesStorage, Observable<TopSitesStorage.Observer> by ObserverRegistry() {
+) : TopSitesStorage {
 
     private var scope = CoroutineScope(coroutineContext)
     private val logger = Logger("DefaultTopSitesStorage")
-
-    // Cache of the last retrieved top sites
-    var cachedTopSites = listOf<TopSite>()
 
     init {
         if (defaultTopSites.isNotEmpty()) {
@@ -53,7 +50,6 @@ class DefaultTopSitesStorage(
     override fun addTopSite(title: String, url: String, isDefault: Boolean) {
         scope.launch {
             pinnedSitesStorage.addPinnedSite(title, url, isDefault)
-            notifyObservers { onStorageUpdated() }
         }
     }
 
@@ -68,8 +64,6 @@ class DefaultTopSitesStorage(
             if (topSite !is TopSite.Provided) {
                 historyStorage.deleteVisitsFor(topSite.url)
             }
-
-            notifyObservers { onStorageUpdated() }
         }
     }
 
@@ -78,8 +72,6 @@ class DefaultTopSitesStorage(
             if (topSite is TopSite.Default || topSite is TopSite.Pinned) {
                 pinnedSitesStorage.updatePinnedSite(topSite, title, url)
             }
-
-            notifyObservers { onStorageUpdated() }
         }
     }
 
@@ -125,7 +117,6 @@ class DefaultTopSitesStorage(
         }
 
         emitTopSitesCountFact(pinnedSites.size)
-        cachedTopSites = topSites
 
         return topSites
     }

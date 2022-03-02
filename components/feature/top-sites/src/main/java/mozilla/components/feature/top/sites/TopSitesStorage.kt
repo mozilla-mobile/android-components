@@ -11,7 +11,7 @@ import mozilla.components.support.base.observer.Observable
 /**
  * Abstraction layer above the [PinnedSiteStorage] and [PlacesHistoryStorage] storages.
  */
-interface TopSitesStorage : Observable<TopSitesStorage.Observer> {
+interface TopSitesStorage {
     /**
      * Adds a new top site.
      *
@@ -54,14 +54,4 @@ interface TopSitesStorage : Observable<TopSitesStorage.Observer> {
         frecencyConfig: FrecencyThresholdOption? = null,
         providerConfig: TopSitesProviderConfig? = null
     ): List<TopSite>
-
-    /**
-     * Interface to be implemented by classes that want to observe the top site storage.
-     */
-    interface Observer {
-        /**
-         * Notify the observer when changes are made to the storage.
-         */
-        fun onStorageUpdated()
-    }
 }

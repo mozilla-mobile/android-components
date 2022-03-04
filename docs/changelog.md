@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-addons**
+  * 🚒 Bug fixed [issue #11819] https://github.com/mozilla-mobile/android-components/issues/11819) - Do not block installation of extensions with the "nativeMessaging" permission any longer, but ignore the permission instead for non-builtin add-ons.
+
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: This changes `fetchProvidedTopSites` in `TopSitesConfig` into a data class `TopSitesProviderConfig` that specifies whether or not to display the top sites from the provider. [#11654](https://github.com/mozilla-mobile/android-components/issues/11654)
 

@@ -356,7 +356,7 @@ class AddonManager(
     companion object {
         // List of invalid permissions for external add-ons i.e. permissions only
         // granted to built-in extensions:
-        val BLOCKED_PERMISSIONS = listOf("geckoViewAddons", "nativeMessaging")
+        val BLOCKED_PERMISSIONS = listOf("geckoViewAddons")
 
         // Size of the icon to load for temporary extensions
         const val TEMPORARY_ADDON_ICON_SIZE = 48

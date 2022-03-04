@@ -507,7 +507,7 @@ class AddonManagerTest {
     fun `installAddon fails for blocked permission`() {
         val addon = Addon(
             id = "ext1",
-            permissions = listOf("bookmarks", "geckoviewaddons", "nativemessaging")
+            permissions = listOf("bookmarks", "geckoviewaddons")
         )
 
         val engine: Engine = mock()

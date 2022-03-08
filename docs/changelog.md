@@ -4,12 +4,25 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 99.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
+# 100.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/147?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **concept-sync**
+  * 🌟️️ Add `onReady` method to `AccountObserver`, allowing consumers to know when they can start querying account state.
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: `fetchProfile` was removed from `FxaAccountManager`.
+
+# 99.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/.config.yml)
 
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: This changes `fetchProvidedTopSites` in `TopSitesConfig` into a data class `TopSitesProviderConfig` that specifies whether or not to display the top sites from the provider. [#11654](https://github.com/mozilla-mobile/android-components/issues/11654)
@@ -37,6 +50,7 @@ permalink: /changelog/
 
 * **feature-tabs**
   * ⚠️ **This is a breaking change**: `RestoreUseCase` implementation responsible for restoring `RecoverableTab` instances now takes a `TabState` and a `EngineSessionStateStorage` instead (and will read/rehydrate an EngineSessionState prior to restoring).
+
 
 # 98.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v97.0.0...v98.0.0)

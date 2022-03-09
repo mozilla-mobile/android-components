@@ -173,6 +173,7 @@ open class FxaAccountManager(
     // initialization, instead of triggering the full state machine knowing in advance we'll hit auth problems.
     // See https://github.com/mozilla-mobile/android-components/issues/5102
     @Volatile private var state: State = State.Idle(AccountState.NotAuthenticated)
+    @Volatile private var isAccountManagerReady: Boolean = false
     private val eventQueue = ConcurrentLinkedQueue<Event>()
 
     @VisibleForTesting
@@ -277,11 +278,19 @@ open class FxaAccountManager(
      *
      * @param reason A [SyncReason] indicating why this sync is being requested.
      * @param debounce Boolean flag indicating if this sync may be debounced (in case another sync executed recently).
+     * @param customEngineSubset A subset of supported engines to sync. Defaults to all supported engines.
      */
     suspend fun syncNow(
         reason: SyncReason,
-        debounce: Boolean = false
+        debounce: Boolean = false,
+        customEngineSubset: List<SyncEngine> = listOf(),
     ) = withContext(coroutineContext) {
+        check(
+            customEngineSubset.isEmpty() ||
+                syncConfig?.supportedEngines?.containsAll(customEngineSubset) == true
+        ) {
+            "Custom engines for sync must be a subset of supported engines."
+        }
         when (val s = state) {
             // Can't sync while we're still doing stuff.
             is State.Active -> Unit
@@ -311,7 +320,7 @@ open class FxaAccountManager(
                         checkNotNull(syncManager == null) {
                             "Sync is not configured. Construct this class with a 'syncConfig' or use 'setSyncConfig'"
                         }
-                        syncManager?.now(reason, debounce)
+                        syncManager?.now(reason, debounce, customEngineSubset)
                     }
                 }
                 else -> logger.info("Ignoring syncNow request, not in the right state: $s")
@@ -329,6 +338,11 @@ open class FxaAccountManager(
      */
     suspend fun start() = withContext(coroutineContext) {
         processQueue(Event.Account.Start)
+
+        if (!isAccountManagerReady) {
+            notifyObservers { onReady(authenticatedAccount()) }
+            isAccountManagerReady = true
+        }
     }
 
     /**
@@ -376,14 +390,8 @@ open class FxaAccountManager(
         else -> null
     }
 
-    /**
-     * Fetches an up-to-date [Profile] if account is in an authenticated state.
-     */
-    suspend fun fetchProfile(): Profile? {
-        return refreshProfile(true)
-    }
-
-    private suspend fun refreshProfile(ignoreCache: Boolean): Profile? {
+    @VisibleForTesting
+    internal suspend fun refreshProfile(ignoreCache: Boolean): Profile? {
         return authenticatedAccount()?.getProfile(ignoreCache = ignoreCache)?.let { newProfile ->
             profile = newProfile
             notifyObservers {
@@ -399,7 +407,7 @@ open class FxaAccountManager(
      * @param pairingUrl Optional pairing URL in case a pairing flow is being initiated.
      * @return An authentication url which is to be presented to the user.
      */
-    suspend fun beginAuthentication(pairingUrl: String? = null): String? {
+    suspend fun beginAuthentication(pairingUrl: String? = null): String? = withContext(coroutineContext) {
         // It's possible that at this point authentication is considered to be "in-progress".
         // For example, if user started authentication flow, but cancelled it (closing a custom tab)
         // without finishing.
@@ -426,7 +434,7 @@ open class FxaAccountManager(
         })
         processQueue(event)
         oauthObservers.unregisterObservers()
-        return deferredAuthUrl
+        deferredAuthUrl
     }
 
     /**
@@ -497,7 +505,7 @@ open class FxaAccountManager(
     /**
      * Pumps the state machine until all events are processed and their side-effects resolve.
      */
-    private suspend fun processQueue(event: Event) = withContext(coroutineContext) {
+    private suspend fun processQueue(event: Event) {
         eventQueue.add(event)
         do {
             val toProcess: Event = eventQueue.poll()!!

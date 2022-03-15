@@ -4,10 +4,6 @@
   <CurrentIssues>
     <ID>AbsentOrWrongFileLicense:AutoFitTextureView.kt$mozilla.components.feature.qr.views.AutoFitTextureView.kt</ID>
     <ID>AbsentOrWrongFileLicense:QrFragment.kt$mozilla.components.feature.qr.QrFragment.kt</ID>
-    <ID>LargeClass:ContextMenuCandidate.kt$ContextMenuCandidate$Companion</ID>
-    <ID>LongParameterList:FxaWebChannelFeature.kt$FxaWebChannelFeature$( private val context: Context, private val customTabSessionId: String?, private val runtime: WebExtensionRuntime, private val store: BrowserStore, private val accountManager: FxaAccountManager, private val serverConfig: ServerConfig, private val fxaCapabilities: Set&lt;FxaCapability&gt; = emptySet() )</ID>
-    <ID>LongParameterList:PromptRequest.kt$PromptRequest.TimeSelection$( val title: String, val initialDate: java.util.Date, val minimumDate: java.util.Date?, val maximumDate: java.util.Date?, val type: Type = Type.DATE, val onConfirm: (java.util.Date) -&gt; Unit, val onClear: () -&gt; Unit )</ID>
-    <ID>LongParameterList:ReaderViewIntegration.kt$ReaderViewIntegration$( context: Context, engine: Engine, store: BrowserStore, toolbar: BrowserToolbar, view: ReaderViewControlsView, readerViewAppearanceButton: FloatingActionButton )</ID>
     <ID>UndocumentedPublicClass:AutoSave.kt$AutoSave</ID>
     <ID>UndocumentedPublicClass:AutoSave.kt$AutoSave$Storage</ID>
     <ID>UndocumentedPublicClass:Base64.kt$Base64</ID>

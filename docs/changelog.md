@@ -25,6 +25,7 @@ permalink: /changelog/
 
 * **service-firefox-accounts**
   * ⚠️ **This is a breaking change**: `fetchProfile` was removed from `FxaAccountManager`.
+  * A sync starting or stopping is reported as a "breadcrumb" to the crash reporter.
 
 # 99.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)

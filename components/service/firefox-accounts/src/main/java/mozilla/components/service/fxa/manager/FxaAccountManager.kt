@@ -917,7 +917,7 @@ open class FxaAccountManager(
 
     @VisibleForTesting
     internal open fun createSyncManager(config: SyncConfig): SyncManager {
-        return WorkManagerSyncManager(context, config)
+        return WorkManagerSyncManager(context, config, crashReporter)
     }
 
     internal open fun getAccountStorage(): AccountStorage {

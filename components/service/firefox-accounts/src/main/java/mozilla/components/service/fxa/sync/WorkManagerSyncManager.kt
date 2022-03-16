@@ -26,6 +26,8 @@ import mozilla.appservices.sync15.SyncTelemetryPing
 import mozilla.appservices.syncmanager.ServiceStatus
 import mozilla.appservices.syncmanager.SyncEngineSelection
 import mozilla.appservices.syncmanager.SyncParams
+import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.KeyProvider
 import mozilla.components.service.fxa.FxaDeviceSettingsCache
 import mozilla.components.service.fxa.SyncAuthInfoCache
@@ -64,7 +66,8 @@ private const val SYNC_WORKER_BACKOFF_DELAY_MINUTES = 3L
  */
 internal class WorkManagerSyncManager(
     private val context: Context,
-    syncConfig: SyncConfig
+    syncConfig: SyncConfig,
+    private val crashReporter: CrashReporting?
 ) : SyncManager(syncConfig) {
     override val logger = Logger("BgSyncManager")
 
@@ -79,7 +82,7 @@ internal class WorkManagerSyncManager(
     }
 
     override fun createDispatcher(supportedEngines: Set<SyncEngine>): SyncDispatcher {
-        return WorkManagerSyncDispatcher(context, supportedEngines)
+        return WorkManagerSyncDispatcher(context, supportedEngines, crashReporter)
     }
 
     override fun dispatcherUpdated(dispatcher: SyncDispatcher) {
@@ -134,7 +137,8 @@ internal object WorkersLiveDataObserver {
 
 internal class WorkManagerSyncDispatcher(
     private val context: Context,
-    private val supportedEngines: Set<SyncEngine>
+    private val supportedEngines: Set<SyncEngine>,
+    private val crashReporter: CrashReporting?
 ) : SyncDispatcher, Observable<SyncStatusObserver> by ObserverRegistry(), Closeable {
     private val logger = Logger("WMSyncDispatcher")
 
@@ -155,6 +159,17 @@ internal class WorkManagerSyncDispatcher(
             notifyObservers { onStarted() }
             isSyncActive = true
         }
+        crashReporter?.recordCrashBreadcrumb(
+            Breadcrumb(
+                category = this::class.java.simpleName,
+                message = "syncing-state-change",
+                data = mapOf(
+                    "active" to isSyncActive.toString(),
+                    "engines" to supportedEngines.map { it.nativeName }.joinToString(","),
+                ),
+                level = Breadcrumb.Level.INFO
+            )
+        )
     }
 
     override fun isSyncActive(): Boolean {

@@ -70,6 +70,10 @@ class SendTabUseCases(
         }
 
         private suspend fun send(deviceId: String, tab: TabData): Boolean {
+            // Filter tabs that don't have a send-capable uri
+            if (!isValidTabSchema(tab)) {
+                return false
+            }
             filterSendTabDevices(accountManager) { constellation, devices ->
                 val device = devices.firstOrNull {
                     it.id == deviceId
@@ -116,7 +120,7 @@ class SendTabUseCases(
         operator fun invoke(tabs: Collection<TabData>): Deferred<Boolean> {
             return scope.async {
                 sendToAll { devices ->
-                    devices.crossProduct(tabs) { device, tab ->
+                    devices.crossProduct(tabs.filter { isValidTabSchema(it) }) { device, tab ->
                         device to tab
                     }
                 }
@@ -130,6 +134,10 @@ class SendTabUseCases(
             filterSendTabDevices(accountManager) { constellation, devices ->
                 // Get a list of device-tab combinations that we want to send.
                 return block(devices).map { (device, tab) ->
+                    // Filter tabs that don't have a send-capable uri
+                    if (!isValidTabSchema(tab)) {
+                        return false
+                    }
                     // Send the tab!
                     constellation.sendCommandToDevice(
                         device.id,
@@ -173,4 +181,12 @@ internal inline fun filterSendTabDevices(
             block(constellation, devices)
         }
     }
+}
+
+@VisibleForTesting
+internal fun isValidTabSchema(tab: TabData): Boolean {
+    // We don't sync certain schemas, about|resource|chrome|file|blob|moz-extension
+    // See https://searchfox.org/mozilla-central/source/modules/libpref/init/all.js#4372
+    val filteredSchemas = arrayOf("about:", "resource:", "chrome:", "file:", "blob:", "moz-extension:")
+    return filteredSchemas.none({ tab.url.startsWith(it) })
 }

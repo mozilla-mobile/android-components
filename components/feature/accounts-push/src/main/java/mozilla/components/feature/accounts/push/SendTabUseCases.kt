@@ -120,7 +120,8 @@ class SendTabUseCases(
         operator fun invoke(tabs: Collection<TabData>): Deferred<Boolean> {
             return scope.async {
                 sendToAll { devices ->
-                    devices.crossProduct(tabs.filter { isValidTabSchema(it) }) { device, tab ->
+                    val filteredTabs = tabs.filter { isValidTabSchema(it) }
+                    devices.crossProduct(filteredTabs) { device, tab ->
                         device to tab
                     }
                 }
@@ -186,7 +187,7 @@ internal inline fun filterSendTabDevices(
 @VisibleForTesting
 internal fun isValidTabSchema(tab: TabData): Boolean {
     // We don't sync certain schemas, about|resource|chrome|file|blob|moz-extension
-    // See https://searchfox.org/mozilla-central/source/modules/libpref/init/all.js#4372
+    // See https://searchfox.org/mozilla-central/rev/7d379061bd56251df911728686c378c5820513d8/modules/libpref/init/all.js#4356
     val filteredSchemas = arrayOf("about:", "resource:", "chrome:", "file:", "blob:", "moz-extension:")
     return filteredSchemas.none({ tab.url.startsWith(it) })
 }

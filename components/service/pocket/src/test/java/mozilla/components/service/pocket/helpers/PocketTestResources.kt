@@ -7,6 +7,7 @@ package mozilla.components.service.pocket.helpers
 import mozilla.components.service.pocket.PocketRecommendedStory
 import mozilla.components.service.pocket.api.PocketApiStory
 import mozilla.components.service.pocket.stories.db.PocketStoryEntity
+import org.json.JSONObject
 
 private const val POCKET_DIR = "pocket"
 
@@ -14,6 +15,19 @@ private const val POCKET_DIR = "pocket"
  * Accessors to resources used in testing.
  */
 internal object PocketTestResources {
+    val pocketEndpointOneStoryJSONResponse = JSONObject(
+        """
+            {
+                "category": "general",
+                "url": "https://getpocket.com/explore/item/how-to-remember-anything-you-really-want-to-remember-backed-by-science",
+                "title": "How to Remember Anything You Really Want to Remember, Backed by Science",
+                "imageUrl": "https://img-getpocket.cdn.mozilla.net/{wh}/filters:format(jpeg):quality(60):no_upscale():strip_exif()/https%3A%2F%2Fpocket-image-cache.com%2F1200x%2Ffilters%3Aformat(jpg)%3Aextract_focal()%2Fhttps%253A%252F%252Fwww.incimages.com%252Fuploaded_files%252Fimage%252F1920x1080%252Fgetty-862457080_394628.jpg",
+                "publisher": "Pocket",
+                "timeToRead": 3
+            }
+        """.trimIndent()
+    )
+
     val pocketEndointFiveStoriesResponse = this::class.java.classLoader!!.getResource(
         "$POCKET_DIR/stories_recommendations_response.json"
     )!!.readText()

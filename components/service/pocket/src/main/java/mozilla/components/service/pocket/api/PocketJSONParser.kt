@@ -12,10 +12,12 @@ import mozilla.components.support.ktx.android.org.json.tryGetString
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import kotlin.jvm.Throws
 
 private const val JSON_STORY_TITLE_KEY = "title"
 private const val JSON_STORY_URL_KEY = "url"
-private const val JSON_STORY_IMAGE_URL_KEY = "imageUrl"
+@VisibleForTesting
+internal const val JSON_STORY_IMAGE_URL_KEY = "imageUrl"
 private const val JSON_STORY_PUBLISHER_KEY = "publisher"
 private const val JSON_STORY_CATEGORY_KEY = "category"
 private const val JSON_STORY_TIME_TO_READ_KEY = "timeToRead"
@@ -44,7 +46,7 @@ internal class PocketJSONParser {
             // These three properties are required for any valid recommendation.
             title = json.getString(JSON_STORY_TITLE_KEY),
             url = json.getString(JSON_STORY_URL_KEY),
-            imageUrl = json.getString(JSON_STORY_IMAGE_URL_KEY),
+            imageUrl = getValidImageUrl(json),
             // The following three properties are optional.
             publisher = json.tryGetString(JSON_STORY_PUBLISHER_KEY) ?: STRING_NOT_FOUND_DEFAULT_VALUE,
             category = json.tryGetString(JSON_STORY_CATEGORY_KEY) ?: STRING_NOT_FOUND_DEFAULT_VALUE,
@@ -52,6 +54,30 @@ internal class PocketJSONParser {
         )
     } catch (e: JSONException) {
         null
+    }
+
+    /**
+     * Validate and return the Pocket story imageUrl only if it has an actual image path.
+     * The JSON object representing a Pocket story might contains a url representing the `imageUrl`
+     * but that might not be valid.
+     *
+     * @param [jsonStory] JSON respecting the schema of a Pocket story. Expected to contain [JSON_STORY_IMAGE_URL_KEY].
+     *
+     * @return the full imageUrl from [jsonStory] if it does not end in "/null".
+     *
+     * @throws JSONException if a value for [JSON_STORY_IMAGE_URL_KEY] is not found or ends with "/null".
+     */
+    @Throws(JSONException::class)
+    @VisibleForTesting
+    internal fun getValidImageUrl(jsonStory: JSONObject): String {
+        val imageUrl = jsonStory.getString(JSON_STORY_IMAGE_URL_KEY)
+        val imagePath = imageUrl.substringAfterLast("/")
+
+        if (imagePath == "null") {
+            throw JSONException("Null image path")
+        }
+
+        return imageUrl
     }
 
     companion object {

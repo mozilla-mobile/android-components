@@ -8,10 +8,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.service.pocket.api.PocketJSONParser.Companion.KEY_ARRAY_ITEMS
 import mozilla.components.service.pocket.helpers.PocketTestResources
 import mozilla.components.service.pocket.helpers.assertClassVisibility
+import mozilla.components.support.ktx.android.org.json.toList
+import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -83,6 +87,33 @@ class PocketJSONParserTest {
     }
 
     @Test
+    fun `WHEN parsing stories recommendations with missing image paths THEN those entries are dropped`() {
+        val pocketStoriesWithMissingImagePathJSON = JSONObject(PocketTestResources.pocketEndointFiveStoriesResponse).apply {
+            val storiesWithOneMissingImagePath = JSONArray(
+                this.getJSONArray(KEY_ARRAY_ITEMS).toList<JSONObject>()
+                    .mapIndexed { index, jsonObject ->
+                        if (index == 2) {
+                            jsonObject.put(
+                                JSON_STORY_IMAGE_URL_KEY,
+                                jsonObject.getString(JSON_STORY_IMAGE_URL_KEY) + "/null"
+                            )
+                        } else {
+                            jsonObject
+                        }
+                    }
+            )
+            put(KEY_ARRAY_ITEMS, storiesWithOneMissingImagePath)
+        }
+        val expectedStoriesIfMissingImagePath = ArrayList(PocketTestResources.apiExpectedPocketStoriesRecommendations)
+            .apply { removeAt(2) }
+
+        val result = parser.jsonToPocketApiStories(pocketStoriesWithMissingImagePathJSON.toString())
+
+        assertEquals(4, result!!.size)
+        assertEquals(expectedStoriesIfMissingImagePath.joinToString(), result.joinToString())
+    }
+
+    @Test
     fun `WHEN parsing stories recommendations with missing publishers THEN those entries are kept but with default values`() {
         val pocketJSON = PocketTestResources.pocketEndointFiveStoriesResponse
         val expectedStoriesIfMissingPublishers = PocketTestResources.apiExpectedPocketStoriesRecommendations
@@ -147,6 +178,24 @@ class PocketJSONParserTest {
     @Test
     fun `WHEN parsing stories recommendations for an invalid JSON String THEN null is returned`() {
         assertNull(parser.jsonToPocketApiStories("{!!}}"))
+    }
+
+    @Test
+    fun `WHEN a valid image path is present in imageUrl THEN return the full imageUrl`() {
+        val storyWithValidImagePath = PocketTestResources.pocketEndpointOneStoryJSONResponse
+
+        val result = parser.getValidImageUrl(storyWithValidImagePath)
+
+        assertSame(storyWithValidImagePath.getString(JSON_STORY_IMAGE_URL_KEY), result)
+    }
+
+    @Test(expected = JSONException::class)
+    fun `WHEN the image path is missing from imageUrl THEN an exception is thrown`() {
+        val storyWithNullImageUrl = PocketTestResources.pocketEndpointOneStoryJSONResponse.also {
+            it.put(JSON_STORY_IMAGE_URL_KEY, it.getString(JSON_STORY_IMAGE_URL_KEY) + "/null")
+        }
+
+        parser.getValidImageUrl(storyWithNullImageUrl)
     }
 }
 

@@ -4,12 +4,37 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 99.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
+# 100.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/147?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **feature-autofill**
+  * 🚒 Bug fixed [issue #11869](https://github.com/mozilla-mobile/android-components/issues/11869) - Fix regression causing autofill to not work after unlocking the app doing the autofill or after accepting that the authenticity of the autofill target could not be verified.
+
+* **feature-contextmenu**
+  * 🚒 Bug fixed [issue #11829](https://github.com/mozilla-mobile/android-components/pull/11830) - To make the additional note visible in landscape mode.
+
+* **browser-toolbar**
+  * Removed reflective access to non-public SDK APIs controlling the sensitivity of the gesture detector following which sparingly and for very short time a pinch/spread to zoom gesture might be identified first as a scroll gesture and move the toolbar a little before snapping to it's original position.
+
+* **feature-session**
+   * 🆕 New `ScreenOrientationFeature` to enable support for setting a requested screen orientation as part of supporting the ScreenOrientation web APIs.
+
+* **concept-sync**
+  * 🌟️️ Add `onReady` method to `AccountObserver`, allowing consumers to know when they can start querying account state.
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: `fetchProfile` was removed from `FxaAccountManager`.
+
+# 99.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/.config.yml)
 
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: This changes `fetchProvidedTopSites` in `TopSitesConfig` into a data class `TopSitesProviderConfig` that specifies whether or not to display the top sites from the provider. [#11654](https://github.com/mozilla-mobile/android-components/issues/11654)
@@ -37,6 +62,7 @@ permalink: /changelog/
 
 * **feature-tabs**
   * ⚠️ **This is a breaking change**: `RestoreUseCase` implementation responsible for restoring `RecoverableTab` instances now takes a `TabState` and a `EngineSessionStateStorage` instead (and will read/rehydrate an EngineSessionState prior to restoring).
+
 
 # 98.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v97.0.0...v98.0.0)

@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color
+import android.os.Looper.getMainLooper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
@@ -48,6 +49,7 @@ import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyFloat
 import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
 import org.mockito.Mockito.reset
 import org.mockito.Mockito.spy
@@ -62,6 +64,7 @@ import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
+import org.mozilla.geckoview.OrientationController
 import org.mozilla.geckoview.StorageController
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_CORRUPT_FILE
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_FILE_ACCESS
@@ -75,6 +78,7 @@ import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_USER
 import org.mozilla.geckoview.WebExtensionController
 import org.mozilla.geckoview.WebPushController
 import org.robolectric.Robolectric
+import org.robolectric.Shadows.shadowOf
 import java.io.IOException
 import org.mozilla.geckoview.WebExtension as GeckoWebExtension
 
@@ -696,6 +700,8 @@ class GeckoEngineTest {
         )
         result.complete(mockNativeWebExtension(extId, extUrl))
 
+        shadowOf(getMainLooper()).idle()
+
         val extUrlCaptor = argumentCaptor<String>()
         val extIdCaptor = argumentCaptor<String>()
         verify(extensionController).ensureBuiltIn(extUrlCaptor.capture(), extIdCaptor.capture())
@@ -728,6 +734,8 @@ class GeckoEngineTest {
         )
         result.complete(mockNativeWebExtension(extId, extUrl))
 
+        shadowOf(getMainLooper()).idle()
+
         val extCaptor = argumentCaptor<String>()
         verify(extensionController).install(extCaptor.capture())
         assertEquals(extUrl, extCaptor.value)
@@ -757,6 +765,8 @@ class GeckoEngineTest {
         }
         result.completeExceptionally(expected)
 
+        shadowOf(getMainLooper()).idle()
+
         assertTrue(onErrorCalled)
         assertEquals(expected, throwable)
     }
@@ -782,6 +792,8 @@ class GeckoEngineTest {
             throwable = e
         }
         result.completeExceptionally(expected)
+
+        shadowOf(getMainLooper()).idle()
 
         assertTrue(onErrorCalled)
         assertEquals(expected, throwable)
@@ -814,6 +826,9 @@ class GeckoEngineTest {
             onError = { _, _ -> onErrorCalled = true }
         )
         result.complete(null)
+
+        shadowOf(getMainLooper()).idle()
+
         verify(webExtensionsDelegate).onUninstalled(ext)
 
         val extCaptor = argumentCaptor<GeckoWebExtension>()
@@ -853,6 +868,9 @@ class GeckoEngineTest {
             throwable = e
         }
         result.completeExceptionally(expected)
+
+        shadowOf(getMainLooper()).idle()
+
         verify(webExtensionsDelegate, never()).onUninstalled(ext)
 
         assertTrue(onErrorCalled)
@@ -876,6 +894,8 @@ class GeckoEngineTest {
         engine.installWebExtension(extId, extUrl)
         result.complete(mockNativeWebExtension(extId, extUrl))
 
+        shadowOf(getMainLooper()).idle()
+
         val extCaptor = argumentCaptor<WebExtension>()
         verify(webExtensionsDelegate).onInstalled(extCaptor.capture())
         assertEquals(extId, extCaptor.value.id)
@@ -898,6 +918,8 @@ class GeckoEngineTest {
         whenever(webExtensionController.install(any())).thenReturn(result)
         engine.installWebExtension(extId, extUrl)
         result.complete(mockNativeWebExtension(extId, extUrl))
+
+        shadowOf(getMainLooper()).idle()
 
         val extCaptor = argumentCaptor<WebExtension>()
         verify(webExtensionsDelegate).onInstalled(extCaptor.capture())
@@ -1032,6 +1054,8 @@ class GeckoEngineTest {
         val extension = mockNativeWebExtension(extId, extUrl)
         result.complete(extension)
 
+        shadowOf(getMainLooper()).idle()
+
         val actionDelegateCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension.ActionDelegate>()
         verify(extension).setActionDelegate(actionDelegateCaptor.capture())
 
@@ -1065,6 +1089,8 @@ class GeckoEngineTest {
         engine.installWebExtension(extId, extUrl)
         val extension = mockNativeWebExtension(extId, extUrl)
         result.complete(extension)
+
+        shadowOf(getMainLooper()).idle()
 
         val actionDelegateCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension.ActionDelegate>()
         verify(extension).setActionDelegate(actionDelegateCaptor.capture())
@@ -1100,6 +1126,8 @@ class GeckoEngineTest {
         val extension = mockNativeWebExtension(extId, extUrl)
         result.complete(extension)
 
+        shadowOf(getMainLooper()).idle()
+
         val tabDelegateCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension.TabDelegate>()
         verify(extension).tabDelegate = tabDelegateCaptor.capture()
 
@@ -1129,6 +1157,8 @@ class GeckoEngineTest {
         engine.installWebExtension(extId, extUrl)
         val extension = mockNativeWebExtension(extId, extUrl)
         result.complete(extension)
+
+        shadowOf(getMainLooper()).idle()
 
         val actionDelegateCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension.ActionDelegate>()
         verify(extension).setActionDelegate(actionDelegateCaptor.capture())
@@ -1164,6 +1194,8 @@ class GeckoEngineTest {
         val extension = mockNativeWebExtension(extId, extUrl)
         result.complete(extension)
 
+        shadowOf(getMainLooper()).idle()
+
         val actionDelegateCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension.ActionDelegate>()
         verify(extension).setActionDelegate(actionDelegateCaptor.capture())
 
@@ -1197,6 +1229,8 @@ class GeckoEngineTest {
         engine.installWebExtension(extId, extUrl)
         val extension = mockNativeWebExtension(extId, extUrl)
         result.complete(extension)
+
+        shadowOf(getMainLooper()).idle()
 
         val tabDelegateCaptor = argumentCaptor<org.mozilla.geckoview.WebExtension.TabDelegate>()
         verify(extension).tabDelegate = tabDelegateCaptor.capture()
@@ -1253,6 +1287,8 @@ class GeckoEngineTest {
             onError = { _, _ -> onErrorCalled = true }
         )
         updateExtensionResult.complete(updatedExtension)
+
+        shadowOf(getMainLooper()).idle()
 
         assertFalse(onErrorCalled)
         assertNotNull(result)
@@ -1317,6 +1353,8 @@ class GeckoEngineTest {
         )
         updateExtensionResult.completeExceptionally(expected)
 
+        shadowOf(getMainLooper()).idle()
+
         assertSame(expected, throwable!!.cause)
         assertNull(result)
     }
@@ -1345,6 +1383,9 @@ class GeckoEngineTest {
             )
 
             updateExtensionResult.completeExceptionally(exception)
+
+            shadowOf(getMainLooper()).idle()
+
             throwable!!
         }
 
@@ -1396,6 +1437,8 @@ class GeckoEngineTest {
         )
         installedExtensionResult.complete(installedExtensions)
 
+        shadowOf(getMainLooper()).idle()
+
         assertFalse(onErrorCalled)
         assertNotNull(extensions)
     }
@@ -1419,6 +1462,8 @@ class GeckoEngineTest {
             onError = { throwable = it }
         )
         installedExtensionResult.completeExceptionally(expected)
+
+        shadowOf(getMainLooper()).idle()
 
         assertSame(expected, throwable)
         assertNull(extensions)
@@ -1451,6 +1496,8 @@ class GeckoEngineTest {
             onError = { onErrorCalled = true }
         )
         enableExtensionResult.complete(enabledExtension)
+
+        shadowOf(getMainLooper()).idle()
 
         assertFalse(onErrorCalled)
         assertNotNull(result)
@@ -1485,6 +1532,8 @@ class GeckoEngineTest {
         )
         enableExtensionResult.completeExceptionally(expected)
 
+        shadowOf(getMainLooper()).idle()
+
         assertSame(expected, throwable)
         assertNull(result)
         verify(webExtensionsDelegate, never()).onEnabled(any())
@@ -1518,6 +1567,8 @@ class GeckoEngineTest {
         )
         disableExtensionResult.complete(disabledExtension)
 
+        shadowOf(getMainLooper()).idle()
+
         assertFalse(onErrorCalled)
         assertNotNull(result)
         verify(webExtensionsDelegate).onDisabled(result!!)
@@ -1550,6 +1601,8 @@ class GeckoEngineTest {
             onError = { throwable = it }
         )
         disableExtensionResult.completeExceptionally(expected)
+
+        shadowOf(getMainLooper()).idle()
 
         assertSame(expected, throwable)
         assertNull(result)
@@ -1585,6 +1638,8 @@ class GeckoEngineTest {
         )
         allowedInPrivateBrowsingExtensionResult.complete(allowedInPrivateBrowsing)
 
+        shadowOf(getMainLooper()).idle()
+
         assertFalse(onErrorCalled)
         assertNotNull(result)
         verify(webExtensionsDelegate).onAllowedInPrivateBrowsingChanged(result!!)
@@ -1619,6 +1674,8 @@ class GeckoEngineTest {
         )
         allowedInPrivateBrowsingExtensionResult.completeExceptionally(expected)
 
+        shadowOf(getMainLooper()).idle()
+
         assertSame(expected, throwable)
         assertNull(result)
         verify(webExtensionsDelegate, never()).onAllowedInPrivateBrowsingChanged(any())
@@ -1652,6 +1709,9 @@ class GeckoEngineTest {
 
         val engine = GeckoEngine(context, runtime = runtime)
         engine.clearData(data = Engine.BrowsingData.all(), onSuccess = { onSuccessCalled = true })
+
+        shadowOf(getMainLooper()).idle()
+
         assertTrue(onSuccessCalled)
     }
 
@@ -1677,6 +1737,9 @@ class GeckoEngineTest {
                 throwable = it
             }
         )
+
+        shadowOf(getMainLooper()).idle()
+
         assertTrue(onErrorCalled)
         assertSame(exception, throwable)
     }
@@ -1700,6 +1763,9 @@ class GeckoEngineTest {
 
         val engine = GeckoEngine(context, runtime = runtime)
         engine.clearData(data = Engine.BrowsingData.all(), host = "mozilla.org", onSuccess = { onSuccessCalled = true })
+
+        shadowOf(getMainLooper()).idle()
+
         assertTrue(onSuccessCalled)
     }
 
@@ -1730,6 +1796,9 @@ class GeckoEngineTest {
                 throwable = it
             }
         )
+
+        shadowOf(getMainLooper()).idle()
+
         assertTrue(onErrorCalled)
         assertSame(exception, throwable)
     }
@@ -1779,6 +1848,8 @@ class GeckoEngineTest {
 
         logEntriesResult.complete(createDummyLogEntryList())
 
+        shadowOf(getMainLooper()).idle()
+
         val trackerLog = trackersLog!!.first()
         assertTrue(trackerLog.cookiesHasBeenBlocked)
         assertEquals("www.tracker.com", trackerLog.url)
@@ -1807,6 +1878,8 @@ class GeckoEngineTest {
             },
             onError = { onErrorCalled = true }
         )
+
+        shadowOf(getMainLooper()).idle()
 
         assertTrue(onErrorCalled)
     }
@@ -1837,6 +1910,8 @@ class GeckoEngineTest {
 
         logEntriesResult.complete(createShimmedEntryList())
 
+        shadowOf(getMainLooper()).idle()
+
         val trackerLog = trackersLog!!.first()
         assertEquals("www.tracker.com", trackerLog.url)
         assertTrue(trackerLog.blockedCategories.contains(TrackingCategory.SCRIPTS_AND_SUB_RESOURCES))
@@ -1864,6 +1939,8 @@ class GeckoEngineTest {
 
         engine.getTrackersLog(mockSession, onSuccess = { trackersLog = it })
         logEntriesResult.complete(createSocialTrackersLogEntryList())
+
+        shadowOf(getMainLooper()).idle()
 
         var trackerLog = trackersLog!!.first()
         assertTrue(trackerLog.cookiesHasBeenBlocked)
@@ -1934,6 +2011,8 @@ class GeckoEngineTest {
         )
         logEntriesResult.complete(createDummyLogEntryList())
 
+        shadowOf(getMainLooper()).idle()
+
         val trackerLog = trackersLog!![1]
         assertTrue(trackerLog.loadedCategories.contains(TrackingCategory.SCRIPTS_AND_SUB_RESOURCES))
     }
@@ -1986,6 +2065,32 @@ class GeckoEngineTest {
         engine.unregisterActivityDelegate()
 
         verify(runtime).activityDelegate = null
+    }
+
+    @Test
+    fun `registerScreenOrientationDelegate sets delegate`() {
+        val orientationController = mock<OrientationController>()
+        val runtime = mock<GeckoRuntime>()
+        doReturn(orientationController).`when`(runtime).orientationController
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerScreenOrientationDelegate(mock())
+
+        verify(orientationController).delegate = any()
+    }
+
+    @Test
+    fun `unregisterScreenOrientationDelegate sets delegate to null`() {
+        val orientationController = mock<OrientationController>()
+        val runtime = mock<GeckoRuntime>()
+        doReturn(orientationController).`when`(runtime).orientationController
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerScreenOrientationDelegate(mock())
+        verify(orientationController).delegate = any()
+
+        engine.unregisterScreenOrientationDelegate()
+        verify(orientationController).delegate = null
     }
 
     private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {

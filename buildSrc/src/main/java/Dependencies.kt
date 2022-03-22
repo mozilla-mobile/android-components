@@ -11,7 +11,7 @@ object Versions {
     const val coroutines = "1.5.2"
 
     const val junit = "4.12"
-    const val robolectric = "4.1"
+    const val robolectric = "4.7.3"
     const val mockito = "3.11.2"
     const val maven_ant_tasks = "2.1.3"
 
@@ -20,9 +20,10 @@ object Versions {
     const val android_gradle_plugin = "7.0.0"
     const val android_maven_publish_plugin = "3.6.2"
     const val lint = "27.0.1"
-    const val detekt = "1.17.1"
+    const val detekt = "1.19.0"
 
-    const val sentry = "1.7.21"
+    const val sentry_legacy = "1.7.21"
+    const val sentry_latest = "5.6.1"
     const val okhttp = "3.13.1"
     const val zxing = "3.3.0"
     const val jna = "5.5.0"
@@ -170,7 +171,8 @@ object Dependencies {
 
     const val thirdparty_okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val thirdparty_okhttp_urlconnection = "com.squareup.okhttp3:okhttp-urlconnection:${Versions.okhttp}"
-    const val thirdparty_sentry = "io.sentry:sentry-android:${Versions.sentry}"
+    const val thirdparty_sentry_legacy = "io.sentry:sentry-android:${Versions.sentry_legacy}"
+    const val thirdparty_sentry_latest = "io.sentry:sentry-android:${Versions.sentry_latest}"
     const val thirdparty_zxing = "com.google.zxing:core:${Versions.zxing}"
     const val thirdparty_jna = "net.java.dev.jna:jna:${Versions.jna}@jar"
     const val thirdparty_disklrucache = "com.jakewharton:disklrucache:${Versions.disklrucache}"

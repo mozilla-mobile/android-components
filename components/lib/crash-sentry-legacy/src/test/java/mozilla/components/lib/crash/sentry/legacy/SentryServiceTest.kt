@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.lib.crash.service
+package mozilla.components.lib.crash.sentry.legacy
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.sentry.SentryClient
@@ -142,14 +142,14 @@ class SentryServiceTest {
             sendEventForNativeCrashes = true
         )
 
-        service.report(Crash.NativeCodeCrash(0, "", true, "", false, arrayListOf()))
+        service.report(Crash.NativeCodeCrash(0, "", true, "", Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD, arrayListOf()))
 
         verify(client).sendEvent(any<EventBuilder>())
         verify(clientContext).clearBreadcrumbs()
     }
 
     @Test
-    fun `Fatal native code crashes are reported as level FATAL`() {
+    fun `Main process native code crashes are reported as level FATAL`() {
         val client: SentryClient = mock()
         val clientContext: Context = mock()
         doReturn(clientContext).`when`(client).context
@@ -164,7 +164,7 @@ class SentryServiceTest {
             sendEventForNativeCrashes = true
         )
 
-        service.report(Crash.NativeCodeCrash(0, "", true, "", true, arrayListOf()))
+        service.report(Crash.NativeCodeCrash(0, "", true, "", Crash.NativeCodeCrash.PROCESS_TYPE_MAIN, arrayListOf()))
 
         val eventBuilderCaptor: ArgumentCaptor<EventBuilder> = ArgumentCaptor.forClass(EventBuilder::class.java)
         verify(client, times(1)).sendEvent(eventBuilderCaptor.capture())
@@ -175,7 +175,7 @@ class SentryServiceTest {
     }
 
     @Test
-    fun `Non-fatal native code crashes are reported as level ERROR`() {
+    fun `Foreground child process native code crashes are reported as level ERROR`() {
         val client: SentryClient = mock()
         val clientContext: Context = mock()
         doReturn(clientContext).`when`(client).context
@@ -190,7 +190,33 @@ class SentryServiceTest {
             sendEventForNativeCrashes = true
         )
 
-        service.report(Crash.NativeCodeCrash(0, "", true, "", false, arrayListOf()))
+        service.report(Crash.NativeCodeCrash(0, "", true, "", Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD, arrayListOf()))
+
+        val eventBuilderCaptor: ArgumentCaptor<EventBuilder> = ArgumentCaptor.forClass(EventBuilder::class.java)
+        verify(client, times(1)).sendEvent(eventBuilderCaptor.capture())
+
+        val capturedEvent: List<EventBuilder> = eventBuilderCaptor.allValues
+        assertEquals(Event.Level.ERROR, capturedEvent[0].event.level)
+        verify(clientContext).clearBreadcrumbs()
+    }
+
+    @Test
+    fun `Background child process native code crashes are reported as level ERROR`() {
+        val client: SentryClient = mock()
+        val clientContext: Context = mock()
+        doReturn(clientContext).`when`(client).context
+        doNothing().`when`(clientContext).clearBreadcrumbs()
+
+        val service = SentryService(
+            testContext,
+            "https://not:real6@sentry.prod.example.net/405",
+            clientFactory = object : SentryClientFactory() {
+                override fun createSentryClient(dsn: Dsn?): SentryClient = client
+            },
+            sendEventForNativeCrashes = true
+        )
+
+        service.report(Crash.NativeCodeCrash(0, "", true, "", Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD, arrayListOf()))
 
         val eventBuilderCaptor: ArgumentCaptor<EventBuilder> = ArgumentCaptor.forClass(EventBuilder::class.java)
         verify(client, times(1)).sendEvent(eventBuilderCaptor.capture())
@@ -264,7 +290,7 @@ class SentryServiceTest {
             }
         )
 
-        service.report(Crash.NativeCodeCrash(0, "", true, "", false, arrayListOf()))
+        service.report(Crash.NativeCodeCrash(0, "", true, "", Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD, arrayListOf()))
 
         verify(client, never()).sendEvent(any<EventBuilder>())
     }
@@ -367,13 +393,13 @@ class SentryServiceTest {
             )
         )
         val crashBreadCrumbs = arrayListOf<Breadcrumb>()
-        crashBreadCrumbs.addAll(reporter.crashBreadcrumbs)
+        crashBreadCrumbs.addAll(reporter.crashBreadcrumbsCopy())
         val nativeCrash = Crash.NativeCodeCrash(
             0,
             "dump.path",
             true,
             "extras.path",
-            isFatal = false,
+            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = crashBreadCrumbs
         )
 
@@ -425,7 +451,7 @@ class SentryServiceTest {
         )
         val throwable = RuntimeException("Test")
         val crashBreadCrumbs = arrayListOf<Breadcrumb>()
-        crashBreadCrumbs.addAll(reporter.crashBreadcrumbs)
+        crashBreadCrumbs.addAll(reporter.crashBreadcrumbsCopy())
 
         service.report(throwable, crashBreadCrumbs)
         verify(clientContext).recordBreadcrumb(any())

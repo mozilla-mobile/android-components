@@ -11,6 +11,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **service-pocket**
+  * 🚒 Bug fixed [issue #11905](https://github.com/mozilla-mobile/android-components/issues/11905) - Delete existing stories when their `imageUrl` is updated allowing those stories to be replaced.
+
+* **feature-serviceworker**
+  * 🆕 New `ServiceWorkerSupport` component for handling all service workers' events and callbacks. Currently this is supported only for using `GeckoEngine`.
+
 * **feature-autofill**
   * ⚠️ **This is a breaking change**: Removed unused `context` parameter in `FxaWebChannelFeature`. [#11864](https://github.com/mozilla-mobile/android-components/pull/11864).
 

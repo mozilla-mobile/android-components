@@ -39,7 +39,7 @@ class ReaderView {
    */
   show(doc, url, options = {fontSize: 4, fontType: "sans-serif", colorScheme: "light"}) {
     let result = new Readability(doc, {classesToPreserve: preservedClasses}).parse();
-    result.language = doc.documentElement.lang;
+    result.language = doc.documentElement.lang ? doc.documentElement.lang: "en";
     document.title = result.title;
 
     let article = Object.assign(
@@ -179,6 +179,16 @@ class ReaderView {
           readingTimeString = `${readingTimeMinsFast} - ${readingTimeString}`;
         }
         return readingTimeString;
+      } else if (parts.length == 2) {
+        var readingTime = parts[0].value;
+        var minutesLiteral = parts[1].value;
+        var readingTimeString = `${readingTime} ${minutesLiteral}`;
+        if (readingTimeMinsSlow != readingTimeMinsFast) {
+            readingTimeString = `${new Intl.NumberFormat(lang).format(readingTimeMinsFast)} - ${readingTimeString}`;
+        }
+        return readingTimeString;
+      } else {
+        return parts[0].value;
       }
     }
     catch(error) {

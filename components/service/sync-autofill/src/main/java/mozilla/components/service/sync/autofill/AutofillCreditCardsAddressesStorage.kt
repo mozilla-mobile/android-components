@@ -10,7 +10,7 @@ import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
-import mozilla.appservices.autofill.AutofillException.NoSuchRecord
+import mozilla.appservices.autofill.AutofillException
 import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardNumber
@@ -57,6 +57,15 @@ class AutofillCreditCardsAddressesStorage(
     suspend fun warmUp() = withContext(coroutineContext) {
         logElapsedTime(logger, "Warming up storage") { conn }
         Unit
+    }
+
+    override fun hasStorage() : Boolean {
+        try {
+            conn.getStorage()
+            return true
+        } catch (e: IllegalStateException) {
+            return false
+        }
     }
 
     override suspend fun addCreditCard(
@@ -117,7 +126,7 @@ class AutofillCreditCardsAddressesStorage(
     override suspend fun getCreditCard(guid: String): CreditCard? = withContext(coroutineContext) {
         try {
             conn.getStorage().getCreditCard(guid).into()
-        } catch (e: NoSuchRecord) {
+        } catch (e: AutofillException.NoSuchRecord) {
             null
         }
     }
@@ -142,7 +151,7 @@ class AutofillCreditCardsAddressesStorage(
     override suspend fun getAddress(guid: String): Address? = withContext(coroutineContext) {
         try {
             conn.getStorage().getAddress(guid).into()
-        } catch (e: NoSuchRecord) {
+        } catch (e: AutofillException.NoSuchRecord) {
             null
         }
     }
@@ -191,7 +200,16 @@ internal object AutofillStorageConnection : Closeable {
 
     internal fun init(dbPath: String = AUTOFILL_DB_NAME) = synchronized(this) {
         if (storage == null) {
-            storage = RustAutofillStorage(dbPath)
+            try {
+                // XXX - DO NOT LAND - this simulates errors opening the DB.
+                Logger("AutofillStorageConnection").warn("IGNOREING $dbPath")
+                throw AutofillException.OpenDatabaseException("test failure!")
+//                storage = RustAutofillStorage(dbPath)
+            } catch (e: AutofillException) {
+                val logger = Logger("AutofillStorageConnection")
+                logger.error("Failed to open autofill storage", e)
+                // `this.storage` remains null
+            }
         }
     }
 

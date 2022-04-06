@@ -15,6 +15,16 @@ import kotlinx.parcelize.Parcelize
 interface CreditCardsAddressesStorage {
 
     /**
+     * Returns true if the underlying storage has been successfully opened, false otherwise.
+     *
+     * Returning false will typically mean there was a fatal error opening the database, so
+     * all other functions in this interface are likely to throw IllegalStateException exceptions
+     * or otherwise behave in an unexpected way.
+     *
+     */
+    fun hasStorage(): Boolean
+
+    /**
      * Inserts the provided credit card into the database, and returns
      * the newly added [CreditCard].
      *

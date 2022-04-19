@@ -6,7 +6,7 @@ package mozilla.components.browser.storage.sync
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import mozilla.appservices.remotetabs.ClientRemoteTabs
 import mozilla.appservices.remotetabs.DeviceType
 import mozilla.appservices.remotetabs.RemoteTab
@@ -47,7 +47,7 @@ class RemoteTabsStorageTest {
     }
 
     @Test
-    fun `store() translates tabs to rust format`() = runBlocking {
+    fun `store() translates tabs to rust format`() = runTest {
         remoteTabs.store(
             listOf(
                 Tab(
@@ -85,7 +85,7 @@ class RemoteTabsStorageTest {
     }
 
     @Test
-    fun `getAll() translates tabs to our format`() = runBlocking {
+    fun `getAll() translates tabs to our format`() = runTest {
         `when`(apiMock.getAll()).thenReturn(
             listOf(
                 ClientRemoteTabs(
@@ -136,7 +136,7 @@ class RemoteTabsStorageTest {
     }
 
     @Test
-    fun `exceptions from getAll are propagated to the crash reporter`() = runBlocking {
+    fun `exceptions from getAll are propagated to the crash reporter`() = runTest {
         val throwable = RemoteTabProviderException("test")
         `when`(apiMock.getAll()).thenAnswer { throw throwable }
 

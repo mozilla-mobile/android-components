@@ -141,7 +141,7 @@
     <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
     <string name="mozac_browser_errorpages_unsafe_content_type_message"><![CDATA[
       <ul>
-        <li>Лутфан, бо соҳибони сомона дар тамос шавед ва дар бораи ин мушкилӣ ба онҳо хабар расонед.</li>
+        <li>Лутфан, бо соҳибони сомона дар тамос шавед ва дар бораи ин мушкилӣ ба онҳо хабар диҳед.</li>
       </ul>
     ]]></string>
 
@@ -241,7 +241,7 @@
 
     <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[
       <ul>
-        <li>Эҳтимол, он тоза карда шудааст, ба ҷойи дигар интиқол дода шудааст ё иҷозатномаҳои файл дастрасиро манъ мекунанд.</li>
+        <li>Эҳтимол, он тоза карда шудааст, ба ҷойи дигар интиқол дода шудааст ё иҷозатҳои файл дастрасиро манъ мекунанд.</li>
       </ul>
     ]]></string>
 

@@ -56,6 +56,14 @@ interface TopSitesStorage : Observable<TopSitesStorage.Observer> {
     ): List<TopSite>
 
     /**
+     * Update the sponsored shortcuts filter when the search engine is changed.
+     *
+     * @param sponsoredShortcutsFilter The [SponsoredShortcutFilter] set according to the search
+     * engine selected.
+     */
+    fun updateSponsoredShortcutFilter(sponsoredShortcutsFilter: SponsoredShortcutFilter?)
+
+    /**
      * Interface to be implemented by classes that want to observe the top site storage.
      */
     interface Observer {

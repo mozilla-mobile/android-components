@@ -39,6 +39,9 @@ class DefaultTopSitesStorage(
     private var scope = CoroutineScope(coroutineContext)
     private val logger = Logger("DefaultTopSitesStorage")
 
+    // Filter eBay or Amazon sponsored shortcuts if their respective search engines are selected
+    private var sponsoredShortcutsFilter: SponsoredShortcutFilter? = null
+
     // Cache of the last retrieved top sites
     var cachedTopSites = listOf<TopSite>()
 
@@ -83,6 +86,22 @@ class DefaultTopSitesStorage(
         }
     }
 
+    /**
+     * Update the sponsored shortcuts filter when the search engine is changed.
+     *
+     * @param sponsoredShortcutsFilter The [SponsoredShortcutFilter] set according to the search
+     * engine selected.
+     */
+    override fun updateSponsoredShortcutFilter(sponsoredShortcutsFilter: SponsoredShortcutFilter?) {
+        if (this.sponsoredShortcutsFilter == sponsoredShortcutsFilter) {
+            // If the selected search engine does not change the filter
+            // then we should not notify the observer
+            return
+        }
+        this.sponsoredShortcutsFilter = sponsoredShortcutsFilter
+        notifyObservers { onStorageUpdated() }
+    }
+
     @Suppress("ComplexCondition", "TooGenericExceptionCaught")
     override suspend fun getTopSites(
         totalSites: Int,
@@ -102,6 +121,13 @@ class DefaultTopSitesStorage(
             try {
                 providerTopSites = topSitesProvider
                     .getTopSites(allowCache = true)
+                    .filter {
+                        when (sponsoredShortcutsFilter) {
+                            SponsoredShortcutFilter.EBAY -> it.title != "eBay"
+                            SponsoredShortcutFilter.AMAZON -> it.title != "Amazon"
+                            else -> true
+                        }
+                    }
                     .take(numSitesRequired)
                     .take(providerConfig.maxThreshold - pinnedSites.size)
                 topSites.addAll(providerTopSites)
@@ -130,4 +156,11 @@ class DefaultTopSitesStorage(
 
         return topSites
     }
+}
+
+/**
+ * Sponsored tile to filter.
+ */
+enum class SponsoredShortcutFilter {
+    EBAY, AMAZON
 }

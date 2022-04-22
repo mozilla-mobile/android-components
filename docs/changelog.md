@@ -11,11 +11,17 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #11259](https://github.com/mozilla-mobile/android-components/issues/11259) - Improved mime type inference for when sharing images from the contextual menu.
+
 * **feature-webnotifications**
   * 🌟 The Engine notification (WebNotification) is now persisted in the native notification, transparent to the consuming app which can delegate the native notification click to a new `WebNotificationIntentProcessor` to actually check and trigger a WebNotification click when appropriate.
 
 * **feature-media**
   * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
+
+* **feature-media**
+  * The Play/Pause button remains displayed on the media notification  
 
 # 100.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)

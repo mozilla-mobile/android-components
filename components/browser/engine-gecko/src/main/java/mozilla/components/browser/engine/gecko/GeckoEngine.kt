@@ -5,6 +5,7 @@
 package mozilla.components.browser.engine.gecko
 
 import android.content.Context
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.JsonReader
 import androidx.annotation.VisibleForTesting
@@ -17,6 +18,7 @@ import mozilla.components.browser.engine.gecko.integration.LocaleSettingUpdater
 import mozilla.components.browser.engine.gecko.mediaquery.from
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.profiler.Profiler
+import mozilla.components.browser.engine.gecko.serviceworker.GeckoServiceWorkerDelegate
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionFactory
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtensionException
@@ -38,6 +40,7 @@ import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
+import mozilla.components.concept.engine.serviceworker.ServiceWorkerDelegate
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.ActionHandler
@@ -62,6 +65,7 @@ import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.WebExtensionController
+import org.mozilla.geckoview.WebNotification
 import java.lang.ref.WeakReference
 
 /**
@@ -520,6 +524,22 @@ class GeckoEngine(
      */
     override fun unregisterScreenOrientationDelegate() {
         runtime.orientationController.delegate = null
+    }
+
+    override fun registerServiceWorkerDelegate(serviceWorkerDelegate: ServiceWorkerDelegate) {
+        runtime.serviceWorkerDelegate = GeckoServiceWorkerDelegate(
+            delegate = serviceWorkerDelegate,
+            runtime = runtime,
+            engineSettings = defaultSettings
+        )
+    }
+
+    override fun unregisterServiceWorkerDelegate() {
+        runtime.serviceWorkerDelegate = null
+    }
+
+    override fun handleWebNotificationClick(webNotification: Parcelable) {
+        (webNotification as? WebNotification)?.click()
     }
 
     /**

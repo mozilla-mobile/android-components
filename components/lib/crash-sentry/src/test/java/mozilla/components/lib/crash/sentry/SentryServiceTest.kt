@@ -13,6 +13,7 @@ import mozilla.components.support.test.robolectric.testContext
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -31,7 +32,8 @@ class SentryServiceTest {
         val service = spy(
             SentryService(
                 testContext,
-                "https://not:real6@sentry.prod.example.net/405"
+                "https://not:real6@sentry.prod.example.net/405",
+                sendCaughtExceptions = false
             )
         )
 
@@ -65,7 +67,7 @@ class SentryServiceTest {
     }
 
     @Test
-    fun `GIVEN a fatal native crash WHEN reporting THEN forward to a fatal crash the Sentry sdk`() {
+    fun `GIVEN a main process native crash WHEN reporting THEN forward to a fatal crash the Sentry sdk`() {
         val service = spy(
             SentryService(
                 applicationContext = testContext,
@@ -80,7 +82,7 @@ class SentryServiceTest {
             minidumpPath = "",
             minidumpSuccess = true,
             extrasPath = "",
-            isFatal = true,
+            processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = breadcrumbs
         )
 
@@ -91,7 +93,7 @@ class SentryServiceTest {
     }
 
     @Test
-    fun `GIVEN a no fatal native crash WHEN reporting THEN forward an error to the Sentry sdk`() {
+    fun `GIVEN a foreground child process native crash WHEN reporting THEN forward an error to the Sentry sdk`() {
         val service = spy(
             SentryService(
                 applicationContext = testContext,
@@ -106,7 +108,33 @@ class SentryServiceTest {
             minidumpPath = "",
             minidumpSuccess = true,
             extrasPath = "",
-            isFatal = false,
+            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
+            breadcrumbs = breadcrumbs
+        )
+
+        service.report(nativeCrash)
+
+        verify(service).prepareReport(breadcrumbs, SentryLevel.ERROR)
+        verify(service).reportToSentry(nativeCrash)
+    }
+
+    @Test
+    fun `GIVEN a background child process native crash WHEN reporting THEN forward an error to the Sentry sdk`() {
+        val service = spy(
+            SentryService(
+                applicationContext = testContext,
+                dsn = "https://not:real6@sentry.prod.example.net/405",
+                sendEventForNativeCrashes = true
+            )
+        )
+
+        val breadcrumbs = arrayListOf<Breadcrumb>()
+        val nativeCrash = Crash.NativeCodeCrash(
+            timestamp = 0,
+            minidumpPath = "",
+            minidumpSuccess = true,
+            extrasPath = "",
+            processType = Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
             breadcrumbs = breadcrumbs
         )
 
@@ -132,7 +160,7 @@ class SentryServiceTest {
             minidumpPath = "",
             minidumpSuccess = true,
             extrasPath = "",
-            isFatal = false,
+            processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = breadcrumbs
         )
 
@@ -157,13 +185,13 @@ class SentryServiceTest {
             minidumpPath = "",
             minidumpSuccess = true,
             extrasPath = "",
-            isFatal = true,
+            processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = breadcrumbs
         )
 
         val result = service.createMessage(nativeCrash)
         val expected =
-            "NativeCodeCrash(fatal=${nativeCrash.isFatal}, minidumpSuccess=${nativeCrash.minidumpSuccess})"
+            "NativeCodeCrash(fatal=${nativeCrash.isFatal}, processType=${nativeCrash.processType}, minidumpSuccess=${nativeCrash.minidumpSuccess})"
 
         assertEquals(expected, result)
     }
@@ -197,11 +225,31 @@ class SentryServiceTest {
     }
 
     @Test
-    fun `WHENs report a uncaught exception THEN forward a fatal exception to the Sentry sdk`() {
+    fun `GIVEN sending caught exceptions disabled WHEN reporting a caught exception THEN do nothing`() {
         val service = spy(
             SentryService(
                 testContext,
-                "https://not:real6@sentry.prod.example.net/405"
+                "https://not:real6@sentry.prod.example.net/405",
+                sendCaughtExceptions = false
+            )
+        )
+
+        val exception = RuntimeException("Hello World")
+        val breadcrumbs = arrayListOf<Breadcrumb>()
+
+        service.report(exception, breadcrumbs)
+        verify(service, never()).prepareReport(breadcrumbs, SentryLevel.INFO)
+        verify(service, never()).prepareReport(breadcrumbs, SentryLevel.FATAL)
+        verify(service, never()).reportToSentry(exception)
+    }
+
+    @Test
+    fun `GIVEN sending caught exceptions enabled WHEN reporting a caught exception THEN forward it to Sentry SDK with level INFO`() {
+        val service = spy(
+            // Sending caught exceptions is enabled by default.
+            SentryService(
+                testContext,
+                "https://not:real6@sentry.prod.example.net/405",
             )
         )
 

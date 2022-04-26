@@ -5,7 +5,6 @@
 package mozilla.components.lib.crash.sentry
 
 import android.content.Context
-import android.net.Uri
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import io.sentry.Breadcrumb
@@ -30,7 +29,9 @@ import mozilla.components.concept.base.crash.Breadcrumb as MozillaBreadcrumb
  * @param dsn Data Source Name of the Sentry server.
  * @param tags A list of additional tags that will be sent together with crash reports.
  * @param environment An optional, environment name string or null to set none
+ * @param sendEventForNativeCrashes Allows configuring if native crashes should be submitted. Disabled by default.
  * @param sentryProjectUrl Base URL of the Sentry web interface pointing to the app/project.
+ * @param sendCaughtExceptions Allows configuring if caught exceptions should be submitted. Enabled by default.
  */
 class SentryService(
     private val applicationContext: Context,
@@ -39,6 +40,7 @@ class SentryService(
     private val environment: String? = null,
     private val sendEventForNativeCrashes: Boolean = false,
     private val sentryProjectUrl: String? = null,
+    private val sendCaughtExceptions: Boolean = true,
 ) : CrashReporterService {
 
     override val id: String = "new-sentry-instance"
@@ -76,6 +78,9 @@ class SentryService(
     }
 
     override fun report(throwable: Throwable, breadcrumbs: ArrayList<MozillaBreadcrumb>): String? {
+        if (!sendCaughtExceptions) {
+            return null
+        }
         prepareReport(breadcrumbs, SentryLevel.INFO)
         return reportToSentry(throwable)
     }
@@ -115,11 +120,16 @@ class SentryService(
     @VisibleForTesting
     internal fun initSentry() {
         SentryAndroid.init(applicationContext) { options ->
-            options.dsn = Uri.parse(dsn).buildUpon()
-                .appendQueryParameter("uncaught.handler.enabled", "false")
-                .build()
-                .toString()
-
+            // Disable uncaught non-native exceptions from being reported.
+            // We already have our own uncaught exception handler [ExceptionHandler],
+            // so we don't need Sentry's default one.
+            options.enableUncaughtExceptionHandler = false
+            // Disable uncaught native exceptions from being reported.
+            // Sentry don't have a way to disable uncaught native exceptions from being reported.
+            // As a fallback we had to disable all native integrations.
+            // More info can be found https://github.com/getsentry/sentry-java/issues/1993
+            options.isEnableNdk = false
+            options.dsn = dsn
             options.environment = environment
         }
     }
@@ -148,9 +158,10 @@ class SentryService(
     @VisibleForTesting
     internal fun createMessage(crash: Crash.NativeCodeCrash): String {
         val fatal = crash.isFatal.toString()
+        val processType = crash.processType
         val minidumpSuccess = crash.minidumpSuccess
 
-        return "NativeCodeCrash(fatal=$fatal, minidumpSuccess=$minidumpSuccess)"
+        return "NativeCodeCrash(fatal=$fatal, processType=$processType, minidumpSuccess=$minidumpSuccess)"
     }
 }
 

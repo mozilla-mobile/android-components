@@ -5,6 +5,7 @@
 package mozilla.components.concept.engine
 
 import android.content.Context
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.JsonReader
 import androidx.annotation.MainThread
@@ -13,6 +14,7 @@ import mozilla.components.concept.engine.activity.ActivityDelegate
 import mozilla.components.concept.engine.activity.OrientationDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
+import mozilla.components.concept.engine.serviceworker.ServiceWorkerDelegate
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
@@ -210,6 +212,33 @@ interface Engine : WebExtensionRuntime, DataCleanable {
      */
     fun unregisterScreenOrientationDelegate(): Unit =
         throw UnsupportedOperationException("This engine does not have support for an Activity delegate.")
+
+    /**
+     * Registers a [ServiceWorkerDelegate] to be notified of service workers events and requests.
+     *
+     * @param serviceWorkerDelegate [ServiceWorkerDelegate] responding to all service workers events and requests.
+     */
+    fun registerServiceWorkerDelegate(
+        serviceWorkerDelegate: ServiceWorkerDelegate
+    ): Unit = throw UnsupportedOperationException("Service workers support not available in this engine")
+
+    /**
+     * Un-registers the attached [ServiceWorkerDelegate] if one was added with
+     * [registerServiceWorkerDelegate].
+     */
+    fun unregisterServiceWorkerDelegate(): Unit =
+        throw UnsupportedOperationException("Service workers support not available in this engine")
+
+    /**
+     * Handles user interacting with a web notification.
+     *
+     * @param webNotification [Parcelable] representing a web notification.
+     * If the `Parcelable` is not a web notification this method will be no-op.
+     *
+     * @see <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notification">MDN Notification docs</a>
+     */
+    fun handleWebNotificationClick(webNotification: Parcelable): Unit =
+        throw UnsupportedOperationException("Web notification clicks not yet supported in this engine")
 
     /**
      * Fetch a list of trackers logged for a given [session] .

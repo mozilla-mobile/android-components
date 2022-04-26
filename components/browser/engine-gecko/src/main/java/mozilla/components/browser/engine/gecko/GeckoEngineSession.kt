@@ -587,6 +587,9 @@ class GeckoEngineSession(
                                 onLaunchIntentRequest(url = url, appIntent = appIntent)
                             }
                         }
+                        else -> {
+                            // no-op
+                        }
                     }
                 }
             } else {
@@ -794,17 +797,6 @@ class GeckoEngineSession(
             notifyObservers {
                 onProcessKilled()
             }
-        }
-
-        private fun recoverGeckoSession() {
-            // Recover the GeckoSession after the process getting killed or crashing. We create a
-            // new underlying GeckoSession.
-            // Eventually we may be able to re-use the same GeckoSession by re-opening it. However
-            // that seems to have caused issues:
-            // https://github.com/mozilla-mobile/android-components/issues/3640
-
-            geckoSession.close()
-            createGeckoSession()
         }
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {

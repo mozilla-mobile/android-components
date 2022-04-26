@@ -1,6 +1,6 @@
 # Please keep this version in sync with version.txt
 # version.txt should be the new source of truth for version numbers
-componentsVersion: 100.0.0
+componentsVersion: 101.0.0
 # Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.
 projects:
   compose-awesomebar:
@@ -114,6 +114,10 @@ projects:
   feature-search:
     path: components/feature/search
     description: 'Feature implementation connecting an engine implementation with the search module.'
+    publish: true
+  feature-serviceworker:
+    path: components/feature/serviceworker
+    description: 'Feature that adds support for service workers when using GeckoEngine.'
     publish: true
   feature-session:
     path: components/feature/session

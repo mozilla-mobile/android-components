@@ -27,6 +27,12 @@ permalink: /changelog/
   * Added `CreditCardValidationDelegate` which is a delegate that will check against the `CreditCardsAddressesStorage` to determine if a `CreditCard` can be persisted in storage. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
   * Refactors `CreditCard` from `concept-engine` to `CreditCardEntry` in `concept-storage` so that it can validated with the `CreditCardValidationDelegate`. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
 
+* **browser-storage-sync**
+  * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+
+* **feature-syncedtabs**
+  * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+
 # 101.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...v101.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)
@@ -47,7 +53,7 @@ permalink: /changelog/
   * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
 
 * **feature-media**
-  * The Play/Pause button remains displayed on the media notification  
+  * The Play/Pause button remains displayed on the media notification.
 
 # 100.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)
@@ -102,12 +108,6 @@ permalink: /changelog/
 * **feature-search**
   * 🆕 Update search Engines and Search Engine Icons
 
-* **browser-storage-sync**
-  * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
-
-* **feature-syncedtabs**
-  * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
-
 # 99.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
@@ -128,7 +128,7 @@ permalink: /changelog/
   * 🚒 Bug fixed [issue #8567](https://github.com/mozilla-mobile/android-components/issues/8567) - Prevent crashes when trying to add to the system databases.
 
 * **concept-engine**
-  * 🌟️️ Add `EngineSessionStateStorage`, describing a storage of `EngineSessionState` instances. 
+  * 🌟️️ Add `EngineSessionStateStorage`, describing a storage of `EngineSessionState` instances.
 
 * **browser-session-storage**
   * 🌟️️ Add `FileEngineSessionStateStorage`, an implementation of `EngineSessionStateStorage` for persisting engine state outside of the regular RecoverableBrowserState flow.

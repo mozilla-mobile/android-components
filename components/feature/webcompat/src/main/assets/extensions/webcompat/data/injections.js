@@ -609,16 +609,15 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1761930",
-    platform: "all",
-    domain: "instagram.com",
-    bug: "1761930",
+    id: "bug1765947",
+    platform: "android",
+    domain: "veniceincoming.com",
+    bug: "1765947",
     contentScripts: {
-      matches: ["*://www.instagram.com/*"],
+      matches: ["*://veniceincoming.com/*"],
       js: [
         {
-          file:
-            "injections/js/bug1761930-instagram.com-readablestream-pipeto.js",
+          file: "injections/css/bug1765947-veniceincoming.com-left-fix.css",
         },
       ],
     },

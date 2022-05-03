@@ -8,11 +8,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.async
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.concept.storage.LoginsStorage
+import mozilla.components.support.base.log.logger.Logger
 
 /**
  * A delegate that will check against [storage] to see if a given Login can be persisted, and return
@@ -20,8 +22,10 @@ import mozilla.components.concept.storage.LoginsStorage
  */
 class DefaultLoginValidationDelegate(
     private val storage: Lazy<LoginsStorage>,
-    private val scope: CoroutineScope = CoroutineScope(IO)
+    private val scope: CoroutineScope = CoroutineScope(IO),
+    private val crashReporting: CrashReporting? = null
 ) : LoginValidationDelegate {
+    private val logger = Logger("DefaultAddonUpdater")
 
     /**
      * Compares a [Login] to a passed in list of potential dupes [Login] or queries underlying
@@ -29,7 +33,13 @@ class DefaultLoginValidationDelegate(
      */
     override fun shouldUpdateOrCreateAsync(entry: LoginEntry): Deferred<Result> {
         return scope.async {
-            val foundLogin = storage.value.findLoginToUpdate(entry)
+            val foundLogin = try {
+                storage.value.findLoginToUpdate(entry)
+            } catch (e: LoginsStorageException) {
+                logger.warn("Failure in shouldUpdateOrCreateAsync: $e")
+                crashReporting?.submitCaughtException(e)
+                null
+            }
             if (foundLogin == null) Result.CanBeCreated else Result.CanBeUpdated(foundLogin)
         }
     }

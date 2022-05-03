@@ -13,6 +13,7 @@ import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.feature.syncedtabs.storage.SyncedTabsStorage
 import mozilla.components.feature.syncedtabs.view.SyncedTabsView
 import mozilla.components.feature.syncedtabs.view.SyncedTabsView.ErrorType
+import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.support.test.mock
@@ -45,7 +46,6 @@ class DefaultControllerTest {
 
         controller.refreshSyncedTabs()
 
-        verify(view).startLoading()
         verify(view).stopLoading()
 
         verifyNoMoreInteractions(view)
@@ -129,7 +129,7 @@ class DefaultControllerTest {
     }
 
     @Test
-    fun `syncAccount refreshes devices and syncs`() = runBlockingTest {
+    fun `WHEN syncAccount is called THEN view is loading, devices are refreshed, and sync started`() = runBlockingTest {
         val controller = DefaultController(
             storage,
             accountManager,
@@ -145,7 +145,8 @@ class DefaultControllerTest {
 
         controller.syncAccount()
 
+        verify(view).startLoading()
         verify(constellation).refreshDevices()
-        verify(accountManager).syncNow(SyncReason.User, false)
+        verify(accountManager).syncNow(SyncReason.User, false, listOf(SyncEngine.Tabs))
     }
 }

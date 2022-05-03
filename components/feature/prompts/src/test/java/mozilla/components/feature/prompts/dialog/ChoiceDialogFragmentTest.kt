@@ -6,6 +6,7 @@ package mozilla.components.feature.prompts.dialog
 
 import android.content.DialogInterface.BUTTON_NEGATIVE
 import android.content.DialogInterface.BUTTON_POSITIVE
+import android.os.Looper.getMainLooper
 import android.os.Parcelable
 import android.view.LayoutInflater
 import android.widget.LinearLayout
@@ -45,6 +46,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations.openMocks
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(AndroidJUnit4::class)
 class ChoiceDialogFragmentTest {
@@ -318,9 +320,11 @@ class ChoiceDialogFragmentTest {
         adapter.bindViewHolder(holder, 0)
 
         holder.itemView.performClick()
-
+        shadowOf(getMainLooper()).idle()
         verify(mockFeature).onConfirm("sessionId", "uid", choices.first())
+
         dialog.dismiss()
+        shadowOf(getMainLooper()).idle()
         verify(mockFeature).onCancel("sessionId", "uid")
     }
 
@@ -346,9 +350,13 @@ class ChoiceDialogFragmentTest {
         adapter.bindViewHolder(holder, 0)
 
         holder.itemView.performClick()
+        shadowOf(getMainLooper()).idle()
 
         verify(mockFeature).onConfirm("sessionId", "uid", choices.first())
+
         dialog.dismiss()
+        shadowOf(getMainLooper()).idle()
+
         verify(mockFeature).onCancel("sessionId", "uid")
     }
 
@@ -378,11 +386,13 @@ class ChoiceDialogFragmentTest {
 
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
+        shadowOf(getMainLooper()).idle()
 
         verify(mockFeature).onConfirm("sessionId", "uid", fragment.mapSelectChoice.keys.toTypedArray())
 
         val negativeButton = dialog.getButton(BUTTON_NEGATIVE)
         negativeButton.performClick()
+        shadowOf(getMainLooper()).idle()
 
         verify(mockFeature, times(2)).onCancel("sessionId", "uid")
     }
@@ -416,6 +426,7 @@ class ChoiceDialogFragmentTest {
 
         val positiveButton = (dialog as AlertDialog).getButton(BUTTON_POSITIVE)
         positiveButton.performClick()
+        shadowOf(getMainLooper()).idle()
 
         verify(mockFeature).onConfirm("sessionId", "uid", fragment.mapSelectChoice.keys.toTypedArray())
     }
@@ -467,6 +478,192 @@ class ChoiceDialogFragmentTest {
 
             itemView.performClick()
             verify(mockFeature).onConfirm("sessionId", "uid", choiceGroup1)
+        }
+    }
+
+    @Test
+    fun `disabled single choice item is not clickable`() {
+        val choices = arrayOf(
+            Choice(id = "item1", label = "Enabled choice"),
+            Choice(id = "item2", enable = false, label = "Disabled choice")
+        )
+
+        val fragment =
+            spy(newInstance(choices, "sessionId", "uid", false, SINGLE_CHOICE_DIALOG_TYPE))
+        fragment.feature = mockFeature
+        doReturn(appCompatContext).`when`(fragment).requireContext()
+        doNothing().`when`(fragment).dismiss()
+
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val adapter = dialog.findViewById<RecyclerView>(R.id.recyclerView).adapter as ChoiceAdapter
+
+        // test disabled item
+        val disabledItemViewHolder =
+            adapter.onCreateViewHolder(LinearLayout(testContext), adapter.getItemViewType(1))
+                as SingleViewHolder
+
+        adapter.bindViewHolder(disabledItemViewHolder, 1)
+
+        with(disabledItemViewHolder) {
+            assertEquals(labelView.text, "Disabled choice")
+            assertFalse(labelView.isEnabled)
+            assertFalse(itemView.isClickable)
+        }
+    }
+
+    @Test
+    fun `enabled single choice item is clickable`() {
+        val choices = arrayOf(
+            Choice(id = "item1", label = "Enabled choice"),
+            Choice(id = "item2", enable = false, label = "Disabled choice")
+        )
+
+        val fragment = spy(newInstance(choices, "sessionId", "uid", false, SINGLE_CHOICE_DIALOG_TYPE))
+        fragment.feature = mockFeature
+        doReturn(appCompatContext).`when`(fragment).requireContext()
+        doNothing().`when`(fragment).dismiss()
+
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val adapter = dialog.findViewById<RecyclerView>(R.id.recyclerView).adapter as ChoiceAdapter
+
+        // test enabled item
+        val enabledItemViewHolder =
+            adapter.onCreateViewHolder(LinearLayout(testContext), adapter.getItemViewType(0)) as SingleViewHolder
+
+        adapter.bindViewHolder(enabledItemViewHolder, 0)
+
+        with(enabledItemViewHolder) {
+            assertEquals(labelView.text, "Enabled choice")
+            assertTrue(labelView.isEnabled)
+            assertTrue(itemView.isClickable)
+        }
+    }
+
+    @Test
+    fun `disabled multiple choice item is not clickable`() {
+        val choices = arrayOf(
+            Choice(id = "item1", label = "Enabled choice"),
+            Choice(id = "item2", enable = false, label = "Disabled choice")
+        )
+
+        val fragment =
+            spy(newInstance(choices, "sessionId", "uid", false, MULTIPLE_CHOICE_DIALOG_TYPE))
+        fragment.feature = mockFeature
+        doReturn(appCompatContext).`when`(fragment).requireContext()
+        doNothing().`when`(fragment).dismiss()
+
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val adapter = dialog.findViewById<RecyclerView>(R.id.recyclerView).adapter as ChoiceAdapter
+
+        // test disabled item
+        val disabledItemViewHolder =
+            adapter.onCreateViewHolder(LinearLayout(testContext), adapter.getItemViewType(1))
+                as MultipleViewHolder
+
+        adapter.bindViewHolder(disabledItemViewHolder, 1)
+
+        with(disabledItemViewHolder) {
+            assertEquals(labelView.text, "Disabled choice")
+            assertFalse(labelView.isEnabled)
+            assertFalse(itemView.isClickable)
+        }
+    }
+
+    @Test
+    fun `enabled multiple choice item is clickable`() {
+        val choices = arrayOf(
+            Choice(id = "item1", label = "Enabled choice"),
+            Choice(id = "item2", enable = false, label = "Disabled choice")
+        )
+
+        val fragment = spy(newInstance(choices, "sessionId", "uid", false, MULTIPLE_CHOICE_DIALOG_TYPE))
+        fragment.feature = mockFeature
+        doReturn(appCompatContext).`when`(fragment).requireContext()
+        doNothing().`when`(fragment).dismiss()
+
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val adapter = dialog.findViewById<RecyclerView>(R.id.recyclerView).adapter as ChoiceAdapter
+
+        // test enabled item
+        val enabledItemViewHolder =
+            adapter.onCreateViewHolder(LinearLayout(testContext), adapter.getItemViewType(0)) as MultipleViewHolder
+
+        adapter.bindViewHolder(enabledItemViewHolder, 0)
+
+        with(enabledItemViewHolder) {
+            assertEquals(labelView.text, "Enabled choice")
+            assertTrue(labelView.isEnabled)
+            assertTrue(itemView.isClickable)
+        }
+    }
+
+    @Test
+    fun `disabled menu choice item is not clickable`() {
+        val choices = arrayOf(
+            Choice(id = "item1", label = "Enabled choice"),
+            Choice(id = "item2", enable = false, label = "Disabled choice")
+        )
+
+        val fragment =
+            spy(newInstance(choices, "sessionId", "uid", false, MENU_CHOICE_DIALOG_TYPE))
+        fragment.feature = mockFeature
+        doReturn(appCompatContext).`when`(fragment).requireContext()
+        doNothing().`when`(fragment).dismiss()
+
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val adapter = dialog.findViewById<RecyclerView>(R.id.recyclerView).adapter as ChoiceAdapter
+
+        // test disabled item
+        val disabledItemViewHolder =
+            adapter.onCreateViewHolder(LinearLayout(testContext), adapter.getItemViewType(1))
+                as MenuViewHolder
+
+        adapter.bindViewHolder(disabledItemViewHolder, 1)
+
+        with(disabledItemViewHolder) {
+            assertEquals(labelView.text, "Disabled choice")
+            assertFalse(labelView.isEnabled)
+            assertFalse(itemView.isClickable)
+        }
+    }
+
+    @Test
+    fun `enabled menu choice item is clickable`() {
+        val choices = arrayOf(
+            Choice(id = "item1", label = "Enabled choice"),
+            Choice(id = "item2", enable = false, label = "Disabled choice")
+        )
+
+        val fragment = spy(newInstance(choices, "sessionId", "uid", false, MENU_CHOICE_DIALOG_TYPE))
+        fragment.feature = mockFeature
+        doReturn(appCompatContext).`when`(fragment).requireContext()
+        doNothing().`when`(fragment).dismiss()
+
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val adapter = dialog.findViewById<RecyclerView>(R.id.recyclerView).adapter as ChoiceAdapter
+
+        // test enabled item
+        val enabledItemViewHolder =
+            adapter.onCreateViewHolder(LinearLayout(testContext), adapter.getItemViewType(0)) as MenuViewHolder
+
+        adapter.bindViewHolder(enabledItemViewHolder, 0)
+
+        with(enabledItemViewHolder) {
+            assertEquals(labelView.text, "Enabled choice")
+            assertTrue(labelView.isEnabled)
+            assertTrue(itemView.isClickable)
         }
     }
 

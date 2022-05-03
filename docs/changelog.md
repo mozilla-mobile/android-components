@@ -4,12 +4,109 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 99.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
+# 102.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **feature-contextmenu**
+  * 🌟 Add new `additionalValidation` parameter to context menu options builders allowing clients to know when these options to be shown and potentially block showing them.
+
+* **feature-pwa**
+  * [TrustedWebActivityIntentProcessor] is now deprecated. See [issue #12024](https://github.com/mozilla-mobile/android-components/issues/12024).
+
+* **feature-top-sites**
+  * Added `providerFilter` to `TopSitesProviderConfig`, allowing the client to filter the provided top sites.
+
+# 101.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...v101.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/.config.yml)
+
+* **feature-media**
+  * Support reverse landscape orientation for fullscreen videos
+    [issue # 12034](https://github.com/mozilla-mobile/android-components/issues/12034)
+* **feature-downloads**:
+  * 🚒 Bug fixed [issue #11259](https://github.com/mozilla-mobile/android-components/issues/11259) - Improved mime type inference for when sharing images from the contextual menu.
+
+* **feature-webnotifications**
+  * 🌟 The Engine notification (WebNotification) is now persisted in the native notification, transparent to the consuming app which can delegate the native notification click to a new `WebNotificationIntentProcessor` to actually check and trigger a WebNotification click when appropriate.
+
+* **feature-media**
+  * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
+
+* **feature-media**
+  * The Play/Pause button remains displayed on the media notification  
+
+# 100.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/147?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v100.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v100.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v100.0.0/.config.yml)
+
+* **browser-errorpages**
+  * 🌟 The https-only error page will now show also an image.
+
+* **service-pocket**
+  * 🚒 Bug fixed [issue #11905](https://github.com/mozilla-mobile/android-components/issues/11905) - Delete existing stories when their `imageUrl` is updated allowing those stories to be replaced.
+
+* **feature-serviceworker**
+  * 🆕 New `ServiceWorkerSupport` component for handling all service workers' events and callbacks. Currently this is supported only for using `GeckoEngine`.
+
+* **feature-autofill**
+  * ⚠️ **This is a breaking change**: Removed unused `context` parameter in `FxaWebChannelFeature`. [#11864](https://github.com/mozilla-mobile/android-components/pull/11864).
+
+* **feature-autofill**
+  * 🚒 Bug fixed [issue #11869](https://github.com/mozilla-mobile/android-components/issues/11869) - Fix regression causing autofill to not work after unlocking the app doing the autofill or after accepting that the authenticity of the autofill target could not be verified.
+
+* **feature-tab-collections**
+  * ⚠️ **This is a breaking change**: Removed unused `reader` parameter in `TabCollectionStorage`. [#11864](https://github.com/mozilla-mobile/android-components/pull/11864).
+
+* **feature-contextmenu**
+  * 🚒 Bug fixed [issue #11829](https://github.com/mozilla-mobile/android-components/pull/11830) - To make the additional note visible in landscape mode.
+
+* **feature-intent**
+  * ⚠️ **This is a breaking change**: Removed unused `loadUrlUseCase` parameter in `TabIntentProcessor`. [#11864](https://github.com/mozilla-mobile/android-components/pull/11864).
+
+* **browser-toolbar**
+  * Removed reflective access to non-public SDK APIs controlling the sensitivity of the gesture detector following which sparingly and for very short time a pinch/spread to zoom gesture might be identified first as a scroll gesture and move the toolbar a little before snapping to it's original position.
+  * ⚠️ **This is a breaking change**: Replaced `addEditAction` in `BrowserToolbar` with `addEditActionStart` and `addEditActionEnd` to add actions to the left and right of the URL in edit mode. [#11890](https://github.com/mozilla-mobile/android-components/issues/11890)
+
+* **feature-session**
+   * 🆕 New `ScreenOrientationFeature` to enable support for setting a requested screen orientation as part of supporting the ScreenOrientation web APIs.
+
+* **concept-sync**
+  * 🌟️️ Add `onReady` method to `AccountObserver`, allowing consumers to know when they can start querying account state.
+
+* **service-firefox-accounts**
+  * ⚠️ **This is a breaking change**: `fetchProfile` was removed from `FxaAccountManager`.
+
+* **lib-crash-sentry**
+  * 🌟️️ Add `sendCaughtExceptions` config flag to `SentryService`, allowing consumers to disable submitting caught exceptions. By default it's enabled, maintaining prior behaviour. Useful in projects with high volumes of caught exceptions and multiple release channels.
+
+* **site-permission-feature**
+  * 🆕 New Add to SitePermissionsFeature a property to set visibility for NotAskAgainCheckBox
+
+* **feature-search**
+  * 🆕 Update search Engines and Search Engine Icons
+
+* **browser-storage-sync**
+  * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+
+* **feature-syncedtabs**
+  * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+
+# 99.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v99.0.0/.config.yml)
 
 * **feature-top-sites**
   * ⚠️ **This is a breaking change**: This changes `fetchProvidedTopSites` in `TopSitesConfig` into a data class `TopSitesProviderConfig` that specifies whether or not to display the top sites from the provider. [#11654](https://github.com/mozilla-mobile/android-components/issues/11654)
@@ -37,6 +134,7 @@ permalink: /changelog/
 
 * **feature-tabs**
   * ⚠️ **This is a breaking change**: `RestoreUseCase` implementation responsible for restoring `RecoverableTab` instances now takes a `TabState` and a `EngineSessionStateStorage` instead (and will read/rehydrate an EngineSessionState prior to restoring).
+
 
 # 98.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v97.0.0...v98.0.0)

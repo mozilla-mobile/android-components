@@ -6,7 +6,7 @@ package mozilla.components.support.ktx.android.view
 
 import android.app.Activity
 import android.content.Context
-import android.os.Build
+import android.os.Looper.getMainLooper
 import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
@@ -37,7 +37,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.Robolectric
-import org.robolectric.annotation.Config
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowLooper
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -60,7 +60,6 @@ class ViewTest {
         assertTrue(view.hasFocus())
     }
 
-    @Config(sdk = [Build.VERSION_CODES.M])
     @Test
     fun `hideKeyboard should hide soft keyboard`() {
         val view = mock<View>()
@@ -148,6 +147,7 @@ class ViewTest {
         val activity = Robolectric.buildActivity(Activity::class.java).create().get()
         val view = View(testContext)
         activity.windowManager.addView(view, WindowManager.LayoutParams(100, 100))
+        shadowOf(getMainLooper()).idle()
 
         assertTrue(view.isAttachedToWindow)
 
@@ -169,6 +169,7 @@ class ViewTest {
         val activity = Robolectric.buildActivity(Activity::class.java).create().get()
         val view = View(testContext)
         activity.windowManager.addView(view, WindowManager.LayoutParams(100, 100))
+        shadowOf(getMainLooper()).idle()
 
         val scope = view.toScope()
 
@@ -176,6 +177,7 @@ class ViewTest {
         assertTrue(scope.isActive)
 
         activity.windowManager.removeView(view)
+        shadowOf(getMainLooper()).idle()
 
         assertFalse(view.isAttachedToWindow)
         assertFalse(scope.isActive)

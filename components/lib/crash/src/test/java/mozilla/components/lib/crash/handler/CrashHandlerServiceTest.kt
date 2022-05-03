@@ -32,7 +32,7 @@ import org.robolectric.Robolectric
 class CrashHandlerServiceTest {
     private var service: CrashHandlerService? = null
     private var reporter: CrashReporter? = null
-    private var intent: Intent? = null
+    private val intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
@@ -41,7 +41,6 @@ class CrashHandlerServiceTest {
     @Before
     fun setUp() {
         service = spy(Robolectric.setupService(CrashHandlerService::class.java))
-        service!!.startService(Intent())
         reporter = spy(
             CrashReporter(
                 context = testContext,
@@ -52,51 +51,63 @@ class CrashHandlerServiceTest {
             )
         ).install(testContext)
 
-        intent = Intent("org.mozilla.gecko.ACTION_CRASHED")
-        intent!!.component = ComponentName(
+        intent.component = ComponentName(
             "org.mozilla.samples.browser",
             "mozilla.components.lib.crash.handler.CrashHandlerService"
         )
-        intent!!.putExtra(
+        intent.putExtra(
             "uuid",
             "94f66ed7-50c7-41d1-96a7-299139a8c2af"
         )
-        intent!!.putExtra(
+        intent.putExtra(
             "minidumpPath",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp"
         )
-        intent!!.putExtra(
+        intent.putExtra(
             "extrasPath",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra"
         )
-        intent!!.putExtra("minidumpSuccess", true)
+        intent.putExtra("minidumpSuccess", true)
+
+        service!!.startService(intent)
     }
 
     @After
     fun tearDown() {
-        service!!.stopService(Intent())
+        service!!.stopService(intent)
         CrashReporter.reset()
     }
 
     @Test
-    fun `CrashHandlerService forwards fatal native code crash to crash reporter`() = runBlocking {
+    fun `CrashHandlerService forwards main process native code crash to crash reporter`() = runBlocking {
         doNothing().`when`(reporter)!!.sendCrashReport(any(), any())
 
-        intent!!.putExtra("fatal", true)
-        service!!.handleCrashIntent(intent!!, scope)
+        intent.putExtra("processType", "MAIN")
+        service!!.handleCrashIntent(intent, scope)
         verify(reporter)!!.onCrash(any(), any())
         verify(reporter)!!.sendCrashReport(any(), any())
         verify(reporter, never())!!.sendNonFatalCrashIntent(any(), any())
     }
 
     @Test
-    fun `CrashHandlerService forwards non-fatal native code crash to crash reporter`() = runBlocking {
+    fun `CrashHandlerService forwards foreground child process native code crash to crash reporter`() = runBlocking {
         doNothing().`when`(reporter)!!.sendCrashReport(any(), any())
 
-        intent!!.putExtra("fatal", false)
-        service!!.handleCrashIntent(intent!!, scope)
+        intent.putExtra("processType", "FOREGROUND_CHILD")
+        service!!.handleCrashIntent(intent, scope)
         verify(reporter)!!.onCrash(any(), any())
         verify(reporter)!!.sendNonFatalCrashIntent(any(), any())
         verify(reporter, never())!!.sendCrashReport(any(), any())
+    }
+
+    @Test
+    fun `CrashHandlerService forwards background child process native code crash to crash reporter`() = runBlocking {
+        doNothing().`when`(reporter)!!.sendCrashReport(any(), any())
+
+        intent.putExtra("processType", "BACKGROUND_CHILD")
+        service!!.handleCrashIntent(intent, scope)
+        verify(reporter)!!.onCrash(any(), any())
+        verify(reporter)!!.sendCrashReport(any(), any())
+        verify(reporter, never())!!.sendNonFatalCrashIntent(any(), any())
     }
 }

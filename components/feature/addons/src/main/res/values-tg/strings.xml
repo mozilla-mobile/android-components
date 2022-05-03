@@ -49,7 +49,7 @@
     <!-- Description for history permission. -->
     <string name="mozac_feature_addons_permissions_history_description">Дастрас кардани таърихи тамошо</string>
     <!-- Description for management permission. -->
-    <string name="mozac_feature_addons_permissions_management_description">Назорат кардани истифодаи васеъшавӣ ва идора кардани мавзӯъҳо</string>
+    <string name="mozac_feature_addons_permissions_management_description">Назорат кардани истифодаи васеъшавӣ ва идора кардани мавзуъҳо</string>
     <!-- Description for native_messaging permission. -->
     <string name="mozac_feature_addons_permissions_native_messaging_description">Мубодила кардани паёмҳо бо барномаҳо ба ғайр аз барномаи ҷорӣ</string>
     <!-- Description for notifications permission. -->
@@ -85,9 +85,9 @@
     <!-- Indicates the add-on is disabled. -->
     <string name="mozac_feature_addons_settings_off">Ғайрифаъол</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
-    <string name="mozac_feature_addons_settings_allow_in_private_browsing">Иҷозат додан дар баррасии махфӣ</string>
+    <string name="mozac_feature_addons_settings_allow_in_private_browsing">Иҷозат додан дар тамошокунии хусусӣ</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
-    <string name="mozac_feature_addons_settings_run_in_private_browsing">Иҷро кардан дар баррасии махфӣ</string>
+    <string name="mozac_feature_addons_settings_run_in_private_browsing">Иҷро кардан дар тамошокунии хусусӣ</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">Фаъол аст</string>
     <!-- Indicates the add-on is disabled. -->

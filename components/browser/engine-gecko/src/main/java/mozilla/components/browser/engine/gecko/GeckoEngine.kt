@@ -5,10 +5,12 @@
 package mozilla.components.browser.engine.gecko
 
 import android.content.Context
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.JsonReader
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate
+import mozilla.components.browser.engine.gecko.activity.GeckoScreenOrientationDelegate
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.ext.getEtpLevel
 import mozilla.components.browser.engine.gecko.ext.getStrictSocialTrackingProtection
@@ -16,6 +18,7 @@ import mozilla.components.browser.engine.gecko.integration.LocaleSettingUpdater
 import mozilla.components.browser.engine.gecko.mediaquery.from
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.profiler.Profiler
+import mozilla.components.browser.engine.gecko.serviceworker.GeckoServiceWorkerDelegate
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionFactory
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtensionException
@@ -32,10 +35,12 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.Settings
 import mozilla.components.concept.engine.activity.ActivityDelegate
+import mozilla.components.concept.engine.activity.OrientationDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
+import mozilla.components.concept.engine.serviceworker.ServiceWorkerDelegate
 import mozilla.components.concept.engine.utils.EngineVersion
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.ActionHandler
@@ -60,12 +65,13 @@ import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.WebExtensionController
+import org.mozilla.geckoview.WebNotification
 import java.lang.ref.WeakReference
 
 /**
  * Gecko-based implementation of Engine interface.
  */
-@Suppress("LargeClass")
+@Suppress("LargeClass", "TooManyFunctions")
 class GeckoEngine(
     context: Context,
     private val defaultSettings: Settings? = null,
@@ -502,6 +508,38 @@ class GeckoEngine(
      */
     override fun unregisterActivityDelegate() {
         runtime.activityDelegate = null
+    }
+
+    /**
+     * See [Engine.registerScreenOrientationDelegate].
+     */
+    override fun registerScreenOrientationDelegate(
+        delegate: OrientationDelegate
+    ) {
+        runtime.orientationController.delegate = GeckoScreenOrientationDelegate(delegate)
+    }
+
+    /**
+     * See [Engine.unregisterScreenOrientationDelegate].
+     */
+    override fun unregisterScreenOrientationDelegate() {
+        runtime.orientationController.delegate = null
+    }
+
+    override fun registerServiceWorkerDelegate(serviceWorkerDelegate: ServiceWorkerDelegate) {
+        runtime.serviceWorkerDelegate = GeckoServiceWorkerDelegate(
+            delegate = serviceWorkerDelegate,
+            runtime = runtime,
+            engineSettings = defaultSettings
+        )
+    }
+
+    override fun unregisterServiceWorkerDelegate() {
+        runtime.serviceWorkerDelegate = null
+    }
+
+    override fun handleWebNotificationClick(webNotification: Parcelable) {
+        (webNotification as? WebNotification)?.click()
     }
 
     /**

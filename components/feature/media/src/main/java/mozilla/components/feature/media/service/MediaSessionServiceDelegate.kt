@@ -4,8 +4,10 @@
 
 package mozilla.components.feature.media.service
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioManager
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -37,6 +39,19 @@ import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 
+private class BecomingNoisyReceiver(private val controller: MediaSession.Controller?) : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent) {
+        if (AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent.action) {
+            controller?.pause()
+        }
+    }
+    @VisibleForTesting
+    fun deviceIsBecomingNoisy(context: Context) {
+        val becomingNoisyIntent = Intent(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+        onReceive(context, becomingNoisyIntent)
+    }
+}
+
 /**
  * Delegate handling callbacks from an [AbstractMediaSessionService].
  *
@@ -59,6 +74,9 @@ internal class MediaSessionServiceDelegate(
     private var scope: CoroutineScope? = null
     private var controller: MediaSession.Controller? = null
     private var notificationScope: CoroutineScope? = null
+
+    private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+    private var noisyAudioStreamReceiver: BecomingNoisyReceiver? = null
 
     @VisibleForTesting
     internal var isForegroundService: Boolean = false
@@ -86,7 +104,7 @@ internal class MediaSessionServiceDelegate(
 
         when (intent?.action) {
             AbstractMediaSessionService.ACTION_LAUNCH -> {
-                startForegroundNotification()
+                startForegroundNotificationIfNeeded()
             }
             AbstractMediaSessionService.ACTION_PLAY -> {
                 controller?.play()
@@ -117,15 +135,18 @@ internal class MediaSessionServiceDelegate(
 
         when (state.mediaSessionState?.playbackState) {
             MediaSession.PlaybackState.PLAYING -> {
+                registerBecomingNoisyListener(state)
                 audioFocus.request(state.id)
                 emitStatePlayFact()
                 startForegroundNotificationIfNeeded()
             }
             MediaSession.PlaybackState.PAUSED -> {
+                unregisterBecomingNoisyListener()
                 emitStatePauseFact()
                 stopForeground()
             }
             else -> {
+                unregisterBecomingNoisyListener()
                 emitStateStopFact()
                 stopForeground()
             }
@@ -172,6 +193,18 @@ internal class MediaSessionServiceDelegate(
         isForegroundService = false
     }
 
+    private fun registerBecomingNoisyListener(state: SessionState) {
+        noisyAudioStreamReceiver = BecomingNoisyReceiver(state.mediaSessionState?.controller)
+        context.registerReceiver(noisyAudioStreamReceiver, intentFilter)
+    }
+
+    private fun unregisterBecomingNoisyListener() {
+        noisyAudioStreamReceiver?.let {
+            context.unregisterReceiver(noisyAudioStreamReceiver)
+            noisyAudioStreamReceiver = null
+        }
+    }
+
     private suspend fun updateNotification(sessionState: SessionState?) {
         val notification = notification.create(sessionState, mediaSession)
 
@@ -192,5 +225,10 @@ internal class MediaSessionServiceDelegate(
     internal fun shutdown() {
         mediaSession.release()
         service.stopSelf()
+    }
+
+    @VisibleForTesting
+    internal fun deviceBecomingNoisy(context: Context) {
+        noisyAudioStreamReceiver?.deviceIsBecomingNoisy(context)
     }
 }

@@ -50,7 +50,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.robolectric.Robolectric
-import org.robolectric.Shadows
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(AndroidJUnit4::class)
 class BrowserToolbarTest {
@@ -169,10 +169,12 @@ class BrowserToolbarTest {
     fun `displayProgress will send accessibility events`() {
         val toolbar = BrowserToolbar(testContext)
         val root = mock(ViewParent::class.java)
-        Shadows.shadowOf(toolbar).setMyParent(root)
+        shadowOf(toolbar).setMyParent(root)
         `when`(root.requestSendAccessibilityEvent(any(), any())).thenReturn(false)
 
-        Shadows.shadowOf(testContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager).setEnabled(true)
+        val shadowAccessibilityManager = shadowOf(testContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager)
+        shadowAccessibilityManager.setEnabled(true)
+        shadowAccessibilityManager.setTouchExplorationEnabled(true)
 
         toolbar.displayProgress(10)
         toolbar.displayProgress(50)
@@ -205,6 +207,31 @@ class BrowserToolbarTest {
         assertEquals(100, captor.allValues[3].maxScrollY)
     }
 
+    @Test
+    fun `displayProgress will not send send view scrolled accessibility events if touch exploration is disabled`() {
+        val toolbar = BrowserToolbar(testContext)
+        val root = mock(ViewParent::class.java)
+        shadowOf(toolbar).setMyParent(root)
+        `when`(root.requestSendAccessibilityEvent(any(), any())).thenReturn(false)
+
+        val shadowAccessibilityManager = shadowOf(testContext.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager)
+        shadowAccessibilityManager.setEnabled(true)
+        shadowAccessibilityManager.setTouchExplorationEnabled(false)
+
+        toolbar.displayProgress(10)
+        toolbar.displayProgress(50)
+        toolbar.displayProgress(100)
+
+        // make sure multiple calls to 100% does not trigger "loading" announcement
+        toolbar.displayProgress(100)
+
+        val captor = ArgumentCaptor.forClass(AccessibilityEvent::class.java)
+
+        verify(root, times(1)).requestSendAccessibilityEvent(any(), captor.capture())
+
+        assertEquals(AccessibilityEvent.TYPE_ANNOUNCEMENT, captor.allValues[0].eventType)
+        assertEquals(testContext.getString(R.string.mozac_browser_toolbar_progress_loading), captor.allValues[0].text[0])
+    }
     @Test
     fun `displayProgress will be forwarded to display toolbar`() {
         val toolbar = BrowserToolbar(testContext)
@@ -434,7 +461,7 @@ class BrowserToolbarTest {
     }
 
     @Test
-    fun `add edit action will be forwarded to edit toolbar`() {
+    fun `add edit action start will be forwarded to edit toolbar`() {
         val toolbar = BrowserToolbar(testContext)
 
         val edit: EditToolbar = mock()
@@ -444,9 +471,25 @@ class BrowserToolbarTest {
             // Do nothing
         }
 
-        toolbar.addEditAction(action)
+        toolbar.addEditActionStart(action)
 
-        verify(edit).addEditAction(action)
+        verify(edit).addEditActionStart(action)
+    }
+
+    @Test
+    fun `add edit action end will be forwarded to edit toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+
+        val edit: EditToolbar = mock()
+        toolbar.edit = edit
+
+        val action = BrowserToolbar.Button(mock(), "QR code scanner") {
+            // Do nothing
+        }
+
+        toolbar.addEditActionEnd(action)
+
+        verify(edit).addEditActionEnd(action)
     }
 
     @Test
@@ -509,6 +552,19 @@ class BrowserToolbarTest {
         toolbar.invalidateActions()
 
         verify(display).invalidateActions()
+    }
+
+    @Test
+    fun `invalidate actions is forwarded to edit toolbar`() {
+        val toolbar = BrowserToolbar(testContext)
+        val edit: EditToolbar = mock()
+        toolbar.edit = edit
+
+        verify(edit, never()).invalidateActions()
+
+        toolbar.invalidateActions()
+
+        verify(edit).invalidateActions()
     }
 
     @Test
@@ -824,5 +880,21 @@ class BrowserToolbarTest {
         toolbar.collapse()
 
         verify(behavior).forceCollapse(toolbar)
+    }
+
+    @Test
+    fun `WHEN search terms changes THEN edit listener is notified`() {
+        val toolbar = BrowserToolbar(testContext)
+        toolbar.edit = spy(toolbar.edit)
+        toolbar.edit.editListener = mock()
+
+        toolbar.setSearchTerms("")
+        toolbar.editMode()
+
+        toolbar.setSearchTerms("test")
+        verify(toolbar.edit.editListener)?.onTextChanged("test")
+
+        toolbar.setSearchTerms("")
+        verify(toolbar.edit.editListener)?.onTextChanged("")
     }
 }

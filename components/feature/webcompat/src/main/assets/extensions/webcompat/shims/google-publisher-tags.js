@@ -47,7 +47,8 @@ if (window.googletag?.apiReady === undefined) {
       const f = document.createElement("iframe");
       f.id = eid;
       f.srcdoc = "<body></body>";
-      f.style = "unset: all; position: absolute; z-index: -1; border: 0";
+      f.style =
+        "position:absolute; width:0; height:0; left:0; right:0; z-index:-1; border:0";
       node.appendChild(f);
     }
   };
@@ -122,6 +123,15 @@ if (window.googletag?.apiReady === undefined) {
       return [Array.prototype.flat.call(v)[0]];
     } catch (_) {}
     return [];
+  };
+
+  const updateTargeting = (targeting, map) => {
+    if (typeof map === "object") {
+      const entries = Object.entries(map || {});
+      for (const [k, v] of entries) {
+        targeting.set(k, getTargetingValue(v));
+      }
+    }
   };
 
   const newSlot = (adUnitPath, size, opt_div) => {
@@ -215,10 +225,7 @@ if (window.googletag?.apiReady === undefined) {
       },
       toString: () => id,
       updateTargetingFromMap(map) {
-        const entries = map?.entries() || {};
-        for (const [k, v] of entries) {
-          targeting.set(k, getTargetingValue(v));
-        }
+        updateTargeting(targeting, map);
         return slot;
       },
     };
@@ -333,10 +340,7 @@ if (window.googletag?.apiReady === undefined) {
     },
     updateCorrelator() {},
     updateTargetingFromMap(map) {
-      const entries = map?.entries() || {};
-      for (const [k, v] of entries) {
-        gTargeting.set(k, getTargetingValue(v));
-      }
+      updateTargeting(gTargeting, map);
       return this;
     },
   };

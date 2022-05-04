@@ -4,13 +4,36 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 101.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)
+# 102.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-contextmenu**
+  * 🌟 Add new `additionalValidation` parameter to context menu options builders allowing clients to know when these options to be shown and potentially block showing them.
+
+* **feature-pwa**
+  * [TrustedWebActivityIntentProcessor] is now deprecated. See [issue #12024](https://github.com/mozilla-mobile/android-components/issues/12024).
+
+* **feature-top-sites**
+  * Added `providerFilter` to `TopSitesProviderConfig`, allowing the client to filter the provided top sites.
+
+* **concept-storage**:
+  * Added `CreditCardValidationDelegate` which is a delegate that will check against the `CreditCardsAddressesStorage` to determine if a `CreditCard` can be persisted in storage. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
+  * Refactors `CreditCard` from `concept-engine` to `CreditCardEntry` in `concept-storage` so that it can validated with the `CreditCardValidationDelegate`. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
+
+# 101.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...v101.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/.config.yml)
+
+* **feature-media**
+  * Support reverse landscape orientation for fullscreen videos
+    [issue # 12034](https://github.com/mozilla-mobile/android-components/issues/12034)
 * **feature-downloads**:
   * 🚒 Bug fixed [issue #11259](https://github.com/mozilla-mobile/android-components/issues/11259) - Improved mime type inference for when sharing images from the contextual menu.
 

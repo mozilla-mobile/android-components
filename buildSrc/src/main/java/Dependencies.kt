@@ -14,6 +14,7 @@ object Versions {
     const val robolectric = "4.7.3"
     const val mockito = "3.11.2"
     const val maven_ant_tasks = "2.1.3"
+    const val mockito_inline = "4.6.0"
 
     const val mockwebserver = "3.10.0"
 
@@ -85,6 +86,7 @@ object Dependencies {
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"
     const val testing_robolectric_playservices = "org.robolectric:shadows-playservices:${Versions.robolectric}"
     const val testing_mockito = "org.mockito:mockito-core:${Versions.mockito}"
+    const val testing_mockito_inline = "org.mockito:mockito-inline:${Versions.mockito_inline}"
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.mockwebserver}"
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
     const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"

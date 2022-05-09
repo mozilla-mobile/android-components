@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **concept-engine**:
+  * Added support for `SelectAddress` prompt request. See [issue #12060](https://github.com/mozilla-mobile/android-components/issues/12060)
+
 * **feature-autofill**
   * 🚒 Bug fixed [issue #11893](https://github.com/mozilla-mobile/android-components/issues/11893) - Fix issue with autofilling in 3rd party applications not being immediately available after unlocking the autofill service.
 
@@ -29,6 +32,8 @@ permalink: /changelog/
 
 * **browser-storage-sync**
   * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+  * Fixed a low frequency crasher that might occur when the app attempts to delete all history. [#12112](https://github.com/mozilla-mobile/android-components/pull/12112)
+
 
 * **feature-syncedtabs**
   * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).

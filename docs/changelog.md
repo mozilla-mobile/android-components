@@ -11,6 +11,10 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **support-test**
+  * ⚠️ **This is a breaking change**: `MainCoroutineRule` constructor now takes a `TestDispatcher` instead of deprecated `TestCoroutineDispatcher`. Default is `UnconfinedTestDispatcher`.
+  * ⚠️ **This is a breaking change**: `MainCoroutineRule.runBlockingTest` is replaced with a `runTestOnMain` top level function. . This method is preferred over the global `runTest` because it reparents new child coroutines to the test coroutine context.
+
 * **concept-engine**:
   * Added support for `SelectAddress` prompt request. See [issue #12060](https://github.com/mozilla-mobile/android-components/issues/12060)
 

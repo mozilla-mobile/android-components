@@ -5,9 +5,6 @@
 package mozilla.components.browser.state.engine.middleware
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.selector.findCustomTab
@@ -23,10 +20,12 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.test.whenever
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
@@ -38,17 +37,13 @@ import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
 class CreateEngineSessionMiddlewareTest {
-
-    private val dispatcher = TestCoroutineDispatcher()
-    private val scope = CoroutineScope(dispatcher)
-
-    @After
-    fun tearDown() {
-        dispatcher.cleanupTestCoroutines()
-    }
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
+    private val scope = coroutinesTestRule.scope
 
     @Test
-    fun `creates engine session if needed`() = runBlocking {
+    fun `creates engine session if needed`() = runTestOnMain {
         val engine: Engine = mock()
         val engineSession: EngineSession = mock()
         whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
@@ -63,19 +58,19 @@ class CreateEngineSessionMiddlewareTest {
 
         store.dispatch(EngineAction.CreateEngineSessionAction(tab.id)).joinBlocking()
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
         verify(engine, times(1)).createSession(false)
         assertEquals(engineSession, store.state.findTab(tab.id)?.engineState?.engineSession)
 
         store.dispatch(EngineAction.CreateEngineSessionAction(tab.id)).joinBlocking()
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
         verify(engine, times(1)).createSession(false)
         assertEquals(engineSession, store.state.findTab(tab.id)?.engineState?.engineSession)
     }
 
     @Test
-    fun `restores engine session state if available`() = runBlocking {
+    fun `restores engine session state if available`() = runTestOnMain {
         val engine: Engine = mock()
         val engineSession: EngineSession = mock()
         whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
@@ -92,14 +87,14 @@ class CreateEngineSessionMiddlewareTest {
         store.dispatch(EngineAction.UpdateEngineSessionStateAction(tab.id, engineSessionState)).joinBlocking()
         store.dispatch(EngineAction.CreateEngineSessionAction(tab.id)).joinBlocking()
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         verify(engineSession).restoreState(engineSessionState)
         Unit
     }
 
     @Test
-    fun `creates no engine session if tab does not exist`() = runBlocking {
+    fun `creates no engine session if tab does not exist`() = runTestOnMain {
         val engine: Engine = mock()
         `when`(engine.createSession(anyBoolean(), anyString())).thenReturn(mock())
 
@@ -111,14 +106,14 @@ class CreateEngineSessionMiddlewareTest {
 
         store.dispatch(EngineAction.CreateEngineSessionAction("invalid")).joinBlocking()
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         verify(engine, never()).createSession(anyBoolean(), any())
         Unit
     }
 
     @Test
-    fun `creates no engine session if session does not exist`() = runBlocking {
+    fun `creates no engine session if session does not exist`() = runTestOnMain {
         val engine: Engine = mock()
         `when`(engine.createSession(anyBoolean(), anyString())).thenReturn(mock())
 
@@ -135,14 +130,14 @@ class CreateEngineSessionMiddlewareTest {
         ).joinBlocking()
 
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         verify(engine, never()).createSession(anyBoolean(), any())
         Unit
     }
 
     @Test
-    fun `dispatches follow-up action after engine session is created`() = runBlocking {
+    fun `dispatches follow-up action after engine session is created`() = runTestOnMain {
         val engine: Engine = mock()
         val engineSession: EngineSession = mock()
         whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
@@ -159,7 +154,7 @@ class CreateEngineSessionMiddlewareTest {
         store.dispatch(EngineAction.CreateEngineSessionAction(tab.id, followupAction = followupAction)).joinBlocking()
 
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         verify(engine, times(1)).createSession(false)
         assertEquals(engineSession, store.state.findTab(tab.id)?.engineState?.engineSession)
@@ -167,7 +162,7 @@ class CreateEngineSessionMiddlewareTest {
     }
 
     @Test
-    fun `dispatches follow-up action once engine session is created by pending action`() = runBlocking {
+    fun `dispatches follow-up action once engine session is created by pending action`() = runTestOnMain {
         val engine: Engine = mock()
         val engineSession: EngineSession = mock()
         whenever(engine.createSession(anyBoolean(), any())).thenReturn(engineSession)
@@ -187,7 +182,7 @@ class CreateEngineSessionMiddlewareTest {
         store.dispatch(EngineAction.CreateEngineSessionAction(tab.id, followupAction = followupAction))
 
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         verify(engine, times(1)).createSession(false)
         assertEquals(engineSession, store.state.findTab(tab.id)?.engineState?.engineSession)
@@ -212,7 +207,7 @@ class CreateEngineSessionMiddlewareTest {
         store.dispatch(EngineAction.CreateEngineSessionAction(customTab.id, followupAction = followupAction)).joinBlocking()
 
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         verify(engine, times(1)).createSession(false)
         assertEquals(engineSession, store.state.findCustomTab(customTab.id)?.engineState?.engineSession)

@@ -5,9 +5,6 @@
 package mozilla.components.browser.state.engine.middleware
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.BrowserState
@@ -18,9 +15,11 @@ import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
-import org.junit.After
+import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.never
@@ -30,16 +29,13 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 class SuspendMiddlewareTest {
 
-    private val dispatcher = TestCoroutineDispatcher()
-    private val scope = CoroutineScope(dispatcher)
-
-    @After
-    fun tearDown() {
-        dispatcher.cleanupTestCoroutines()
-    }
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
+    private val scope = coroutinesTestRule.scope
 
     @Test
-    fun `suspends engine session`() = runBlocking {
+    fun `suspends engine session`() = runTestOnMain {
         val middleware = SuspendMiddleware(scope)
 
         val tab = createTab("https://www.mozilla.org", id = "1")
@@ -57,7 +53,7 @@ class SuspendMiddlewareTest {
         store.dispatch(EngineAction.SuspendEngineSessionAction(tab.id)).joinBlocking()
 
         store.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         assertNull(store.state.findTab(tab.id)?.engineState?.engineSession)
         assertEquals(state, store.state.findTab(tab.id)?.engineState?.engineSessionState)
@@ -122,7 +118,7 @@ class SuspendMiddlewareTest {
 
         suspendStore.waitUntilIdle()
         killStore.waitUntilIdle()
-        dispatcher.advanceUntilIdle()
+        dispatcher.scheduler.advanceUntilIdle()
 
         assertNull(suspendStore.state.findTab(tab.id)?.engineState?.engineSession)
         assertEquals(state, suspendStore.state.findTab(tab.id)?.engineState?.engineSessionState)

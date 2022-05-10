@@ -5,10 +5,7 @@
 package mozilla.components.feature.search.middleware
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.TestDispatcher
 import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
@@ -24,12 +21,15 @@ import mozilla.components.support.test.fakes.android.FakeSharedPreferences
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
@@ -40,21 +40,19 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class SearchMiddlewareTest {
-    private lateinit var dispatcher: TestCoroutineDispatcher
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
+
     private lateinit var originalLocale: Locale
-    private lateinit var scope: CoroutineScope
 
     @Before
     fun setUp() {
-        dispatcher = TestCoroutineDispatcher()
-        scope = CoroutineScope(dispatcher)
         originalLocale = Locale.getDefault()
     }
 
     @After
     fun tearDown() {
-        dispatcher.cleanupTestCoroutines()
-        scope.cancel()
 
         if (Locale.getDefault() != originalLocale) {
             Locale.setDefault(originalLocale)
@@ -752,9 +750,9 @@ class SearchMiddlewareTest {
     }
 
     @Test
-    fun `Loads additional search engine and honors user choice`() {
+    fun `Loads additional search engine and honors user choice`() = runTestOnMain {
         val metadataStorage = SearchMetadataStorage(testContext, lazy { FakeSharedPreferences() })
-        runBlocking { metadataStorage.setAdditionalSearchEngines(listOf("reddit")) }
+        metadataStorage.setAdditionalSearchEngines(listOf("reddit"))
 
         val searchMiddleware = SearchMiddleware(
             testContext,
@@ -801,7 +799,7 @@ class SearchMiddlewareTest {
     }
 
     @Test
-    fun `Loads custom search engines`() {
+    fun `Loads custom search engines`() = runTestOnMain {
         val searchEngine = SearchEngine(
             id = "test-search",
             name = "Test Engine",
@@ -812,7 +810,7 @@ class SearchMiddlewareTest {
         )
 
         val storage = CustomSearchEngineStorage(testContext, dispatcher)
-        runBlocking { storage.saveSearchEngine(searchEngine) }
+        storage.saveSearchEngine(searchEngine)
 
         val store = BrowserStore(
             middleware = listOf(
@@ -835,9 +833,9 @@ class SearchMiddlewareTest {
     }
 
     @Test
-    fun `Loads default search engine ID`() {
+    fun `Loads default search engine ID`() = runTestOnMain {
         val storage = SearchMetadataStorage(testContext)
-        runBlocking { storage.setUserSelectedSearchEngine("test-id", null) }
+        storage.setUserSelectedSearchEngine("test-id", null)
 
         val middleware = SearchMiddleware(
             testContext,
@@ -1073,7 +1071,7 @@ class SearchMiddlewareTest {
 
     @Test
     fun `Custom search engines - Create, Update, Delete`() {
-        runBlocking {
+        runTestOnMain {
             val storage: SearchMiddleware.CustomStorage = mock()
             doReturn(emptyList<SearchEngine>()).`when`(storage).loadSearchEngineList()
 
@@ -1584,12 +1582,12 @@ class SearchMiddlewareTest {
     }
 }
 
-private fun wait(store: BrowserStore, dispatcher: TestCoroutineDispatcher) {
+private fun wait(store: BrowserStore, dispatcher: TestDispatcher) {
     // First we wait for the InitAction that may still need to be processed.
     store.waitUntilIdle()
 
     // Now we wait for the Middleware that may need to asynchronously process an action the test dispatched
-    dispatcher.advanceUntilIdle()
+    dispatcher.scheduler.advanceUntilIdle()
 
     // Since the Middleware may have dispatched an action, we now wait for the store again.
     store.waitUntilIdle()

@@ -8,10 +8,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
@@ -23,9 +20,12 @@ import mozilla.components.support.test.eq
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
@@ -40,9 +40,14 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class AutoSaveTest {
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val dispatcher = coroutinesTestRule.testDispatcher
+    private val scope = coroutinesTestRule.scope
+
     @Test
     fun `AutoSave - when going to background`() {
-        runBlocking {
+        runTestOnMain {
             // Keep the "owner" in scope to avoid it getting garbage collected and therefore lifecycle events
             // not getting propagated (See #1428).
             val owner = mock(LifecycleOwner::class.java)
@@ -77,14 +82,11 @@ class AutoSaveTest {
 
     @Test
     fun `AutoSave - when tab gets added`() {
-        runBlocking {
+        runTestOnMain {
             val state = BrowserState()
             val store = BrowserStore(state)
 
             val sessionStorage: SessionStorage = mock()
-
-            val dispatcher = TestCoroutineDispatcher()
-            val scope = CoroutineScope(dispatcher)
 
             val autoSave = AutoSave(
                 store = store,
@@ -92,7 +94,7 @@ class AutoSaveTest {
                 minimumIntervalMs = 0
             ).whenSessionsChange(scope)
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             assertNull(autoSave.saveJob)
             verify(sessionStorage, never()).save(any())
@@ -103,7 +105,7 @@ class AutoSaveTest {
                 )
             ).joinBlocking()
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             autoSave.saveJob?.join()
 
@@ -113,7 +115,7 @@ class AutoSaveTest {
 
     @Test
     fun `AutoSave - when tab gets removed`() {
-        runBlocking {
+        runTestOnMain {
             val sessionStorage: SessionStorage = mock()
 
             val store = BrowserStore(
@@ -126,23 +128,20 @@ class AutoSaveTest {
                 )
             )
 
-            val dispatcher = TestCoroutineDispatcher()
-            val scope = CoroutineScope(dispatcher)
-
             val autoSave = AutoSave(
                 store = store,
                 sessionStorage = sessionStorage,
                 minimumIntervalMs = 0
             ).whenSessionsChange(scope)
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             assertNull(autoSave.saveJob)
             verify(sessionStorage, never()).save(any())
 
             store.dispatch(TabListAction.RemoveTabAction("mozilla")).joinBlocking()
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             autoSave.saveJob?.join()
 
@@ -152,7 +151,7 @@ class AutoSaveTest {
 
     @Test
     fun `AutoSave - when all tabs get removed`() {
-        runBlocking {
+        runTestOnMain {
             val store = BrowserStore(
                 BrowserState(
                     tabs = listOf(
@@ -165,23 +164,20 @@ class AutoSaveTest {
 
             val sessionStorage: SessionStorage = mock()
 
-            val dispatcher = TestCoroutineDispatcher()
-            val scope = CoroutineScope(dispatcher)
-
             val autoSave = AutoSave(
                 store = store,
                 sessionStorage = sessionStorage,
                 minimumIntervalMs = 0
             ).whenSessionsChange(scope)
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             assertNull(autoSave.saveJob)
             verify(sessionStorage, never()).save(any())
 
             store.dispatch(TabListAction.RemoveAllNormalTabsAction).joinBlocking()
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             autoSave.saveJob?.join()
 
@@ -191,7 +187,7 @@ class AutoSaveTest {
 
     @Test
     fun `AutoSave - when no tabs are left`() {
-        runBlocking {
+        runTestOnMain {
             val store = BrowserStore(
                 BrowserState(
                     tabs = listOf(createTab("https://www.firefox.com", id = "firefox")),
@@ -201,22 +197,19 @@ class AutoSaveTest {
 
             val sessionStorage: SessionStorage = mock()
 
-            val dispatcher = TestCoroutineDispatcher()
-            val scope = CoroutineScope(dispatcher)
-
             val autoSave = AutoSave(
                 store = store,
                 sessionStorage = sessionStorage,
                 minimumIntervalMs = 0
             ).whenSessionsChange(scope)
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             assertNull(autoSave.saveJob)
             verify(sessionStorage, never()).save(any())
 
             store.dispatch(TabListAction.RemoveTabAction("firefox")).joinBlocking()
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             autoSave.saveJob?.join()
 
@@ -226,7 +219,7 @@ class AutoSaveTest {
 
     @Test
     fun `AutoSave - when tab gets selected`() {
-        runBlocking {
+        runTestOnMain {
             val store = BrowserStore(
                 BrowserState(
                     tabs = listOf(
@@ -239,23 +232,20 @@ class AutoSaveTest {
 
             val sessionStorage: SessionStorage = mock()
 
-            val dispatcher = TestCoroutineDispatcher()
-            val scope = CoroutineScope(dispatcher)
-
             val autoSave = AutoSave(
                 store = store,
                 sessionStorage = sessionStorage,
                 minimumIntervalMs = 0
             ).whenSessionsChange(scope)
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             assertNull(autoSave.saveJob)
             verify(sessionStorage, never()).save(any())
 
             store.dispatch(TabListAction.SelectTabAction("mozilla")).joinBlocking()
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             autoSave.saveJob?.join()
 
@@ -265,7 +255,7 @@ class AutoSaveTest {
 
     @Test
     fun `AutoSave - when tab loading state changes`() {
-        runBlocking {
+        runTestOnMain {
             val sessionStorage: SessionStorage = mock()
 
             val store = BrowserStore(
@@ -276,9 +266,6 @@ class AutoSaveTest {
                     selectedTabId = "mozilla"
                 )
             )
-
-            val dispatcher = TestCoroutineDispatcher()
-            val scope = CoroutineScope(dispatcher)
 
             val autoSave = AutoSave(
                 store = store,
@@ -293,7 +280,7 @@ class AutoSaveTest {
                 )
             ).joinBlocking()
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             assertNull(autoSave.saveJob)
             verify(sessionStorage, never()).save(any())
@@ -305,7 +292,7 @@ class AutoSaveTest {
                 )
             ).joinBlocking()
 
-            dispatcher.advanceUntilIdle()
+            dispatcher.scheduler.advanceUntilIdle()
 
             autoSave.saveJob?.join()
 

@@ -70,6 +70,8 @@ dependencies {
 
     implementation Dependencies.kotlin_stdlib
 
+    implementation 'com.google.accompanist:accompanist-swiperefresh:0.24.8-beta'
+
     implementation Dependencies.androidx_activity_compose
     implementation Dependencies.androidx_appcompat
     implementation Dependencies.androidx_core_ktx

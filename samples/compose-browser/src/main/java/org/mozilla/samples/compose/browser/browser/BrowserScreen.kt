@@ -4,6 +4,7 @@
 
 package org.mozilla.samples.compose.browser.browser
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshState
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
@@ -109,7 +112,15 @@ fun BrowserScreen(navController: NavController) {
         }
     }
 
-    Box {
+    val isRefreshing by remember {
+        mutableStateOf(SwipeRefreshState(false))
+    }
+    val context = LocalContext.current
+
+    SwipeRefresh(
+        state = isRefreshing,
+        onRefresh = { Toast.makeText(context, "Should refresh", Toast.LENGTH_SHORT).show() }
+    ) {
         Column(
             modifier = Modifier.nestedScroll(nestedScrollConnection) // need to set this on the parent
         ) {

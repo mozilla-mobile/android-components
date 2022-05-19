@@ -11,17 +11,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.Button
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
@@ -39,6 +49,9 @@ import mozilla.components.lib.state.ext.composableStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.samples.compose.browser.BrowserComposeActivity.Companion.ROUTE_SETTINGS
 import org.mozilla.samples.compose.browser.components
+import kotlin.math.roundToInt
+
+private const val TOOLBAR_HEIGHT_DP = 56
 
 /**
  * The main browser screen.
@@ -60,11 +73,51 @@ fun BrowserScreen(navController: NavController) {
         store.dispatch(BrowserScreenAction.ToggleEditMode(false))
     }
 
+    var toolbarTranslation by remember {
+        mutableStateOf(0)
+    }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                return super.onPostFling(consumed, available)
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                // Compose uses opposite signs to the view system. Positive Y = up in Compose, down in Views, etc.
+                // https://gist.github.com/chrisbanes/053189c31302269656c1979edf418310
+                toolbarTranslation = (toolbarTranslation + (consumed.y.roundToInt() * -1))
+                    .coerceIn(
+                        -TOOLBAR_HEIGHT_DP, // negative value to translate up
+                        0
+                    )
+
+                return super.onPostScroll(consumed, available, source)
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                return super.onPreFling(available)
+            }
+
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                return super.onPreScroll(available, source)
+            }
+        }
+    }
+
     Box {
-        Column {
+        Column(
+            modifier = Modifier.nestedScroll(nestedScrollConnection) // need to set this on the parent
+        ) {
+
             BrowserToolbar(
                 components().store,
                 target,
+                modifier = Modifier.offset(0.dp, toolbarTranslation.dp),
                 editMode = editState.value!!,
                 onDisplayMenuClicked = {
                     navController.navigate(ROUTE_SETTINGS)

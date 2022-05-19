@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.util.AttributeSet
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
 import androidx.core.view.ViewCompat
 import mozilla.components.browser.engine.gecko.selection.GeckoSelectionActionDelegate
 import mozilla.components.concept.engine.EngineSession
@@ -29,6 +30,14 @@ class GeckoEngineView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr), EngineView {
+
+    // Maybe there's a better way to inject the Compose dispatcher to this Android View.
+    override var nestedScrollDispatcher: NestedScrollDispatcher? = null
+        set(value) {
+            geckoView.nestedScrollDispatcher = value
+            field = value
+        }
+
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var geckoView = object : NestedGeckoView(context) {
 

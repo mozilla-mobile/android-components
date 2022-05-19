@@ -8,9 +8,14 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.view.MotionEvent
 import androidx.annotation.VisibleForTesting
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.unit.Velocity
 import androidx.core.view.NestedScrollingChild
 import androidx.core.view.NestedScrollingChildHelper
 import androidx.core.view.ViewCompat
+import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.InputResultDetail
 import org.mozilla.geckoview.GeckoView
 
@@ -27,6 +32,8 @@ import org.mozilla.geckoview.GeckoView
 
 @Suppress("ClickableViewAccessibility")
 open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrollingChild {
+
+    open var nestedScrollDispatcher: NestedScrollDispatcher? = null
 
     @VisibleForTesting
     internal var lastY: Int = 0
@@ -129,6 +136,11 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
             }
     }
 
+    // This methods will have to be implemented by GeckoView.
+    // If so they would cleanly integrate this with:
+    //  - the Android View system (below override are part of a nested nested view scrolling contract)
+    //  - the Compose system (through the NestedScrollDispatcher already called at the appropriate places.
+
     override fun setNestedScrollingEnabled(enabled: Boolean) {
         childHelper.isNestedScrollingEnabled = enabled
     }
@@ -156,18 +168,44 @@ open class NestedGeckoView(context: Context) : GeckoView(context), NestedScrolli
         dyUnconsumed: Int,
         offsetInWindow: IntArray?
     ): Boolean {
+        nestedScrollDispatcher?.dispatchPostScroll(
+            // The scroll distance would (will) be consumed by GeckoView.
+            consumed = Offset(dxUnconsumed.toFloat(), dyUnconsumed.toFloat()),
+
+            available = Offset(dxUnconsumed.toFloat(), dyUnconsumed.toFloat()),
+            source = NestedScrollSource.Drag
+        )
+
         return childHelper.dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, offsetInWindow)
     }
 
     override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?): Boolean {
+        nestedScrollDispatcher?.dispatchPreScroll(
+            available = Offset(dx.toFloat(), dy.toFloat()),
+            source = NestedScrollSource.Drag
+        )
+
         return childHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
     }
 
     override fun dispatchNestedFling(velocityX: Float, velocityY: Float, consumed: Boolean): Boolean {
+        nestedScrollDispatcher?.coroutineScope?.launch {
+            nestedScrollDispatcher?.dispatchPostFling(
+                consumed = Velocity.Zero, // This needs more attention
+                available = Velocity(velocityX, velocityY)
+            )
+        }
+
         return childHelper.dispatchNestedFling(velocityX, velocityY, consumed)
     }
 
     override fun dispatchNestedPreFling(velocityX: Float, velocityY: Float): Boolean {
+        nestedScrollDispatcher?.coroutineScope?.launch {
+            nestedScrollDispatcher?.dispatchPreFling(
+                available = Velocity(velocityX, velocityY)
+            )
+        }
+
         return childHelper.dispatchNestedPreFling(velocityX, velocityY)
     }
 }

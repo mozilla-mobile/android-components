@@ -6,8 +6,13 @@ package mozilla.components.compose.engine
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.ViewCompat
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.store.BrowserStore
@@ -37,11 +42,24 @@ fun WebContent(
         }
     )
 
+    // NestedScrollDispatcher that will be passed/used for nested scroll interop
+    val dispatcher = remember { NestedScrollDispatcher() }
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { context -> engine.createView(context).asView() },
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(object : NestedScrollConnection {}, dispatcher)
+        ,
+        factory = { context ->
+            engine.createView(context)
+                .asView()
+                .also {
+                    ViewCompat.setNestedScrollingEnabled(it, true)
+                }
+        },
         update = { view ->
             val engineView = view as EngineView
+
+            engineView.nestedScrollDispatcher = dispatcher
 
             val tab = selectedTab.value
             if (tab == null) {

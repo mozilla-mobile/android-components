@@ -8,6 +8,7 @@ package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import android.view.View
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.OnLifecycleEvent
 import mozilla.components.concept.engine.EngineView.InputResult.INPUT_RESULT_HANDLED
@@ -19,6 +20,8 @@ import mozilla.components.concept.engine.selection.SelectionActionDelegate
  * View component that renders web content.
  */
 interface EngineView {
+
+    var nestedScrollDispatcher: NestedScrollDispatcher?
 
     /**
      * Convenience method to cast the implementation of this interface to an Android View object.

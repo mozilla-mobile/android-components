@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
@@ -39,6 +40,7 @@ import mozilla.components.browser.state.store.BrowserStore
 fun BrowserToolbar(
     store: BrowserStore,
     target: Target,
+    modifier: Modifier = Modifier,
     onDisplayMenuClicked: () -> Unit,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
@@ -46,7 +48,7 @@ fun BrowserToolbar(
     hint: String = "",
     editMode: Boolean = false,
     editText: String? = null,
-    browserActions: @Composable () -> Unit = {}
+    browserActions: @Composable () -> Unit = {},
 ) {
     val selectedTab: SessionState? by target.observeAsComposableStateFrom(
         store = store,
@@ -68,6 +70,7 @@ fun BrowserToolbar(
     } else {
         BrowserDisplayToolbar(
             url = selectedTab?.content?.url ?: hint,
+            modifier = modifier,
             onUrlClicked = {
                 onDisplayToolbarClick()
             },

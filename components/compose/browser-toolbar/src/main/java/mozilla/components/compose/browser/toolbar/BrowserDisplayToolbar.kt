@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BrowserDisplayToolbar(
     url: String,
+    modifier: Modifier = Modifier,
     onUrlClicked: () -> Unit = {},
     onMenuClicked: () -> Unit = {},
     browserActions: @Composable () -> Unit = {}
@@ -40,7 +41,7 @@ fun BrowserDisplayToolbar(
     val foregroundColor = contentColorFor(backgroundColor)
 
     Row(
-        Modifier.background(backgroundColor)
+        modifier.background(backgroundColor)
     ) {
         Text(
             url,

@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **support-ktx**
+  * 🌟️ Add support for optionally persisting the default value when `stringPreference` is used to read a string from SharedPreferences. [issue #12207](https://github.com/mozilla-mobile/android-components/issues/12207).
+
 * **service-pocket**
   * ⚠️ **This is a breaking change**: Add a new `PocketStory` supertype for all Pocket stories. [#12171](https://github.com/mozilla-mobile/android-components/issues/12171)
 

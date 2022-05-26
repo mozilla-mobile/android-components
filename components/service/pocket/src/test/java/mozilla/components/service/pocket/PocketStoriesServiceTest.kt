@@ -14,6 +14,7 @@ import mozilla.components.service.pocket.helpers.assertConstructorsVisibility
 import mozilla.components.service.pocket.spocs.SpocsUseCases
 import mozilla.components.service.pocket.spocs.SpocsUseCases.DeleteProfile
 import mozilla.components.service.pocket.spocs.SpocsUseCases.GetSponsoredStories
+import mozilla.components.service.pocket.spocs.SpocsUseCases.RecordImpression
 import mozilla.components.service.pocket.stories.PocketStoriesUseCases
 import mozilla.components.service.pocket.stories.PocketStoriesUseCases.GetPocketStories
 import mozilla.components.service.pocket.stories.PocketStoriesUseCases.UpdateStoriesTimesShown
@@ -30,6 +31,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.never
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import java.util.UUID
 import kotlin.reflect.KVisibility
@@ -166,13 +169,26 @@ class PocketStoriesServiceTest {
 
     @Test
     fun `GIVEN PocketStoriesService WHEN deleteProfile THEN delegate to spocs useCases`() = runTest {
-        val noProfileResponse = service.deleteProfile()
+        val mockedService = spy(service)
+        val noProfileResponse = mockedService.deleteProfile()
         assertFalse(noProfileResponse)
 
         val deleteProfileUseCase: DeleteProfile = mock()
         doReturn(deleteProfileUseCase).`when`(spocsUseCases).deleteProfile
         doReturn(true).`when`(deleteProfileUseCase).invoke()
-        val existingProfileResponse = service.deleteProfile()
+        val existingProfileResponse = mockedService.deleteProfile()
         assertTrue(existingProfileResponse)
+        verify(mockedService, times(2)).stopPeriodicSponsoredStoriesRefresh()
+    }
+
+    @Test
+    fun `GIVEN PocketStoriesService WHEN recordStoriesImpressions THEN delegate to spocs useCases`() = runTest {
+        val recordImpressionsUseCase: RecordImpression = mock()
+        doReturn(recordImpressionsUseCase).`when`(spocsUseCases).recordImpression
+        val storiesIds = listOf(22, 33)
+
+        service.recordStoriesImpressions(storiesIds)
+
+        verify(recordImpressionsUseCase).invoke(storiesIds)
     }
 }

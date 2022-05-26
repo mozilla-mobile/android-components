@@ -45,17 +45,6 @@ class PocketStoriesService(
             appId = pocketStoriesConfig.profile.appId
         )
     }
-    internal val getDeleteProfileUseCase = when (pocketStoriesConfig.profile) {
-        null -> {
-            logger.debug("Missing profile for sponsored stories")
-            null
-        }
-        else -> spocsUseCases?.DeleteProfile(
-            context = context,
-            profileId = pocketStoriesConfig.profile.profileId,
-            appId = pocketStoriesConfig.profile.appId
-        )
-    }
 
     /**
      * Entry point to start fetching Pocket stories in the background.
@@ -139,6 +128,7 @@ class PocketStoriesService(
      * Delete all stored user data used for downloading personalized sponsored stories.
      */
     suspend fun deleteProfile(): Boolean {
+        stopPeriodicSponsoredStoriesRefresh()
         return spocsUseCases?.deleteProfile?.invoke() ?: false
     }
 
@@ -150,5 +140,14 @@ class PocketStoriesService(
      */
     suspend fun updateStoriesTimesShown(updatedStories: List<PocketRecommendedStory>) {
         storiesUseCases.updateTimesShown(updatedStories)
+    }
+
+    /**
+     * Persist locally that the sponsored Pocket stories containing the ids from [storiesShown]
+     * were shown to the user.
+     * This is safe to call with any ids, even ones for stories not currently persisted anymore.
+     */
+    suspend fun recordStoriesImpressions(storiesShown: List<Int>) {
+        spocsUseCases?.recordImpression?.invoke(storiesShown)
     }
 }

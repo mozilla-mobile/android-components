@@ -12,6 +12,7 @@ android {
     defaultConfig {
         minSdkVersion config.minSdkVersion
         targetSdkVersion config.targetSdkVersion
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         kapt {
             arguments {
@@ -25,6 +26,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+
+    sourceSets {
+        test.assets.srcDirs += files("$projectDir/schemas".toString())
+        androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
     }
 }
 
@@ -49,9 +55,19 @@ dependencies {
     testImplementation Dependencies.testing_coroutines
     testImplementation Dependencies.testing_mockito
     testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.androidx_room_testing
+    testImplementation Dependencies.androidx_work_testing
 
     testImplementation project(':support-test')
     testImplementation project(':lib-fetch-httpurlconnection')
+
+    androidTestImplementation project(':support-android-test')
+
+    androidTestImplementation Dependencies.androidx_room_testing
+    androidTestImplementation Dependencies.androidx_arch_core_testing
+    androidTestImplementation Dependencies.androidx_test_core
+    androidTestImplementation Dependencies.androidx_test_runner
+    androidTestImplementation Dependencies.androidx_test_rules
 }
 
 apply from: '../../../publish.gradle'

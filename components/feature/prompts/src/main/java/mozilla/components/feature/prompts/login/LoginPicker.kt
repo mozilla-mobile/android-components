@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.prompts.login
 
+import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.storage.Login
@@ -55,7 +56,12 @@ internal class LoginPicker(
     fun dismissCurrentLoginSelect(promptRequest: PromptRequest.SelectLoginPrompt? = null) {
         try {
             promptRequest
-                ?.let { it.onDismiss() }
+                ?.let {
+                    it.onDismiss()
+                    if (sessionId != null) {
+                        store.dispatch(ContentAction.ConsumePromptRequestAction(sessionId!!, it))
+                    }
+                }
                 ?: store.consumePromptFrom<PromptRequest.SelectLoginPrompt>(sessionId) {
                     it.onDismiss()
                 }

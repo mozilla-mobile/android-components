@@ -4,12 +4,28 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 102.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
+# 103.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v102.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/150?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **browser-toolbar**
+  * Expand toolbar when url changes. [#12215](https://github.com/mozilla-mobile/android-components/issues/12215)
+
+* **service-pocket**
+  * Ensure sponsored stories profile deletion is retried in background until successful or the feature is re-enabled. [#12258](https://github.com/mozilla-mobile/android-components/issues/12258)
+
+* **feature-prompts**:
+  * Added optional `addressPickerView` and `onManageAddresses` parameters through `AddressDelegate` to `PromptFeature` for a new `AddressPicker` to display a view for selecting addresses to autofill into a site. [#12061](https://github.com/mozilla-mobile/android-components/issues/12061)
+
+# 102.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/.config.yml)
 
 * **service-firefox-accounts**
   * 🆕 SyncStore to abstract account and Sync details.
@@ -65,7 +81,6 @@ permalink: /changelog/
 * **browser-storage-sync**
   * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
   * Fixed a low frequency crasher that might occur when the app attempts to delete all history. [#12112](https://github.com/mozilla-mobile/android-components/pull/12112)
-
 
 * **feature-syncedtabs**
   * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).

@@ -8,6 +8,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import mozilla.components.browser.engine.gecko.ext.toCreditCardEntry
 import mozilla.components.browser.engine.gecko.ext.toLoginEntry
 import mozilla.components.concept.storage.CreditCard
 import mozilla.components.concept.storage.CreditCardsAddressesStorageDelegate
@@ -31,15 +32,17 @@ class GeckoAutocompleteStorageDelegate(
     private val loginStorageDelegate: LoginStorageDelegate
 ) : Autocomplete.StorageDelegate {
 
-    override fun onCreditCardFetch(): GeckoResult<Array<Autocomplete.CreditCard>>? {
+    override fun onCreditCardFetch(): GeckoResult<Array<Autocomplete.CreditCard>> {
         val result = GeckoResult<Array<Autocomplete.CreditCard>>()
 
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(IO) {
-            val creditCards = creditCardsAddressesStorageDelegate.onCreditCardsFetch().await()
+            val key = creditCardsAddressesStorageDelegate.getOrGenerateKey()
+
+            val creditCards = creditCardsAddressesStorageDelegate.onCreditCardsFetch()
                 .mapNotNull {
                     val plaintextCardNumber =
-                        creditCardsAddressesStorageDelegate.decrypt(it.encryptedCardNumber)?.number
+                        creditCardsAddressesStorageDelegate.decrypt(key, it.encryptedCardNumber)?.number
 
                     if (plaintextCardNumber == null) {
                         null
@@ -54,17 +57,25 @@ class GeckoAutocompleteStorageDelegate(
                     }
                 }
                 .toTypedArray()
+
             result.complete(creditCards)
         }
 
         return result
     }
 
+    override fun onCreditCardSave(creditCard: Autocomplete.CreditCard) {
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launch(IO) {
+            creditCardsAddressesStorageDelegate.onCreditCardSave(creditCard.toCreditCardEntry())
+        }
+    }
+
     override fun onLoginSave(login: Autocomplete.LoginEntry) {
         loginStorageDelegate.onLoginSave(login.toLoginEntry())
     }
 
-    override fun onLoginFetch(domain: String): GeckoResult<Array<Autocomplete.LoginEntry>>? {
+    override fun onLoginFetch(domain: String): GeckoResult<Array<Autocomplete.LoginEntry>> {
         val result = GeckoResult<Array<Autocomplete.LoginEntry>>()
 
         @OptIn(DelicateCoroutinesApi::class)

@@ -35,7 +35,6 @@ treeherder:
         concept-tabstray: concept-tabstray
         concept-toolbar: concept-toolbar
         feature-accounts-push: feature-accounts-push
-        feature-biometric-prompt: feature-biometric-prompt
         feature-accounts: feature-accounts
         feature-addons: feature-addons
         feature-app-links: feature-app-links
@@ -70,6 +69,7 @@ treeherder:
         feature-webcompat: feature-webcompat
         feature-webnotifications: feature-webnotifications
         lib-crash: lib-crash
+        lib-auth: lib-auth
         lib-crash-sentry: lib-crash-sentry
         lib-crash-sentry-legacy: lib-crash-sentry-legacy
         lib-dataprotect: lib-dataprotect

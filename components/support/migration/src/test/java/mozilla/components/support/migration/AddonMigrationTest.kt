@@ -5,12 +5,7 @@
 package mozilla.components.support.migration
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.webextension.DisabledFlags
 import mozilla.components.concept.engine.webextension.Metadata
@@ -22,40 +17,26 @@ import mozilla.components.support.test.any
 import mozilla.components.support.test.argumentCaptor
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
+import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.verify
-import java.lang.IllegalArgumentException
 
 @RunWith(AndroidJUnit4::class)
 class AddonMigrationTest {
 
-    @ExperimentalCoroutinesApi
-    private val testDispatcher = TestCoroutineDispatcher()
-
-    @ExperimentalCoroutinesApi
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @ExperimentalCoroutinesApi
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
-    }
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Test
-    fun `No addons installed`() = runBlocking {
+    fun `No addons installed`() = runTest {
         val engine: Engine = mock()
         val callbackCaptor = argumentCaptor<((List<WebExtension>) -> Unit)>()
         whenever(engine.listInstalledWebExtensions(callbackCaptor.capture(), any())).thenAnswer {
@@ -70,7 +51,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `All addons migrated successfully`() = runBlocking {
+    fun `All addons migrated successfully`() = runTest {
         val addon1: WebExtension = mock()
         whenever(addon1.id).thenReturn("addon1")
         whenever(addon1.isBuiltIn()).thenReturn(false)
@@ -111,7 +92,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `Failure when querying installed addons`() = runBlocking {
+    fun `Failure when querying installed addons`() = runTest {
         val engine: Engine = mock()
         val errorCallback = argumentCaptor<((Throwable) -> Unit)>()
         whenever(engine.listInstalledWebExtensions(any(), errorCallback.capture())).thenAnswer {
@@ -132,7 +113,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `Failure when migrating some addons`() = runBlocking {
+    fun `Failure when migrating some addons`() = runTest {
         val addon1: WebExtension = mock()
         val addon2: WebExtension = mock()
         val addon3: WebExtension = mock()
@@ -179,7 +160,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `Unsupported addons are disabled during migration`() = runBlocking {
+    fun `Unsupported addons are disabled during migration`() = runTest {
         val addon1: WebExtension = mock()
         whenever(addon1.isBuiltIn()).thenReturn(false)
 
@@ -214,7 +195,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `Supported addons remain enabled during migration`() = runBlocking {
+    fun `Supported addons remain enabled during migration`() = runTest {
         val addon1: WebExtension = mock()
         whenever(addon1.id).thenReturn("supportedAddon")
         whenever(addon1.isEnabled()).thenReturn(true)
@@ -266,7 +247,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `Previously unsupported addons are enabled during migration if supported`() = runBlocking {
+    fun `Previously unsupported addons are enabled during migration if supported`() = runTest {
         val metadata: Metadata = mock()
         whenever(metadata.disabledFlags).thenReturn(DisabledFlags.select(DisabledFlags.APP_SUPPORT))
 
@@ -312,7 +293,7 @@ class AddonMigrationTest {
     }
 
     @Test
-    fun `Fall back to hardcoded list of supported addons`() = runBlocking {
+    fun `Fall back to hardcoded list of supported addons`() = runTest {
         val addon1: WebExtension = mock()
         whenever(addon1.id).thenReturn("supportedAddon")
         whenever(addon1.isEnabled()).thenReturn(true)

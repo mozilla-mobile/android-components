@@ -8,7 +8,7 @@
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
     const val kotlin = "1.6.10"
-    const val coroutines = "1.5.2"
+    const val coroutines = "1.6.1"
 
     const val junit = "4.12"
     const val robolectric = "4.7.3"
@@ -24,14 +24,14 @@ object Versions {
     const val detekt = "1.19.0"
 
     const val sentry_legacy = "1.7.21"
-    const val sentry_latest = "5.6.1"
+    const val sentry_latest = "5.7.3"
     const val okhttp = "3.13.1"
     const val zxing = "3.3.0"
     const val jna = "5.8.0"
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.8.1"
 
-    const val mozilla_appservices = "91.1.2"
+    const val mozilla_appservices = "93.2.2"
 
     const val mozilla_glean = "44.1.1"
 

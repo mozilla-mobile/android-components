@@ -6,12 +6,8 @@ package mozilla.components.support.migration
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.runTest
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.appservices.places.uniffi.PlacesException
 import mozilla.components.browser.state.action.BrowserAction
@@ -38,14 +34,15 @@ import mozilla.components.support.test.eq
 import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
 import org.json.JSONObject
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
@@ -60,26 +57,18 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class FennecMigratorTest {
     private lateinit var securePrefs: SecureAbove22Preferences
-    @ExperimentalCoroutinesApi
-    private val testDispatcher = TestCoroutineDispatcher()
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
 
     @Before
     @ExperimentalCoroutinesApi
     fun setup() {
         // forceInsecure is set in the tests because a keystore wouldn't be configured in the test environment.
         securePrefs = SecureAbove22Preferences(testContext, "test_prefs", forceInsecure = true)
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @ExperimentalCoroutinesApi
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
     }
 
     @Test
-    fun `no-op migration`() = runBlocking {
+    fun `no-op migration`() = runTest {
         val migrator = FennecMigrator.Builder(testContext, mock())
             .setCoroutineContext(this.coroutineContext)
             .build()
@@ -159,7 +148,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `is not a fennec install detected`() = runBlocking {
+    fun `is not a fennec install detected`() = runTest {
         val historyStore = PlacesHistoryStorage(testContext)
 
         val migrator1 = FennecMigrator.Builder(testContext, mock())
@@ -186,7 +175,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `migrations versioning basics`() = runBlocking {
+    fun `migrations versioning basics`() = runTest {
         val historyStore = PlacesHistoryStorage(testContext)
         val bookmarksStore = PlacesBookmarksStorage(testContext)
         val topSiteStorage = mock<PinnedSiteStorage>()
@@ -293,7 +282,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `pinned sites migration`() = runBlocking {
+    fun `pinned sites migration`() = runTest {
         val historyStore = PlacesHistoryStorage(testContext)
         val bookmarksStore = PlacesBookmarksStorage(testContext)
         val topSiteStorage = mock<PinnedSiteStorage>()
@@ -353,7 +342,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 1`() = runBlocking {
+    fun `failing migrations are reported - case 1`() = runTest {
         val historyStorage = PlacesHistoryStorage(testContext)
 
         // DB path is set, but db is corrupt.
@@ -376,7 +365,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 2`() = runBlocking {
+    fun `failing migrations are reported - case 2`() = runTest {
         val historyStorage: PlacesHistoryStorage = mock()
 
         // Fail during history migration.
@@ -411,7 +400,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 4`() = runBlocking {
+    fun `failing migrations are reported - case 4`() = runTest {
         val bookmarkStorage: PlacesBookmarksStorage = mock()
         val historyStorage: PlacesHistoryStorage = mock()
 
@@ -459,7 +448,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 5`() = runBlocking {
+    fun `failing migrations are reported - case 5`() = runTest {
         val bookmarkStorage: PlacesBookmarksStorage = mock()
         val historyStorage: PlacesHistoryStorage = mock()
 
@@ -498,7 +487,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 6`() = runBlocking {
+    fun `failing migrations are reported - case 6`() = runTest {
         // Open tabs migration without configured path to sessions.
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateOpenTabs(mock())
@@ -514,7 +503,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 7, corrupt fxa state`() = runBlocking {
+    fun `failing migrations are reported - case 7, corrupt fxa state`() = runTest {
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateFxa(lazy { accountManager })
@@ -533,7 +522,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 8, unsupported pickle version`() = runBlocking {
+    fun `failing migrations are reported - case 8, unsupported pickle version`() = runTest {
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateFxa(lazy { accountManager })
@@ -552,7 +541,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `failing migrations are reported - case 8, unsupported state version`() = runBlocking {
+    fun `failing migrations are reported - case 8, unsupported state version`() = runTest {
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateFxa(lazy { accountManager })
@@ -571,7 +560,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `fxa migration - no account`() = runBlocking {
+    fun `fxa migration - no account`() = runTest {
         // FxA migration without configured path to pickle file (test environment path isn't the same as real path).
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
@@ -597,7 +586,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `fxa migration - unauthenticated account`() = runBlocking {
+    fun `fxa migration - unauthenticated account`() = runTest {
         // FxA migration without configured path to pickle file (test environment path isn't the same as real path).
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
@@ -624,7 +613,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `fxa migration - authenticated account, sign-in succeeded`() = runBlocking {
+    fun `fxa migration - authenticated account, sign-in succeeded`() = runTest {
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateFxa(lazy { accountManager })
@@ -661,7 +650,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `fxa migration - authenticated account, sign-in will retry`() = runBlocking {
+    fun `fxa migration - authenticated account, sign-in will retry`() = runTest {
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateFxa(lazy { accountManager })
@@ -698,7 +687,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `fxa migration - authenticated account, sign-in failed`() = runBlocking {
+    fun `fxa migration - authenticated account, sign-in failed`() = runTest {
         val accountManager: FxaAccountManager = mock()
         val migrator = FennecMigrator.Builder(testContext, mock())
             .migrateFxa(lazy { accountManager })
@@ -736,7 +725,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - no master password`() = runBlocking {
+    fun `logins migrations - no master password`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs }).also {
             it.wipeLocal()
@@ -791,7 +780,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - with master password`() = runBlocking {
+    fun `logins migrations - with master password`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs })
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
@@ -819,7 +808,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - with mp and empty key4db`() = runBlocking {
+    fun `logins migrations - with mp and empty key4db`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs }).also {
             it.wipeLocal()
@@ -847,7 +836,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - with mp and no nss in key4db`() = runBlocking {
+    fun `logins migrations - with mp and no nss in key4db`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs })
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
@@ -874,7 +863,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - missing profile`() = runBlocking {
+    fun `logins migrations - missing profile`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs }).also {
             it.wipeLocal()
@@ -898,7 +887,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - with master password, old signons version`() = runBlocking {
+    fun `logins migrations - with master password, old signons version`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs })
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
@@ -924,7 +913,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `logins migrations - without master password, old signons version`() = runBlocking {
+    fun `logins migrations - without master password, old signons version`() = runTest {
         val crashReporter: CrashReporting = mock()
         val loginStorage = SyncableLoginsStorage(testContext, lazy { securePrefs })
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
@@ -949,7 +938,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `settings migration - no fennec prefs`() = runBlocking {
+    fun `settings migration - no fennec prefs`() = runTest {
         // Fennec SharedPreferences are missing / empty
         val crashReporter: CrashReporting = mock()
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
@@ -967,7 +956,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `settings migration - missing FHR value`() = runBlocking {
+    fun `settings migration - missing FHR value`() = runTest {
         val fennecAppPrefs = testContext.getSharedPreferences(FennecSettingsMigration.FENNEC_APP_SHARED_PREFS_NAME, Context.MODE_PRIVATE)
 
         // Make prefs non-empty.
@@ -993,7 +982,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `addon migration - no addons installed`() = runBlocking {
+    fun `addon migration - no addons installed`() = runTest {
         val addonUpdater: AddonUpdater = mock()
         val addonCollectionProvider: AddonCollectionProvider = mock()
         val engine: Engine = mock()
@@ -1018,7 +1007,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `addon migration - successful migration`() = runBlocking {
+    fun `addon migration - successful migration`() = runTest {
         val addon1: WebExtension = mock()
         val addon2: WebExtension = mock()
 
@@ -1051,7 +1040,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `addon migration - failed to query installed addons`() = runBlocking {
+    fun `addon migration - failed to query installed addons`() = runTest {
         val addonUpdater: AddonUpdater = mock()
         val addonCollectionProvider: AddonCollectionProvider = mock()
         val engine: Engine = mock()
@@ -1081,7 +1070,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `addon migration - failed to migrate some addons`() = runBlocking {
+    fun `addon migration - failed to migrate some addons`() = runTest {
         val addon1: WebExtension = mock()
         val addon2: WebExtension = mock()
         val addon3: WebExtension = mock()
@@ -1135,7 +1124,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `gecko migration - no prefs_js`() = runBlocking {
+    fun `gecko migration - no prefs_js`() = runTest {
         val crashReporter: CrashReporting = mock()
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
             .migrateGecko()
@@ -1157,7 +1146,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `gecko migration - invalid prefs_js removed`() = runBlocking {
+    fun `gecko migration - invalid prefs_js removed`() = runTest {
         val crashReporter: CrashReporting = mock()
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
             .migrateGecko()
@@ -1179,7 +1168,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `gecko migration - prefs_js migrated`() = runBlocking {
+    fun `gecko migration - prefs_js migrated`() = runTest {
         val crashReporter: CrashReporting = mock()
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
             .migrateGecko()
@@ -1201,7 +1190,7 @@ class FennecMigratorTest {
     }
 
     @Test
-    fun `gecko migration - prefs_js no prefs to migrate`() = runBlocking {
+    fun `gecko migration - prefs_js no prefs to migrate`() = runTest {
         val crashReporter: CrashReporting = mock()
         val migrator = FennecMigrator.Builder(testContext, crashReporter)
             .migrateGecko()

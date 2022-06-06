@@ -9,6 +9,8 @@ import android.net.Uri
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Level
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication.Method
 import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
+import mozilla.components.concept.storage.Address
+import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import java.util.UUID
@@ -92,14 +94,26 @@ sealed class PromptRequest(
     ) : PromptRequest()
 
     /**
+     * Value type that represents a request for a save credit card prompt.
+     * @property creditCard the [CreditCardEntry] to save or update.
+     * @property onConfirm callback that is called when the user confirms the save credit card request.
+     * @property onDismiss callback to let the page know the user dismissed the dialog.
+     */
+    data class SaveCreditCard(
+        val creditCard: CreditCardEntry,
+        val onConfirm: (CreditCardEntry) -> Unit,
+        override val onDismiss: () -> Unit
+    ) : PromptRequest(shouldDismissOnLoad = false), Dismissible
+
+    /**
      * Value type that represents a request for a select credit card prompt.
-     * @property creditCards a list of [CreditCard]s to select from.
+     * @property creditCards a list of [CreditCardEntry]s to select from.
      * @property onConfirm callback that is called when the user confirms the credit card selection.
      * @property onDismiss callback to let the page know the user dismissed the dialog.
      */
     data class SelectCreditCard(
-        val creditCards: List<CreditCard>,
-        val onConfirm: (CreditCard) -> Unit,
+        val creditCards: List<CreditCardEntry>,
+        val onConfirm: (CreditCardEntry) -> Unit,
         override val onDismiss: () -> Unit
     ) : PromptRequest(), Dismissible
 
@@ -126,6 +140,21 @@ sealed class PromptRequest(
     data class SelectLoginPrompt(
         val logins: List<Login>,
         val onConfirm: (Login) -> Unit,
+        override val onDismiss: () -> Unit
+    ) : PromptRequest(), Dismissible
+
+    /**
+     * Value type that represents a request for a select address prompt.
+     *
+     * This prompt is triggered by the user focusing on an address field.
+     *
+     * @property addresses List of addresses for the user to choose from.
+     * @property onConfirm Callback used to confirm the selected address.
+     * @property onDismiss Callback used to dismiss the address prompt.
+     */
+    data class SelectAddress(
+        val addresses: List<Address>,
+        val onConfirm: (Address) -> Unit,
         override val onDismiss: () -> Unit
     ) : PromptRequest(), Dismissible
 

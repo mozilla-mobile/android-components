@@ -8,16 +8,20 @@ import android.content.Context
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
+import mozilla.components.browser.engine.gecko.ext.convertToChoices
+import mozilla.components.browser.engine.gecko.ext.toAddress
+import mozilla.components.browser.engine.gecko.ext.toAutocompleteAddress
 import mozilla.components.browser.engine.gecko.ext.toAutocompleteCreditCard
-import mozilla.components.browser.engine.gecko.ext.toCreditCard
+import mozilla.components.browser.engine.gecko.ext.toCreditCardEntry
 import mozilla.components.browser.engine.gecko.ext.toLoginEntry
 import mozilla.components.concept.engine.prompt.Choice
-import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.Address
+import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.support.base.log.logger.Logger
@@ -64,6 +68,43 @@ typealias AC_FILE_FACING_MODE = PromptRequest.File.FacingMode
 internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSession) :
     PromptDelegate {
 
+    override fun onCreditCardSave(
+        session: GeckoSession,
+        request: AutocompleteRequest<Autocomplete.CreditCardSaveOption>
+    ): GeckoResult<PromptResponse> {
+        val geckoResult = GeckoResult<PromptResponse>()
+
+        val onConfirm: (CreditCardEntry) -> Unit = { creditCard ->
+            if (!request.isComplete) {
+                geckoResult.complete(
+                    request.confirm(
+                        Autocomplete.CreditCardSelectOption(creditCard.toAutocompleteCreditCard())
+                    )
+                )
+            }
+        }
+
+        val onDismiss: () -> Unit = {
+            request.dismissSafely(geckoResult)
+        }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.SaveCreditCard(
+                    creditCard = request.options[0].value.toCreditCardEntry(),
+                    onConfirm = onConfirm,
+                    onDismiss = onDismiss
+                ).also {
+                    request.delegate = PromptInstanceDismissDelegate(
+                        geckoEngineSession, it
+                    )
+                }
+            )
+        }
+
+        return geckoResult
+    }
+
     /**
      * Handle a credit card selection prompt request. This is triggered by the user
      * focusing on a credit card input field.
@@ -77,7 +118,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
     ): GeckoResult<PromptResponse>? {
         val geckoResult = GeckoResult<PromptResponse>()
 
-        val onConfirm: (CreditCard) -> Unit = { creditCard ->
+        val onConfirm: (CreditCardEntry) -> Unit = { creditCard ->
             if (!request.isComplete) {
                 geckoResult.complete(
                     request.confirm(
@@ -94,7 +135,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         geckoEngineSession.notifyObservers {
             onPromptRequest(
                 PromptRequest.SelectCreditCard(
-                    creditCards = request.options.map { it.value.toCreditCard() },
+                    creditCards = request.options.map { it.value.toCreditCardEntry() },
                     onDismiss = onDismiss,
                     onConfirm = onConfirm
                 )
@@ -217,8 +258,46 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
             else -> throw InvalidParameterException("${geckoPrompt.type} is not a valid Gecko @Choice.ChoiceType")
         }
 
+        geckoPrompt.delegate = ChoicePromptUpdateDelegate(
+            geckoEngineSession,
+            promptRequest
+        )
+
         geckoEngineSession.notifyObservers {
             onPromptRequest(promptRequest)
+        }
+
+        return geckoResult
+    }
+
+    override fun onAddressSelect(
+        session: GeckoSession,
+        request: AutocompleteRequest<Autocomplete.AddressSelectOption>
+    ): GeckoResult<PromptResponse> {
+        val geckoResult = GeckoResult<PromptResponse>()
+
+        val onConfirm: (Address) -> Unit = { address ->
+            if (!request.isComplete) {
+                geckoResult.complete(
+                    request.confirm(
+                        Autocomplete.AddressSelectOption(address.toAutocompleteAddress())
+                    )
+                )
+            }
+        }
+
+        val onDismiss: () -> Unit = {
+            request.dismissSafely(geckoResult)
+        }
+
+        geckoEngineSession.notifyObservers {
+            onPromptRequest(
+                PromptRequest.SelectAddress(
+                    addresses = request.options.map { it.value.toAddress() },
+                    onConfirm = onConfirm,
+                    onDismiss = onDismiss
+                )
+            )
         }
 
         return geckoResult
@@ -600,28 +679,6 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         return geckoResult
     }
 
-    private fun GeckoChoice.toChoice(): Choice {
-        val choiceChildren = items?.map { it.toChoice() }?.toTypedArray()
-        // On the GeckoView docs states that label is a @NonNull, but on run-time
-        // we are getting null values
-        @Suppress("USELESS_ELVIS")
-        return Choice(id, !disabled, label ?: "", selected, separator, choiceChildren)
-    }
-
-    /**
-     * Convert an array of [GeckoChoice] to Choice array.
-     * @return array of Choice
-     */
-    private fun convertToChoices(
-        geckoChoices: Array<out GeckoChoice>
-    ): Array<Choice> {
-
-        return geckoChoices.map { geckoChoice ->
-            val choice = geckoChoice.toChoice()
-            choice
-        }.toTypedArray()
-    }
-
     @Suppress("LongParameterList")
     private fun notifyDatePromptRequest(
         title: String,
@@ -721,7 +778,6 @@ internal fun Date.toString(format: String): String {
  * Only dismiss if the prompt is not already dismissed.
  */
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-
 internal fun PromptDelegate.BasePrompt.dismissSafely(geckoResult: GeckoResult<PromptResponse>) {
     if (!this.isComplete) {
         geckoResult.complete(dismiss())

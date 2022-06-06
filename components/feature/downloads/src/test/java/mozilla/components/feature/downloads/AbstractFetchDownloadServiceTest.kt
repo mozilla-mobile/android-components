@@ -22,15 +22,13 @@ import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runBlockingTest
-import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.DownloadState.Status.COMPLETED
@@ -61,7 +59,7 @@ import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.After
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -99,7 +97,6 @@ import org.robolectric.shadows.ShadowNotificationManager
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
-import java.lang.IllegalArgumentException
 import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
@@ -108,17 +105,24 @@ class AbstractFetchDownloadServiceTest {
     @Rule @JvmField
     val folder = TemporaryFolder()
 
+    // We need different scopes and schedulers because:
+    // - the service will continuously try to update the download notification using MainScope()
+    // - if using the same scope in tests the test won't end
+    // - need a way to advance main dispatcher used by the service.
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
+    private val mainDispatcher = coroutinesTestRule.testDispatcher
+    private val testsDispatcher = UnconfinedTestDispatcher(TestCoroutineScheduler())
+
     @Mock private lateinit var client: Client
     private lateinit var browserStore: BrowserStore
     @Mock private lateinit var broadcastManager: LocalBroadcastManager
     private lateinit var service: AbstractFetchDownloadService
 
-    private val testDispatcher = TestCoroutineDispatcher()
     private lateinit var shadowNotificationService: ShadowNotificationManager
 
     @Before
     fun setup() {
-        Dispatchers.setMain(testDispatcher)
         openMocks(this)
         browserStore = BrowserStore()
         service = spy(object : AbstractFetchDownloadService() {
@@ -134,13 +138,8 @@ class AbstractFetchDownloadServiceTest {
             shadowOf(testContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
     }
 
-    @After
-    fun afterEach() {
-        Dispatchers.resetMain()
-    }
-
     @Test
-    fun `begins download when started`() = runBlocking {
+    fun `begins download when started`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val response = Response(
             "https://example.com/file.txt",
@@ -169,7 +168,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN a download intent is received THEN handleDownloadIntent must be called`() = runBlocking {
+    fun `WHEN a download intent is received THEN handleDownloadIntent must be called`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val downloadIntent = Intent("ACTION_DOWNLOAD")
 
@@ -187,7 +186,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN an intent does not provide an action THEN handleDownloadIntent must be called`() = runBlocking {
+    fun `WHEN an intent does not provide an action THEN handleDownloadIntent must be called`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val downloadIntent = Intent()
 
@@ -205,7 +204,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN a remove download intent is received THEN handleRemoveDownloadIntent must be called`() = runBlocking {
+    fun `WHEN a remove download intent is received THEN handleRemoveDownloadIntent must be called`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val downloadIntent = Intent(ACTION_REMOVE_PRIVATE_DOWNLOAD)
 
@@ -263,7 +262,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `service redelivers if no download extra is passed `() = runBlocking {
+    fun `service redelivers if no download extra is passed `() = runTest(testsDispatcher) {
         val downloadIntent = Intent("ACTION_DOWNLOAD")
 
         val intentCode = service.onStartCommand(downloadIntent, 0, 0)
@@ -272,7 +271,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `verifyDownload sets the download to failed if it is not complete`() = runBlocking {
+    fun `verifyDownload sets the download to failed if it is not complete`() = runTest(testsDispatcher) {
         val downloadState = DownloadState(
             url = "mozilla.org/mozilla.txt",
             contentLength = 50L,
@@ -297,7 +296,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `verifyDownload does NOT set the download to failed if it is paused`() = runBlocking {
+    fun `verifyDownload does NOT set the download to failed if it is paused`() = runTest(testsDispatcher) {
         val downloadState = DownloadState(
             url = "mozilla.org/mozilla.txt",
             contentLength = 50L,
@@ -322,7 +321,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `verifyDownload does NOT set the download to failed if it is complete`() = runBlocking {
+    fun `verifyDownload does NOT set the download to failed if it is complete`() = runTest(testsDispatcher) {
         val downloadState = DownloadState(
             url = "mozilla.org/mozilla.txt",
             contentLength = 50L,
@@ -347,7 +346,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `verifyDownload does NOT set the download to failed if it is cancelled`() = runBlocking {
+    fun `verifyDownload does NOT set the download to failed if it is cancelled`() = runTest(testsDispatcher) {
         val downloadState = DownloadState(
             url = "mozilla.org/mozilla.txt",
             contentLength = 50L,
@@ -372,7 +371,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `verifyDownload does NOT set the download to failed if it is status COMPLETED`() = runBlocking {
+    fun `verifyDownload does NOT set the download to failed if it is status COMPLETED`() = runTest(testsDispatcher) {
         val downloadState = DownloadState(
             url = "mozilla.org/mozilla.txt",
             contentLength = 50L,
@@ -422,7 +421,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `broadcastReceiver handles ACTION_PAUSE`() = runBlocking {
+    fun `broadcastReceiver handles ACTION_PAUSE`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val response = Response(
             "https://example.com/file.txt",
@@ -461,7 +460,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `broadcastReceiver handles ACTION_CANCEL`() = runBlocking {
+    fun `broadcastReceiver handles ACTION_CANCEL`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val response = Response(
             "https://example.com/file.txt",
@@ -498,7 +497,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `broadcastReceiver handles ACTION_RESUME`() = runBlocking {
+    fun `broadcastReceiver handles ACTION_RESUME`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
 
         val downloadResponse = Response(
@@ -561,7 +560,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `broadcastReceiver handles ACTION_TRY_AGAIN`() = runBlocking {
+    fun `broadcastReceiver handles ACTION_TRY_AGAIN`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val response = Response(
             "https://example.com/file.txt",
@@ -612,7 +611,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `download fails on a bad network response`() = runBlocking {
+    fun `download fails on a bad network response`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
         val response = Response(
             "https://example.com/file.txt",
@@ -691,14 +690,15 @@ class AbstractFetchDownloadServiceTest {
         service.setDownloadJobStatus(downloadJobState, DOWNLOADING)
         assertEquals(DOWNLOADING, service.getDownloadJobStatus(downloadJobState))
 
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
 
         // The additional notification is the summary one (the notification group).
         assertEquals(2, shadowNotificationService.size())
     }
 
     @Test
-    fun `onStartCommand must change status of INITIATED downloads to DOWNLOADING`() = runBlocking {
+    fun `onStartCommand must change status of INITIATED downloads to DOWNLOADING`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt", status = INITIATED)
 
         val downloadIntent = Intent("ACTION_DOWNLOAD")
@@ -715,7 +715,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `onStartCommand must change the status only for INITIATED downloads`() = runBlocking {
+    fun `onStartCommand must change the status only for INITIATED downloads`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt", status = FAILED)
 
         val downloadIntent = Intent("ACTION_DOWNLOAD")
@@ -729,7 +729,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `onStartCommand sets the notification foreground`() = runBlocking {
+    fun `onStartCommand sets the notification foreground`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt")
 
         val downloadIntent = Intent("ACTION_DOWNLOAD")
@@ -744,7 +744,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `sets the notification foreground in devices that support notification group`() = runBlocking {
+    fun `sets the notification foreground in devices that support notification group`() = runTest(testsDispatcher) {
         val download = DownloadState(
             id = "1", url = "https://example.com/file.txt", fileName = "file.txt",
             status = DOWNLOADING
@@ -848,7 +848,7 @@ class AbstractFetchDownloadServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.M])
-    fun `updateNotificationGroup will do nothing on devices that do not support notificaiton groups`() = runBlocking {
+    fun `updateNotificationGroup will do nothing on devices that do not support notificaiton groups`() = runTest(testsDispatcher) {
         val download = DownloadState(
             id = "1", url = "https://example.com/file.txt", fileName = "file.txt",
             status = DOWNLOADING
@@ -1074,7 +1074,8 @@ class AbstractFetchDownloadServiceTest {
         service.setDownloadJobStatus(downloadJobState, DownloadState.Status.PAUSED)
         assertEquals(DownloadState.Status.PAUSED, service.getDownloadJobStatus(downloadJobState))
 
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
 
         // one of the notifications it is the group notification only for devices the support it
         assertEquals(2, shadowNotificationService.size())
@@ -1106,7 +1107,8 @@ class AbstractFetchDownloadServiceTest {
         service.setDownloadJobStatus(downloadJobState, DownloadState.Status.COMPLETED)
         assertEquals(DownloadState.Status.COMPLETED, service.getDownloadJobStatus(downloadJobState))
 
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
 
         assertEquals(2, shadowNotificationService.size())
     }
@@ -1137,7 +1139,8 @@ class AbstractFetchDownloadServiceTest {
         service.setDownloadJobStatus(downloadJobState, FAILED)
         assertEquals(FAILED, service.getDownloadJobStatus(downloadJobState))
 
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
 
         // one of the notifications it is the group notification only for devices the support it
         assertEquals(2, shadowNotificationService.size())
@@ -1169,14 +1172,15 @@ class AbstractFetchDownloadServiceTest {
         service.setDownloadJobStatus(downloadJobState, DownloadState.Status.CANCELLED)
         assertEquals(DownloadState.Status.CANCELLED, service.getDownloadJobStatus(downloadJobState))
 
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
 
         // The additional notification is the summary one (the notification group).
         assertEquals(1, shadowNotificationService.size())
     }
 
     @Test
-    fun `job status is set to failed when an Exception is thrown while performDownload`() = runBlocking {
+    fun `job status is set to failed when an Exception is thrown while performDownload`() = runTest(testsDispatcher) {
         doThrow(IOException()).`when`(client).fetch(any())
         val download = DownloadState("https://example.com/file.txt", "file.txt")
 
@@ -1195,7 +1199,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN a download is from a private session the request must be private`() = runBlocking {
+    fun `WHEN a download is from a private session the request must be private`() = runTest(testsDispatcher) {
         val response = Response(
             "https://example.com/file.txt",
             200,
@@ -1297,7 +1301,8 @@ class AbstractFetchDownloadServiceTest {
         verify(service).performDownload(providedDownload.capture(), anyBoolean())
 
         // Advance the clock so that the puller posts a notification.
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
         // One of the notifications it is the group notification only for devices the support it
         assertEquals(2, shadowNotificationService.size())
 
@@ -1360,7 +1365,8 @@ class AbstractFetchDownloadServiceTest {
         service.setDownloadJobStatus(service.downloadJobs[download.id]!!, DownloadState.Status.PAUSED)
 
         // Advance the clock so that the poller posts a notification.
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
         assertEquals(2, shadowNotificationService.size())
 
         // Now simulate onTaskRemoved.
@@ -1370,7 +1376,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `clearAllDownloadsNotificationsAndJobs cancels all running jobs and remove all notifications`() = runBlocking {
+    fun `clearAllDownloadsNotificationsAndJobs cancels all running jobs and remove all notifications`() = runTest(testsDispatcher) {
         val download = DownloadState(
             id = "1", url = "https://example.com/file.txt", fileName = "file.txt",
             status = DOWNLOADING
@@ -1410,7 +1416,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `onDestroy will remove all download notifications, jobs and will call unregisterNotificationActionsReceiver`() = runBlocking {
+    fun `onDestroy will remove all download notifications, jobs and will call unregisterNotificationActionsReceiver`() = runTest(testsDispatcher) {
         val service = spy(object : AbstractFetchDownloadService() {
             override val httpClient = client
             override val store = browserStore
@@ -1446,7 +1452,7 @@ class AbstractFetchDownloadServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.P], shadows = [ShadowFileProvider::class])
-    fun `WHEN a download is completed and the scoped storage is not used it MUST be added manually to the download system database`() = runBlockingTest {
+    fun `WHEN a download is completed and the scoped storage is not used it MUST be added manually to the download system database`() = runTest(testsDispatcher) {
         val download = DownloadState(
             url = "http://www.mozilla.org",
             fileName = "example.apk",
@@ -1476,7 +1482,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `WHEN a download is completed and the scoped storage is used addToDownloadSystemDatabaseCompat MUST NOT be called`() = runBlockingTest {
+    fun `WHEN a download is completed and the scoped storage is used addToDownloadSystemDatabaseCompat MUST NOT be called`() = runTest(testsDispatcher) {
         val download = DownloadState(
             url = "http://www.mozilla.org",
             fileName = "example.apk",
@@ -1556,7 +1562,7 @@ class AbstractFetchDownloadServiceTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.P], shadows = [ShadowFileProvider::class])
     @Suppress("Deprecation")
-    fun `do not pass non-http(s) url to addCompletedDownload`() = runBlockingTest {
+    fun `do not pass non-http(s) url to addCompletedDownload`() = runTest(testsDispatcher) {
         val download = DownloadState(
             url = "blob:moz-extension://d5ea9baa-64c9-4c3d-bb38-49308c47997c/",
             fileName = "example.apk",
@@ -1582,7 +1588,7 @@ class AbstractFetchDownloadServiceTest {
     @Config(sdk = [Build.VERSION_CODES.P], shadows = [ShadowFileProvider::class])
     @Suppress("Deprecation")
     fun `GIVEN a download that throws an exception WHEN adding to the system database THEN handle the exception`() =
-        runBlockingTest {
+        runTest(testsDispatcher) {
             val download = DownloadState(
                 url = "url",
                 fileName = "example.apk",
@@ -1616,7 +1622,7 @@ class AbstractFetchDownloadServiceTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.P], shadows = [ShadowFileProvider::class])
     @Suppress("Deprecation")
-    fun `pass http(s) url to addCompletedDownload`() = runBlockingTest {
+    fun `pass http(s) url to addCompletedDownload`() = runTest(testsDispatcher) {
         val download = DownloadState(
             url = "https://mozilla.com",
             fileName = "example.apk",
@@ -1641,7 +1647,7 @@ class AbstractFetchDownloadServiceTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.P], shadows = [ShadowFileProvider::class])
     @Suppress("Deprecation")
-    fun `always call addCompletedDownload with a not empty or null mimeType`() = runBlockingTest {
+    fun `always call addCompletedDownload with a not empty or null mimeType`() = runTest(testsDispatcher) {
         val service = spy(object : AbstractFetchDownloadService() {
             override val httpClient = client
             override val store = browserStore
@@ -1701,7 +1707,8 @@ class AbstractFetchDownloadServiceTest {
 
         service.setDownloadJobStatus(cancelledDownloadJobState, DownloadState.Status.CANCELLED)
         assertEquals(DownloadState.Status.CANCELLED, service.getDownloadJobStatus(cancelledDownloadJobState))
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
         // The additional notification is the summary one (the notification group).
         assertEquals(1, shadowNotificationService.size())
 
@@ -1720,13 +1727,14 @@ class AbstractFetchDownloadServiceTest {
 
         service.setDownloadJobStatus(downloadJobState, DownloadState.Status.COMPLETED)
         assertEquals(DownloadState.Status.COMPLETED, service.getDownloadJobStatus(downloadJobState))
-        testDispatcher.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.advanceTimeBy(PROGRESS_UPDATE_INTERVAL)
+        mainDispatcher.scheduler.runCurrent()
         // one of the notifications it is the group notification only for devices the support it
         assertEquals(2, shadowNotificationService.size())
     }
 
     @Test
-    fun `createDirectoryIfNeeded - MUST create directory when it does not exists`() = runBlocking {
+    fun `createDirectoryIfNeeded - MUST create directory when it does not exists`() = runTest(testsDispatcher) {
         val download = DownloadState(destinationDirectory = Environment.DIRECTORY_DOWNLOADS, url = "")
 
         val file = File(download.directoryPath)
@@ -1798,7 +1806,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `copyInChunks must alter download currentBytesCopied`() = runBlocking {
+    fun `copyInChunks must alter download currentBytesCopied`() = runTest(testsDispatcher) {
         val downloadJobState = DownloadJobState(state = mock(), status = DOWNLOADING)
         val inputStream = mock<InputStream>()
 
@@ -1813,7 +1821,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `copyInChunks - must return ERROR_IN_STREAM_CLOSED when inStream is closed`() = runBlocking {
+    fun `copyInChunks - must return ERROR_IN_STREAM_CLOSED when inStream is closed`() = runTest(testsDispatcher) {
         val downloadJobState = DownloadJobState(state = mock(), status = DOWNLOADING)
         val inputStream = mock<InputStream>()
 
@@ -1830,7 +1838,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `copyInChunks - must throw when inStream is closed and download was performed using http client`() = runBlocking {
+    fun `copyInChunks - must throw when inStream is closed and download was performed using http client`() = runTest(testsDispatcher) {
         val downloadJobState = DownloadJobState(state = mock(), status = DOWNLOADING)
         val inputStream = mock<InputStream>()
         var exceptionWasThrown = false
@@ -1852,7 +1860,7 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
-    fun `copyInChunks - must return COMPLETED when finish copying bytes`() = runBlocking {
+    fun `copyInChunks - must return COMPLETED when finish copying bytes`() = runTest(testsDispatcher) {
         val downloadJobState = DownloadJobState(state = mock(), status = DOWNLOADING)
         val inputStream = mock<InputStream>()
 

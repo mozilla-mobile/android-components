@@ -6,7 +6,6 @@ package mozilla.components.support.ktx.android.view
 
 import android.app.Activity
 import android.content.Context
-import android.os.Build
 import android.os.Looper.getMainLooper
 import android.view.View
 import android.view.WindowManager
@@ -16,7 +15,6 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.support.base.android.Padding
@@ -39,7 +37,6 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -47,7 +44,6 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class ViewTest {
 
-    @ExperimentalCoroutinesApi
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
 
@@ -62,7 +58,6 @@ class ViewTest {
         assertTrue(view.hasFocus())
     }
 
-    @Config(sdk = [Build.VERSION_CODES.M])
     @Test
     fun `hideKeyboard should hide soft keyboard`() {
         val view = mock<View>()

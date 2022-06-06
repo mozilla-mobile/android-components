@@ -4,13 +4,101 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 101.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)
+# 103.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v102.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/150?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **browser-toolbar**
+  * Expand toolbar when url changes. [#12215](https://github.com/mozilla-mobile/android-components/issues/12215)
+
+* **service-pocket**
+  * Ensure sponsored stories profile deletion is retried in background until successful or the feature is re-enabled. [#12258](https://github.com/mozilla-mobile/android-components/issues/12258)
+
+* **feature-prompts**:
+  * Added optional `addressPickerView` and `onManageAddresses` parameters through `AddressDelegate` to `PromptFeature` for a new `AddressPicker` to display a view for selecting addresses to autofill into a site. [#12061](https://github.com/mozilla-mobile/android-components/issues/12061)
+
+# 102.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/.config.yml)
+
+* **service-firefox-accounts**
+  * 🆕 SyncStore to abstract account and Sync details.
+
+* **browser-state**:
+  * 🌟️ Add support for tab prioritization via `SessionPrioritizationMiddleware` for more information see [#12190](https://github.com/mozilla-mobile/android-components/issues/12190).
+
+* **service-pocket**
+  * 🌟️ Add support for rotating and pacing Pocket sponsored stories. [#12184](https://github.com/mozilla-mobile/android-components/issues/12184)
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/main/components/service/pocket/README.md) to get more info.
+
+* **support-ktx**
+  * 🌟️ Add support for optionally persisting the default value when `stringPreference` is used to read a string from SharedPreferences. [issue #12207](https://github.com/mozilla-mobile/android-components/issues/12207).
+
+* **service-pocket**
+  * ⚠️ **This is a breaking change**: Add a new `PocketStory` supertype for all Pocket stories. [#12171](https://github.com/mozilla-mobile/android-components/issues/12171)
+
+* **service-pocket**
+  * 🌟️ Add support for Pocket sponsored stories.
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/main/components/service/pocket/README.md) to get more info.
+
+* **support-test**
+  * ⚠️ **This is a breaking change**: `MainCoroutineRule` constructor now takes a `TestDispatcher` instead of deprecated `TestCoroutineDispatcher`. Default is `UnconfinedTestDispatcher`.
+  * ⚠️ **This is a breaking change**: `MainCoroutineRule.runBlockingTest` is replaced with a `runTestOnMain` top level function. . This method is preferred over the global `runTest` because it reparents new child coroutines to the test coroutine context.
+
+* **concept-engine**:
+  * Adds a new `SelectAddress` in `PromptRequest` to display a prompt for selecting an address to autofill. [#12060](https://github.com/mozilla-mobile/android-components/issues/12060)
+  * Adds a new `SaveCreditCard` in `PromptRequest` to display a prompt for saving a credit card on autofill. [#11249](https://github.com/mozilla-mobile/android-components/issues/11249)
+
+* **feature-autofill**
+  * 🚒 Bug fixed [issue #11893](https://github.com/mozilla-mobile/android-components/issues/11893) - Fix issue with autofilling in 3rd party applications not being immediately available after unlocking the autofill service.
+
+* **feature-contextmenu**
+  * 🌟 Add new `additionalValidation` parameter to context menu options builders allowing clients to know when these options to be shown and potentially block showing them.
+
+* **feature-pwa**
+  * [TrustedWebActivityIntentProcessor] is now deprecated. See [issue #12024](https://github.com/mozilla-mobile/android-components/issues/12024).
+
+* **feature-top-sites**
+  * Added `providerFilter` to `TopSitesProviderConfig`, allowing the client to filter the provided top sites.
+
+* **feature-prompts**:
+  * Add a `CreditCardSaveDialogFragment` that is displayed for a `SaveCreditCard` prompt request to handle saving and updating a credit card. [#11338](https://github.com/mozilla-mobile/android-components/issues/11338)
+
+* **feature-media**
+  * Set default screen orientation if playing media in pip
+    [issue # 12118](https://github.com/mozilla-mobile/android-components/issues/12118)
+
+* **concept-storage**:
+  * Added `CreditCardValidationDelegate` which is a delegate that will check against the `CreditCardsAddressesStorage` to determine if a `CreditCard` can be persisted in storage. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
+  * Refactors `CreditCard` from `concept-engine` to `CreditCardEntry` in `concept-storage` so that it can validated with the `CreditCardValidationDelegate`. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
+
+* **browser-storage-sync**
+  * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+  * Fixed a low frequency crasher that might occur when the app attempts to delete all history. [#12112](https://github.com/mozilla-mobile/android-components/pull/12112)
+
+* **feature-syncedtabs**
+  * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
+  
+* **lib-auth**
+  * Add `lib-auth` for authentication using biometrics or PIN.
+    [issue # 12289](https://github.com/mozilla-mobile/android-components/issues/12289)
+    
+# 101.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...v101.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v101.0.0/.config.yml)
+
+* **feature-media**
+  * Support reverse landscape orientation for fullscreen videos
+    [issue # 12034](https://github.com/mozilla-mobile/android-components/issues/12034)
 * **feature-downloads**:
   * 🚒 Bug fixed [issue #11259](https://github.com/mozilla-mobile/android-components/issues/11259) - Improved mime type inference for when sharing images from the contextual menu.
 
@@ -21,7 +109,7 @@ permalink: /changelog/
   * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
 
 * **feature-media**
-  * The Play/Pause button remains displayed on the media notification  
+  * The Play/Pause button remains displayed on the media notification.
 
 # 100.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)
@@ -69,13 +157,13 @@ permalink: /changelog/
 
 * **lib-crash-sentry**
   * 🌟️️ Add `sendCaughtExceptions` config flag to `SentryService`, allowing consumers to disable submitting caught exceptions. By default it's enabled, maintaining prior behaviour. Useful in projects with high volumes of caught exceptions and multiple release channels.
-  
+
 * **site-permission-feature**
   * 🆕 New Add to SitePermissionsFeature a property to set visibility for NotAskAgainCheckBox
 
 * **feature-search**
   * 🆕 Update search Engines and Search Engine Icons
-  
+
 # 99.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v98.0.0...v99.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/146?closed=1)
@@ -96,7 +184,7 @@ permalink: /changelog/
   * 🚒 Bug fixed [issue #8567](https://github.com/mozilla-mobile/android-components/issues/8567) - Prevent crashes when trying to add to the system databases.
 
 * **concept-engine**
-  * 🌟️️ Add `EngineSessionStateStorage`, describing a storage of `EngineSessionState` instances. 
+  * 🌟️️ Add `EngineSessionStateStorage`, describing a storage of `EngineSessionState` instances.
 
 * **browser-session-storage**
   * 🌟️️ Add `FileEngineSessionStateStorage`, an implementation of `EngineSessionStateStorage` for persisting engine state outside of the regular RecoverableBrowserState flow.

@@ -17,11 +17,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestCoroutineDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
@@ -31,7 +27,6 @@ import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
-import mozilla.components.concept.engine.prompt.CreditCard
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.Alert
 import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
@@ -43,10 +38,15 @@ import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.Address
+import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.feature.prompts.address.AddressDelegate
+import mozilla.components.feature.prompts.address.AddressPicker
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
+import mozilla.components.feature.prompts.creditcard.CreditCardSaveDialogFragment
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment
 import mozilla.components.feature.prompts.dialog.ConfirmDialogFragment
 import mozilla.components.feature.prompts.dialog.MultiButtonDialogFragment
@@ -61,13 +61,14 @@ import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.`when`
@@ -84,12 +85,14 @@ import java.util.Date
 @RunWith(AndroidJUnit4::class)
 class PromptFeatureTest {
 
-    private val testDispatcher = TestCoroutineDispatcher()
+    @get:Rule
+    val coroutinesTestRule = MainCoroutineRule()
 
     private lateinit var store: BrowserStore
     private lateinit var fragmentManager: FragmentManager
     private lateinit var loginPicker: LoginPicker
     private lateinit var creditCardPicker: CreditCardPicker
+    private lateinit var addressPicker: AddressPicker
 
     private val tabId = "test-tab"
     private fun tab(): TabSessionState? {
@@ -99,7 +102,6 @@ class PromptFeatureTest {
     @Before
     @ExperimentalCoroutinesApi
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         store = BrowserStore(
             BrowserState(
                 tabs = listOf(
@@ -113,14 +115,8 @@ class PromptFeatureTest {
         )
         loginPicker = mock()
         creditCardPicker = mock()
+        addressPicker = mock()
         fragmentManager = mockFragmentManager()
-    }
-
-    @After
-    @ExperimentalCoroutinesApi
-    fun tearDown() {
-        Dispatchers.resetMain()
-        testDispatcher.cleanupTestCoroutines()
     }
 
     @Test
@@ -136,7 +132,6 @@ class PromptFeatureTest {
 
         val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
-        testDispatcher.advanceUntilIdle()
         verify(feature).onPromptRequested(store.state.tabs.first())
     }
 
@@ -155,7 +150,6 @@ class PromptFeatureTest {
         val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", promptRequest))
             .joinBlocking()
-        testDispatcher.advanceUntilIdle()
         verify(feature).onPromptRequested(store.state.customTabs.first())
     }
 
@@ -172,7 +166,6 @@ class PromptFeatureTest {
 
         val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
-        testDispatcher.advanceUntilIdle()
         feature.start()
         verify(feature).onPromptRequested(store.state.tabs.first())
     }
@@ -304,8 +297,13 @@ class PromptFeatureTest {
     @Test
     fun `GIVEN saveLoginPrompt is visible WHEN prompt is removed from state THEN dismiss saveLoginPrompt`() {
         // given
+        val loginUsername = "username"
+        val loginPassword = "password"
+        val entry: LoginEntry = mock()
+        `when`(entry.username).thenReturn(loginUsername)
+        `when`(entry.password).thenReturn(loginPassword)
+        val promptRequest = PromptRequest.SaveLoginPrompt(2, listOf(entry), { }, { })
         val saveLoginPrompt: SaveLoginDialogFragment = mock()
-        val promptRequest: PromptRequest.SaveLoginPrompt = mock()
 
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest))
             .joinBlocking()
@@ -315,7 +313,9 @@ class PromptFeatureTest {
             PromptFeature(
                 mock<Activity>(),
                 store,
-                fragmentManager = fragmentManager
+                fragmentManager = fragmentManager,
+                isSaveLoginEnabled = { true },
+                loginValidationDelegate = mock()
             ) { }
         )
 
@@ -329,6 +329,96 @@ class PromptFeatureTest {
 
         // then
         verify(saveLoginPrompt).dismissAllowingStateLoss()
+    }
+
+    @Test
+    fun `GIVEN isSaveLoginEnabled is false WHEN saveLoginPrompt request is handled THEN dismiss saveLoginPrompt`() {
+        val promptRequest = spy(
+            PromptRequest.SaveLoginPrompt(
+                hint = 2,
+                logins = emptyList(),
+                onConfirm = {},
+                onDismiss = {}
+            )
+        )
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                isSaveLoginEnabled = { false },
+            ) {}
+        )
+        val session = tab()!!
+
+        feature.handleDialogsRequest(promptRequest, session)
+
+        store.waitUntilIdle()
+
+        verify(feature).dismissDialogRequest(promptRequest, session)
+    }
+
+    @Test
+    fun `GIVEN loginValidationDelegate is null WHEN saveLoginPrompt request is handled THEN dismiss saveLoginPrompt`() {
+        val promptRequest = spy(
+            PromptRequest.SaveLoginPrompt(
+                hint = 2,
+                logins = emptyList(),
+                onConfirm = {},
+                onDismiss = {}
+            )
+        )
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                isSaveLoginEnabled = { true },
+            ) {}
+        )
+        val session = tab()!!
+
+        feature.handleDialogsRequest(promptRequest, session)
+
+        store.waitUntilIdle()
+
+        verify(feature).dismissDialogRequest(promptRequest, session)
+    }
+
+    @Test
+    fun `WHEN dismissDialogRequest is called THEN dismiss and consume the prompt request`() {
+        val tab = createTab("https://www.mozilla.org", id = tabId)
+        val store = spy(
+            BrowserStore(
+                BrowserState(
+                    tabs = listOf(tab),
+                    customTabs = listOf(
+                        createCustomTab("https://www.mozilla.org", id = "custom-tab")
+                    ),
+                    selectedTabId = tabId
+                )
+            )
+        )
+        val feature = PromptFeature(
+            activity = mock(),
+            store = store,
+            fragmentManager = fragmentManager,
+        ) {}
+
+        var onDismissWasCalled = false
+        val promptRequest = PromptRequest.SaveLoginPrompt(
+            hint = 2,
+            logins = emptyList(),
+            onConfirm = {},
+            onDismiss = { onDismissWasCalled = true }
+        )
+
+        feature.dismissDialogRequest(promptRequest, tab)
+
+        store.waitUntilIdle()
+
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(tab.id, promptRequest))
+        assertTrue(onDismissWasCalled)
     }
 
     @Test
@@ -410,7 +500,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN creditCardPickerView is visible WHEN dismissSelectPrompts is called THEN dismissSelectCreditCardRequest returns true`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -434,7 +524,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN creditCardPickerView is not visible WHEN dismissSelectPrompts is called THEN dismissSelectPrompt returns false`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -457,7 +547,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN an active select credit card request WHEN onBackPressed is called THEN dismissSelectPrompts is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -481,7 +571,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN dismissSelectPrompts is called THEN the active credit card picker should be dismissed`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature = spy(
             PromptFeature(
                 mock<Activity>(),
@@ -505,6 +595,64 @@ class PromptFeatureTest {
         feature.dismissSelectPrompts()
 
         verify(feature.creditCardPicker!!).dismissSelectCreditCardRequest(selectCreditCardRequest)
+    }
+
+    @Test
+    fun `WHEN dismissSelectPrompts is called THEN the active addressPicker dismiss should be called`() {
+        val addressPickerView: SelectablePromptView<Address> = mock()
+        val addressDelegate: AddressDelegate = mock()
+        val feature = spy(
+            PromptFeature(
+                mock<Activity>(),
+                store,
+                fragmentManager = fragmentManager,
+                addressDelegate = addressDelegate
+            ) { }
+        )
+        feature.addressPicker = addressPicker
+        feature.activePromptRequest = mock()
+
+        whenever(addressDelegate.addressPickerView).thenReturn(addressPickerView)
+        whenever(addressPickerView.asView()).thenReturn(mock())
+        whenever(addressPickerView.asView().visibility).thenReturn(View.VISIBLE)
+
+        feature.dismissSelectPrompts()
+        verify(feature.addressPicker!!, never()).dismissSelectAddressRequest(any())
+
+        val selectAddressPromptRequest = mock<PromptRequest.SelectAddress>()
+        feature.activePromptRequest = selectAddressPromptRequest
+
+        feature.dismissSelectPrompts()
+
+        verify(feature.addressPicker!!).dismissSelectAddressRequest(selectAddressPromptRequest)
+
+        store.waitUntilIdle()
+        assertTrue(tab()!!.content.promptRequests.isEmpty())
+    }
+
+    @Test
+    fun `GIVEN addressPickerView is not visible WHEN dismissSelectPrompts is called THEN dismissSelectPrompts returns false`() {
+        val addressPickerView: SelectablePromptView<Address> = mock()
+        val addressDelegate: AddressDelegate = mock()
+        val feature = spy(
+            PromptFeature(
+                mock<Activity>(),
+                store,
+                fragmentManager = fragmentManager,
+                addressDelegate = addressDelegate
+            ) { }
+        )
+        val selectAddressRequest = mock<PromptRequest.SelectAddress>()
+        feature.addressPicker = addressPicker
+        feature.activePromptRequest = selectAddressRequest
+
+        whenever(addressDelegate.addressPickerView).thenReturn(addressPickerView)
+        whenever(addressPickerView.asView()).thenReturn(mock())
+        whenever(addressPickerView.asView().visibility).thenReturn(View.GONE)
+
+        val result = feature.dismissSelectPrompts()
+
+        assertEquals(false, result)
     }
 
     @Test
@@ -817,7 +965,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN onActivityResult is called with PIN_REQUEST and RESULT_OK THEN onAuthSuccess) is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -836,7 +984,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN onActivityResult is called with PIN_REQUEST and RESULT_CANCELED THEN onAuthFailure is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -855,7 +1003,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN user successfully authenticates by biometric prompt WHEN onBiometricResult is called THEN onAuthSuccess is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -873,7 +1021,7 @@ class PromptFeatureTest {
 
     @Test
     fun `GIVEN user fails to authenticate by biometric prompt WHEN onBiometricResult is called THEN onAuthFailure) is called`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -925,7 +1073,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN a credit card is selected THEN confirm the prompt request with the selected credit card`() {
-        val creditCard = CreditCard(
+        val creditCard = CreditCardEntry(
             guid = "id",
             name = "Banana Apple",
             number = "4111111111111110",
@@ -935,7 +1083,7 @@ class PromptFeatureTest {
         )
         var onDismissCalled = false
         var onConfirmCalled = false
-        var confirmedCreditCard: CreditCard? = null
+        var confirmedCreditCard: CreditCardEntry? = null
 
         val selectCreditCardRequest = PromptRequest.SelectCreditCard(
             creditCards = listOf(creditCard),
@@ -1393,7 +1541,7 @@ class PromptFeatureTest {
 
     @Test
     fun `WHEN page is refreshed THEN credit card prompt is dismissed`() {
-        val creditCardPickerView: SelectablePromptView<CreditCard> = mock()
+        val creditCardPickerView: SelectablePromptView<CreditCardEntry> = mock()
         val feature =
             PromptFeature(
                 activity = mock(),
@@ -1404,8 +1552,8 @@ class PromptFeatureTest {
             ) { }
         feature.creditCardPicker = creditCardPicker
         val onDismiss: () -> Unit = {}
-        val onConfirm: (CreditCard) -> Unit = {}
-        val creditCard = CreditCard(
+        val onConfirm: (CreditCardEntry) -> Unit = {}
+        val creditCard = CreditCardEntry(
             guid = "1",
             name = "Banana Apple",
             number = "4111111111111110",
@@ -1449,7 +1597,6 @@ class PromptFeatureTest {
         val promptRequest = PromptRequest.Share(ShareData("Title", "Text", null), {}, {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", promptRequest))
             .joinBlocking()
-        testDispatcher.advanceUntilIdle()
 
         verify(feature).onPromptRequested(store.state.customTabs.first())
         verify(delegate).showShareSheet(
@@ -1477,7 +1624,6 @@ class PromptFeatureTest {
 
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", selectCreditCardRequest))
             .joinBlocking()
-        testDispatcher.advanceUntilIdle()
 
         verify(feature).onPromptRequested(store.state.customTabs.first())
         verify(creditCardPicker).handleSelectCreditCardRequest(selectCreditCardRequest)
@@ -1500,7 +1646,6 @@ class PromptFeatureTest {
 
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", selectCreditCardRequest))
             .joinBlocking()
-        testDispatcher.advanceUntilIdle()
 
         verify(feature).onPromptRequested(store.state.customTabs.first())
         verify(creditCardPicker, never()).handleSelectCreditCardRequest(selectCreditCardRequest)
@@ -1523,10 +1668,77 @@ class PromptFeatureTest {
 
         store.dispatch(ContentAction.UpdatePromptRequestAction("custom-tab", selectCreditCardRequest))
             .joinBlocking()
-        testDispatcher.advanceUntilIdle()
 
         verify(feature).onPromptRequested(store.state.customTabs.first())
         verify(creditCardPicker, never()).handleSelectCreditCardRequest(selectCreditCardRequest)
+    }
+
+    @Test
+    fun `GIVEN isCreditCardAutofillEnabled is false WHEN SaveCreditCard request is handled THEN dismiss SaveCreditCard`() {
+        val creditCardEntry = CreditCardEntry(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = ""
+        )
+        val promptRequest = spy(
+            PromptRequest.SaveCreditCard(
+                creditCard = creditCardEntry,
+                onConfirm = {},
+                onDismiss = {}
+            )
+        )
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                isCreditCardAutofillEnabled = { false },
+            ) {}
+        )
+        val session = tab()!!
+
+        feature.handleDialogsRequest(promptRequest, session)
+
+        store.waitUntilIdle()
+
+        verify(feature).dismissDialogRequest(promptRequest, session)
+    }
+
+    @Test
+    fun `GIVEN creditCardValidationDelegate is null WHEN SaveCreditCard request is handled THEN dismiss SaveCreditCard`() {
+        val creditCardEntry = CreditCardEntry(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = ""
+        )
+        val promptRequest = spy(
+            PromptRequest.SaveCreditCard(
+                creditCard = creditCardEntry,
+                onConfirm = {},
+                onDismiss = {}
+            )
+        )
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                isCreditCardAutofillEnabled = { true },
+            ) {}
+        )
+        val session = tab()!!
+
+        feature.handleDialogsRequest(promptRequest, session)
+
+        store.waitUntilIdle()
+
+        verify(feature).dismissDialogRequest(promptRequest, session)
     }
 
     @Test
@@ -1877,6 +2089,204 @@ class PromptFeatureTest {
         store.waitUntilIdle()
         assertTrue(dismissCalled)
         assertTrue(tab()!!.content.promptRequests.isEmpty())
+    }
+
+    @Test
+    fun `WHEN onConfirm is called on a SaveCreditCard dialog THEN a confirm request will consume the dialog`() {
+        val feature = PromptFeature(
+            activity = mock(),
+            store = store,
+            fragmentManager = fragmentManager,
+            isCreditCardAutofillEnabled = { true },
+            creditCardValidationDelegate = mock()
+        ) { }
+        val creditCardEntry = CreditCardEntry(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = ""
+        )
+
+        val request = PromptRequest.SaveCreditCard(
+            creditCard = creditCardEntry,
+            onConfirm = {},
+            onDismiss = {}
+        )
+
+        feature.start()
+
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, request)).joinBlocking()
+
+        assertEquals(1, tab()!!.content.promptRequests.size)
+
+        feature.onConfirm(
+            sessionId = tabId,
+            promptRequestUID = request.uid,
+            value = creditCardEntry
+        )
+
+        store.waitUntilIdle()
+
+        assertTrue(tab()!!.content.promptRequests.isEmpty())
+    }
+
+    @Test
+    fun `WHEN a credit card is confirmed to save THEN confirm the prompt request with the selected credit card`() {
+        val creditCardEntry = CreditCardEntry(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = ""
+        )
+        var onDismissCalled = false
+        var onConfirmCalled = false
+        var confirmedCreditCard: CreditCardEntry? = null
+
+        val request = PromptRequest.SaveCreditCard(
+            creditCard = creditCardEntry,
+            onConfirm = {
+                confirmedCreditCard = it
+                onConfirmCalled = true
+            },
+            onDismiss = {
+                onDismissCalled = true
+            }
+        )
+
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, request)).joinBlocking()
+
+        request.onConfirm(creditCardEntry)
+
+        store.waitUntilIdle()
+
+        assertEquals(creditCardEntry, confirmedCreditCard)
+        assertTrue(onConfirmCalled)
+
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, request)).joinBlocking()
+
+        request.onDismiss()
+
+        store.waitUntilIdle()
+
+        assertTrue(onDismissCalled)
+    }
+
+    @Test
+    fun `WHEN the save credit card dialog fragment is created THEN the credit card entry is passed into the instance`() {
+        val feature = PromptFeature(
+            activity = mock(),
+            store = store,
+            fragmentManager = fragmentManager,
+            isCreditCardAutofillEnabled = { true },
+            creditCardValidationDelegate = mock()
+        ) { }
+        val creditCardEntry = CreditCardEntry(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = ""
+        )
+        val request = PromptRequest.SaveCreditCard(
+            creditCard = creditCardEntry,
+            onConfirm = {},
+            onDismiss = {}
+        )
+
+        val contentState: ContentState = mock()
+        val session: TabSessionState = mock()
+        val sessionId = "sessionId"
+
+        `when`(session.content).thenReturn(contentState)
+        `when`(session.id).thenReturn(sessionId)
+
+        feature.handleDialogsRequest(
+            promptRequest = request,
+            session = session
+        )
+
+        assertTrue(feature.activePrompt!!.get() is CreditCardSaveDialogFragment)
+
+        val dialogFragment = feature.activePrompt!!.get() as CreditCardSaveDialogFragment
+
+        assertEquals(sessionId, dialogFragment.sessionId)
+        assertEquals(creditCardEntry, dialogFragment.creditCard)
+    }
+
+    @Test
+    fun `GIVEN SaveCreditCard prompt is shown WHEN prompt is removed from state THEN dismiss SaveCreditCard prompt`() {
+        val creditCardEntry = CreditCardEntry(
+            guid = "1",
+            name = "Banana Apple",
+            number = "4111111111111110",
+            expiryMonth = "5",
+            expiryYear = "2030",
+            cardType = ""
+        )
+        val promptRequest = PromptRequest.SaveCreditCard(
+            creditCard = creditCardEntry,
+            onConfirm = {},
+            onDismiss = {}
+        )
+        val dialogFragment: CreditCardSaveDialogFragment = mock()
+
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest))
+            .joinBlocking()
+        store.waitUntilIdle()
+
+        val feature = PromptFeature(
+            activity = mock(),
+            store = store,
+            fragmentManager = fragmentManager,
+            isCreditCardAutofillEnabled = { true },
+            creditCardValidationDelegate = mock()
+        ) { }
+
+        feature.start()
+        feature.activePrompt = WeakReference(dialogFragment)
+        feature.activePromptRequest = promptRequest
+
+        store.dispatch(ContentAction.ConsumePromptRequestAction(tabId, promptRequest))
+            .joinBlocking()
+
+        verify(dialogFragment).dismissAllowingStateLoss()
+    }
+
+    @Test
+    fun `WHEN promptRequest is updated THEN the replaced active prompt will be dismissed`() {
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                shareDelegate = mock()
+            ) { }
+        )
+        feature.start()
+
+        val previousPrompt = SingleChoice(
+            choices = arrayOf(),
+            onConfirm = {},
+            onDismiss = {}
+        )
+        val updatedPrompt = SingleChoice(
+            choices = arrayOf(),
+            onConfirm = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, previousPrompt)).joinBlocking()
+
+        val fragment = mock<ChoiceDialogFragment>()
+        whenever(fragment.shouldDismissOnLoad).thenReturn(true)
+        feature.activePrompt = WeakReference(fragment)
+
+        store.dispatch(ContentAction.ReplacePromptRequestAction(tabId, previousPrompt.uid, updatedPrompt)).joinBlocking()
+        verify(fragment).dismiss()
     }
 
     private fun mockFragmentManager(): FragmentManager {

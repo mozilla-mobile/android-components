@@ -5,7 +5,7 @@
 import os
 from redo import retry
 
-from taskgraph.target_tasks import _target_task, filter_for_tasks_for
+from taskgraph.target_tasks import _target_task
 from taskgraph.util.taskcluster import find_task_id
 
 

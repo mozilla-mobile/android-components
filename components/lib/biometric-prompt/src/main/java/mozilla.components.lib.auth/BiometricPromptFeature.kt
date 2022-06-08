@@ -61,17 +61,17 @@ class BiometricPromptFeature(
     internal inner class PromptCallback : BiometricPrompt.AuthenticationCallback() {
         override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
             logger.error("onAuthenticationError: errorMessage $errString errorCode=$errorCode")
-            authenticationCallbacks.onAuthError.invoke(errString.toString())
+            authenticationCallbacks.onAuthError(errString.toString())
         }
 
         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
             logger.debug("onAuthenticationSucceeded")
-            authenticationCallbacks.onAuthSuccess.invoke()
+            authenticationCallbacks.onAuthSuccess()
         }
 
         override fun onAuthenticationFailed() {
             logger.error("onAuthenticationFailed")
-            authenticationCallbacks.onAuthFailure.invoke()
+            authenticationCallbacks.onAuthFailure()
         }
     }
 }

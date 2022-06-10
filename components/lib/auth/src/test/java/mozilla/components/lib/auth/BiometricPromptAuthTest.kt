@@ -27,9 +27,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-class BiometricPromptFeatureTest {
+class BiometricPromptAuthTest {
 
-    private lateinit var biometricPromptFeature: BiometricPromptFeature
+    private lateinit var biometricPromptAuth: BiometricPromptAuth
     private lateinit var biometricManager: BiometricManager
     private lateinit var fragment: Fragment
     private lateinit var biometricUtils: BiometricUtils
@@ -38,17 +38,19 @@ class BiometricPromptFeatureTest {
     fun setup() {
         fragment = createAddedTestFragment { Fragment() }
         biometricUtils = spy(BiometricUtils())
-        biometricPromptFeature = spy(
-            BiometricPromptFeature(
+        biometricPromptAuth = spy(
+            BiometricPromptAuth(
                 testContext,
                 fragment,
-                object : AuthenticationCallbacks {
-                    override val onAuthFailure: () -> Unit
-                        get() = {}
-                    override val onAuthSuccess: () -> Unit
-                        get() = { }
-                    override val onAuthError: (errorText: String) -> Unit
-                        get() = {}
+                object : AuthenticationDelegate {
+                    override fun onAuthFailure() {
+                    }
+
+                    override fun onAuthSuccess() {
+                    }
+
+                    override fun onAuthError(errorText: String) {
+                    }
                 }
             )
         )
@@ -96,33 +98,33 @@ class BiometricPromptFeatureTest {
 
     @Test
     fun `prompt is created and destroyed on start and stop`() {
-        assertNull(biometricPromptFeature.biometricPrompt)
+        assertNull(biometricPromptAuth.biometricPrompt)
 
-        biometricPromptFeature.start()
+        biometricPromptAuth.start()
 
-        assertNotNull(biometricPromptFeature.biometricPrompt)
+        assertNotNull(biometricPromptAuth.biometricPrompt)
 
-        biometricPromptFeature.stop()
+        biometricPromptAuth.stop()
 
-        assertNull(biometricPromptFeature.biometricPrompt)
+        assertNull(biometricPromptAuth.biometricPrompt)
     }
 
     @Test
     fun `requestAuthentication invokes biometric prompt`() {
         val prompt: BiometricPrompt = mock()
 
-        biometricPromptFeature.biometricPrompt = prompt
+        biometricPromptAuth.biometricPrompt = prompt
 
-        biometricPromptFeature.requestAuthentication("title", "subtitle")
+        biometricPromptAuth.requestAuthentication("title", "subtitle")
 
         verify(prompt).authenticate(any())
     }
 
     @Test
     fun `promptCallback fires feature callbacks`() {
-        val promptCallback: BiometricPromptFeature.PromptCallback = mock()
+        val promptCallback: BiometricPromptAuth.PromptCallback = mock()
         val prompt = BiometricPrompt(fragment, promptCallback)
-        biometricPromptFeature.biometricPrompt = prompt
+        biometricPromptAuth.biometricPrompt = prompt
 
         promptCallback.onAuthenticationError(BiometricPrompt.ERROR_CANCELED, "")
 

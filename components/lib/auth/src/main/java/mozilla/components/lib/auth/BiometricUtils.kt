@@ -9,6 +9,9 @@ import android.os.Build
 import androidx.annotation.VisibleForTesting
 import androidx.biometric.BiometricManager
 
+/**
+ * Utility class for BiometricPromptAuth
+ */
 class BiometricUtils {
 
     @VisibleForTesting

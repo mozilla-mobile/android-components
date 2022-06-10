@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-media**
+  *  App should not be locked in landscape when a tab or custom tab loads while in pip mode. [#12298] (https://github.com/mozilla-mobile/android-components/issues/12298)
+
 * **browser-toolbar**
   * Expand toolbar when url changes. [#12215](https://github.com/mozilla-mobile/android-components/issues/12215)
 
@@ -19,6 +22,22 @@ permalink: /changelog/
 
 * **feature-prompts**:
   * Added optional `addressPickerView` and `onManageAddresses` parameters through `AddressDelegate` to `PromptFeature` for a new `AddressPicker` to display a view for selecting addresses to autofill into a site. [#12061](https://github.com/mozilla-mobile/android-components/issues/12061)
+
+* **service-glean**
+  * 🆙 Updated Glean to version 50.0.1 ([changelog](https://github.com/mozilla/glean/releases/tag/v50.0.1))
+    * **This is a breaking change**. See <https://github.com/mozilla/glean/releases/tag/v50.0.0>) for full details.
+      Notable breakage:
+      * `testGetValue` on all metric types now returns `null` when no data is recorded instead of throwing an exception.
+      * `testGetValue` on metrics with more complex data now return new objects for inspection.
+      * `testHasValue` on all metric types is deprecated.
+      * On `TimingDistributionMetric`, `CustomDistributionMetric`, `MemoryDistributionMetric` the `accumulateSamples` method now takes a `List<Long>` instead of `LongArray`.
+        Use `listOf` instead of `longArrayOf` or call `.toList`
+      * `TimingDistributionMetricType.start` now always returns a valid `TimerId`, `TimingDistributionMetricType.stopAndAccumulate` always requires a `TimerId`.
+
+* **lib-auth**
+  *  Added new `lib-auth` component for various forms of authentication.
+  *  Adds a new `BiometricPromptAuth` for authenticating with biometrics or PIN.
+    [issue # 12289](https://github.com/mozilla-mobile/android-components/issues/12289)
 
 # 102.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
@@ -84,11 +103,6 @@ permalink: /changelog/
 
 * **feature-syncedtabs**
   * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
-  
-* **lib-auth**
-  * Add `lib-auth` for authentication using biometrics or PIN.
-    [issue # 12289](https://github.com/mozilla-mobile/android-components/issues/12289)
-    
 # 101.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v100.0.0...v101.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/148?closed=1)

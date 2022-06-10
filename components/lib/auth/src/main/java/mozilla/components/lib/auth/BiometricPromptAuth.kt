@@ -16,15 +16,16 @@ import mozilla.components.support.base.log.logger.Logger
 
 /**
  * A [LifecycleAwareFeature] for the Android Biometric API to prompt for user authentication.
+ * The prompt also requests support for the device PIN as a fallback authentication mechanism.
  *
  * @param context Android context.
  * @param fragment The fragment on which this feature will live.
- * @param authenticationCallbacks Callbacks for BiometricPrompt.
+ * @param authenticationDelegate Callbacks for BiometricPrompt.
  */
-class BiometricPromptFeature(
+class BiometricPromptAuth(
     private val context: Context,
     private val fragment: Fragment,
-    private val authenticationCallbacks: AuthenticationCallbacks
+    private val authenticationDelegate: AuthenticationDelegate
 ) : LifecycleAwareFeature {
     private val logger = Logger(javaClass.simpleName)
 
@@ -61,17 +62,17 @@ class BiometricPromptFeature(
     internal inner class PromptCallback : BiometricPrompt.AuthenticationCallback() {
         override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
             logger.error("onAuthenticationError: errorMessage $errString errorCode=$errorCode")
-            authenticationCallbacks.onAuthError(errString.toString())
+            authenticationDelegate.onAuthError(errString.toString())
         }
 
         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
             logger.debug("onAuthenticationSucceeded")
-            authenticationCallbacks.onAuthSuccess()
+            authenticationDelegate.onAuthSuccess()
         }
 
         override fun onAuthenticationFailed() {
             logger.error("onAuthenticationFailed")
-            authenticationCallbacks.onAuthFailure()
+            authenticationDelegate.onAuthFailure()
         }
     }
 }

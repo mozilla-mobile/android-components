@@ -23,10 +23,6 @@ projects:
     path: components/concept/awesomebar
     description: 'An abstract definition of an awesomebar component.'
     publish: true
-  lib-auth:
-    path: components/lib/biometric-prompt
-    description: 'Component for authentication using biometric'
-    publish: true
   concept-base:
     path: components/concept/base
     description: 'A component for basic interfaces needed by multiple components and that do not warrant a standalone component.'
@@ -374,6 +370,10 @@ projects:
   support-webextensions:
     path: components/support/webextensions
     description: 'A component containing building blocks for features implemented as web extensions.'
+    publish: true
+  lib-auth:
+    path: components/lib/auth
+    description: 'A component for various kinds of authenticating mechanisms.'
     publish: true
   lib-crash:
     path: components/lib/crash

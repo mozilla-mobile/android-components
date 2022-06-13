@@ -6,6 +6,8 @@ package mozilla.components.service.pocket
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
+import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.spocs.SpocsUseCases
 import mozilla.components.service.pocket.stories.PocketStoriesUseCases
 import mozilla.components.service.pocket.update.PocketStoriesRefreshScheduler
@@ -39,17 +41,6 @@ class PocketStoriesService(
         else -> SpocsUseCases(
             appContext = context,
             fetchClient = pocketStoriesConfig.client,
-            profileId = pocketStoriesConfig.profile.profileId,
-            appId = pocketStoriesConfig.profile.appId
-        )
-    }
-    internal val getDeleteProfileUseCase = when (pocketStoriesConfig.profile) {
-        null -> {
-            logger.debug("Missing profile for sponsored stories")
-            null
-        }
-        else -> spocsUseCases?.DeleteProfile(
-            context = context,
             profileId = pocketStoriesConfig.profile.profileId,
             appId = pocketStoriesConfig.profile.appId
         )
@@ -110,6 +101,7 @@ class PocketStoriesService(
         }
 
         GlobalDependencyProvider.SponsoredStories.initialize(useCases)
+        spocsRefreshscheduler.stopProfileDeletion(context)
         spocsRefreshscheduler.schedulePeriodicRefreshes(context)
     }
 
@@ -123,7 +115,6 @@ class PocketStoriesService(
      */
     fun stopPeriodicSponsoredStoriesRefresh() {
         spocsRefreshscheduler.stopPeriodicRefreshes(context)
-        GlobalDependencyProvider.SponsoredStories.reset()
     }
 
     /**
@@ -135,9 +126,18 @@ class PocketStoriesService(
 
     /**
      * Delete all stored user data used for downloading personalized sponsored stories.
+     * This returns immediately but will handle the profile deletion in background.
      */
-    suspend fun deleteProfile(): Boolean {
-        return spocsUseCases?.deleteProfile?.invoke() ?: false
+    fun deleteProfile() {
+        val useCases = spocsUseCases
+        if (useCases == null) {
+            logger.warn("Cannot delete sponsored stories profile. Service has incomplete setup")
+            return
+        }
+
+        GlobalDependencyProvider.SponsoredStories.initialize(useCases)
+        spocsRefreshscheduler.stopPeriodicRefreshes(context)
+        spocsRefreshscheduler.scheduleProfileDeletion(context)
     }
 
     /**
@@ -148,5 +148,14 @@ class PocketStoriesService(
      */
     suspend fun updateStoriesTimesShown(updatedStories: List<PocketRecommendedStory>) {
         storiesUseCases.updateTimesShown(updatedStories)
+    }
+
+    /**
+     * Persist locally that the sponsored Pocket stories containing the ids from [storiesShown]
+     * were shown to the user.
+     * This is safe to call with any ids, even ones for stories not currently persisted anymore.
+     */
+    suspend fun recordStoriesImpressions(storiesShown: List<Int>) {
+        spocsUseCases?.recordImpression?.invoke(storiesShown)
     }
 }

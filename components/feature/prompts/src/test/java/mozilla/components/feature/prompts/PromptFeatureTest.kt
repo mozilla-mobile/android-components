@@ -38,9 +38,12 @@ import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
 import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.Address
 import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
+import mozilla.components.feature.prompts.address.AddressDelegate
+import mozilla.components.feature.prompts.address.AddressPicker
 import mozilla.components.feature.prompts.concept.SelectablePromptView
 import mozilla.components.feature.prompts.creditcard.CreditCardPicker
 import mozilla.components.feature.prompts.creditcard.CreditCardSaveDialogFragment
@@ -89,6 +92,7 @@ class PromptFeatureTest {
     private lateinit var fragmentManager: FragmentManager
     private lateinit var loginPicker: LoginPicker
     private lateinit var creditCardPicker: CreditCardPicker
+    private lateinit var addressPicker: AddressPicker
 
     private val tabId = "test-tab"
     private fun tab(): TabSessionState? {
@@ -111,6 +115,7 @@ class PromptFeatureTest {
         )
         loginPicker = mock()
         creditCardPicker = mock()
+        addressPicker = mock()
         fragmentManager = mockFragmentManager()
     }
 
@@ -590,6 +595,64 @@ class PromptFeatureTest {
         feature.dismissSelectPrompts()
 
         verify(feature.creditCardPicker!!).dismissSelectCreditCardRequest(selectCreditCardRequest)
+    }
+
+    @Test
+    fun `WHEN dismissSelectPrompts is called THEN the active addressPicker dismiss should be called`() {
+        val addressPickerView: SelectablePromptView<Address> = mock()
+        val addressDelegate: AddressDelegate = mock()
+        val feature = spy(
+            PromptFeature(
+                mock<Activity>(),
+                store,
+                fragmentManager = fragmentManager,
+                addressDelegate = addressDelegate
+            ) { }
+        )
+        feature.addressPicker = addressPicker
+        feature.activePromptRequest = mock()
+
+        whenever(addressDelegate.addressPickerView).thenReturn(addressPickerView)
+        whenever(addressPickerView.asView()).thenReturn(mock())
+        whenever(addressPickerView.asView().visibility).thenReturn(View.VISIBLE)
+
+        feature.dismissSelectPrompts()
+        verify(feature.addressPicker!!, never()).dismissSelectAddressRequest(any())
+
+        val selectAddressPromptRequest = mock<PromptRequest.SelectAddress>()
+        feature.activePromptRequest = selectAddressPromptRequest
+
+        feature.dismissSelectPrompts()
+
+        verify(feature.addressPicker!!).dismissSelectAddressRequest(selectAddressPromptRequest)
+
+        store.waitUntilIdle()
+        assertTrue(tab()!!.content.promptRequests.isEmpty())
+    }
+
+    @Test
+    fun `GIVEN addressPickerView is not visible WHEN dismissSelectPrompts is called THEN dismissSelectPrompts returns false`() {
+        val addressPickerView: SelectablePromptView<Address> = mock()
+        val addressDelegate: AddressDelegate = mock()
+        val feature = spy(
+            PromptFeature(
+                mock<Activity>(),
+                store,
+                fragmentManager = fragmentManager,
+                addressDelegate = addressDelegate
+            ) { }
+        )
+        val selectAddressRequest = mock<PromptRequest.SelectAddress>()
+        feature.addressPicker = addressPicker
+        feature.activePromptRequest = selectAddressRequest
+
+        whenever(addressDelegate.addressPickerView).thenReturn(addressPickerView)
+        whenever(addressPickerView.asView()).thenReturn(mock())
+        whenever(addressPickerView.asView().visibility).thenReturn(View.GONE)
+
+        val result = feature.dismissSelectPrompts()
+
+        assertEquals(false, result)
     }
 
     @Test
@@ -2033,7 +2096,9 @@ class PromptFeatureTest {
         val feature = PromptFeature(
             activity = mock(),
             store = store,
-            fragmentManager = fragmentManager
+            fragmentManager = fragmentManager,
+            isCreditCardAutofillEnabled = { true },
+            creditCardValidationDelegate = mock()
         ) { }
         val creditCardEntry = CreditCardEntry(
             guid = "1",
@@ -2190,6 +2255,38 @@ class PromptFeatureTest {
             .joinBlocking()
 
         verify(dialogFragment).dismissAllowingStateLoss()
+    }
+
+    @Test
+    fun `WHEN promptRequest is updated THEN the replaced active prompt will be dismissed`() {
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                shareDelegate = mock()
+            ) { }
+        )
+        feature.start()
+
+        val previousPrompt = SingleChoice(
+            choices = arrayOf(),
+            onConfirm = {},
+            onDismiss = {}
+        )
+        val updatedPrompt = SingleChoice(
+            choices = arrayOf(),
+            onConfirm = {},
+            onDismiss = {}
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, previousPrompt)).joinBlocking()
+
+        val fragment = mock<ChoiceDialogFragment>()
+        whenever(fragment.shouldDismissOnLoad).thenReturn(true)
+        feature.activePrompt = WeakReference(fragment)
+
+        store.dispatch(ContentAction.ReplacePromptRequestAction(tabId, previousPrompt.uid, updatedPrompt)).joinBlocking()
+        verify(fragment).dismiss()
     }
 
     private fun mockFragmentManager(): FragmentManager {

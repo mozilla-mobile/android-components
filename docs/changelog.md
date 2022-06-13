@@ -4,15 +4,58 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 102.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
+# 103.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v102.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/150?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-media**
+  *  App should not be locked in landscape when a tab or custom tab loads while in pip mode. [#12298] (https://github.com/mozilla-mobile/android-components/issues/12298)
+
+* **browser-toolbar**
+  * Expand toolbar when url changes. [#12215](https://github.com/mozilla-mobile/android-components/issues/12215)
+
+* **service-pocket**
+  * Ensure sponsored stories profile deletion is retried in background until successful or the feature is re-enabled. [#12258](https://github.com/mozilla-mobile/android-components/issues/12258)
+
+* **feature-prompts**:
+  * Added optional `addressPickerView` and `onManageAddresses` parameters through `AddressDelegate` to `PromptFeature` for a new `AddressPicker` to display a view for selecting addresses to autofill into a site. [#12061](https://github.com/mozilla-mobile/android-components/issues/12061)
+
+* **service-glean**
+  * 🆙 Updated Glean to version 50.0.1 ([changelog](https://github.com/mozilla/glean/releases/tag/v50.0.1))
+    * **This is a breaking change**. See <https://github.com/mozilla/glean/releases/tag/v50.0.0>) for full details.
+      Notable breakage:
+      * `testGetValue` on all metric types now returns `null` when no data is recorded instead of throwing an exception.
+      * `testGetValue` on metrics with more complex data now return new objects for inspection.
+      * `testHasValue` on all metric types is deprecated.
+      * On `TimingDistributionMetric`, `CustomDistributionMetric`, `MemoryDistributionMetric` the `accumulateSamples` method now takes a `List<Long>` instead of `LongArray`.
+        Use `listOf` instead of `longArrayOf` or call `.toList`
+      * `TimingDistributionMetricType.start` now always returns a valid `TimerId`, `TimingDistributionMetricType.stopAndAccumulate` always requires a `TimerId`.
+
+# 102.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v102.0.1/.config.yml)
+
+* **service-firefox-accounts**
+  * 🆕 SyncStore to abstract account and Sync details.
+
+* **browser-state**:
+  * 🌟️ Add support for tab prioritization via `SessionPrioritizationMiddleware` for more information see [#12190](https://github.com/mozilla-mobile/android-components/issues/12190).
+
+* **service-pocket**
+  * 🌟️ Add support for rotating and pacing Pocket sponsored stories. [#12184](https://github.com/mozilla-mobile/android-components/issues/12184)
+  * See component's [README](https://github.com/mozilla-mobile/android-components/blob/main/components/service/pocket/README.md) to get more info.
+
 * **support-ktx**
   * 🌟️ Add support for optionally persisting the default value when `stringPreference` is used to read a string from SharedPreferences. [issue #12207](https://github.com/mozilla-mobile/android-components/issues/12207).
+
+* **service-pocket**
+  * ⚠️ **This is a breaking change**: Add a new `PocketStory` supertype for all Pocket stories. [#12171](https://github.com/mozilla-mobile/android-components/issues/12171)
 
 * **service-pocket**
   * 🌟️ Add support for Pocket sponsored stories.
@@ -41,6 +84,10 @@ permalink: /changelog/
 * **feature-prompts**:
   * Add a `CreditCardSaveDialogFragment` that is displayed for a `SaveCreditCard` prompt request to handle saving and updating a credit card. [#11338](https://github.com/mozilla-mobile/android-components/issues/11338)
 
+* **feature-media**
+  * Set default screen orientation if playing media in pip
+    [issue # 12118](https://github.com/mozilla-mobile/android-components/issues/12118)
+
 * **concept-storage**:
   * Added `CreditCardValidationDelegate` which is a delegate that will check against the `CreditCardsAddressesStorage` to determine if a `CreditCard` can be persisted in storage. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
   * Refactors `CreditCard` from `concept-engine` to `CreditCardEntry` in `concept-storage` so that it can validated with the `CreditCardValidationDelegate`. [#9838](https://github.com/mozilla-mobile/android-components/issues/9838)
@@ -48,7 +95,6 @@ permalink: /changelog/
 * **browser-storage-sync**
   * ⚠️ **This is a breaking change**: When constructing a `RemoteTabsStorage` object you must now a `Context` which is used to determine the location of the sqlite database which is used to persist the remote tabs [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).
   * Fixed a low frequency crasher that might occur when the app attempts to delete all history. [#12112](https://github.com/mozilla-mobile/android-components/pull/12112)
-
 
 * **feature-syncedtabs**
   * ⚠️ **This is a breaking change**: When constructing a `SyncedTabsStorage`, the `tabsStorage: RemoteTabsStorage` parameter is no longer optional so must be supplied [#11799](https://github.com/mozilla-mobile/android-components/pull/11799).

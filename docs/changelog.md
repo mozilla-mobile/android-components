@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-recentlyclosed**
+  * 🚒 Bug fixed [issue #12310](https://github.com/mozilla-mobile/android-components/issues/12310) - Catch all database exceptions thrown when querying recently closed tabs and clean the storage for corrupted data.
+
 * **feature-media**
   *  App should not be locked in landscape when a tab or custom tab loads while in pip mode. [#12298] (https://github.com/mozilla-mobile/android-components/issues/12298)
 
@@ -33,6 +36,9 @@ permalink: /changelog/
       * On `TimingDistributionMetric`, `CustomDistributionMetric`, `MemoryDistributionMetric` the `accumulateSamples` method now takes a `List<Long>` instead of `LongArray`.
         Use `listOf` instead of `longArrayOf` or call `.toList`
       * `TimingDistributionMetricType.start` now always returns a valid `TimerId`, `TimingDistributionMetricType.stopAndAccumulate` always requires a `TimerId`.
+
+* **support-rusterrors**
+  * 🆕 New component to report Rust errors
 
 # 102.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
@@ -117,9 +123,6 @@ permalink: /changelog/
 
 * **feature-media**
   * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
-
-* **feature-media**
-  * The Play/Pause button remains displayed on the media notification.
 
 # 100.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)

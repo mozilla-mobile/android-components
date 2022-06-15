@@ -38,6 +38,9 @@ permalink: /changelog/
         Use `listOf` instead of `longArrayOf` or call `.toList`
       * `TimingDistributionMetricType.start` now always returns a valid `TimerId`, `TimingDistributionMetricType.stopAndAccumulate` always requires a `TimerId`.
 
+* **support-rusterrors**
+  * 🆕 New component to report Rust errors
+
 # 102.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/149?closed=1)
@@ -121,9 +124,6 @@ permalink: /changelog/
 
 * **feature-media**
   * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
-
-* **feature-media**
-  * The Play/Pause button remains displayed on the media notification.
 
 # 100.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)

@@ -4,40 +4,30 @@
 
 package mozilla.components.lib.auth
 
-import android.os.Build.VERSION_CODES.LOLLIPOP
-import android.os.Build.VERSION_CODES.M
-import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.Fragment
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.createAddedTestFragment
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
+@RunWith(AndroidJUnit4::class)
 class BiometricPromptAuthTest {
 
     private lateinit var biometricPromptAuth: BiometricPromptAuth
-    private lateinit var biometricManager: BiometricManager
     private lateinit var fragment: Fragment
-    private lateinit var biometricUtils: BiometricUtils
 
     @Before
     fun setup() {
         fragment = createAddedTestFragment { Fragment() }
-        biometricUtils = spy(BiometricUtils())
         biometricPromptAuth = spy(
             BiometricPromptAuth(
                 testContext,
@@ -54,46 +44,6 @@ class BiometricPromptAuthTest {
                 }
             )
         )
-        biometricManager = mock()
-        doReturn(biometricManager).`when`(biometricUtils).getAndroidBiometricManager(testContext)
-    }
-
-    @Config(sdk = [LOLLIPOP])
-    @Test
-    fun `canUseFeature checks for SDK compatible`() {
-        assertFalse(biometricUtils.canUseFeature(testContext))
-    }
-
-    @Config(sdk = [M])
-    @Test
-    fun `GIVEN canUseFeature is called WHEN hardware is available and biometric is enrolled THEN canUseFeature return true`() {
-        doReturn(true).`when`(biometricUtils).isHardwareAvailable(biometricManager)
-        doReturn(true).`when`(biometricUtils).isEnrolled(biometricManager)
-        assertTrue(biometricUtils.canUseFeature(testContext))
-    }
-
-    @Config(sdk = [M])
-    @Test
-    fun `GIVEN canUseFeature is called WHEN hardware is available and biometric is not enrolled THEN canUseFeature return false`() {
-        doReturn(false).`when`(biometricUtils).isHardwareAvailable(biometricManager)
-        doReturn(true).`when`(biometricUtils).isEnrolled(biometricManager)
-        assertFalse(biometricUtils.canUseFeature(testContext))
-    }
-
-    @Config(sdk = [M])
-    @Test
-    fun `GIVEN canUseFeature is called WHEN hardware is not available and biometric is not enrolled THEN canUseFeature return false`() {
-        doReturn(false).`when`(biometricUtils).isHardwareAvailable(biometricManager)
-        doReturn(false).`when`(biometricUtils).isEnrolled(biometricManager)
-        assertFalse(biometricUtils.canUseFeature(testContext))
-    }
-
-    @Config(sdk = [M])
-    @Test
-    fun `GIVEN canUseFeature is called WHEN hardware is not available and biometric is enrolled THEN canUseFeature return false`() {
-        doReturn(false).`when`(biometricUtils).isHardwareAvailable(biometricManager)
-        doReturn(true).`when`(biometricUtils).isEnrolled(biometricManager)
-        assertFalse(biometricUtils.canUseFeature(testContext))
     }
 
     @Test

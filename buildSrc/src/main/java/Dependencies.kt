@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2022-06-02
+// FORCE REBUILD 2022-06-13
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
@@ -166,6 +166,7 @@ object Dependencies {
     const val mozilla_full_megazord = "org.mozilla.appservices:full-megazord:${Versions.mozilla_appservices}"
     const val mozilla_full_megazord_forUnitTests = "org.mozilla.appservices:full-megazord-forUnitTests:${Versions.mozilla_appservices}"
 
+    const val mozilla_errorsupport = "org.mozilla.appservices:errorsupport:${Versions.mozilla_appservices}"
     const val mozilla_rustlog = "org.mozilla.appservices:rustlog:${Versions.mozilla_appservices}"
     const val mozilla_sync15 = "org.mozilla.appservices:sync15:${Versions.mozilla_appservices}"
 

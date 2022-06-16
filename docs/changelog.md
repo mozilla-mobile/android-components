@@ -11,6 +11,12 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **site-permission-feature**
+  * 🆕 [issue #12338](https://github.com/mozilla-mobile/android-components/issues/12338) - Add support for setting a custom text for the negative button of the site permission prompts. Use "Block" for the storage access prompt.
+
+* **feature-recentlyclosed**
+  * 🚒 Bug fixed [issue #12310](https://github.com/mozilla-mobile/android-components/issues/12310) - Catch all database exceptions thrown when querying recently closed tabs and clean the storage for corrupted data.
+
 * **feature-media**
   *  App should not be locked in landscape when a tab or custom tab loads while in pip mode. [#12298] (https://github.com/mozilla-mobile/android-components/issues/12298)
 
@@ -22,6 +28,7 @@ permalink: /changelog/
 
 * **feature-prompts**:
   * Added optional `addressPickerView` and `onManageAddresses` parameters through `AddressDelegate` to `PromptFeature` for a new `AddressPicker` to display a view for selecting addresses to autofill into a site. [#12061](https://github.com/mozilla-mobile/android-components/issues/12061)
+  * ⚠️ **This is a breaking change**: `PromptFeature` constructor now takes `LoginDelegate` and `CreditCardDelegate` instead of login picker and credit card picker parameters. [#12257](https://github.com/mozilla-mobile/android-components/issues/12257)
 
 * **service-glean**
   * 🆙 Updated Glean to version 50.0.1 ([changelog](https://github.com/mozilla/glean/releases/tag/v50.0.1))
@@ -33,6 +40,9 @@ permalink: /changelog/
       * On `TimingDistributionMetric`, `CustomDistributionMetric`, `MemoryDistributionMetric` the `accumulateSamples` method now takes a `List<Long>` instead of `LongArray`.
         Use `listOf` instead of `longArrayOf` or call `.toList`
       * `TimingDistributionMetricType.start` now always returns a valid `TimerId`, `TimingDistributionMetricType.stopAndAccumulate` always requires a `TimerId`.
+
+* **support-rusterrors**
+  * 🆕 New component to report Rust errors
 
 # 102.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v101.0.0...v102.0.1)
@@ -117,9 +127,6 @@ permalink: /changelog/
 
 * **feature-media**
   * Media playback is now paused when AudioManager.ACTION_AUDIO_BECOMING_NOISY is broadcast by the system.
-
-* **feature-media**
-  * The Play/Pause button remains displayed on the media notification.
 
 # 100.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v99.0.0...v100.0.0)

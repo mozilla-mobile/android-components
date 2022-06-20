@@ -5,9 +5,13 @@
 package mozilla.components.lib.auth
 
 import android.os.Build
+import androidx.biometric.BiometricManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
-import org.junit.Assert
+import mozilla.components.support.test.whenever
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -18,6 +22,29 @@ class BiometricUtilsTest {
     @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
     @Test
     fun `canUseFeature checks for SDK compatible`() {
-        Assert.assertFalse(testContext.canUseBiometricFeature())
+        assertFalse(testContext.canUseBiometricFeature())
+    }
+
+    @Test
+    fun `isHardwareAvailable is true based on AuthenticationStatus`() {
+        val manager: BiometricManager = mock {
+            whenever(canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK))
+                .thenReturn(BiometricManager.BIOMETRIC_SUCCESS)
+                .thenReturn(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE)
+                .thenReturn(BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE)
+        }
+
+        assertTrue(BiometricUtils.isHardwareAvailable(manager))
+        assertFalse(BiometricUtils.isHardwareAvailable(manager))
+        assertFalse(BiometricUtils.isHardwareAvailable(manager))
+    }
+
+    @Test
+    fun `isEnrolled is true based on AuthenticationStatus`() {
+        val manager: BiometricManager = mock {
+            whenever(canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK))
+                .thenReturn(BiometricManager.BIOMETRIC_SUCCESS)
+        }
+        assertTrue(BiometricUtils.isEnrolled(manager))
     }
 }

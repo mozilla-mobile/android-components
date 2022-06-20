@@ -33,7 +33,7 @@ internal object BiometricUtils {
     /**
      * Checks if the hardware requirements are met for using the [BiometricManager].
      */
-    private fun isHardwareAvailable(biometricManager: BiometricManager): Boolean {
+    internal fun isHardwareAvailable(biometricManager: BiometricManager): Boolean {
         val status =
             biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
         return status != BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE &&
@@ -43,7 +43,7 @@ internal object BiometricUtils {
     /**
      * Checks if the user can use the [BiometricManager] and is therefore enrolled.
      */
-    private fun isEnrolled(biometricManager: BiometricManager): Boolean {
+    internal fun isEnrolled(biometricManager: BiometricManager): Boolean {
         val status =
             biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
         return status == BiometricManager.BIOMETRIC_SUCCESS

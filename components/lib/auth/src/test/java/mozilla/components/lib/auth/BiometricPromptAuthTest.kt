@@ -6,7 +6,6 @@ package mozilla.components.lib.auth
 
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.Fragment
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.createAddedTestFragment
@@ -16,10 +15,10 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 class BiometricPromptAuthTest {
 
     private lateinit var biometricPromptAuth: BiometricPromptAuth
@@ -28,21 +27,19 @@ class BiometricPromptAuthTest {
     @Before
     fun setup() {
         fragment = createAddedTestFragment { Fragment() }
-        biometricPromptAuth = spy(
-            BiometricPromptAuth(
-                testContext,
-                fragment,
-                object : AuthenticationDelegate {
-                    override fun onAuthFailure() {
-                    }
-
-                    override fun onAuthSuccess() {
-                    }
-
-                    override fun onAuthError(errorText: String) {
-                    }
+        biometricPromptAuth = BiometricPromptAuth(
+            testContext,
+            fragment,
+            object : AuthenticationDelegate {
+                override fun onAuthFailure() {
                 }
-            )
+
+                override fun onAuthSuccess() {
+                }
+
+                override fun onAuthError(errorText: String) {
+                }
+            }
         )
     }
 
@@ -72,20 +69,23 @@ class BiometricPromptAuthTest {
 
     @Test
     fun `promptCallback fires feature callbacks`() {
-        val promptCallback: BiometricPromptAuth.PromptCallback = mock()
-        val prompt = BiometricPrompt(fragment, promptCallback)
-        biometricPromptAuth.biometricPrompt = prompt
+        val authenticationDelegate: AuthenticationDelegate = mock()
+        val feature = BiometricPromptAuth(testContext, fragment, authenticationDelegate)
+        val callback = feature.PromptCallback()
+        val prompt = BiometricPrompt(fragment, callback)
 
-        promptCallback.onAuthenticationError(BiometricPrompt.ERROR_CANCELED, "")
+        feature.biometricPrompt = prompt
 
-        verify(promptCallback).onAuthenticationError(BiometricPrompt.ERROR_CANCELED, "")
+        callback.onAuthenticationError(BiometricPrompt.ERROR_CANCELED, "")
 
-        promptCallback.onAuthenticationFailed()
+        verify(authenticationDelegate).onAuthError("")
 
-        verify(promptCallback).onAuthenticationFailed()
+        callback.onAuthenticationFailed()
 
-        promptCallback.onAuthenticationSucceeded(any())
+        verify(authenticationDelegate).onAuthFailure()
 
-        verify(promptCallback).onAuthenticationSucceeded(any())
+        callback.onAuthenticationSucceeded(mock())
+
+        verify(authenticationDelegate).onAuthSuccess()
     }
 }

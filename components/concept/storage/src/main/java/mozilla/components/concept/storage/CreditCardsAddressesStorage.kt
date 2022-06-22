@@ -6,6 +6,7 @@ package mozilla.components.concept.storage
 
 import android.annotation.SuppressLint
 import android.os.Parcelable
+import androidx.annotation.VisibleForTesting
 import kotlinx.parcelize.Parcelize
 import mozilla.components.concept.storage.CreditCard.Companion.ellipsesEnd
 import mozilla.components.concept.storage.CreditCard.Companion.ellipsesStart
@@ -362,7 +363,41 @@ data class Address(
     val timeLastUsed: Long? = 0L,
     val timeLastModified: Long = 0L,
     val timesUsed: Long = 0L
-) : Parcelable
+) : Parcelable {
+    /**
+     * Returns the full name for the [Address]. The combination of names is based on desktop code
+     * found here:
+     * https://searchfox.org/mozilla-central/rev/d989c65584ded72c2de85cb40bede7ac2f176387/toolkit/components/formautofill/FormAutofillNameUtils.jsm#400
+     */
+    val fullName: String
+        get() = listOf(givenName, additionalName, familyName)
+            .filter { it.isNotEmpty() }
+            .joinToString(" ")
+
+    /**
+     * Returns a label for the [Address]. The ordering is based on the
+     * priorities defined by the desktop code found here:
+     * https://searchfox.org/mozilla-central/rev/d989c65584ded72c2de85cb40bede7ac2f176387/toolkit/components/formautofill/FormAutofillUtils.jsm#323
+     */
+    val addressLabel: String
+        get() = listOf(
+            streetAddress.toOneLineAddress(),
+            addressLevel3,
+            addressLevel2,
+            organization,
+            addressLevel1,
+            country,
+            postalCode,
+            tel,
+            email
+        ).filter { it.isNotEmpty() }.joinToString(", ")
+
+    companion object {
+        @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+        internal fun String.toOneLineAddress(): String =
+            this.split("\n").joinToString(separator = " ") { it.trim() }
+    }
+}
 
 /**
  * Information about a new address. This is what you pass to create or update an address.

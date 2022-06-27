@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.utils.ext.getParcelableArrayListExtraCompat
 import mozilla.components.support.utils.ext.getParcelableExtraCompat
 import java.util.ArrayList
 
@@ -73,10 +74,15 @@ class SafeIntent(val unsafe: Intent) {
     fun <T : Parcelable> getParcelableExtra(name: String, clazz: Class<T>): T? = safeAccess {
         unsafe.getParcelableExtraCompat(name, clazz)
     }
-
-    fun <T : Parcelable> getParcelableArrayListExtra(name: String): ArrayList<T>? {
+    /**
+     * Returns     the value of an item previously added with putParcelableArrayListExtra(),
+     * or null if no ArrayList value was found.
+     * @param name the key name.
+     * @param clazz the desired class of the object .
+     */
+    fun <T : Parcelable> getParcelableArrayListExtra(name: String, clazz: Class<T>): ArrayList<T>? {
         return safeAccess {
-            val value: ArrayList<T>? = unsafe.getParcelableArrayListExtra(name)
+            val value: ArrayList<T>? = unsafe.getParcelableArrayListExtraCompat(name, clazz)
             value
         }
     }

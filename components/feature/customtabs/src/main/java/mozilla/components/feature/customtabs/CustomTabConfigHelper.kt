@@ -151,7 +151,7 @@ private fun getActionButtonConfig(intent: SafeIntent): CustomTabActionButtonConf
 }
 
 private fun getMenuItems(intent: SafeIntent): List<CustomTabMenuItem> =
-    intent.getParcelableArrayListExtra<Parcelable>(EXTRA_MENU_ITEMS).orEmpty()
+    intent.getParcelableArrayListExtra(EXTRA_MENU_ITEMS, Parcelable::class.java).orEmpty()
         .mapNotNull { menuItemBundle ->
             val bundle = (menuItemBundle as? Bundle)?.toSafeBundle()
             val name = bundle?.getString(KEY_MENU_ITEM_TITLE)

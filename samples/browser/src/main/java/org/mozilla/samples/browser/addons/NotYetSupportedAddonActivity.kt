@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.ui.UnsupportedAddonsAdapter
 import mozilla.components.feature.addons.ui.UnsupportedAddonsAdapterDelegate
+import mozilla.components.support.utils.ext.getParcelableArrayListExtraCompat
 import org.mozilla.samples.browser.R
 import org.mozilla.samples.browser.ext.components
 
@@ -32,7 +33,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val addons = requireNotNull(intent.getParcelableArrayListExtra<Addon>("add_ons"))
+        val addons = requireNotNull(intent.getParcelableArrayListExtraCompat("add_ons", Addon::class.java))
 
         supportFragmentManager
             .beginTransaction()

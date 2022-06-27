@@ -78,11 +78,11 @@ open class BrowserMenu internal constructor(
 
         menuList?.accessibilityDelegate = object : View.AccessibilityDelegate() {
             override fun onInitializeAccessibilityNodeInfo(
-                host: View?,
-                info: AccessibilityNodeInfo?
+                host: View,
+                info: AccessibilityNodeInfo
             ) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
-                info?.collectionInfo = AccessibilityNodeInfo.CollectionInfo.obtain(
+                info.collectionInfo = AccessibilityNodeInfo.CollectionInfo.obtain(
                     adapter.interactiveCount, 0, false
                 )
             }

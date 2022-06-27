@@ -16,6 +16,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.ui.translateName
+import mozilla.components.support.utils.ext.getParcelableCompat
 import mozilla.components.support.utils.ext.getParcelableExtraCompat
 import org.mozilla.samples.browser.R
 import org.mozilla.samples.browser.databinding.ActivityAddOnSettingsBinding
@@ -58,7 +59,7 @@ class AddonSettingsActivity : AppCompatActivity() {
         private lateinit var engineSession: EngineSession
 
         override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-            addon = requireNotNull(arguments?.getParcelable("add_on"))
+            addon = requireNotNull(arguments?.getParcelableCompat("add_on", Addon::class.java))
             engineSession = components.engine.createSession()
 
             return inflater.inflate(R.layout.fragment_add_on_settings, container, false)

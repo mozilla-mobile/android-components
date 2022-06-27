@@ -50,11 +50,11 @@ open class WebExtensionToolbarAction(
         padding?.let { rootView.setPadding(it) }
 
         parent.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewDetachedFromWindow(view: View?) {
+            override fun onViewDetachedFromWindow(view: View) {
                 iconJob?.cancel()
             }
 
-            override fun onViewAttachedToWindow(view: View?) = Unit
+            override fun onViewAttachedToWindow(view: View) = Unit
         })
         return rootView
     }

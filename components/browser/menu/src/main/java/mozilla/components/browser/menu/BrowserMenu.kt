@@ -250,12 +250,12 @@ open class BrowserMenu internal constructor(
         DOWN(mozilla.components.concept.menu.Orientation.DOWN)
     }
 
-    override fun onViewDetachedFromWindow(v: View?) {
+    override fun onViewDetachedFromWindow(v: View) {
         currentPopup?.dismiss()
         currAnchor?.removeOnAttachStateChangeListener(this)
     }
 
-    override fun onViewAttachedToWindow(v: View?) {
+    override fun onViewAttachedToWindow(v: View) {
         // no-op
     }
 }

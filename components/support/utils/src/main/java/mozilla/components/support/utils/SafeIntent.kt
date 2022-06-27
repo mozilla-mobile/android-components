@@ -6,6 +6,7 @@ package mozilla.components.support.utils
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import mozilla.components.support.base.log.logger.Logger
@@ -63,8 +64,13 @@ class SafeIntent(val unsafe: Intent) {
         unsafe.getCharSequenceExtra(name)
     }
 
-    fun <T : Parcelable> getParcelableExtra(name: String): T? = safeAccess {
-        unsafe.getParcelableExtra(name) as? T
+    fun <T : Parcelable> getParcelableExtra(name: String, clazz: Class<T>): T? = safeAccess {
+        if (Build.VERSION.SDK_INT >= 33) {
+            unsafe.getParcelableExtra(name, clazz)
+        } else {
+            @Suppress("Deprecation")
+            unsafe.getParcelableExtra(name) as? T
+        }
     }
 
     fun <T : Parcelable> getParcelableArrayListExtra(name: String): ArrayList<T>? {

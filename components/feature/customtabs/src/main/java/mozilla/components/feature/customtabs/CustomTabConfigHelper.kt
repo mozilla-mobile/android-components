@@ -114,7 +114,7 @@ private fun SafeIntent.getColorExtra(name: String): Int? =
     if (hasExtra(name)) getIntExtra(name, 0) else null
 
 private fun getCloseButtonIcon(intent: SafeIntent, resources: Resources?): Bitmap? {
-    val icon = intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON) as? Bitmap
+    val icon = intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON, Bitmap::class.java)
     val maxSize = resources?.getDimension(R.dimen.mozac_feature_customtabs_max_close_button_size) ?: Float.MAX_VALUE
 
     return if (icon != null && max(icon.width, icon.height) <= maxSize) {

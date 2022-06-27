@@ -73,9 +73,14 @@ class SafeIntent(val unsafe: Intent) {
         }
     }
 
-    fun <T : Parcelable> getParcelableArrayListExtra(name: String): ArrayList<T>? {
+    fun <T : Parcelable> getParcelableArrayListExtra(name: String, clazz: Class<T>): ArrayList<T>? {
         return safeAccess {
-            val value: ArrayList<T>? = unsafe.getParcelableArrayListExtra(name)
+            val value: ArrayList<T>? = if (Build.VERSION.SDK_INT >= 33) {
+                unsafe.getParcelableArrayListExtra(name, clazz)
+            } else {
+                @Suppress("Deprecation")
+                unsafe.getParcelableArrayListExtra(name)
+            }
             value
         }
     }

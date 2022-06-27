@@ -4,6 +4,7 @@
 
 package mozilla.components.support.utils
 
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import mozilla.components.support.base.log.logger.Logger
@@ -26,8 +27,15 @@ class SafeBundle(val unsafe: Bundle) {
     fun keySet(): Set<String>? =
         safeAccess { keySet() }
 
-    fun <T : Parcelable> getParcelable(name: String): T? =
-        safeAccess { getParcelable<T>(name) }
+    fun <T : Parcelable> getParcelable(name: String, clazz: Class<T>): T? =
+        safeAccess {
+            if (Build.VERSION.SDK_INT >= 33) {
+                getParcelable<T>(name, clazz)
+            } else {
+                @Suppress("Deprecation")
+                getParcelable<T>(name) as T
+            }
+        }
 
     @SuppressWarnings("TooGenericExceptionCaught")
     private fun <T> safeAccess(default: T? = null, block: Bundle.() -> T): T? {

@@ -253,7 +253,12 @@ class Browsers private constructor(
             // installed packages. getPackageInfo() is fast regardless of a package being installed
             try {
                 // We don't need the result, we only need to detect when the package doesn't exist
-                packageManager.getPackageInfo(browser.packageName, 0)
+                if (Build.VERSION.SDK_INT >= 33) {
+                    packageManager.getPackageInfo(browser.packageName, PackageManager.PackageInfoFlags.of(0L))
+                } else {
+                    @Suppress("Deprecation")
+                    packageManager.getPackageInfo(browser.packageName, 0)
+                }
             } catch (e: PackageManager.NameNotFoundException) {
                 continue
             }

@@ -82,9 +82,16 @@ open class BrowserMenu internal constructor(
                 info: AccessibilityNodeInfo
             ) {
                 super.onInitializeAccessibilityNodeInfo(host, info)
-                info.collectionInfo = AccessibilityNodeInfo.CollectionInfo.obtain(
-                    adapter.interactiveCount, 0, false
-                )
+                info.collectionInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    AccessibilityNodeInfo.CollectionInfo(
+                        adapter.interactiveCount, 0, false
+                    )
+                } else {
+                    @Suppress("Deprecation")
+                    AccessibilityNodeInfo.CollectionInfo.obtain(
+                        adapter.interactiveCount, 0, false
+                    )
+                }
             }
         }
 

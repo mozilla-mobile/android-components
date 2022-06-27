@@ -234,11 +234,11 @@ class SafeIntentTest {
 
     @Test
     fun `getParcelableExtra returns null if intent throws OutOfMemoryError`() {
-
+        @Suppress("DEPRECATION")
         doThrow(OutOfMemoryError::class.java)
             .`when`(intent).getParcelableExtra<Parcelable>(anyString())
 
-        assertNull(SafeIntent(intent).getParcelableExtra(""))
+        assertNull(SafeIntent(intent).getParcelableExtra("", Parcelable::class.java))
     }
 
     @Test

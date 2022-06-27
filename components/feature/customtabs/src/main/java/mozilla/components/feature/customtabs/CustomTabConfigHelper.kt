@@ -41,6 +41,7 @@ import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeBundle
 import mozilla.components.support.utils.toSafeIntent
+import java.lang.ClassCastException
 import kotlin.math.max
 
 /**
@@ -114,7 +115,11 @@ private fun SafeIntent.getColorExtra(name: String): Int? =
     if (hasExtra(name)) getIntExtra(name, 0) else null
 
 private fun getCloseButtonIcon(intent: SafeIntent, resources: Resources?): Bitmap? {
-    val icon = intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON) as? Bitmap
+    val icon = try {
+        intent.getParcelableExtra(EXTRA_CLOSE_BUTTON_ICON, Bitmap::class.java)
+    } catch (e: ClassCastException) {
+        null
+    }
     val maxSize = resources?.getDimension(R.dimen.mozac_feature_customtabs_max_close_button_size) ?: Float.MAX_VALUE
 
     return if (icon != null && max(icon.width, icon.height) <= maxSize) {

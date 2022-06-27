@@ -132,8 +132,8 @@ private fun getCloseButtonIcon(intent: SafeIntent, resources: Resources?): Bitma
 private fun getActionButtonConfig(intent: SafeIntent): CustomTabActionButtonConfig? {
     val actionButtonBundle = intent.getBundleExtra(EXTRA_ACTION_BUTTON_BUNDLE) ?: return null
     val description = actionButtonBundle.getString(KEY_DESCRIPTION)
-    val icon = actionButtonBundle.getParcelable(KEY_ICON) as? Bitmap
-    val pendingIntent = actionButtonBundle.getParcelable(KEY_PENDING_INTENT) as? PendingIntent
+    val icon = actionButtonBundle.getParcelable(KEY_ICON, Bitmap::class.java)
+    val pendingIntent = actionButtonBundle.getParcelable(KEY_PENDING_INTENT, PendingIntent::class.java)
     val id = actionButtonBundle.getInt(KEY_ID, TOOLBAR_ACTION_BUTTON_ID)
     val tint = intent.getBooleanExtra(EXTRA_TINT_ACTION_BUTTON, false)
 
@@ -155,7 +155,7 @@ private fun getMenuItems(intent: SafeIntent): List<CustomTabMenuItem> =
         .mapNotNull { menuItemBundle ->
             val bundle = (menuItemBundle as? Bundle)?.toSafeBundle()
             val name = bundle?.getString(KEY_MENU_ITEM_TITLE)
-            val pendingIntent = bundle?.getParcelable(KEY_PENDING_INTENT) as? PendingIntent
+            val pendingIntent = bundle?.getParcelable(KEY_PENDING_INTENT, PendingIntent::class.java)
 
             if (name != null && pendingIntent != null) {
                 CustomTabMenuItem(

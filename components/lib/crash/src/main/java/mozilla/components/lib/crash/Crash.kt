@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.StringDef
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.support.utils.ext.getSerializableCompat
 import java.io.Serializable
 import java.util.UUID
 
@@ -62,7 +63,7 @@ sealed class Crash {
         companion object {
             internal fun fromBundle(bundle: Bundle) = UncaughtExceptionCrash(
                 uuid = bundle.getString(INTENT_UUID) as String,
-                throwable = bundle.getSerializable(INTENT_EXCEPTION) as Throwable,
+                throwable = bundle.getSerializableCompat(INTENT_EXCEPTION, Throwable::class.java) as Throwable,
                 breadcrumbs = bundle.getParcelableArrayList(INTENT_BREADCRUMBS) ?: arrayListOf(),
                 timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis())
             )

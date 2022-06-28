@@ -78,7 +78,7 @@ object URLStringUtils {
         // 3-3
         Pattern.compile(
             "^\\s*(\\w+-+)*\\w+(://[/]*|:|\\.)(\\w+-+)*\\w+([\\S&&[^\\w-]]\\S*)?\\s*$",
-            flags
+            flags,
         )
     }
 

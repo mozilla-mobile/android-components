@@ -60,6 +60,7 @@ import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
+import mozilla.components.support.utils.ext.stopForegroundCompat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -918,7 +919,7 @@ class AbstractFetchDownloadServiceTest {
 
         service.updateForegroundNotificationIfNeeded(downloadState1)
 
-        verify(service).stopForeground(false)
+        verify(service).stopForegroundCompat(false)
     }
 
     @Test
@@ -948,7 +949,7 @@ class AbstractFetchDownloadServiceTest {
 
         service.updateForegroundNotificationIfNeeded(downloadState1)
 
-        verify(service, never()).stopForeground(false)
+        verify(service, never()).stopForeground(Service.STOP_FOREGROUND_DETACH)
     }
 
     @Test
@@ -963,7 +964,7 @@ class AbstractFetchDownloadServiceTest {
             foregroundServiceId = Random.nextInt()
         )
 
-        doNothing().`when`(service).stopForeground(false)
+        doNothing().`when`(service).stopForeground(Service.STOP_FOREGROUND_DETACH)
         doNothing().`when`(service).clearAllDownloadsNotificationsAndJobs()
         doNothing().`when`(service).stopSelf()
 

@@ -1,6 +1,6 @@
 # Please keep this version in sync with version.txt
 # version.txt should be the new source of truth for version numbers
-componentsVersion: 103.0.0
+componentsVersion: 104.0.0
 # Please add a treeherder group in taskcluster/ci/config.yml if you add a new project here.
 projects:
   compose-awesomebar:
@@ -374,6 +374,10 @@ projects:
   support-webextensions:
     path: components/support/webextensions
     description: 'A component containing building blocks for features implemented as web extensions.'
+    publish: true
+  lib-auth:
+    path: components/lib/auth
+    description: 'A component for various kinds of authentication mechanisms.'
     publish: true
   lib-crash:
     path: components/lib/crash

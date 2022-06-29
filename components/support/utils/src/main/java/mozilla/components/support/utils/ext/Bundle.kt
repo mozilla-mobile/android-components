@@ -6,7 +6,9 @@ package mozilla.components.support.utils.ext
 
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import java.io.Serializable
+import java.util.ArrayList
 
 /**
  * Retrieve extended data from the bundle.
@@ -29,5 +31,17 @@ fun <T : Serializable> Bundle.getSerializableCompat(name: String, clazz: Class<T
     } else {
         @Suppress("DEPRECATION")
         getSerializable(name)
+    }
+}
+
+/**
+ * Retrieve extended data from the bundle.
+ */
+fun <T : Parcelable> Bundle.getParcelableArrayListCompat(name: String, clazz: Class<T>): ArrayList<T>? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelableArrayList(name, clazz)
+    } else {
+        @Suppress("DEPRECATION")
+        getParcelableArrayList(name)
     }
 }

@@ -7,6 +7,7 @@ package mozilla.components.support.utils.ext
 import android.content.Intent
 import android.os.Build
 import android.os.Parcelable
+import java.io.Serializable
 import java.util.ArrayList
 
 /**
@@ -30,5 +31,17 @@ fun <T : Parcelable> Intent.getParcelableArrayListExtraCompat(name: String, claz
     } else {
         @Suppress("DEPRECATION")
         getParcelableArrayListExtra(name)
+    }
+}
+
+/**
+ * Retrieve extended data from the intent.
+ */
+fun <T : Serializable> Intent.getSerializableExtraCompat(name: String, clazz: Class<T>): Serializable? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getSerializableExtra(name, clazz)
+    } else {
+        @Suppress("DEPRECATION")
+        getSerializableExtra(name)
     }
 }

@@ -45,3 +45,29 @@ fun <T : Parcelable> Bundle.getParcelableArrayListCompat(name: String, clazz: Cl
         getParcelableArrayList(name)
     }
 }
+
+/**
+ * Retrieve extended data from the bundle.
+ */
+inline fun <reified T : Parcelable> Bundle.getParcelableArrayCompat(name: String, clazz: Class<T>): Array<T>? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelableArray(name, clazz)
+    } else {
+        @Suppress("DEPRECATION")
+        getParcelableArray(name)?.toArrayOfT()
+    }
+}
+
+/**
+ * Cast a [Parcelable] [Array] to a <T implements [Parcelable]> [Array]
+ */
+@Suppress("UNCHECKED_CAST")
+inline fun <reified T : Parcelable> Array<Parcelable>.toArrayOfT(): Array<T> {
+    return if (this.isArrayOf<T>()) {
+        this as Array<T>
+    } else {
+        Array(this.size) { index ->
+            this[index] as T
+        }
+    }
+}

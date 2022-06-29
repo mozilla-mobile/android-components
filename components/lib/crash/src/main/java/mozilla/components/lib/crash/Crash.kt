@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.annotation.StringDef
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.support.utils.ext.getParcelableArrayListCompat
 import mozilla.components.support.utils.ext.getSerializableCompat
 import java.io.Serializable
 import java.util.UUID
@@ -64,7 +65,8 @@ sealed class Crash {
             internal fun fromBundle(bundle: Bundle) = UncaughtExceptionCrash(
                 uuid = bundle.getString(INTENT_UUID) as String,
                 throwable = bundle.getSerializableCompat(INTENT_EXCEPTION, Throwable::class.java) as Throwable,
-                breadcrumbs = bundle.getParcelableArrayList(INTENT_BREADCRUMBS) ?: arrayListOf(),
+                breadcrumbs = bundle.getParcelableArrayListCompat(INTENT_BREADCRUMBS, Breadcrumb::class.java)
+                    ?: arrayListOf(),
                 timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis())
             )
         }
@@ -137,7 +139,8 @@ sealed class Crash {
                 minidumpSuccess = bundle.getBoolean(INTENT_MINIDUMP_SUCCESS, false),
                 extrasPath = bundle.getString(INTENT_EXTRAS_PATH, null),
                 processType = bundle.getString(INTENT_PROCESS_TYPE, PROCESS_TYPE_MAIN),
-                breadcrumbs = bundle.getParcelableArrayList(INTENT_BREADCRUMBS) ?: arrayListOf(),
+                breadcrumbs = bundle.getParcelableArrayListCompat(INTENT_BREADCRUMBS, Breadcrumb::class.java)
+                    ?: arrayListOf(),
                 timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis())
             )
         }

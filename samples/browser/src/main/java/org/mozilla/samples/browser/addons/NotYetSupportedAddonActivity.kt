@@ -87,7 +87,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
             Toast.makeText(context, "Successfully removed add-on", Toast.LENGTH_SHORT)
                 .show()
             if (adapter?.itemCount == 0) {
-                activity?.onBackPressed()
+                activity?.onBackPressedDispatcher?.onBackPressed()
             }
         }
 

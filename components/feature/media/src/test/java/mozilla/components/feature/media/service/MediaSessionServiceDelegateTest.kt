@@ -363,9 +363,9 @@ class MediaSessionServiceDelegateTest {
         assertEquals(expectedPlaybackState.actions, playbackStateCaptor.value.actions)
         assertEquals(expectedPlaybackState.position, playbackStateCaptor.value.position)
         verify(delegate.mediaSession).setMetadata(metadataCaptor.capture())
-        assertEquals(mediaTab.content.title, metadataCaptor.value.bundle[MediaMetadataCompat.METADATA_KEY_TITLE])
-        assertEquals(mediaTab.content.url, metadataCaptor.value.bundle[MediaMetadataCompat.METADATA_KEY_ARTIST])
-        assertEquals(-1L, metadataCaptor.value.bundle[MediaMetadataCompat.METADATA_KEY_DURATION])
+        assertEquals(mediaTab.content.title, metadataCaptor.value.bundle.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
+        assertEquals(mediaTab.content.url, metadataCaptor.value.bundle.getString(MediaMetadataCompat.METADATA_KEY_ARTIST))
+        assertEquals(-1L, metadataCaptor.value.bundle.getLong(MediaMetadataCompat.METADATA_KEY_DURATION))
     }
 
     @Test

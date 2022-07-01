@@ -59,6 +59,7 @@ class MimeTypeTest {
 
         `when`(context.packageManager).thenReturn(packageManager)
         `when`(context.packageName).thenReturn("org.mozilla.browser")
+        @Suppress("DEPRECATION")
         `when`(packageManager.resolveActivity(notNull(), eq(MATCH_DEFAULT_ONLY))).thenReturn(null)
     }
 
@@ -234,6 +235,7 @@ class MimeTypeTest {
         val uri = Uri.parse("context://abcd")
         val image = MimeType.Image { _, _, _ -> uri }
 
+        @Suppress("DEPRECATION")
         `when`(
             packageManager
                 .resolveContentProvider(eq("org.mozilla.browser.fileprovider"), anyInt())
@@ -380,6 +382,7 @@ class MimeTypeTest {
         info.activityInfo.applicationInfo = ApplicationInfo()
         info.activityInfo.applicationInfo.packageName = "com.example.app"
         info.activityInfo.name = "SomeActivity"
+        @Suppress("DEPRECATION")
         `when`(packageManager.resolveActivity(notNull(), eq(MATCH_DEFAULT_ONLY))).thenReturn(info)
     }
 

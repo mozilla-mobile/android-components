@@ -16,7 +16,6 @@ import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.SessionState
@@ -78,9 +77,6 @@ internal class MediaSessionServiceDelegate(
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private var noisyAudioStreamReceiver: BecomingNoisyReceiver? = null
 
-    @VisibleForTesting
-    internal var isForegroundService: Boolean = false
-
     fun onCreate() {
         logger.debug("Service created")
         mediaSession.setCallback(MediaSessionCallback(store))
@@ -138,12 +134,10 @@ internal class MediaSessionServiceDelegate(
                 registerBecomingNoisyListenerIfNeeded(state)
                 audioFocus.request(state.id)
                 emitStatePlayFact()
-                startForegroundNotificationIfNeeded()
             }
             MediaSession.PlaybackState.PAUSED -> {
                 unregisterBecomingNoisyListenerIfNeeded()
                 emitStatePauseFact()
-                stopForeground()
             }
             else -> {
                 unregisterBecomingNoisyListenerIfNeeded()
@@ -153,7 +147,7 @@ internal class MediaSessionServiceDelegate(
         }
 
         updateMediaSession(state)
-        notificationScope?.launch() {
+        notificationScope?.launch {
             updateNotification(state)
         }
     }
@@ -179,18 +173,10 @@ internal class MediaSessionServiceDelegate(
     private fun startForegroundNotification() {
         val notification = notification.createDummy(mediaSession)
         service.startForeground(notificationId, notification)
-        isForegroundService = true
-    }
-
-    private fun startForegroundNotificationIfNeeded() {
-        if (!isForegroundService) {
-            startForegroundNotification()
-        }
     }
 
     private fun stopForeground() {
         service.stopForeground(false)
-        isForegroundService = false
     }
 
     private fun registerBecomingNoisyListenerIfNeeded(state: SessionState) {
@@ -228,6 +214,7 @@ internal class MediaSessionServiceDelegate(
     @VisibleForTesting
     internal fun shutdown() {
         mediaSession.release()
+        unregisterBecomingNoisyListenerIfNeeded()
         service.stopSelf()
     }
 

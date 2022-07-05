@@ -8,10 +8,8 @@ import android.content.Context
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.feature.media.service.AbstractMediaSessionService
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
@@ -25,7 +23,7 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
  */
 class MediaSessionFeature(
     val applicationContext: Context,
-    val mediaServiceClass: Class<*>,
+    private val mediaServiceClass: Class<*>,
     val store: BrowserStore
 ) {
     private var scope: CoroutineScope? = null
@@ -39,8 +37,7 @@ class MediaSessionFeature(
                 it.tabs + it.customTabs
             }.map { tab ->
                 tab.none {
-                    it.mediaSessionState != null &&
-                        it.mediaSessionState!!.playbackState == MediaSession.PlaybackState.PLAYING
+                    it.mediaSessionState != null
                 }
             }.ifChanged().collect { isEmpty ->
                 process(isEmpty)

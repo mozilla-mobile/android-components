@@ -102,7 +102,6 @@ class MediaSessionFeatureTest {
 
         store.dispatch(MediaSessionAction.ActivatedMediaSessionAction(store.state.tabs[0].id, mock()))
         store.waitUntilIdle()
-        verify(mockApplicationContext, never()).startForegroundService(any())
 
         store.dispatch(
             MediaSessionAction.UpdateMediaPlaybackStateAction(
@@ -140,7 +139,6 @@ class MediaSessionFeatureTest {
 
         store.dispatch(MediaSessionAction.ActivatedMediaSessionAction(store.state.tabs[0].id, mock()))
         store.waitUntilIdle()
-        verify(mockApplicationContext, never()).startForegroundService(any())
 
         store.dispatch(
             MediaSessionAction.UpdateMediaPlaybackStateAction(
@@ -166,7 +164,7 @@ class MediaSessionFeatureTest {
 
         store.dispatch(MediaSessionAction.ActivatedMediaSessionAction(store.state.tabs[0].id, mock()))
         store.waitUntilIdle()
-        verify(mockApplicationContext, times(1)).startForegroundService(any())
+        verify(mockApplicationContext, times(2)).startForegroundService(any())
 
         store.dispatch(
             MediaSessionAction.UpdateMediaPlaybackStateAction(
@@ -175,7 +173,7 @@ class MediaSessionFeatureTest {
             )
         )
         store.waitUntilIdle()
-        verify(mockApplicationContext, times(1)).startForegroundService(any())
+        verify(mockApplicationContext, times(2)).startForegroundService(any())
 
         store.dispatch(
             MediaSessionAction.UpdateMediaPlaybackStateAction(

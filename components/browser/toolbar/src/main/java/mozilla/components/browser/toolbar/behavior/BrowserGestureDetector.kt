@@ -9,7 +9,15 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.annotation.VisibleForTesting
+import mozilla.components.concept.base.crash.CrashReporting
 import kotlin.math.abs
+
+/**
+ * Wraps exceptions that are caught by [BrowserGestureDetector].
+ * Instances of this class are submitted via [CrashReporting]. This wrapping helps easily identify
+ * exceptions related to [BrowserGestureDetector].
+ */
+internal class BrowserGestureDetectorException(e: Throwable) : Throwable(e)
 
 /**
  * Custom [MotionEvent] gestures detector with scroll / zoom callbacks.
@@ -23,7 +31,8 @@ import kotlin.math.abs
  */
 internal class BrowserGestureDetector(
     applicationContext: Context,
-    listener: GesturesListener
+    listener: GesturesListener,
+    private val crashReporting: CrashReporting? = null
 ) {
     @VisibleForTesting
     @Suppress("MaxLineLength")
@@ -86,8 +95,13 @@ internal class BrowserGestureDetector(
             eventAction == MotionEvent.ACTION_UP ||
             eventAction == MotionEvent.ACTION_CANCEL
         ) {
-
-            gestureDetector.onTouchEvent(event)
+            @Suppress("TooGenericExceptionCaught")
+            try {
+                gestureDetector.onTouchEvent(event)
+            } catch (e: Exception) {
+                crashReporting?.submitCaughtException(BrowserGestureDetectorException(e))
+                false
+            }
         } else {
             false
         }

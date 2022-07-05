@@ -16,6 +16,9 @@ permalink: /changelog/
 
 * **browser-storage-sync**:
   * Added exception handling for all places history and bookmark calls. This prevents the app from crashing on SQL errors. [#12300](https://github.com/mozilla-mobile/android-components/pull/12300)
+  
+* **feature-media**:
+  * The Play/Pause button should remain displayed on the media notification [#12433](https://github.com/mozilla-mobile/android-components/issues/12433)
 
 # 103.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v102.0.0...v103.0.0)

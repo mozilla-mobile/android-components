@@ -4,8 +4,10 @@
 
 package mozilla.components.support.ktx.kotlinx.coroutines.flow
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -34,6 +36,22 @@ class FlowKtTest {
 
         val items = originalFlow.ifChanged { item -> item[0] }.toList()
 
+        assertEquals(
+            listOf("banana", "apple", "big", "coconut", "home"),
+            items
+        )
+    }
+
+    @Test
+    fun `GIVEN flow THEN if changed operator can be invoked with a suspending block`() = runTest {
+        val originalFlow = flowOf("banana", "bus", "apple", "big", "coconut", "circle", "home")
+
+        val items = originalFlow.ifChanged { item ->
+            delay(10)
+            item[0]
+        }.toList()
+
+        this.advanceUntilIdle()
         assertEquals(
             listOf("banana", "apple", "big", "coconut", "home"),
             items

@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **support-ktx**
+  - `Flow.ifChanged` can now accept suspending functions
+
 * **feature-top-sites**
   * Replaced `frecencyConfig` from `TopSitesConfig` with `TopSitesFrecencyConfig`, which specifies the `FrecencyTresholdOption` and the frecency filter, an optional function used to filter the top frecent sites. [#12384] (https://github.com/mozilla-mobile/android-components/issues/12384)
 

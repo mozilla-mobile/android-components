@@ -33,7 +33,7 @@ fun <T> Flow<T>.ifChanged(): Flow<T> = ifChanged { it }
  * Returned Flow: "banana", "apple", "big", "coconut", "home"
  * ```
  */
-fun <T, R> Flow<T>.ifChanged(transform: (T) -> R): Flow<T> {
+fun <T, R> Flow<T>.ifChanged(transform: suspend (T) -> R): Flow<T> {
     var observedValueOnce = false
     var lastMappedValue: R? = null
 

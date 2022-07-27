@@ -4,12 +4,44 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 104.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v103.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/151?closed=1)
+# 105.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v104.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/152?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+# 104.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v103.0.0...v104.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/151?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v104.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v104.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v104.0.0/.config.yml)
+
+* **feature-media**:
+  * 🚒 Bug fixed [issue #12433](https://github.com/mozilla-mobile/android-components/issues/12433) Prevent media notifications updates that would cause it to flicker or loose the action button.
+
+* **browser-awesomebar**:
+  * 🚒 Bug fixed [issue #12469](https://github.com/mozilla-mobile/android-components/issues/12469) Cancel previous queries from the application-services persistence layer before new suggestions requests.
+
+* **service-firefox-accounts**
+  * `SyncStatus` can now be `LoggedOut`.
+  * `SyncStoreSupport` will update the `SyncStore` with `LoggedOut` when observed.
+
+* **browser-toolbar**
+  * 🚒 Bug fixed [issue #12497](https://github.com/mozilla-mobile/android-components/issues/12497) - Set the same margin to toolbar background for display as for edit
+  * 
+* **feature-recentlyclosed**
+  * 🚒 Bug fixed [issue #12470](https://github.com/mozilla-mobile/android-components/issues/12470) - Set autoMirrored to true to fix RTL issues
+
+* **browser-awesomebar**:
+  * 🚒 Bug fixed [issue #12469](https://github.com/mozilla-mobile/android-components/issues/12469) Cancel previous queries before new suggestions requests.
+
+* **service-pocket**
+  * Add an index for sponsored stories foreign key to resolve a compilation warning. [#12406](https://github.com/mozilla-mobile/android-components/issues/12406)
+
+* **service-pocket**
+  * Fix recent breakage of the sponsored stories feature and allow to dynamically make requests to either the development server or the production one. [Issue #12432](https://github.com/mozilla-mobile/android-components/issues/12432)
 
 * **feature-top-sites**
   * Replaced `frecencyConfig` from `TopSitesConfig` with `TopSitesFrecencyConfig`, which specifies the `FrecencyTresholdOption` and the frecency filter, an optional function used to filter the top frecent sites. [#12384] (https://github.com/mozilla-mobile/android-components/issues/12384)
@@ -20,9 +52,9 @@ permalink: /changelog/
 # 103.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v102.0.0...v103.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/150?closed=1)
-* [Dependencies](https://github.com/mozilla-mobile/android-components/v103.0.0/main/buildSrc/src/main/java/Dependencies.kt)
-* [Gecko](https://github.com/mozilla-mobile/android-components/v103.0.0/main/buildSrc/src/main/java/Gecko.kt)
-* [Configuration](https://github.com/mozilla-mobile/android-components/v103.0.0/main/.config.yml)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v103.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v103.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v103.0.0/.config.yml)
 
 * **site-permission-feature**
   * 🆕 [issue #12345](https://github.com/mozilla-mobile/android-components/issues/12345) 

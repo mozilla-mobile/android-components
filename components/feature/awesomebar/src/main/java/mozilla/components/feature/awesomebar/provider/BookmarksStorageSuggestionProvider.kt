@@ -5,6 +5,7 @@
 package mozilla.components.feature.awesomebar.provider
 
 import android.graphics.drawable.Drawable
+import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -31,19 +32,26 @@ private const val BOOKMARKS_SUGGESTION_LIMIT = 20
  * @param engine optional [Engine] instance to call [Engine.speculativeConnect] for the
  * highest scored suggestion URL.
  * @param showEditSuggestion optional parameter to specify if the suggestion should show the edit button
+ * @param suggestionsHeader optional parameter to specify if the suggestion should have a header
  */
 class BookmarksStorageSuggestionProvider(
-    private val bookmarksStorage: BookmarksStorage,
+    @get:VisibleForTesting internal val bookmarksStorage: BookmarksStorage,
     private val loadUrlUseCase: SessionUseCases.LoadUrlUseCase,
     private val icons: BrowserIcons? = null,
     private val indicatorIcon: Drawable? = null,
     private val engine: Engine? = null,
     private val showEditSuggestion: Boolean = true,
+    private val suggestionsHeader: String? = null,
 ) : AwesomeBar.SuggestionProvider {
-
     override val id: String = UUID.randomUUID().toString()
 
+    override fun groupTitle(): String? {
+        return suggestionsHeader
+    }
+
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> {
+        bookmarksStorage.cancelReads()
+
         if (text.isEmpty()) {
             return emptyList()
         }

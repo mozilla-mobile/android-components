@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -42,11 +41,14 @@ fun AwesomeBar(
     profiler: Profiler? = null
 ) {
     val groups = remember(providers) {
-        listOf(
-            AwesomeBar.SuggestionProviderGroup(
-                providers = providers
-            )
-        )
+        providers
+            .groupBy { it.groupTitle() }
+            .map {
+                AwesomeBar.SuggestionProviderGroup(
+                    providers = it.value,
+                    title = it.key
+                )
+            }
     }
 
     AwesomeBar(
@@ -90,7 +92,7 @@ fun AwesomeBar(
             .background(colors.background)
     ) {
         val fetcher = remember(groups) { SuggestionFetcher(groups, profiler) }
-        val suggestions = derivedStateOf { fetcher.state.value }.value
+        val suggestions = derivedStateOf { fetcher.state.value }.value.toSortedMap(compareBy { it.title })
 
         LaunchedEffect(text, fetcher) {
             fetcher.fetch(text)

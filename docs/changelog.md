@@ -12,7 +12,7 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
 * **browser-storage-sync**:
-  * Stop loading to the crash servers the expected `OperationInterrupted` exceptions for when interrupting in progress reads/writes from Application-Services. [#12557](https://github.com/mozilla-mobile/android-components/issues/12557)
+  * Stop reporting to the crash servers the expected `OperationInterrupted` exceptions for when interrupting in progress reads/writes from Application-Services. [#12557](https://github.com/mozilla-mobile/android-components/issues/12557), [#12569](https://github.com/mozilla-mobile/android-components/issues/12569).
 
 * **feature-media**:
   * 🚒 Bug fixed [issue #12433](https://github.com/mozilla-mobile/android-components/issues/12433) Prevent media notifications updates that would cause it to flicker or loose the action button.

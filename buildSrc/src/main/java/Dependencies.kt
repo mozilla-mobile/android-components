@@ -30,6 +30,8 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.8.1"
 
+    // When upgrading mozilla_appservices, also upgrade the version in the
+    // `getApplicationServiceVersion()` method in NimbusGradlePlugin.groovy.
     const val mozilla_appservices = "93.7.1"
 
     const val mozilla_glean = "50.1.3"

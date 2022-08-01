@@ -30,6 +30,8 @@ import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.manager.SyncEnginesStorage
+import mozilla.components.service.fxa.store.SyncStore
 import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
 import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
@@ -60,7 +62,8 @@ class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener,
             applicationContext,
             ServerConfig(Server.RELEASE, CLIENT_ID, REDIRECT_URL),
             DeviceConfig("A-C Logins Sync Sample", DeviceType.MOBILE, setOf()),
-            SyncConfig(setOf(SyncEngine.Passwords), PeriodicSyncConfig())
+            SyncConfig(setOf(SyncEngine.Passwords), PeriodicSyncConfig()),
+            SyncEnginesStorage(applicationContext, SyncStore())
         )
     }
 

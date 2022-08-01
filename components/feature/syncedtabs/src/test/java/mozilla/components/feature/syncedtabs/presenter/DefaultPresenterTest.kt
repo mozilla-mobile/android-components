@@ -26,7 +26,6 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(AndroidJUnit4::class)
 class DefaultPresenterTest {
 
-    private val context: Context = testContext
     private val controller: SyncedTabsController = mock()
     private val accountManager: FxaAccountManager = mock()
     private val view: SyncedTabsView = mock()
@@ -37,7 +36,6 @@ class DefaultPresenterTest {
     @Test
     fun `start returns when there is no profile`() = runTest {
         val presenter = DefaultPresenter(
-            context,
             controller,
             accountManager,
             view,

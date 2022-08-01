@@ -125,6 +125,7 @@ open class FxaAccountManager(
     @VisibleForTesting val serverConfig: ServerConfig,
     private val deviceConfig: DeviceConfig,
     private val syncConfig: SyncConfig?,
+    private val enginesStorage: SyncEnginesStorage,
     private val applicationScopes: Set<String> = emptySet(),
     private val crashReporter: CrashReporting? = null,
     // We want a single-threaded execution model for our account-related "actions" (state machine side-effects).
@@ -826,7 +827,7 @@ open class FxaAccountManager(
         // layers as well; if they're already empty (unused), nothing bad will happen
         // and extra overhead is quite small.
         SyncAuthInfoCache(context).clear()
-        SyncEnginesStorage(context).clear()
+        enginesStorage.clear()
         clearSyncState(context)
     }
 
@@ -866,7 +867,6 @@ open class FxaAccountManager(
         // list of declined engines, that indicates user intent, so we preserve it
         // within SyncEnginesStorage regardless. If sync becomes enabled later on,
         // we will be respecting user choice around what to sync.
-        val enginesStorage = SyncEnginesStorage(context)
         declinedEngines.forEach { declinedEngine ->
             enginesStorage.setStatus(declinedEngine, false)
         }

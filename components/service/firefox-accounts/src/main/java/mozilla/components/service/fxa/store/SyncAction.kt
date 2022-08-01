@@ -6,6 +6,7 @@ package mozilla.components.service.fxa.store
 
 import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.lib.state.Action
+import mozilla.components.service.fxa.SyncEngine
 
 /**
  * Actions for updating the global [SyncState] via [SyncStore].
@@ -25,4 +26,6 @@ sealed class SyncAction : Action {
      * Update the [SyncState.constellationState] of the [SyncStore].
      */
     data class UpdateDeviceConstellation(val deviceConstellation: ConstellationState) : SyncAction()
+
+    data class UpdateEnabledEngines(val engines: List<SyncEngine>) : SyncAction()
 }

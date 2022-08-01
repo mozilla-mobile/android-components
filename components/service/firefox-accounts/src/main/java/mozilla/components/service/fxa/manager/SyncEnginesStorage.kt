@@ -6,12 +6,17 @@ package mozilla.components.service.fxa.manager
 
 import android.content.Context
 import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.store.SyncAction
+import mozilla.components.service.fxa.store.SyncStore
 import mozilla.components.service.fxa.sync.toSyncEngine
 
 /**
  * Storage layer for the enabled/disabled state of [SyncEngine].
  */
-class SyncEnginesStorage(private val context: Context) {
+class SyncEnginesStorage(
+    private val context: Context,
+    private val syncStore: SyncStore
+) {
     companion object {
         const val SYNC_ENGINES_KEY = "syncEngines"
     }
@@ -44,6 +49,7 @@ class SyncEnginesStorage(private val context: Context) {
      */
     fun setStatus(engine: SyncEngine, status: Boolean) {
         storage().edit().putBoolean(engine.nativeName, status).apply()
+        syncStore.publishChanges()
     }
 
     /**
@@ -51,7 +57,23 @@ class SyncEnginesStorage(private val context: Context) {
      */
     internal fun clear() {
         storage().edit().clear().apply()
+        syncStore.publishChanges()
     }
 
     private fun storage() = context.getSharedPreferences(SYNC_ENGINES_KEY, Context.MODE_PRIVATE)
+
+    private fun SyncStore.publishChanges() {
+        val engines = getCurrentEngines().filter { it.value }.keys.toList()
+        dispatch(SyncAction.UpdateEnabledEngines(engines))
+    }
+
+    // TODO does this need to be reversed? Go through what we have in local storage, and populate
+    // result map based on that. reason: we may have "other" engines.
+    // this will be empty if `setStatus` was never called.
+    private fun getCurrentEngines(): Map<SyncEngine, Boolean> =
+        storage().all.map {
+            if (it.value is Boolean) {
+                it.key.toSyncEngine() to it.value as Boolean
+            } else null
+        }.filterNotNull().toMap()
 }

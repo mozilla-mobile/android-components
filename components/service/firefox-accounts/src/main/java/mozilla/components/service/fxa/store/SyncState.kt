@@ -9,6 +9,7 @@ import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.lib.state.State
+import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.sync.WorkManagerSyncManager
 
 /**
@@ -22,6 +23,7 @@ data class SyncState(
     val status: SyncStatus = SyncStatus.NotInitialized,
     val account: Account? = null,
     val constellationState: ConstellationState? = null,
+    val enabledEngines: List<SyncEngine> = listOf()
 ) : State
 
 /**

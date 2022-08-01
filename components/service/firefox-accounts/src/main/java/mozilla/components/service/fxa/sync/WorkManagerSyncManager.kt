@@ -274,7 +274,8 @@ internal class WorkManagerSyncDispatcher(
 
 internal class WorkManagerSyncWorker(
     private val context: Context,
-    private val params: WorkerParameters
+    private val params: WorkerParameters,
+    private val syncEnginesStorage: SyncEnginesStorage,
 ) : CoroutineWorker(context, params) {
     private val logger = Logger("SyncWorker")
 
@@ -387,7 +388,7 @@ internal class WorkManagerSyncWorker(
         // In both cases, user may have been asked which engines they'd like to sync.
         val enabledChanges = when (reason) {
             SyncReason.EngineChange, SyncReason.FirstSync -> {
-                val engineMap = SyncEnginesStorage(context).getStatus().toMutableMap()
+                val engineMap = syncEnginesStorage.getStatus().toMutableMap()
                 // For historical reasons, a "history engine" really means two sync collections: history and forms.
                 // Underlying library doesn't manage this for us, and other clients will get confused
                 // if we modify just "history" without also modifying "forms", and vice versa.
@@ -456,7 +457,7 @@ internal class WorkManagerSyncWorker(
         val acceptedEngines = syncableStores.keys.filter { !declinedEngines.contains(it) }
 
         // Persist engine state changes.
-        with(SyncEnginesStorage(context)) {
+        with(syncEnginesStorage) {
             declinedEngines.forEach { setStatus(it, status = false) }
             acceptedEngines.forEach { setStatus(it, status = true) }
         }

@@ -42,6 +42,8 @@ import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.manager.SyncEnginesStorage
+import mozilla.components.service.fxa.store.SyncStore
 import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
 import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
@@ -99,7 +101,8 @@ class MainActivity :
                     SyncEngine.Addresses, SyncEngine.CreditCards
                 ),
                 periodicSyncConfig = PeriodicSyncConfig(periodMinutes = 15, initialDelayMinutes = 5)
-            )
+            ),
+            SyncEnginesStorage(applicationContext, SyncStore()),
         )
     }
 

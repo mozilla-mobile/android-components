@@ -4,22 +4,22 @@
 
 package mozilla.components.feature.syncedtabs
 
-import android.content.Context
 import androidx.lifecycle.LifecycleOwner
 import mozilla.components.feature.syncedtabs.interactor.SyncedTabsInteractor
 import mozilla.components.feature.syncedtabs.presenter.SyncedTabsPresenter
 import mozilla.components.feature.syncedtabs.storage.SyncedTabsStorage
 import mozilla.components.feature.syncedtabs.view.SyncedTabsView
 import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.support.test.mock
 import org.junit.Test
 import org.mockito.Mockito.verify
 
 class SyncedTabsFeatureTest {
 
-    private val context: Context = mock()
     private val storage: SyncedTabsStorage = mock()
     private val accountManager: FxaAccountManager = mock()
+    private val syncedEnginesStorage: SyncEnginesStorage = mock()
     private val view: SyncedTabsView = mock()
     private val lifecycleOwner: LifecycleOwner = mock()
 
@@ -27,9 +27,9 @@ class SyncedTabsFeatureTest {
     private val interactor: SyncedTabsInteractor = mock()
     private val feature: SyncedTabsFeature =
         SyncedTabsFeature(
-            context,
             storage,
             accountManager,
+            syncedEnginesStorage,
             view,
             lifecycleOwner,
             onTabClicked = {},

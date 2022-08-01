@@ -11,9 +11,10 @@ import mozilla.components.lib.state.Store
  * [Store] for the global [SyncState]. This should likely be a singleton.
  */
 class SyncStore(
+    initialState: SyncState = SyncState(),
     middleware: List<Middleware<SyncState, SyncAction>> = emptyList()
 ) : Store<SyncState, SyncAction>(
-    initialState = SyncState(),
+    initialState = initialState,
     reducer = ::reduce,
     middleware = middleware
 )
@@ -24,5 +25,6 @@ private fun reduce(syncState: SyncState, syncAction: SyncAction): SyncState {
         is SyncAction.UpdateAccount -> syncState.copy(account = syncAction.account)
         is SyncAction.UpdateDeviceConstellation ->
             syncState.copy(constellationState = syncAction.deviceConstellation)
+        is SyncAction.UpdateEnabledEngines -> syncState.copy(enabledEngines = syncAction.engines)
     }
 }

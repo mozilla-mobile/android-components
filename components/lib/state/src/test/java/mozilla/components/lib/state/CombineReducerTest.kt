@@ -8,7 +8,6 @@ import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Assert
 import org.junit.Test
 
-
 class CombineReducerTest {
 
     @Test
@@ -53,17 +52,18 @@ val reducerForSaveNumber = object : Reducer<TestNumberStore, TestNumberAction> {
     }
 }
 
-
 val reducerForEvenNumbers = object : Reducer<TestNumberStore, TestNumberAction> {
     override fun invoke(state: TestNumberStore, action: TestNumberAction): TestNumberStore {
         return when (action) {
             is TestNumberAction.Save -> {
                 if (action.payload.mod(2) == 0) {
-                    state.copy(evenNumberHistory = state.evenNumberHistory
-                        .toMutableList()
-                        .apply {
-                            add(action.payload)
-                        })
+                    state.copy(
+                        evenNumberHistory = state.evenNumberHistory
+                            .toMutableList()
+                            .apply {
+                                add(action.payload)
+                            }
+                    )
                 } else {
                     state
                 }
@@ -72,17 +72,18 @@ val reducerForEvenNumbers = object : Reducer<TestNumberStore, TestNumberAction> 
     }
 }
 
-
 val reducerForOddNumbers = object : Reducer<TestNumberStore, TestNumberAction> {
     override fun invoke(state: TestNumberStore, action: TestNumberAction): TestNumberStore {
         return when (action) {
             is TestNumberAction.Save -> {
                 if (action.payload.mod(2) != 0) {
-                    state.copy(oddNumberHistory = state.oddNumberHistory
-                        .toMutableList()
-                        .apply {
-                            add(action.payload)
-                        })
+                    state.copy(
+                        oddNumberHistory = state.oddNumberHistory
+                            .toMutableList()
+                            .apply {
+                                add(action.payload)
+                            }
+                    )
                 } else {
                     state
                 }

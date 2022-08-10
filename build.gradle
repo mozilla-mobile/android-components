@@ -259,9 +259,8 @@ subprojects {
                     kotlinOptions {
                         jvmTarget = "1.8"
                         freeCompilerArgs += [
-                            "-Xopt-in=kotlin.RequiresOptIn"
+                            "-opt-in=kotlin.RequiresOptIn"
                         ]
-                        useIR = true
                     }
                 }
             }

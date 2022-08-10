@@ -32,7 +32,7 @@ object Versions {
 
     // When upgrading mozilla_appservices, also upgrade the version in the
     // `getApplicationServiceVersion()` method in NimbusGradlePlugin.groovy.
-    const val mozilla_appservices = "93.8.0"
+    const val mozilla_appservices = "94.0.1"
 
     const val mozilla_glean = "51.0.1"
 

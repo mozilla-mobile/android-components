@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **dependencies**:
+  * Upgrade android-gradle-plugin to 7.2.1
+
 * **feature-search**:
   * Implement the common part of search widget in Android Components [#12565](https://github.com/mozilla-mobile/android-components/issues/12565).
 
@@ -28,6 +31,9 @@ permalink: /changelog/
 
 * **support-migration**
   * ⚠️ **This is a breaking change**: This component was removed since the Fennec -> Fenix migration is no longer supported (https://github.com/mozilla-mobile/fenix/pull/23651/)
+
+* **nimbus-gradle-plugin**:
+  * Add support for android-gradle-plugin version 7.2.1
 
 # 104.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v103.0.0...v104.0.0)

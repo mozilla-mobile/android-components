@@ -78,12 +78,11 @@ abstract class NimbusPluginExtension {
         }
     }
 
-    String getPackageNameActual(variant) {
+    String getPackageNameActual(appPackageName) {
         def (packageName, _) = getPackageClassLiteral()
         if (!packageName.startsWith(".")) {
             return packageName
         }
-        def appPackageName = getAppPackageName(variant)
         if (packageName == ".") {
             return appPackageName
         } else {
@@ -317,15 +316,12 @@ class NimbusPlugin implements Plugin<Project> {
     }
 
     def setupNimbusFeatureTasks(variant, project, extension) {
-        String packageName = extension.getPackageNameActual(variant)
         String className = extension.classNameActual
-
         String channel = extension.getChannelActual(variant)
 
         var parts = [project.buildDir, "generated", "source", "nimbus", variant.name, "kotlin"]
         var sourceOutputDir = parts.join(File.separator)
 
-        parts.addAll(packageName.split("\\."))
         var outputDir = parts.join(File.separator)
         var outputFile = [outputDir, "${className}.kt"].join(File.separator)
 
@@ -333,7 +329,6 @@ class NimbusPlugin implements Plugin<Project> {
 
         var localAppServices = extension.getAppServicesActual(project)
 
-        var appPackageName = extension.getAppPackageName(variant)
         var requiresRPackage = versionCompare(getApplicationServiceVersion(), "89.0.0") >= 0
 
         var generateTask = project.task("nimbusFeatures${variant.name.capitalize()}", type: Exec) {
@@ -341,6 +336,10 @@ class NimbusPlugin implements Plugin<Project> {
             group = "Nimbus"
 
             doFirst {
+                var appPackageName = extension.getAppPackageName(variant)
+                var packageName = extension.getPackageNameActual(appPackageName)
+                parts.addAll(packageName.split("\\."))
+
                 ensureDirExists(new File(sourceOutputDir))
                 ensureDirExists(new File(outputDir))
                 println("Nimbus FML generating Kotlin")
@@ -348,30 +347,31 @@ class NimbusPlugin implements Plugin<Project> {
                 println("class      ${packageName}.${className}")
                 println("channel    $channel")
                 println("R.class    ${appPackageName}.R")
+
+                if (localAppServices == null) {
+                    workingDir project.rootDir
+                    commandLine getFMLPath(project)
+                } else {
+                    workingDir new File(localAppServices, APPSERVICES_FML_HOME )
+                    commandLine "cargo"
+                    args "run", "--"
+                }
+                args inputFile
+                args "android", "features"
+                args "--classname", className
+                args "--channel", channel
+                args "--output", outputFile
+                args "--package", packageName
+                if (requiresRPackage) {
+                    args "--r-package", appPackageName
+                }
             }
 
             doLast {
                 println("outputFile $outputFile")
             }
-
-            if (localAppServices == null) {
-                workingDir project.rootDir
-                commandLine getFMLPath(project)
-            } else {
-                workingDir new File(localAppServices, APPSERVICES_FML_HOME)
-                commandLine "cargo"
-                args "run", "--"
-            }
-            args inputFile
-            args "android", "features"
-            args "--classname", className
-            args "--output", outputFile
-            args "--package", packageName
-            args "--channel", channel
-            if (requiresRPackage) {
-                args "--r-package", extension.getAppPackageName(variant)
-            }
         }
+
         variant.registerJavaGeneratingTask(generateTask, new File(sourceOutputDir))
 
         def generateSourcesTask = project.tasks.findByName("generate${variant.name.capitalize()}Sources")

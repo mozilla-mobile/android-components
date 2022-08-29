@@ -12,6 +12,9 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
 * **browser-storage-sync**:
+  * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689) Decouple autocomplete suggestions from history search suggestions by using a separate reader which allows for separate management.
+
+* **browser-storage-sync**:
   * Stop reporting to the crash servers the expected `OperationInterrupted` exceptions for when interrupting in progress reads/writes from Application-Services. [#12557](https://github.com/mozilla-mobile/android-components/issues/12557), [#12569](https://github.com/mozilla-mobile/android-components/issues/12569).
 
 * **feature-media**:

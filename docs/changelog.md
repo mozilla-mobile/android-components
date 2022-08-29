@@ -11,6 +11,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **browser-storage-sync**:
+  * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689) Decouple autocomplete suggestions from history search suggestions by using a separate reader which allows for separate management.
+
 * **feature-search**:
   * Implement the common part of search widget in Android Components [#12565](https://github.com/mozilla-mobile/android-components/issues/12565).
 

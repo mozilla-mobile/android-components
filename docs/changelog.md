@@ -4,12 +4,35 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 105.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v104.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/152?closed=1)
+# 106.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v105.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/153?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
+
+* **browser-storage-sync**:
+  * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689) Decouple autocomplete suggestions from history search suggestions by using a separate reader which allows for separate management.
+
+* **support-ktx**
+  * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689)  Make `Context.shareMedia` work with Android Direct Share.
+
+* **feature-accounts-push**:
+  * ⚠️ **This is a breaking change**: `FxaPushSupportFeature` now requires to be explicitly started with `initialize`.
+  * The constructor for `FxaPushSupportFeature` has a `coroutineScope` parameter that defaults to a `CoroutineScope(Dispatchers.IO)`.
+
+# 105.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v104.0.0...v105.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/152?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v105.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v105.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v105.0.0/.config.yml)
+
+* **feature-search**:
+  * Allow the search widget to match the resized width [#12676](https://github.com/mozilla-mobile/android-components/issues/12676).
+
+* **feature-findinpage**:
+  * 🚒 Bug fixed [issue #12637](https://github.com/mozilla-mobile/android-components/issues/12637) Disable find in page previous and forward buttons if the query is empty
 
 * **feature-search**:
   * Implement the common part of search widget in Android Components [#12565](https://github.com/mozilla-mobile/android-components/issues/12565).
@@ -28,6 +51,9 @@ permalink: /changelog/
 
 * **support-migration**
   * ⚠️ **This is a breaking change**: This component was removed since the Fennec -> Fenix migration is no longer supported (https://github.com/mozilla-mobile/fenix/pull/23651/)
+
+* **nimbus-gradle-plugin**
+  * ⚠️ **This is a breaking change**: Updated the NimbusGradlePlugin to use the new nimbus cli commands.
 
 # 104.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v103.0.0...v104.0.0)

@@ -6,7 +6,6 @@ package mozilla.components.feature.search.storage
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.annotation.VisibleForTesting
 import mozilla.components.feature.search.middleware.SearchMiddleware
 
 private const val PREFERENCE_FILE = "mozac_feature_search_metadata"
@@ -21,7 +20,7 @@ private const val PREFERENCE_KEY_ADDITIONAL_SEARCH_ENGINES = "additional_search_
  */
 internal class SearchMetadataStorage(
     context: Context,
-    @VisibleForTesting private val preferences: Lazy<SharedPreferences> = lazy {
+    private val preferences: Lazy<SharedPreferences> = lazy {
         context.getSharedPreferences(
             PREFERENCE_FILE,
             Context.MODE_PRIVATE

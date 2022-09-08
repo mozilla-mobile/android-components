@@ -17,9 +17,12 @@ object Versions {
 
     const val mockwebserver = "3.10.0"
 
-    const val android_gradle_plugin = "7.0.0"
+    const val android_gradle_plugin = "7.2.2"
     const val android_maven_publish_plugin = "3.6.2"
-    const val lint = "27.0.1"
+
+    // This has to be synced to the gradlew plugin version. See
+    // http://googlesamples.github.io/android-custom-lint-rules/api-guide/example.md.html#example:samplelintcheckgithubproject/lintversion?
+    const val lint = "30.2.2"
     const val detekt = "1.19.0"
 
     const val sentry_legacy = "1.7.21"
@@ -32,14 +35,17 @@ object Versions {
 
     // When upgrading mozilla_appservices, also upgrade the version in the
     // `getApplicationServiceVersion()` method in NimbusGradlePlugin.groovy.
-    const val mozilla_appservices = "94.0.1"
+    const val mozilla_appservices = "94.1.0"
 
     // DO NOT MODIFY MANUALLY. This is auto-updated along with GeckoView.
     const val mozilla_glean = "51.1.0"
 
     const val material = "1.2.1"
 
-    const val compose_version = "1.1.1"
+    // see https://android-developers.googleblog.com/2022/06/independent-versioning-of-Jetpack-Compose-libraries.html
+    // for Jetpack Compose libraries versioning
+    const val compose_version = "1.2.1"
+    const val compose_compiler = "1.1.1"
 
     object AndroidX {
         const val activityCompose = "1.4.0"
@@ -73,7 +79,7 @@ object Versions {
     }
 
     object Firebase {
-        const val messaging = "20.3.0"
+        const val messaging = "23.0.8"
     }
 }
 

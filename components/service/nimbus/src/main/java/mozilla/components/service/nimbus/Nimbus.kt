@@ -6,7 +6,9 @@ package mozilla.components.service.nimbus
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -79,11 +81,15 @@ class Nimbus(
     Observable<NimbusInterface.Observer> by observable {
     private class Observer(val observable: Observable<NimbusInterface.Observer>) : NimbusInterface.Observer {
         override fun onExperimentsFetched() {
-            observable.notifyObservers { onExperimentsFetched() }
+            MainScope().launch {
+                observable.notifyObservers { onExperimentsFetched() }
+            }
         }
 
         override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
-            observable.notifyObservers { onUpdatesApplied(updated) }
+            MainScope().launch {
+                observable.notifyObservers { onUpdatesApplied(updated) }
+            }
         }
     }
 }

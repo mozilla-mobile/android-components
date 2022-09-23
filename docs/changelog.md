@@ -15,6 +15,9 @@ permalink: /changelog/
   * 🆕 New `name` property for Permission which allows to easily identify and differentiate Permissions.
   * Use the permission name when reporting telemetry for the permission dialogs. [#12683](https://github.com/mozilla-mobile/android-components/issues/12683).
 
+* **browser-engine-gecko**
+  * 🚒 Bug fixed [fenix issue #16943](https://github.com/mozilla-mobile/fenix/issues/26943) - Prevent crashes when accessing a time picker with blank step value.
+
 * **browser-storage-sync**:
   * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689) Decouple autocomplete suggestions from history search suggestions by using a separate reader which allows for separate management.
 

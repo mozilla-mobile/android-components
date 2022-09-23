@@ -17,12 +17,12 @@ object Versions {
 
     const val mockwebserver = "3.10.0"
 
-    const val android_gradle_plugin = "7.2.2"
+    const val android_gradle_plugin = "7.3.0"
     const val android_maven_publish_plugin = "3.6.2"
 
     // This has to be synced to the gradlew plugin version. See
     // http://googlesamples.github.io/android-custom-lint-rules/api-guide/example.md.html#example:samplelintcheckgithubproject/lintversion?
-    const val lint = "30.2.2"
+    const val lint = "30.3.0"
     const val detekt = "1.19.0"
 
     const val sentry_legacy = "1.7.21"
@@ -33,7 +33,7 @@ object Versions {
     const val disklrucache = "2.0.2"
     const val leakcanary = "2.8.1"
 
-    const val mozilla_appservices = "94.2.0"
+    const val mozilla_appservices = "94.3.0"
 
     // DO NOT MODIFY MANUALLY. This is auto-updated along with GeckoView.
     const val mozilla_glean = "51.2.0"

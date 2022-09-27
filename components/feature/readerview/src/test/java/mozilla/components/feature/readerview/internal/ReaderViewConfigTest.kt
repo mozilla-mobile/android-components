@@ -33,11 +33,17 @@ import org.mockito.MockitoAnnotations
 class ReaderViewConfigTest {
 
     @Mock private lateinit var context: Context
+
     @Mock private lateinit var prefs: SharedPreferences
+
     @Mock private lateinit var editor: SharedPreferences.Editor
+
     @Mock private lateinit var sendConfigMessage: (JSONObject) -> Unit
+
     @Mock private lateinit var resources: Resources
+
     @Mock private lateinit var configuration: Configuration
+
     private lateinit var config: ReaderViewConfig
 
     @Before

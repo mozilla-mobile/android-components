@@ -29,7 +29,7 @@ import org.json.JSONObject
  */
 internal class ReaderViewConfig(
     context: Context,
-    private val sendConfigMessage: (JSONObject) -> Unit
+    private val sendConfigMessage: (JSONObject) -> Unit,
 ) {
 
     private val prefs by lazy { context.getSharedPreferences(SHARED_PREF_NAME, MODE_PRIVATE) }

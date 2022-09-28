@@ -14,6 +14,9 @@ permalink: /changelog/
 * **nimbus-gradle-plugin**:
   * Updated the plugin to use the version of application services defined in the buildSrc Dependencies.
 
+* **support-features**:
+  * Added component to contain support features which hold functionality.
+
 # 106.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v105.0.0..v106.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/153?closed=1)

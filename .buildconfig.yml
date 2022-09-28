@@ -312,6 +312,10 @@ projects:
     path: components/support/base
     description: 'Base component containing building blocks for components.'
     publish: true
+  support-features:
+    path: components/support/features
+    description: 'Component containing support features.'
+    publish: true
   support-images:
     path: components/support/images
     description: 'A collection of helpers for handling images such as icons and thumbnails.'

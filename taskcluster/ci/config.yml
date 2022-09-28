@@ -100,6 +100,7 @@ treeherder:
         service-sync-logins: service-sync-logins
         support-android-test: support-android-test
         support-base: support-base
+        support-features: support-features
         support-images: support-images
         support-ktx: support-ktx
         support-locale: support-locale

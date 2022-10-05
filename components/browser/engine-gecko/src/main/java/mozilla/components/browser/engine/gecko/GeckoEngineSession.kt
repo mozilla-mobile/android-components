@@ -674,8 +674,10 @@ class GeckoEngineSession(
 
             if (interceptionResponse !is InterceptionResponse.AppIntent) {
                 appRedirectUrl = ""
-                lastLoadRequestUri = request.uri
             }
+
+            lastLoadRequestUri = request.uri
+
             return interceptionResponse
         }
     }
@@ -690,7 +692,7 @@ class GeckoEngineSession(
 
         override fun onSecurityChange(
             session: GeckoSession,
-            securityInfo: GeckoSession.ProgressDelegate.SecurityInformation
+            securityInfo: GeckoSession.ProgressDelegate.SecurityInformation,
         ) {
             // Ignore initial load of about:blank (see https://github.com/mozilla-mobile/android-components/issues/403)
             if (initialLoad && securityInfo.origin?.startsWith(MOZ_NULL_PRINCIPAL) == true) {
@@ -754,7 +756,7 @@ class GeckoEngineSession(
             session: GeckoSession,
             url: String,
             lastVisitedURL: String?,
-            flags: Int
+            flags: Int,
         ): GeckoResult<Boolean>? {
             // Don't track:
             // - private visits
@@ -819,7 +821,7 @@ class GeckoEngineSession(
 
         override fun getVisited(
             session: GeckoSession,
-            urls: Array<out String>
+            urls: Array<out String>,
         ): GeckoResult<BooleanArray>? {
             if (privateMode) {
                 return GeckoResult.fromValue(null)
@@ -835,7 +837,7 @@ class GeckoEngineSession(
 
         override fun onHistoryStateChange(
             session: GeckoSession,
-            historyList: GeckoSession.HistoryDelegate.HistoryList
+            historyList: GeckoSession.HistoryDelegate.HistoryList,
         ) {
             val items = historyList.map {
                 // title is sometimes null despite the @NotNull annotation
@@ -843,7 +845,7 @@ class GeckoEngineSession(
                 val title: String? = it.title
                 HistoryItem(
                     title = title ?: it.uri,
-                    uri = it.uri
+                    uri = it.uri,
                 )
             }
             notifyObservers { onHistoryStateChanged(items, historyList.currentIndex) }
@@ -866,7 +868,7 @@ class GeckoEngineSession(
             session: GeckoSession,
             screenX: Int,
             screenY: Int,
-            element: GeckoSession.ContentDelegate.ContextElement
+            element: GeckoSession.ContentDelegate.ContextElement,
         ) {
             val hitResult = handleLongClick(element.srcUri, element.type, element.linkUri, element.title)
             hitResult?.let {
@@ -898,7 +900,7 @@ class GeckoEngineSession(
                     contentDisposition,
                     destinationDirectory = null,
                     url = url,
-                    mimeType = contentType
+                    mimeType = contentType,
                 )
                 val response = webResponse.toResponse()
 
@@ -909,7 +911,7 @@ class GeckoEngineSession(
                         contentType = DownloadUtils.sanitizeMimeType(contentType),
                         fileName = fileName.sanitizeFileName(),
                         response = response,
-                        isPrivate = privateMode
+                        isPrivate = privateMode,
                     )
                 }
             }
@@ -920,8 +922,8 @@ class GeckoEngineSession(
                 onWindowRequest(
                     GeckoWindowRequest(
                         engineSession = this@GeckoEngineSession,
-                        type = WindowRequest.Type.CLOSE
-                    )
+                        type = WindowRequest.Type.CLOSE,
+                    ),
                 )
             }
         }
@@ -1037,7 +1039,7 @@ class GeckoEngineSession(
         return Tracker(
             url = uri,
             trackingCategories = blockedContentCategories,
-            cookiePolicies = getCookiePolicies()
+            cookiePolicies = getCookiePolicies(),
         )
     }
 
@@ -1078,7 +1080,7 @@ class GeckoEngineSession(
     private fun createPermissionDelegate() = object : GeckoSession.PermissionDelegate {
         override fun onContentPermissionRequest(
             session: GeckoSession,
-            geckoContentPermission: ContentPermission
+            geckoContentPermission: ContentPermission,
         ): GeckoResult<Int> {
             val geckoResult = GeckoResult<Int>()
             val uri = geckoContentPermission.uri
@@ -1093,13 +1095,13 @@ class GeckoEngineSession(
             uri: String,
             video: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
             audio: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
-            callback: GeckoSession.PermissionDelegate.MediaCallback
+            callback: GeckoSession.PermissionDelegate.MediaCallback,
         ) {
             val request = GeckoPermissionRequest.Media(
                 uri,
                 video?.toList() ?: emptyList(),
                 audio?.toList() ?: emptyList(),
-                callback
+                callback,
             )
             notifyObservers { onContentPermissionRequest(request) }
         }
@@ -1107,11 +1109,11 @@ class GeckoEngineSession(
         override fun onAndroidPermissionsRequest(
             session: GeckoSession,
             permissions: Array<out String>?,
-            callback: GeckoSession.PermissionDelegate.Callback
+            callback: GeckoSession.PermissionDelegate.Callback,
         ) {
             val request = GeckoPermissionRequest.App(
                 permissions?.toList() ?: emptyList(),
-                callback
+                callback,
             )
             notifyObservers { onAppPermissionRequest(request) }
         }

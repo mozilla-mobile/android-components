@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
 
     <!-- The button that appears at the bottom of an error page. -->
     <string name="mozac_browser_errorpages_page_refresh">ລອງ​ອີກ​ຄັ້ງ</string>
@@ -50,8 +50,26 @@
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">ເວັບໄຊທນີ້ຕ້ອງການການເຊື່ອມຕໍ່ທີ່ປອດໄພ.</string>
 
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[
+      <ul>
+         <li>ໜ້າ​ທີ່​ເຈົ້າ​ພະ​ຍາ​ຍາມ​ເບິ່ງ​ບໍ່​ສາ​ມາດ​ສະ​ແດງ​ໄດ້​ເນື່ອງ​ຈາກ​ວ່າ​ເວັບ​ໄຊ​ທ​໌​ນີ້​ຕ້ອງ​ການ​ການ​ເຊື່ອມ​ຕໍ່​ທີ່​ປອດ​ໄພ.</li>
+         <li>ບັນຫາແມ່ນເປັນໄປໄດ້ຫຼາຍທີ່ສຸດກັບເວັບໄຊທ໌, ແລະບໍ່ມີຫຍັງທີ່ເຈົ້າສາມາດແກ້ໄຂມັນໄດ້.</li>
+         <li>ທ່ານ​ສາ​ມາດ​ແຈ້ງ​ໃຫ້​ຜູ້​ຄວບ​ຄຸມ​ຂອງ​ເວັບ​ໄຊ​ທ​໌​ກ່ຽວ​ກັບ​ບັນ​ຫາ​ໄດ້.</li>
+      </ul>
+    ]]></string>
+
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">ຂັ້ນສູງ…</string>
+
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string moz:removedIn="104" name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo" tools:ignore="UnusedResources"><![CDATA[
+        <label> <b>%1$s</b> ມີນະໂຍບາຍຄວາມປອດໄພທີ່ເອີ້ນວ່າ HTTP Strict Transport Security (HSTS), ຊຶ່ງຫມາຍຄວາມວ່າ <b>%2$s</b> ສາມາດເຊື່ອມຕໍ່ກັບມັນໄດ້ຢ່າງປອດໄພເທົ່ານັ້ນ. ທ່ານບໍ່ສາມາດເພີ່ມຂໍ້ຍົກເວັ້ນເພື່ອເຂົ້າເບິ່ງເວັບໄຊນີ້ໄດ້.
+    ]]></string>
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[
+        <label> <b>%1$s</b> ມີນະໂຍບາຍຄວາມປອດໄພທີ່ເອີ້ນວ່າ HTTP Strict Transport Security (HSTS), ຊຶ່ງຫມາຍຄວາມວ່າ <b>%2$s</b> ສາມາດເຊື່ອມຕໍ່ກັບມັນໄດ້ຢ່າງປອດໄພເທົ່ານັ້ນ. ທ່ານບໍ່ສາມາດເພີ່ມຂໍ້ຍົກເວັ້ນເພື່ອເຂົ້າເບິ່ງເວັບໄຊນີ້ໄດ້.</label>
+    ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">ກັບຄືນ</string>
 
@@ -219,17 +237,53 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_protocol_title">ໂປຼໂຕຄໍທີ່ບໍ່ຮູ້ຈັກ</string>
 
+    <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[
+      <p>ທີ່ຢູ່ລະບຸໂປຣໂຕຄໍ (ເຊັ່ນ: <q>wxyz://</q>) ບຣາວເຊີບໍ່ຮັບຮູ້, ສະນັ້ນ ບຣາວເຊີບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເວັບໄຊທ໌ໄດ້ຢ່າງຖືກຕ້ອງ.</p>
+      <ul>
+        <li>ທ່ານກຳລັງພະຍາຍາມເຂົ້າເຖິງມັນຕິມີເດຍ ຫຼືບໍລິການອື່ນໆທີ່ບໍ່ແມ່ນຂໍ້ຄວາມບໍ? ກວດເບິ່ງເວັບໄຊສຳລັບຄວາມຕ້ອງການເພີ່ມເຕີມ.</li>
+        <li>ບາງໂປຣໂຕຄໍອາດຈະຕ້ອງການຊອບແວພາກສ່ວນທີສາມ ຫຼື plugins ກ່ອນທີ່ຕົວທ່ອງເວັບສາມາດຮັບຮູ້ພວກມັນໄດ້.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_not_found_title">ບໍ່ພົບໄຟລ໌ນີ້</string>
+
+    <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[
+      <ul>
+        <li>ລາຍການດັ່ງກ່າວຖືກປ່ຽນຊື່, ລຶບອອກ ຫຼື ຍ້າຍອອກບໍ?</li>
+        <li>ມີການສະກົດຄໍາ, ຕົວພິມໃຫຍ່, ຫຼືການພິມຜິດອື່ນໆຢູ່ໃນນີ້ບໍ?</li>
+        <li>ສິດອະນຸຍາດຂອງທ່ານພຽງພໍກັບລາຍການທີ່ຮ້ອງຂໍບໍ?</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_access_denied_title">ການເຂົ້າເຖິງໄຟລ໌ຂໍ້ມູນໄດ້ຖືກປະຕິເສດ</string>
 
+    <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[<ul> <li>ມັນອາດຈະຖືກລຶບອອກໄປແລ້ວ, ຍ້າຍໄປໄວ້ຢູ່ບ່ອນອື່ນແລ້ວ ຫລື ທ່ານອາດບໍ່ມີສິດເຂົ້າເຖິງຟາຍຂໍ້ມູນນີ້.</li> </ul>]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_proxy_connection_refused_title">ພັອກຊີເຊີເວີໄດ້ປະຕິເສດການເຊື່ອມຕໍ່</string>
 
+    <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
+      <p>ຕົວ​ທ່ອງ​ເວັບ​ໄດ້​ຖືກ​ຕັ້ງ​ຄ່າ​ໃຫ້​ໃຊ້​ເຊີບ​ເວີ​ພຣັອກຊີ, ແຕ່​ພຣັອກຊີ​ໄດ້​ປະ​ຕິ​ເສດ​ການ​ເຊື່ອມ​ຕໍ່.</p>
+      <ul>
+        <li>ການກຳນົດຄ່າພຣັອກຊີຂອງບຣາວເຊີຖືກຕ້ອງບໍ? ກວດເບິ່ງການຕັ້ງຄ່າແລ້ວລອງໃໝ່ອີກຄັ້ງ.</li>
+        <li>ບໍລິການພຣັອກຊີອະນຸຍາດການເຊື່ອມຕໍ່ຈາກເຄືອຂ່າຍນີ້ບໍ?</li>
+        <li>ຍັງມີບັນຫາຢູ່ບໍ? ປຶກສາຜູ້ເບິ່ງແຍງລະບົບເຄືອຂ່າຍ ຫຼືຜູ້ໃຫ້ບໍລິການອິນເຕີເນັດຂອງທ່ານເພື່ອຂໍຄວາມຊ່ວຍເຫຼືອ.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">ບໍ່ພົບພລັອກຊີເຊີເວີ</string>
+
+    <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[
+      <p>ຕົວ​ທ່ອງ​ເວັບ​ໄດ້​ຖືກ​ຕັ້ງ​ຄ່າ​ໃຫ້​ໃຊ້​ເຊີບ​ເວີ​ພຣັອກ​ຊີ, ແຕ່​ບໍ່​ສາ​ມາດ​ຊອກ​ຫາ​ຕົວ​ແທນ​ໄດ້.</p>
+      <ul>
+        <li>ການກຳນົດຄ່າພຣັອກຊີຂອງບຣາວເຊີຖືກຕ້ອງບໍ? ກວດເບິ່ງການຕັ້ງຄ່າແລ້ວລອງໃໝ່ອີກຄັ້ງ.</li>
+        <li>ອຸປະກອນເຊື່ອມຕໍ່ກັບເຄືອຂ່າຍທີ່ໃຊ້ຢູ່ບໍ?</li>
+        <li>ຍັງມີບັນຫາຢູ່ບໍ? ປຶກສາຜູ້ເບິ່ງແຍງລະບົບເຄືອຂ່າຍ ຫຼືຜູ້ໃຫ້ບໍລິການອິນເຕີເນັດຂອງທ່ານເພື່ອຂໍຄວາມຊ່ວຍເຫຼືອ.</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">ປັນຫາເວັບໄຊທ Malware</string>

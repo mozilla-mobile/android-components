@@ -38,6 +38,8 @@
     <string name="mozac_feature_addons_permissions_clipboard_read_description">წვდომა მონაცემების ასლზე</string>
     <!-- Description for clipboard_write permission. -->
     <string name="mozac_feature_addons_permissions_clipboard_write_description">აღებული მონაცემების ასლში ინფორმაციის ჩამატება</string>
+    <!-- Description for declarativeNetRequest permission. -->
+    <string name="mozac_feature_addons_permissions_declarative_net_request_description">შიგთავსის შეზღუდვა ნებისმიერ გვერდზე</string>
     <!-- Description for downloads permission. -->
     <string name="mozac_feature_addons_permissions_downloads_description">ფაილების ჩამოტვირთვა, ჩამოტვირთვების ისტორიის ნახვა და შეცვლა</string>
     <!-- Description for downloads_open permission. -->
@@ -75,7 +77,7 @@
     <!-- The developer website (Homepage) of the add-on. -->
     <string name="mozac_feature_addons_home_page">მთავარი გვერდი</string>
     <!-- A link where users can find more information about add-ons permissions. -->
-    <string name="mozac_feature_addons_learn_more">ვრცლად, ნებართვების შესახებ</string>
+    <string name="mozac_feature_addons_learn_more">ვრცლად ნებართვების შესახებ</string>
     <!-- The rating of the add-on. -->
     <string name="mozac_feature_addons_rating">შეფასება</string>
     <!-- The settings of the add-on. -->

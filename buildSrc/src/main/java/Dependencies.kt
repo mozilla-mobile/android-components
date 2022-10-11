@@ -3,40 +3,47 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // If you ever need to force a toolchain rebuild (taskcluster) then edit the following comment.
-// FORCE REBUILD 2022-06-13
+// FORCE REBUILD 2022-09-30
 
 // Synchronized version numbers for dependencies used by (some) modules
 object Versions {
     const val kotlin = "1.6.10"
     const val coroutines = "1.6.1"
 
-    const val junit = "4.12"
-    const val robolectric = "4.8.1"
-    const val mockito = "3.11.2"
+    const val junit = "4.13.2"
+    const val robolectric = "4.9"
+    const val mockito = "3.12.4"
     const val maven_ant_tasks = "2.1.3"
 
+    // TO-DO: These could be kept in sync in the future
     const val mockwebserver = "3.10.0"
+    const val okhttp = "3.13.1"
 
-    const val android_gradle_plugin = "7.0.0"
-    const val android_maven_publish_plugin = "3.6.2"
-    const val lint = "27.0.1"
+    const val android_gradle_plugin = "7.3.0"
+
+    // This has to be synced to the gradlew plugin version. See
+    // http://googlesamples.github.io/android-custom-lint-rules/api-guide/example.md.html#example:samplelintcheckgithubproject/lintversion?
+    const val lint = "30.3.0"
     const val detekt = "1.19.0"
 
-    const val sentry_legacy = "1.7.21"
-    const val sentry_latest = "5.7.3"
-    const val okhttp = "3.13.1"
-    const val zxing = "3.3.0"
-    const val jna = "5.8.0"
+    const val sentry_legacy = "1.7.30"
+    const val sentry_latest = "6.4.2"
+    const val zxing = "3.5.0"
+    const val jna = "5.12.1"
     const val disklrucache = "2.0.2"
-    const val leakcanary = "2.8.1"
+    const val leakcanary = "2.9.1"
 
-    const val mozilla_appservices = "93.8.0"
+    const val mozilla_appservices = "94.2.1"
 
-    const val mozilla_glean = "51.0.1"
+    // DO NOT MODIFY MANUALLY. This is auto-updated along with GeckoView.
+    const val mozilla_glean = "51.4.0"
 
     const val material = "1.2.1"
 
-    const val compose_version = "1.1.1"
+    // see https://android-developers.googleblog.com/2022/06/independent-versioning-of-Jetpack-Compose-libraries.html
+    // for Jetpack Compose libraries versioning
+    const val compose_version = "1.2.1"
+    const val compose_compiler = "1.1.1"
 
     object AndroidX {
         const val activityCompose = "1.4.0"
@@ -49,8 +56,8 @@ object Versions {
         const val compose = compose_version
         const val constraintlayout = "2.0.4"
         const val coordinatorlayout = "1.1.0"
-        const val core = "1.3.2"
-        const val fragment = "1.3.4"
+        const val core = "1.8.0"
+        const val fragment = "1.5.1"
         const val recyclerview = "1.2.0"
         const val test = "1.4.0"
         const val test_ext = "1.1.3"
@@ -59,9 +66,9 @@ object Versions {
         const val paging = "2.1.2"
         const val palette = "1.0.0"
         const val preferences = "1.1.1"
-        const val lifecycle = "2.4.0"
+        const val lifecycle = "2.5.1"
         const val media = "1.2.0"
-        const val navigation = "2.4.0-alpha04"
+        const val navigation = "2.5.1"
         const val work = "2.7.1"
         const val arch = "2.1.0"
         const val uiautomator = "2.2.0"
@@ -70,7 +77,7 @@ object Versions {
     }
 
     object Firebase {
-        const val messaging = "20.3.0"
+        const val messaging = "23.0.8"
     }
 }
 
@@ -117,6 +124,7 @@ object Dependencies {
     const val androidx_lifecycle_service = "androidx.lifecycle:lifecycle-service:${Versions.AndroidX.lifecycle}"
     const val androidx_lifecycle_process = "androidx.lifecycle:lifecycle-process:${Versions.AndroidX.lifecycle}"
     const val androidx_lifecycle_compiler = "androidx.lifecycle:lifecycle-compiler:${Versions.AndroidX.lifecycle}"
+    const val androidx_lifecycle_viewmodel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.AndroidX.lifecycle}"
     const val androidx_media = "androidx.media:media:${Versions.AndroidX.media}"
     const val androidx_paging = "androidx.paging:paging-runtime:${Versions.AndroidX.paging}"
     const val androidx_palette = "androidx.palette:palette-ktx:${Versions.AndroidX.palette}"
@@ -142,7 +150,6 @@ object Dependencies {
 
     const val tools_androidgradle = "com.android.tools.build:gradle:${Versions.android_gradle_plugin}"
     const val tools_kotlingradle = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
-    const val tools_androidmavenpublish = "digital.wup:android-maven-publish:${Versions.android_maven_publish_plugin}"
 
     const val tools_lint = "com.android.tools.lint:lint:${Versions.lint}"
     const val tools_lintapi = "com.android.tools.lint:lint-api:${Versions.lint}"

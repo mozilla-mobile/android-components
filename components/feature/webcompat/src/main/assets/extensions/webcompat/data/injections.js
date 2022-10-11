@@ -600,8 +600,10 @@ const AVAILABLE_INJECTIONS = [
     bug: "1774005",
     contentScripts: {
       matches: [
-        "*://*.pixiv.net/*", // Bug 1774006
         "*://*.crunchyroll.com/*", // Bug 1777597
+        "*://*.pixiv.net/*", // Bug 1774006
+        "*://*.webex.com/*", // Bug 1788934
+        "*://business.help.royalmail.com/app/webforms/*", // Bug 1786404
         "*://www.northcountrypublicradio.org/contact/subscribe.html*", // Bug 1778382
       ],
       js: [
@@ -610,6 +612,202 @@ const AVAILABLE_INJECTIONS = [
         },
       ],
       allFrames: true,
+    },
+  },
+  {
+    id: "bug1784302",
+    platform: "android",
+    domain: "open.toutiao.com",
+    bug: "1784302",
+    contentScripts: {
+      matches: ["*://open.toutiao.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1784302-effectiveType-shim.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1784309",
+    platform: "all",
+    domain: "bet365.com",
+    bug: "1784309",
+    contentScripts: {
+      matches: [
+        "*://*.bet365.com/*",
+        "*://*.bet365.gr/*",
+        "*://*.bet365.com.au/*",
+        "*://*.bet365.de/*",
+        "*://*.bet365.es/*",
+        "*://*.bet365.ca/*",
+        "*://*.bet365.dk/*",
+        "*://*.bet365.mx/*",
+        "*://*.bet365.bet.ar/*",
+      ],
+      js: [
+        {
+          file: "injections/js/bug1784309-bet365.com-math-pow.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1784141",
+    platform: "android",
+    domain: "aveeno.com",
+    bug: "1784141",
+    contentScripts: {
+      matches: [
+        "*://*.aveeno.com/*",
+        "*://*.aveeno.ca/*",
+        "*://*.aveeno.com.au/*",
+        "*://*.aveeno.co.kr/*",
+        "*://*.aveeno.co.uk/*",
+        "*://*.aveeno.ie/*",
+      ],
+      css: [
+        {
+          file: "injections/css/bug1784141-aveeno.com-unsupported.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1784195",
+    platform: "android",
+    domain: "nutmeg.morrisons.com",
+    bug: "1784195",
+    contentScripts: {
+      matches: ["*://nutmeg.morrisons.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1784195-nutmeg.morrisons.com-overflow.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1784546",
+    platform: "android",
+    domain: "seznam.cz",
+    bug: "1784546",
+    contentScripts: {
+      matches: ["*://*.seznam.cz/*"],
+      css: [
+        {
+          file: "injections/css/bug1784546-seznam.cz-popup-height.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1784351",
+    platform: "desktop",
+    domain: "movistar.com.ar",
+    bug: "1784351",
+    contentScripts: {
+      matches: ["*://*.movistar.com.ar/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1784351-movistar.com.ar-overflow-overlay-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1784199",
+    platform: "all",
+    domain: "Sites based on Entrata Platform",
+    bug: "1784199",
+    contentScripts: {
+      matches: [
+        "*://*.aptsovation.com/*",
+        "*://*.nhcalaska.com/*",
+        "*://*.securityproperties.com/*",
+        "*://*.theloftsorlando.com/*",
+      ],
+      css: [
+        {
+          file: "injections/css/bug1784199-entrata-platform-unsupported.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1787267",
+    platform: "all",
+    domain: "All international Nintendo domains",
+    bug: "1787267",
+    contentScripts: {
+      matches: [
+        "*://*.mojenintendo.cz/*",
+        "*://*.nintendo-europe.com/*",
+        "*://*.nintendo.at/*",
+        "*://*.nintendo.be/*",
+        "*://*.nintendo.ch/*",
+        "*://*.nintendo.co.il/*",
+        "*://*.nintendo.co.jp/*",
+        "*://*.nintendo.co.kr/*",
+        "*://*.nintendo.co.nz/*",
+        "*://*.nintendo.co.uk/*",
+        "*://*.nintendo.co.za/*",
+        "*://*.nintendo.com.au/*",
+        "*://*.nintendo.com.hk/*",
+        "*://*.nintendo.com/*",
+        "*://*.nintendo.de/*",
+        "*://*.nintendo.dk/*",
+        "*://*.nintendo.es/*",
+        "*://*.nintendo.fi/*",
+        "*://*.nintendo.fr/*",
+        "*://*.nintendo.gr/*",
+        "*://*.nintendo.hu/*",
+        "*://*.nintendo.it/*",
+        "*://*.nintendo.nl/*",
+        "*://*.nintendo.no/*",
+        "*://*.nintendo.pt/*",
+        "*://*.nintendo.ru/*",
+        "*://*.nintendo.se/*",
+        "*://*.nintendo.sk/*",
+        "*://*.nintendo.tw/*",
+        "*://*.nintendoswitch.com.cn/*",
+      ],
+      js: [
+        {
+          file:
+            "injections/js/bug1787267-nintendo-window-OnetrustActiveGroups.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1788685",
+    platform: "all",
+    domain: "microsoftedgetips.microsoft.com",
+    bug: "1788685",
+    contentScripts: {
+      matches: ["*://microsoftedgetips.microsoft.com/*"],
+      css: [
+        {
+          file:
+            "injections/css/bug1788685-microsoftedgetips.microsoft.com-gallery-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1789164",
+    platform: "all",
+    domain: "zdnet.com",
+    bug: "1789164",
+    contentScripts: {
+      matches: ["*://www.zdnet.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1789164-zdnet.com-cropped-section.css",
+        },
+      ],
     },
   },
 ];

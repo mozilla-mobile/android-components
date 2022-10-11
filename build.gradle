@@ -30,7 +30,6 @@ buildscript {
     dependencies {
         classpath Dependencies.tools_androidgradle
         classpath Dependencies.tools_kotlingradle
-        classpath Dependencies.tools_androidmavenpublish
     }
 }
 
@@ -76,6 +75,22 @@ subprojects {
     }
 
     project.configurations.all {
+        // Dependencies can't depend on a different major version of Glean than A-C itself.
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.mozilla.telemetry'
+                    && details.requested.name.contains('glean') ) {
+                def requested = details.requested.version.tokenize(".")
+                def defined = Versions.mozilla_glean.tokenize(".")
+                // Check the major version
+                if (requested[0] != defined[0]) {
+                    throw new AssertionError("Cannot resolve to a single Glean version. Requested: ${details.requested.version}, A-C uses: ${Versions.mozilla_glean}")
+                } else {
+                    // Enforce that all (transitive) dependencies are using the defined Glean version
+                    details.useVersion Versions.mozilla_glean
+                }
+            }
+        }
+
         // Enforce that all (transitive) dependencies are using the same support library version as we do.
         resolutionStrategy.eachDependency { details ->
             if (details.requested.group == 'com.android.support'
@@ -142,22 +157,6 @@ subprojects {
 
     afterEvaluate {
         if (it.hasProperty('android')) {
-
-            // Glean currently expects every module to have a BuildConfig with VERSION_CODE and
-            // VERSION_NAME fields. Since Android Gradle Plugin 4.1+ those fields do not get
-            // generated for Android libraries anymore. As a workaround we generate them here
-            // explicitly.
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1713084
-            // https://issuetracker.google.com/issues/158695880
-            plugins.withId('com.android.library') {
-                android {
-                    defaultConfig {
-                        buildConfigField 'int', 'VERSION_CODE', "1"
-                        buildConfigField 'String', 'VERSION_NAME', "\"1.0\""
-                    }
-                }
-            }
-
             jacoco {
                 toolVersion = "0.8.8"
             }
@@ -392,7 +391,7 @@ configurations {
 }
 
 dependencies {
-    ktlint("com.pinterest:ktlint:0.41.0") {
+    ktlint("com.pinterest:ktlint:0.47.0") {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
         }
@@ -405,7 +404,7 @@ tasks.register("ktlint", JavaExec) {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     main = "com.pinterest.ktlint.Main"
-    args "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
+    args "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt", "--baseline=ktlint-baseline.xml"
 }
 
 apply plugin: GitHubPlugin
@@ -415,7 +414,7 @@ tasks.register("ktlintFormat", JavaExec) {
     description = "Fix Kotlin code style deviations."
     classpath = configurations.ktlint
     main = "com.pinterest.ktlint.Main"
-    args "-F", "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
+    args "-F", "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt", "--baseline=ktlint-baseline.xml"
 }
 
 tasks.register("listRepositories") {

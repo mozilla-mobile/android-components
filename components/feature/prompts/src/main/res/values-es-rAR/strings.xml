@@ -37,7 +37,7 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_update_headline">¿Actualizar este inicio de sesión?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">¿Añadir nombre de usuario a la contraseña guardada?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline">¿Agregar nombre de usuario a la contraseña guardada?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">Etiqueta para ingresar un campo de entrada de texto</string>
@@ -81,6 +81,8 @@
     <string name="mozac_feature_prompts_nov">Nov</string>
     <!-- December month of the year (short description), used on the month chooser dialog. -->
     <string name="mozac_feature_prompts_dec">Dic</string>
+    <!-- Title of the time picker dialog. -->
+    <string name="mozac_feature_prompts_set_time">Establecer hora</string>
     <!-- Option in expanded select login prompt that links to login settings -->
     <string name="mozac_feature_prompts_manage_logins">Administrar inicios de sesión</string>
     <!-- Content description for expanding the saved logins options in the select login prompt -->

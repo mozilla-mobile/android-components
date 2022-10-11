@@ -4,18 +4,79 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 105.0.0 (In Development)
-* [Commits](https://github.com/mozilla-mobile/android-components/compare/v104.0.0...main)
-* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/152?closed=1)
+# 107.0.0 (In Development)
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v106.0.0...main)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/154?closed=1)
 * [Dependencies](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Dependencies.kt)
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **all modules**
+  * Updated the locally published artifacts to use a single timestamp rather than many [#12902](https://github.com/mozilla-mobile/android-components/issues/12902)
+
+* **nimbus-gradle-plugin**:
+  * Updated the plugin to use the version of application services defined in the buildSrc Dependencies.
+
+* **browser-engine-gecko**:
+  * Canceling the "Open in app?" displays an empty page [#12894](https://github.com/mozilla-mobile/android-components/issues/12894)
+
+# 106.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v105.0.0..v106.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/153?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v106.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v106.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v106.0.0/.config.yml)
+
+* **concept-engine**, **feature-sitepermissions**
+  * 🆕 New `name` property for Permission which allows to easily identify and differentiate Permissions.
+  * Use the permission name when reporting telemetry for the permission dialogs. [#12683](https://github.com/mozilla-mobile/android-components/issues/12683).
+
+* **browser-engine-gecko**
+  * 🚒 Bug fixed [fenix issue #16943](https://github.com/mozilla-mobile/fenix/issues/26943) - Prevent crashes when accessing a time picker with blank step value.
+
+* **browser-storage-sync**:
+  * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689) Decouple autocomplete suggestions from history search suggestions by using a separate reader which allows for separate management.
+
+* **support-ktx**
+  * 🚒 Bug fixed [issue #12689](https://github.com/mozilla-mobile/android-components/issues/12689)  Make `Context.shareMedia` work with Android Direct Share.
+
+* **feature-accounts-push**:
+  * ⚠️ **This is a breaking change**: `FxaPushSupportFeature` now requires to be explicitly started with `initialize`.
+  * The constructor for `FxaPushSupportFeature` has a `coroutineScope` parameter that defaults to a `CoroutineScope(Dispatchers.IO)`.
+
+# 105.0.0
+* [Commits](https://github.com/mozilla-mobile/android-components/compare/v104.0.0...v105.0.0)
+* [Milestone](https://github.com/mozilla-mobile/android-components/milestone/152?closed=1)
+* [Dependencies](https://github.com/mozilla-mobile/android-components/blob/v105.0.0/buildSrc/src/main/java/Dependencies.kt)
+* [Gecko](https://github.com/mozilla-mobile/android-components/blob/v105.0.0/buildSrc/src/main/java/Gecko.kt)
+* [Configuration](https://github.com/mozilla-mobile/android-components/blob/v105.0.0/.config.yml)
+
+* **feature-search**:
+  * Allow the search widget to match the resized width [#12676](https://github.com/mozilla-mobile/android-components/issues/12676).
+
+* **feature-findinpage**:
+  * 🚒 Bug fixed [issue #12637](https://github.com/mozilla-mobile/android-components/issues/12637) Disable find in page previous and forward buttons if the query is empty
+
+* **feature-search**:
+  * Implement the common part of search widget in Android Components [#12565](https://github.com/mozilla-mobile/android-components/issues/12565).
+
 * **feature-prompts**:
   * Added prompt dismiss listener to `ChoicePromptDelegate`. [#12562](https://github.com/mozilla-mobile/android-components/issues/12562)
 
+* **browser-engine-gecko**:
+  * Add support for Save to PDF in the
+
+* **concept-engine**:
+  * Add new `requestPdfToDownload` API in `Engine`. This is currently only supported in the Gecko Engine.
+
 * **browser-storage-sync**:
   * Stop reporting to the crash servers the expected `OperationInterrupted` exceptions for when interrupting in progress reads/writes from Application-Services. [#12557](https://github.com/mozilla-mobile/android-components/issues/12557), [#12569](https://github.com/mozilla-mobile/android-components/issues/12569).
+
+* **support-migration**
+  * ⚠️ **This is a breaking change**: This component was removed since the Fennec -> Fenix migration is no longer supported (https://github.com/mozilla-mobile/fenix/pull/23651/)
+
+* **nimbus-gradle-plugin**
+  * ⚠️ **This is a breaking change**: Updated the NimbusGradlePlugin to use the new nimbus cli commands.
 
 # 104.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v103.0.0...v104.0.0)
@@ -36,7 +97,7 @@ permalink: /changelog/
 
 * **browser-toolbar**
   * 🚒 Bug fixed [issue #12497](https://github.com/mozilla-mobile/android-components/issues/12497) - Set the same margin to toolbar background for display as for edit
-  * 
+
 * **feature-recentlyclosed**
   * 🚒 Bug fixed [issue #12470](https://github.com/mozilla-mobile/android-components/issues/12470) - Set autoMirrored to true to fix RTL issues
 
@@ -63,7 +124,7 @@ permalink: /changelog/
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/v103.0.0/.config.yml)
 
 * **site-permission-feature**
-  * 🆕 [issue #12345](https://github.com/mozilla-mobile/android-components/issues/12345) 
+  * 🆕 [issue #12345](https://github.com/mozilla-mobile/android-components/issues/12345)
   * - Add an id for all site permissions allowing to easily identify with what permissions the user interacts.
   * - Emit facts for when a permission prompt is shown/allowed/denied.
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
 
     <!-- The button that appears at the bottom of an error page. -->
     <string name="mozac_browser_errorpages_page_refresh">Klask en-dro</string>
@@ -44,6 +44,31 @@
     <string name="mozac_browser_errorpages_security_bad_cert_back">Distreiñ (Erbedet)</string>
     <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Asantiñ ar riskl ha kendercʼhel</string>
+
+    <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Ur c’hennask diogel a zo goulennet evit al lec’hienn-mañ.</string>
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[
+ <ul>
+ <li>N’haller ket skrammañ ar bajenn a glaskit gwelet dre ma vez goulennet ur c’hennask diogel gant al lec’hienn.</li>
+ <li>Ar gudenn a zo gant al lec’hienn moarvat, ha n’eus netra a c’hallit ober.</li>
+ <li>Gallout a rit kemenn ardoer al lec’hienn ez eus ur gudenn.</li>
+ </ul>
+]]></string>
+
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Kempleshoc’h…</string>
+
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string moz:removedIn="104" name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo" tools:ignore="UnusedResources"><![CDATA[
+        <label> <b>%1$s</b> a zo gantañ ur politikerezh surentez anvet HTTP Strict Transport Security (HSTS), pezh a dalv ne c’hall <b>%2$s</b> kevreañ outañ nemet en un doare sur. Ne c’hallit ket ouzhpennañ un nemedenn evit gweladenniñ al lec’hienn-mañ.
+        ]]></string>
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[
+        <label> <b>%1$s</b> a zo gantañ ur politikerezh surentez anvet HTTP Strict Transport Security (HSTS), pezh a dalv ne c’hall <b>%2$s</b> kevreañ outañ nemet en un doare sur. Ne c’hallit ket ouzhpennañ un nemedenn evit gweladenniñ al lec’hienn-mañ. </label>
+        ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Distreiñ</string>
 
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Harzet eo bet treuzkas ar roadennoù</string>

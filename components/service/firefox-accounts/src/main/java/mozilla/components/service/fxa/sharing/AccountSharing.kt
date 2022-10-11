@@ -21,7 +21,7 @@ import mozilla.components.support.utils.ext.getPackageInfoCompat
 data class ShareableAccount(
     val email: String,
     val sourcePackage: String,
-    val authInfo: MigratingAccountInfo
+    val authInfo: MigratingAccountInfo,
 )
 
 /**
@@ -73,7 +73,7 @@ object AccountSharing {
         // Fennec Beta
         "org.mozilla.firefox_beta" to "a78b62a5165b4494b2fead9e76a280d22d937fee6251aece599446b2ea319b04",
         // Fennec Nightly
-        "org.mozilla.fennec_aurora" to "bc0488838d06f4ca6bf32386daab0dd8ebcf3e7730787459f62fb3cd14a1baaa"
+        "org.mozilla.fennec_aurora" to "bc0488838d06f4ca6bf32386daab0dd8ebcf3e7730787459f62fb3cd14a1baaa",
     )
 
     /**
@@ -112,12 +112,15 @@ object AccountSharing {
             client.query(
                 authStateUri,
                 arrayOf(KEY_EMAIL, KEY_SESSION_TOKEN, KEY_KSYNC, KEY_KXSCS),
-                null, null, null
+                null,
+                null,
+                null,
             )?.use { cursor ->
                 cursor.moveToFirst()
 
                 val email = cursor.getString(cursor.getColumnIndex(KEY_EMAIL))
-                val sessionToken = cursor.getBlob(cursor.getColumnIndex(KEY_SESSION_TOKEN))?.toHexString()
+                val sessionToken =
+                    cursor.getBlob(cursor.getColumnIndex(KEY_SESSION_TOKEN))?.toHexString()
                 val kSync = cursor.getBlob(cursor.getColumnIndex(KEY_KSYNC))?.toHexString()
                 val kXSCS = cursor.getString(cursor.getColumnIndex(KEY_KXSCS))
 
@@ -127,7 +130,7 @@ object AccountSharing {
                     ShareableAccount(
                         email = email,
                         sourcePackage = packageName,
-                        authInfo = MigratingAccountInfo(sessionToken, kSync, kXSCS)
+                        authInfo = MigratingAccountInfo(sessionToken, kSync, kXSCS),
                     )
                 } else {
                     null
@@ -155,7 +158,7 @@ object AccountSharing {
     fun packageExistsWithSignature(
         packageManager: PackageManager,
         suspectPackage: String,
-        expectedSignature: String
+        expectedSignature: String,
     ): Boolean {
         val suspectSignature = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             getSignaturePostAPI28(packageManager, suspectPackage)
@@ -176,7 +179,10 @@ object AccountSharing {
     fun getSignaturePostAPI28(packageManager: PackageManager, packageName: String): String? {
         // For API28+, we can perform some extra checks.
         val packageInfo = try {
-            packageManager.getPackageInfoCompat(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            packageManager.getPackageInfoCompat(
+                packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES,
+            )
         } catch (e: PackageManager.NameNotFoundException) {
             return null
         }

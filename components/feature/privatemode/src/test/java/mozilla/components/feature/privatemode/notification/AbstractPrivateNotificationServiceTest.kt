@@ -61,14 +61,17 @@ class AbstractPrivateNotificationServiceTest {
 
     @Test
     fun `WHEN the service is created THEN start foreground is called`() {
-        val service = spy(object : MockService() {
-            override fun NotificationCompat.Builder.buildNotification() {
-                setCategory(Notification.CATEGORY_STATUS)
-            }
-            override fun notifyLocaleChanged() {
-                // NOOP
-            }
-        })
+        val service = spy(
+            object : MockService() {
+                override fun NotificationCompat.Builder.buildNotification() {
+                    setCategory(Notification.CATEGORY_STATUS)
+                }
+
+                override fun notifyLocaleChanged() {
+                    // NOOP
+                }
+            },
+        )
         attachContext(service)
 
         val notification = argumentCaptor<Notification>()
@@ -121,9 +124,10 @@ class AbstractPrivateNotificationServiceTest {
     private open class MockServiceWithStore : AbstractPrivateNotificationService() {
         override val store = BrowserStore(
             BrowserState(
-                locale = null
-            )
+                locale = null,
+            ),
         )
+
         override fun NotificationCompat.Builder.buildNotification() = Unit
         override fun notifyLocaleChanged() {
             // NOOP
@@ -132,7 +136,8 @@ class AbstractPrivateNotificationServiceTest {
 
     private fun attachContext(service: Service) {
         Mockito.doReturn(preferences).`when`(service).getSharedPreferences(anyString(), anyInt())
-        Mockito.doReturn(notificationManager).`when`(service).getSystemService<NotificationManager>()
+        Mockito.doReturn(notificationManager).`when`(service)
+            .getSystemService<NotificationManager>()
         Mockito.doReturn("").`when`(service).getString(anyInt())
         Mockito.doReturn("").`when`(service).packageName
         Mockito.doReturn(testContext.resources).`when`(service).resources

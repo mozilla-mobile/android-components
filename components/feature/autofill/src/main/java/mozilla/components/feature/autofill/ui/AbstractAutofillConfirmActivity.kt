@@ -46,7 +46,7 @@ abstract class AbstractAutofillConfirmActivity : FragmentActivity() {
 
         val structure: AssistStructure? = intent.getParcelableExtraCompat(
             AutofillManager.EXTRA_ASSIST_STRUCTURE,
-            AssistStructure::class.java
+            AssistStructure::class.java,
         )
         val loginId = intent.getStringExtra(EXTRA_LOGIN_ID)
         if (loginId == null) {

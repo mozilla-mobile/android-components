@@ -118,8 +118,8 @@ class MediaSessionServiceDelegateTest {
         val mediaTab2 = getMediaTab(PlaybackState.PAUSED)
         val store = BrowserStore(
             BrowserState(
-                tabs = listOf(mediaTab1, mediaTab2)
-            )
+                tabs = listOf(mediaTab1, mediaTab2),
+            ),
         )
         val delegate = MediaSessionServiceDelegate(testContext, mock(), store)
         delegate.mediaSession = mock()
@@ -164,18 +164,19 @@ class MediaSessionServiceDelegateTest {
     }
 
     @Test
-    fun `GIVEN the service is already in foreground WHEN handling playing media THEN setup internal properties`() = runTestOnMain {
-        val mediaTab = getMediaTab()
-        val delegate = MediaSessionServiceDelegate(testContext, mock(), mock())
-        delegate.notificationManager = mock()
-        delegate.onCreate()
-        delegate.audioFocus = mock()
-        delegate.isForegroundService = true
+    fun `GIVEN the service is already in foreground WHEN handling playing media THEN setup internal properties`() =
+        runTestOnMain {
+            val mediaTab = getMediaTab()
+            val delegate = MediaSessionServiceDelegate(testContext, mock(), mock())
+            delegate.notificationManager = mock()
+            delegate.onCreate()
+            delegate.audioFocus = mock()
+            delegate.isForegroundService = true
 
-        delegate.handleMediaPlaying(mediaTab)
+            delegate.handleMediaPlaying(mediaTab)
 
-        verify(delegate.notificationManager).notify(eq(delegate.notificationId), any())
-    }
+            verify(delegate.notificationManager).notify(eq(delegate.notificationId), any())
+        }
 
     @Test
     fun `GIVEN the service is not in foreground WHEN handling playing media THEN start the media service as foreground`() {
@@ -192,36 +193,41 @@ class MediaSessionServiceDelegateTest {
     }
 
     @Test
-    fun `WHEN updating the notification for a new media state THEN post a new notification`() = runTestOnMain {
-        val mediaTab = getMediaTab()
-        val delegate = MediaSessionServiceDelegate(testContext, mock(), mock())
-        delegate.notificationManager = mock()
-        delegate.onCreate()
-        val notification: Notification = mock()
-        delegate.notificationHelper = coMock {
-            doReturn(notification).`when`(this).create(mediaTab, delegate.mediaSession)
+    fun `WHEN updating the notification for a new media state THEN post a new notification`() =
+        runTestOnMain {
+            val mediaTab = getMediaTab()
+            val delegate = MediaSessionServiceDelegate(testContext, mock(), mock())
+            delegate.notificationManager = mock()
+            delegate.onCreate()
+            val notification: Notification = mock()
+            delegate.notificationHelper = coMock {
+                doReturn(notification).`when`(this).create(mediaTab, delegate.mediaSession)
+            }
+
+            delegate.updateNotification(mediaTab)
+
+            verify(delegate.notificationManager).notify(
+                eq(delegate.notificationId),
+                eq(notification),
+            )
         }
-
-        delegate.updateNotification(mediaTab)
-
-        verify(delegate.notificationManager).notify(eq(delegate.notificationId), eq(notification))
-    }
 
     @Test
-    fun `WHEN starting the service as foreground THEN use start with a new notification for the current media state`() = runTestOnMain {
-        val mediaTab = getMediaTab()
-        val delegate = MediaSessionServiceDelegate(testContext, mock(), mock())
-        delegate.onCreate()
-        val notification: Notification = mock()
-        delegate.notificationHelper = coMock {
-            doReturn(notification).`when`(this).create(mediaTab, delegate.mediaSession)
+    fun `WHEN starting the service as foreground THEN use start with a new notification for the current media state`() =
+        runTestOnMain {
+            val mediaTab = getMediaTab()
+            val delegate = MediaSessionServiceDelegate(testContext, mock(), mock())
+            delegate.onCreate()
+            val notification: Notification = mock()
+            delegate.notificationHelper = coMock {
+                doReturn(notification).`when`(this).create(mediaTab, delegate.mediaSession)
+            }
+
+            delegate.startForeground(mediaTab)
+
+            verify(delegate.service).startForeground(eq(delegate.notificationId), eq(notification))
+            assertTrue(delegate.isForegroundService)
         }
-
-        delegate.startForeground(mediaTab)
-
-        verify(delegate.service).startForeground(eq(delegate.notificationId), eq(notification))
-        assertTrue(delegate.isForegroundService)
-    }
 
     @Test
     fun `GIVEN media is paused WHEN media is handling resuming media THEN resume the right session`() {
@@ -229,8 +235,8 @@ class MediaSessionServiceDelegateTest {
         val mediaTab2 = getMediaTab(PlaybackState.PAUSED)
         val store = BrowserStore(
             BrowserState(
-                tabs = listOf(mediaTab1, mediaTab2)
-            )
+                tabs = listOf(mediaTab1, mediaTab2),
+            ),
         )
         val service: AbstractMediaSessionService = mock()
         val delegate = MediaSessionServiceDelegate(testContext, service, store)
@@ -262,21 +268,22 @@ class MediaSessionServiceDelegateTest {
     }
 
     @Test
-    fun `WHEN handling paused media THEN update internal state and notification and stop the service`() = runTestOnMain {
-        val mediaTab = getMediaTab(PlaybackState.PAUSED)
-        val delegate = spy(MediaSessionServiceDelegate(testContext, mock(), mock()))
-        delegate.notificationManager = mock()
-        delegate.isForegroundService = true
-        delegate.onCreate()
+    fun `WHEN handling paused media THEN update internal state and notification and stop the service`() =
+        runTestOnMain {
+            val mediaTab = getMediaTab(PlaybackState.PAUSED)
+            val delegate = spy(MediaSessionServiceDelegate(testContext, mock(), mock()))
+            delegate.notificationManager = mock()
+            delegate.isForegroundService = true
+            delegate.onCreate()
 
-        delegate.handleMediaPaused(mediaTab)
+            delegate.handleMediaPaused(mediaTab)
 
-        verify(delegate).updateMediaSession(mediaTab)
-        verify(delegate).unregisterBecomingNoisyListenerIfNeeded()
-        verify(delegate.service).stopForegroundCompat(false)
-        verify(delegate.notificationManager).notify(eq(delegate.notificationId), any())
-        assertFalse(delegate.isForegroundService)
-    }
+            verify(delegate).updateMediaSession(mediaTab)
+            verify(delegate).unregisterBecomingNoisyListenerIfNeeded()
+            verify(delegate.service).stopForegroundCompat(false)
+            verify(delegate.notificationManager).notify(eq(delegate.notificationId), any())
+            assertFalse(delegate.isForegroundService)
+        }
 
     @Test
     fun `WHEN handling stopped media THEN emit telemetry`() {
@@ -296,21 +303,22 @@ class MediaSessionServiceDelegateTest {
     }
 
     @Test
-    fun `WHEN handling stopped media THEN update internal state and notification and stop the service`() = runTestOnMain {
-        val mediaTab = getMediaTab(PlaybackState.STOPPED)
-        val delegate = spy(MediaSessionServiceDelegate(testContext, mock(), mock()))
-        delegate.notificationManager = mock()
-        delegate.isForegroundService = true
-        delegate.onCreate()
+    fun `WHEN handling stopped media THEN update internal state and notification and stop the service`() =
+        runTestOnMain {
+            val mediaTab = getMediaTab(PlaybackState.STOPPED)
+            val delegate = spy(MediaSessionServiceDelegate(testContext, mock(), mock()))
+            delegate.notificationManager = mock()
+            delegate.isForegroundService = true
+            delegate.onCreate()
 
-        delegate.handleMediaStopped(mediaTab)
+            delegate.handleMediaStopped(mediaTab)
 
-        verify(delegate).updateMediaSession(mediaTab)
-        verify(delegate).unregisterBecomingNoisyListenerIfNeeded()
-        verify(delegate.service).stopForegroundCompat(false)
-        verify(delegate.notificationManager).notify(eq(delegate.notificationId), any())
-        assertFalse(delegate.isForegroundService)
-    }
+            verify(delegate).updateMediaSession(mediaTab)
+            verify(delegate).unregisterBecomingNoisyListenerIfNeeded()
+            verify(delegate.service).stopForegroundCompat(false)
+            verify(delegate.notificationManager).notify(eq(delegate.notificationId), any())
+            assertFalse(delegate.isForegroundService)
+        }
 
     @Test
     fun `WHEN there is no media playing THEN stop the media service`() {
@@ -341,31 +349,40 @@ class MediaSessionServiceDelegateTest {
         assertEquals(expectedPlaybackState.state, playbackStateCaptor.value.state)
         assertEquals(
             (expectedPlaybackState.playbackState as AndroidPlaybackState).state,
-            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).state
+            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).state,
         )
         assertEquals(
             (expectedPlaybackState.playbackState as AndroidPlaybackState).position,
-            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).position
+            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).position,
         )
         assertEquals(
             (expectedPlaybackState.playbackState as AndroidPlaybackState).playbackSpeed,
-            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).playbackSpeed
+            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).playbackSpeed,
         )
         assertEquals(
             (expectedPlaybackState.playbackState as AndroidPlaybackState).actions,
-            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).actions
+            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).actions,
         )
         assertEquals(
             (expectedPlaybackState.playbackState as AndroidPlaybackState).customActions,
-            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).customActions
+            (playbackStateCaptor.value.playbackState as AndroidPlaybackState).customActions,
         )
         assertEquals(expectedPlaybackState.playbackSpeed, playbackStateCaptor.value.playbackSpeed)
         assertEquals(expectedPlaybackState.actions, playbackStateCaptor.value.actions)
         assertEquals(expectedPlaybackState.position, playbackStateCaptor.value.position)
         verify(delegate.mediaSession).setMetadata(metadataCaptor.capture())
-        assertEquals(mediaTab.content.title, metadataCaptor.value.bundle.getString(MediaMetadataCompat.METADATA_KEY_TITLE))
-        assertEquals(mediaTab.content.url, metadataCaptor.value.bundle.getString(MediaMetadataCompat.METADATA_KEY_ARTIST))
-        assertEquals(-1L, metadataCaptor.value.bundle.getLong(MediaMetadataCompat.METADATA_KEY_DURATION))
+        assertEquals(
+            mediaTab.content.title,
+            metadataCaptor.value.bundle.getString(MediaMetadataCompat.METADATA_KEY_TITLE),
+        )
+        assertEquals(
+            mediaTab.content.url,
+            metadataCaptor.value.bundle.getString(MediaMetadataCompat.METADATA_KEY_ARTIST),
+        )
+        assertEquals(
+            -1L,
+            metadataCaptor.value.bundle.getLong(MediaMetadataCompat.METADATA_KEY_DURATION),
+        )
     }
 
     @Test
@@ -445,9 +462,12 @@ class MediaSessionServiceDelegateTest {
             tabs = listOf(
                 createTab(
                     "https://www.mozilla.org",
-                    mediaSessionState = MediaSessionState(controller, playbackState = PlaybackState.PLAYING)
-                )
-            )
+                    mediaSessionState = MediaSessionState(
+                        controller,
+                        playbackState = PlaybackState.PLAYING,
+                    ),
+                ),
+            ),
         )
         val store = BrowserStore(initialState)
         val service: AbstractMediaSessionService = mock()
@@ -463,6 +483,6 @@ class MediaSessionServiceDelegateTest {
     private fun getMediaTab(playbackState: PlaybackState = PlaybackState.PLAYING) = createTab(
         title = "Mozilla",
         url = "https://www.mozilla.org",
-        mediaSessionState = MediaSessionState(mock(), playbackState = playbackState)
+        mediaSessionState = MediaSessionState(mock(), playbackState = playbackState),
     )
 }

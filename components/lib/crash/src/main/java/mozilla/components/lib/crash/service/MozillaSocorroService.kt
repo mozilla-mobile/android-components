@@ -91,7 +91,7 @@ class MozillaSocorroService(
     private var versionName: String = DEFAULT_VERSION_NAME,
     private var versionCode: String = DEFAULT_VERSION_CODE,
     private val releaseChannel: String = DEFAULT_RELEASE_CHANNEL,
-    private val distributionId: String = DEFAULT_DISTRIBUTION_ID
+    private val distributionId: String = DEFAULT_DISTRIBUTION_ID,
 ) : CrashReporterService {
     private val logger = Logger("mozac/MozillaSocorroCrashHelperService")
     private val startTime = System.currentTimeMillis()
@@ -107,7 +107,10 @@ class MozillaSocorroService(
 
     init {
         val packageInfo = try {
-            applicationContext.packageManager.getPackageInfoCompat(applicationContext.packageName, 0)
+            applicationContext.packageManager.getPackageInfoCompat(
+                applicationContext.packageName,
+                0,
+            )
         } catch (e: PackageManager.NameNotFoundException) {
             logger.error("package name not found, failed to get application version")
             null
@@ -149,7 +152,7 @@ class MozillaSocorroService(
             extrasFilePath = null,
             isNativeCodeCrash = false,
             isFatalCrash = true,
-            breadcrumbs = crash.breadcrumbs
+            breadcrumbs = crash.breadcrumbs,
         )
     }
 
@@ -161,7 +164,7 @@ class MozillaSocorroService(
             extrasFilePath = crash.extrasPath,
             isNativeCodeCrash = true,
             isFatalCrash = crash.isFatal,
-            breadcrumbs = crash.breadcrumbs
+            breadcrumbs = crash.breadcrumbs,
         )
     }
 
@@ -179,7 +182,7 @@ class MozillaSocorroService(
         extrasFilePath: String?,
         isNativeCodeCrash: Boolean,
         isFatalCrash: Boolean,
-        breadcrumbs: ArrayList<Breadcrumb>
+        breadcrumbs: ArrayList<Breadcrumb>,
     ): String? {
         val url = URL(serverUrl)
         val boundary = generateBoundary()
@@ -199,7 +202,7 @@ class MozillaSocorroService(
 
             sendCrashData(
                 conn.outputStream, boundary, timestamp, throwable, miniDumpFilePath, extrasFilePath,
-                isNativeCodeCrash, isFatalCrash, breadcrumbsJson.toString()
+                isNativeCodeCrash, isFatalCrash, breadcrumbsJson.toString(),
             )
 
             BufferedReader(InputStreamReader(conn.inputStream)).use { reader ->
@@ -253,7 +256,7 @@ class MozillaSocorroService(
         extrasFilePath: String?,
         isNativeCodeCrash: Boolean,
         isFatalCrash: Boolean,
-        breadcrumbs: String
+        breadcrumbs: String,
     ) {
         val nameSet = mutableSetOf<String>()
         val gzipOs = GZIPOutputStream(os)
@@ -263,7 +266,13 @@ class MozillaSocorroService(
         sendPart(gzipOs, boundary, "ApplicationBuildID", versionCode, nameSet)
         sendPart(gzipOs, boundary, "AndroidComponentVersion", AcBuild.version, nameSet)
         sendPart(gzipOs, boundary, "GleanVersion", AcBuild.gleanSdkVersion, nameSet)
-        sendPart(gzipOs, boundary, "ApplicationServicesVersion", AcBuild.applicationServicesVersion, nameSet)
+        sendPart(
+            gzipOs,
+            boundary,
+            "ApplicationServicesVersion",
+            AcBuild.applicationServicesVersion,
+            nameSet,
+        )
         sendPart(gzipOs, boundary, "GeckoViewVersion", version, nameSet)
         sendPart(gzipOs, boundary, "BuildID", buildId, nameSet)
         sendPart(gzipOs, boundary, "Vendor", vendor, nameSet)
@@ -285,15 +294,23 @@ class MozillaSocorroService(
 
         if (throwable?.stackTrace?.isEmpty() == false) {
             sendPart(
-                gzipOs, boundary, "JavaStackTrace",
+                gzipOs,
+                boundary,
+                "JavaStackTrace",
                 getExceptionStackTrace(
                     throwable,
-                    !isNativeCodeCrash && !isFatalCrash
+                    !isNativeCodeCrash && !isFatalCrash,
                 ),
-                nameSet
+                nameSet,
             )
 
-            sendPart(gzipOs, boundary, "JavaException", throwable.getStacktraceAsJsonString(), nameSet)
+            sendPart(
+                gzipOs,
+                boundary,
+                "JavaException",
+                throwable.getStacktraceAsJsonString(),
+                nameSet,
+            )
         }
 
         miniDumpFilePath?.let {
@@ -320,12 +337,18 @@ class MozillaSocorroService(
         sendProcessName(gzipOs, boundary, nameSet)
         sendPart(gzipOs, boundary, "ReleaseChannel", releaseChannel, nameSet)
         sendPart(
-            gzipOs, boundary, "StartupTime",
-            TimeUnit.MILLISECONDS.toSeconds(startTime).toString(), nameSet
+            gzipOs,
+            boundary,
+            "StartupTime",
+            TimeUnit.MILLISECONDS.toSeconds(startTime).toString(),
+            nameSet,
         )
         sendPart(
-            gzipOs, boundary, "CrashTime",
-            TimeUnit.MILLISECONDS.toSeconds(timestamp).toString(), nameSet
+            gzipOs,
+            boundary,
+            "CrashTime",
+            TimeUnit.MILLISECONDS.toSeconds(timestamp).toString(),
+            nameSet,
         )
         sendPart(gzipOs, boundary, "Android_PackageName", applicationContext.packageName, nameSet)
         sendPart(gzipOs, boundary, "Android_Manufacturer", Build.MANUFACTURER, nameSet)
@@ -337,8 +360,11 @@ class MozillaSocorroService(
         sendPart(gzipOs, boundary, "Android_Fingerprint", Build.FINGERPRINT, nameSet)
         sendPart(gzipOs, boundary, "Android_Hardware", Build.HARDWARE, nameSet)
         sendPart(
-            gzipOs, boundary, "Android_Version",
-            "${Build.VERSION.SDK_INT} (${Build.VERSION.CODENAME})", nameSet
+            gzipOs,
+            boundary,
+            "Android_Version",
+            "${Build.VERSION.SDK_INT} (${Build.VERSION.CODENAME})",
+            nameSet,
         )
 
         if (Build.SUPPORTED_ABIS.isNotEmpty()) {
@@ -355,23 +381,30 @@ class MozillaSocorroService(
 
     private fun sendProcessName(os: OutputStream, boundary: String, nameSet: MutableSet<String>) {
         val pid = android.os.Process.myPid()
-        val manager = applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val manager =
+            applicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         manager.runningAppProcesses.filter { it.pid == pid }.forEach {
             sendPart(os, boundary, "Android_ProcessName", it.processName, nameSet)
             return
         }
     }
 
-    private fun sendPackageInstallTime(os: OutputStream, boundary: String, nameSet: MutableSet<String>) {
+    private fun sendPackageInstallTime(
+        os: OutputStream,
+        boundary: String,
+        nameSet: MutableSet<String>,
+    ) {
         val packageManager = applicationContext.packageManager
         try {
             val packageInfo = packageManager.getPackageInfoCompat(applicationContext.packageName, 0)
             sendPart(
-                os, boundary, "InstallTime",
+                os,
+                boundary,
+                "InstallTime",
                 TimeUnit.MILLISECONDS.toSeconds(
-                    packageInfo.lastUpdateTime
+                    packageInfo.lastUpdateTime,
                 ).toString(),
-                nameSet
+                nameSet,
             )
         } catch (e: PackageManager.NameNotFoundException) {
             logger.error("Error getting package info", e)
@@ -390,7 +423,7 @@ class MozillaSocorroService(
         boundary: String,
         name: String,
         data: String?,
-        nameSet: MutableSet<String>
+        nameSet: MutableSet<String>,
     ) {
         if (data == null) {
             return
@@ -407,7 +440,7 @@ class MozillaSocorroService(
                 (
                     "--$boundary\r\nContent-Disposition: form-data; " +
                         "name=$name\r\n\r\n$data\r\n"
-                    ).toByteArray()
+                    ).toByteArray(),
             )
         } catch (e: IOException) {
             logger.error("Exception when sending $name", e)
@@ -420,7 +453,7 @@ class MozillaSocorroService(
         boundary: String,
         name: String,
         file: File,
-        nameSet: MutableSet<String>
+        nameSet: MutableSet<String>,
     ) {
         if (nameSet.contains(name)) {
             return
@@ -435,7 +468,7 @@ class MozillaSocorroService(
                         "Content-Disposition: form-data; name=\"$name\"; " +
                         "filename=\"${file.getName()}\"\r\n" +
                         "Content-Type: application/octet-stream\r\n\r\n"
-                    ).toByteArray()
+                    ).toByteArray(),
             )
         } catch (e: IOException) {
             logger.error("failed to write boundary", e)

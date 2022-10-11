@@ -44,6 +44,7 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
      * A lambda called when the allow button is clicked.
      */
     var onPositiveButtonClicked: ((Addon) -> Unit)? = null
+
     /**
      * A lambda called when the deny button is clicked.
      */
@@ -51,7 +52,13 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
 
     private val safeArguments get() = requireNotNull(arguments)
 
-    internal val addon get() = requireNotNull(safeArguments.getParcelableCompat(KEY_ADDON, Addon::class.java))
+    internal val addon
+        get() = requireNotNull(
+            safeArguments.getParcelableCompat(
+                KEY_ADDON,
+                Addon::class.java,
+            ),
+        )
 
     internal val positiveButtonRadius
         get() =
@@ -61,7 +68,7 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
         get() =
             safeArguments.getInt(
                 KEY_DIALOG_GRAVITY,
-                DEFAULT_VALUE
+                DEFAULT_VALUE,
             )
     internal val dialogShouldWidthMatchParent: Boolean
         get() =
@@ -71,14 +78,14 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
         get() =
             safeArguments.getInt(
                 KEY_POSITIVE_BUTTON_BACKGROUND_COLOR,
-                DEFAULT_VALUE
+                DEFAULT_VALUE,
             )
 
     internal val positiveButtonTextColor
         get() =
             safeArguments.getInt(
                 KEY_POSITIVE_BUTTON_TEXT_COLOR,
-                DEFAULT_VALUE
+                DEFAULT_VALUE,
             )
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -91,7 +98,6 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
         sheetDialog.setContainerView(rootView)
 
         sheetDialog.window?.apply {
-
             if (dialogGravity != DEFAULT_VALUE) {
                 setGravity(dialogGravity)
             }
@@ -119,8 +125,8 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
                 rootView,
                 LayoutParams(
                     LayoutParams.MATCH_PARENT,
-                    LayoutParams.MATCH_PARENT
-                )
+                    LayoutParams.MATCH_PARENT,
+                ),
             )
         }
     }
@@ -130,13 +136,13 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
         val rootView = LayoutInflater.from(requireContext()).inflate(
             R.layout.mozac_feature_addons_fragment_dialog_addon_permissions,
             null,
-            false
+            false,
         )
 
         rootView.findViewById<TextView>(R.id.title).text =
             requireContext().getString(
                 R.string.mozac_feature_addons_permissions_dialog_title,
-                addon.translateName(requireContext())
+                addon.translateName(requireContext()),
             )
         rootView.findViewById<TextView>(R.id.permissions).text = buildPermissionsText()
 
@@ -165,8 +171,8 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
             shape.setColor(
                 ContextCompat.getColor(
                     requireContext(),
-                    positiveButtonBackgroundColor
-                )
+                    positiveButtonBackgroundColor,
+                ),
             )
             shape.cornerRadius = positiveButtonRadius
             positiveButton.background = shape
@@ -206,12 +212,11 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
             addon: Addon,
             promptsStyling: PromptsStyling? = PromptsStyling(
                 gravity = Gravity.BOTTOM,
-                shouldWidthMatchParent = true
+                shouldWidthMatchParent = true,
             ),
             onPositiveButtonClicked: ((Addon) -> Unit)? = null,
-            onNegativeButtonClicked: (() -> Unit)? = null
+            onNegativeButtonClicked: (() -> Unit)? = null,
         ): PermissionsDialogFragment {
-
             val fragment = PermissionsDialogFragment()
             val arguments = fragment.arguments ?: Bundle()
 
@@ -249,6 +254,6 @@ class PermissionsDialogFragment : AppCompatDialogFragment() {
         val positiveButtonBackgroundColor: Int? = null,
         @ColorRes
         val positiveButtonTextColor: Int? = null,
-        val positiveButtonRadius: Float? = null
+        val positiveButtonRadius: Float? = null,
     )
 }

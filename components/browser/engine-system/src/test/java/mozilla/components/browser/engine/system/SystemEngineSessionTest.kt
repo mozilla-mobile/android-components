@@ -63,9 +63,13 @@ class SystemEngineSessionTest {
         engineView.render(engineSession)
 
         var observedProgress = 0
-        engineSession.register(object : EngineSession.Observer {
-            override fun onProgress(progress: Int) { observedProgress = progress }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onProgress(progress: Int) {
+                    observedProgress = progress
+                }
+            },
+        )
 
         engineSession.webView.webChromeClient!!.onProgressChanged(null, 100)
         assertEquals(100, observedProgress)
@@ -77,12 +81,17 @@ class SystemEngineSessionTest {
         var loadHeaders: Map<String, String>? = null
 
         val engineSession = spy(SystemEngineSession(testContext))
-        val webView = spy(object : WebView(testContext) {
-            override fun loadUrl(url: String, additionalHttpHeaders: MutableMap<String, String>) {
-                loadedUrl = url
-                loadHeaders = additionalHttpHeaders
-            }
-        })
+        val webView = spy(
+            object : WebView(testContext) {
+                override fun loadUrl(
+                    url: String,
+                    additionalHttpHeaders: MutableMap<String, String>,
+                ) {
+                    loadedUrl = url
+                    loadHeaders = additionalHttpHeaders
+                }
+            },
+        )
         val settings = mock<WebSettings>()
         whenever(webView.settings).thenReturn(settings)
 
@@ -122,7 +131,11 @@ class SystemEngineSessionTest {
         engineSession.webView = webView
 
         engineSession.loadData("<html><body>Hello!</body></html>")
-        verify(webView).loadData(eq("<html><body>Hello!</body></html>"), eq("text/html"), eq("UTF-8"))
+        verify(webView).loadData(
+            eq("<html><body>Hello!</body></html>"),
+            eq("text/html"),
+            eq("UTF-8"),
+        )
 
         engineSession.loadData("Hello!", "text/plain", "UTF-8")
         verify(webView).loadData(eq("Hello!"), eq("text/plain"), eq("UTF-8"))
@@ -219,7 +232,8 @@ class SystemEngineSessionTest {
         try {
             engineSession.restoreState(mock())
             fail("Expected IllegalArgumentException")
-        } catch (e: IllegalArgumentException) {}
+        } catch (e: IllegalArgumentException) {
+        }
         assertFalse(engineSession.restoreState(SystemEngineSessionState(Bundle())))
         verify(webView, never()).restoreState(mockitoAny(Bundle::class.java))
 
@@ -252,17 +266,19 @@ class SystemEngineSessionTest {
         engineSession.webView = webView
 
         var enabledObserved: Boolean? = null
-        engineSession.register(object : EngineSession.Observer {
-            override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
-                enabledObserved = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
+                    enabledObserved = enabled
+                }
+            },
+        )
 
         assertNull(engineSession.trackingProtectionPolicy)
         engineSession.updateTrackingProtection()
         assertEquals(
             EngineSession.TrackingProtectionPolicy.strict(),
-            engineSession.trackingProtectionPolicy
+            engineSession.trackingProtectionPolicy,
         )
         assertNotNull(enabledObserved)
         assertTrue(enabledObserved as Boolean)
@@ -272,11 +288,13 @@ class SystemEngineSessionTest {
     fun disableTrackingProtection() {
         val engineSession = spy(SystemEngineSession(testContext))
         var enabledObserved: Boolean? = null
-        engineSession.register(object : EngineSession.Observer {
-            override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
-                enabledObserved = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onTrackerBlockingEnabledChange(enabled: Boolean) {
+                    enabledObserved = enabled
+                }
+            },
+        )
 
         engineSession.trackingProtectionPolicy = EngineSession.TrackingProtectionPolicy.strict()
 
@@ -401,7 +419,7 @@ class SystemEngineSessionTest {
             displayZoomControls = true,
             loadWithOverviewMode = true,
             useWideViewPort = true,
-            supportMultipleWindows = true
+            supportMultipleWindows = true,
         )
         val engineSession = spy(SystemEngineSession(testContext, defaultSettings))
 
@@ -429,10 +447,14 @@ class SystemEngineSessionTest {
     @Test
     fun sharedFieldsAreVolatile() {
         val internalSettings = SystemEngineSession::class.java.getDeclaredField("internalSettings")
-        val webFontsEnabledField = SystemEngineSession::class.java.getDeclaredField("webFontsEnabled")
-        val trackingProtectionField = SystemEngineSession::class.java.getDeclaredField("trackingProtectionPolicy")
-        val historyTrackingDelegate = SystemEngineSession::class.java.getDeclaredField("historyTrackingDelegate")
-        val fullScreenCallback = SystemEngineSession::class.java.getDeclaredField("fullScreenCallback")
+        val webFontsEnabledField =
+            SystemEngineSession::class.java.getDeclaredField("webFontsEnabled")
+        val trackingProtectionField =
+            SystemEngineSession::class.java.getDeclaredField("trackingProtectionPolicy")
+        val historyTrackingDelegate =
+            SystemEngineSession::class.java.getDeclaredField("historyTrackingDelegate")
+        val fullScreenCallback =
+            SystemEngineSession::class.java.getDeclaredField("fullScreenCallback")
         val currentUrl = SystemEngineSession::class.java.getDeclaredField("currentUrl")
         val webView = SystemEngineSession::class.java.getDeclaredField("webView")
 
@@ -458,7 +480,7 @@ class SystemEngineSessionTest {
                 isSameDomain: Boolean,
                 isRedirect: Boolean,
                 isDirectNavigation: Boolean,
-                isSubframeRequest: Boolean
+                isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
@@ -477,7 +499,7 @@ class SystemEngineSessionTest {
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
-            request
+            request,
         )
 
         assertEquals("sample:about", interceptorCalledWithUri)
@@ -535,7 +557,7 @@ class SystemEngineSessionTest {
                 isSameDomain: Boolean,
                 isRedirect: Boolean,
                 isDirectNavigation: Boolean,
-                isSubframeRequest: Boolean
+                isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 return RequestInterceptor.InterceptionResponse.Content("<h1>Hello World</h1>")
             }
@@ -553,7 +575,7 @@ class SystemEngineSessionTest {
 
         engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
-            request
+            request,
         )
 
         verify(observer, never()).onLoadRequest(anyString(), anyBoolean(), anyBoolean())
@@ -572,7 +594,7 @@ class SystemEngineSessionTest {
                 isSameDomain: Boolean,
                 isRedirect: Boolean,
                 isDirectNavigation: Boolean,
-                isSubframeRequest: Boolean
+                isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return RequestInterceptor.InterceptionResponse.Url("https://mozilla.org")
@@ -591,7 +613,7 @@ class SystemEngineSessionTest {
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
-            request
+            request,
         )
 
         assertNull(response)
@@ -613,7 +635,7 @@ class SystemEngineSessionTest {
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
-            request
+            request,
         )
 
         assertNull(response)
@@ -632,7 +654,7 @@ class SystemEngineSessionTest {
                 isSameDomain: Boolean,
                 isRedirect: Boolean,
                 isDirectNavigation: Boolean,
-                isSubframeRequest: Boolean
+                isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 interceptorCalledWithUri = uri
                 return null
@@ -651,7 +673,7 @@ class SystemEngineSessionTest {
 
         val response = engineSession.webView.webViewClient.shouldInterceptRequest(
             engineSession.webView,
-            request
+            request,
         )
 
         assertEquals("sample:about", interceptorCalledWithUri)
@@ -662,64 +684,67 @@ class SystemEngineSessionTest {
     fun webViewErrorMappingToErrorType() {
         assertEquals(
             ErrorType.ERROR_UNKNOWN_HOST,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_HOST_LOOKUP)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_HOST_LOOKUP),
         )
         assertEquals(
             ErrorType.ERROR_CONNECTION_REFUSED,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_CONNECT)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_CONNECT),
         )
         assertEquals(
             ErrorType.ERROR_CONNECTION_REFUSED,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_IO)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_IO),
         )
         assertEquals(
             ErrorType.ERROR_NET_TIMEOUT,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_TIMEOUT)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_TIMEOUT),
         )
         assertEquals(
             ErrorType.ERROR_REDIRECT_LOOP,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_REDIRECT_LOOP)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_REDIRECT_LOOP),
         )
         assertEquals(
             ErrorType.ERROR_UNKNOWN_PROTOCOL,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_UNSUPPORTED_SCHEME)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_UNSUPPORTED_SCHEME),
         )
         assertEquals(
             ErrorType.ERROR_SECURITY_SSL,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_FAILED_SSL_HANDSHAKE)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_FAILED_SSL_HANDSHAKE),
         )
         assertEquals(
             ErrorType.ERROR_MALFORMED_URI,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_BAD_URL)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_BAD_URL),
         )
         assertEquals(
             ErrorType.UNKNOWN,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_TOO_MANY_REQUESTS)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_TOO_MANY_REQUESTS),
         )
         assertEquals(
             ErrorType.ERROR_FILE_NOT_FOUND,
-            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_FILE_NOT_FOUND)
+            SystemEngineSession.webViewErrorToErrorType(WebViewClient.ERROR_FILE_NOT_FOUND),
         )
         assertEquals(
             ErrorType.UNKNOWN,
-            SystemEngineSession.webViewErrorToErrorType(-500)
+            SystemEngineSession.webViewErrorToErrorType(-500),
         )
     }
 
     @Test
     fun desktopMode() {
-        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentMobile =
+            "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
         val engineSession = spy(SystemEngineSession(testContext))
         val webView = mock<WebView>()
         val webViewSettings = mock<WebSettings>()
         whenever(webView.settings).thenReturn(webViewSettings)
 
         var desktopMode = false
-        engineSession.register(object : EngineSession.Observer {
-            override fun onDesktopModeChange(enabled: Boolean) {
-                desktopMode = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onDesktopModeChange(enabled: Boolean) {
+                    desktopMode = enabled
+                }
+            },
+        )
 
         engineSession.webView = webView
         whenever(webView.settings).thenReturn(webViewSettings)
@@ -739,7 +764,8 @@ class SystemEngineSessionTest {
 
     @Test
     fun desktopModeWithProvidedTrueWideViewPort() {
-        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentMobile =
+            "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
         val defaultSettings = DefaultSettings(useWideViewPort = true)
         val engineSession = spy(SystemEngineSession(testContext, defaultSettings))
         val webView = mock<WebView>()
@@ -748,11 +774,13 @@ class SystemEngineSessionTest {
         val webViewSettings = mock<WebSettings>()
         var desktopMode = false
 
-        engineSession.register(object : EngineSession.Observer {
-            override fun onDesktopModeChange(enabled: Boolean) {
-                desktopMode = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onDesktopModeChange(enabled: Boolean) {
+                    desktopMode = enabled
+                }
+            },
+        )
 
         engineSession.webView = webView
         whenever(webView.settings).thenReturn(webViewSettings)
@@ -766,7 +794,8 @@ class SystemEngineSessionTest {
 
     @Test
     fun desktopModeWithProvidedFalseWideViewPort() {
-        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentMobile =
+            "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
         val defaultSettings = DefaultSettings(useWideViewPort = false)
         val engineSession = spy(SystemEngineSession(testContext, defaultSettings))
         val webView = mock<WebView>()
@@ -775,11 +804,13 @@ class SystemEngineSessionTest {
         val webViewSettings = mock<WebSettings>()
         var desktopMode = false
 
-        engineSession.register(object : EngineSession.Observer {
-            override fun onDesktopModeChange(enabled: Boolean) {
-                desktopMode = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onDesktopModeChange(enabled: Boolean) {
+                    desktopMode = enabled
+                }
+            },
+        )
 
         engineSession.webView = webView
         whenever(webView.settings).thenReturn(webViewSettings)
@@ -798,7 +829,8 @@ class SystemEngineSessionTest {
 
     @Test
     fun desktopModeToggleTrueWithNoProvidedDefault() {
-        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentMobile =
+            "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
         val engineSession = spy(SystemEngineSession(testContext))
         val webView = mock<WebView>()
 
@@ -807,11 +839,13 @@ class SystemEngineSessionTest {
         whenever(webViewSettings.userAgentString).thenReturn(userAgentMobile)
 
         var desktopMode = false
-        engineSession.register(object : EngineSession.Observer {
-            override fun onDesktopModeChange(enabled: Boolean) {
-                desktopMode = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onDesktopModeChange(enabled: Boolean) {
+                    desktopMode = enabled
+                }
+            },
+        )
 
         engineSession.webView = webView
         whenever(webView.settings).thenReturn(webViewSettings)
@@ -825,7 +859,8 @@ class SystemEngineSessionTest {
 
     @Test
     fun desktopModeToggleFalseWithNoProvidedDefault() {
-        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentMobile =
+            "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
         val engineSession = spy(SystemEngineSession(testContext))
 
         val webView = mock<WebView>()
@@ -835,11 +870,13 @@ class SystemEngineSessionTest {
         whenever(webViewSettings.userAgentString).thenReturn(userAgentMobile)
 
         var desktopMode = false
-        engineSession.register(object : EngineSession.Observer {
-            override fun onDesktopModeChange(enabled: Boolean) {
-                desktopMode = enabled
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onDesktopModeChange(enabled: Boolean) {
+                    desktopMode = enabled
+                }
+            },
+        )
 
         engineSession.webView = webView
         whenever(webView.settings).thenReturn(webViewSettings)
@@ -853,8 +890,10 @@ class SystemEngineSessionTest {
 
     @Test
     fun desktopModeUA() {
-        val userAgentMobile = "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
-        val userAgentDesktop = "Mozilla/5.0 (Linux; diordnA 9) AppleWebKit/537.36 eliboM Safari/537.36"
+        val userAgentMobile =
+            "Mozilla/5.0 (Linux; Android 9) AppleWebKit/537.36 Mobile Safari/537.36"
+        val userAgentDesktop =
+            "Mozilla/5.0 (Linux; diordnA 9) AppleWebKit/537.36 eliboM Safari/537.36"
         val engineSession = spy(SystemEngineSession(testContext))
 
         assertEquals(engineSession.toggleDesktopUA(userAgentMobile, false), userAgentMobile)
@@ -872,11 +911,13 @@ class SystemEngineSessionTest {
 
         engineSession.webView = webView
         var findObserved: String? = null
-        engineSession.register(object : EngineSession.Observer {
-            override fun onFind(text: String) {
-                findObserved = text
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onFind(text: String) {
+                    findObserved = text
+                }
+            },
+        )
         engineSession.findAll("mozilla")
         verify(webView).findAllAsync("mozilla")
         assertEquals("mozilla", findObserved)
@@ -1038,7 +1079,7 @@ class SystemEngineSessionTest {
             onError = {
                 onErrorCalled = true
                 assertSame(it, exception)
-            }
+            },
         )
         assertTrue(onErrorCalled)
     }
@@ -1095,11 +1136,13 @@ class SystemEngineSessionTest {
 
         engineSession.webView = webView
         Mockito.`when`(webView.canGoBack()).thenReturn(true)
-        engineSession.register(object : EngineSession.Observer {
-            override fun onNavigateBack() {
-                observedOnNavigateBack = true
-            }
-        })
+        engineSession.register(
+            object : EngineSession.Observer {
+                override fun onNavigateBack() {
+                    observedOnNavigateBack = true
+                }
+            },
+        )
 
         engineSession.goBack()
         assertTrue(observedOnNavigateBack)

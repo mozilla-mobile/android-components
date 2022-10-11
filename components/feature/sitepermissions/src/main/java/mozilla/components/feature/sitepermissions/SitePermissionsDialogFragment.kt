@@ -33,8 +33,10 @@ private const val KEY_NEGATIVE_BUTTON_TEXT = "KEY_NEGATIVE_BUTTON_TEXT"
 private const val KEY_POSITIVE_BUTTON_BACKGROUND_COLOR = "KEY_POSITIVE_BUTTON_BACKGROUND_COLOR"
 private const val KEY_POSITIVE_BUTTON_TEXT_COLOR = "KEY_POSITIVE_BUTTON_TEXT_COLOR"
 private const val KEY_SHOULD_SHOW_LEARN_MORE_LINK = "KEY_SHOULD_SHOW_LEARN_MORE_LINK"
-private const val KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX = "KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX"
-private const val KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX = "KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX"
+private const val KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX =
+    "KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX"
+private const val KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX =
+    "KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX"
 private const val KEY_IS_NOTIFICATION_REQUEST = "KEY_IS_NOTIFICATION_REQUEST"
 private const val DEFAULT_VALUE = Int.MAX_VALUE
 private const val KEY_PERMISSION_ID = "KEY_PERMISSION_ID"
@@ -45,38 +47,52 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
 
     private val safeArguments get() = requireNotNull(arguments)
 
-    internal val sessionId: String get() =
-        safeArguments.getString(KEY_SESSION_ID, "")
-    internal val title: String get() =
-        safeArguments.getString(KEY_TITLE, "")
-    internal val icon get() =
-        safeArguments.getInt(KEY_TITLE_ICON, DEFAULT_VALUE)
-    internal val message: String? get() =
-        safeArguments.getString(KEY_MESSAGE, null)
-    internal val negativeButtonText: String? get() =
-        safeArguments.getString(KEY_NEGATIVE_BUTTON_TEXT, null)
+    internal val sessionId: String
+        get() =
+            safeArguments.getString(KEY_SESSION_ID, "")
+    internal val title: String
+        get() =
+            safeArguments.getString(KEY_TITLE, "")
+    internal val icon
+        get() =
+            safeArguments.getInt(KEY_TITLE_ICON, DEFAULT_VALUE)
+    internal val message: String?
+        get() =
+            safeArguments.getString(KEY_MESSAGE, null)
+    internal val negativeButtonText: String?
+        get() =
+            safeArguments.getString(KEY_NEGATIVE_BUTTON_TEXT, null)
 
-    internal val dialogGravity: Int get() =
-        safeArguments.getInt(KEY_DIALOG_GRAVITY, DEFAULT_VALUE)
-    internal val dialogShouldWidthMatchParent: Boolean get() =
-        safeArguments.getBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT)
+    internal val dialogGravity: Int
+        get() =
+            safeArguments.getInt(KEY_DIALOG_GRAVITY, DEFAULT_VALUE)
+    internal val dialogShouldWidthMatchParent: Boolean
+        get() =
+            safeArguments.getBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT)
 
-    internal val positiveButtonBackgroundColor get() =
-        safeArguments.getInt(KEY_POSITIVE_BUTTON_BACKGROUND_COLOR, DEFAULT_VALUE)
-    internal val positiveButtonTextColor get() =
-        safeArguments.getInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, DEFAULT_VALUE)
+    internal val positiveButtonBackgroundColor
+        get() =
+            safeArguments.getInt(KEY_POSITIVE_BUTTON_BACKGROUND_COLOR, DEFAULT_VALUE)
+    internal val positiveButtonTextColor
+        get() =
+            safeArguments.getInt(KEY_POSITIVE_BUTTON_TEXT_COLOR, DEFAULT_VALUE)
 
-    internal val isNotificationRequest get() =
-        safeArguments.getBoolean(KEY_IS_NOTIFICATION_REQUEST, false)
+    internal val isNotificationRequest
+        get() =
+            safeArguments.getBoolean(KEY_IS_NOTIFICATION_REQUEST, false)
 
-    internal val shouldShowLearnMoreLink: Boolean get() =
-        safeArguments.getBoolean(KEY_SHOULD_SHOW_LEARN_MORE_LINK, false)
-    internal val shouldShowDoNotAskAgainCheckBox: Boolean get() =
-        safeArguments.getBoolean(KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX, true)
-    internal val shouldPreselectDoNotAskAgainCheckBox: Boolean get() =
-        safeArguments.getBoolean(KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX, false)
-    internal val permissionRequestId: String get() =
-        safeArguments.getString(KEY_PERMISSION_ID, "")
+    internal val shouldShowLearnMoreLink: Boolean
+        get() =
+            safeArguments.getBoolean(KEY_SHOULD_SHOW_LEARN_MORE_LINK, false)
+    internal val shouldShowDoNotAskAgainCheckBox: Boolean
+        get() =
+            safeArguments.getBoolean(KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX, true)
+    internal val shouldPreselectDoNotAskAgainCheckBox: Boolean
+        get() =
+            safeArguments.getBoolean(KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX, false)
+    internal val permissionRequestId: String
+        get() =
+            safeArguments.getString(KEY_PERMISSION_ID, "")
 
     // State
 
@@ -95,7 +111,6 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
         sheetDialog.setContainerView(rootView)
 
         sheetDialog.window?.apply {
-
             if (dialogGravity != DEFAULT_VALUE) {
                 setGravity(dialogGravity)
             }
@@ -123,17 +138,18 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
                 rootView,
                 LayoutParams(
                     LayoutParams.MATCH_PARENT,
-                    LayoutParams.MATCH_PARENT
-                )
+                    LayoutParams.MATCH_PARENT,
+                ),
             )
         }
     }
+
     @SuppressLint("InflateParams")
     private fun createContainer(): View {
         val rootView = LayoutInflater.from(requireContext()).inflate(
             R.layout.mozac_site_permissions_prompt,
             null,
-            false
+            false,
         )
 
         rootView.findViewById<TextView>(R.id.title).text = title
@@ -164,7 +180,8 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
         }
 
         if (positiveButtonBackgroundColor != DEFAULT_VALUE) {
-            val backgroundTintList = ContextCompat.getColorStateList(requireContext(), positiveButtonBackgroundColor)
+            val backgroundTintList =
+                ContextCompat.getColorStateList(requireContext(), positiveButtonBackgroundColor)
             positiveButton.backgroundTintList = backgroundTintList
         }
 
@@ -217,7 +234,6 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
             negativeButtonText: String? = null,
             shouldShowLearnMoreLink: Boolean = false,
         ): SitePermissionsDialogFragment {
-
             val fragment = SitePermissionsDialogFragment()
             val arguments = fragment.arguments ?: Bundle()
 
@@ -235,8 +251,14 @@ internal open class SitePermissionsDialogFragment : AppCompatDialogFragment() {
                     putBoolean(KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX, false)
                     putBoolean(KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX, true)
                 } else {
-                    putBoolean(KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX, shouldShowDoNotAskAgainCheckBox)
-                    putBoolean(KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX, shouldSelectDoNotAskAgainCheckBox)
+                    putBoolean(
+                        KEY_SHOULD_SHOW_DO_NOT_ASK_AGAIN_CHECKBOX,
+                        shouldShowDoNotAskAgainCheckBox,
+                    )
+                    putBoolean(
+                        KEY_SHOULD_PRESELECT_DO_NOT_ASK_AGAIN_CHECKBOX,
+                        shouldSelectDoNotAskAgainCheckBox,
+                    )
                 }
 
                 feature.promptsStyling?.apply {

@@ -54,7 +54,8 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
         val maxSuggestionCount = intent.getIntExtra(EXTRA_MAX_SUGGESTION_COUNT, MAX_LOGINS)
         // While the user is asked to authenticate, we already try to build the fill response asynchronously.
         fillResponse = lifecycleScope.async(Dispatchers.IO) {
-            val builder = fillHandler.handle(parsedStructure, forceUnlock = true, maxSuggestionCount)
+            val builder =
+                fillHandler.handle(parsedStructure, forceUnlock = true, maxSuggestionCount)
             val result = builder.build(this@AbstractAutofillUnlockActivity, configuration, imeSpec)
             result
         }
@@ -91,7 +92,12 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
             val replyIntent = Intent().apply {
                 // At this point it should be safe to block since the fill response should be ready once
                 // the user has authenticated.
-                runBlocking { putExtra(AutofillManager.EXTRA_AUTHENTICATION_RESULT, fillResponse?.await()) }
+                runBlocking {
+                    putExtra(
+                        AutofillManager.EXTRA_AUTHENTICATION_RESULT,
+                        fillResponse?.await(),
+                    )
+                }
             }
 
             emitAutofillLock(unlocked = true)
@@ -117,7 +123,7 @@ internal fun Intent.getImeSpec(): InlinePresentationSpec? {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         getParcelableExtraCompat(
             AbstractAutofillUnlockActivity.EXTRA_IME_SPEC,
-            InlinePresentationSpec::class.java
+            InlinePresentationSpec::class.java,
         )
     } else {
         null

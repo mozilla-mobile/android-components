@@ -86,7 +86,7 @@ fun isTrustedWebActivityIntent(safeIntent: SafeIntent) = isCustomTabIntent(safeI
  */
 fun createCustomTabConfigFromIntent(
     intent: Intent,
-    resources: Resources?
+    resources: Resources?,
 ): CustomTabConfig {
     val safeIntent = intent.toSafeIntent()
 
@@ -96,17 +96,25 @@ fun createCustomTabConfigFromIntent(
         closeButtonIcon = getCloseButtonIcon(safeIntent, resources),
         enableUrlbarHiding = safeIntent.getBooleanExtra(EXTRA_ENABLE_URLBAR_HIDING, false),
         actionButtonConfig = getActionButtonConfig(safeIntent),
-        showShareMenuItem = (safeIntent.getIntExtra(EXTRA_SHARE_STATE, SHARE_STATE_DEFAULT) == SHARE_STATE_ON),
+        showShareMenuItem = (
+            safeIntent.getIntExtra(
+                EXTRA_SHARE_STATE,
+                SHARE_STATE_DEFAULT,
+            ) == SHARE_STATE_ON
+            ),
         menuItems = getMenuItems(safeIntent),
         exitAnimations = safeIntent.getBundleExtra(EXTRA_EXIT_ANIMATION_BUNDLE)?.unsafe,
-        titleVisible = safeIntent.getIntExtra(EXTRA_TITLE_VISIBILITY_STATE, NO_TITLE) == SHOW_PAGE_TITLE,
+        titleVisible = safeIntent.getIntExtra(
+            EXTRA_TITLE_VISIBILITY_STATE,
+            NO_TITLE,
+        ) == SHOW_PAGE_TITLE,
         sessionToken = if (intent.extras != null) {
             // getSessionTokenFromIntent throws if extras is null
             CustomTabsSessionToken.getSessionTokenFromIntent(intent)
         } else {
             null
         },
-        externalAppType = ExternalAppType.CUSTOM_TAB
+        externalAppType = ExternalAppType.CUSTOM_TAB,
     )
 }
 
@@ -120,7 +128,8 @@ private fun getCloseButtonIcon(intent: SafeIntent, resources: Resources?): Bitma
     } catch (e: ClassCastException) {
         null
     }
-    val maxSize = resources?.getDimension(R.dimen.mozac_feature_customtabs_max_close_button_size) ?: Float.MAX_VALUE
+    val maxSize = resources?.getDimension(R.dimen.mozac_feature_customtabs_max_close_button_size)
+        ?: Float.MAX_VALUE
 
     return if (icon != null && max(icon.width, icon.height) <= maxSize) {
         icon
@@ -133,7 +142,8 @@ private fun getActionButtonConfig(intent: SafeIntent): CustomTabActionButtonConf
     val actionButtonBundle = intent.getBundleExtra(EXTRA_ACTION_BUTTON_BUNDLE) ?: return null
     val description = actionButtonBundle.getString(KEY_DESCRIPTION)
     val icon = actionButtonBundle.getParcelable(KEY_ICON, Bitmap::class.java)
-    val pendingIntent = actionButtonBundle.getParcelable(KEY_PENDING_INTENT, PendingIntent::class.java)
+    val pendingIntent =
+        actionButtonBundle.getParcelable(KEY_PENDING_INTENT, PendingIntent::class.java)
     val id = actionButtonBundle.getInt(KEY_ID, TOOLBAR_ACTION_BUTTON_ID)
     val tint = intent.getBooleanExtra(EXTRA_TINT_ACTION_BUTTON, false)
 
@@ -143,7 +153,7 @@ private fun getActionButtonConfig(intent: SafeIntent): CustomTabActionButtonConf
             description = description,
             icon = icon,
             pendingIntent = pendingIntent,
-            tint = tint
+            tint = tint,
         )
     } else {
         null
@@ -160,7 +170,7 @@ private fun getMenuItems(intent: SafeIntent): List<CustomTabMenuItem> =
             if (name != null && pendingIntent != null) {
                 CustomTabMenuItem(
                     name = name,
-                    pendingIntent = pendingIntent
+                    pendingIntent = pendingIntent,
                 )
             } else {
                 null

@@ -263,7 +263,6 @@ class SafeIntentTest {
 
     @Test
     fun `getUnsafe returns original intent`() {
-
         assertEquals(intent, SafeIntent(intent).unsafe)
     }
 

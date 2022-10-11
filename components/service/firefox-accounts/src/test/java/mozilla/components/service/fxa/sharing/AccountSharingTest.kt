@@ -39,7 +39,12 @@ class AccountSharingTest {
         val packageManager: PackageManager = mock()
         val packageName = "org.mozilla.firefox"
 
-        `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenThrow(PackageManager.NameNotFoundException())
+        `when`(
+            packageManager.getPackageInfo(
+                anyString(),
+                anyInt(),
+            ),
+        ).thenThrow(PackageManager.NameNotFoundException())
         assertNull(AccountSharing.getSignaturePostAPI28(packageManager, packageName))
     }
 
@@ -96,7 +101,12 @@ class AccountSharingTest {
         val packageManager: PackageManager = mock()
         val packageName = "org.mozilla.firefox"
 
-        `when`(packageManager.getPackageInfo(anyString(), anyInt())).thenThrow(PackageManager.NameNotFoundException())
+        `when`(
+            packageManager.getPackageInfo(
+                anyString(),
+                anyInt(),
+            ),
+        ).thenThrow(PackageManager.NameNotFoundException())
         assertNull(AccountSharing.getSignaturePreAPI28(packageManager, packageName))
     }
 
@@ -135,7 +145,8 @@ class AccountSharingTest {
         val packageInfo: PackageInfo = mock()
         val signingInfo: SigningInfo = mock()
         // This is unhashed signature value
-        val signatureValue = "308203a63082028ea00302010202044c72fd88300d06092a864886f70d0101050500308194310b3009060355040613025553311330110603550408130a43616c69666f726e6961311630140603550407130d4d6f756e7461696e2056696577311c301a060355040a13134d6f7a696c6c6120436f72706f726174696f6e311c301a060355040b131352656c6561736520456e67696e656572696e67311c301a0603550403131352656c6561736520456e67696e656572696e67301e170d3130303832333233303032345a170d3338303130383233303032345a308194310b3009060355040613025553311330110603550408130a43616c69666f726e6961311630140603550407130d4d6f756e7461696e2056696577311c301a060355040a13134d6f7a696c6c6120436f72706f726174696f6e311c301a060355040b131352656c6561736520456e67696e656572696e67311c301a0603550403131352656c6561736520456e67696e656572696e6730820122300d06092a864886f70d01010105000382010f003082010a0282010100b4160fb324eac03bd9f7ca21a094769d6811d5e9de2a2314b86f279b7de05b086465ec2dda1db2023bc1b33f73e92c52ed185bb95fcb5d2d81667f6e76266e76de836b3e928d94dd9675bb6ec051fc378affae85158e4ffad4ed27c9f3efc8fa7641ff08e43b4c56ded176d981cb83cf87002d0fe55ab00753f8f255b52f04b9d30173fc2c9b980b6ea24d1ae62e0fe0e73e692591e4f4d5701739929d91c6874ccb932bd533ba3f45586a2306bd39e7aa02fa90c0271a50fa3bde8fe4dd820fe8143a18795717349cfc32e9ceecbd01323c7c86f3132b140341bfc6dc26c0559127169510b0181cfa81b5491dd7c9dc0de3f2ab06b8dcdd7331692839f865650203010001300d06092a864886f70d010105050003820101007a06b17b9f5e49cfe86fc7bd9155b9e755d2f770802c3c9d70bde327bb54f5d7e41e8bb1a466dac30e9933f249ba9f06240794d56af9b36afb01e2272f57d14e9ca162733b0dd8ba373fb465428c5cfe14376f08e58d65c82f18f6c26255519f5244c3c34c9f552e1fcb52f71bcc62180f53e8027221af716be5adc55b939478725c12cb688bad617168d0f803513a6c10be147250ed7b5d2d37569135e81ceca38bba7bdcb5f9a802bae6740d85ae0a4c3fb27da78cc5b8c2fae4d8f361894ac70236bdcb3eadf9f36f46ee48662f9be4e22eda49e1b4db1e911ab972d8925298f16e831344da881059a9c0fbce229efeae719740e975d7f0dc691ccca0a9ce"
+        val signatureValue =
+            "308203a63082028ea00302010202044c72fd88300d06092a864886f70d0101050500308194310b3009060355040613025553311330110603550408130a43616c69666f726e6961311630140603550407130d4d6f756e7461696e2056696577311c301a060355040a13134d6f7a696c6c6120436f72706f726174696f6e311c301a060355040b131352656c6561736520456e67696e656572696e67311c301a0603550403131352656c6561736520456e67696e656572696e67301e170d3130303832333233303032345a170d3338303130383233303032345a308194310b3009060355040613025553311330110603550408130a43616c69666f726e6961311630140603550407130d4d6f756e7461696e2056696577311c301a060355040a13134d6f7a696c6c6120436f72706f726174696f6e311c301a060355040b131352656c6561736520456e67696e656572696e67311c301a0603550403131352656c6561736520456e67696e656572696e6730820122300d06092a864886f70d01010105000382010f003082010a0282010100b4160fb324eac03bd9f7ca21a094769d6811d5e9de2a2314b86f279b7de05b086465ec2dda1db2023bc1b33f73e92c52ed185bb95fcb5d2d81667f6e76266e76de836b3e928d94dd9675bb6ec051fc378affae85158e4ffad4ed27c9f3efc8fa7641ff08e43b4c56ded176d981cb83cf87002d0fe55ab00753f8f255b52f04b9d30173fc2c9b980b6ea24d1ae62e0fe0e73e692591e4f4d5701739929d91c6874ccb932bd533ba3f45586a2306bd39e7aa02fa90c0271a50fa3bde8fe4dd820fe8143a18795717349cfc32e9ceecbd01323c7c86f3132b140341bfc6dc26c0559127169510b0181cfa81b5491dd7c9dc0de3f2ab06b8dcdd7331692839f865650203010001300d06092a864886f70d010105050003820101007a06b17b9f5e49cfe86fc7bd9155b9e755d2f770802c3c9d70bde327bb54f5d7e41e8bb1a466dac30e9933f249ba9f06240794d56af9b36afb01e2272f57d14e9ca162733b0dd8ba373fb465428c5cfe14376f08e58d65c82f18f6c26255519f5244c3c34c9f552e1fcb52f71bcc62180f53e8027221af716be5adc55b939478725c12cb688bad617168d0f803513a6c10be147250ed7b5d2d37569135e81ceca38bba7bdcb5f9a802bae6740d85ae0a4c3fb27da78cc5b8c2fae4d8f361894ac70236bdcb3eadf9f36f46ee48662f9be4e22eda49e1b4db1e911ab972d8925298f16e831344da881059a9c0fbce229efeae719740e975d7f0dc691ccca0a9ce"
         val signature = Signature(signatureValue)
         val signatures = arrayOf(signature)
         val contentResolver: ContentResolver = mock()
@@ -155,13 +166,17 @@ class AccountSharingTest {
 
         // Account without tokens should not be returned
         val expiredAccount = createAccount("user@mozilla.org")
-        `when`(contentProviderClient.query(any(), any(), any(), any(), any())).thenReturn(expiredAccount)
+        `when`(contentProviderClient.query(any(), any(), any(), any(), any())).thenReturn(
+            expiredAccount,
+        )
         var result = AccountSharing.queryShareableAccounts(context)
         assertTrue(result.isEmpty())
 
         // Accounts with valid tokens should be returned in order
         val validAccount = createAccount("user@mozilla.org", "sessionToken", "ksync", "kxscs")
-        `when`(contentProviderClient.query(any(), any(), any(), any(), any())).thenReturn(validAccount)
+        `when`(contentProviderClient.query(any(), any(), any(), any(), any())).thenReturn(
+            validAccount,
+        )
         result = AccountSharing.queryShareableAccounts(context)
         assertEquals(2, result.size)
         val expectedAccountRelease = ShareableAccount(
@@ -170,8 +185,8 @@ class AccountSharingTest {
             MigratingAccountInfo(
                 "sessionToken".toByteArray().toHexString(),
                 "ksync".toByteArray().toHexString(),
-                "kxscs"
-            )
+                "kxscs",
+            ),
         )
         assertEquals(expectedAccountRelease, result[0])
 
@@ -181,8 +196,8 @@ class AccountSharingTest {
             MigratingAccountInfo(
                 "sessionToken".toByteArray().toHexString(),
                 "ksync".toByteArray().toHexString(),
-                "kxscs"
-            )
+                "kxscs",
+            ),
         )
         assertEquals(expectedAccountBeta, result[1])
     }
@@ -191,7 +206,7 @@ class AccountSharingTest {
         email: String? = null,
         sessionToken: String? = null,
         ksync: String? = null,
-        kxscs: String? = null
+        kxscs: String? = null,
     ): Cursor {
         val cursor: Cursor = mock()
         `when`(cursor.getColumnIndex(KEY_EMAIL)).thenReturn(0)

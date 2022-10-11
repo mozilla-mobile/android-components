@@ -86,7 +86,7 @@ abstract class AbstractCustomTabsService : CustomTabsService() {
         sessionToken: CustomTabsSessionToken,
         url: Uri?,
         extras: Bundle?,
-        otherLikelyBundles: List<Bundle>?
+        otherLikelyBundles: List<Bundle>?,
     ): Boolean {
         logger.debug("Opening speculative connections")
 
@@ -110,7 +110,7 @@ abstract class AbstractCustomTabsService : CustomTabsService() {
         sessionToken: CustomTabsSessionToken,
         @Relation relation: Int,
         origin: Uri,
-        extras: Bundle?
+        extras: Bundle?,
     ): Boolean {
         val verifier = verifier
         val state = customTabsServiceStore.state.tabs[sessionToken]

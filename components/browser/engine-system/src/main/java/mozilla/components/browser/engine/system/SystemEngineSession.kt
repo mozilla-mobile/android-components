@@ -31,7 +31,7 @@ internal val xRequestHeader = mapOf(
     // application. We can't really prevent that but we can at least send an empty value.
     // Unfortunately the additional headers will not be propagated to subsequent requests
     // (e.g. redirects). See issue #696.
-    "X-Requested-With" to ""
+    "X-Requested-With" to "",
 )
 
 /**
@@ -40,20 +40,35 @@ internal val xRequestHeader = mapOf(
 @Suppress("LargeClass", "TooManyFunctions")
 class SystemEngineSession(
     context: Context,
-    private val defaultSettings: Settings? = null
+    private val defaultSettings: Settings? = null,
 ) : EngineSession() {
     private val resources = context.resources
-    @Volatile internal lateinit var internalSettings: Settings
-    @Volatile internal var historyTrackingDelegate: HistoryTrackingDelegate? = null
-    @Volatile internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
-    @Volatile internal var webFontsEnabled = true
-    @Volatile internal var currentUrl = ""
-    @Volatile internal var useWideViewPort: Boolean? = null // See [toggleDesktopMode]
-    @Volatile internal var fullScreenCallback: WebChromeClient.CustomViewCallback? = null
+
+    @Volatile
+    internal lateinit var internalSettings: Settings
+
+    @Volatile
+    internal var historyTrackingDelegate: HistoryTrackingDelegate? = null
+
+    @Volatile
+    internal var trackingProtectionPolicy: TrackingProtectionPolicy? = null
+
+    @Volatile
+    internal var webFontsEnabled = true
+
+    @Volatile
+    internal var currentUrl = ""
+
+    @Volatile
+    internal var useWideViewPort: Boolean? = null // See [toggleDesktopMode]
+
+    @Volatile
+    internal var fullScreenCallback: WebChromeClient.CustomViewCallback? = null
 
     // This is public for FFTV which needs access to the WebView instance. We can mark it internal once
     // https://github.com/mozilla-mobile/android-components/issues/1616 is resolved.
-    @Volatile var webView: WebView = NestedWebView(context)
+    @Volatile
+    var webView: WebView = NestedWebView(context)
         set(value) {
             field = value
             initSettings()
@@ -71,7 +86,7 @@ class SystemEngineSession(
         url: String,
         parent: EngineSession?,
         flags: LoadUrlFlags,
-        additionalHeaders: Map<String, String>?
+        additionalHeaders: Map<String, String>?,
     ) {
         val headers =
             if (additionalHeaders == null) {
@@ -186,7 +201,12 @@ class SystemEngineSession(
      * See [EngineSession.clearData]
      */
     @Suppress("TooGenericExceptionCaught")
-    override fun clearData(data: BrowsingData, host: String?, onSuccess: () -> Unit, onError: (Throwable) -> Unit) {
+    override fun clearData(
+        data: BrowsingData,
+        host: String?,
+        onSuccess: () -> Unit,
+        onError: (Throwable) -> Unit,
+    ) {
         webView.apply {
             try {
                 if (data.contains(BrowsingData.DOM_STORAGES)) {
@@ -290,57 +310,90 @@ class SystemEngineSession(
         useWideViewPort?.let { settings.useWideViewPort = it }
     }
 
+    @Suppress("LongMethod")
     private fun initSettings(webView: WebView, s: WebSettings) {
         internalSettings = object : Settings() {
-            override var javascriptEnabled by WebSetting(s::getJavaScriptEnabled, s::setJavaScriptEnabled)
-            override var domStorageEnabled by WebSetting(s::getDomStorageEnabled, s::setDomStorageEnabled)
+            override var javascriptEnabled by WebSetting(
+                s::getJavaScriptEnabled,
+                s::setJavaScriptEnabled,
+            )
+            override var domStorageEnabled by WebSetting(
+                s::getDomStorageEnabled,
+                s::setDomStorageEnabled,
+            )
             override var allowFileAccess by WebSetting(s::getAllowFileAccess, s::setAllowFileAccess)
-            override var allowContentAccess by WebSetting(s::getAllowContentAccess, s::setAllowContentAccess)
+            override var allowContentAccess by WebSetting(
+                s::getAllowContentAccess,
+                s::setAllowContentAccess,
+            )
             override var userAgentString by WebSetting(s::getUserAgentString, s::setUserAgentString)
-            override var displayZoomControls by WebSetting(s::getDisplayZoomControls, s::setDisplayZoomControls)
-            override var loadWithOverviewMode by WebSetting(s::getLoadWithOverviewMode, s::setLoadWithOverviewMode)
+            override var displayZoomControls by WebSetting(
+                s::getDisplayZoomControls,
+                s::setDisplayZoomControls,
+            )
+            override var loadWithOverviewMode by WebSetting(
+                s::getLoadWithOverviewMode,
+                s::setLoadWithOverviewMode,
+            )
             override var useWideViewPort: Boolean?
                 get() = this@SystemEngineSession.useWideViewPort
                 set(value) = setUseWideViewPort(s, value)
-            override var supportMultipleWindows by WebSetting(s::supportMultipleWindows, s::setSupportMultipleWindows)
+            override var supportMultipleWindows by WebSetting(
+                s::supportMultipleWindows,
+                s::setSupportMultipleWindows,
+            )
 
             @Suppress("DEPRECATION")
             // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8513
             override var allowFileAccessFromFileURLs by WebSetting(
-                s::getAllowFileAccessFromFileURLs, s::setAllowFileAccessFromFileURLs
+                s::getAllowFileAccessFromFileURLs,
+                s::setAllowFileAccessFromFileURLs,
             )
+
             @Suppress("DEPRECATION")
             // Deprecation will be handled in https://github.com/mozilla-mobile/android-components/issues/8514
             override var allowUniversalAccessFromFileURLs by WebSetting(
-                s::getAllowUniversalAccessFromFileURLs, s::setAllowUniversalAccessFromFileURLs
+                s::getAllowUniversalAccessFromFileURLs,
+                s::setAllowUniversalAccessFromFileURLs,
             )
 
             override var mediaPlaybackRequiresUserGesture by WebSetting(
-                s::getMediaPlaybackRequiresUserGesture, s::setMediaPlaybackRequiresUserGesture
+                s::getMediaPlaybackRequiresUserGesture,
+                s::setMediaPlaybackRequiresUserGesture,
             )
             override var javaScriptCanOpenWindowsAutomatically by WebSetting(
-                s::getJavaScriptCanOpenWindowsAutomatically, s::setJavaScriptCanOpenWindowsAutomatically
+                s::getJavaScriptCanOpenWindowsAutomatically,
+                s::setJavaScriptCanOpenWindowsAutomatically,
             )
 
             override var verticalScrollBarEnabled
                 get() = webView.isVerticalScrollBarEnabled
-                set(value) { webView.isVerticalScrollBarEnabled = value }
+                set(value) {
+                    webView.isVerticalScrollBarEnabled = value
+                }
 
             override var horizontalScrollBarEnabled
                 get() = webView.isHorizontalScrollBarEnabled
-                set(value) { webView.isHorizontalScrollBarEnabled = value }
+                set(value) {
+                    webView.isHorizontalScrollBarEnabled = value
+                }
 
             override var webFontsEnabled
                 get() = this@SystemEngineSession.webFontsEnabled
-                set(value) { this@SystemEngineSession.webFontsEnabled = value }
+                set(value) {
+                    this@SystemEngineSession.webFontsEnabled = value
+                }
 
             override var trackingProtectionPolicy: TrackingProtectionPolicy?
                 get() = this@SystemEngineSession.trackingProtectionPolicy
-                set(value) = value?.let { updateTrackingProtection(it) } ?: disableTrackingProtection()
+                set(value) = value?.let { updateTrackingProtection(it) }
+                    ?: disableTrackingProtection()
 
             override var historyTrackingDelegate: HistoryTrackingDelegate?
                 get() = this@SystemEngineSession.historyTrackingDelegate
-                set(value) { this@SystemEngineSession.historyTrackingDelegate = value }
+                set(value) {
+                    this@SystemEngineSession.historyTrackingDelegate = value
+                }
 
             override var requestInterceptor: RequestInterceptor? = null
         }.apply {

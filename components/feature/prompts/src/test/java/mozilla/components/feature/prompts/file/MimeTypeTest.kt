@@ -45,7 +45,7 @@ class MimeTypeTest {
         mimeTypes = emptyArray(),
         onSingleFileSelected = { _, _ -> },
         onMultipleFilesSelected = { _, _ -> },
-        onDismiss = {}
+        onDismiss = {},
     )
     private val capture = PromptRequest.File.FacingMode.ANY
 
@@ -238,7 +238,7 @@ class MimeTypeTest {
         @Suppress("DEPRECATION")
         `when`(
             packageManager
-                .resolveContentProvider(eq("org.mozilla.browser.fileprovider"), anyInt())
+                .resolveContentProvider(eq("org.mozilla.browser.fileprovider"), anyInt()),
         )
             .thenReturn(mock(ProviderInfo::class.java))
         mockResolveActivity()
@@ -258,7 +258,8 @@ class MimeTypeTest {
             assertEquals(1, extras?.size())
         }
 
-        val frontCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.FRONT_CAMERA)
+        val frontCaptureRequest =
+            request.copy(captureMode = PromptRequest.File.FacingMode.FRONT_CAMERA)
         image.buildIntent(context, frontCaptureRequest)?.run {
             assertEquals(action, ACTION_IMAGE_CAPTURE)
             assertEquals(1, extras!!.getInt(MimeType.CAMERA_FACING))
@@ -266,7 +267,8 @@ class MimeTypeTest {
             assertEquals(true, extras!!.getBoolean(MimeType.USE_FRONT_CAMERA))
         }
 
-        val backCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.BACK_CAMERA)
+        val backCaptureRequest =
+            request.copy(captureMode = PromptRequest.File.FacingMode.BACK_CAMERA)
         image.buildIntent(context, backCaptureRequest)?.run {
             assertEquals(action, ACTION_IMAGE_CAPTURE)
             assertEquals(0, extras!!.getInt(MimeType.CAMERA_FACING))
@@ -291,7 +293,8 @@ class MimeTypeTest {
             assertNull(extras)
         }
 
-        val frontCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.FRONT_CAMERA)
+        val frontCaptureRequest =
+            request.copy(captureMode = PromptRequest.File.FacingMode.FRONT_CAMERA)
         MimeType.Video.buildIntent(context, frontCaptureRequest)?.run {
             assertEquals(action, ACTION_VIDEO_CAPTURE)
             assertEquals(1, extras!!.getInt(MimeType.CAMERA_FACING))
@@ -299,7 +302,8 @@ class MimeTypeTest {
             assertEquals(true, extras!!.getBoolean(MimeType.USE_FRONT_CAMERA))
         }
 
-        val backCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.BACK_CAMERA)
+        val backCaptureRequest =
+            request.copy(captureMode = PromptRequest.File.FacingMode.BACK_CAMERA)
         MimeType.Video.buildIntent(context, backCaptureRequest)?.run {
             assertEquals(action, ACTION_VIDEO_CAPTURE)
             assertEquals(0, extras!!.getInt(MimeType.CAMERA_FACING))
@@ -338,7 +342,7 @@ class MimeTypeTest {
         // with EXTRA_ALLOW_MULTIPLE and EXTRA_MIME_TYPES
         val multiJpegRequest = request.copy(
             mimeTypes = arrayOf("image/jpeg"),
-            isMultipleFilesSelection = true
+            isMultipleFilesSelection = true,
         )
         with(MimeType.Wildcard.buildIntent(testContext, multiJpegRequest)) {
             assertEquals(action, ACTION_GET_CONTENT)
@@ -359,11 +363,12 @@ class MimeTypeTest {
             addExtensionMimeTypMapping(".gif", "image/gif")
             addExtensionMimeTypMapping(
                 "docx",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
         }
 
-        val extensionsRequest = request.copy(mimeTypes = arrayOf(".gif", "image/jpeg", "docx", ".fun"))
+        val extensionsRequest =
+            request.copy(mimeTypes = arrayOf(".gif", "image/jpeg", "docx", ".fun"))
 
         with(MimeType.Wildcard.buildIntent(testContext, extensionsRequest)) {
             assertEquals(action, ACTION_GET_CONTENT)
@@ -371,7 +376,10 @@ class MimeTypeTest {
             val mimeTypes = extras!!.getStringArray(EXTRA_MIME_TYPES) as Array<*>
             assertEquals(mimeTypes[0], "image/gif")
             assertEquals(mimeTypes[1], "image/jpeg")
-            assertEquals(mimeTypes[2], "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            assertEquals(
+                mimeTypes[2],
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
             assertEquals(mimeTypes[3], "*/*")
         }
     }

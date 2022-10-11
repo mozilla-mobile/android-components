@@ -94,7 +94,7 @@ class BrowserGestureDetectorTest {
         // Neither the scale detector, nor the scroll detector should be interested
         // in a one of a time ACTION_CANCEL MotionEvent
         val wasEventHandled = detector.handleTouchEvent(
-            TestUtils.getMotionEvent(ACTION_CANCEL, previousEvent = unhandledEvent)
+            TestUtils.getMotionEvent(ACTION_CANCEL, previousEvent = unhandledEvent),
         )
 
         assertFalse(wasEventHandled)
@@ -105,7 +105,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, mock()))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -119,7 +120,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -140,7 +142,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -161,7 +164,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 101f, 100f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 101f, 100f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -212,7 +216,8 @@ class BrowserGestureDetectorTest {
         // just to artificially be able to recreate the bug from 8552. This should not happen IRL.
         val downEvent = TestUtils.getMotionEvent(ACTION_POINTER_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)

@@ -49,15 +49,25 @@ import kotlin.reflect.jvm.javaField
 @RunWith(AndroidJUnit4::class)
 class WebAppShortcutManagerTest {
     private lateinit var context: Context
-    @Mock private lateinit var httpClient: Client
-    @Mock private lateinit var packageManager: PackageManager
-    @Mock private lateinit var shortcutManager: ShortcutManager
-    @Mock private lateinit var storage: ManifestStorage
-    @Mock private lateinit var icons: BrowserIcons
+
+    @Mock
+    private lateinit var httpClient: Client
+
+    @Mock
+    private lateinit var packageManager: PackageManager
+
+    @Mock
+    private lateinit var shortcutManager: ShortcutManager
+
+    @Mock
+    private lateinit var storage: ManifestStorage
+
+    @Mock
+    private lateinit var icons: BrowserIcons
     private lateinit var manager: WebAppShortcutManager
     private val baseManifest = WebAppManifest(
         name = "Demo",
-        startUrl = "https://example.com"
+        startUrl = "https://example.com",
     )
 
     @Before
@@ -84,9 +94,9 @@ class WebAppShortcutManagerTest {
             icons = listOf(
                 WebAppManifest.Icon(
                     src = "https://example.com/icon.png",
-                    sizes = listOf(Size(192, 192))
-                )
-            )
+                    sizes = listOf(Size(192, 192)),
+                ),
+            ),
         )
         val session = buildInstallableSession(manifest)
         @Suppress("DEPRECATION")
@@ -108,7 +118,7 @@ class WebAppShortcutManagerTest {
         setSdkInt(Build.VERSION_CODES.O)
         val manifest = baseManifest.copy(
             display = WebAppManifest.DisplayMode.STANDALONE,
-            icons = emptyList() // no icons
+            icons = emptyList(), // no icons
         )
         val session = buildInstallableSession(manifest)
         val shortcutCompat: ShortcutInfoCompat = mock()
@@ -129,9 +139,9 @@ class WebAppShortcutManagerTest {
             icons = listOf(
                 WebAppManifest.Icon(
                     src = "https://example.com/icon.png",
-                    sizes = listOf(Size(192, 192))
-                )
-            )
+                    sizes = listOf(Size(192, 192)),
+                ),
+            ),
         )
 
         val session = buildInstallableSession(manifest)
@@ -164,15 +174,18 @@ class WebAppShortcutManagerTest {
     fun `buildBasicShortcut uses manifest short name as label by default`() = runTest {
         setSdkInt(Build.VERSION_CODES.O)
 
-        val session = createTab("https://www.mozilla.org", title = "Internet for people, not profit — Mozilla").let {
+        val session = createTab(
+            "https://www.mozilla.org",
+            title = "Internet for people, not profit — Mozilla",
+        ).let {
             it.copy(
                 content = it.content.copy(
                     webAppManifest = WebAppManifest(
                         name = "Mozilla",
                         shortName = "Moz",
-                        startUrl = "https://mozilla.org"
-                    )
-                )
+                        startUrl = "https://mozilla.org",
+                    ),
+                ),
             )
         }
 
@@ -185,14 +198,17 @@ class WebAppShortcutManagerTest {
     fun `buildBasicShortcut uses manifest name as label by default`() = runTest {
         setSdkInt(Build.VERSION_CODES.O)
 
-        val session = createTab("https://www.mozilla.org", title = "Internet for people, not profit — Mozilla").let {
+        val session = createTab(
+            "https://www.mozilla.org",
+            title = "Internet for people, not profit — Mozilla",
+        ).let {
             it.copy(
                 content = it.content.copy(
                     webAppManifest = WebAppManifest(
                         name = "Mozilla",
-                        startUrl = "https://mozilla.org"
-                    )
-                )
+                        startUrl = "https://mozilla.org",
+                    ),
+                ),
             )
         }
 
@@ -273,7 +289,8 @@ class WebAppShortcutManagerTest {
 
     @Test
     fun `buildWebAppShortcut builds shortcut with short name`() = runTest {
-        val manifest = WebAppManifest(name = "Demo Demo", shortName = "DD", startUrl = "https://example.com")
+        val manifest =
+            WebAppManifest(name = "Demo Demo", shortName = "DD", startUrl = "https://example.com")
         doReturn(mock<IconCompat>()).`when`(manager).buildIconFromManifest(manifest)
 
         val shortcut = manager.buildWebAppShortcut(context, manifest)!!
@@ -343,8 +360,8 @@ class WebAppShortcutManagerTest {
         return tab.copy(
             content = tab.content.copy(
                 webAppManifest = manifest,
-                securityInfo = SecurityInfoState(secure = true)
-            )
+                securityInfo = SecurityInfoState(secure = true),
+            ),
         )
     }
 }

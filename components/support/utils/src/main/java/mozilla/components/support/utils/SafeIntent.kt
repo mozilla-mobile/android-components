@@ -74,6 +74,7 @@ class SafeIntent(val unsafe: Intent) {
     fun <T : Parcelable> getParcelableExtra(name: String, clazz: Class<T>): T? = safeAccess {
         unsafe.getParcelableExtraCompat(name, clazz)
     }
+
     /**
      * Returns     the value of an item previously added with putParcelableArrayListExtra(),
      * or null if no ArrayList value was found.

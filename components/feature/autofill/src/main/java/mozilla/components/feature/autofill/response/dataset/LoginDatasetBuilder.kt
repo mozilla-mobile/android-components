@@ -36,14 +36,14 @@ internal data class LoginDatasetBuilder(
     val parsedStructure: ParsedStructure,
     val login: Login,
     val needsConfirmation: Boolean,
-    val requestOffset: Int = 0
+    val requestOffset: Int = 0,
 ) : DatasetBuilder {
 
     @SuppressLint("NewApi")
     override fun build(
         context: Context,
         configuration: AutofillConfiguration,
-        imeSpec: InlinePresentationSpec?
+        imeSpec: InlinePresentationSpec?,
     ): Dataset {
         val dataset = Dataset.Builder()
 
@@ -51,7 +51,7 @@ internal data class LoginDatasetBuilder(
             context,
             0,
             Intent(),
-            PendingIntentUtils.defaultFlags or PendingIntent.FLAG_CANCEL_CURRENT
+            PendingIntentUtils.defaultFlags or PendingIntent.FLAG_CANCEL_CURRENT,
         )
 
         val usernameText = login.usernamePresentationOrFallback(context)
@@ -60,15 +60,17 @@ internal data class LoginDatasetBuilder(
         val usernamePresentation = createViewPresentation(context, usernameText)
         val passwordPresentation = createViewPresentation(context, passwordText)
 
-        val usernameInlinePresentation = createInlinePresentation(pendingIntent, imeSpec, usernameText)
-        val passwordInlinePresentation = createInlinePresentation(pendingIntent, imeSpec, passwordText)
+        val usernameInlinePresentation =
+            createInlinePresentation(pendingIntent, imeSpec, usernameText)
+        val passwordInlinePresentation =
+            createInlinePresentation(pendingIntent, imeSpec, passwordText)
 
         parsedStructure.usernameId?.let { id ->
             dataset.setValue(
                 id,
                 if (needsConfirmation) null else AutofillValue.forText(login.username),
                 usernamePresentation,
-                usernameInlinePresentation
+                usernameInlinePresentation,
             )
         }
 
@@ -77,7 +79,7 @@ internal data class LoginDatasetBuilder(
                 id,
                 if (needsConfirmation) null else AutofillValue.forText(login.password),
                 passwordPresentation,
-                passwordInlinePresentation
+                passwordInlinePresentation,
             )
         }
 
@@ -89,7 +91,7 @@ internal data class LoginDatasetBuilder(
                 context,
                 configuration.activityRequestCode + requestOffset,
                 confirmIntent,
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_CANCEL_CURRENT
+                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_CANCEL_CURRENT,
             ).intentSender
 
             dataset.setAuthentication(intentSender)
@@ -110,7 +112,7 @@ internal fun Login.usernamePresentationOrFallback(context: Context): String {
 private fun Login.passwordPresentation(context: Context): String {
     return context.getString(
         mozilla.components.feature.autofill.R.string.mozac_feature_autofill_popup_password,
-        usernamePresentationOrFallback(context)
+        usernamePresentationOrFallback(context),
     )
 }
 
@@ -125,7 +127,7 @@ internal fun createInlinePresentation(
     pendingIntent: PendingIntent,
     imeSpec: InlinePresentationSpec?,
     title: String,
-    icon: Icon? = null
+    icon: Icon? = null,
 ): InlinePresentation? {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && imeSpec != null &&
         canUseInlineSuggestions(imeSpec)
@@ -133,7 +135,7 @@ internal fun createInlinePresentation(
         return InlinePresentation(
             createSlice(title, attribution = pendingIntent, startIcon = icon),
             imeSpec,
-            false
+            false,
         )
     }
     return null
@@ -147,7 +149,7 @@ internal fun createSlice(
     startIcon: Icon? = null,
     endIcon: Icon? = null,
     contentDescription: CharSequence = "",
-    attribution: PendingIntent
+    attribution: PendingIntent,
 ): Slice {
     // Build the content for the v1 UI.
     val builder = InlineSuggestionUi.newContentBuilder(attribution)
@@ -178,7 +180,7 @@ internal fun Dataset.Builder.setValue(
     id: AutofillId,
     value: AutofillValue?,
     presentation: RemoteViews,
-    inlinePresentation: InlinePresentation? = null
+    inlinePresentation: InlinePresentation? = null,
 ): Dataset.Builder {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val fieldBuilder: Field.Builder = Field.Builder()

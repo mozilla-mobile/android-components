@@ -52,7 +52,7 @@ sealed class Crash {
         val timestamp: Long,
         val throwable: Throwable,
         val breadcrumbs: ArrayList<Breadcrumb>,
-        override val uuid: String = UUID.randomUUID().toString()
+        override val uuid: String = UUID.randomUUID().toString(),
     ) : Crash() {
         override fun toBundle() = Bundle().apply {
             putString(INTENT_UUID, uuid)
@@ -64,10 +64,16 @@ sealed class Crash {
         companion object {
             internal fun fromBundle(bundle: Bundle) = UncaughtExceptionCrash(
                 uuid = bundle.getString(INTENT_UUID) as String,
-                throwable = bundle.getSerializableCompat(INTENT_EXCEPTION, Throwable::class.java) as Throwable,
-                breadcrumbs = bundle.getParcelableArrayListCompat(INTENT_BREADCRUMBS, Breadcrumb::class.java)
+                throwable = bundle.getSerializableCompat(
+                    INTENT_EXCEPTION,
+                    Throwable::class.java,
+                ) as Throwable,
+                breadcrumbs = bundle.getParcelableArrayListCompat(
+                    INTENT_BREADCRUMBS,
+                    Breadcrumb::class.java,
+                )
                     ?: arrayListOf(),
-                timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis())
+                timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis()),
             )
         }
     }
@@ -93,7 +99,7 @@ sealed class Crash {
         val extrasPath: String?,
         @ProcessType val processType: String?,
         val breadcrumbs: ArrayList<Breadcrumb>,
-        override val uuid: String = UUID.randomUUID().toString()
+        override val uuid: String = UUID.randomUUID().toString(),
     ) : Crash() {
         override fun toBundle() = Bundle().apply {
             putString(INTENT_UUID, uuid)
@@ -118,18 +124,24 @@ sealed class Crash {
              * Indicates a crash occurred in the main process and is therefore fatal.
              */
             const val PROCESS_TYPE_MAIN = "MAIN"
+
             /**
              * Indicates a crash occurred in a foreground child process. The application may be
              * able to recover from this crash, but it was likely noticable to the user.
              */
             const val PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD"
+
             /**
              * Indicates a crash occurred in a background child process. This should have been
              * recovered from automatically, and will have had minimal impact to the user, if any.
              */
             const val PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD"
 
-            @StringDef(PROCESS_TYPE_MAIN, PROCESS_TYPE_FOREGROUND_CHILD, PROCESS_TYPE_BACKGROUND_CHILD)
+            @StringDef(
+                PROCESS_TYPE_MAIN,
+                PROCESS_TYPE_FOREGROUND_CHILD,
+                PROCESS_TYPE_BACKGROUND_CHILD,
+            )
             @Retention(AnnotationRetention.SOURCE)
             annotation class ProcessType
 
@@ -139,9 +151,12 @@ sealed class Crash {
                 minidumpSuccess = bundle.getBoolean(INTENT_MINIDUMP_SUCCESS, false),
                 extrasPath = bundle.getString(INTENT_EXTRAS_PATH, null),
                 processType = bundle.getString(INTENT_PROCESS_TYPE, PROCESS_TYPE_MAIN),
-                breadcrumbs = bundle.getParcelableArrayListCompat(INTENT_BREADCRUMBS, Breadcrumb::class.java)
+                breadcrumbs = bundle.getParcelableArrayListCompat(
+                    INTENT_BREADCRUMBS,
+                    Breadcrumb::class.java,
+                )
                     ?: arrayListOf(),
-                timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis())
+                timestamp = bundle.getLong(INTENT_CRASH_TIMESTAMP, System.currentTimeMillis()),
             )
         }
     }

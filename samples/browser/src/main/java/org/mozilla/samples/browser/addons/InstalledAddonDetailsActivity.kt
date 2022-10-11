@@ -54,7 +54,7 @@ class InstalledAddonDetailsActivity : AppCompatActivity() {
                     Toast.makeText(
                         baseContext,
                         R.string.mozac_feature_addons_failed_to_query_add_ons,
-                        Toast.LENGTH_SHORT
+                        Toast.LENGTH_SHORT,
                     ).show()
                 }
             }
@@ -88,17 +88,23 @@ class InstalledAddonDetailsActivity : AppCompatActivity() {
                         switch.setState(true)
                         Toast.makeText(
                             this,
-                            getString(R.string.mozac_feature_addons_successfully_enabled, addon.translateName(this)),
-                            Toast.LENGTH_SHORT
+                            getString(
+                                R.string.mozac_feature_addons_successfully_enabled,
+                                addon.translateName(this),
+                            ),
+                            Toast.LENGTH_SHORT,
                         ).show()
                     },
                     onError = {
                         Toast.makeText(
                             this,
-                            getString(R.string.mozac_feature_addons_failed_to_enable, addon.translateName(this)),
-                            Toast.LENGTH_SHORT
+                            getString(
+                                R.string.mozac_feature_addons_failed_to_enable,
+                                addon.translateName(this),
+                            ),
+                            Toast.LENGTH_SHORT,
                         ).show()
-                    }
+                    },
                 )
             } else {
                 this.components.addonManager.disableAddon(
@@ -107,17 +113,23 @@ class InstalledAddonDetailsActivity : AppCompatActivity() {
                         switch.setState(false)
                         Toast.makeText(
                             this,
-                            getString(R.string.mozac_feature_addons_successfully_disabled, addon.translateName(this)),
-                            Toast.LENGTH_SHORT
+                            getString(
+                                R.string.mozac_feature_addons_successfully_disabled,
+                                addon.translateName(this),
+                            ),
+                            Toast.LENGTH_SHORT,
                         ).show()
                     },
                     onError = {
                         Toast.makeText(
                             this,
-                            getString(R.string.mozac_feature_addons_failed_to_disable, addon.translateName(this)),
-                            Toast.LENGTH_SHORT
+                            getString(
+                                R.string.mozac_feature_addons_failed_to_disable,
+                                addon.translateName(this),
+                            ),
+                            Toast.LENGTH_SHORT,
                         ).show()
-                    }
+                    },
                 )
             }
         }
@@ -166,7 +178,7 @@ class InstalledAddonDetailsActivity : AppCompatActivity() {
                 isChecked,
                 onSuccess = {
                     switch.isChecked = isChecked
-                }
+                },
             )
         }
     }
@@ -178,18 +190,24 @@ class InstalledAddonDetailsActivity : AppCompatActivity() {
                 onSuccess = {
                     Toast.makeText(
                         this,
-                        getString(R.string.mozac_feature_addons_successfully_uninstalled, addon.translateName(this)),
-                        Toast.LENGTH_SHORT
+                        getString(
+                            R.string.mozac_feature_addons_successfully_uninstalled,
+                            addon.translateName(this),
+                        ),
+                        Toast.LENGTH_SHORT,
                     ).show()
                     finish()
                 },
                 onError = { _, _ ->
                     Toast.makeText(
                         this,
-                        getString(R.string.mozac_feature_addons_failed_to_uninstall, addon.translateName(this)),
-                        Toast.LENGTH_SHORT
+                        getString(
+                            R.string.mozac_feature_addons_failed_to_uninstall,
+                            addon.translateName(this),
+                        ),
+                        Toast.LENGTH_SHORT,
                     ).show()
-                }
+                },
             )
         }
     }

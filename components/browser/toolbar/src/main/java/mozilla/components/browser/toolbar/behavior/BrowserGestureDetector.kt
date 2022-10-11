@@ -32,7 +32,7 @@ internal class BrowserGestureDetectorException(e: Throwable) : Throwable(e)
 internal class BrowserGestureDetector(
     applicationContext: Context,
     listener: GesturesListener,
-    private val crashReporting: CrashReporting? = null
+    private val crashReporting: CrashReporting? = null,
 ) {
     @VisibleForTesting
     @Suppress("MaxLineLength")
@@ -53,7 +53,7 @@ internal class BrowserGestureDetector(
                     }
                 }
             }
-        }
+        },
     )
 
     @VisibleForTesting
@@ -62,8 +62,8 @@ internal class BrowserGestureDetector(
         CustomScaleDetectorListener(
             listener.onScaleBegin ?: {},
             listener.onScale ?: {},
-            listener.onScaleEnd ?: {}
-        )
+            listener.onScaleEnd ?: {},
+        ),
     )
 
     /**
@@ -149,7 +149,7 @@ internal class BrowserGestureDetector(
          * Responds to the end of a scale gesture.
          * Reported by existing pointers going up.
          */
-        val onScaleEnd: ((scaleFactor: Float) -> Unit)? = {}
+        val onScaleEnd: ((scaleFactor: Float) -> Unit)? = {},
     )
 
     private class CustomScrollDetectorListener(
@@ -157,14 +157,14 @@ internal class BrowserGestureDetector(
             previousEvent: MotionEvent,
             currentEvent: MotionEvent,
             distanceX: Float,
-            distanceY: Float
-        ) -> Unit
+            distanceY: Float,
+        ) -> Unit,
     ) : GestureDetector.SimpleOnGestureListener() {
         override fun onScroll(
             e1: MotionEvent,
             e2: MotionEvent,
             distanceX: Float,
-            distanceY: Float
+            distanceY: Float,
         ): Boolean {
             onScrolling(e1, e2, distanceX, distanceY)
             return true
@@ -174,7 +174,7 @@ internal class BrowserGestureDetector(
     private class CustomScaleDetectorListener(
         val onScaleBegin: (scaleFactor: Float) -> Unit = {},
         val onScale: (scaleFactor: Float) -> Unit = {},
-        val onScaleEnd: (scaleFactor: Float) -> Unit = {}
+        val onScaleEnd: (scaleFactor: Float) -> Unit = {},
     ) : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
             onScaleBegin(detector.scaleFactor)

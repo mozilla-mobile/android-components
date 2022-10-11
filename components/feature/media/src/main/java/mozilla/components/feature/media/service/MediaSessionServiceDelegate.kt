@@ -36,12 +36,14 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.ext.stopForegroundCompat
 
 @VisibleForTesting
-internal class BecomingNoisyReceiver(private val controller: MediaSession.Controller?) : BroadcastReceiver() {
+internal class BecomingNoisyReceiver(private val controller: MediaSession.Controller?) :
+    BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent) {
         if (AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent.action) {
             controller?.pause()
         }
     }
+
     @VisibleForTesting
     fun deviceIsBecomingNoisy(context: Context) {
         val becomingNoisyIntent = Intent(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -57,28 +59,37 @@ internal class BecomingNoisyReceiver(private val controller: MediaSession.Contro
 internal class MediaSessionServiceDelegate(
     @get:VisibleForTesting internal var context: Context,
     @get:VisibleForTesting internal val service: AbstractMediaSessionService,
-    @get:VisibleForTesting internal val store: BrowserStore
+    @get:VisibleForTesting internal val store: BrowserStore,
 ) : MediaSessionDelegate {
     private val logger = Logger("MediaSessionService")
+
     @VisibleForTesting
     internal var notificationManager = NotificationManagerCompat.from(context)
+
     @VisibleForTesting
     internal var notificationHelper = MediaNotification(context, service::class.java)
+
     @VisibleForTesting
     internal var mediaSession = MediaSessionCompat(context, "MozacMediaSession")
+
     @VisibleForTesting
-    internal var audioFocus = AudioFocus(context.getSystemService(Context.AUDIO_SERVICE) as AudioManager, store)
+    internal var audioFocus =
+        AudioFocus(context.getSystemService(Context.AUDIO_SERVICE) as AudioManager, store)
+
     @VisibleForTesting
     internal val notificationId by lazy {
         SharedIdsHelper.getIdForTag(context, AbstractMediaSessionService.NOTIFICATION_TAG)
     }
+
     @VisibleForTesting
     internal var controller: MediaSession.Controller? = null
+
     @VisibleForTesting
     internal var notificationScope: CoroutineScope? = null
 
     @VisibleForTesting
     internal val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+
     @VisibleForTesting
     internal var noisyAudioStreamReceiver: BecomingNoisyReceiver? = null
 
@@ -187,14 +198,14 @@ internal class MediaSessionServiceDelegate(
             MediaMetadataCompat.Builder()
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_TITLE,
-                    sessionState.getTitleOrUrl(context)
+                    sessionState.getTitleOrUrl(context),
                 )
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_ARTIST,
-                    sessionState.nonPrivateUrl
+                    sessionState.nonPrivateUrl,
                 )
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
-                .build()
+                .build(),
         )
     }
 

@@ -25,7 +25,7 @@ private const val SMALL_ELEVATION_CHANGE = 0.01f
  */
 enum class ToolbarPosition {
     TOP,
-    BOTTOM
+    BOTTOM,
 }
 
 /**
@@ -43,7 +43,7 @@ class BrowserToolbarBehavior(
     val context: Context?,
     attrs: AttributeSet?,
     private val toolbarPosition: ToolbarPosition,
-    private val crashReporting: CrashReporting? = null
+    private val crashReporting: CrashReporting? = null,
 ) : CoordinatorLayout.Behavior<BrowserToolbar>(context, attrs) {
     // This implementation is heavily based on this blog article:
     // https://android.jlelse.eu/scroll-your-bottom-navigation-view-away-with-10-lines-of-code-346f1ed40e9e
@@ -99,7 +99,7 @@ class BrowserToolbarBehavior(
         directTargetChild: View,
         target: View,
         axes: Int,
-        type: Int
+        type: Int,
     ): Boolean {
         return if (browserToolbar != null) {
             startNestedScroll(axes, type, child)
@@ -112,7 +112,7 @@ class BrowserToolbarBehavior(
         coordinatorLayout: CoordinatorLayout,
         child: BrowserToolbar,
         target: View,
-        type: Int
+        type: Int,
     ) {
         if (browserToolbar != null) {
             stopNestedScroll(type, child)
@@ -122,7 +122,7 @@ class BrowserToolbarBehavior(
     override fun onInterceptTouchEvent(
         parent: CoordinatorLayout,
         child: BrowserToolbar,
-        ev: MotionEvent
+        ev: MotionEvent,
     ): Boolean {
         if (browserToolbar != null) {
             gesturesDetector.handleTouchEvent(ev)
@@ -130,7 +130,11 @@ class BrowserToolbarBehavior(
         return false // allow events to be passed to below listeners
     }
 
-    override fun layoutDependsOn(parent: CoordinatorLayout, child: BrowserToolbar, dependency: View): Boolean {
+    override fun layoutDependsOn(
+        parent: CoordinatorLayout,
+        child: BrowserToolbar,
+        dependency: View,
+    ): Boolean {
         if (toolbarPosition == ToolbarPosition.BOTTOM && dependency is Snackbar.SnackbarLayout) {
             positionSnackbar(child, dependency)
         }
@@ -141,7 +145,7 @@ class BrowserToolbarBehavior(
     override fun onLayoutChild(
         parent: CoordinatorLayout,
         child: BrowserToolbar,
-        layoutDirection: Int
+        layoutDirection: Int,
     ): Boolean {
         browserToolbar = child
         engineView = parent.findViewInHierarchy { it is EngineView } as? EngineView
@@ -235,9 +239,9 @@ class BrowserToolbarBehavior(
                     // Scale shouldn't animate the toolbar but a small y translation is still possible
                     // because of a previous scroll. Try to be swift about such an in progress animation.
                     yTranslator.snapImmediately(browserToolbar)
-                }
+                },
             ),
-            crashReporting = crashReporting
+            crashReporting = crashReporting,
         )
 
     @VisibleForTesting

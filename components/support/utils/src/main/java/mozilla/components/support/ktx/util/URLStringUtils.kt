@@ -78,7 +78,7 @@ object URLStringUtils {
         // 3-3
         Pattern.compile(
             "^\\s*(\\w+-+)*\\w+(://[/]*|:|\\.)(\\w+-+)*\\w+([\\S&&[^\\w-]]\\S*)?\\s*$",
-            flags
+            flags,
         )
     }
 
@@ -108,7 +108,7 @@ object URLStringUtils {
      */
     fun toDisplayUrl(
         originalUrl: CharSequence,
-        textDirectionHeuristic: TextDirectionHeuristicCompat = TextDirectionHeuristicsCompat.FIRSTSTRONG_LTR
+        textDirectionHeuristic: TextDirectionHeuristicCompat = TextDirectionHeuristicsCompat.FIRSTSTRONG_LTR,
     ): CharSequence {
         val strippedText = maybeStripTrailingSlash(maybeStripUrlProtocol(originalUrl))
 
@@ -135,7 +135,9 @@ object URLStringUtils {
     private fun maybeStripUrlSubDomain(url: CharSequence): CharSequence {
         return if (url.toString().startsWith(WWW)) {
             url.toString().replaceFirst(WWW, "")
-        } else url
+        } else {
+            url
+        }
     }
 
     private fun maybeStripTrailingSlash(url: CharSequence): CharSequence {

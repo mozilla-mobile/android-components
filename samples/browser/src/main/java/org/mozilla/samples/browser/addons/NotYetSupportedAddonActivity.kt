@@ -52,7 +52,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
         override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
-            savedInstanceState: Bundle?
+            savedInstanceState: Bundle?,
         ): View? {
             addons =
                 requireNotNull(arguments?.getParcelableArrayListCompat("add_ons", Addon::class.java))
@@ -67,7 +67,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
             adapter = UnsupportedAddonsAdapter(
                 addonManager = context.components.addonManager,
                 unsupportedAddonsAdapterDelegate = this@NotYetSupportedAddonFragment,
-                addons = addons
+                addons = addons,
             )
 
             recyclerView.layoutManager = LinearLayoutManager(context)

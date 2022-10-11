@@ -34,7 +34,7 @@ class AndroidAssetFinder {
      */
     fun getAndroidAppAsset(
         packageName: String,
-        packageManager: PackageManager
+        packageManager: PackageManager,
     ): Sequence<AssetDescriptor.Android> {
         return packageManager.getSignatures(packageName).asSequence()
             .mapNotNull { signature -> getCertificateSHA256Fingerprint(signature) }
@@ -51,7 +51,8 @@ class AndroidAssetFinder {
     internal fun getCertificateSHA256Fingerprint(signature: Signature): String? {
         val input = ByteArrayInputStream(signature.toByteArray())
         return try {
-            val certificate = CertificateFactory.getInstance("X509").generateCertificate(input) as X509Certificate
+            val certificate =
+                CertificateFactory.getInstance("X509").generateCertificate(input) as X509Certificate
             byteArrayToHexString(MessageDigest.getInstance("SHA256").digest(certificate.encoded))
         } catch (e: CertificateEncodingException) {
             // Certificate type X509 encoding failed

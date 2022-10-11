@@ -61,14 +61,14 @@ class SystemEngineSessionStateTest {
                 putFloat("k5", 1.0f)
                 putFloat("k6", 42.25f)
                 putDouble("k7", 23.23)
-            }
+            },
         )
 
         val outputStream = ByteArrayOutputStream()
         state.writeTo(JsonWriter(outputStream.writer()))
 
         val bundle = SystemEngineSessionState.fromJSON(
-            JSONObject(outputStream.toString())
+            JSONObject(outputStream.toString()),
         ).bundle
 
         assertNotNull(bundle!!)
@@ -105,7 +105,7 @@ class SystemEngineSessionStateTest {
                 putFloat("k5", 1.0f)
                 putFloat("k6", 42.25f)
                 putDouble("k7", 23.23)
-            }
+            },
         )
 
         val outputStream = ByteArrayOutputStream()
@@ -128,7 +128,11 @@ class SystemEngineSessionStateTest {
         assertTrue(bundle.containsKey("k7"))
 
         assertEquals("v0", bundle.getString("k0"))
-        assertEquals(1.0, bundle.getDouble("k1"), 0.0) // We only see token "number", so we have to read a double and can't know that this was an int.
+        assertEquals(
+            1.0,
+            bundle.getDouble("k1"),
+            0.0,
+        ) // We only see token "number", so we have to read a double and can't know that this was an int.
         assertEquals(true, bundle.getBoolean("k2"))
         assertEquals(5.0, bundle.getDouble("k4"), 0.0)
         assertEquals(1.0, bundle.getDouble("k5"), 0.0)

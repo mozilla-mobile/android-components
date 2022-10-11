@@ -43,7 +43,7 @@ typealias SystemRequest = android.app.DownloadManager.Request
 class AndroidDownloadManager(
     private val applicationContext: Context,
     private val store: BrowserStore,
-    override var onDownloadStopped: onDownloadStopped = noop
+    override var onDownloadStopped: onDownloadStopped = noop,
 ) : BroadcastReceiver(), DownloadManager {
 
     private val downloadRequests = LongSparseArray<SystemRequest>()
@@ -118,7 +118,10 @@ class AndroidDownloadManager(
         val downloadID = intent.getStringExtra(EXTRA_DOWNLOAD_ID) ?: ""
         val download = store.state.downloads[downloadID]
         val downloadStatus =
-            intent.getSerializableExtraCompat(AbstractFetchDownloadService.EXTRA_DOWNLOAD_STATUS, Status::class.java)
+            intent.getSerializableExtraCompat(
+                AbstractFetchDownloadService.EXTRA_DOWNLOAD_STATUS,
+                Status::class.java,
+            )
                 as Status
 
         if (download != null) {

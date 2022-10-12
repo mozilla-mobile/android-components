@@ -34,6 +34,7 @@ import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.concept.toolbar.Toolbar.Highlight
 import mozilla.components.support.base.android.Padding
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.kotlin.toTrimmedUrl
 import mozilla.components.ui.autocomplete.AutocompleteView
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 import mozilla.components.ui.autocomplete.OnFilterListener
@@ -112,7 +113,7 @@ class BrowserToolbar @JvmOverloads constructor(
             // We update the display toolbar immediately. We do not do that for the edit toolbar to not
             // mess with what the user is entering. Instead we will remember the value and update the
             // edit toolbar whenever we switch to it.
-            display.url = getTrimmedUrl(value as String)
+            display.url = (value as String).toTrimmedUrl()
         }
 
     override var siteSecure: Toolbar.SiteSecurity
@@ -215,7 +216,7 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     override fun setSearchTerms(searchTerms: String) {
-        this.searchTerms = searchTerms.take(MAX_URI_LENGTH)
+        this.searchTerms = searchTerms.toTrimmedUrl()
 
         if (state == State.EDIT) {
             edit.editSuggestion(this.searchTerms)

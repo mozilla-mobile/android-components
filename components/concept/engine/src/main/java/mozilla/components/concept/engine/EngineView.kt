@@ -2,17 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("Deprecation")
-
 package mozilla.components.concept.engine
 
 import android.graphics.Bitmap
 import android.view.View
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.OnLifecycleEvent
-import mozilla.components.concept.engine.EngineView.InputResult.INPUT_RESULT_HANDLED
-import mozilla.components.concept.engine.EngineView.InputResult.INPUT_RESULT_HANDLED_CONTENT
-import mozilla.components.concept.engine.EngineView.InputResult.INPUT_RESULT_UNHANDLED
+import androidx.lifecycle.LifecycleOwner
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
 
 /**
@@ -97,6 +93,7 @@ interface EngineView {
      * @return [InputResult] indicating how user's last [android.view.MotionEvent] was handled.
      */
     @Deprecated("Not enough data about how the touch was handled", ReplaceWith("getInputResultDetail()"))
+    @Suppress("DEPRECATION")
     fun getInputResult(): InputResult = InputResult.INPUT_RESULT_UNHANDLED
 
     /**
@@ -146,6 +143,7 @@ interface EngineView {
      * @see [INPUT_RESULT_HANDLED_CONTENT]
      */
     @Deprecated("Not enough data about how the touch was handled", ReplaceWith("InputResultDetail"))
+    @Suppress("DEPRECATION")
     enum class InputResult(val value: Int) {
         /**
          * Last [android.view.MotionEvent] was not handled by neither us nor the webpage.
@@ -168,35 +166,28 @@ interface EngineView {
 /**
  * [LifecycleObserver] which dispatches lifecycle events to an [EngineView].
  */
-class LifecycleObserver(val engineView: EngineView) : androidx.lifecycle.LifecycleObserver {
+class LifecycleObserver(val engineView: EngineView) : DefaultLifecycleObserver {
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-    fun onPause() {
+    override fun onPause(owner: LifecycleOwner) {
         engineView.onPause()
     }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    fun onResume() {
+    override fun onResume(owner: LifecycleOwner) {
         engineView.onResume()
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_START)
-    fun onStart() {
+    override fun onStart(owner: LifecycleOwner) {
         engineView.onStart()
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
-    fun onStop() {
+    override fun onStop(owner: LifecycleOwner) {
         engineView.onStop()
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-    fun onCreate() {
+    override fun onCreate(owner: LifecycleOwner) {
         engineView.onCreate()
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-    fun onDestroy() {
+    override fun onDestroy(owner: LifecycleOwner) {
         engineView.onDestroy()
     }
 }

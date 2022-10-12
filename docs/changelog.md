@@ -11,8 +11,20 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **feature-syncedtabs**
+  * 🚒 Bug fixed [issue #12930](https://github.com/mozilla-mobile/android-components/issues/12930) Ensure `DefaultPresenter` will unregister it's `FxaAccountManager` observers when it's `lifecycleOwner` is stopped to prevent memory leaks. 
+
+* **feature-app-links**
+  * 🚒 Bug fixed [issue #12804](https://github.com/mozilla-mobile/android-components/issues/12804) Speculative fix for a TransactionTooLargeException or RuntimeException when querying activities.
+
+* **all modules**
+  * Updated the locally published artifacts to use a single timestamp rather than many [#12902](https://github.com/mozilla-mobile/android-components/issues/12902)
+
 * **nimbus-gradle-plugin**:
   * Updated the plugin to use the version of application services defined in the buildSrc Dependencies.
+
+* **browser-engine-gecko**:
+  * Canceling the "Open in app?" displays an empty page [#12894](https://github.com/mozilla-mobile/android-components/issues/12894)
 
 # 106.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v105.0.0..v106.0.0)

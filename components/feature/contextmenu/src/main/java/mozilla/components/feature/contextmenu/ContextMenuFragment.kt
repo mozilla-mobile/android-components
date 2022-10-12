@@ -58,6 +58,7 @@ class ContextMenuFragment : DialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        @SuppressLint("UseGetLayoutInflater")
         val inflater = LayoutInflater.from(requireContext())
 
         val builder = AlertDialog.Builder(requireContext())
@@ -71,9 +72,9 @@ class ContextMenuFragment : DialogFragment() {
     internal fun createDialogTitleView(inflater: LayoutInflater): View {
         return inflater.inflate(
             R.layout.mozac_feature_contextmenu_title,
-            null
+            null,
         ).findViewById<AppCompatTextView>(
-            R.id.titleView
+            R.id.titleView,
         ).apply {
             text = title
 
@@ -127,7 +128,7 @@ class ContextMenuFragment : DialogFragment() {
             title: String,
             ids: List<String>,
             labels: List<String>,
-            additionalNote: String?
+            additionalNote: String?,
         ): ContextMenuFragment {
             val arguments = Bundle()
             arguments.putString(KEY_TITLE, title)
@@ -144,14 +145,14 @@ class ContextMenuFragment : DialogFragment() {
 }
 
 /**
- * RecyclerView adapter for displayig the context menu.
+ * RecyclerView adapter for displaying the context menu.
  */
 internal class ContextMenuAdapter(
     private val fragment: ContextMenuFragment,
-    private val inflater: LayoutInflater
+    private val inflater: LayoutInflater,
 ) : RecyclerView.Adapter<ContextMenuViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, position: Int) = ContextMenuViewHolder(
-        inflater.inflate(R.layout.mozac_feature_contextmenu_item, parent, false)
+        inflater.inflate(R.layout.mozac_feature_contextmenu_item, parent, false),
     )
 
     override fun getItemCount(): Int = fragment.itemIds.size

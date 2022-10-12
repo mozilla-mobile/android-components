@@ -7,14 +7,10 @@ package mozilla.components.support.base.observer
 import android.view.View
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
-import androidx.lifecycle.Lifecycle.Event.ON_DESTROY
-import androidx.lifecycle.Lifecycle.Event.ON_PAUSE
-import androidx.lifecycle.Lifecycle.Event.ON_RESUME
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle.State.DESTROYED
 import androidx.lifecycle.Lifecycle.State.RESUMED
-import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.OnLifecycleEvent
 import java.util.Collections
 import java.util.LinkedList
 import java.util.WeakHashMap
@@ -27,7 +23,7 @@ import java.util.WeakHashMap
  */
 open class ObserverRegistry<T> : Observable<T> {
     private val observers = mutableSetOf<T>()
-    private val lifecycleObservers = WeakHashMap<T, LifecycleBoundObserver<T>>()
+    private val lifecycleObservers = WeakHashMap<T, DefaultLifecycleObserver>()
     private val viewObservers = WeakHashMap<T, ViewBoundObserver<T>>()
     private val pausedObservers = Collections.newSetFromMap(WeakHashMap<T, Boolean>())
     private val queuedNotifications = LinkedList<T.() -> Unit>()
@@ -77,7 +73,7 @@ open class ObserverRegistry<T> : Observable<T> {
         val viewObserver = ViewBoundObserver(
             view,
             registry = this,
-            observer = observer
+            observer = observer,
         )
 
         viewObservers[observer] = viewObserver
@@ -100,8 +96,7 @@ open class ObserverRegistry<T> : Observable<T> {
         observers.remove(observer)
         pausedObservers.remove(observer)
 
-        // Unregister lifecycle/view observers
-        lifecycleObservers[observer]?.remove()
+        // Unregister view observers
         viewObservers[observer]?.remove()
 
         // Remove lifecycle/view observers from map
@@ -187,10 +182,8 @@ open class ObserverRegistry<T> : Observable<T> {
     private open class LifecycleBoundObserver<T>(
         private val owner: LifecycleOwner,
         protected val registry: ObserverRegistry<T>,
-        protected val observer: T
-    ) : LifecycleObserver {
-        @OnLifecycleEvent(ON_DESTROY)
-        fun onDestroy() = registry.unregister(observer)
+        protected val observer: T,
+    ) : DefaultLifecycleObserver {
 
         @MainThread
         fun remove() {
@@ -200,6 +193,10 @@ open class ObserverRegistry<T> : Observable<T> {
             // that's the default and also the reasonable thing to do.
             owner.lifecycle.removeObserver(this)
         }
+
+        override fun onDestroy(owner: LifecycleOwner) {
+            registry.unregister(observer)
+        }
     }
 
     /**
@@ -208,20 +205,22 @@ open class ObserverRegistry<T> : Observable<T> {
      */
     private class AutoPauseLifecycleBoundObserver<T>(
         owner: LifecycleOwner,
-        registry: ObserverRegistry<T>,
-        observer: T
-    ) : LifecycleBoundObserver<T>(owner, registry, observer) {
+        private val registry: ObserverRegistry<T>,
+        private val observer: T,
+    ) : DefaultLifecycleObserver {
         init {
             if (!owner.lifecycle.currentState.isAtLeast(RESUMED)) {
                 registry.pauseObserver(observer)
             }
         }
 
-        @OnLifecycleEvent(ON_PAUSE)
-        fun onPause() = registry.pauseObserver(observer)
+        override fun onResume(owner: LifecycleOwner) {
+            registry.resumeObserver(observer)
+        }
 
-        @OnLifecycleEvent(ON_RESUME)
-        fun onResume() = registry.resumeObserver(observer)
+        override fun onPause(owner: LifecycleOwner) {
+            registry.pauseObserver(observer)
+        }
     }
 
     /**
@@ -231,7 +230,7 @@ open class ObserverRegistry<T> : Observable<T> {
     private class ViewBoundObserver<T>(
         private val view: View,
         private val registry: ObserverRegistry<T>,
-        private val observer: T
+        private val observer: T,
     ) : View.OnAttachStateChangeListener {
         override fun onViewDetachedFromWindow(view: View) {
             registry.unregister(observer)

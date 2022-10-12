@@ -144,7 +144,11 @@ class ObserverRegistryTest {
 
     @Test
     fun `observer will not get registered if lifecycle state is DESTROYED`() {
-        val owner = MockedLifecycleOwner(Lifecycle.State.DESTROYED)
+        val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
+
+        // We cannot set initial DESTROYED state for LifecycleRegistry
+        // so we simulate lifecycle getting destroyed.
+        owner.lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
         val registry = ObserverRegistry<TestObserver>()
         val observer = TestObserver()
@@ -632,7 +636,7 @@ class ObserverRegistryTest {
     }
 
     private class TestConsumingObserver(
-        private val shouldConsume: Boolean
+        private val shouldConsume: Boolean,
     ) {
         var notified: Boolean = false
         var notifiedWith: Int? = null

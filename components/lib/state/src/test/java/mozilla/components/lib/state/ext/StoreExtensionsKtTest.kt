@@ -49,11 +49,15 @@ class StoreExtensionsKtTest {
 
     @Test
     fun `Observer will not get registered if lifecycle is already destroyed`() = runTestOnMain {
-        val owner = MockedLifecycleOwner(Lifecycle.State.DESTROYED)
+        val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
+
+        // We cannot set initial DESTROYED state for LifecycleRegistry
+        // so we simulate lifecycle getting destroyed.
+        owner.lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var stateObserved = false
@@ -70,7 +74,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var stateObserved = false
@@ -93,7 +97,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         // Observer does not get invoked since lifecycle is not started
@@ -143,7 +147,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var receivedValue = 0
@@ -194,11 +198,15 @@ class StoreExtensionsKtTest {
     @Test(expected = IllegalArgumentException::class)
     @ExperimentalCoroutinesApi // Channel
     fun `Creating channel throws if lifecycle is already DESTROYED`() {
-        val owner = MockedLifecycleOwner(Lifecycle.State.DESTROYED)
+        val owner = MockedLifecycleOwner(Lifecycle.State.STARTED)
+
+        // We cannot set initial DESTROYED state for LifecycleRegistry
+        // so we simulate lifecycle getting destroyed.
+        owner.lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         store.channel(owner)
@@ -212,7 +220,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var receivedValue = 0
@@ -269,7 +277,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         owner.lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
@@ -293,7 +301,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         val flow = store.flow(owner)
@@ -315,7 +323,7 @@ class StoreExtensionsKtTest {
     fun `Reading state updates from Flow without lifecycle owner`() = runTestOnMain {
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var receivedValue = 0
@@ -365,7 +373,7 @@ class StoreExtensionsKtTest {
     fun `Reading state from scoped flow without lifecycle owner`() {
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var receivedValue = 0
@@ -414,7 +422,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var receivedValue = 0
@@ -465,7 +473,7 @@ class StoreExtensionsKtTest {
     fun `Observer registered with observeForever will get notified about state changes`() {
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var observedValue = 0
@@ -491,7 +499,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var stateObserved = false
@@ -520,7 +528,7 @@ class StoreExtensionsKtTest {
 
         val store = Store(
             TestState(counter = 23),
-            ::reducer
+            ::reducer,
         )
 
         var stateObserved = false

@@ -10,7 +10,7 @@ import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.PlacesApi
 import mozilla.appservices.places.PlacesReaderConnection
-import mozilla.appservices.places.uniffi.PlacesException
+import mozilla.appservices.places.uniffi.PlacesApiException
 import mozilla.appservices.places.uniffi.VisitObservation
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.FrecencyThresholdOption
@@ -267,7 +267,7 @@ open class PlacesHistoryStorage(
      * @param dbPath Absolute path to Fennec's browser.db file.
      * @return Migration metrics wrapped in a JSON object. See libplaces for schema details.
      */
-    @Throws(PlacesException::class)
+    @Throws(PlacesApiException::class)
     fun importFromFennec(dbPath: String): JSONObject {
         return places.importVisitsFromFennec(dbPath)
     }

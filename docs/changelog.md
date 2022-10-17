@@ -10,6 +10,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **browser-toolbar**
+  * ⚠️ **This is a breaking change**: `BrowserToolbarBehavior` will not position the `Snackbar.SnackbarLayout` anymore. The ownership for the positioning behavior should be reversed with the snackbar choosing whether it want to be shown above the toolbar and exactly how.
+
 * **feature-qr**
   * QRFeature now allows querying if scanning is in progress with a new `isScanInProgress` property. This helps deciding on whether to resume scanning by calling `scan` in a new `QRFeature` instance as it can happen if the process is restarted as a followup to the user updating system permissions for the app.
 

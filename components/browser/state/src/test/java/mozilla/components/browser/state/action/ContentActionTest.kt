@@ -34,6 +34,7 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.script.SlowScriptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
@@ -885,5 +886,33 @@ class ContentActionTest {
         ).joinBlocking()
 
         assertNull(tab.content.appIntent)
+    }
+
+    @Test
+    fun `AddSlowScriptRequest adds request`() {
+        val slowScriptRequest: SlowScriptRequest = mock()
+
+        store.dispatch(
+            ContentAction.AddSlowScriptRequest(tab.id, slowScriptRequest),
+        ).joinBlocking()
+
+        assertEquals(slowScriptRequest, tab.content.slowScriptRequest)
+    }
+
+    @Test
+    fun `RemoveSlowScriptRequest removes request`() {
+        val slowScriptRequest: SlowScriptRequest = mock()
+
+        store.dispatch(
+            ContentAction.AddSlowScriptRequest(tab.id, slowScriptRequest),
+        ).joinBlocking()
+
+        assertEquals(slowScriptRequest, tab.content.slowScriptRequest)
+
+        store.dispatch(
+            ContentAction.RemoveSlowScriptRequest(tab.id),
+        ).joinBlocking()
+
+        assertEquals(null, tab.content.slowScriptRequest)
     }
 }

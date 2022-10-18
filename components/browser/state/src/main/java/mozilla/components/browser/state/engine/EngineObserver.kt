@@ -30,6 +30,7 @@ import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.script.SlowScriptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
 import mozilla.components.lib.state.Store
@@ -233,6 +234,18 @@ internal class EngineObserver(
                 tabId,
                 permissionRequest,
             ),
+        )
+    }
+
+    override fun onSlowLoadingScript(slowScriptRequest: SlowScriptRequest) {
+        store.dispatch(
+            ContentAction.AddSlowScriptRequest(tabId, slowScriptRequest),
+        )
+    }
+
+    override fun onSlowLoadingScriptConsumed() {
+        store.dispatch(
+            ContentAction.RemoveSlowScriptRequest(tabId),
         )
     }
 

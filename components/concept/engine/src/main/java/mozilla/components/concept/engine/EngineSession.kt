@@ -16,6 +16,7 @@ import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.script.SlowScriptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
 import mozilla.components.support.base.observer.Observable
@@ -247,6 +248,16 @@ abstract class EngineSession(
          * @param currentIndex Index of the current page in the history list.
          */
         fun onHistoryStateChanged(historyList: List<HistoryItem>, currentIndex: Int) = Unit
+
+        /**
+         *  Notify that a script exceeded its execution timeout value
+         */
+        fun onSlowLoadingScript(slowScriptRequest: SlowScriptRequest) = Unit
+
+        /**
+         *  User interacted with the slow script notification.
+         */
+        fun onSlowLoadingScriptConsumed() = Unit
     }
 
     /**

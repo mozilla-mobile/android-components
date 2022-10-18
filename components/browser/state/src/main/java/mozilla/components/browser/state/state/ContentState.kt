@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.script.SlowScriptRequest
 import mozilla.components.concept.engine.search.SearchRequest
 import mozilla.components.concept.engine.window.WindowRequest
 
@@ -62,6 +63,7 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property appIntent the last received [AppIntentState].
  * @property showToolbarAsExpanded whether the dynamic toolbar should be forced as expanded.
  * @property previewImageUrl the preview image of the page (e.g. the hero image), if available.
+ * @property slowScriptRequest Callback used to handle the slowScript response.
  */
 data class ContentState(
     val url: String,
@@ -98,4 +100,5 @@ data class ContentState(
     val appIntent: AppIntentState? = null,
     val showToolbarAsExpanded: Boolean = false,
     val previewImageUrl: String? = null,
+    val slowScriptRequest: SlowScriptRequest? = null,
 )

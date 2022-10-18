@@ -42,6 +42,7 @@ import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
 import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.script.SlowScriptRequest
 import mozilla.components.concept.engine.search.SearchRequest
 import mozilla.components.concept.engine.webextension.WebExtensionBrowserAction
 import mozilla.components.concept.engine.webextension.WebExtensionPageAction
@@ -784,6 +785,19 @@ sealed class ContentAction : BrowserAction() {
      * Updates whether the toolbar should be forced to expand or have it follow the default behavior.
      */
     data class UpdateExpandedToolbarStateAction(val sessionId: String, val expanded: Boolean) : ContentAction()
+
+    /**
+     * Adds the [SlowScriptRequest] to the [ContentState] with the given [sessionId].
+     */
+    data class AddSlowScriptRequest(
+        val sessionId: String,
+        val slowScriptRequest: SlowScriptRequest,
+    ) : ContentAction()
+
+    /**
+     * Removes the [SlowScriptRequest] from the [ContentState] with the given [sessionId].
+     */
+    data class RemoveSlowScriptRequest(val sessionId: String) : ContentAction()
 }
 
 /**

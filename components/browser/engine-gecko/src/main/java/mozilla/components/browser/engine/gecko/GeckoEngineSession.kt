@@ -20,6 +20,7 @@ import mozilla.components.browser.engine.gecko.media.GeckoMediaDelegate
 import mozilla.components.browser.engine.gecko.mediasession.GeckoMediaSessionDelegate
 import mozilla.components.browser.engine.gecko.permission.GeckoPermissionRequest
 import mozilla.components.browser.engine.gecko.prompt.GeckoPromptDelegate
+import mozilla.components.browser.engine.gecko.script.GeckoSlowScriptDelegate
 import mozilla.components.browser.engine.gecko.window.GeckoWindowRequest
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
@@ -65,6 +66,7 @@ import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.PermissionDelegate.ContentPermission
 import org.mozilla.geckoview.GeckoSessionSettings
+import org.mozilla.geckoview.SlowScriptResponse
 import org.mozilla.geckoview.WebRequestError
 import org.mozilla.geckoview.WebResponse
 import java.util.Locale
@@ -1015,6 +1017,18 @@ class GeckoEngineSession(
 
         override fun onShowDynamicToolbar(geckoSession: GeckoSession) {
             notifyObservers { onShowDynamicToolbar() }
+        }
+
+        override fun onSlowScript(
+            geckoSession: GeckoSession,
+            scriptFileName: String,
+        ): GeckoResult<SlowScriptResponse> {
+            val result = GeckoResult<SlowScriptResponse>()
+            val request = GeckoSlowScriptDelegate(this@GeckoEngineSession, result)
+
+            notifyObservers { onSlowLoadingScript(request) }
+
+            return result
         }
     }
 

@@ -19,6 +19,9 @@ permalink: /changelog/
 * **support-ktx**:
   * The colors of the icons from the status bar should be in contrast with the status bar background color [#1795650](https://bugzilla.mozilla.org/show_bug.cgi?id=1795650)
 
+* **All components**
+  * ⚠️Increased `compileSdkVersion` to 33 (Android 13)
+
 # 107.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v106.0.0..v107.0.0)
 * [Milestone](https://github.com/mozilla-mobile/android-components/milestone/154?closed=1)

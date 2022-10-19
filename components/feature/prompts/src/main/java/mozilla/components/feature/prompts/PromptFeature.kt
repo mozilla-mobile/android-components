@@ -150,7 +150,7 @@ class PromptFeature private constructor(
     private val loginDelegate: LoginDelegate = object : LoginDelegate {},
     private val creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
     private val addressDelegate: AddressDelegate = DefaultAddressDelegate(),
-    onNeedToRequestPermissions: OnNeedToRequestPermissions
+    onNeedToRequestPermissions: OnNeedToRequestPermissions,
 ) : LifecycleAwareFeature,
     PermissionsFeature,
     Prompter,
@@ -171,7 +171,9 @@ class PromptFeature private constructor(
 
     // This set of weak references of fragments is only used for dismissing all prompts on navigation.
     // For all other code only `activePrompt` is tracked for now.
-    private val activePromptsToDismiss = Collections.newSetFromMap(WeakHashMap<PromptDialogFragment, Boolean>())
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal val activePromptsToDismiss =
+        Collections.newSetFromMap(WeakHashMap<PromptDialogFragment, Boolean>())
 
     constructor(
         activity: Activity,
@@ -188,7 +190,7 @@ class PromptFeature private constructor(
         loginDelegate: LoginDelegate = object : LoginDelegate {},
         creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
         addressDelegate: AddressDelegate = DefaultAddressDelegate(),
-        onNeedToRequestPermissions: OnNeedToRequestPermissions
+        onNeedToRequestPermissions: OnNeedToRequestPermissions,
     ) : this(
         container = PromptContainer.Activity(activity),
         store = store,
@@ -204,7 +206,7 @@ class PromptFeature private constructor(
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginDelegate = loginDelegate,
         creditCardDelegate = creditCardDelegate,
-        addressDelegate = addressDelegate
+        addressDelegate = addressDelegate,
     )
 
     constructor(
@@ -222,7 +224,7 @@ class PromptFeature private constructor(
         loginDelegate: LoginDelegate = object : LoginDelegate {},
         creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
         addressDelegate: AddressDelegate = DefaultAddressDelegate(),
-        onNeedToRequestPermissions: OnNeedToRequestPermissions
+        onNeedToRequestPermissions: OnNeedToRequestPermissions,
     ) : this(
         container = PromptContainer.Fragment(fragment),
         store = store,
@@ -238,7 +240,7 @@ class PromptFeature private constructor(
         onNeedToRequestPermissions = onNeedToRequestPermissions,
         loginDelegate = loginDelegate,
         creditCardDelegate = creditCardDelegate,
-        addressDelegate = addressDelegate
+        addressDelegate = addressDelegate,
     )
 
     private val filePicker = FilePicker(container, store, customTabId, onNeedToRequestPermissions)
@@ -260,7 +262,7 @@ class PromptFeature private constructor(
                     creditCardSelectBar = it,
                     manageCreditCardsCallback = onManageCreditCards,
                     selectCreditCardCallback = onSelectCreditCard,
-                    sessionId = customTabId
+                    sessionId = customTabId,
                 )
             }
         }
@@ -273,7 +275,7 @@ class PromptFeature private constructor(
                     store = store,
                     addressSelectBar = it,
                     onManageAddresses = onManageAddresses,
-                    sessionId = customTabId
+                    sessionId = customTabId,
                 )
             }
         }
@@ -285,7 +287,7 @@ class PromptFeature private constructor(
      * Starts observing the selected session to listen for prompt requests
      * and displays a dialog when needed.
      */
-    @Suppress("ComplexMethod")
+    @Suppress("ComplexMethod", "LongMethod")
     override fun start() {
         promptAbuserDetector.resetJSAlertAbuseState()
 
@@ -311,18 +313,26 @@ class PromptFeature private constructor(
                                 }
                                 is SelectCreditCard -> {
                                     creditCardPicker?.dismissSelectCreditCardRequest(
-                                        activePromptRequest as SelectCreditCard
+                                        activePromptRequest as SelectCreditCard,
                                     )
                                 }
                                 is SelectAddress -> {
                                     addressPicker?.dismissSelectAddressRequest(
-                                        activePromptRequest as SelectAddress
+                                        activePromptRequest as SelectAddress,
                                     )
                                 }
                                 is SingleChoice,
                                 is MultipleChoice,
-                                is MenuChoice -> {
-                                    (activePrompt?.get() as? ChoiceDialogFragment)?.dismissAllowingStateLoss()
+                                is MenuChoice,
+                                -> {
+                                    (activePrompt?.get() as? ChoiceDialogFragment)?.let { dialog ->
+                                        if (dialog.isAdded) {
+                                            dialog.dismissAllowingStateLoss()
+                                        } else {
+                                            activePromptsToDismiss.remove(dialog)
+                                            activePrompt?.clear()
+                                        }
+                                    }
                                 }
                                 else -> {
                                     // no-op
@@ -346,7 +356,7 @@ class PromptFeature private constructor(
             flow.ifAnyChanged { state ->
                 arrayOf(
                     state.selectedTabId,
-                    state.findTabOrCustomTabOrSelectedTab(customTabId)?.content?.url
+                    state.findTabOrCustomTabOrSelectedTab(customTabId)?.content?.url,
                 )
             }.collect {
                 dismissSelectPrompts()
@@ -357,7 +367,7 @@ class PromptFeature private constructor(
                     sessionId = prompt?.sessionId,
                     activePrompt,
                     predicate = { it.shouldDismissOnLoad },
-                    consume = { prompt?.dismiss() }
+                    consume = { prompt?.dismiss() },
                 )
 
                 // Let's make sure we do not leave anything behind..
@@ -601,7 +611,7 @@ class PromptFeature private constructor(
             context = container.context,
             shareData = promptRequest.data,
             onDismiss = { onCancel(session.id, promptRequest.uid) },
-            onSuccess = { onConfirm(session.id, promptRequest.uid, null) }
+            onSuccess = { onConfirm(session.id, promptRequest.uid, null) },
         )
     }
 
@@ -612,7 +622,7 @@ class PromptFeature private constructor(
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun handleDialogsRequest(
         promptRequest: PromptRequest,
-        session: SessionState
+        session: SessionState,
     ) {
         // Requests that are handled with dialogs
         val dialog = when (promptRequest) {
@@ -624,7 +634,7 @@ class PromptFeature private constructor(
                         logger.debug(
                             "Ignoring received SaveCreditCard because PromptFeature." +
                                 "creditCardValidationDelegate is null. If you are trying to autofill " +
-                                "credit cards, try attaching a CreditCardValidationDelegate to PromptFeature"
+                                "credit cards, try attaching a CreditCardValidationDelegate to PromptFeature",
                         )
                     }
 
@@ -637,7 +647,7 @@ class PromptFeature private constructor(
                     sessionId = session.id,
                     promptRequestUID = promptRequest.uid,
                     shouldDismissOnLoad = false,
-                    creditCard = promptRequest.creditCard
+                    creditCard = promptRequest.creditCard,
                 )
             }
 
@@ -649,7 +659,7 @@ class PromptFeature private constructor(
                         logger.debug(
                             "Ignoring received SaveLoginPrompt because PromptFeature." +
                                 "loginValidationDelegate is null. If you are trying to autofill logins, " +
-                                "try attaching a LoginValidationDelegate to PromptFeature"
+                                "try attaching a LoginValidationDelegate to PromptFeature",
                         )
                     }
 
@@ -663,7 +673,7 @@ class PromptFeature private constructor(
                     hint = promptRequest.hint,
                     // For v1, we only handle a single login and drop all others on the floor
                     entry = promptRequest.logins[0],
-                    icon = session.content.icon
+                    icon = session.content.icon,
                 )
             }
 
@@ -672,15 +682,23 @@ class PromptFeature private constructor(
                 session.id,
                 promptRequest.uid,
                 true,
-                SINGLE_CHOICE_DIALOG_TYPE
+                SINGLE_CHOICE_DIALOG_TYPE,
             )
 
             is MultipleChoice -> ChoiceDialogFragment.newInstance(
-                promptRequest.choices, session.id, promptRequest.uid, true, MULTIPLE_CHOICE_DIALOG_TYPE
+                promptRequest.choices,
+                session.id,
+                promptRequest.uid,
+                true,
+                MULTIPLE_CHOICE_DIALOG_TYPE,
             )
 
             is MenuChoice -> ChoiceDialogFragment.newInstance(
-                promptRequest.choices, session.id, promptRequest.uid, true, MENU_CHOICE_DIALOG_TYPE
+                promptRequest.choices,
+                session.id,
+                promptRequest.uid,
+                true,
+                MENU_CHOICE_DIALOG_TYPE,
             )
 
             is Alert -> {
@@ -691,7 +709,7 @@ class PromptFeature private constructor(
                         true,
                         title,
                         message,
-                        promptAbuserDetector.areDialogsBeingAbused()
+                        promptAbuserDetector.areDialogsBeingAbused(),
                     )
                 }
             }
@@ -713,7 +731,7 @@ class PromptFeature private constructor(
                         minimumDate,
                         maximumDate,
                         selectionType,
-                        stepValue
+                        stepValue,
                     )
                 }
             }
@@ -727,7 +745,7 @@ class PromptFeature private constructor(
                         title,
                         inputLabel,
                         inputValue,
-                        promptAbuserDetector.areDialogsBeingAbused()
+                        promptAbuserDetector.areDialogsBeingAbused(),
                     )
                 }
             }
@@ -743,7 +761,7 @@ class PromptFeature private constructor(
                         userName,
                         password,
                         onlyShowPassword,
-                        uri
+                        uri,
                     )
                 }
             }
@@ -752,7 +770,7 @@ class PromptFeature private constructor(
                 session.id,
                 promptRequest.uid,
                 true,
-                promptRequest.defaultColor
+                promptRequest.defaultColor,
             )
 
             is Popup -> {
@@ -768,7 +786,7 @@ class PromptFeature private constructor(
                     positiveButtonText = positiveLabel,
                     negativeButtonText = negativeLabel,
                     hasShownManyDialogs = promptAbuserDetector.areDialogsBeingAbused(),
-                    shouldDismissOnLoad = true
+                    shouldDismissOnLoad = true,
                 )
             }
             is BeforeUnload -> {
@@ -788,7 +806,7 @@ class PromptFeature private constructor(
                     message = body,
                     positiveButtonText = leaveLabel,
                     negativeButtonText = stayLabel,
-                    shouldDismissOnLoad = true
+                    shouldDismissOnLoad = true,
                 )
             }
 
@@ -814,7 +832,7 @@ class PromptFeature private constructor(
                         false,
                         positiveButton,
                         negativeButton,
-                        neutralButtonTitle
+                        neutralButtonTitle,
                     )
                 }
             }
@@ -835,7 +853,7 @@ class PromptFeature private constructor(
                     title = title,
                     message = message,
                     positiveButtonText = positiveAction,
-                    negativeButtonText = negativeAction
+                    negativeButtonText = negativeAction,
                 )
             }
 
@@ -898,7 +916,8 @@ class PromptFeature private constructor(
             is SelectCreditCard,
             is SaveCreditCard,
             is SelectAddress,
-            is Share -> true
+            is Share,
+            -> true
             is Alert, is TextPrompt, is Confirm, is Repost, is Popup -> promptAbuserDetector.shouldShowMoreDialogs
         }
     }
@@ -963,7 +982,7 @@ internal fun BrowserStore.consumePromptFrom(
     sessionId: String?,
     promptRequestUID: String,
     activePrompt: WeakReference<PromptDialogFragment>? = null,
-    consume: (PromptRequest) -> Unit
+    consume: (PromptRequest) -> Unit,
 ) {
     state.findTabOrCustomTabOrSelectedTab(sessionId)?.let { tab ->
         activePrompt?.clear()
@@ -987,7 +1006,7 @@ internal fun BrowserStore.consumePromptFrom(
 internal inline fun <reified P : PromptRequest> BrowserStore.consumePromptFrom(
     sessionId: String?,
     activePrompt: WeakReference<PromptDialogFragment>? = null,
-    consume: (P) -> Unit
+    consume: (P) -> Unit,
 ) {
     state.findTabOrCustomTabOrSelectedTab(sessionId)?.let { tab ->
         activePrompt?.clear()
@@ -1013,7 +1032,7 @@ internal fun BrowserStore.consumeAllSessionPrompts(
     sessionId: String?,
     activePrompt: WeakReference<PromptDialogFragment>? = null,
     predicate: (PromptRequest) -> Boolean,
-    consume: (PromptRequest) -> Unit = { }
+    consume: (PromptRequest) -> Unit = { },
 ) {
     state.findTabOrCustomTabOrSelectedTab(sessionId)?.let { tab ->
         activePrompt?.clear()

@@ -27,6 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.anyBoolean
+import org.mockito.Mockito.argThat
 import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
@@ -166,5 +167,73 @@ class WebNotificationFeatureTest {
 
         feature.onShowNotification(webExtensionNotification)
         verify(notificationManager).notify(eq(testNotification.tag), eq(NOTIFICATION_ID), any())
+    }
+
+    @Test
+    fun `WHEN a notification is shown THEN it's assigned to the default notification channel`() = runTestOnMain {
+        val webExtensionNotification = WebNotification(
+            "Mozilla",
+            "mozilla.org",
+            "Notification body",
+            "mozilla.org",
+            "https://mozilla.org/image.ico",
+            "rtl",
+            "en",
+            false,
+            mock(),
+            triggeredByWebExtension = true,
+            silent = false,
+        )
+
+        val feature = WebNotificationFeature(
+            context,
+            engine,
+            browserIcons,
+            android.R.drawable.ic_dialog_alert,
+            permissionsStorage,
+            null,
+            coroutineContext,
+        )
+
+        feature.onShowNotification(webExtensionNotification)
+        verify(notificationManager).notify(
+            eq(testNotification.tag),
+            eq(NOTIFICATION_ID),
+            argThat { arg -> arg.channelId == NOTIFICATION_CHANNEL_ID },
+        )
+    }
+
+    @Test
+    fun `WHEN a silent notification is shown THEN it's assigned to the silent notification channel`() = runTestOnMain {
+        val webExtensionNotification = WebNotification(
+            "Mozilla",
+            "mozilla.org",
+            "Notification body",
+            "mozilla.org",
+            "https://mozilla.org/image.ico",
+            "rtl",
+            "en",
+            false,
+            mock(),
+            triggeredByWebExtension = true,
+            silent = true,
+        )
+
+        val feature = WebNotificationFeature(
+            context,
+            engine,
+            browserIcons,
+            android.R.drawable.ic_dialog_alert,
+            permissionsStorage,
+            null,
+            coroutineContext,
+        )
+
+        feature.onShowNotification(webExtensionNotification)
+        verify(notificationManager).notify(
+            eq(testNotification.tag),
+            eq(NOTIFICATION_ID),
+            argThat { arg -> arg.channelId == SILENT_NOTIFICATION_CHANNEL_ID },
+        )
     }
 }

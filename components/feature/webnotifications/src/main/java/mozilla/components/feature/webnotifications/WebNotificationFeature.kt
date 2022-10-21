@@ -10,6 +10,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.annotation.DrawableRes
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import kotlinx.coroutines.CoroutineScope
@@ -26,7 +27,11 @@ import mozilla.components.support.ktx.kotlin.getOrigin
 import java.lang.UnsupportedOperationException
 import kotlin.coroutines.CoroutineContext
 
-private const val NOTIFICATION_CHANNEL_ID = "mozac.feature.webnotifications.generic.channel"
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal const val NOTIFICATION_CHANNEL_ID = "mozac.feature.webnotifications.generic.channel"
+
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+internal const val SILENT_NOTIFICATION_CHANNEL_ID = "mozac.feature.webnotifications.silent.channel"
 private const val PENDING_INTENT_TAG = "mozac.feature.webnotifications.generic.pendingintent"
 internal const val NOTIFICATION_ID = 1
 
@@ -85,16 +90,27 @@ class WebNotificationFeature(
                 }
             }
 
-            ensureNotificationGroupAndChannelExists()
+            ensureNotificationGroupAndChannelExists(webNotification.silent)
             notificationManager?.cancel(webNotification.tag, NOTIFICATION_ID)
 
-            val notification = nativeNotificationBridge.convertToAndroidNotification(
-                webNotification,
-                context,
-                NOTIFICATION_CHANNEL_ID,
-                activityClass,
-                SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG),
-            )
+            val notification =
+                if (webNotification.silent) {
+                    nativeNotificationBridge.convertToAndroidNotification(
+                        webNotification,
+                        context,
+                        SILENT_NOTIFICATION_CHANNEL_ID,
+                        activityClass,
+                        SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG),
+                    )
+                } else {
+                    nativeNotificationBridge.convertToAndroidNotification(
+                        webNotification,
+                        context,
+                        NOTIFICATION_CHANNEL_ID,
+                        activityClass,
+                        SharedIdsHelper.getNextIdForTag(context, PENDING_INTENT_TAG),
+                    )
+                }
             notificationManager?.notify(webNotification.tag, NOTIFICATION_ID, notification)
         }
     }
@@ -103,13 +119,21 @@ class WebNotificationFeature(
         notificationManager?.cancel(webNotification.tag, NOTIFICATION_ID)
     }
 
-    private fun ensureNotificationGroupAndChannelExists() {
+    private fun ensureNotificationGroupAndChannelExists(isSilent: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                context.getString(R.string.mozac_feature_notification_channel_name),
-                NotificationManager.IMPORTANCE_LOW,
-            )
+            val channel = if (isSilent) {
+                NotificationChannel(
+                    SILENT_NOTIFICATION_CHANNEL_ID,
+                    context.getString(R.string.mozac_feature_notification_silent_channel_name),
+                    NotificationManager.IMPORTANCE_LOW,
+                )
+            } else {
+                NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    context.getString(R.string.mozac_feature_notification_channel_name),
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                )
+            }
             channel.setShowBadge(true)
             channel.lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
 

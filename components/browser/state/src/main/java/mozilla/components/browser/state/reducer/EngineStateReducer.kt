@@ -45,6 +45,7 @@ internal object EngineStateReducer {
         is EngineAction.OptimizedLoadUrlTriggeredAction -> {
             state
         }
+        is EngineAction.SaveToPdfErrorAction,
         is EngineAction.SuspendEngineSessionAction,
         is EngineAction.CreateEngineSessionAction,
         is EngineAction.LoadDataAction,

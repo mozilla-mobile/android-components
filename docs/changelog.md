@@ -10,6 +10,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **browser-engine-gecko**
+  * 🆕 A new action `SaveToPdfErrorAction` was added to the `EngineAction` to allow for notifying consumers on unsuccessful Save to PDF requests. For more references see [bug #1796482](https://bugzilla.mozilla.org/show_bug.cgi?id=1796482).
+
 * **compose-cfr**
   * 🆕 New composable popup allowing to offer more context about a specific View anchor on the screen. Supports RTL along with many other customizations and anchorings.
 

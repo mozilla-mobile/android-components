@@ -593,6 +593,7 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
                     composingEnd - composingStart > text.length &&
                     removeAutocomplete(editable)
                 ) {
+                    finishComposingText()
                     // Make the IME aware that we interrupted the setComposingText call,
                     // by calling restartInput()
                     restartInput()

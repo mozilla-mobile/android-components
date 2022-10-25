@@ -11,7 +11,6 @@ android {
     defaultConfig {
         minSdkVersion config.minSdkVersion
         targetSdkVersion config.targetSdkVersion
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -21,43 +20,39 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-}
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-    kotlinOptions.freeCompilerArgs += [
-        "-opt-in=kotlinx.coroutines.FlowPreview",
-        "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
-    ]
+    buildFeatures {
+        compose true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.compose_compiler
+    }
+
+    kotlinOptions {
+        freeCompilerArgs += "-Xjvm-default=all"
+    }
 }
 
 dependencies {
-    implementation project(':support-base')
-    implementation project(':support-utils')
+    implementation project(':support-ktx')
+    implementation project(':ui-icons')
 
+    implementation Dependencies.androidx_compose_ui
+    implementation Dependencies.androidx_compose_ui_tooling
+    implementation Dependencies.androidx_compose_foundation
+    implementation Dependencies.androidx_compose_material
     implementation Dependencies.androidx_core
     implementation Dependencies.androidx_core_ktx
-    implementation Dependencies.kotlin_stdlib
-    implementation Dependencies.kotlin_coroutines
+    implementation Dependencies.androidx_lifecycle_runtime
+    implementation Dependencies.androidx_savedstate
 
     testImplementation project(':support-test')
-    testImplementation project(':support-test-fakes')
-
-    androidTestImplementation project(':support-android-test')
-    androidTestImplementation Dependencies.androidx_test_core
-    androidTestImplementation Dependencies.androidx_test_runner
-    
     testImplementation Dependencies.androidx_test_core
     testImplementation Dependencies.androidx_test_junit
-    testImplementation Dependencies.kotlin_reflect
-    testImplementation Dependencies.testing_coroutines
-    testImplementation Dependencies.testing_robolectric
+    testImplementation Dependencies.testing_junit
     testImplementation Dependencies.testing_mockito
-
-    androidTestImplementation project(':support-android-test')
-    androidTestImplementation Dependencies.androidx_test_core
-    androidTestImplementation Dependencies.androidx_test_runner
-    androidTestImplementation Dependencies.androidx_test_rules
-    androidTestImplementation Dependencies.androidx_test_junit
+    testImplementation Dependencies.testing_robolectric
 }
 
 apply from: '../../../publish.gradle'

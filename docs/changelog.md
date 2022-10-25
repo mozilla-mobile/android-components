@@ -10,8 +10,14 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **compose-cfr**
+  * 🆕 New composable popup allowing to offer more context about a specific View anchor on the screen. Supports RTL along with many other customizations and anchorings.
+
 * **feature-qr**
   * QRFeature now allows querying if scanning is in progress with a new `isScanInProgress` property. This helps deciding on whether to resume scanning by calling `scan` in a new `QRFeature` instance as it can happen if the process is restarted as a followup to the user updating system permissions for the app.
+
+* **support-ktx**:
+  * The colors of the icons from the status bar should be in contrast with the status bar background color [#1795650](https://bugzilla.mozilla.org/show_bug.cgi?id=1795650)
 
 # 107.0.0
 * [Commits](https://github.com/mozilla-mobile/android-components/compare/v106.0.0..v107.0.0)

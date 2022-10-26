@@ -10,6 +10,9 @@ permalink: /changelog/
 * [Gecko](https://github.com/mozilla-mobile/android-components/blob/main/buildSrc/src/main/java/Gecko.kt)
 * [Configuration](https://github.com/mozilla-mobile/android-components/blob/main/.config.yml)
 
+* **ui-autocomplete**
+  * 🚒 Bug fixed [issue #1794933](https://bugzilla.mozilla.org/show_bug.cgi?id=1794933) Immediately remove autocomplete when not applicable anymore.
+
 * **compose-cfr**
   * 🆕 New composable popup allowing to offer more context about a specific View anchor on the screen. Supports RTL along with many other customizations and anchorings.
 

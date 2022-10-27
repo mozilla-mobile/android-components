@@ -36,7 +36,7 @@ object Versions {
     const val mozilla_appservices = "94.3.2"
 
     // DO NOT MODIFY MANUALLY. This is auto-updated along with GeckoView.
-    const val mozilla_glean = "51.5.0"
+    const val mozilla_glean = "51.7.0"
 
     const val material = "1.2.1"
 
@@ -47,7 +47,7 @@ object Versions {
 
     object AndroidX {
         const val activityCompose = "1.4.0"
-        const val annotation = "1.1.0"
+        const val annotation = "1.5.0"
         const val appcompat = "1.3.0"
         const val autofill = "1.1.0"
         const val browser = "1.3.0"

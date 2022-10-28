@@ -6,7 +6,10 @@ package mozilla.components.browser.storage.sync
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import androidx.annotation.VisibleForTesting
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.WorkManager
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.PlacesApi
 import mozilla.appservices.places.PlacesReaderConnection
@@ -29,12 +32,15 @@ import mozilla.components.concept.storage.SearchResult
 import mozilla.components.concept.storage.TopFrecentSiteInfo
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
+import mozilla.components.concept.storage.constraints
+import mozilla.components.concept.storage.periodicStorageWorkRequest
 import mozilla.components.concept.sync.SyncAuthInfo
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncableStore
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.segmentAwareDomainMatch
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
 
@@ -43,7 +49,7 @@ const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
  */
 @Suppress("TooManyFunctions", "LargeClass")
 open class PlacesHistoryStorage(
-    context: Context,
+    private val context: Context,
     crashReporter: CrashReporting? = null,
 ) : PlacesStorage(context, crashReporter), HistoryStorage, HistoryMetadataStorage, SyncableStore {
     /**
@@ -245,6 +251,29 @@ open class PlacesHistoryStorage(
                 places.writer().pruneDestructively()
             }
         }
+    }
+
+    /**
+     * Enqueues periodic storage maintenance worker to WorkManager that prunes database entries
+     * when it exceeds [PlacesStorageMaintenanceWorker.DB_SIZE_LIMIT_IN_BYTES].
+     */
+    override fun registerStorageMaintenanceWorker() {
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            PlacesStorageMaintenanceWorker.UNIQUE_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            periodicStorageWorkRequest<PlacesStorageMaintenanceWorker>(
+                repeatInterval = PlacesStorageMaintenanceWorker.WORKER_PERIOD_IN_HOURS,
+                repeatIntervalTimeUnit = TimeUnit.HOURS,
+                tag = PlacesStorageMaintenanceWorker.UNIQUE_NAME,
+            ) {
+                constraints {
+                    setRequiresBatteryNotLow(true)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        setRequiresDeviceIdle(true)
+                    }
+                }
+            },
+        )
     }
 
     /**

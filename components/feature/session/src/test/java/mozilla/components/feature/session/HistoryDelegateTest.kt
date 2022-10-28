@@ -174,7 +174,11 @@ class HistoryDelegateTest {
             fail()
         }
 
-        override suspend fun runMaintenance() {
+        override fun registerStorageMaintenanceWorker() {
+            fail()
+        }
+
+        override suspend fun runMaintenance(dbSizeLimit: UInt) {
             fail()
         }
 

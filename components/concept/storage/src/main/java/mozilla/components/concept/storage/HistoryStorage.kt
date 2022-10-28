@@ -135,6 +135,12 @@ interface HistoryStorage : Storage {
      * Prune history storage, removing stale history.
      */
     suspend fun prune()
+
+    /**
+     * Registers a storage maintenance worker that prunes database when its size exceeds a size limit.
+     * See also [Storage.runMaintenance].
+     * */
+    fun registerStorageMaintenanceWorker()
 }
 
 /**

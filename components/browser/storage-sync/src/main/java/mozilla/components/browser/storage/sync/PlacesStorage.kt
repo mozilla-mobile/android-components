@@ -61,10 +61,13 @@ abstract class PlacesStorage(
 
     /**
      * Internal database maintenance tasks. Ideally this should be called once a day.
+     *
+     * @param dbSizeLimit Maximum DB size to aim for, in bytes. If the
+     * database exceeds this size, a small number of visits will be pruned.
      */
-    override suspend fun runMaintenance() {
+    override suspend fun runMaintenance(dbSizeLimit: UInt) {
         withContext(writeScope.coroutineContext) {
-            places.writer().runMaintenance()
+            places.writer().runMaintenance(dbSizeLimit)
         }
     }
 

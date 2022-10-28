@@ -83,7 +83,7 @@ open class RemoteTabsStorage(
         }
     }
 
-    override suspend fun runMaintenance() {
+    override suspend fun runMaintenance(dbSizeLimit: UInt) {
         // There's no such thing as maintenance for remote tabs, as it is a in-memory store.
     }
 

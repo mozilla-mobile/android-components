@@ -30,6 +30,7 @@ dependencies {
 
     implementation project(':support-ktx')
     implementation Dependencies.androidx_annotation
+    implementation Dependencies.androidx_work_runtime
 
     testImplementation project(':support-test')
     testImplementation Dependencies.testing_junit
